@@ -30,7 +30,7 @@ const CompensationManagement = () => {
   ];
 
   return (
-    <section className="p-8 max-w-full mx-auto min-h-full">
+    <section className="max-w-full mx-auto min-h-full">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
