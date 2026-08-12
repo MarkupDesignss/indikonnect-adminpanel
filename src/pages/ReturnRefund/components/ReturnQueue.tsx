@@ -1,5 +1,5 @@
 import type { ReturnFilterTab, ReturnRequest } from '@/types/returnRefund';
-import { getReturnStatusBadge } from './returnStatus';
+import { getReturnStatusBadge } from '../returnStatus';
 
 interface ReturnQueueProps {
   activeFilter: ReturnFilterTab;

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getDistributors } from '@/services/wholesaleApi';
 import type { Distributor, DistributorTab } from '@/types/wholesale';
-import DistributorDetail from './DistributorDetail';
-import DistributorList from './DistributorList';
+import DistributorDetail from './components/DistributorDetail';
+import DistributorList from './components/DistributorList';
 
 const Distributors = () => {
   const [distributors, setDistributors] = useState<Distributor[]>([]);

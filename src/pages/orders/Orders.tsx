@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 
-import OrderStats from "./OrderStats";
+import OrderStats from "./components/OrderStats";
 
 import OrdersTable, {
   Order,
-} from "./OrdersTable";
+} from "./components/OrdersTable";
 
-import OrderSidebar from "./OrderSidebar";
+import OrderSidebar from "./components/OrderSidebar";
 
-import OrderCustomerDetails from "./OrderCustomerDetails";
+import OrderCustomerDetails from "./components/OrderCustomerDetails";
 
-import OrderItems from "./OrderItems";
+import OrderItems from "./components/OrderItems";
 
-import OrderPaymentInfo from "./OrderPaymentInfo"
+import OrderPaymentInfo from "./components/OrderPaymentInfo"
 
-import OrderTimeline from "./OrderTimeline";
+import OrderTimeline from "./components/OrderTimeline";
 
 const Orders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] =

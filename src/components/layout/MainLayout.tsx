@@ -31,6 +31,12 @@ const MainLayout = () => {
           ))}
         </div>
         {/* ... new order button, logout ... */}
+        <div className="p-4">
+          <NavLink to="/logout" className="flex items-center justify-center space-x-3 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-container">
+            <span className="text-white material-symbols-outlined">logout</span>
+            <span className="text-white">Logout</span>
+          </NavLink>
+        </div>
       </nav>
 
       {/* Main content area */}

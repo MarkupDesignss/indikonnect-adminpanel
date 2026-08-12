@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getBuyBackRequests } from '@/services/buyBackApi';
 import type { BuyBackFilterTab, BuyBackRequest } from '@/types/buyBack';
-import BuyBackDetail from './BuyBackDetail';
-import BuyBackRequestList from './BuyBackRequestList';
+import BuyBackDetail from './components/BuyBackDetail';
+import BuyBackRequestList from './components/BuyBackRequestList';
 import { buyBackFilterStatusMap } from './buyBackStatus';
 
 const BuyBack = () => {

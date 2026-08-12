@@ -9,11 +9,11 @@ import {
   FiSearch,
 } from "react-icons/fi";
 
-import CategoryTable from "./CategoryTable";
-import AddCategoryModal from "./AddCategoryModal";
-import EditCategoryModal from "./EditCategoryModal";
-import DeleteCategoryModal from "./DeleteCategoryModal";
-import AddTaxCategoryModal from "./AddTaxCategoryModal";
+import CategoryTable from "./components/CategoryTable";
+import AddCategoryModal from "./components/AddCategoryModal";
+import EditCategoryModal from "./components/EditCategoryModal";
+import DeleteCategoryModal from "./components/DeleteCategoryModal";
+import AddTaxCategoryModal from "./components/AddTaxCategoryModal";
 
 import {
   addCategory,

@@ -1,5 +1,5 @@
 import type { BuyBackRequest } from '@/types/buyBack';
-import { getBuyBackStatusBadge } from './buyBackStatus';
+import { getBuyBackStatusBadge } from '../buyBackStatus';
 
 interface BuyBackDetailProps {
   request: BuyBackRequest;

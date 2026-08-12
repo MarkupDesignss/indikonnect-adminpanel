@@ -1,5 +1,5 @@
 import type { BuyBackFilterTab, BuyBackRequest } from '@/types/buyBack';
-import { getBuyBackStatusBadge } from './buyBackStatus';
+import { getBuyBackStatusBadge } from '../buyBackStatus';
 
 interface BuyBackRequestListProps {
   activeTab: BuyBackFilterTab;

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getReturnRequests } from '@/services/returnRefundApi';
 import type { ReturnFilterTab, ReturnRequest } from '@/types/returnRefund';
-import ReturnDetail from './ReturnDetail';
-import ReturnQueue from './ReturnQueue';
+import ReturnDetail from './components/ReturnDetail';
+import ReturnQueue from './components/ReturnQueue';
 
 const ReturnRefund = () => {
   const [requests, setRequests] = useState<ReturnRequest[]>([]);

@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getWholesaleCustomers } from '@/services/wholesaleApi';
 import type { CustomerFilter, CustomerTab, WholesaleCustomer } from '@/types/wholesale';
-import CustomerDetail from './CustomerDetail';
-import CustomerList from './CustomerList';
+import CustomerDetail from './components/CustomerDetail';
+import CustomerList from './components/CustomerList';
 
 const Wholesale = () => {
   const [customers, setCustomers] = useState<WholesaleCustomer[]>([]);

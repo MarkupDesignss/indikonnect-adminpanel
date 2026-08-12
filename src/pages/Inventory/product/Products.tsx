@@ -9,10 +9,10 @@ import React, {
     FiSearch,
   } from "react-icons/fi";
   
-  import ProductTable from "./ProductTable";
-  import AddProductModal from "./AddProductModal";
-  import EditProductModal from "./EditProductModal";
-  import ViewProductModal from "./ViewProductModal";
+  import ProductTable from "./components/ProductTable";
+  import AddProductModal from "./components/AddProductModal";
+  import EditProductModal from "./components/EditProductModal";
+  import ViewProductModal from "./components/ViewProductModal";
   
   import {
     addProduct,
