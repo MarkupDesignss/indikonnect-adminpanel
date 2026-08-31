@@ -8,14 +8,12 @@ import {
 
 const OrderCustomerDetails: React.FC = () => {
   return (
-    <div className="rounded-[4px] border border-[#d8e0e9] bg-white p-6">
-      {/* CUSTOMER */}
-
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      {/* CUSTOMER DETAILS */}
       <div className="flex items-center gap-3">
-        <FiUser
-          size={18}
-          className="text-[#304b6b]"
-        />
+        <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-[#eef3f8]">
+          <FiUser size={17} className="text-[#304b6b]" />
+        </div>
 
         <h3 className="font-lato text-[14px] font-bold tracking-[0.5px] text-[#30445d]">
           CUSTOMER DETAILS
@@ -31,28 +29,26 @@ const OrderCustomerDetails: React.FC = () => {
           Jane Doe
         </p>
 
-        <div className="mt-3 space-y-2">
-          <p className="flex items-center gap-2 font-arimo text-[14px] text-[#17395f]">
-            <FiMail size={15} />
-            jane.doe@acmecorp.com
+        <div className="mt-4 space-y-3">
+          <p className="flex items-center gap-2.5 font-arimo text-[14px] text-[#17395f]">
+            <FiMail size={15} className="shrink-0 text-[#5d7693]" />
+            <span>jane.doe@acmecorp.com</span>
           </p>
 
-          <p className="flex items-center gap-2 font-arimo text-[14px] text-[#17395f]">
-            <FiPhone size={15} />
-            (555) 123-4567
+          <p className="flex items-center gap-2.5 font-arimo text-[14px] text-[#17395f]">
+            <FiPhone size={15} className="shrink-0 text-[#5d7693]" />
+            <span>(555) 123-4567</span>
           </p>
         </div>
       </div>
 
       <div className="my-5 border-t border-[#dce2e9]" />
 
-      {/* SHIPPING */}
-
+      {/* SHIPPING ADDRESS */}
       <div className="flex items-center gap-3">
-        <FiTruck
-          size={18}
-          className="text-[#304b6b]"
-        />
+        <div className="flex h-8 w-8 items-center justify-center rounded-[4px] bg-[#eef3f8]">
+          <FiTruck size={17} className="text-[#304b6b]" />
+        </div>
 
         <h3 className="font-lato text-[14px] font-bold tracking-[0.5px] text-[#30445d]">
           SHIPPING ADDRESS

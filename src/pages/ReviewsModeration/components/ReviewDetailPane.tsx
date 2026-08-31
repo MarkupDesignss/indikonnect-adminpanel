@@ -1,201 +1,330 @@
 import React from 'react';
+import {
+FiCheck,
+FiTrash2,
+FiX,
+FiUser,
+FiCheckCircle,
+FiStar,
+} from 'react-icons/fi';
 import { getStatusBadge } from './ReviewUtils';
 
 interface SelectedReview {
-  id: number;
-  product: string;
-  customer: string;
-  date: string;
-  rating: number;
-  status: string;
-  title: string;
-  comment: string;
-  customerProfile: any;
-  productContext: any;
+id: number;
+product: string;
+customer: string;
+date: string;
+rating: number;
+status: string;
+title: string;
+comment: string;
+customerProfile: any;
+productContext: any;
 }
 
 interface Props {
-  selectedReview: SelectedReview;
+selectedReview: SelectedReview;
 }
 
-export const ReviewDetailPane: React.FC<Props> = ({ selectedReview }) => (
-  <section className="flex-1 bg-surface-container-lowest rounded-xl border border-border-light flex flex-col h-full overflow-hidden shadow-sm">
-    {/* Detail Header */}
-    <div className="p-6 border-b border-border-light flex justify-between items-start bg-white">
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <span className={getStatusBadge(selectedReview.status)}>
-            {selectedReview.status} Review
-          </span>
-          <span className="text-body-md text-on-surface-variant">
-            Submitted on {selectedReview.date}
-          </span>
-        </div>
-        <h3 className="font-headline-md text-headline-md font-semibold text-primary mb-1">
-          {selectedReview.product}
-        </h3>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant">
-            <span className="material-symbols-outlined text-[14px]">person</span>
-          </div>
-          <span className="font-data-tabular text-data-tabular">{selectedReview.customer}</span>
-          <span className="text-outline-variant px-1">•</span>
-          <span className="text-body-md text-on-surface-variant">Verified Buyer</span>
-        </div>
+export const ReviewDetailPane: React.FC<Props> = ({
+selectedReview,
+}) => (
+
+  <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
+
+<div className="relative border-b border-[#b8902e]/10 bg-white px-5 py-5 sm:px-6">
+  {/* Top gold line */}
+  <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+
+  <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+    <div className="min-w-0">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getStatusBadge(
+            selectedReview.status
+          )}`}
+        >
+          {selectedReview.status} Review
+        </span>
+
+        <span className="text-xs text-[#a89a7d]">
+          Submitted on {selectedReview.date}
+        </span>
       </div>
-      <div className="flex gap-3">
-        <button className="px-4 py-2 border border-border-light rounded-lg text-body-md font-medium text-primary bg-white hover:bg-surface flex items-center gap-2 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">delete</span>
-          Delete
-        </button>
-        <button className="px-4 py-2 border border-status-error rounded-lg text-body-md font-medium text-status-error bg-white hover:bg-error-container flex items-center gap-2 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">close</span>
-          Reject
-        </button>
-        <button className="px-4 py-2 bg-primary rounded-lg text-body-md font-medium text-on-primary hover:bg-secondary-container hover:text-on-secondary-container flex items-center gap-2 transition-colors">
-          <span className="material-symbols-outlined text-[18px]">check</span>
-          Approve
-        </button>
+
+      <h3 className="truncate pr-2 font-serif text-xl font-bold text-[#2a2620] sm:text-2xl">
+        {selectedReview.product}
+      </h3>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#faf8f3] text-[#b8902e]">
+          <FiUser size={15} />
+        </div>
+
+        <span className="text-sm font-semibold text-[#4a4436]">
+          {selectedReview.customer}
+        </span>
+
+        <span className="text-[#c2b6a0]">•</span>
+
+        <span className="flex items-center gap-1.5 text-xs font-medium text-[#8f6d1d]">
+          <FiCheckCircle size={13} />
+          Verified Buyer
+        </span>
+      </div>
+    </div>
+
+    {/* ACTIONS */}
+
+    <div className="flex flex-wrap gap-2">
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 py-2.5 text-xs font-bold text-[#786f60] transition-all hover:border-[#b8902e]/35 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+      >
+        <FiTrash2 size={15} />
+        Delete
+      </button>
+
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-xl border border-[#c98d83]/25 bg-[#fff8f6] px-4 py-2.5 text-xs font-bold text-[#b46055] transition-all hover:border-[#b46055]/40 hover:bg-[#b46055]/10"
+      >
+        <FiX size={15} />
+        Reject
+      </button>
+
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition-all hover:from-[#a8841c] hover:to-[#795b14]"
+      >
+        <FiCheck size={15} />
+        Approve
+      </button>
+    </div>
+  </div>
+</div>
+
+{/* =====================================================
+    DETAIL CONTENT
+===================================================== */}
+
+<div className="flex-1 overflow-y-auto bg-[#faf8f3] p-5 sm:p-6">
+  <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+    {/* =================================================
+        MAIN FEEDBACK
+    ================================================= */}
+
+    <div className="space-y-5 xl:col-span-2">
+      {/* REVIEW CARD */}
+
+      <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm sm:p-6">
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] to-[#b8902e]" />
+
+        <div className="mb-5 flex flex-wrap items-center gap-2">
+          {Array.from({
+            length: 5,
+          }).map((_, i) => (
+            <FiStar
+              key={i}
+              size={22}
+              className={
+                i < selectedReview.rating
+                  ? 'fill-[#d4af52] text-[#b8902e]'
+                  : 'text-[#d8d0c0]'
+              }
+            />
+          ))}
+
+          <span className="ml-2 text-lg font-bold text-[#2a2620]">
+            {selectedReview.rating}.0
+          </span>
+
+          <span className="rounded-full bg-[#faf8f3] px-2.5 py-1 text-[10px] font-semibold text-[#8f6d1d]">
+            Customer Rating
+          </span>
+        </div>
+
+        <h4 className="text-xl font-bold text-[#2a2620]">
+          {selectedReview.title}
+        </h4>
+
+        <div className="my-4 h-px bg-[#b8902e]/10" />
+
+        <p className="text-sm leading-7 text-[#786f60] sm:text-base">
+          {selectedReview.comment}
+        </p>
+      </div>
+
+      {/* REVIEW SUMMARY */}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+            Review Status
+          </p>
+
+          <div className="mt-2">
+            <span
+              className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getStatusBadge(
+                selectedReview.status
+              )}`}
+            >
+              {selectedReview.status}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+            Rating Given
+          </p>
+
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-xl font-bold text-[#2a2620]">
+              {selectedReview.rating}/5
+            </span>
+
+            <FiStar
+              size={16}
+              className="fill-[#d4af52] text-[#b8902e]"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+            Submitted
+          </p>
+
+          <p className="mt-2 text-sm font-bold text-[#2a2620]">
+            {selectedReview.date}
+          </p>
+        </div>
       </div>
     </div>
 
-    {/* Detail Content (Scrollable) */}
-    <div className="flex-1 overflow-y-auto p-6 bg-surface-subtle">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Feedback Column */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* The Review */}
-          <div className="bg-white p-6 rounded-xl border border-border-light">
-            <div className="flex items-center gap-2 mb-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <span
-                  key={i}
-                  className={`material-symbols-outlined text-[24px] ${
-                    i < selectedReview.rating ? 'text-status-warning' : 'text-outline-variant'
-                  }`}
-                  style={{ fontVariationSettings: i < selectedReview.rating ? "'FILL' 1" : undefined }}
-                >
-                  star
-                </span>
-              ))}
-              <span className="font-title-lg text-title-lg ml-2">{selectedReview.rating}.0</span>
-            </div>
-            <h4 className="font-title-lg text-title-lg font-semibold text-primary mb-3">
-              {selectedReview.title}
-            </h4>
-            <p className="text-body-lg text-on-surface-variant leading-relaxed">
-              {selectedReview.comment}
-            </p>
+    {/* =================================================
+        RIGHT SIDEBAR
+    ================================================= */}
+
+    <div className="space-y-5">
+      {/* CUSTOMER PROFILE */}
+
+      <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#d4af52] to-[#8a6c1f]" />
+
+        <h5 className="mb-4 border-b border-[#b8902e]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a89a7d]">
+          Customer Profile
+        </h5>
+
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
+            {selectedReview.customerProfile.initials}
           </div>
 
-          {/* Moderation Panel */}
-          <div className="bg-white p-6 rounded-xl border border-border-light border-t-4 border-t-primary">
-            <h4 className="font-data-tabular text-data-tabular font-semibold text-primary mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
-              Moderation Actions
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-label-md font-label-md text-on-surface-variant mb-1">
-                  Internal Notes (Not visible to customer)
-                </label>
-                <textarea
-                  className="w-full p-3 border border-border-light rounded-lg text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-24"
-                  placeholder="Add administrative notes here..."
-                ></textarea>
-              </div>
-              <div>
-                <label className="block text-label-md font-label-md text-on-surface-variant mb-1">
-                  Reason for Rejection (If applicable)
-                </label>
-                <select className="w-full p-3 border border-border-light rounded-lg text-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all bg-white">
-                  <option value="">Select a reason...</option>
-                  <option value="profanity">Contains Profanity</option>
-                  <option value="off_topic">Off-topic / Irrelevant</option>
-                  <option value="competitor">Mentions Competitor</option>
-                  <option value="spam">Spam / Promotional</option>
-                </select>
-              </div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold text-[#2a2620]">
+              {selectedReview.customerProfile.name}
+            </div>
+
+            <div className="mt-1 text-xs text-[#a89a7d]">
+              {selectedReview.customerProfile.role}
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar Column */}
-        <div className="space-y-6">
-          {/* Customer Snapshot */}
-          <div className="bg-white p-5 rounded-xl border border-border-light">
-            <h5 className="text-label-md font-label-md uppercase tracking-wider text-on-surface-variant mb-4 border-b border-border-light pb-2">
-              Customer Profile
-            </h5>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-bold text-title-lg">
-                {selectedReview.customerProfile.initials}
-              </div>
-              <div>
-                <div className="font-data-tabular text-data-tabular font-semibold">
-                  {selectedReview.customerProfile.name}
-                </div>
-                <div className="text-body-md text-on-surface-variant">
-                  {selectedReview.customerProfile.role}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-3 text-body-md">
-              <div className="flex justify-between">
-                <span className="text-on-surface-variant">Total Orders</span>
-                <span className="font-medium">{selectedReview.customerProfile.totalOrders}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-on-surface-variant">Total Reviews</span>
-                <span className="font-medium">{selectedReview.customerProfile.totalReviews}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-on-surface-variant">Account Status</span>
-                <span className="text-status-success font-medium flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                  {selectedReview.customerProfile.accountStatus}
-                </span>
-              </div>
-            </div>
+        <div className="space-y-1">
+          <div className="flex items-center justify-between border-b border-[#b8902e]/10 py-2.5">
+            <span className="text-xs text-[#a89a7d]">
+              Total Orders
+            </span>
+
+            <span className="text-sm font-bold text-[#2a2620]">
+              {selectedReview.customerProfile.totalOrders}
+            </span>
           </div>
 
-          {/* Product Snapshot */}
-          <div className="bg-white p-5 rounded-xl border border-border-light">
-            <h5 className="text-label-md font-label-md uppercase tracking-wider text-on-surface-variant mb-4 border-b border-border-light pb-2">
-              Product Context
-            </h5>
-            <div className="flex gap-3 mb-4">
-              <div className="w-16 h-16 bg-surface-variant rounded-lg border border-border-light overflow-hidden flex-shrink-0">
-                <img
-                  alt={selectedReview.productContext.name}
-                  className="w-full h-full object-cover"
-                  src={selectedReview.productContext.image}
-                />
-              </div>
-              <div>
-                <div className="font-data-tabular text-data-tabular font-medium line-clamp-2 mb-1">
-                  {selectedReview.productContext.name}
-                </div>
-                <div className="text-label-md text-on-surface-variant font-mono bg-surface px-1.5 py-0.5 rounded inline-block">
-                  SKU: {selectedReview.productContext.sku}
-                </div>
-              </div>
+          <div className="flex items-center justify-between border-b border-[#b8902e]/10 py-2.5">
+            <span className="text-xs text-[#a89a7d]">
+              Total Reviews
+            </span>
+
+            <span className="text-sm font-bold text-[#2a2620]">
+              {selectedReview.customerProfile.totalReviews}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between py-2.5">
+            <span className="text-xs text-[#a89a7d]">
+              Account Status
+            </span>
+
+            <span className="flex items-center gap-1.5 text-xs font-bold text-[#806319]">
+              <FiCheckCircle size={13} />
+              {selectedReview.customerProfile.accountStatus}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* PRODUCT CONTEXT */}
+
+      <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] to-[#b8902e]" />
+
+        <h5 className="mb-4 border-b border-[#b8902e]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a89a7d]">
+          Product Context
+        </h5>
+
+        <div className="mb-4 flex gap-3">
+          <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-[#b8902e]/15 bg-[#faf8f3]">
+            <img
+              alt={selectedReview.productContext.name}
+              className="h-full w-full object-cover"
+              src={selectedReview.productContext.image}
+            />
+          </div>
+
+          <div className="min-w-0">
+            <div className="mb-2 line-clamp-2 text-sm font-bold text-[#2a2620]">
+              {selectedReview.productContext.name}
             </div>
-            <div className="bg-surface-subtle p-3 rounded-lg border border-border-light flex items-center justify-between">
-              <span className="text-body-md text-on-surface-variant">Overall Rating</span>
-              <div className="flex items-center gap-1">
-                <span className="font-semibold">{selectedReview.productContext.overallRating}</span>
-                <span className="material-symbols-outlined text-status-warning text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  star
-                </span>
-                <span className="text-body-md text-on-surface-variant">
-                  ({selectedReview.productContext.totalRatings})
-                </span>
-              </div>
+
+            <div className="inline-flex rounded-lg bg-[#faf8f3] px-2 py-1 font-mono text-[10px] font-semibold text-[#8f6d1d]">
+              SKU: {selectedReview.productContext.sku}
             </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
+          <span className="text-xs text-[#a89a7d]">
+            Overall Rating
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-[#2a2620]">
+              {selectedReview.productContext.overallRating}
+            </span>
+
+            <FiStar
+              size={14}
+              className="fill-[#d4af52] text-[#b8902e]"
+            />
+
+            <span className="text-[11px] text-[#a89a7d]">
+              (
+              {
+                selectedReview.productContext
+                  .totalRatings
+              }
+              )
+            </span>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
   </section>
 );

@@ -13,7 +13,7 @@ const ReviewsModeration = () => {
   const selectedReview = initialSelected; 
 
   return (
-    <div className="flex-1 flex overflow-hidden gap-4">
+    <div className="flex-1 flex overflow-hidden gap-4 p-4">
       {/* Left Sidebar – Master List */}
       <ReviewMasterSidebar 
         reviewList={reviewList}

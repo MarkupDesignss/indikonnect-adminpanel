@@ -6,12 +6,10 @@ import {
   FiFilter,
   FiChevronLeft,
   FiChevronRight,
+  FiX,
 } from "react-icons/fi";
 
-export type PaymentStatus =
-  | "PAID"
-  | "OVERDUE"
-  | "PENDING";
+export type PaymentStatus = "PAID" | "OVERDUE" | "PENDING";
 
 export type ShippingStatus =
   | "UNFULFILLED"
@@ -112,35 +110,28 @@ const dummyOrders: Order[] = [
 const paymentClasses = (status: PaymentStatus) => {
   switch (status) {
     case "PAID":
-      return "bg-[#d1fae5] text-[#047857]";
-
+      return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
     case "OVERDUE":
-      return "bg-[#fee2e2] text-[#dc2626]";
-
+      return "bg-rose-50 text-rose-700 ring-1 ring-rose-200";
     case "PENDING":
-      return "bg-[#fef3c7] text-[#b45309]";
-
+      return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
     default:
-      return "bg-gray-100 text-gray-600";
+      return "bg-gray-50 text-gray-600 ring-1 ring-gray-200";
   }
 };
 
 const shippingClasses = (status: ShippingStatus) => {
   switch (status) {
     case "UNFULFILLED":
-      return "bg-[#fef3c7] text-[#b45309]";
-
+      return "bg-amber-50 text-amber-700 ring-1 ring-amber-200";
     case "SHIPPED":
-      return "bg-[#e0e7ff] text-[#4338ca]";
-
+      return "bg-blue-50 text-blue-700 ring-1 ring-blue-200";
     case "DELIVERED":
-      return "bg-[#d1fae5] text-[#047857]";
-
+      return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200";
     case "CANCELLED":
-      return "bg-[#f1f5f9] text-[#475569]";
-
+      return "bg-gray-50 text-gray-600 ring-1 ring-gray-200";
     default:
-      return "bg-gray-100 text-gray-600";
+      return "bg-gray-50 text-gray-600 ring-1 ring-gray-200";
   }
 };
 
@@ -150,12 +141,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 }) => {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("All Dates");
-  const [paymentFilter, setPaymentFilter] =
-    useState("Payment: All");
-  const [shippingFilter, setShippingFilter] =
-    useState("Shipping: All");
-
+  const [paymentFilter, setPaymentFilter] = useState("Payment: All");
+  const [shippingFilter, setShippingFilter] = useState("Shipping: All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const itemsPerPage = 4;
 
@@ -165,45 +154,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       const searchMatch =
         order.id.toLowerCase().includes(searchText) ||
-        order.customer
-          .toLowerCase()
-          .includes(searchText) ||
-        order.customerName
-          .toLowerCase()
-          .includes(searchText);
+        order.customer.toLowerCase().includes(searchText) ||
+        order.customerName.toLowerCase().includes(searchText);
 
       const paymentMatch =
         paymentFilter === "Payment: All" ||
-        order.payment === paymentFilter.replace(
-          "Payment: ",
-          ""
-        );
+        order.payment === paymentFilter.replace("Payment: ", "");
 
       const shippingMatch =
         shippingFilter === "Shipping: All" ||
-        order.shipping === shippingFilter.replace(
-          "Shipping: ",
-          ""
-        );
+        order.shipping === shippingFilter.replace("Shipping: ", "");
 
-      return (
-        searchMatch &&
-        paymentMatch &&
-        shippingMatch
-      );
+      return searchMatch && paymentMatch && shippingMatch;
     });
-  }, [
-    search,
-    paymentFilter,
-    shippingFilter,
-  ]);
+  }, [search, paymentFilter, shippingFilter]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredOrders.length / itemsPerPage
-    )
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
 
   const visibleOrders = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
@@ -211,28 +177,34 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   );
 
   const changePage = (page: number) => {
-    setCurrentPage(
-      Math.min(
-        Math.max(page, 1),
-        totalPages
-      )
-    );
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
   };
 
+  const clearFilters = () => {
+    setSearch("");
+    setDateFilter("All Dates");
+    setPaymentFilter("Payment: All");
+    setShippingFilter("Shipping: All");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    search !== "" ||
+    dateFilter !== "All Dates" ||
+    paymentFilter !== "Payment: All" ||
+    shippingFilter !== "Shipping: All";
+
   return (
-    <div className="rounded-[4px]">
+    <div className="space-y-5">
       {/* FILTER BAR */}
-
-      <div className="mb-5 rounded-[4px] border border-[#d8e0e9] bg-white p-5">
-        <div className="flex flex-col gap-4 xl:flex-row">
+      <div className="rounded-2xl bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           {/* SEARCH */}
-
-          <div className="relative min-w-0 flex-1">
+          <div className="relative flex-1 min-w-[200px]">
             <FiSearch
-              size={22}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#526b87]"
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
             />
-
             <input
               type="text"
               value={search}
@@ -240,315 +212,403 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 setSearch(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Search Order ID, Customer..."
-              className="h-[48px] w-full rounded-[2px] border border-[#c8ced7] bg-white pl-[50px] pr-4 font-arimo text-[15px] text-[#071a35] outline-none placeholder:text-[#60738e] focus:border-[#17395f]"
+              placeholder="Search orders, customers..."
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <FiX size={16} />
+              </button>
+            )}
           </div>
 
-          {/* DATE */}
+          {/* DESKTOP FILTERS */}
+          <div className="hidden lg:flex items-center gap-3">
+            <div className="relative">
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="h-11 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+              >
+                <option>All Dates</option>
+                <option>Today</option>
+                <option>This Week</option>
+                <option>This Month</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
 
-          <div className="relative w-full xl:w-[185px]">
-            <select
-              value={dateFilter}
-              onChange={(e) =>
-                setDateFilter(e.target.value)
-              }
-              className="h-[48px] w-full appearance-none rounded-[2px] border border-[#c8ced7] bg-white px-4 pr-10 font-arimo text-[15px] text-[#071a35] outline-none"
+            <div className="relative">
+              <select
+                value={paymentFilter}
+                onChange={(e) => {
+                  setPaymentFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+              >
+                <option>Payment: All</option>
+                <option>PAID</option>
+                <option>OVERDUE</option>
+                <option>PENDING</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
+
+            <div className="relative">
+              <select
+                value={shippingFilter}
+                onChange={(e) => {
+                  setShippingFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="h-11 appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+              >
+                <option>Shipping: All</option>
+                <option>UNFULFILLED</option>
+                <option>SHIPPED</option>
+                <option>DELIVERED</option>
+                <option>CANCELLED</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className={`h-11 px-4 rounded-xl text-sm font-medium transition-all ${
+                hasActiveFilters
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
             >
-              <option>All Dates</option>
-              <option>Today</option>
-              <option>This Week</option>
-              <option>This Month</option>
-            </select>
-
-            <FiChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b]"
-              size={18}
-            />
+              <FiFilter size={16} className="inline mr-1.5" />
+              Clear Filters
+            </button>
           </div>
 
-          {/* PAYMENT */}
-
-          <div className="relative w-full xl:w-[170px]">
-            <select
-              value={paymentFilter}
-              onChange={(e) => {
-                setPaymentFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-[48px] w-full appearance-none rounded-[2px] border border-[#c8ced7] bg-white px-4 pr-10 font-arimo text-[15px] text-[#071a35] outline-none"
-            >
-              <option>Payment: All</option>
-              <option>PAID</option>
-              <option>OVERDUE</option>
-              <option>PENDING</option>
-            </select>
-
-            <FiChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b]"
-              size={18}
-            />
-          </div>
-
-          {/* SHIPPING */}
-
-          <div className="relative w-full xl:w-[170px]">
-            <select
-              value={shippingFilter}
-              onChange={(e) => {
-                setShippingFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="h-[48px] w-full appearance-none rounded-[2px] border border-[#c8ced7] bg-white px-4 pr-10 font-arimo text-[15px] text-[#071a35] outline-none"
-            >
-              <option>Shipping: All</option>
-              <option>UNFULFILLED</option>
-              <option>SHIPPED</option>
-              <option>DELIVERED</option>
-              <option>CANCELLED</option>
-            </select>
-
-            <FiChevronDown
-              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#64748b]"
-              size={18}
-            />
-          </div>
-
-          {/* MORE FILTER */}
-
+          {/* MOBILE FILTERS TOGGLE */}
           <button
-            type="button"
-            className="flex h-[48px] shrink-0 items-center justify-center gap-2 px-3 font-lato text-[14px] font-bold text-[#071a35]"
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="lg:hidden flex items-center justify-center gap-2 h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            <FiFilter size={17} />
-            More Filters
+            <FiFilter size={16} />
+            Filters
+            {hasActiveFilters && (
+              <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                !
+              </span>
+            )}
           </button>
         </div>
+
+        {/* MOBILE FILTERS */}
+        {showMobileFilters && (
+          <div className="mt-4 space-y-3 lg:hidden">
+            <div className="relative">
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              >
+                <option>All Dates</option>
+                <option>Today</option>
+                <option>This Week</option>
+                <option>This Month</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
+
+            <div className="relative">
+              <select
+                value={paymentFilter}
+                onChange={(e) => {
+                  setPaymentFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              >
+                <option>Payment: All</option>
+                <option>PAID</option>
+                <option>OVERDUE</option>
+                <option>PENDING</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
+
+            <div className="relative">
+              <select
+                value={shippingFilter}
+                onChange={(e) => {
+                  setShippingFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="w-full h-11 rounded-xl border border-slate-200 bg-slate-50 px-4 pr-9 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all"
+              >
+                <option>Shipping: All</option>
+                <option>UNFULFILLED</option>
+                <option>SHIPPED</option>
+                <option>DELIVERED</option>
+                <option>CANCELLED</option>
+              </select>
+              <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            </div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="w-full h-11 rounded-xl bg-blue-50 text-blue-700 font-medium text-sm hover:bg-blue-100 transition-all"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* TABLE */}
-
-      <div className="overflow-hidden rounded-[4px] border border-[#d8e0e9] bg-white">
-        <div className="hidden overflow-x-auto md:block">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[900px] border-collapse">
             <thead>
-              <tr className="bg-black text-white">
-                <th className="px-5 py-4 text-left font-lato text-[14px] font-bold">
-                  ORDER ID
+              <tr className="bg-gradient-to-r from-slate-800 to-slate-900">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Order ID
                 </th>
-
-                <th className="px-5 py-4 text-left font-lato text-[14px] font-bold">
-                  DATE
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Date
                 </th>
-
-                <th className="px-5 py-4 text-left font-lato text-[14px] font-bold">
-                  CUSTOMER
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Customer
                 </th>
-
-                <th className="px-5 py-4 text-left font-lato text-[14px] font-bold">
-                  TOTAL
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Total
                 </th>
-
-                <th className="px-5 py-4 text-center font-lato text-[14px] font-bold">
-                  PAYMENT
+                <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Payment
                 </th>
-
-                <th className="px-5 py-4 text-center font-lato text-[14px] font-bold">
-                  SHIPPING
+                <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-white/90">
+                  Shipping
                 </th>
-
                 <th className="w-[50px]" />
               </tr>
             </thead>
 
             <tbody>
-              {visibleOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  onClick={() =>
-                    onSelectOrder(order)
-                  }
-                  className={`cursor-pointer border-b border-[#dbe1e8] transition last:border-b-0 ${
-                    selectedOrderId === order.id
-                      ? "bg-[#dbe8fa]"
-                      : "hover:bg-[#f7f9fc]"
-                  }`}
-                >
-                  <td className="px-5 py-4 font-arimo text-[15px] font-medium text-[#071a35]">
-                    {order.id}
+              {visibleOrders.length > 0 ? (
+                visibleOrders.map((order, index) => (
+                  <tr
+                    key={order.id}
+                    onClick={() => onSelectOrder(order)}
+                    className={`cursor-pointer transition-colors ${
+                      index !== visibleOrders.length - 1 ? "border-b border-slate-100" : ""
+                    } ${
+                      selectedOrderId === order.id
+                        ? "bg-blue-50/50 hover:bg-blue-50"
+                        : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <td className="px-6 py-4">
+                      <span className="text-sm font-semibold text-slate-800">
+                        {order.id}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {order.date}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-semibold text-slate-800">
+                        {order.customer}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {order.customerName}
+                      </p>
+                    </td>
+
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                      {order.total}
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${paymentClasses(
+                          order.payment
+                        )}`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {order.payment}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${shippingClasses(
+                          order.shipping
+                        )}`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {order.shipping}
+                      </span>
+                    </td>
+
+                    <td className="px-3 py-4 text-center">
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all"
+                      >
+                        <FiMoreVertical size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="rounded-full bg-slate-100 p-3">
+                        <FiSearch size={24} className="text-slate-400" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-800">No orders found</p>
+                      <p className="text-sm text-slate-500">Try adjusting your filters</p>
+                    </div>
                   </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                  <td className="px-5 py-4 font-arimo text-[14px] text-[#30445d]">
-                    {order.date}
-                  </td>
+        {/* MOBILE CARDS */}
+        <div className="block lg:hidden">
+          {visibleOrders.length > 0 ? (
+            visibleOrders.map((order) => (
+              <div
+                key={order.id}
+                onClick={() => onSelectOrder(order)}
+                className={`cursor-pointer border-b border-slate-100 p-5 transition-colors ${
+                  selectedOrderId === order.id ? "bg-blue-50/50" : "hover:bg-slate-50"
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{order.id}</p>
+                    <p className="text-xs text-slate-500">{order.date}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                  >
+                    <FiMoreVertical size={18} />
+                  </button>
+                </div>
 
-                  <td className="px-5 py-4">
-                    <p className="font-lato text-[15px] font-bold text-[#071a35]">
-                      {order.customer}
-                    </p>
+                <div className="mt-3">
+                  <p className="text-sm font-semibold text-slate-800">{order.customer}</p>
+                  <p className="text-xs text-slate-500">{order.customerName}</p>
+                </div>
 
-                    <p className="mt-1 font-arimo text-[13px] text-[#30445d]">
-                      {order.customerName}
-                    </p>
-                  </td>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-base font-bold text-slate-800">{order.total}</span>
 
-                  <td className="px-5 py-4 font-lato text-[15px] font-bold text-[#071a35]">
-                    {order.total}
-                  </td>
-
-                  <td className="px-5 py-4 text-center">
+                  <div className="flex gap-1.5">
                     <span
-                      className={`inline-flex rounded-full px-3 py-1.5 font-arimo text-[12px] font-bold ${paymentClasses(
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${paymentClasses(
                         order.payment
                       )}`}
                     >
                       {order.payment}
                     </span>
-                  </td>
 
-                  <td className="px-5 py-4 text-center">
                     <span
-                      className={`inline-flex rounded-full px-3 py-1.5 font-arimo text-[12px] font-bold ${shippingClasses(
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${shippingClasses(
                         order.shipping
                       )}`}
                     >
                       {order.shipping}
                     </span>
-                  </td>
-
-                  <td className="px-3 py-4 text-center">
-                    <button
-                      type="button"
-                      onClick={(e) =>
-                        e.stopPropagation()
-                      }
-                      className="text-[#60738e] hover:text-black"
-                    >
-                      <FiMoreVertical
-                        size={18}
-                      />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* MOBILE */}
-
-        <div className="block md:hidden">
-          {visibleOrders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() =>
-                onSelectOrder(order)
-              }
-              className={`cursor-pointer border-b border-[#dbe1e8] p-5 ${
-                selectedOrderId === order.id
-                  ? "bg-[#dbe8fa]"
-                  : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-lato font-bold">
-                    {order.id}
-                  </p>
-
-                  <p className="mt-1 text-[13px] text-[#52647a]">
-                    {order.date}
-                  </p>
-                </div>
-
-                <FiMoreVertical />
-              </div>
-
-              <div className="mt-4">
-                <p className="font-lato font-bold">
-                  {order.customer}
-                </p>
-
-                <p className="text-[13px] text-[#52647a]">
-                  {order.customerName}
-                </p>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <strong>{order.total}</strong>
-
-                <div className="flex gap-2">
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${paymentClasses(
-                      order.payment
-                    )}`}
-                  >
-                    {order.payment}
-                  </span>
-
-                  <span
-                    className={`rounded-full px-2 py-1 text-[10px] font-bold ${shippingClasses(
-                      order.shipping
-                    )}`}
-                  >
-                    {order.shipping}
-                  </span>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center gap-2 px-6 py-12">
+              <div className="rounded-full bg-slate-100 p-3">
+                <FiSearch size={24} className="text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-800">No orders found</p>
+              <p className="text-sm text-slate-500">Try adjusting your filters</p>
             </div>
-          ))}
+          )}
         </div>
 
         {/* PAGINATION */}
+        {filteredOrders.length > 0 && (
+          <div className="flex flex-col gap-4 border-t border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              Showing{" "}
+              <span className="font-medium text-slate-800">
+                {(currentPage - 1) * itemsPerPage + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-slate-800">
+                {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-slate-800">
+                {filteredOrders.length}
+              </span>{" "}
+              entries
+            </p>
 
-        <div className="flex flex-col gap-4 border-t border-[#dbe1e8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-arimo text-[14px] text-[#30445d]">
-            Showing 1 to{" "}
-            {Math.min(
-              itemsPerPage,
-              filteredOrders.length
-            )}{" "}
-            of 1,248 entries
-          </p>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() =>
-                changePage(currentPage - 1)
-              }
-              disabled={currentPage === 1}
-              className="flex h-[42px] w-[42px] items-center justify-center rounded-[2px] border border-[#ccd4de] disabled:text-[#bdc5cf]"
-            >
-              <FiChevronLeft />
-            </button>
-
-            {[1, 2, 3].map((page) => (
+            <div className="flex items-center gap-1">
               <button
-                key={page}
                 type="button"
-                onClick={() => changePage(page)}
-                className={`flex h-[42px] w-[42px] items-center justify-center rounded-[2px] border font-lato font-bold ${
-                  currentPage === page
-                    ? "border-black bg-black text-white"
-                    : "border-[#ccd4de] text-[#17395f]"
-                }`}
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:hover:bg-transparent"
               >
-                {page}
+                <FiChevronLeft size={18} />
               </button>
-            ))}
 
-            <button
-              type="button"
-              onClick={() =>
-                changePage(currentPage + 1)
-              }
-              className="flex h-[42px] w-[42px] items-center justify-center rounded-[2px] border border-[#ccd4de]"
-            >
-              <FiChevronRight />
-            </button>
+              {[...Array(Math.min(totalPages, 3))].map((_, index) => {
+                const page = index + 1;
+                return (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => changePage(page)}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold transition-all ${
+                      currentPage === page
+                        ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+
+              {totalPages > 3 && (
+                <span className="px-2 text-sm text-slate-400">...</span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <FiChevronRight size={18} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

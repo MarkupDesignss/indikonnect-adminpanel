@@ -1,26 +1,41 @@
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // e.g. https://api.example.com/
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to attach Bearer token
+// Attach admin token from sessionStorage
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const adminToken = sessionStorage.getItem('adminToken');
+
+  if (adminToken) {
+    config.headers.Authorization = `Bearer ${adminToken}`;
   }
+
   return config;
 });
 
-// Response interceptor for error handling (optional)
+// Response interceptor
 apiClient.interceptors.response.use(
-  (res) => res,
+  (response) => response,
   (error) => {
-    // Handle 401, refresh token logic later
+    // Check if error is 401 Unauthorized
+    if (error.response?.status === 401) {
+      // Clear all admin session data
+      sessionStorage.removeItem('adminToken');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('adminData');
+      sessionStorage.removeItem('adminPermissions');
+      sessionStorage.removeItem('adminRoles');
+
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
     return Promise.reject(error);
   }
 );

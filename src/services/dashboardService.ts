@@ -1,7 +1,7 @@
 export const getDashboardMetrics = () => [
   {
     label: 'Total Sales',
-    value: '$24,500',
+    value: '₹24,500',
     icon: 'attach_money',
     trendIcon: 'trending_up',
     change: '+12.5%',
@@ -12,7 +12,7 @@ export const getDashboardMetrics = () => [
   { label: 'Orders', value: '156', icon: 'shopping_cart', trendIcon: 'trending_up', change: '+8.2%', toneClass: 'text-status-success' },
   { label: 'Customers', value: '89', icon: 'groups', trendIcon: 'trending_flat', change: '+2.1%', toneClass: 'text-status-warning' },
   { label: 'Distributors', value: '12', icon: 'local_shipping', trendIcon: 'trending_up', change: '+1', toneClass: 'text-status-success' },
-  { label: 'Revenue', value: '$18,200', icon: 'account_balance_wallet', trendIcon: 'trending_down', change: '-3.4%', toneClass: 'text-status-error' },
+  { label: 'Revenue', value: '₹18,200', icon: 'account_balance_wallet', trendIcon: 'trending_down', change: '-3.4%', toneClass: 'text-status-error' },
 ];
 
 export const getChartDays = () => [
@@ -20,17 +20,17 @@ export const getChartDays = () => [
   { day: 'Tue', height: 'h-[60%]', isCurrent: false },
   { day: 'Wed', height: 'h-[30%]', isCurrent: false },
   { day: 'Thu', height: 'h-[80%]', isCurrent: false },
-  { day: 'Fri', height: 'h-[100%]', isCurrent: true, value: '$6,200' },
+  { day: 'Fri', height: 'h-[100%]', isCurrent: true, value: '₹6,200' },
   { day: 'Sat', height: 'h-[50%]', isCurrent: false },
   { day: 'Sun', height: 'h-[70%]', isCurrent: false },
 ];
 
 export const getRecentOrders = () => [
-  { id: '#ORD-092', customer: 'Apex Dist.', total: '$1,240', status: 'Pending', badgeClass: 'bg-status-warning/20 text-status-warning' },
-  { id: '#ORD-091', customer: 'Nexus Goods', total: '$850', status: 'Shipped', badgeClass: 'bg-primary/10 text-primary' },
-  { id: '#ORD-090', customer: 'Global Tech', total: '$3,100', status: 'Delivered', badgeClass: 'bg-status-success/20 text-status-success' },
-  { id: '#ORD-089', customer: 'Prime Retail', total: '$420', status: 'Delivered', badgeClass: 'bg-status-success/20 text-status-success' },
-  { id: '#ORD-088', customer: 'Alpha Corp', total: '$2,150', status: 'Shipped', badgeClass: 'bg-primary/10 text-primary' },
+  { id: '#ORD-092', customer: 'Apex Dist.', total: '₹1,240', status: 'Pending', badgeClass: 'bg-status-warning/20 text-status-warning' },
+  { id: '#ORD-091', customer: 'Nexus Goods', total: '₹850', status: 'Shipped', badgeClass: 'bg-primary/10 text-primary' },
+  { id: '#ORD-090', customer: 'Global Tech', total: '₹3,100', status: 'Delivered', badgeClass: 'bg-status-success/20 text-status-success' },
+  { id: '#ORD-089', customer: 'Prime Retail', total: '₹420', status: 'Delivered', badgeClass: 'bg-status-success/20 text-status-success' },
+  { id: '#ORD-088', customer: 'Alpha Corp', total: '₹2,150', status: 'Shipped', badgeClass: 'bg-primary/10 text-primary' },
 ];
 
 export const getKycReviews = () => [

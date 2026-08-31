@@ -21,84 +21,97 @@ const OrderStats: React.FC<OrderStatsProps> = ({
 }) => {
   const stats = [
     {
-      title: "TOTAL ORDERS",
+      title: "Total Orders",
       value: totalOrders.toLocaleString(),
       icon: FiClipboard,
-      type: "yellow",
+      gradient: "from-blue-500 to-blue-600",
+      bgLight: "bg-blue-50",
+      textColor: "text-blue-600",
       bottom: (
-        <span className="text-[#10b981]">
-          ↗ +12% vs last month
+        <span className="text-emerald-600 text-sm font-medium">
+          ↑ +12% vs last month
         </span>
       ),
     },
     {
-      title: "PENDING FULFILLMENT",
+      title: "Pending Fulfillment",
       value: pendingFulfillment.toString(),
       icon: FiShoppingBag,
-      type: "yellow",
+      gradient: "from-amber-500 to-amber-600",
+      bgLight: "bg-amber-50",
+      textColor: "text-amber-600",
       bottom: "Requires action",
     },
     {
-      title: "AWAITING PAYMENT",
+      title: "Awaiting Payment",
       value: awaitingPayment,
       icon: FiCreditCard,
-      type: "red",
+      gradient: "from-rose-500 to-rose-600",
+      bgLight: "bg-rose-50",
+      textColor: "text-rose-600",
       bottom: (
-        <span className="text-[#ef4444]">
+        <span className="text-rose-500 text-sm font-medium">
           3 overdue invoices
         </span>
       ),
     },
     {
-      title: "COMPLETED TODAY",
+      title: "Completed Today",
       value: completedToday.toString(),
       icon: FiCheckCircle,
-      type: "green",
+      gradient: "from-emerald-500 to-emerald-600",
+      bgLight: "bg-emerald-50",
+      textColor: "text-emerald-600",
       bottom: "₹4,500 total value",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
-
-        const borderColor =
-          stat.type === "red"
-            ? "bg-[#ef4444]"
-            : stat.type === "green"
-            ? "bg-[#10b981]"
-            : "bg-[#f59e0b]";
 
         return (
           <div
             key={stat.title}
-            className="relative overflow-hidden rounded-[4px] border border-[#d8e0e9] bg-white px-5 py-5"
+            className="group relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
           >
+            {/* Gradient top bar */}
             <div
-              className={`absolute left-0 right-0 top-0 h-[4px] ${borderColor}`}
+              className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${stat.gradient}`}
             />
 
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-lato text-[14px] font-bold tracking-[0.3px] text-[#30445d]">
+            {/* Subtle background icon */}
+            <div className="absolute -right-4 -top-4 opacity-5">
+              <Icon size={80} strokeWidth={0.8} />
+            </div>
+
+            <div className="flex items-start justify-between relative z-10">
+              <div className="flex-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   {stat.title}
                 </p>
 
-                <h2 className="mt-6 font-lato text-[30px] font-black leading-none text-[#071a35]">
+                <h2 className="mt-3 text-3xl font-bold text-slate-800 tracking-tight">
                   {stat.value}
                 </h2>
               </div>
 
-              <Icon
-                size={25}
-                strokeWidth={1.8}
-                className="text-[#68798d]"
-              />
+              <div
+                className={`rounded-xl p-3 ${stat.bgLight} ${stat.textColor} group-hover:scale-110 transition-transform duration-300`}
+              >
+                <Icon size={22} strokeWidth={1.8} />
+              </div>
             </div>
 
-            <div className="mt-4 font-arimo text-[13px] font-semibold text-[#243a54]">
-              {stat.bottom}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              {typeof stat.bottom === "string" ? (
+                <span className="text-sm text-slate-600 font-medium">
+                  {stat.bottom}
+                </span>
+              ) : (
+                stat.bottom
+              )}
             </div>
           </div>
         );

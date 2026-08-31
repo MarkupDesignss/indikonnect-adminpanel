@@ -1,3 +1,14 @@
+/* Global CSS - Add to index.css or App.css */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Container styles */
 .container {
   min-height: 100vh;
 }

@@ -28,7 +28,7 @@ const items: OrderItem[] = [
 
 const OrderItems: React.FC = () => {
   return (
-    <div className="rounded-[4px] border border-[#d8e0e9] bg-white p-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-center gap-3">
         <FiList
           size={18}

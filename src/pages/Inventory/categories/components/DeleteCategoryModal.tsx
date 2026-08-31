@@ -3,6 +3,7 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+import { toast } from 'react-toastify';
 
 interface DeleteCategoryModalProps {
   open: boolean;
@@ -23,12 +24,27 @@ const DeleteCategoryModal: React.FC<
 }) => {
   if (!open) return null;
 
+  const handleConfirm = () => {
+    toast.info(`Deleting category "${categoryName}"...`, {
+      autoClose: 2000,
+    });
+    onConfirm();
+  };
+
+  const handleClose = () => {
+    toast('Delete cancelled', {
+      autoClose: 1500,
+      type: 'info',
+    });
+    onClose();
+  };
+
   return (
     <>
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
       />
       
       {/* Modal */}
@@ -39,7 +55,7 @@ const DeleteCategoryModal: React.FC<
         >
           {/* Close Button */}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="absolute right-5 top-5 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 z-10"
           >
             <FiX size={18} />
@@ -63,22 +79,25 @@ const DeleteCategoryModal: React.FC<
               </span>
               ?
               <br />
-              This action cannot be undone.
+              <span className="text-red-500 font-medium">
+                This action cannot be undone.
+              </span>
             </p>
 
             {/* Buttons */}
             <div className="mt-7 flex gap-3">
               <button
                 type="button"
-                onClick={onClose}
-                className="h-11 flex-1 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={handleClose}
+                disabled={loading}
+                className="h-11 flex-1 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 type="button"
-                onClick={onConfirm}
+                onClick={handleConfirm}
                 disabled={loading}
                 className="h-11 flex-1 rounded-lg bg-red-500 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50 transition-colors"
               >

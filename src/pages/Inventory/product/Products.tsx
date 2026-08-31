@@ -1,391 +1,686 @@
-import React, {
-    useEffect,
-    useMemo,
-    useState,
-  } from "react";
-  
-  import {
-    FiPlus,
-    FiSearch,
-  } from "react-icons/fi";
-  
-  import ProductTable from "./components/ProductTable";
-  import AddProductModal from "./components/AddProductModal";
-  import EditProductModal from "./components/EditProductModal";
-  import ViewProductModal from "./components/ViewProductModal";
-  
-  import {
-    addProduct,
-    getBrands,
-    getCategories,
-    getProducts,
-    getTaxCategories,
-    updateProduct,
-  } from "@/services/productApi";
-  
-  import {
-    Product,
-    ProductPayload,
-    SelectOption,
-  } from "@/types/product";
-  
-  const Products: React.FC = () => {
+import React, { useEffect, useMemo, useState } from "react";
+import { FiPlus, FiSearch, FiPackage } from "react-icons/fi";
+import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 
-    const [products, setProducts] =
-      useState<Product[]>([]);
-  
-    const [categories, setCategories] =
-      useState<SelectOption[]>([]);
-  
-    const [taxCategories, setTaxCategories] =
-      useState<SelectOption[]>([]);
-  
-    const [brands, setBrands] =
-      useState<SelectOption[]>([]);
-  
+import GlobalModal from "@/components/common/GlobalModal";
+import ProductTable from "./components/ProductTable";
+import AddProductModal from "./components/AddProductModal";
+import EditProductModal from "./components/EditProductModal";
+import ViewProductModal from "./components/ViewProductModal";
 
-    const [loading, setLoading] =
-      useState(false);
-  
-    const [addLoading, setAddLoading] =
-      useState(false);
-  
-    const [editLoading, setEditLoading] =
-      useState(false);
-  
+import { productApi } from "../../../api/endpoints/product";
 
-    const [search, setSearch] =
-      useState("");
-  
-  
-    const [currentPage, setCurrentPage] =
-      useState(1);
-  
-    const ITEMS_PER_PAGE = 10;
-  
+import {
+  Product,
+  SelectOption,
+} from "@/types/product";
 
-    const [addModalOpen, setAddModalOpen] =
-      useState(false);
-  
-    const [editModalOpen, setEditModalOpen] =
-      useState(false);
+// =====================================================
+// Animation Variants
+// =====================================================
 
-    const [viewModalOpen, setViewModalOpen] =
-      useState(false);
+const containerVariants = {
+  hidden: {
+    opacity: 0,
+  },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
 
-    const [selectedProduct, setSelectedProduct] =
-      useState<Product | null>(null);
-  
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-  
-        const data =
-          await getProducts();
-  
-        setProducts(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    const fetchOptions = async () => {
-      try {
-        const [
-          categoryData,
-          taxData,
-          brandData,
-        ] = await Promise.all([
-          getCategories(),
-          getTaxCategories(),
-          getBrands(),
-        ]);
-  
-        setCategories(
-          categoryData
-        );
-  
-        setTaxCategories(
-          taxData
-        );
-  
-        setBrands(brandData);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-  
-    useEffect(() => {
-      fetchProducts();
-      fetchOptions();
-    }, []);
-  
+const itemVariants = {
+  hidden: {
+    y: 18,
+    opacity: 0,
+  },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 110,
+      damping: 14,
+    },
+  },
+};
 
-    const filteredProducts =
-      useMemo(() => {
-        const query =
-          search
-            .trim()
-            .toLowerCase();
-  
-        if (!query) {
-          return products;
-        }
-  
-        return products.filter(
-          (product) =>
-            [
-              product.name,
-              product.product_code,
-              product.slug,
-              product.description,
-              product.specification,
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(query)
-        );
-      }, [
-        products,
-        search,
-      ]);
-  
- 
-    const totalPages =
-      Math.ceil(
-        filteredProducts.length /
-          ITEMS_PER_PAGE
+// =====================================================
+// Products
+// =====================================================
+
+const Products: React.FC = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<SelectOption[]>([]);
+  const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
+  const [brands, setBrands] = useState<SelectOption[]>([]);
+
+  const [loading, setLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
+
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+
+  const [selectedProduct, setSelectedProduct] =
+    useState<Product | null>(null);
+
+  // ===================================================
+  // FETCH PRODUCTS
+  // ===================================================
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+
+      const response = await productApi.getProducts();
+
+      setProducts(response.data?.data ?? []);
+    } catch (error: any) {
+      console.error("Fetch products error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to fetch products."
       );
-  
-    const startIndex =
-      (currentPage - 1) *
-      ITEMS_PER_PAGE;
-  
-    const paginatedProducts =
-      filteredProducts.slice(
-        startIndex,
-        startIndex +
-          ITEMS_PER_PAGE
-      );
-  
-    const startEntry =
-      filteredProducts.length ===
-      0
-        ? 0
-        : startIndex + 1;
-  
-    const endEntry =
-      Math.min(
-        startIndex +
-          ITEMS_PER_PAGE,
-        filteredProducts.length
-      );
-  
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleAddProduct = async (
-      payload: ProductPayload
-    ) => {
-      try {
-        setAddLoading(true);
-  
-        await addProduct(
-          payload
-        );
-  
-        await fetchProducts();
-  
-        setAddModalOpen(false);
-  
-        setCurrentPage(1);
-  
-        alert(
+  // ===================================================
+  // FETCH OPTIONS
+  // ===================================================
+
+  const fetchOptions = async () => {
+    try {
+      /*
+       * Add your actual category / tax / brand APIs here.
+       *
+       * Example:
+       *
+       * const [
+       *   categoriesRes,
+       *   taxRes,
+       *   brandsRes
+       * ] = await Promise.all([
+       *   categoryApi.getCategories(),
+       *   taxApi.getTaxCategories(),
+       *   brandApi.getBrands()
+       * ]);
+       *
+       * setCategories(
+       *   categoriesRes.data?.data?.map((item) => ({
+       *     id: item.id,
+       *     name: item.name,
+       *   })) || []
+       * );
+       *
+       * setTaxCategories(
+       *   taxRes.data?.data?.map((item) => ({
+       *     id: item.id,
+       *     name: item.name,
+       *   })) || []
+       * );
+       *
+       * setBrands(
+       *   brandsRes.data?.data?.map((item) => ({
+       *     id: item.id,
+       *     name: item.name,
+       *   })) || []
+       * );
+       */
+
+      setCategories([]);
+      setTaxCategories([]);
+      setBrands([]);
+    } catch (error: any) {
+      console.error("Fetch options error:", error);
+
+      setCategories([]);
+      setTaxCategories([]);
+      setBrands([]);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to fetch options."
+      );
+    }
+  };
+
+  // ===================================================
+  // INITIAL FETCH
+  // ===================================================
+
+  useEffect(() => {
+    fetchProducts();
+    fetchOptions();
+  }, []);
+
+  // ===================================================
+  // SEARCH
+  // ===================================================
+
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return products;
+    }
+
+    return products.filter((product) =>
+      [
+        product.name,
+        product.product_code,
+        product.slug,
+        product.description,
+        product.specification,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [products, search]);
+
+  // ===================================================
+  // PAGINATION
+  // ===================================================
+
+  const totalPages = Math.ceil(
+    filteredProducts.length / ITEMS_PER_PAGE
+  );
+
+  const startIndex =
+    (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
+
+  const startEntry =
+    filteredProducts.length === 0
+      ? 0
+      : startIndex + 1;
+
+  const endEntry = Math.min(
+    startIndex + ITEMS_PER_PAGE,
+    filteredProducts.length
+  );
+
+  // ===================================================
+  // ADD PRODUCT
+  // ===================================================
+
+  const handleAddProduct = async (
+    formData: FormData
+  ) => {
+    try {
+      setAddLoading(true);
+
+      const response =
+        await productApi.createProduct(formData);
+
+      await fetchProducts();
+
+      setAddModalOpen(false);
+      setCurrentPage(1);
+
+      toast.success(
+        response.data?.message ||
           "Product added successfully."
+      );
+    } catch (error: any) {
+      console.error(
+        "Add product error:",
+        error
+      );
+
+      if (error?.response?.data?.errors) {
+        const errors =
+          error.response.data.errors;
+
+        const errorMessages =
+          Object.values(errors)
+            .flat()
+            .join(", ");
+
+        toast.error(errorMessages);
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to add product."
         );
-      } catch (error) {
-        console.error(error);
-  
-        alert(
-          "Unable to add product."
-        );
-      } finally {
-        setAddLoading(false);
       }
-    };
-  
-    const handleEditProduct = async (
-      payload: ProductPayload
-    ) => {
-      if (!selectedProduct) return;
-  
-      try {
-        setEditLoading(true);
-  
-        await updateProduct(
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  // ===================================================
+  // EDIT PRODUCT
+  // ===================================================
+
+  const handleEditProduct = async (
+    formData: FormData
+  ) => {
+    if (!selectedProduct) return;
+
+    try {
+      setEditLoading(true);
+
+      const response =
+        await productApi.updateProduct(
           selectedProduct.id,
-          payload
+          formData
         );
-  
-        await fetchProducts();
-  
-        setEditModalOpen(false);
-        setSelectedProduct(null);
-  
-        alert(
+
+      await fetchProducts();
+
+      setEditModalOpen(false);
+      setSelectedProduct(null);
+
+      toast.success(
+        response.data?.message ||
           "Product updated successfully."
+      );
+    } catch (error: any) {
+      console.error(
+        "Update product error:",
+        error
+      );
+
+      if (error?.response?.data?.errors) {
+        const errors =
+          error.response.data.errors;
+
+        const errorMessages =
+          Object.values(errors)
+            .flat()
+            .join(", ");
+
+        toast.error(errorMessages);
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to update product."
         );
-      } catch (error) {
-        console.error(error);
-  
-        alert(
-          "Unable to update product."
+      }
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // ===================================================
+  // DELETE PRODUCT IMAGE
+  // ===================================================
+
+  const handleDeleteImage = async (
+    productId: number,
+    imageId: number
+  ) => {
+    try {
+      const response =
+        await productApi.deleteImages(
+          productId,
+          [imageId]
         );
-      } finally {
-        setEditLoading(false);
-      }
-    };
 
-    const handleEdit = (
-      product: Product
-    ) => {
-      setSelectedProduct(product);
-      setEditModalOpen(true);
-    };
+      await fetchProducts();
 
-    const handleView = (
-      product: Product
-    ) => {
-      setSelectedProduct(product);
-      setViewModalOpen(true);
-    };
+      toast.success(
+        response.data?.message ||
+          "Image deleted successfully."
+      );
+    } catch (error: any) {
+      console.error(
+        "Delete image error:",
+        error
+      );
 
-    const handlePageChange = (
-      page: number
-    ) => {
-      if (
-        page < 1 ||
-        page > totalPages
-      ) {
-        return;
-      }
-  
-      setCurrentPage(page);
-    };
-  
-    return (
-      <div className="min-h-screen bg-[#F7F9FC] px-5 py-8 md:px-8 lg:px-9">
-  
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to delete image."
+      );
+    }
+  };
 
-        <div className="mb-10 flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
-  
-          <div>
-            <h1 className="font-lato text-[38px] font-bold leading-none tracking-[-1px] text-[#071A33]">
-              Products
-            </h1>
-  
-            <p className="font-arimo mt-3 text-[16px] text-[#253B59]">
-              Manage your products,
-              pricing and inventory.
-            </p>
+  // ===================================================
+  // ADD DEAL
+  // ===================================================
+
+  const handleAddDeal = async (
+    productId: number,
+    dealData: {
+      starts_at: string;
+      ends_at: string;
+      sale_type: string;
+    }
+  ) => {
+    try {
+      const response =
+        await productApi.addDeal(
+          productId,
+          dealData
+        );
+
+      await fetchProducts();
+
+      toast.success(
+        response.data?.message ||
+          "Deal added successfully."
+      );
+    } catch (error: any) {
+      console.error(
+        "Add deal error:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to add deal."
+      );
+    }
+  };
+
+  // ===================================================
+  // GET DEALS
+  // ===================================================
+
+  const handleGetDeals = async () => {
+    try {
+      const response =
+        await productApi.getDeals();
+
+      return response.data?.data ?? [];
+    } catch (error: any) {
+      console.error(
+        "Get deals error:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to fetch deals."
+      );
+
+      return [];
+    }
+  };
+
+  // ===================================================
+  // REMOVE DEAL
+  // ===================================================
+
+  const handleRemoveDeal = async (
+    productId: number
+  ) => {
+    try {
+      const response =
+        await productApi.removeDeal(
+          productId
+        );
+
+      await fetchProducts();
+
+      toast.success(
+        response.data?.message ||
+          "Deal removed successfully."
+      );
+    } catch (error: any) {
+      console.error(
+        "Remove deal error:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to remove deal."
+      );
+    }
+  };
+
+  // ===================================================
+  // EDIT
+  // ===================================================
+
+  const handleEdit = (
+    product: Product
+  ) => {
+    setSelectedProduct(product);
+    setEditModalOpen(true);
+  };
+
+  // ===================================================
+  // VIEW
+  // ===================================================
+
+  const handleView = (
+    product: Product
+  ) => {
+    setSelectedProduct(product);
+    setViewModalOpen(true);
+  };
+
+  // ===================================================
+  // PAGE CHANGE
+  // ===================================================
+
+  const handlePageChange = (
+    page: number
+  ) => {
+    if (
+      page < 1 ||
+      page > totalPages
+    ) {
+      return;
+    }
+
+    setCurrentPage(page);
+  };
+
+  // ===================================================
+  // RENDER
+  // ===================================================
+
+  return (
+    <motion.div
+      className="min-h-screen bg-[#faf8f3] p-4"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* =================================================
+          PAGE HEADER
+      ================================================= */}
+
+      <motion.div
+        variants={itemVariants}
+        className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
+      >
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-[#b8902e]" />
+
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#b8902e]">
+              Catalog Management
+            </span>
           </div>
+
+          <h1 className="font-serif text-[28px] font-bold tracking-tight text-[#2a2620] sm:text-[30px]">
+            Products
+          </h1>
+
+          <p className="mt-1 text-sm text-[#786f60]">
+            Manage your products, pricing, inventory,
+            and product information.
+          </p>
         </div>
-  
-        <div className="mb-10 rounded-xl border border-[#DDE3EC] bg-white p-5">
-  
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-  
-            <div className="relative w-full lg:max-w-[560px]">
-  
-              <FiSearch
-                size={23}
-                className="absolute left-5 top-1/2 -translate-y-1/2 text-[#23405F]"
-              />
-  
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => {
-                  setSearch(
-                    e.target.value
-                  );
-  
-                  setCurrentPage(
-                    1
-                  );
-                }}
-                placeholder="Search products..."
-                className="font-arimo h-[48px] w-full rounded-md border border-[#BEC6D2] pl-[51px] pr-4 text-[15px] outline-none placeholder:text-[#60728B] focus:border-black"
-              />
-  
+
+        {/* Product Count */}
+
+        <div className="flex items-center gap-3">
+          <div className="hidden rounded-xl border border-[#b8902e]/15 bg-white px-4 py-2.5 shadow-sm sm:block">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[#a89a7d]">
+              Total Products
             </div>
-  
-            {/* Add Product Button */}
-            <button
-              type="button"
-              onClick={() => setAddModalOpen(true)}
-              className="font-lato flex h-[43px] items-center gap-2 self-end rounded-md bg-black px-5 text-sm font-bold text-white hover:bg-[#181818] lg:self-auto"
-            >
-              <FiPlus size={19} />
-              Add Product
-            </button>
-  
+
+            <div className="mt-0.5 text-lg font-bold text-[#2a2620]">
+              {products.length}
+            </div>
           </div>
-  
         </div>
-  
-    
-        <ProductTable
-          products={
-            paginatedProducts
-          }
-          loading={loading}
-          currentPage={
-            currentPage
-          }
-          totalPages={
-            totalPages
-          }
-          totalEntries={
-            filteredProducts.length
-          }
-          startEntry={
-            startEntry
-          }
-          endEntry={
-            endEntry
-          }
-          categories={
-            categories
-          }
-          brands={brands}
-          onPageChange={
-            handlePageChange
-          }
-          onEdit={handleEdit}
-          onView={handleView}
-        />
- 
+      </motion.div>
+
+      {/* =================================================
+          SEARCH + ADD PRODUCT
+      ================================================= */}
+
+      <motion.div
+        variants={itemVariants}
+        className="relative mb-6 overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-4 shadow-sm sm:p-5"
+      >
+        {/* Premium Top Border */}
+
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#d4af52] via-[#c49b3a] to-[#8a6c1f]" />
+
+        {/* Decorative CSS Circles */}
+
+        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#d4af52]/20" />
+
+        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#b8902e]/15" />
+
+        <div className="pointer-events-none absolute right-7 top-7 h-3 w-3 rounded-full bg-[#d4af52]/30" />
+
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Search */}
+
+          <div className="relative w-full lg:max-w-[560px]">
+            <FiSearch
+              size={20}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a8841c]"
+            />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search by product name, code, slug..."
+              className="h-[48px] w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-11 pr-4 text-sm text-[#2a2620] outline-none transition-all placeholder:text-[#a89a7d] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+            />
+          </div>
+
+          {/* Add Product */}
+
+          <motion.button
+            type="button"
+            onClick={() =>
+              setAddModalOpen(true)
+            }
+            whileHover={{
+              y: -2,
+              boxShadow:
+                "0 8px 20px rgba(140,105,25,0.20)",
+            }}
+            whileTap={{
+              scale: 0.97,
+            }}
+            className="flex h-[46px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition-all hover:from-[#a8841c] hover:to-[#795b14]"
+          >
+            <FiPlus size={19} />
+
+            <span>Add Product</span>
+          </motion.button>
+        </div>
+      </motion.div>
+
+      {/* =================================================
+          PRODUCT TABLE WRAPPER
+      ================================================= */}
+
+      <motion.div
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm"
+      >
+        {/* Top Accent */}
+
+        <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+        {/* Actual Table */}
+        <div className="">
+          <ProductTable
+            products={paginatedProducts}
+            loading={loading}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalEntries={filteredProducts.length}
+            startEntry={startEntry}
+            endEntry={endEntry}
+            categories={categories}
+            brands={brands}
+            onPageChange={handlePageChange}
+            onEdit={handleEdit}
+            onView={handleView}
+            onDeleteImage={handleDeleteImage}
+            onAddDeal={handleAddDeal}
+            onRemoveDeal={handleRemoveDeal}
+            onGetDeals={handleGetDeals}
+          />
+        </div>
+      </motion.div>
+
+      {/* =================================================
+          ADD PRODUCT MODAL
+      ================================================= */}
+
+      <GlobalModal
+        isOpen={addModalOpen}
+        onClose={() =>
+          setAddModalOpen(false)
+        }
+        closeOnOverlayClick={true}
+      >
         <AddProductModal
           open={addModalOpen}
           loading={addLoading}
-          categories={
-            categories
-          }
-          taxCategories={
-            taxCategories
-          }
-          brands={brands}
           onClose={() =>
-            setAddModalOpen(
-              false
-            )
+            setAddModalOpen(false)
           }
-          onSubmit={
-            handleAddProduct
-          }
+          onSubmit={handleAddProduct}
         />
-  
+      </GlobalModal>
+
+      {/* =================================================
+          EDIT PRODUCT MODAL
+      ================================================= */}
+
+      <GlobalModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        closeOnOverlayClick={true}
+      >
         <EditProductModal
           open={editModalOpen}
           loading={editLoading}
@@ -398,7 +693,20 @@ import React, {
           }}
           onSubmit={handleEditProduct}
         />
+      </GlobalModal>
 
+      {/* =================================================
+          VIEW PRODUCT MODAL
+      ================================================= */}
+
+      <GlobalModal
+        isOpen={viewModalOpen}
+        onClose={() => {
+          setViewModalOpen(false);
+          setSelectedProduct(null);
+        }}
+        closeOnOverlayClick={true}
+      >
         <ViewProductModal
           open={viewModalOpen}
           product={selectedProduct}
@@ -410,9 +718,9 @@ import React, {
             setSelectedProduct(null);
           }}
         />
-  
-      </div>
-    );
-  };
-  
-  export default Products;
+      </GlobalModal>
+    </motion.div>
+  );
+};
+
+export default Products;
