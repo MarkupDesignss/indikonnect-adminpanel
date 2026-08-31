@@ -11,11 +11,12 @@ import {
   FiAlignLeft,
   FiInfo,
   FiEdit2,
+  FiChevronDown,
 } from "react-icons/fi";
 import { FaRupeeSign } from "react-icons/fa";
-// API imports
 import { categoryApi } from "../../../../api/endpoints/category";
 import { taxApi } from "../../../../api/endpoints/taxApi";
+import attributesApi, { AttributeMaster } from "../../../../api/endpoints/attributes";
 
 interface SelectOption {
   id: number;
@@ -34,50 +35,44 @@ interface VariantImagePayload {
   is_primary: number;
 }
 
-interface VariantPayload {
-  sku: string;
-  attributes: Record<string, string>;
-  retail_mrp: number;
-  retail_discount_type: string;
-  retail_discount_value: number;
-  distributor_mrp: number;
-  distributor_discount_type: string;
-  distributor_discount_value: number;
-  stock_quantity: number;
-  low_stock_threshold: number;
-  sort_order: number;
-  is_active: number;
-  images: VariantImagePayload[];
-}
-
-// Updated to accept FormData instead of ProductPayload
 interface AddProductModalProps {
   open: boolean;
   loading: boolean;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
+  editData?: any;
+  isEdit?: boolean;
 }
 
 interface ImageItem {
   id: number;
-  file: File;
+  file?: File;
   preview: string;
   sort_order: number;
   is_primary: number;
+  existing_id?: number;
+  is_existing?: boolean;
 }
 
 interface VariantImageItem {
   id: number;
-  file: File;
+  file?: File;
   preview: string;
   sort_order: number;
   is_primary: number;
+  existing_id?: number;
+  is_existing?: boolean;
+}
+
+interface AttributeItem {
+  key: string;
+  value: string;
 }
 
 interface VariantFormData {
   id: string;
   sku: string;
-  attributes: Record<string, string>;
+  attributes: AttributeItem[];
   retail_mrp: string;
   retail_discount_type: string;
   retail_discount_value: string;
@@ -89,6 +84,8 @@ interface VariantFormData {
   sort_order: number;
   is_active: number;
   images: VariantImageItem[];
+  existing_id?: number;
+  is_existing?: boolean;
 }
 
 interface FormErrors {
@@ -106,126 +103,353 @@ interface SpecItem {
   value: string;
 }
 
-// Attribute Popup Component
-const AttributePopup: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (key: string, value: string) => void;
-}> = ({ isOpen, onClose, onSave }) => {
-  const [key, setKey] = useState("");
-  const [value, setValue] = useState("");
+// ============================================================
+// HELPER FUNCTIONS
+// ============================================================
 
-  useEffect(() => {
-    if (!isOpen) {
-      setKey("");
-      setValue("");
+const parseSpecification = (spec: string): SpecItem[] => {
+  try {
+    const parsed = JSON.parse(spec);
+    return Object.entries(parsed).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+  } catch {
+    return [{ key: "", value: "" }];
+  }
+};
+
+const parseVariantAttributes = (attributes: Record<string, string> | string): AttributeItem[] => {
+  try {
+    if (typeof attributes === 'string') {
+      const parsed = JSON.parse(attributes);
+      const result: AttributeItem[] = [];
+      Object.entries(parsed).forEach(([key, value]) => {
+        let values: string[] = [];
+        if (Array.isArray(value)) {
+          values = value.map(v => String(v).trim());
+        } else {
+          values = String(value).split(',').map(v => v.trim());
+        }
+        values.forEach(val => {
+          if (val) {
+            result.push({ key, value: val });
+          }
+        });
+      });
+      return result;
     }
-  }, [isOpen]);
+    if (typeof attributes === 'object' && attributes !== null) {
+      const result: AttributeItem[] = [];
+      Object.entries(attributes).forEach(([key, value]) => {
+        let values: string[] = [];
+        if (Array.isArray(value)) {
+          values = value.map(v => String(v).trim());
+        } else {
+          values = String(value).split(',').map(v => v.trim());
+        }
+        values.forEach(val => {
+          if (val) {
+            result.push({ key, value: val });
+          }
+        });
+      });
+      return result;
+    }
+  } catch (error) {
+    console.error("Error parsing variant attributes:", error);
+  }
+  return [];
+};
 
-  if (!isOpen) return null;
+// Generate attribute combinations from variants_summary
+const getAttributeCombinations = (attributes: Record<string, any[]>): Array<Record<string, any>> => {
+  const keys = Object.keys(attributes);
+  if (keys.length === 0) return [{}];
+  
+  const result: Array<Record<string, any>> = [];
+  
+  const generateCombinations = (index: number, current: Record<string, any>) => {
+    if (index === keys.length) {
+      result.push({ ...current });
+      return;
+    }
+    
+    const key = keys[index];
+    const values = attributes[key] || [];
+    
+    if (values.length === 0) {
+      generateCombinations(index + 1, { ...current, [key]: '' });
+    } else {
+      values.forEach((value: any) => {
+        generateCombinations(index + 1, { ...current, [key]: value });
+      });
+    }
+  };
+  
+  generateCombinations(0, {});
+  return result;
+};
 
-  const handleSave = () => {
-    if (key.trim() && value.trim()) {
-      onSave(key.trim(), value.trim());
-      onClose();
+// Generate variants from product data (supports both variants array and variants_summary)
+const generateVariantsFromProduct = (product: any): VariantFormData[] => {
+  const variants: VariantFormData[] = [];
+  
+  // If product has actual variants, use them
+  if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+    return product.variants.map((variant: any, index: number) => ({
+      id: `variant-${Date.now()}-${index}`,
+      sku: variant.sku || "",
+      attributes: parseVariantAttributes(variant.attributes || {}),
+      retail_mrp: String(variant.retail_mrp || ""),
+      retail_discount_type: variant.retail_discount_type || "percentage",
+      retail_discount_value: String(variant.retail_discount_value || ""),
+      distributor_mrp: String(variant.distributor_mrp || ""),
+      distributor_discount_type: variant.distributor_discount_type || "percentage",
+      distributor_discount_value: String(variant.distributor_discount_value || ""),
+      stock_quantity: String(variant.stock_quantity || ""),
+      low_stock_threshold: String(variant.low_stock_threshold || ""),
+      sort_order: variant.sort_order || index + 1,
+      is_active: variant.is_active ? 1 : 0,
+      images: (variant.images || []).map((img: any, imgIndex: number) => ({
+        id: Date.now() + imgIndex + 1000,
+        preview: img.image_url || img.image,
+        sort_order: img.sort_order || imgIndex + 1,
+        is_primary: img.is_primary ? 1 : 0,
+        existing_id: img.id,
+        is_existing: true,
+      })),
+      existing_id: variant.id,
+      is_existing: true,
+    }));
+  }
+  
+  // If product has variants_summary with attributes, generate variant combinations
+  if (product.variants_summary && product.variants_summary.attributes) {
+    const attributes = product.variants_summary.attributes;
+    const attributeKeys = Object.keys(attributes);
+    
+    if (attributeKeys.length > 0) {
+      // Get all combinations of attributes
+      const combinations = getAttributeCombinations(attributes);
+      
+      // Create a variant for each combination
+      combinations.forEach((combo, index) => {
+        const attributeItems: AttributeItem[] = [];
+        Object.entries(combo).forEach(([key, value]) => {
+          if (value && String(value).trim()) {
+            attributeItems.push({ key, value: String(value) });
+          }
+        });
+        
+        // Generate SKU from product code and attributes
+        const skuSuffix = attributeItems.map(attr => 
+          String(attr.value).replace(/\s+/g, '-').substring(0, 10)
+        ).join('-');
+        
+        // Calculate prices - use product level pricing or generate from summary
+        const retailMrp = product.retail_mrp || product.variants_summary?.min_retail_mrp || 0;
+        const retailDiscount = product.retail_discount_value || 0;
+        const distributorMrp = product.distributor_mrp || product.variants_summary?.min_distributor_mrp || 0;
+        const distributorDiscount = product.distributor_discount_value || 0;
+        const stockQty = product.stock_quantity || 0;
+        
+        variants.push({
+          id: `variant-${Date.now()}-${index}`,
+          sku: `${product.product_code || 'PROD'}-${skuSuffix}`,
+          attributes: attributeItems,
+          retail_mrp: String(retailMrp),
+          retail_discount_type: "percentage",
+          retail_discount_value: String(retailDiscount),
+          distributor_mrp: String(distributorMrp),
+          distributor_discount_type: "percentage",
+          distributor_discount_value: String(distributorDiscount),
+          stock_quantity: String(stockQty),
+          low_stock_threshold: String(product.low_stock_threshold || "10"),
+          sort_order: index + 1,
+          is_active: 1,
+          images: [],
+          is_existing: false,
+        });
+      });
+    }
+  }
+  
+  return variants;
+};
+
+// ============================================================
+// ATTRIBUTE SELECTOR COMPONENT
+// ============================================================
+
+const AttributeSelector: React.FC<{
+  variantId: string;
+  selectedAttributes: AttributeItem[];
+  availableAttributes: AttributeMaster[];
+  onAddAttribute: (variantId: string, key: string, value: string) => void;
+  onRemoveAttribute: (variantId: string, key: string, value: string) => void;
+}> = ({
+  variantId,
+  selectedAttributes,
+  availableAttributes,
+  onAddAttribute,
+  onRemoveAttribute,
+}) => {
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const [selectedValue, setSelectedValue] = useState<string>("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleAdd = () => {
+    if (selectedKey && selectedValue) {
+      onAddAttribute(variantId, selectedKey, selectedValue);
+      setSelectedKey("");
+      setSelectedValue("");
+      setIsOpen(false);
     }
   };
 
+  const getAvailableKeys = () => availableAttributes;
+
+  const getValuesForAttribute = (key: string) => {
+    const attribute = availableAttributes.find(
+      (attr) => attr.attribute_key === key
+    );
+    return attribute?.values || [];
+  };
+
+  const isAttributeValueSelected = (key: string, value: string) => {
+    return selectedAttributes.some(attr => attr.key === key && attr.value === value);
+  };
+
+  const getAvailableValuesForAttribute = (key: string) => {
+    const allValues = getValuesForAttribute(key);
+    return allValues.filter(val => !isAttributeValueSelected(key, val.value));
+  };
+
   return (
-    <>
-      <div
-        className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-        <div
-          className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <FiEdit2 className="text-yellow-500" size={20} />
-              Add Attribute
-            </h3>
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {selectedAttributes.map((attr, index) => (
+          <span
+            key={`${attr.key}-${attr.value}-${index}`}
+            className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-medium"
+          >
+            <span className="font-semibold text-blue-700">{attr.key}:</span>
+            <span className="text-blue-600">{attr.value}</span>
             <button
               type="button"
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => onRemoveAttribute(variantId, attr.key, attr.value)}
+              className="ml-0.5 text-red-500 hover:text-red-700 transition-colors"
             >
-              <FiX size={20} />
+              <FiX size={12} />
             </button>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Attribute Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="e.g. Color, Size, Storage"
-                className="w-full h-11 rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && value.trim() && handleSave()}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Attribute Value <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="e.g. Black, Large, 128GB"
-                className="w-full h-11 rounded-lg border border-gray-300 px-4 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
-                onKeyDown={(e) => e.key === 'Enter' && key.trim() && handleSave()}
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 h-11 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!key.trim() || !value.trim()}
-                className="flex-1 h-11 rounded-lg bg-black text-sm font-semibold text-white hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Add Attribute
-              </button>
-            </div>
-          </div>
-        </div>
+          </span>
+        ))}
+        {selectedAttributes.length === 0 && (
+          <span className="text-xs text-gray-400">No attributes selected</span>
+        )}
       </div>
-    </>
+
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors px-2 py-1 hover:bg-blue-50 rounded-lg"
+        >
+          <FiPlus size={14} />
+          Add Attribute
+        </button>
+
+        {isOpen && (
+          <div className="absolute left-0 top-full mt-2 z-50 w-80 bg-white rounded-lg shadow-xl border border-gray-200 p-4">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Select Attribute
+                </label>
+                <select
+                  value={selectedKey}
+                  onChange={(e) => {
+                    setSelectedKey(e.target.value);
+                    setSelectedValue("");
+                  }}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
+                >
+                  <option value="">Choose attribute...</option>
+                  {getAvailableKeys().map((attr) => (
+                    <option key={attr.id} value={attr.attribute_key}>
+                      {attr.attribute_key}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedKey && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select Value
+                  </label>
+                  <select
+                    value={selectedValue}
+                    onChange={(e) => setSelectedValue(e.target.value)}
+                    className="w-full h-9 rounded-lg border border-gray-300 px-3 text-sm outline-none focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
+                  >
+                    <option value="">Choose value...</option>
+                    {getAvailableValuesForAttribute(selectedKey).map((val) => (
+                      <option key={val.id} value={val.value}>
+                        {val.value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setSelectedKey("");
+                    setSelectedValue("");
+                  }}
+                  className="flex-1 h-8 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={!selectedKey || !selectedValue}
+                  className="flex-1 h-8 rounded-lg bg-black text-xs font-semibold text-white hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 
 const AddProductModal: React.FC<AddProductModalProps> = ({
   open,
   loading,
   onClose,
   onSubmit,
+  editData,
+  isEdit = false,
 }) => {
-  // ============================
-  // API DATA STATE
-  // ============================
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
+  const [attributeMasters, setAttributeMasters] = useState<AttributeMaster[]>([]);
   const [fetchingOptions, setFetchingOptions] = useState(false);
 
-  // ============================
-  // FORM STATE
-  // ============================
   const [productCode, setProductCode] = useState("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -234,40 +458,20 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [categoryId, setCategoryId] = useState("");
   const [taxCategoryId, setTaxCategoryId] = useState("");
   
-  // Pricing
   const [retailMrp, setRetailMrp] = useState("");
   const [retailDiscountValue, setRetailDiscountValue] = useState("");
   const [distributorMrp, setDistributorMrp] = useState("");
   const [distributorDiscountValue, setDistributorDiscountValue] = useState("");
   
-  // Inventory
   const [stockQuantity, setStockQuantity] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("10");
   
-  // Publishing
   const [isPublished, setIsPublished] = useState(true);
   
-  // Images
   const [images, setImages] = useState<ImageItem[]>([]);
-  
-  // Variants
   const [variants, setVariants] = useState<VariantFormData[]>([]);
-  
-  // Errors
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Attribute Popup
-  const [attributePopup, setAttributePopup] = useState<{
-    isOpen: boolean;
-    variantId: string | null;
-  }>({
-    isOpen: false,
-    variantId: null,
-  });
-
-  // ============================
-  // FETCH OPTIONS
-  // ============================
   const fetchOptions = async () => {
     try {
       setFetchingOptions(true);
@@ -285,28 +489,89 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         name: tax.name,
       })) || [];
       setTaxCategories(formattedTaxCategories);
+
+      const attributesRes = await attributesApi.getAll();
+      if (attributesRes.data?.success) {
+        setAttributeMasters(attributesRes.data.data || []);
+      }
       
     } catch (error: any) {
       console.error("Fetch options error:", error);
       setCategories([]);
       setTaxCategories([]);
+      setAttributeMasters([]);
     } finally {
       setFetchingOptions(false);
     }
   };
 
-  // ============================
-  // LOAD OPTIONS ON OPEN
-  // ============================
   useEffect(() => {
     if (open) {
       fetchOptions();
     }
   }, [open]);
 
-  // ============================
+  // ============================================================
+  // LOAD EDIT DATA
+  // ============================================================
+
+  useEffect(() => {
+    if (open && isEdit && editData) {
+      console.log("Loading edit data:", editData);
+      
+      // Basic Info
+      setProductCode(editData.product_code || editData.sku || "");
+      setName(editData.name || "");
+      setSlug(editData.slug || "");
+      setDescription(editData.description || "");
+      
+      // Specification
+      if (editData.specification) {
+        setSpecification(parseSpecification(editData.specification));
+      }
+      
+      // Category & Tax
+      setCategoryId(String(editData.category_id || ""));
+      setTaxCategoryId(String(editData.tax_category_id || ""));
+      
+      // Pricing
+      setRetailMrp(String(editData.retail_mrp || ""));
+      setRetailDiscountValue(String(editData.retail_discount_value || ""));
+      setDistributorMrp(String(editData.distributor_mrp || ""));
+      setDistributorDiscountValue(String(editData.distributor_discount_value || ""));
+      
+      // Inventory
+      setStockQuantity(String(editData.stock_quantity || ""));
+      setLowStockThreshold(String(editData.low_stock_threshold || "10"));
+      
+      // Publishing
+      setIsPublished(editData.is_published === true || editData.is_published === 1);
+      
+      // Images
+      if (editData.images && Array.isArray(editData.images)) {
+        const existingImages: ImageItem[] = editData.images.map((img: any, index: number) => ({
+          id: Date.now() + index,
+          preview: img.image_url || img.image,
+          sort_order: img.sort_order || index + 1,
+          is_primary: img.is_primary ? 1 : 0,
+          existing_id: img.id,
+          is_existing: true,
+        }));
+        setImages(existingImages);
+      }
+      
+      // Variants - Use the helper function to generate from either variants or variants_summary
+      const generatedVariants = generateVariantsFromProduct(editData);
+      console.log("Generated variants:", generatedVariants);
+      console.log("Variants summary:", editData.variants_summary);
+      setVariants(generatedVariants);
+    }
+  }, [open, isEdit, editData]);
+
+  // ============================================================
   // RESET FORM
-  // ============================
+  // ============================================================
+
   useEffect(() => {
     if (!open) {
       setProductCode("");
@@ -326,15 +591,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       setImages([]);
       setVariants([]);
       setErrors({});
-      setAttributePopup({ isOpen: false, variantId: null });
     }
   }, [open]);
 
   if (!open) return null;
 
-  // ============================
-  // NAME → SLUG
-  // ============================
+  // ============================================================
+  // FORM HANDLERS
+  // ============================================================
+
   const handleNameChange = (value: string) => {
     setName(value);
     setSlug(
@@ -346,9 +611,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
   };
 
-  // ============================
-  // SPECIFICATION FUNCTIONS
-  // ============================
   const addSpecificationField = () => {
     setSpecification([...specification, { key: "", value: "" }]);
   };
@@ -365,9 +627,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSpecification(newSpec);
   };
 
-  // ============================
-  // IMAGE UPLOAD
-  // ============================
   const handleImages = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -378,10 +637,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       preview: URL.createObjectURL(file),
       sort_order: images.length + index + 1,
       is_primary: images.length === 0 && index === 0 ? 1 : 0,
+      is_existing: false,
     }));
 
     setImages((prev) => [...prev, ...newImages]);
-    // Clear any image error
     setErrors((prev) => ({ ...prev, images: undefined }));
     e.target.value = "";
   };
@@ -408,14 +667,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
   };
 
-  // ============================
-  // VARIANT FUNCTIONS
-  // ============================
   const addVariant = () => {
     const newVariant: VariantFormData = {
       id: `variant-${Date.now()}`,
       sku: "",
-      attributes: {},
+      attributes: [],
       retail_mrp: "",
       retail_discount_type: "percentage",
       retail_discount_value: "",
@@ -427,6 +683,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       sort_order: variants.length + 1,
       is_active: 1,
       images: [],
+      is_existing: false,
     };
     setVariants([...variants, newVariant]);
   };
@@ -450,9 +707,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setVariants(
       variants.map((v) => {
         if (v.id === id) {
+          const exists = v.attributes.some(attr => attr.key === key && attr.value === value);
+          if (exists) {
+            return v;
+          }
           return {
             ...v,
-            attributes: { ...v.attributes, [key]: value },
+            attributes: [...v.attributes, { key, value }],
           };
         }
         return v;
@@ -460,13 +721,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
   };
 
-  const removeVariantAttribute = (id: string, key: string) => {
+  const removeVariantAttribute = (id: string, key: string, value: string) => {
     setVariants(
       variants.map((v) => {
         if (v.id === id) {
-          const newAttributes = { ...v.attributes };
-          delete newAttributes[key];
-          return { ...v, attributes: newAttributes };
+          return {
+            ...v,
+            attributes: v.attributes.filter(attr => !(attr.key === key && attr.value === value)),
+          };
         }
         return v;
       })
@@ -486,6 +748,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       preview: URL.createObjectURL(file),
       sort_order: variant.images.length + index + 1,
       is_primary: variant.images.length === 0 && index === 0 ? 1 : 0,
+      is_existing: false,
     }));
 
     updateVariant(variantId, "images", [...variant.images, ...newImages]);
@@ -521,23 +784,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
   };
 
-  const openAttributePopup = (variantId: string) => {
-    setAttributePopup({ isOpen: true, variantId });
-  };
-
-  const closeAttributePopup = () => {
-    setAttributePopup({ isOpen: false, variantId: null });
-  };
-
-  const handleAddAttribute = (key: string, value: string) => {
-    if (attributePopup.variantId) {
-      updateVariantAttribute(attributePopup.variantId, key, value);
-    }
-  };
-
-  // ============================
-  // VALIDATE
-  // ============================
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -565,7 +811,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       newErrors.stock_quantity = "Please enter a valid stock quantity";
     }
 
-    // Check if at least one image is uploaded
     if (images.length === 0) {
       newErrors.images = "At least one product image is required";
     }
@@ -574,13 +819,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  // ============================
-  // BUILD FORM DATA
-  // ============================
   const buildFormData = (): FormData => {
     const formData = new FormData();
 
-    // Convert specification to JSON string
     const specObject: Record<string, string> = {};
     specification.forEach(item => {
       if (item.key.trim() && item.value.trim()) {
@@ -588,7 +829,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       }
     });
 
-    // Append basic fields
     formData.append('product_code', productCode);
     formData.append('name', name);
     formData.append('slug', slug);
@@ -609,17 +849,42 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append('distributor_discount_type', 'percentage');
     formData.append('distributor_discount_value', String(distributorDiscountValue || 0));
 
-    // Append product images - USE 'image' as field name (not 'file')
-    images.forEach((item, index) => {
-      formData.append(`product_images[${index}][image]`, item.file);
-      formData.append(`product_images[${index}][sort_order]`, String(item.sort_order));
-      formData.append(`product_images[${index}][is_primary]`, String(item.is_primary));
+    if (isEdit && editData) {
+      const existingImageIds = images
+        .filter(img => img.is_existing && img.existing_id)
+        .map(img => img.existing_id);
+      if (existingImageIds.length > 0) {
+        formData.append('existing_image_ids', JSON.stringify(existingImageIds));
+      }
+      formData.append('_method', 'PUT');
+    }
+
+    const newImages = images.filter(img => !img.is_existing);
+    newImages.forEach((item, index) => {
+      if (item.file) {
+        formData.append(`product_images[${index}][image]`, item.file);
+        formData.append(`product_images[${index}][sort_order]`, String(item.sort_order));
+        formData.append(`product_images[${index}][is_primary]`, String(item.is_primary));
+      }
     });
 
-    // Append variants
     variants.forEach((variant, vIndex) => {
+      if (isEdit && variant.is_existing && variant.existing_id) {
+        formData.append(`variants[${vIndex}][id]`, String(variant.existing_id));
+      }
+      
       formData.append(`variants[${vIndex}][sku]`, variant.sku);
-      formData.append(`variants[${vIndex}][attributes]`, JSON.stringify(variant.attributes));
+      
+      const attributesObject: Record<string, string> = {};
+      variant.attributes.forEach(attr => {
+        if (attributesObject[attr.key]) {
+          attributesObject[attr.key] = attributesObject[attr.key] + ',' + attr.value;
+        } else {
+          attributesObject[attr.key] = attr.value;
+        }
+      });
+      formData.append(`variants[${vIndex}][attributes]`, JSON.stringify(attributesObject));
+      
       formData.append(`variants[${vIndex}][retail_mrp]`, String(variant.retail_mrp || 0));
       formData.append(`variants[${vIndex}][retail_discount_type]`, variant.retail_discount_type || 'percentage');
       formData.append(`variants[${vIndex}][retail_discount_value]`, String(variant.retail_discount_value || 0));
@@ -631,20 +896,28 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       formData.append(`variants[${vIndex}][sort_order]`, String(variant.sort_order));
       formData.append(`variants[${vIndex}][is_active]`, String(variant.is_active));
 
-      // Append variant images - USE 'image' as field name
-      variant.images.forEach((img, imgIndex) => {
-        formData.append(`variants[${vIndex}][images][${imgIndex}][image]`, img.file);
-        formData.append(`variants[${vIndex}][images][${imgIndex}][sort_order]`, String(img.sort_order));
-        formData.append(`variants[${vIndex}][images][${imgIndex}][is_primary]`, String(img.is_primary));
+      const newVariantImages = variant.images.filter(img => !img.is_existing);
+      newVariantImages.forEach((img, imgIndex) => {
+        if (img.file) {
+          formData.append(`variants[${vIndex}][images][${imgIndex}][image]`, img.file);
+          formData.append(`variants[${vIndex}][images][${imgIndex}][sort_order]`, String(img.sort_order));
+          formData.append(`variants[${vIndex}][images][${imgIndex}][is_primary]`, String(img.is_primary));
+        }
       });
+
+      if (isEdit) {
+        const existingVariantImageIds = variant.images
+          .filter(img => img.is_existing && img.existing_id)
+          .map(img => img.existing_id);
+        if (existingVariantImageIds.length > 0) {
+          formData.append(`variants[${vIndex}][existing_image_ids]`, JSON.stringify(existingVariantImageIds));
+        }
+      }
     });
 
     return formData;
   };
 
-  // ============================
-  // SUBMIT
-  // ============================
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -660,39 +933,36 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     onSubmit(formData);
   };
 
-  // ============================
+  // ============================================================
   // RENDER
-  // ============================
+  // ============================================================
+
   return (
     <>
-      {/* Attribute Popup */}
-      <AttributePopup
-        isOpen={attributePopup.isOpen}
-        onClose={closeAttributePopup}
-        onSave={handleAddAttribute}
-      />
-
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* Modal Container */}
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div
           className="relative w-full max-w-[1200px] max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* HEADER */}
           <div className="flex-shrink-0 flex items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-6 py-5">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <FiPlus className="text-yellow-500" size={24} />
-                Add New Product
+                {isEdit ? (
+                  <FiEdit2 className="text-yellow-500" size={24} />
+                ) : (
+                  <FiPlus className="text-yellow-500" size={24} />
+                )}
+                {isEdit ? "Edit Product" : "Add New Product"}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5">
-                Fill in the product details, pricing, variants and images
+                {isEdit 
+                  ? `Editing: ${editData?.name || 'Product'}` 
+                  : "Fill in the product details, pricing, variants and images"}
               </p>
             </div>
             <button
@@ -704,7 +974,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             </button>
           </div>
 
-          {/* SCROLLABLE CONTENT */}
           <div className="flex-1 overflow-y-auto p-6">
             <form onSubmit={handleSubmit} id="product-form">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
@@ -841,7 +1110,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                   {/* Description & Specification */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Description */}
                     <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
                       <div className="flex items-center gap-2 mb-4">
                         <FiAlignLeft className="text-yellow-500" size={20} />
@@ -856,7 +1124,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       />
                     </div>
 
-                    {/* Specification */}
                     <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
@@ -908,15 +1175,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           </div>
                         ))}
                       </div>
-
-                      {specification.length > 0 && (
-                        <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <FiInfo size={12} /> 
-                            {specification.filter(s => s.key.trim() && s.value.trim()).length} fields added
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -999,6 +1257,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               {item.is_primary && (
                                 <span className="text-black font-semibold">Primary</span>
                               )}
+                              {item.is_existing && (
+                                <span className="text-blue-500 text-[10px]">Existing</span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1012,6 +1273,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       <div className="flex items-center gap-2">
                         <FiPackage className="text-yellow-500" size={20} />
                         <h3 className="text-lg font-bold text-gray-900">Variants</h3>
+                        <span className="text-xs text-gray-400">
+                          ({variants.length} variant{variants.length !== 1 ? 's' : ''})
+                        </span>
                       </div>
                       <button
                         type="button"
@@ -1038,6 +1302,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               <h4 className="font-bold text-gray-900 flex items-center gap-2">
                                 <FiPackage className="text-yellow-500" size={16} />
                                 Variant #{index + 1}
+                                {variant.is_existing && (
+                                  <span className="text-blue-500 text-xs bg-blue-50 px-2 py-0.5 rounded-full">
+                                    Existing
+                                  </span>
+                                )}
                               </h4>
                               <button
                                 type="button"
@@ -1068,36 +1337,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 <label className="text-xs font-semibold text-gray-600">
                                   Attributes
                                 </label>
-                                <div className="flex flex-wrap gap-1 min-h-[40px] items-center p-1.5 bg-white rounded-lg border border-gray-300">
-                                  {Object.entries(variant.attributes).length === 0 ? (
-                                    <span className="text-xs text-gray-400 px-1">No attributes</span>
-                                  ) : (
-                                    Object.entries(variant.attributes).map(([key, value]) => (
-                                      <span
-                                        key={key}
-                                        className="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2.5 py-1 text-xs"
-                                      >
-                                        <span className="font-semibold">{key}:</span> {value}
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            removeVariantAttribute(variant.id, key)
-                                          }
-                                          className="text-red-500 hover:text-red-700 ml-0.5"
-                                        >
-                                          <FiX size={12} />
-                                        </button>
-                                      </span>
-                                    ))
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => openAttributePopup(variant.id)}
-                                    className="text-xs text-blue-500 hover:text-blue-700 font-medium px-2 py-1 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1"
-                                  >
-                                    <FiPlus size={12} /> Add
-                                  </button>
-                                </div>
+                                <AttributeSelector
+                                  variantId={variant.id}
+                                  selectedAttributes={variant.attributes}
+                                  availableAttributes={attributeMasters}
+                                  onAddAttribute={updateVariantAttribute}
+                                  onRemoveAttribute={removeVariantAttribute}
+                                />
                               </div>
 
                               <div>
@@ -1275,6 +1521,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                       >
                                         <FiX size={10} />
                                       </button>
+                                      {img.is_existing && (
+                                        <span className="absolute bottom-0 left-0 right-0 text-[6px] bg-blue-500 text-white text-center">
+                                          Existing
+                                        </span>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
@@ -1292,7 +1543,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   {/* Pricing */}
                   <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-4">
-                    <FaRupeeSign className="text-yellow-500" size={20} />
+                      <FaRupeeSign className="text-yellow-500" size={20} />
                       <h3 className="text-lg font-bold text-gray-900">Pricing</h3>
                     </div>
 
@@ -1438,7 +1689,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Publishing - Only Publish toggle */}
+                  {/* Publishing */}
                   <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <FiTag className="text-yellow-500" size={20} />
@@ -1467,7 +1718,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             </form>
           </div>
 
-          {/* FOOTER */}
           <div className="flex-shrink-0 flex justify-end gap-3 rounded-b-2xl border-t border-gray-200 bg-white px-6 py-4">
             <button
               type="button"
@@ -1488,12 +1738,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Adding...
+                  {isEdit ? "Updating..." : "Adding..."}
                 </>
               ) : fetchingOptions ? (
                 "Loading..."
               ) : (
-                "Add Product"
+                isEdit ? "Update Product" : "Add Product"
               )}
             </button>
           </div>

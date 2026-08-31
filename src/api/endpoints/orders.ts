@@ -256,6 +256,45 @@ export const orderApi = {
 
   getOrderStatuses: () =>
     apiClient.get<OrderStatusesResponse>('/admin/orders/statuses'),
+
+  dispatchOrder: (data: {
+    order_reference: string;
+    dispatch_all?: boolean;
+    items?: { order_line_id: number }[];
+    courier_tracking_number: string;
+    courier_company: string;
+    delivery_notes?: string;
+    courier_delivery_date?: string;
+  }) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(
+      '/orders/dispatch',
+      data
+    ),
+
+  // =====================================================
+  // SHIP ORDER (Mark items as shipped - after dispatch)
+  // =====================================================
+  shipOrder: (data: {
+    order_reference: string;
+    items?: { order_line_id: number }[];
+  }) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(
+      '/orders/ship',
+      data
+    ),
+
+  // =====================================================
+  // DELIVER ORDER (Mark items as delivered - after ship)
+  // =====================================================
+  deliverOrder: (data: {
+    order_reference: string;
+    items?: { order_line_id: number }[];
+  }) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(
+      '/orders/deliver',
+      data
+    ),
+
 };
 
 export default orderApi;

@@ -5,10 +5,11 @@ export const menuItems = [
     label: 'Inventory', 
     icon: 'inventory_2',
     children: [
-      { path: '/inventory/products', label: 'Products', icon: 'inventory' },
       { path: '/inventory/categories', label: 'Categories', icon: 'category' },
-      { path: '/inventory/stock', label: 'Stock', icon: 'warehouse' },
       { path: '/inventory/tax-categories', label: 'Tax Categories', icon: 'percent' },
+      { path: '/inventory/AttributesManagement', label: 'Attributes Management', icon: 'inventory' },
+      { path: '/inventory/products', label: 'Products', icon: 'inventory' },
+      { path: '/inventory/stock', label: 'Stock', icon: 'warehouse' },
     ]
   },
   { path: '/orders', label: 'Orders', icon: 'shopping_cart' },

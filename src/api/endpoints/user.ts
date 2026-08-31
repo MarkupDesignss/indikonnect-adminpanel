@@ -1,9 +1,5 @@
 import apiClient from "../client";
 
-// =====================================================
-// TYPES
-// =====================================================
-
 export interface BusinessProfile {
   id: number;
   user_id: number;
@@ -45,8 +41,6 @@ export interface BusinessProfile {
   created_at: string;
   updated_at: string;
 
-  // Sensitive encrypted values exist in API,
-  // but intentionally not displayed in UI.
   encrypted_aadhaar?: string | null;
   encrypted_pan?: string | null;
   encrypted_bank_account?: string | null;
@@ -100,7 +94,7 @@ export interface RegisteredUser {
   sponsor_id: string | null;
   placement_leg: string | null;
 
-  distributor_status: string;
+  kyc_status: string;
 
   activation_date: string | null;
 
@@ -117,9 +111,6 @@ export interface RegisteredUser {
   business_profile: BusinessProfile | null;
 }
 
-// =====================================================
-// RESPONSE TYPES
-// =====================================================
 
 export interface RegisteredUsersResponse {
   success: boolean;
@@ -151,39 +142,22 @@ export interface DistributorStatusResponse {
     distributor_id?: string | number;
     is_active?: boolean;
     status?: string;
-    distributor_status?: string;
+    kyc_status?: string;
   };
 }
 
-// =====================================================
-// API
-// =====================================================
-
 export const userManagementApi = {
-  /**
-   * GET /admin/registered-users
-   */
+
   getRegisteredUsers: () =>
     apiClient.get<RegisteredUsersResponse>(
       "/admin/registered-users"
     ),
 
-  /**
-   * GET /admin/registered-users/:id
-   */
   getUserById: (id: number) =>
     apiClient.get<RegisteredUserDetailResponse>(
       `/admin/registered-users/${id}`
     ),
 
-  /**
-   * POST /admin/update-user-status/:id
-   *
-   * Sends:
-   * {
-   *   is_active: true/false
-   * }
-   */
   updateUserStatus: (
     id: number,
     is_active: boolean
@@ -195,22 +169,14 @@ export const userManagementApi = {
       }
     ),
 
-  /**
-   * POST /admin/distributors/:id/status
-   *
-   * Distributor request accept:
-   * {
-   *   distributor_status: "active"
-   * }
-   */
   updateDistributorStatus: (
     id: number,
-    distributor_status: string
+    kyc_status: string
   ) =>
     apiClient.post<DistributorStatusResponse>(
       `/admin/distributors/${id}/status`,
       {
-        distributor_status,
+        kyc_status,
       }
     ),
 };

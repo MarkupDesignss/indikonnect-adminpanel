@@ -140,10 +140,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
               {/* Title */}
 
               <p
-                className={`font-lato text-[11px] font-bold uppercase tracking-[0.12em] ${
-                  item.textColor ||
-                  "text-[#a89a7d]"
-                }`}
+                className={`font-lato text-[11px] font-bold uppercase tracking-[0.12em] text-black`}
               >
                 {item.title}
               </p>
@@ -165,11 +162,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
                   type: "spring",
                   stiffness: 180,
                 }}
-                className={`mt-2 font-lato text-[34px] font-bold leading-none tracking-[-1.5px] ${
-                  item.valueColor ||
-                  "text-[#2a2620]"
-                }`}
-              >
+                className={`mt-2 font-lato text-[34px] font-bold leading-none tracking-[-1.5px] text-black`}      >
                 {item.value}
               </motion.h2>
 
@@ -189,7 +182,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
             ================================================= */}
 
             <div className="relative shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#b8902e]/15  text-[#b8902e]  transition-all duration-300 group-hover:border-[#b8902e]/30 group-hover:bg-[#f8f1df]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-xl border border-[#b8902e]/15  text-[#b8902e]  transition-all duration-300 group-hover:border-[#b8902e]/30 group-hover:bg-[#f8f1df]">
                 {item.icon}
               </div>
             </div>
