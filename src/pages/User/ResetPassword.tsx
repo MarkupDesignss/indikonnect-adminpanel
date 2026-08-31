@@ -10,14 +10,14 @@ import 'react-toastify/dist/ReactToastify.css';
 const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [email] = useState(
     location.state?.email || ''
   );
   const [resetToken] = useState(
     location.state?.resetToken || ''
   );
-  
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -62,7 +62,7 @@ const ResetPassword = () => {
       // Check if reset was successful
       if (response.data.message || response.status === 200) {
         setSuccess(true);
-        
+
         // Show success toast
         toast.success(response.data.message || 'Password reset successfully!', {
           position: "top-right",
@@ -87,11 +87,11 @@ const ResetPassword = () => {
     } catch (err: any) {
       // Handle API errors
       console.error('Reset password error:', err);
-      
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Failed to reset password. Please try again.';
-      
+
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Failed to reset password. Please try again.';
+
       // Only show error in form, no toast
       setError(errorMessage);
       setIsLoading(false);
@@ -136,7 +136,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-subtle via-surface to-surface-subtle flex items-center justify-center p-4 relative overflow-hidden">
-      
+
       {/* Toast Container - Only for success toasts */}
       <ToastContainer
         position="top-right"
@@ -151,7 +151,7 @@ const ResetPassword = () => {
         theme="light"
         limit={3}
       />
-      
+
       {/* Animated Background Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -223,7 +223,7 @@ const ResetPassword = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary-container/20 rounded-2xl blur-2xl" />
                 <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-secondary-container/30 to-secondary-container/10 flex items-center justify-center shadow-xl shadow-secondary-container/10">
                   <img
-                    src="/assets/logo.png"
+                    src={`${import.meta.env.BASE_URL}assets/logo.png`}
                     alt="IndieKonnect Logo"
                     className="w-14 h-14 object-contain"
                   />
@@ -354,21 +354,20 @@ const ResetPassword = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-1 bg-border-light rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        newPassword.length < 4
+                      className={`h-full transition-all duration-500 rounded-full ${newPassword.length < 4
                           ? 'w-1/4 bg-status-error'
                           : newPassword.length < 8
-                          ? 'w-1/2 bg-status-warning'
-                          : 'w-full bg-status-success'
-                      }`}
+                            ? 'w-1/2 bg-status-warning'
+                            : 'w-full bg-status-success'
+                        }`}
                     />
                   </div>
                   <span className="text-xs font-medium text-on-surface-variant/60 whitespace-nowrap">
                     {newPassword.length < 4
                       ? 'Weak'
                       : newPassword.length < 8
-                      ? 'Medium'
-                      : 'Strong'}
+                        ? 'Medium'
+                        : 'Strong'}
                   </span>
                 </div>
               </motion.div>
@@ -439,7 +438,7 @@ const ResetPassword = () => {
               </span>
               Back to Sign In
             </Link>
-            
+
             <p className="text-xs text-on-surface-variant/40">
               &copy; 2026 IndieKonnect. All rights reserved.
             </p>

@@ -250,7 +250,7 @@ const MainLayout = () => {
               "
             >
               <img
-                src="/assets/logo.png"
+                src={`${import.meta.env.BASE_URL}assets/logo.png`}
                 alt="IndieKonnect Logo"
                 className="w-full h-full object-contain"
               />
@@ -340,7 +340,7 @@ const MainLayout = () => {
           />
 
           <NavLink
-            to="/logout"
+            to="/"
             className="
               group
 

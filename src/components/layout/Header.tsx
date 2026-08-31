@@ -63,16 +63,22 @@ const Header = ({ isSidebarOpen = true, onToggleSidebar }: HeaderProps) => {
   const handleLogout = async () => {
     try {
       await adminApi.logout();
+
       sessionStorage.removeItem('adminToken');
       sessionStorage.removeItem('adminData');
       sessionStorage.removeItem('adminPermissions');
       sessionStorage.removeItem('adminRoles');
-      window.location.href = '/login';
+
+      window.location.href = `${import.meta.env.BASE_URL}login`;
     } catch (error) {
       console.error('Logout failed:', error);
+
       sessionStorage.removeItem('adminToken');
       sessionStorage.removeItem('adminData');
-      window.location.href = '/login';
+      sessionStorage.removeItem('adminPermissions');
+      sessionStorage.removeItem('adminRoles');
+
+      window.location.href = `${import.meta.env.BASE_URL}login`;
     }
   };
 
@@ -89,7 +95,7 @@ const Header = ({ isSidebarOpen = true, onToggleSidebar }: HeaderProps) => {
   };
 
   return (
-    <header 
+    <header
       className="
         bg-surface-container-lowest/95 
         backdrop-blur-sm 
@@ -196,9 +202,8 @@ const Header = ({ isSidebarOpen = true, onToggleSidebar }: HeaderProps) => {
               )}
             </div>
             <HiOutlineChevronDown
-              className={`text-[18px] text-on-surface-variant hidden md:inline transition-transform duration-200 ${
-                isDropdownOpen ? 'rotate-180' : 'rotate-0'
-              }`}
+              className={`text-[18px] text-on-surface-variant hidden md:inline transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : 'rotate-0'
+                }`}
             />
           </button>
 

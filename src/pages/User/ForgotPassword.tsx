@@ -10,7 +10,7 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -36,11 +36,11 @@ const ForgotPassword = () => {
 
         setTimeout(() => {
           setIsLoading(false);
-          navigate('/otp-verification', { 
-            state: { 
+          navigate('/otp-verification', {
+            state: {
               email: email.trim(),
               from: 'forgot-password'
-            } 
+            }
           });
         }, 1000);
       } else {
@@ -49,9 +49,9 @@ const ForgotPassword = () => {
       }
     } catch (err: any) {
       console.error('Forgot password error:', err);
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Email not found. Please check and try again.';
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Email not found. Please check and try again.';
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -169,7 +169,7 @@ const ForgotPassword = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary-container/20 rounded-2xl blur-2xl" />
                 <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-secondary-container/30 to-secondary-container/10 flex items-center justify-center shadow-xl shadow-secondary-container/10">
                   <img
-                    src="/assets/logo.png"
+                    src={`${import.meta.env.BASE_URL}assets/logo.png`}
                     alt="IndieKonnect Logo"
                     className="w-14 h-14 object-contain"
                   />

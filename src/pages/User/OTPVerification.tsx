@@ -9,7 +9,7 @@ const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || '';
-  
+
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -130,11 +130,11 @@ const OTPVerification = () => {
       }
     } catch (err: any) {
       console.error('OTP verification error:', err);
-      
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Invalid OTP. Please try again.';
-      
+
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Invalid OTP. Please try again.';
+
       // Only show error in form, no toast
       setError(errorMessage);
       setIsLoading(false);
@@ -149,7 +149,7 @@ const OTPVerification = () => {
 
   const handleResend = async () => {
     if (!canResend) return;
-    
+
     setResendTimer(30);
     setCanResend(false);
     setError('');
@@ -176,11 +176,11 @@ const OTPVerification = () => {
       }
     } catch (err: any) {
       console.error('Resend OTP error:', err);
-      
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Failed to resend OTP. Please try again.';
-      
+
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Failed to resend OTP. Please try again.';
+
       // Only show error in form, no toast
       setError(errorMessage);
     }
@@ -224,7 +224,7 @@ const OTPVerification = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-subtle via-surface to-surface-subtle flex items-center justify-center p-4 relative overflow-hidden">
-      
+
       {/* Toast Container - Only for success toasts */}
       <ToastContainer
         position="top-right"
@@ -239,7 +239,7 @@ const OTPVerification = () => {
         theme="light"
         limit={3}
       />
-      
+
       {/* Animated Background Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -313,7 +313,7 @@ const OTPVerification = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary-container/20 rounded-2xl blur-2xl" />
                   <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-secondary-container/30 to-secondary-container/10 flex items-center justify-center shadow-xl shadow-secondary-container/10">
                     <img
-                      src="/assets/logo.png"
+                      src={`${import.meta.env.BASE_URL}assets/logo.png`}
                       alt="IndieKonnect Logo"
                       className="w-14 h-14 object-contain"
                     />

@@ -16,7 +16,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+
     try {
       const response = await adminApi.login({
         email: email.trim(),
@@ -25,7 +25,7 @@ const Login = () => {
 
       if (response.data.success) {
         sessionStorage.setItem('adminToken', response.data.data.token);
-        
+
         toast.success(response.data.message || 'Login successful! Welcome back!', {
           position: "top-right",
           autoClose: 3000,
@@ -48,9 +48,9 @@ const Login = () => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.error || 
-                          'Invalid email or password. Please try again.';
+      const errorMessage = err.response?.data?.message ||
+        err.response?.data?.error ||
+        'Invalid email or password. Please try again.';
       setError(errorMessage);
       setIsLoading(false);
     }
@@ -94,7 +94,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-subtle via-surface to-surface-subtle flex items-center justify-center p-4 relative overflow-hidden">
-      
+
       {/* Animated Background Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating Circles */}
@@ -169,7 +169,7 @@ const Login = () => {
                 <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-secondary-container/20 rounded-2xl blur-2xl" />
                 <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-secondary-container/30 to-secondary-container/10 flex items-center justify-center shadow-xl shadow-secondary-container/10">
                   <img
-                    src="/assets/logo.png"
+                    src={`${import.meta.env.BASE_URL}assets/logo.png`}
                     alt="IndieKonnect Logo"
                     className="w-14 h-14 object-contain"
                   />
@@ -271,7 +271,7 @@ const Login = () => {
                 />
                 Remember me
               </label>
-              <Link 
+              <Link
                 to="/forgot-password"
                 className="text-sm text-secondary hover:text-secondary/80 font-medium underline transition-colors hover:underline underline-offset-2"
               >
