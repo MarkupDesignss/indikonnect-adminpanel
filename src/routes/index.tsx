@@ -23,15 +23,12 @@ import HeaderManagement from "@/pages/Cms/HeaderManagement";
 import FooterManagement from "@/pages/Cms/FooterManagement";
 import GrowthSteps from "@/pages/Cms/GrowthSteps";
 import ContentsManagement from "@/pages/Cms/ContentsManagement";
-
 import AttributesManagement from "@/pages/AttributesManagement/AttributesManagement";
+
+const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
 
 export const router = createBrowserRouter(
   [
-    // =========================
-    // AUTH ROUTES
-    // =========================
-
     {
       path: "/login",
       element: <Login />,
@@ -52,24 +49,14 @@ export const router = createBrowserRouter(
       element: <OTPVerification />,
     },
 
-    // =========================
-    // MAIN APP
-    // =========================
-
     {
       path: "/",
       element: <MainLayout />,
-
       children: [
-        // Dashboard
         {
           index: true,
           element: <Dashboard />,
         },
-
-        // =========================
-        // INVENTORY
-        // =========================
 
         {
           path: "inventory/Taxcategories",
@@ -80,10 +67,6 @@ export const router = createBrowserRouter(
           path: "inventory/AttributesManagement",
           element: <AttributesManagement />,
         },
-
-        // =========================
-        // MANAGEMENT
-        // =========================
 
         {
           path: "Notifications",
@@ -116,15 +99,6 @@ export const router = createBrowserRouter(
         },
 
         {
-          path: "UserManagement",
-          element: <UserManagement />,
-        },
-
-        // =========================
-        // CMS
-        // =========================
-
-        {
           path: "cms/header",
           element: <HeaderManagement />,
         },
@@ -144,16 +118,17 @@ export const router = createBrowserRouter(
           element: <ContentsManagement />,
         },
 
-        // =========================
-        // OTHER APP ROUTES
-        // =========================
+        {
+          path: "UserManagement",
+          element: <UserManagement />,
+        },
 
         ...appRoutes,
       ],
     },
   ],
   {
-    basename: "/indiekonnect-admin",
+    basename,
   },
 );
 
