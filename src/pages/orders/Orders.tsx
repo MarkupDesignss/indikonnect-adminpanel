@@ -23,30 +23,11 @@ import {
 
 import {
   orderApi,
-  OrderDetailsResponse,
 } from "../../api/endpoints/orders";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import StatsCard from "@/components/common/StatsCard";
 
-
-const THEME = {
-  cream: "#faf8f3",
-  white: "#ffffff",
-  dark: "#2f2a22",
-  text: "#2a2620",
-  secondary: "#786f60",
-  muted: "#a89a7d",
-  gold: "#b8902e",
-  lightGold: "#d4af52",
-  darkGold: "#8f6d1d",
-  border: "rgba(184,144,46,0.15)",
-  softBorder: "rgba(184,144,46,0.10)",
-};
-
-// =====================================================
-// CUSTOM STAT ICONS
-// =====================================================
 
 const ClipboardIcon = () => (
   <svg
@@ -83,34 +64,6 @@ const ClipboardIcon = () => (
   </svg>
 );
 
-const ShoppingBagIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M6 2L3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6L18 2H6Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M3 6H21"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M16 10C16 12.2091 14.2091 14 12 14C9.79086 14 8 12.2091 8 10"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-  </svg>
-);
 
 const CreditCardIcon = () => (
   <svg
@@ -168,9 +121,42 @@ const CheckCircleIcon = () => (
   </svg>
 );
 
-// =====================================================
-// ORDER TYPES
-// =====================================================
+const DollarIcon = () => (
+  <svg
+    width="34"
+    height="34"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+    <path
+      d="M8 8H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 12H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 16H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 
 export interface OrderItem {
   id: string;
@@ -183,6 +169,8 @@ export interface OrderItem {
   image?: string;
   lineId?: number;
   delivery_status?: string;
+  unitPrice?: number;
+  lineTotal?: number;
 }
 
 export interface Order {
@@ -206,6 +194,8 @@ export interface Order {
   userEmail: string;
   userPhone: string;
   orderId?: number;
+  orderReference?: string;
+  totalPayable?: number;
 }
 
 // =====================================================
@@ -284,43 +274,45 @@ const ModalError: React.FC<ModalErrorProps> = ({
 interface ViewOrderPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId: string | null; // Changed from number to string
+  orderId: string | null;
+  orderData?: any;
 }
 
-const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderId }) => {
+const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderId, orderData }) => {
   const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking">("items");
-  const [orderDetails, setOrderDetails] = useState<OrderDetailsResponse["data"] | null>(null);
+  const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && orderId) {
-      fetchOrderDetails(orderId);
+      if (orderData) {
+        setOrderDetails(orderData);
+        setLoading(false);
+        setError(null);
+      } else {
+        fetchOrderDetails(orderId);
+      }
     }
     if (isOpen) {
       setActiveTab("items");
     }
-  }, [isOpen, orderId]);
+  }, [isOpen, orderId, orderData]);
 
-  const fetchOrderDetails = async (id: string) => { // Changed from number to string
+  const fetchOrderDetails = async (id: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await orderApi.getOrderDetails(id); // Passing string (order_reference)
-      console.log("Full API Response:", response);
-
-      // Extract data correctly
+      const response = await orderApi.getOrderDetails(id);
       let data = null;
-      
+
       if (response?.data?.data) {
         data = response.data.data;
       } else if (response?.data) {
         data = response.data;
       }
 
-      console.log("Extracted Order Data:", data);
-      
       if (data) {
         setOrderDetails(data);
       } else {
@@ -356,19 +348,21 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     );
   }
 
-  // Log the final data being used
-  console.log("Rendering Order Details:", orderDetails);
-
   const {
     user,
     items,
     payment,
-    summary,
     delivery_address,
     order_status,
     order_reference,
     order_date,
   } = orderDetails;
+
+  // Get summary values from the order data
+  const subtotal = orderDetails.subtotal || 0;
+  const shippingCharge = orderDetails.shipping_charge || 0;
+  const totalGst = orderDetails.total_gst || 0;
+  const totalPayable = orderDetails.total_payable || 0;
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A";
@@ -380,8 +374,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     });
   };
 
-  // Safely map items with proper null checks
-  const uiItems: OrderItem[] = (items || []).map((item) => ({
+  const uiItems: OrderItem[] = (items || []).map((item: any) => ({
     id: String(item.line_id || ''),
     lineId: item.line_id,
     productName: item.product_name || "N/A",
@@ -389,14 +382,16 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     quantity: item.quantity || 0,
     price: `₹${(item.unit_price || 0).toLocaleString("en-IN")}`,
     total: `₹${(item.line_total || 0).toLocaleString("en-IN")}`,
+    unitPrice: item.unit_price || 0,
+    lineTotal: item.line_total || 0,
     status: item.delivery_status ? item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1) : "Pending",
+    delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
   }));
 
-  const totalPayable = summary?.total_payable || 0;
-
   const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
+    const lowerStatus = status?.toLowerCase() || "";
+    switch (lowerStatus) {
       case "delivered":
       case "partial_delivered":
         return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]";
@@ -410,6 +405,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
       case "pending":
       case "partial_return":
       case "partial_dispatched":
+      case "partial_shipped":
         return "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]";
       default:
         return "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]";
@@ -420,12 +416,6 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     if (!status) return "N/A";
     return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
-
-  // Debug render data
-  console.log("UI Items:", uiItems);
-  console.log("Order Reference:", order_reference);
-  console.log("Order Date:", order_date);
-  console.log("Order Status:", order_status);
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
@@ -559,7 +549,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                             <td className="px-4 py-3 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  item.status.toLowerCase()
+                                  item.status
                                 )}`}
                               >
                                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -580,6 +570,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                 </div>
               </div>
 
+              {/* Order Summary - Now showing correct values */}
               <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3] p-5">
                 <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
 
@@ -592,27 +583,29 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Subtotal</p>
                     <p className="mt-1 text-base font-bold text-[#2a2620]">
-                      ₹{summary?.subtotal?.toLocaleString("en-IN") || "0"}
+                      ₹{Number(subtotal || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
 
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Shipping</p>
                     <p className="mt-1 text-base font-bold text-[#2a2620]">
-                      ₹{summary?.shipping_charge?.toLocaleString("en-IN") || "0"}
+                      ₹{Number(shippingCharge || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
 
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Tax (GST)</p>
                     <p className="mt-1 text-base font-bold text-[#2a2620]">
-                      ₹{summary?.total_gst?.toLocaleString("en-IN") || "0"}
+                      ₹{Number(totalGst || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
 
                   <div className="rounded-xl border border-[#b8902e]/20 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-3">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a741c]">Total Payable</p>
-                    <p className="mt-1 text-xl font-bold text-[#8f6d1d]">₹{totalPayable.toLocaleString("en-IN")}</p>
+                    <p className="mt-1 text-xl font-bold text-[#8f6d1d]">
+                      ₹{Number(totalPayable || 0).toLocaleString("en-IN")}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -658,7 +651,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-xs text-[#a89a7d]">Payment Status</span>
                       <span className="rounded-full border border-[#b8902e]/20 bg-white px-2.5 py-1 text-xs font-bold capitalize text-[#8f6d1d]">
-                        {payment?.payment_status || "N/A"}
+                        {payment?.payment_status || orderDetails?.payment_status || "N/A"}
                       </span>
                     </div>
                   </div>
@@ -672,27 +665,41 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                     <h4 className="font-bold text-[#2a2620]">Shipping Address</h4>
                   </div>
 
-                  <p className="text-sm leading-6 text-[#6b6152]">{delivery_address?.full_address || "No address provided"}</p>
-
-                  {delivery_address && (
-                    <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#b8902e]/10 bg-white p-3 text-xs">
-                      <div>
-                        <span className="text-[#a89a7d]">City:</span>
-                        <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.city || "N/A"}</span>
+                  {/* Shipping Address - Now showing correctly */}
+                  {delivery_address ? (
+                    <>
+                      <p className="text-sm leading-6 text-[#6b6152]">
+                        {delivery_address.full_address || "No address provided"}
+                      </p>
+                      <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#b8902e]/10 bg-white p-3 text-xs">
+                        <div>
+                          <span className="text-[#a89a7d]">Address Line 1:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.address_line_1 || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a89a7d]">Address Line 2:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.address_line_2 || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a89a7d]">City:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.city || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a89a7d]">State:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.state || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a89a7d]">Country:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.country || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[#a89a7d]">Pincode:</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.postal_code || delivery_address.pincode || "N/A"}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[#a89a7d]">State:</span>
-                        <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.state || "N/A"}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#a89a7d]">Country:</span>
-                        <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.country || "N/A"}</span>
-                      </div>
-                      <div>
-                        <span className="text-[#a89a7d]">Pincode:</span>
-                        <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.pincode || "N/A"}</span>
-                      </div>
-                    </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-[#a89a7d]">No address provided</p>
                   )}
                 </div>
               </div>
@@ -740,20 +747,20 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
 
                   <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <span className="text-xs text-[#a89a7d]">Payment Gateway</span>
-                    <span className="text-sm font-semibold text-[#2a2620]">{payment?.payment_gateway || "N/A"}</span>
+                    <span className="text-sm font-semibold text-[#2a2620]">{payment?.payment_gateway || orderDetails?.payment_gateway || "N/A"}</span>
                   </div>
 
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <span className="text-xs text-[#a89a7d]">Transaction ID</span>
                     <span className="max-w-[65%] truncate text-sm font-semibold text-[#2a2620]">
-                      {payment?.gateway_transaction_id || "N/A"}
+                      {payment?.gateway_transaction_id || orderDetails?.gateway_transaction_id || "N/A"}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
                     <span className="text-xs text-[#a89a7d]">Amount Paid</span>
                     <span className="text-sm font-bold text-[#8f6d1d]">
-                      ₹{payment?.amount_paid?.toLocaleString("en-IN") || "0"}
+                      ₹{Number(payment?.amount_paid || orderDetails?.amount_paid || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -928,8 +935,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
         }));
       }
 
-      console.log("Dispatching:", dispatchData);
-
       const response = await orderApi.dispatchOrder(dispatchData);
 
       if (response.data.success) {
@@ -1049,9 +1054,22 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                 <div className="max-h-48 space-y-2 overflow-y-auto">
                   {itemsToDispatch.map((item, idx) => (
                     <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                      <span className="min-w-0 truncate text-sm font-semibold text-[#4a4436]">
-                        {idx + 1}. {item.productName}
-                      </span>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.productName}
+                            className="h-8 w-8 rounded-lg border border-[#b8902e]/10 object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#b8902e] flex-shrink-0">
+                            <FiPackage size={12} />
+                          </div>
+                        )}
+                        <span className="truncate text-sm font-semibold text-[#4a4436]">
+                          {idx + 1}. {item.productName}
+                        </span>
+                      </div>
                       <span className="shrink-0 text-xs text-[#a89a7d]">
                         Qty: {item.quantity} • SKU: {item.sku}
                       </span>
@@ -1220,8 +1238,6 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
         }));
       }
 
-      console.log("Shipping:", shipData);
-
       const response = await orderApi.shipOrder(shipData);
 
       if (response.data.success) {
@@ -1325,9 +1341,22 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToShip.map((item, idx) => (
                   <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                    <span className="min-w-0 truncate text-sm font-semibold text-[#4a4436]">
-                      {idx + 1}. {item.productName}
-                    </span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.productName}
+                          className="h-8 w-8 rounded-lg border border-[#b8902e]/10 object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#b8902e] flex-shrink-0">
+                          <FiPackage size={12} />
+                        </div>
+                      )}
+                      <span className="truncate text-sm font-semibold text-[#4a4436]">
+                        {idx + 1}. {item.productName}
+                      </span>
+                    </div>
                     <span className="shrink-0 text-xs text-[#a89a7d]">
                       Qty: {item.quantity} • SKU: {item.sku}
                     </span>
@@ -1426,8 +1455,6 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
           order_line_id: item.lineId || parseInt(item.id)
         }));
       }
-
-      console.log("Delivering:", deliverData);
 
       const response = await orderApi.deliverOrder(deliverData);
 
@@ -1532,9 +1559,22 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToDeliver.map((item, idx) => (
                   <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                    <span className="min-w-0 truncate text-sm font-semibold text-[#4a4436]">
-                      {idx + 1}. {item.productName}
-                    </span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.productName}
+                          className="h-8 w-8 rounded-lg border border-[#b8902e]/10 object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#b8902e] flex-shrink-0">
+                          <FiPackage size={12} />
+                        </div>
+                      )}
+                      <span className="truncate text-sm font-semibold text-[#4a4436]">
+                        {idx + 1}. {item.productName}
+                      </span>
+                    </div>
                     <span className="shrink-0 text-xs text-[#a89a7d]">
                       Qty: {item.quantity} • SKU: {item.sku}
                     </span>
@@ -1600,7 +1640,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [showDispatchPopup, setShowDispatchPopup] = useState(false);
   const [showShipPopup, setShowShipPopup] = useState(false);
   const [showDeliverPopup, setShowDeliverPopup] = useState(false);
-  const [selectedOrderForView, setSelectedOrderForView] = useState<string | null>(null); // Changed from number to string
+  const [selectedOrderForView, setSelectedOrderForView] = useState<string | null>(null);
+  const [selectedOrderDataForView, setSelectedOrderDataForView] = useState<any>(null);
   const [selectedOrderForDispatch, setSelectedOrderForDispatch] = useState<Order | null>(null);
   const [selectedOrderForShip, setSelectedOrderForShip] = useState<Order | null>(null);
   const [selectedOrderForDeliver, setSelectedOrderForDeliver] = useState<Order | null>(null);
@@ -1641,16 +1682,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
-  
+
     try {
       const response = await orderApi.getOrders();
-  
-      // Agar response data mein items array hai with 'order' wrapper
       const data = response.data.data || [];
-      
-      // Extract order objects - har item ke andar 'order' key hai
       const extractedOrders = data.map((item: any) => item.order);
-      
       setOrders(extractedOrders);
     } catch (err) {
       setError("An error occurred while fetching orders");
@@ -1663,7 +1699,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const fetchStatuses = async () => {
     try {
       const response = await orderApi.getOrderStatuses();
-
       if (response.data.success) {
         setAvailableStatuses(response.data.data);
       }
@@ -1677,7 +1712,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   // ===================================================
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    const lowerStatus = status?.toLowerCase() || "";
+    switch (lowerStatus) {
       case "delivered":
       case "partial_delivered":
         return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]";
@@ -1711,6 +1747,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return {
       id: apiOrder.order_reference,
       orderId: apiOrder.order_id,
+      orderReference: apiOrder.order_reference,
       sNo: index + 1,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
@@ -1722,6 +1759,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
       total: `₹${Number(apiOrder.total_payable || 0).toLocaleString("en-IN")}`,
+      totalPayable: Number(apiOrder.total_payable || 0),
       paymentStatus: apiOrder.payment_status || "N/A",
       orderStatus: apiOrder.order_status || "N/A",
       orderType: apiOrder.order_type || "retail",
@@ -1742,6 +1780,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         quantity: item.quantity,
         price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
         total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
+        unitPrice: item.unit_price || 0,
+        lineTotal: item.line_total || 0,
         status: item.delivery_status?.charAt(0).toUpperCase() + item.delivery_status?.slice(1) || "Pending",
         delivery_status: item.delivery_status || "pending",
         image: item.primary_image || undefined,
@@ -1809,26 +1849,24 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const toggleRow = (orderId: string) => {
     const newExpanded = new Set(expandedRows);
-
     if (newExpanded.has(orderId)) {
       newExpanded.delete(orderId);
     } else {
       newExpanded.add(orderId);
     }
-
     setExpandedRows(newExpanded);
   };
 
   // ===================================================
-  // VIEW ORDER - FIXED
+  // VIEW ORDER
   // ===================================================
 
   const handleViewOrder = (orderId: string) => {
     const apiOrder = orders.find((o) => o.order_reference === orderId);
 
     if (apiOrder) {
-      // Use order_reference (string) instead of order_id (number)
       setSelectedOrderForView(apiOrder.order_reference);
+      setSelectedOrderDataForView(apiOrder);
       setShowViewPopup(true);
 
       const uiOrder = uiOrders.find((o) => o.id === orderId);
@@ -1849,25 +1887,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsMap(newMap);
   };
 
-  // ===================================================
-  // 🔥 UPDATED: Only toggle dispatchable items (pending or confirmed)
-  // ===================================================
   const toggleAllItems = (orderId: string, items: OrderItem[]) => {
     if (items.length === 0) return;
 
-    // Only get dispatchable items (pending or confirmed)
     const dispatchableItems = items.filter(item => canItemDispatch(item));
-    
+
     if (dispatchableItems.length === 0) return;
 
-    // Check if all dispatchable items are selected
-    const allSelected = dispatchableItems.every((item) => 
+    const allSelected = dispatchableItems.every((item) =>
       selectedItemsMap.get(`${orderId}-${item.id}`)
     );
 
     const newMap = new Map(selectedItemsMap);
 
-    // Toggle only dispatchable items
     dispatchableItems.forEach((item) => {
       newMap.set(`${orderId}-${item.id}`, !allSelected);
     });
@@ -1880,114 +1912,78 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   // ===================================================
-  // 🔥 UPDATED ORDER STATUS HELPER WITH ITEM-LEVEL ACTIONS
+  // ORDER STATUS HELPERS
   // ===================================================
 
-  // Check if order can be dispatched (pending, confirmed, or partial_dispatched)
   const canDispatch = (orderStatus: string) => {
-    return orderStatus === "pending" || 
-           orderStatus === "confirmed" || 
+    return orderStatus === "pending" ||
+           orderStatus === "confirmed" ||
            orderStatus === "partial_dispatched";
   };
 
-  // Check if order can be shipped (dispatched or partial_dispatched)
   const canShip = (orderStatus: string) => {
     return orderStatus === "dispatched" || orderStatus === "partial_dispatched";
   };
 
-  // Check if order can be delivered (shipped or partial_shipped)
   const canDeliver = (orderStatus: string) => {
     return orderStatus === "shipped" || orderStatus === "partial_shipped";
   };
 
-  // Check if a specific item can be dispatched (pending or confirmed)
   const canItemDispatch = (item: OrderItem) => {
     const status = item.delivery_status || item.status?.toLowerCase() || "pending";
     return status === "pending" || status === "confirmed";
   };
 
-  // Check if a specific item can be shipped (dispatched)
   const canItemShip = (item: OrderItem) => {
     const status = item.delivery_status || item.status?.toLowerCase() || "pending";
     return status === "dispatched";
   };
 
-  // Check if a specific item can be delivered (shipped)
   const canItemDeliver = (item: OrderItem) => {
     const status = item.delivery_status || item.status?.toLowerCase() || "pending";
     return status === "shipped";
   };
 
-  // Check if any item in order can be dispatched
   const hasDispatchableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some(item => canItemDispatch(item));
   };
 
-  // Check if any item in order can be shipped
   const hasShipableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some(item => canItemShip(item));
   };
 
-  // Check if any item in order can be delivered
   const hasDeliverableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some(item => canItemDeliver(item));
   };
 
-  // Check if all items in order can be dispatched
   const allItemsDispatchable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every(item => canItemDispatch(item));
   };
 
-  // Check if all items in order can be shipped
   const allItemsShipable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every(item => canItemShip(item));
   };
 
-  // Check if all items in order can be delivered
   const allItemsDeliverable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every(item => canItemDeliver(item));
   };
 
-  // Check if order can be fully dispatched
-  const canFullDispatch = (order: Order) => {
-    return canDispatch(order.orderStatus) && 
-           allItemsDispatchable(order) && 
-           order.items.length > 0;
-  };
-
-  // Check if order can be fully shipped
-  const canFullShip = (order: Order) => {
-    return canShip(order.orderStatus) && 
-           allItemsShipable(order) && 
-           order.items.length > 0;
-  };
-
-  // Check if order can be fully delivered
-  const canFullDeliver = (order: Order) => {
-    return canDeliver(order.orderStatus) && 
-           allItemsDeliverable(order) && 
-           order.items.length > 0;
-  };
-
-  // Get dispatchable items count
   const getDispatchableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter(item => canItemDispatch(item)).length;
   };
 
-  // Get shipable items count
   const getShipableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter(item => canItemShip(item)).length;
   };
 
-  // Get deliverable items count
   const getDeliverableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter(item => canItemDeliver(item)).length;
@@ -2039,7 +2035,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       return;
     }
 
-    // Check if there are any dispatchable items
     if (!hasDispatchableItems(order)) {
       setToast({
         message: "No items available for dispatch in this order.",
@@ -2070,19 +2065,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     notes: string;
     isFullOrder: boolean;
   }) => {
-    console.log("Dispatch submitted:", trackingDetails);
-
     setToast({
       message: `✅ Successfully dispatched ${trackingDetails.itemCount} item(s)`,
       type: 'success'
     });
-
     fetchOrders();
     setSelectedItemsMap(new Map());
   };
 
   // ===================================================
-  // SHIP (with item-level support)
+  // SHIP
   // ===================================================
 
   const handleShipSelected = (order: Order) => {
@@ -2147,7 +2139,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     itemCount: number;
     isFullOrder: boolean;
   }) => {
-    console.log("Ship submitted:", data);
     setToast({
       message: `✅ Successfully shipped ${data.itemCount} item(s)`,
       type: 'success'
@@ -2157,7 +2148,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   // ===================================================
-  // DELIVER (with item-level support)
+  // DELIVER
   // ===================================================
 
   const handleDeliverSelected = (order: Order) => {
@@ -2222,7 +2213,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     itemCount: number;
     isFullOrder: boolean;
   }) => {
-    console.log("Deliver submitted:", data);
     setToast({
       message: `✅ Successfully delivered ${data.itemCount} item(s)`,
       type: 'success'
@@ -2238,6 +2228,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const closeViewPopup = () => {
     setShowViewPopup(false);
     setSelectedOrderForView(null);
+    setSelectedOrderDataForView(null);
   };
 
   const closeDispatchPopup = () => {
@@ -2308,7 +2299,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       {/* TOAST NOTIFICATION */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 max-w-md rounded-xl border p-4 shadow-lg animate-slideDown ${
-          toast.type === 'success' 
+          toast.type === 'success'
             ? 'border-[#b8902e]/30 bg-[#f8f3e5] text-[#8f6d1d]'
             : toast.type === 'error'
             ? 'border-[#b46055]/30 bg-[#fff8f6] text-[#b46055]'
@@ -2442,7 +2433,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         <div className="overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
           <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
 
-          {/* DESKTOP */}
+          {/* DESKTOP TABLE */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1080px] border-collapse">
               <thead>
@@ -2464,13 +2455,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 {visibleOrders.length > 0 ? (
                   visibleOrders.map((order, index) => (
                     <React.Fragment key={order.id}>
-                      {/* MAIN ROW */}
                       <tr
                         onClick={() => toggleRow(order.id)}
                         className={`group cursor-pointer border-b border-[#b8902e]/10 transition-colors ${
-                          selectedOrderId === order.id
-                            ? "bg-[#fffaf0]"
-                            : "bg-white hover:bg-[#faf8f3]"
+                          selectedOrderId === order.id ? "bg-[#fffaf0]" : "bg-white hover:bg-[#faf8f3]"
                         }`}
                       >
                         <td className="px-4 py-4 text-center">
@@ -2482,49 +2470,33 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             }}
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e]/10"
                           >
-                            {expandedRows.has(order.id) ? (
-                              <FiChevronUp size={16} />
-                            ) : (
-                              <FiChevronDown size={16} />
-                            )}
+                            {expandedRows.has(order.id) ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
                           </button>
                         </td>
-
                         <td className="px-4 py-4 text-center">
                           <span className="text-xs font-bold text-[#8f6d1d]">{order.sNo}</span>
                         </td>
-
                         <td className="px-6 py-4">
                           <span className="inline-flex rounded-lg bg-[#faf8f3] px-3 py-1.5 text-xs font-bold tracking-wide text-[#4a4436]">
                             {order.id}
                           </span>
                         </td>
-
                         <td className="px-6 py-4 text-xs font-medium text-[#786f60]">{order.date}</td>
-
                         <td className="px-6 py-4">
                           <p className="text-sm font-bold text-[#2a2620]">{order.customer}</p>
                           <p className="mt-0.5 text-xs text-[#a89a7d]">{order.customerName}</p>
                         </td>
-
                         <td className="px-6 py-4">
                           <span className="text-sm font-bold text-[#8f6d1d]">{order.total}</span>
                         </td>
-
                         <td className="px-6 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(
-                              order.orderStatus
-                            )}`}
-                          >
+                          <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}>
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
                             {formatStatus(order.orderStatus)}
                           </span>
                         </td>
-
                         <td className="px-6 py-4 text-center">
                           <div className="flex items-center justify-center gap-1.5">
-                            {/* VIEW - Always visible */}
                             <button
                               type="button"
                               onClick={(e) => {
@@ -2535,12 +2507,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               title="View Order"
                             >
                               <FiEye size={16} />
-                              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/view:opacity-100">
-                                View
-                              </span>
+                              <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/view:opacity-100">View</span>
                             </button>
 
-                            {/* DISPATCH - Only if there are dispatchable items */}
                             {(canDispatch(order.orderStatus) || order.orderStatus === "partial_dispatched") && hasDispatchableItems(order) && (
                               <button
                                 type="button"
@@ -2557,13 +2526,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     {getDispatchableItemsCount(order)}
                                   </span>
                                 )}
-                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/dispatch:opacity-100">
-                                  Dispatch
-                                </span>
+                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/dispatch:opacity-100">Dispatch</span>
                               </button>
                             )}
 
-                            {/* SHIP - Only if there are shipable items */}
                             {(canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && hasShipableItems(order) && (
                               <button
                                 type="button"
@@ -2580,13 +2546,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     {getShipableItemsCount(order)}
                                   </span>
                                 )}
-                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/ship:opacity-100">
-                                  Ship
-                                </span>
+                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/ship:opacity-100">Ship</span>
                               </button>
                             )}
 
-                            {/* DELIVER - Only if there are deliverable items */}
                             {(canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && hasDeliverableItems(order) && (
                               <button
                                 type="button"
@@ -2603,23 +2566,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     {getDeliverableItemsCount(order)}
                                   </span>
                                 )}
-                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/deliver:opacity-100">
-                                  Deliver
-                                </span>
+                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/deliver:opacity-100">Deliver</span>
                               </button>
                             )}
                           </div>
                         </td>
                       </tr>
 
-                      {/* EXPANDED */}
+                      {/* EXPANDED ROW */}
                       {expandedRows.has(order.id) && (
                         <tr>
                           <td colSpan={8} className="bg-[#faf8f3] px-6 py-0">
                             <div className="overflow-hidden">
                               <div className="animate-slideDown py-5">
                                 <div className="space-y-4">
-                                  {/* Expanded Header */}
                                   <div className="flex flex-wrap items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
                                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
@@ -2630,21 +2590,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         <p className="text-xs text-[#a89a7d]">
                                           {order.items?.length || 0} items in this order
                                           {order.orderStatus === "partial_dispatched" && (
-                                            <span className="ml-2 text-[#b8902e]">
-                                              ({getDispatchableItemsCount(order)} pending dispatch)
-                                            </span>
+                                            <span className="ml-2 text-[#b8902e]">({getDispatchableItemsCount(order)} pending dispatch)</span>
                                           )}
                                           {order.orderStatus === "partial_shipped" && (
-                                            <span className="ml-2 text-[#b8902e]">
-                                              ({getShipableItemsCount(order)} pending ship)
-                                            </span>
+                                            <span className="ml-2 text-[#b8902e]">({getShipableItemsCount(order)} pending ship)</span>
                                           )}
                                         </p>
                                       </div>
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2">
-                                      {/* Dispatch All - Only if there are dispatchable items */}
                                       {hasDispatchableItems(order) && (canDispatch(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                                         <button
                                           type="button"
@@ -2659,7 +2614,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         </button>
                                       )}
 
-                                      {/* Ship All - Only if there are shipable items */}
                                       {hasShipableItems(order) && (canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                                         <button
                                           type="button"
@@ -2674,7 +2628,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         </button>
                                       )}
 
-                                      {/* Deliver All - Only if there are deliverable items */}
                                       {hasDeliverableItems(order) && (canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && (
                                         <button
                                           type="button"
@@ -2689,7 +2642,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         </button>
                                       )}
 
-                                      {/* Select All - Only show if there are dispatchable items */}
                                       {hasDispatchableItems(order) && (
                                         <button
                                           type="button"
@@ -2701,7 +2653,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         >
                                           {order.items &&
                                           order.items.length > 0 &&
-                                          order.items.filter(item => canItemDispatch(item)).every((item) => 
+                                          order.items.filter(item => canItemDispatch(item)).every((item) =>
                                             selectedItemsMap.get(`${order.id}-${item.id}`)
                                           )
                                             ? "Deselect All"
@@ -2711,7 +2663,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     </div>
                                   </div>
 
-                                  {/* Expanded Items with Item-Level Actions */}
+                                  {/* Expanded Items Table with Images */}
                                   <div className="overflow-x-auto rounded-2xl border border-[#b8902e]/15 bg-white">
                                     <table className="w-full min-w-[900px] border-collapse">
                                       <thead>
@@ -2783,7 +2735,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
                                               <td className="px-4 py-3 text-xs text-[#8f6d1d]">{idx + 1}</td>
 
-                                              <td className="px-4 py-3 text-sm font-medium text-[#4a4436]">{item.productName}</td>
+                                              <td className="px-4 py-3">
+                                                <div className="flex items-center gap-3">
+                                                  {item.image ? (
+                                                    <img
+                                                      src={item.image}
+                                                      alt={item.productName}
+                                                      className="h-8 w-8 rounded-lg border border-[#b8902e]/10 object-cover flex-shrink-0"
+                                                    />
+                                                  ) : (
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#b8902e] flex-shrink-0">
+                                                      <FiPackage size={12} />
+                                                    </div>
+                                                  )}
+                                                  <span className="text-sm font-medium text-[#4a4436]">{item.productName}</span>
+                                                </div>
+                                              </td>
 
                                               <td className="px-4 py-3">
                                                 <span className="text-xs text-[#a89a7d]">{item.sku}</span>
@@ -2796,24 +2763,18 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                               <td className="px-4 py-3 text-right text-sm font-bold text-[#2a2620]">{item.total}</td>
 
                                               <td className="px-4 py-3 text-center">
-                                                <span
-                                                  className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                                    item.status.toLowerCase()
-                                                  )}`}
-                                                >
+                                                <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                                   {formatStatus(item.status)}
                                                 </span>
                                               </td>
 
                                               <td className="px-4 py-3 text-center">
                                                 <div className="flex items-center justify-center gap-1">
-                                                  {/* DISPATCH - Only for pending/confirmed items */}
                                                   {isDispatchable && (
                                                     <button
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // Dispatch single item
                                                         const itemsToDispatch = [item];
                                                         setIsFullOrderDispatch(false);
                                                         setSelectedOrderForDispatch(order);
@@ -2827,13 +2788,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     </button>
                                                   )}
 
-                                                  {/* SHIP - Only for dispatched items */}
                                                   {isShipable && (
                                                     <button
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // Ship single item
                                                         const itemsToShip = [item];
                                                         setIsFullOrderShip(false);
                                                         setSelectedOrderForShip(order);
@@ -2847,13 +2806,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     </button>
                                                   )}
 
-                                                  {/* DELIVER - Only for shipped items */}
                                                   {isDeliverable && (
                                                     <button
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        // Deliver single item
                                                         const itemsToDeliver = [item];
                                                         setIsFullOrderDeliver(false);
                                                         setSelectedOrderForDeliver(order);
@@ -2867,7 +2824,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     </button>
                                                   )}
 
-                                                  {/* Already Completed */}
                                                   {isDisabled && (
                                                     <span className="text-[10px] text-[#a89a7d]">✓</span>
                                                   )}
@@ -2900,7 +2856,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         View Details
                                       </button>
 
-                                      {/* Dispatch Selected - Only if there are dispatchable items */}
                                       {hasDispatchableItems(order) && (canDispatch(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                                         <button
                                           type="button"
@@ -2911,12 +2866,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           className="flex items-center gap-1.5 rounded-xl bg-[#2f2a22] px-4 py-2 text-xs font-bold text-[#f3dfab] transition hover:bg-[#403a30]"
                                         >
                                           <FiTruck size={14} />
-                                          Dispatch Selected (
-                                          {getSelectedItemsForOrder(order.id, order.items || []).length})
+                                          Dispatch Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                                         </button>
                                       )}
 
-                                      {/* Ship Selected - Only if there are shipable items */}
                                       {hasShipableItems(order) && (canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                                         <button
                                           type="button"
@@ -2927,12 +2880,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           className="flex items-center gap-1.5 rounded-xl bg-[#2f2a22] px-4 py-2 text-xs font-bold text-[#f3dfab] transition hover:bg-[#403a30]"
                                         >
                                           <FiSend size={14} />
-                                          Ship Selected (
-                                          {getSelectedItemsForOrder(order.id, order.items || []).length})
+                                          Ship Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                                         </button>
                                       )}
 
-                                      {/* Deliver Selected - Only if there are deliverable items */}
                                       {hasDeliverableItems(order) && (canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && (
                                         <button
                                           type="button"
@@ -2943,8 +2894,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           className="flex items-center gap-1.5 rounded-xl bg-[#2f2a22] px-4 py-2 text-xs font-bold text-[#f3dfab] transition hover:bg-[#403a30]"
                                         >
                                           <FiCheckCircle size={14} />
-                                          Deliver Selected (
-                                          {getSelectedItemsForOrder(order.id, order.items || []).length})
+                                          Deliver Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                                         </button>
                                       )}
                                     </div>
@@ -2974,7 +2924,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             </table>
           </div>
 
-          {/* MOBILE */}
+          {/* MOBILE VIEW */}
           <div className="block lg:hidden">
             {visibleOrders.length > 0 ? (
               visibleOrders.map((order) => (
@@ -2992,7 +2942,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       </span>
                       <p className="mt-2 text-xs text-[#a89a7d]">{order.date}</p>
                     </div>
-
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -3004,8 +2953,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       >
                         <FiEye size={15} />
                       </button>
-
-                      {/* Mobile action buttons based on status */}
                       {(canDispatch(order.orderStatus) || order.orderStatus === "partial_dispatched") && hasDispatchableItems(order) && (
                         <button
                           type="button"
@@ -3024,7 +2971,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           )}
                         </button>
                       )}
-
                       {(canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && hasShipableItems(order) && (
                         <button
                           type="button"
@@ -3043,7 +2989,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           )}
                         </button>
                       )}
-
                       {(canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && hasDeliverableItems(order) && (
                         <button
                           type="button"
@@ -3062,7 +3007,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           )}
                         </button>
                       )}
-
                       <button
                         type="button"
                         onClick={(e) => {
@@ -3097,18 +3041,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           <p className="mt-0.5 text-[11px] text-[#a89a7d]">
                             {order.items?.length || 0} items
                             {order.orderStatus === "partial_dispatched" && (
-                              <span className="ml-2 text-[#b8902e]">
-                                ({getDispatchableItemsCount(order)} pending dispatch)
-                              </span>
+                              <span className="ml-2 text-[#b8902e]">({getDispatchableItemsCount(order)} pending dispatch)</span>
                             )}
                             {order.orderStatus === "partial_shipped" && (
-                              <span className="ml-2 text-[#b8902e]">
-                                ({getShipableItemsCount(order)} pending ship)
-                              </span>
+                              <span className="ml-2 text-[#b8902e]">({getShipableItemsCount(order)} pending ship)</span>
                             )}
                           </p>
                         </div>
-
                         <div className="flex flex-wrap items-center gap-2">
                           {hasDispatchableItems(order) && (canDispatch(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                             <button
@@ -3123,7 +3062,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {allItemsDispatchable(order) ? "Dispatch All" : `Dispatch ${getDispatchableItemsCount(order)}`}
                             </button>
                           )}
-
                           {hasShipableItems(order) && (canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                             <button
                               type="button"
@@ -3137,7 +3075,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {allItemsShipable(order) ? "Ship All" : `Ship ${getShipableItemsCount(order)}`}
                             </button>
                           )}
-
                           {hasDeliverableItems(order) && (canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && (
                             <button
                               type="button"
@@ -3151,7 +3088,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {allItemsDeliverable(order) ? "Deliver All" : `Deliver ${getDeliverableItemsCount(order)}`}
                             </button>
                           )}
-
                           {hasDispatchableItems(order) && (
                             <button
                               type="button"
@@ -3163,7 +3099,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             >
                               {order.items &&
                               order.items.length > 0 &&
-                              order.items.filter(item => canItemDispatch(item)).every((item) => 
+                              order.items.filter(item => canItemDispatch(item)).every((item) =>
                                 selectedItemsMap.get(`${order.id}-${item.id}`)
                               )
                                 ? "Deselect All"
@@ -3204,24 +3140,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 {isSelected ? <FiCheck size={16} /> : <FiSquare size={16} />}
                               </button>
 
-                              <div className="ml-1 min-w-0 flex-1">
-                                <p className="truncate text-sm font-semibold text-[#2a2620]">{item.productName}</p>
-                                <p className="mt-0.5 truncate text-[11px] text-[#a89a7d]">
-                                  SKU: {item.sku}
-                                  {isShipable && (
-                                    <span className="ml-2 text-[10px] font-semibold text-[#b8902e]">(Ready to Ship)</span>
-                                  )}
-                                  {isDeliverable && (
-                                    <span className="ml-2 text-[10px] font-semibold text-[#b8902e]">(Ready to Deliver)</span>
-                                  )}
-                                  {isDisabled && (
-                                    <span className="ml-2 text-[10px] font-semibold text-[#8f6d1d]">(Completed)</span>
-                                  )}
-                                </p>
+                              <div className="ml-1 min-w-0 flex-1 flex items-center gap-2">
+                                {item.image && (
+                                  <img
+                                    src={item.image}
+                                    alt={item.productName}
+                                    className="h-8 w-8 rounded-lg border border-[#b8902e]/10 object-cover flex-shrink-0"
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-semibold text-[#2a2620]">{item.productName}</p>
+                                  <p className="mt-0.5 truncate text-[11px] text-[#a89a7d]">
+                                    SKU: {item.sku}
+                                    {isShipable && <span className="ml-2 text-[10px] font-semibold text-[#b8902e]">(Ready to Ship)</span>}
+                                    {isDeliverable && <span className="ml-2 text-[10px] font-semibold text-[#b8902e]">(Ready to Deliver)</span>}
+                                    {isDisabled && <span className="ml-2 text-[10px] font-semibold text-[#8f6d1d]">(Completed)</span>}
+                                  </p>
+                                </div>
                               </div>
 
                               <div className="flex items-center gap-1">
-                                {/* Mobile item action buttons */}
                                 {isDispatchable && (
                                   <button
                                     type="button"
@@ -3287,11 +3225,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15"
                           >
                             <FiTruck size={14} />
-                            Dispatch Selected (
-                            {getSelectedItemsForOrder(order.id, order.items || []).length})
+                            Dispatch Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                           </button>
                         )}
-
                         {hasShipableItems(order) && (canShip(order.orderStatus) || order.orderStatus === "partial_dispatched") && (
                           <button
                             type="button"
@@ -3302,11 +3238,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15"
                           >
                             <FiSend size={14} />
-                            Ship Selected (
-                            {getSelectedItemsForOrder(order.id, order.items || []).length})
+                            Ship Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                           </button>
                         )}
-
                         {hasDeliverableItems(order) && (canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && (
                           <button
                             type="button"
@@ -3317,8 +3251,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15"
                           >
                             <FiCheckCircle size={14} />
-                            Deliver Selected (
-                            {getSelectedItemsForOrder(order.id, order.items || []).length})
+                            Deliver Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                           </button>
                         )}
                       </div>
@@ -3411,7 +3344,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       </div>
 
       {/* VIEW ORDER POPUP */}
-      <ViewOrderPopup isOpen={showViewPopup} onClose={closeViewPopup} orderId={selectedOrderForView} />
+      <ViewOrderPopup
+        isOpen={showViewPopup}
+        onClose={closeViewPopup}
+        orderId={selectedOrderForView}
+        orderData={selectedOrderDataForView}
+      />
 
       {/* DISPATCH POPUP */}
       <DispatchPopup
@@ -3486,7 +3424,6 @@ const Orders: React.FC = () => {
       const response = await orderApi.getOrders();
 
       if (response.data.success) {
-        // Extract orders from nested structure
         const data = response.data.data || [];
         const extractedOrders = data.map((item: any) => item.order);
         setOrdersData(extractedOrders);
@@ -3502,6 +3439,7 @@ const Orders: React.FC = () => {
     return {
       id: apiOrder.order_reference,
       orderId: apiOrder.order_id,
+      orderReference: apiOrder.order_reference,
       sNo: index + 1,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
@@ -3513,6 +3451,7 @@ const Orders: React.FC = () => {
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
       total: `₹${Number(apiOrder.total_payable || 0).toLocaleString("en-IN")}`,
+      totalPayable: Number(apiOrder.total_payable || 0),
       paymentStatus: apiOrder.payment_status || "N/A",
       orderStatus: apiOrder.order_status || "N/A",
       orderType: apiOrder.order_type || "retail",
@@ -3533,6 +3472,8 @@ const Orders: React.FC = () => {
         quantity: item.quantity,
         price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
         total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
+        unitPrice: item.unit_price || 0,
+        lineTotal: item.line_total || 0,
         status: item.delivery_status?.charAt(0).toUpperCase() + item.delivery_status?.slice(1) || "Pending",
         delivery_status: item.delivery_status || "pending",
         image: item.primary_image || undefined,
@@ -3544,9 +3485,14 @@ const Orders: React.FC = () => {
     return ordersData.map((order, index) => convertToOrder(order, index));
   }, [ordersData]);
 
+  const totalEarnings = useMemo(() => {
+    return ordersData.reduce((sum, order) => {
+      return sum + (order.total_payable || 0);
+    }, 0);
+  }, [ordersData]);
+
   const statsData = useMemo(() => {
     const total = uiOrders.length;
-    const pending = uiOrders.filter((o) => o.orderStatus === "pending").length;
     const confirmed = uiOrders.filter((o) => o.orderStatus === "confirmed" || o.orderStatus === "processing").length;
     const delivered = uiOrders.filter((o) => o.orderStatus === "delivered" || o.orderStatus === "partial_delivered").length;
 
@@ -3554,23 +3500,15 @@ const Orders: React.FC = () => {
       {
         title: "Total Orders",
         value: total,
-        icon: (
-          <span className="text-[#b8902e]">
-            <ClipboardIcon />
-          </span>
-        ),
+        icon: <span className="text-[#b8902e]"><ClipboardIcon /></span>,
         barColor: "bg-[#b8902e]",
         textColor: "text-[#b8902e]",
         valueColor: "text-[#8f6d1d]",
       },
       {
-        title: "Pending Orders",
-        value: pending,
-        icon: (
-          <span className="text-[#c49b3a]">
-            <ShoppingBagIcon />
-          </span>
-        ),
+        title: "Total Earnings",
+        value: `₹${totalEarnings.toLocaleString("en-IN")}`,
+        icon: <span className="text-[#c49b3a]"><DollarIcon /></span>,
         barColor: "bg-[#c49b3a]",
         textColor: "text-[#a06f13]",
         valueColor: "text-[#8f6d1d]",
@@ -3578,11 +3516,7 @@ const Orders: React.FC = () => {
       {
         title: "Confirmed Orders",
         value: confirmed,
-        icon: (
-          <span className="text-[#a8841c]">
-            <CreditCardIcon />
-          </span>
-        ),
+        icon: <span className="text-[#a8841c]"><CreditCardIcon /></span>,
         barColor: "bg-[#a8841c]",
         textColor: "text-[#8f6d1d]",
         valueColor: "text-[#8f6d1d]",
@@ -3590,17 +3524,13 @@ const Orders: React.FC = () => {
       {
         title: "Delivered Orders",
         value: delivered,
-        icon: (
-          <span className="text-[#806319]">
-            <CheckCircleIcon />
-          </span>
-        ),
+        icon: <span className="text-[#806319]"><CheckCircleIcon /></span>,
         barColor: "bg-[#806319]",
         textColor: "text-[#806319]",
         valueColor: "text-[#705813]",
       },
     ];
-  }, [uiOrders]);
+  }, [uiOrders, totalEarnings]);
 
   const handleSelectOrder = (order: Order) => {
     setSelectedOrder(order);
