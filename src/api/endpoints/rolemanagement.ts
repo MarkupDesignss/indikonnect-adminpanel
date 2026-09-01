@@ -153,7 +153,7 @@ updateRole: (
 id: number,
 payload: RolePayload
 ) =>
-apiClient.put<SuccessResponse<Role>>(
+apiClient.post<SuccessResponse<Role>>(
 `/admin/roles/${id}`,
 payload
 ),

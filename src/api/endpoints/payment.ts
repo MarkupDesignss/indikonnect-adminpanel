@@ -5,103 +5,49 @@ import apiClient from "../client";
 // TYPES
 // =====================================================
 
-export interface Payout {
-  id: number;
-  period: string;
-  status: "pending" | "released" | string;
-  total_gross: string | number;
-  total_tds: string | number;
-  total_net: string | number;
-  released_at: string | null;
-  created_by: number | null;
+export interface PaymentRecord {
+  order_reference: string;
+  gateway_transaction_id: string;
+  amount_paid: string;
+  status:
+    | "pending"
+    | "confirmed"
+    | "delivered"
+    | "returned"
+    | "partial_returned"
+    | "partial_delivered"
+    | string;
+  payment_gateway: string;
   created_at: string;
-  updated_at: string;
-  creator?: any;
 }
 
-export interface PayoutsResponse {
+export interface PaymentManagementResponse {
   success: boolean;
   message?: string;
-  data: Payout[];
+  data: PaymentRecord[];
 }
 
-export interface PayoutActionResponse {
+export interface PaymentActionResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data?: any;
 }
 
 // =====================================================
-// PAYOUT API
+// API
 // =====================================================
 
-export const payoutApi = {
+export const paymentManagementApi = {
   /**
-   * GET /api/admin/payouts
-   * Get all payout cycles
+   * GET /payment-management
+   *
+   * Get all payment records
    */
   getAll: () =>
-    apiClient.get<PayoutsResponse>(
-      "/admin/payouts"
-    ),
-
-  /**
-   * POST /api/admin/payouts
-   * Create payout cycle
-   *
-   * Payload:
-   * {
-   *   period: "2026-07"
-   * }
-   */
-  create: (period: string) =>
-    apiClient.post<PayoutActionResponse>(
-      "/admin/payouts",
-      {
-        period,
-      }
-    ),
-
-  /**
-   * POST /api/admin/payouts/:id/release
-   * Release payout
-   */
-  release: (id: number) =>
-    apiClient.post<PayoutActionResponse>(
-      `/admin/payouts/${id}/release`
-    ),
-
-  /**
-   * POST /api/admin/payouts/entries/:entryId/hold
-   * Hold payout entry
-   */
-  holdEntry: (entryId: number) =>
-    apiClient.post<PayoutActionResponse>(
-      `/admin/payouts/entries/${entryId}/hold`
-    ),
-
-  /**
-   * GET /api/admin/payouts/:id/export
-   * Export payout
-   *
-   * responseType blob is required
-   */
-  export: (id: number) =>
-    apiClient.get(
-      `/admin/payouts/${id}/export`,
-      {
-        responseType: "blob",
-      }
-    ),
-
-  /**
-   * POST /api/admin/payouts/:id/notify
-   * Send payout notification
-   */
-  notify: (id: number) =>
-    apiClient.post<PayoutActionResponse>(
-      `/admin/payouts/${id}/notify`
+    apiClient.get<PaymentManagementResponse>(
+      "/payment-management"
     ),
 };
 
-export default payoutApi;
+export default paymentManagementApi;
+

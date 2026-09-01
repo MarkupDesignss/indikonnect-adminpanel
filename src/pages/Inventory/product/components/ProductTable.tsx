@@ -6,6 +6,7 @@ import {
   FiEye,
   FiImage,
   FiPackage,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 import { Product } from "@/types/product";
@@ -18,13 +19,25 @@ interface ProductTableProps {
   totalEntries: number;
   startEntry: number;
   endEntry: number;
+
   onPageChange: (page: number) => void;
   onEdit: (product: Product) => void;
   onView: (product: Product) => void;
+
+  // Trending
+  onTrendingToggle: (
+    product: Product,
+    checked: boolean
+  ) => void;
+
+  trendingLoadingId: number | null;
+
   onDelete?: (product: Product) => void;
 }
 
-const ProductTable: React.FC<ProductTableProps> = ({
+const ProductTable: React.FC<
+  ProductTableProps
+> = ({
   products,
   loading,
   currentPage,
@@ -35,17 +48,21 @@ const ProductTable: React.FC<ProductTableProps> = ({
   onPageChange,
   onEdit,
   onView,
+  onTrendingToggle,
+  trendingLoadingId,
 }) => {
   const ITEMS_PER_PAGE = 10;
 
-  /*
-   * Generate a better pagination range.
-   * Keeps the current page visible when there are many pages.
-   */
+  // ===================================================
+  // PAGINATION
+  // ===================================================
+
   const getPaginationPages = () => {
     if (totalPages <= 5) {
       return Array.from(
-        { length: totalPages },
+        {
+          length: totalPages,
+        },
         (_, index) => index + 1
       );
     }
@@ -54,7 +71,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
       return [1, 2, 3, 4, 5];
     }
 
-    if (currentPage >= totalPages - 2) {
+    if (
+      currentPage >=
+      totalPages - 2
+    ) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -73,7 +93,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
     ];
   };
 
-  const paginationPages = getPaginationPages();
+  const paginationPages =
+    getPaginationPages();
+
+  // ===================================================
+  // RENDER
+  // ===================================================
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
@@ -88,13 +113,15 @@ const ProductTable: React.FC<ProductTableProps> = ({
       ================================================= */}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1250px] border-collapse">
+        <table className="w-full min-w-[1370px] border-collapse">
+
           {/* =================================================
               TABLE HEADER
           ================================================= */}
 
           <thead>
             <tr className="bg-[#2f2a22] text-left">
+
               <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                 S.No
               </th>
@@ -131,6 +158,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 Status
               </th>
 
+              {/* TRENDING */}
+
+              <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
+                Trending
+              </th>
+
               <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                 Actions
               </th>
@@ -142,6 +175,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
           ================================================= */}
 
           <tbody>
+
             {/* =================================================
                 LOADING
             ================================================= */}
@@ -149,10 +183,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
             {loading ? (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-5 py-16 text-center"
                 >
                   <div className="flex flex-col items-center justify-center">
+
                     <div className="mb-4 flex h-12 w-12 animate-pulse items-center justify-center rounded-full bg-[#b8902e]/10">
                       <FiPackage
                         size={22}
@@ -172,16 +207,18 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
               </tr>
             ) : products.length === 0 ? (
+
               /* =================================================
                   EMPTY
               ================================================= */
 
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={11}
                   className="px-5 py-16 text-center"
                 >
                   <div className="flex flex-col items-center justify-center">
+
                     <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3]">
                       <FiPackage
                         size={24}
@@ -201,252 +238,394 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
               </tr>
             ) : (
+
               /* =================================================
                   PRODUCTS
               ================================================= */
 
-              products.map((product, index) => {
-                const serialNumber =
-                  (currentPage - 1) *
-                    ITEMS_PER_PAGE +
-                  index +
-                  1;
+              products.map(
+                (product, index) => {
+                  const serialNumber =
+                    (currentPage - 1) *
+                      ITEMS_PER_PAGE +
+                    index +
+                    1;
 
-                // Primary image
-                const primaryImage =
-                  product.images?.find(
-                    (image) =>
-                      image.is_primary === true
-                  ) ||
-                  product.images?.[0];
+                  // =================================================
+                  // PRIMARY IMAGE
+                  // =================================================
 
-                // Category
-                const categoryName =
-                  product.category?.name || "-";
+                  const primaryImage =
+                    product.images?.find(
+                      (image) =>
+                        image.is_primary ===
+                        true
+                    ) ||
+                    product.images?.[0];
 
-                // Tax category
-                const taxCategoryName =
-                  product.tax_category?.name ||
-                  "-";
+                  // =================================================
+                  // CATEGORY
+                  // =================================================
 
-                // Stock
-                const stock =
-                  Number(
-                    product.stock_quantity || 0
-                  );
+                  const categoryName =
+                    product.category?.name ||
+                    "-";
 
-                const lowStockThreshold =
-                  Number(
-                    product.low_stock_threshold ||
+                  // =================================================
+                  // TAX CATEGORY
+                  // =================================================
+
+                  const taxCategoryName =
+                    product.tax_category
+                      ?.name || "-";
+
+                  // =================================================
+                  // STOCK
+                  // =================================================
+
+                  const stock = Number(
+                    product.stock_quantity ||
                       0
                   );
 
-                const isLowStock =
-                  stock <= lowStockThreshold;
+                  const lowStockThreshold =
+                    Number(
+                      product.low_stock_threshold ||
+                        0
+                    );
 
-                // Published
-                const isActive =
-                  product.is_published === true;
+                  const isLowStock =
+                    stock <=
+                    lowStockThreshold;
 
-                return (
-                  <tr
-                    key={product.id}
-                    className="group border-b border-[#b8902e]/10 bg-white transition-all duration-200 hover:bg-[#faf8f3]"
-                  >
-                    {/* =================================================
-                        S.NO
-                    ================================================= */}
+                  // =================================================
+                  // STATUS
+                  // =================================================
 
-                    <td className="px-5 py-4">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
-                        {serialNumber}
-                      </span>
-                    </td>
+                  const isActive =
+                    product.is_published ===
+                    true;
 
-                    {/* =================================================
-                        IMAGE
-                    ================================================= */}
+                  // =================================================
+                  // TRENDING
+                  //
+                  // Supports both:
+                  // is_trending: 1 / 0
+                  // is_trending: true / false
+                  // =================================================
 
-                    <td className="px-5 py-4">
-                      {primaryImage ? (
-                        <div className="relative h-[58px] w-[58px] overflow-hidden rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] p-0.5 transition-all duration-200 group-hover:border-[#b8902e]/40">
-                          <img
-                            src={
-                              primaryImage.image_url
-                            }
-                            alt={product.name}
-                            className="h-full w-full rounded-[9px] object-cover"
-                            onError={(e) => {
-                              const target =
-                                e.target as HTMLImageElement;
+                  const isTrending =
+                    Number(
+                      (product as Product & {
+                        is_trending?:
+                          | number
+                          | boolean;
+                      }).is_trending || 0
+                    ) === 1;
 
-                              target.style.display =
-                                "none";
-                            }}
-                          />
+                  const isTrendingLoading =
+                    trendingLoadingId ===
+                    product.id;
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className="group border-b border-[#b8902e]/10 bg-white transition-all duration-200 hover:bg-[#faf8f3]"
+                    >
+
+                      {/* =================================================
+                          S.NO
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
+                          {serialNumber}
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          IMAGE
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        {primaryImage ? (
+                          <div className="relative h-[58px] w-[58px] overflow-hidden rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] p-0.5 transition-all duration-200 group-hover:border-[#b8902e]/40">
+
+                            <img
+                              src={
+                                primaryImage.image_url
+                              }
+                              alt={
+                                product.name
+                              }
+                              className="h-full w-full rounded-[9px] object-cover"
+                              onError={(e) => {
+                                const target =
+                                  e.target as HTMLImageElement;
+
+                                target.style.display =
+                                  "none";
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
+                            <FiImage
+                              size={21}
+                            />
+                          </div>
+                        )}
+                      </td>
+
+                      {/* =================================================
+                          PRODUCT
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="max-w-[230px]">
+
+                          <p className="truncate text-sm font-bold text-[#2a2620]">
+                            {product.name}
+                          </p>
+
+                          <p className="mt-1 truncate text-xs leading-5 text-[#a89a7d]">
+                            {product.description ||
+                              "No description available"}
+                          </p>
+
                         </div>
-                      ) : (
-                        <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
-                          <FiImage size={21} />
+                      </td>
+
+                      {/* =================================================
+                          SKU
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <span className="inline-flex rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] px-3 py-1.5 text-xs font-semibold tracking-wide text-[#786f60]">
+                          {product.product_code ||
+                            "-"}
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          CATEGORY
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#d4af52]" />
+
+                          <span className="text-sm font-medium text-[#4a4436]">
+                            {categoryName}
+                          </span>
+
                         </div>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* =================================================
-                        PRODUCT
-                    ================================================= */}
+                      {/* =================================================
+                          TAX CATEGORY
+                      ================================================= */}
 
-                    <td className="px-5 py-4">
-                      <div className="max-w-[230px]">
-                        <p className="truncate text-sm font-bold text-[#2a2620]">
-                          {product.name}
-                        </p>
-
-                        <p className="mt-1 truncate text-xs leading-5 text-[#a89a7d]">
-                          {product.description ||
-                            "No description available"}
-                        </p>
-                      </div>
-                    </td>
-
-                    {/* =================================================
-                        SKU
-                    ================================================= */}
-
-                    <td className="px-5 py-4">
-                      <span className="inline-flex rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] px-3 py-1.5 text-xs font-semibold tracking-wide text-[#786f60]">
-                        {product.product_code ||
-                          "-"}
-                      </span>
-                    </td>
-
-                    {/* =================================================
-                        CATEGORY
-                    ================================================= */}
-
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#d4af52]" />
-
-                        <span className="text-sm font-medium text-[#4a4436]">
-                          {categoryName}
+                      <td className="px-5 py-4">
+                        <span className="text-sm font-medium text-[#6b6152]">
+                          {taxCategoryName}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* =================================================
-                        TAX CATEGORY
-                    ================================================= */}
+                      {/* =================================================
+                          RETAIL PRICE
+                      ================================================= */}
 
-                    <td className="px-5 py-4">
-                      <span className="text-sm font-medium text-[#6b6152]">
-                        {taxCategoryName}
-                      </span>
-                    </td>
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
 
-                    {/* =================================================
-                        RETAIL PRICE
-                    ================================================= */}
+                          <span className="text-[11px] font-semibold text-[#a8841c]">
+                            ₹
+                          </span>
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] font-semibold text-[#a8841c]">
-                          ₹
-                        </span>
+                          <span className="text-sm font-bold text-[#2a2620]">
+                            {Number(
+                              product.retail_price ||
+                                0
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </span>
 
-                        <span className="text-sm font-bold text-[#2a2620]">
-                          {Number(
-                            product.retail_price ||
-                              0
-                          ).toLocaleString("en-IN")}
-                        </span>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
 
-                    {/* =================================================
-                        STOCK
-                    ================================================= */}
+                      {/* =================================================
+                          STOCK
+                      ================================================= */}
 
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
-                          isLowStock
-                            ? "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]"
-                            : "border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
-                        }`}
-                      >
-                        {stock}
-                      </span>
-                    </td>
-
-                    {/* =================================================
-                        STATUS
-                    ================================================= */}
-
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${
-                          isActive
-                            ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]"
-                            : "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]"
-                        }`}
-                      >
+                      <td className="px-5 py-4">
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            isActive
-                              ? "bg-[#b8902e]"
-                              : "bg-[#a89a7d]"
+                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
+                            isLowStock
+                              ? "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]"
+                              : "border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
                           }`}
-                        />
-
-                        {isActive
-                          ? "Active"
-                          : "Inactive"}
-                      </span>
-                    </td>
-
-                    {/* =================================================
-                        ACTIONS
-                    ================================================= */}
-
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        {/* View */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onView(product)
-                          }
-                          className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white hover:shadow-md hover:shadow-[#b8902e]/20"
-                          title="View Product"
                         >
-                          <FiEye
-                            size={16}
-                            className="transition-transform group-hover/view:scale-110"
-                          />
-                        </button>
+                          {stock}
+                        </span>
+                      </td>
 
-                        {/* Edit */}
+                      {/* =================================================
+                          STATUS
+                      ================================================= */}
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onEdit(product)
-                          }
-                          className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#8f6d1d] hover:bg-[#8f6d1d] hover:text-white hover:shadow-md hover:shadow-[#8f6d1d]/20"
-                          title="Edit Product"
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                            isActive
+                              ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]"
+                              : "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]"
+                          }`}
                         >
-                          <FiEdit2
-                            size={15}
-                            className="transition-transform group-hover/edit:scale-110"
+
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              isActive
+                                ? "bg-[#b8902e]"
+                                : "bg-[#a89a7d]"
+                            }`}
                           />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
+
+                          {isActive
+                            ? "Active"
+                            : "Inactive"}
+
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          TRENDING
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center">
+
+                          <label
+                            className={`relative inline-flex items-center ${
+                              isTrendingLoading
+                                ? "cursor-wait"
+                                : "cursor-pointer"
+                            }`}
+                            title={
+                              isTrending
+                                ? "Remove from Trending"
+                                : "Add to Trending"
+                            }
+                          >
+
+                            <input
+                              type="checkbox"
+                              checked={
+                                isTrending
+                              }
+                              disabled={
+                                isTrendingLoading
+                              }
+                              onChange={(e) =>
+                                onTrendingToggle(
+                                  product,
+                                  e.target.checked
+                                )
+                              }
+                              className="peer sr-only"
+                            />
+
+                            {/* Toggle */}
+                            <div
+                              className={`
+                                relative h-7 w-12 rounded-full
+                                border transition-all duration-200
+                                ${
+                                  isTrending
+                                    ? "border-[#b8902e] bg-gradient-to-r from-[#d4af52] to-[#a8841c]"
+                                    : "border-[#d8d0c0] bg-[#eeeae2]"
+                                }
+                                peer-focus:outline-none
+                                peer-focus:ring-2
+                                peer-focus:ring-[#b8902e]/20
+                              `}
+                            >
+
+                              <span
+                                className={`
+                                  absolute top-[3px]
+                                  h-5 w-5 rounded-full
+                                  bg-white shadow-sm
+                                  transition-all duration-200
+                                  ${
+                                    isTrending
+                                      ? "left-[23px]"
+                                      : "left-[3px]"
+                                  }
+                                `}
+                              />
+
+                            </div>
+
+                            {/* Loading overlay */}
+                            {isTrendingLoading && (
+                              <span className="absolute inset-0 flex items-center justify-center">
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#8f6d1d]/25 border-t-[#8f6d1d]" />
+                              </span>
+                            )}
+                          </label>
+
+                        </div>
+                      </td>
+
+                      {/* =================================================
+                          ACTIONS
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+
+                          {/* VIEW */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onView(product)
+                            }
+                            className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white hover:shadow-md hover:shadow-[#b8902e]/20"
+                            title="View Product"
+                          >
+                            <FiEye
+                              size={16}
+                              className="transition-transform group-hover/view:scale-110"
+                            />
+                          </button>
+
+                          {/* EDIT */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onEdit(product)
+                            }
+                            className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#8f6d1d] hover:bg-[#8f6d1d] hover:text-white hover:shadow-md hover:shadow-[#8f6d1d]/20"
+                            title="Edit Product"
+                          >
+                            <FiEdit2
+                              size={15}
+                              className="transition-transform group-hover/edit:scale-110"
+                            />
+                          </button>
+
+                        </div>
+                      </td>
+
+                    </tr>
+                  );
+                }
+              )
             )}
           </tbody>
         </table>
@@ -457,35 +636,48 @@ const ProductTable: React.FC<ProductTableProps> = ({
       ================================================= */}
 
       <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-4 sm:px-5">
+
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          {/* Entry Information */}
+
+          {/* ENTRY INFORMATION */}
 
           <div className="text-center sm:text-left">
+
             <p className="text-xs text-[#8b8171]">
               Showing{" "}
+
               <span className="font-bold text-[#4a4436]">
                 {startEntry}
               </span>{" "}
+
               to{" "}
+
               <span className="font-bold text-[#4a4436]">
                 {endEntry}
               </span>{" "}
+
               of{" "}
+
               <span className="font-bold text-[#4a4436]">
                 {totalEntries}
               </span>{" "}
+
               entries
             </p>
+
           </div>
 
-          {/* Pagination */}
+          {/* PAGINATION */}
 
           <div className="flex items-center gap-1.5">
-            {/* Previous */}
+
+            {/* PREVIOUS */}
 
             <button
               type="button"
-              disabled={currentPage === 1}
+              disabled={
+                currentPage === 1
+              }
               onClick={() =>
                 onPageChange(
                   currentPage - 1
@@ -494,10 +686,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] transition-all hover:border-[#b8902e]/30 hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-30"
               title="Previous page"
             >
-              <FiChevronLeft size={17} />
+              <FiChevronLeft
+                size={17}
+              />
             </button>
 
-            {/* Pages */}
+            {/* PAGES */}
 
             {paginationPages.map(
               (page) => (
@@ -518,12 +712,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
               )
             )}
 
-            {/* Next */}
+            {/* NEXT */}
 
             <button
               type="button"
               disabled={
-                currentPage === totalPages ||
+                currentPage ===
+                  totalPages ||
                 totalPages === 0
               }
               onClick={() =>
@@ -534,8 +729,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] transition-all hover:border-[#b8902e]/30 hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-30"
               title="Next page"
             >
-              <FiChevronRight size={17} />
+              <FiChevronRight
+                size={17}
+              />
             </button>
+
           </div>
         </div>
       </div>
