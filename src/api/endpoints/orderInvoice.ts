@@ -190,11 +190,8 @@ export interface OrderInvoiceResponse {
 
 
 const orderInvoiceApi = {
-
   getByOrderId: (orderId: number) =>
-    apiClient.get<OrderInvoiceResponse>(
-      `/invoice/order/${orderId}`
-    ),
+    apiClient.get<OrderInvoiceResponse>(`/invoice/order/${orderId}`),
 };
 
 export default orderInvoiceApi;

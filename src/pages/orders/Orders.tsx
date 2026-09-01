@@ -19,11 +19,21 @@ import {
   FiAlertCircle,
   FiSend,
   FiCheckCircle,
+  FiFileText,
+  FiExternalLink,
 } from "react-icons/fi";
 
 import {
   orderApi,
 } from "../../api/endpoints/orders";
+
+import orderInvoiceApi, {
+  OrderInvoiceData,
+  Invoice,
+  Order as InvoiceOrder,
+  OrderLine,
+  OrderInvoiceResponse
+} from "../../api/endpoints/orderInvoice";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import StatsCard from "@/components/common/StatsCard";
@@ -171,6 +181,11 @@ export interface OrderItem {
   delivery_status?: string;
   unitPrice?: number;
   lineTotal?: number;
+  productId?: number;
+  isReturnable?: number;
+  availableForReturn?: number;
+  gstRate?: number;
+  gstAmount?: number;
 }
 
 export interface Order {
@@ -196,11 +211,384 @@ export interface Order {
   orderId?: number;
   orderReference?: string;
   totalPayable?: number;
+  shippingAddressFull?: string;
+  courierCompany?: string;
+  courierTrackingNumber?: string;
+  courierDeliveryDate?: string;
+  shippingDetails?: any;
+  paymentGateway?: string;
+  gatewayTransactionId?: string;
 }
 
+
 // =====================================================
-// COMMON MODAL LOADER
+// INVOICE VIEW POPUP - WITH ITEM SUPPORT
 // =====================================================
+
+interface InvoiceViewPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+  orderId: number | null;
+  orderItemId?: number | null; // Optional - for highlighting specific item
+}
+
+const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
+  isOpen,
+  onClose,
+  orderId,
+  orderItemId = null
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+
+  useEffect(() => {
+    if (isOpen && orderId) {
+      fetchInvoice(orderId);
+    }
+  }, [isOpen, orderId]);
+
+  const fetchInvoice = async (id: number) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await orderInvoiceApi.getByOrderId(id);
+
+      if (response.data.success) {
+        setInvoiceData(response.data.data);
+      } else {
+        setError(response.data.message || "Failed to fetch invoice data");
+        setInvoiceData(null);
+      }
+    } catch (err) {
+      setError("An error occurred while fetching invoice");
+      console.error(err);
+      setInvoiceData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add helper function to safely format currency
+  const formatCurrency = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined) return '₹0';
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '₹0';
+    return `₹${num.toLocaleString('en-IN')}`;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
+          <ModalLoader message="Loading invoice..." />
+        </div>
+      </GlobalModal>
+    );
+  }
+
+  // Error state
+  if (error || !invoiceData) {
+    return (
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
+          <ModalError error={error || "No invoice data found"} onClose={onClose} />
+        </div>
+      </GlobalModal>
+    );
+  }
+
+  // Safe destructuring with fallbacks
+  const { invoice = {}, order = {} } = invoiceData || {};
+
+  // Get order items with safe fallback
+  const orderItems = (order && order.order_items) || [];
+
+  // If orderItemId is provided, filter to show only that item
+  const filteredItems = orderItemId
+    ? orderItems.filter((item: any) => item.id === orderItemId)
+    : orderItems;
+
+  // Calculate totals for filtered items with safe fallbacks
+  const getFilteredTotals = () => {
+    if (!invoice) {
+      return {
+        subtotal: 0,
+        totalPayable: 0,
+        totalTax: 0,
+        couponDiscount: 0,
+        shippingCharge: 0,
+      };
+    }
+
+    if (!orderItemId || filteredItems.length === 0) {
+      return {
+        subtotal: parseFloat(invoice.subtotal_before_redemption || 0),
+        totalPayable: parseFloat(invoice.total_payable || 0),
+        totalTax: parseFloat(invoice.total_tax || 0),
+        couponDiscount: parseFloat(invoice.coupon_discount || 0),
+        shippingCharge: parseFloat(invoice.shipping_charge || 0),
+      };
+    }
+
+    // Calculate totals for single item
+    const item = filteredItems[0];
+    const subtotal = parseFloat(item.line_total || 0) - parseFloat(item.gst_amount || 0);
+    const totalTax = parseFloat(item.gst_amount || 0);
+    const totalPayable = parseFloat(item.line_total || 0);
+
+    // Coupon discount and shipping are pro-rated for single item
+    const totalOrderItems = orderItems.length || 1;
+    const couponDiscount = totalOrderItems > 0
+      ? (parseFloat(invoice.coupon_discount || 0) / totalOrderItems)
+      : 0;
+    const shippingCharge = totalOrderItems > 0
+      ? (parseFloat(invoice.shipping_charge || 0) / totalOrderItems)
+      : 0;
+
+    return {
+      subtotal,
+      totalPayable,
+      totalTax,
+      couponDiscount,
+      shippingCharge,
+    };
+  };
+
+  const totals = getFilteredTotals();
+
+  return (
+    <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b border-[#b8902e]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#b8902e]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
+                  Invoice Details
+                </span>
+              </div>
+              <h2 className="flex items-center gap-2 text-xl font-bold text-[#2a2620]">
+                <FiFileText className="text-[#a8841c]" />
+                Invoice #{invoice.invoice_number || 'N/A'}
+              </h2>
+              <p className="mt-1 text-sm text-[#a89a7d]">
+                Order: {order.order_reference || 'N/A'} • {order.delivery_state || 'N/A'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10"
+            >
+              <FiX size={19} />
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[calc(95vh-190px)] overflow-y-auto p-5 sm:p-6">
+          {/* Show item-specific badge */}
+          {orderItemId && (
+            <div className="mb-4 rounded-xl border border-[#b8902e]/20 bg-[#fffaf0] p-3">
+              <div className="flex items-center gap-2 text-sm">
+                <FiPackage className="text-[#b8902e]" size={16} />
+                <span className="font-semibold text-[#2a2620]">Item-Specific Invoice</span>
+                
+              </div>
+            </div>
+          )}
+
+          {/* Invoice Header - Seller & Buyer */}
+          <div className="mb-6 rounded-2xl border border-[#b8902e]/15 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Seller</p>
+                <p className="mt-1 text-lg font-bold text-[#2a2620]">{(invoice.seller && invoice.seller.name) || "N/A"}</p>
+                <p className="mt-0.5 text-sm text-[#786f60]">GSTIN: {(invoice.seller && invoice.seller.gstin) || "N/A"}</p>
+                <p className="text-sm text-[#786f60]">{(invoice.seller && invoice.seller.address) || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Buyer</p>
+                <p className="mt-1 text-lg font-bold text-[#2a2620]">{(invoice.buyer && invoice.buyer.name) || "N/A"}</p>
+                <p className="text-sm text-[#786f60]">{(invoice.buyer && invoice.buyer.address) || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Invoice Items */}
+          <div className="overflow-hidden rounded-2xl border border-[#b8902e]/15">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] border-collapse">
+                <thead>
+                  <tr className="bg-[#2f2a22]">
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">#</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Product</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Code</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Qty</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Unit Price</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">GST</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredItems.length > 0 ? (
+                    filteredItems.map((item: any, idx: number) => (
+                      <tr
+                        key={item.id || idx}
+                        className={`border-b border-[#b8902e]/10 transition hover:bg-[#faf8f3] ${orderItemId === item.id ? 'bg-[#fffaf0] border-l-2 border-l-[#b8902e]' : ''
+                          }`}
+                      >
+                        <td className="px-4 py-3 text-sm text-[#8f6d1d]">{idx + 1}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            {item.product_image && (
+                              <img
+                                src={item.product_image}
+                                alt={item.product_name || 'Product'}
+                                className="h-10 w-10 rounded-xl border border-[#b8902e]/15 object-cover"
+                              />
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-[#2a2620]">{item.product_name || 'N/A'}</p>
+                              {orderItemId === item.id && (
+                                <span className="text-[10px] font-bold text-[#b8902e]">✓ Selected Item</span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs text-[#a89a7d]">{item.product_code || "N/A"}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm text-[#4a4436]">{item.quantity || 0}</td>
+                        <td className="px-4 py-3 text-right text-sm text-[#786f60]">{formatCurrency(item.unit_price)}</td>
+                        <td className="px-4 py-3 text-right text-sm text-[#786f60]">{item.gst_rate || 0}%</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold text-[#2a2620]">{formatCurrency(item.line_total)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#a89a7d]">
+                        No items found in this invoice
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Invoice Summary */}
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Subtotal</p>
+              <p className="mt-1 text-base font-bold text-[#2a2620]">{formatCurrency(totals.subtotal)}</p>
+            </div>
+
+            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Coupon Discount</p>
+              <p className="mt-1 text-base font-bold text-[#2a2620]">{formatCurrency(totals.couponDiscount)}</p>
+              {invoice.coupon_code && (
+                <p className="text-[10px] text-[#a89a7d]">Code: {invoice.coupon_code}</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Shipping</p>
+              <p className="mt-1 text-base font-bold text-[#2a2620]">{formatCurrency(totals.shippingCharge)}</p>
+            </div>
+
+            <div className="rounded-xl border border-[#b8902e]/20 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9a741c]">Total Payable</p>
+              <p className="mt-1 text-xl font-bold text-[#8f6d1d]">{formatCurrency(totals.totalPayable)}</p>
+            </div>
+          </div>
+
+          {/* Tax Details */}
+          {totals.totalTax > 0 && (
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">Total Tax</p>
+                <p className="mt-1 text-base font-bold text-[#2a2620]">{formatCurrency(totals.totalTax)}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Order Reference & Delivery State */}
+          <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Order Reference</p>
+                <p className="text-sm font-semibold text-[#2a2620]">{order.order_reference || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Invoice Number</p>
+                <p className="text-sm font-semibold text-[#2a2620]">{invoice.invoice_number || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Delivery State</p>
+                <p className="text-sm font-semibold text-[#2a2620]">{invoice.delivery_state || "N/A"}</p>
+              </div>
+             
+            </div>
+          </div>
+
+          {/* Order Status Badge */}
+          {order && order.status && (
+            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3] p-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#b8902e]">
+                <FiCheckCircle size={18} />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">Order Status</p>
+                <p className="text-sm font-bold capitalize text-[#8f6d1d]">{order.status || "N/A"}</p>
+              </div>
+              <div className="ml-auto">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${order.status === "delivered"
+                  ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]"
+                  : "border-[#d4af52]/30 bg-[#fffaf0] text-[#9a741c]"
+                  }`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {order.status?.toUpperCase() || "N/A"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 flex justify-between items-center border-t border-[#b8902e]/10 bg-[#fffdfa]/95 px-6 py-4 backdrop-blur-sm">
+          {invoice.pdf_path && (
+            <button
+              type="button"
+              onClick={() => {
+                const pdfUrl = invoice.pdf_path;
+                if (pdfUrl) {
+                  window.open(pdfUrl, '_blank');
+                }
+              }}
+              className="flex items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#8f6d1d] transition hover:border-[#b8902e] hover:bg-[#faf8f3]"
+            >
+              <FiFileText size={16} />
+              Download PDF
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#a8841c] hover:to-[#795b14]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
+
+// Rest of the code remains the same...
 
 interface ModalLoaderProps {
   message?: string;
@@ -356,6 +744,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     order_status,
     order_reference,
     order_date,
+    shipping_address,
+    shipping_details,
   } = orderDetails;
 
   // Get summary values from the order data
@@ -387,6 +777,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     status: item.delivery_status ? item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1) : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
+    productId: item.product_id,
+    isReturnable: item.is_returnable,
+    availableForReturn: item.available_for_return,
+    gstRate: item.gst_rate,
+    gstAmount: item.gst_amount,
   }));
 
   const getStatusBadge = (status: string) => {
@@ -416,6 +811,16 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
     if (!status) return "N/A";
     return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
+
+  // Get shipping address from either delivery_address or shipping_address
+  const getShippingAddress = () => {
+    if (delivery_address) return delivery_address;
+    if (shipping_address) return shipping_address;
+    return null;
+  };
+
+  const addr = getShippingAddress();
+
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
@@ -455,11 +860,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "items"
-                  ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                  : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-              }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
+                ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -468,11 +872,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "details"
-                  ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                  : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-              }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
+                ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
               Customer Details
@@ -481,11 +884,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "tracking"
-                  ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                  : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-              }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
+                ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                : "bg-[#faf8f3] text-[#786f60] hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
@@ -508,59 +910,82 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                         <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Price</th>
                         <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Total</th>
                         <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Status</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">Invoice</th>
                       </tr>
                     </thead>
 
                     <tbody>
                       {uiItems && uiItems.length > 0 ? (
-                        uiItems.map((item, idx) => (
-                          <tr key={item.id} className="border-b border-[#b8902e]/10 transition hover:bg-[#faf8f3]">
-                            <td className="px-4 py-3 text-sm text-[#8f6d1d]">{idx + 1}</td>
+                        uiItems.map((item, idx) => {
+                          const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
 
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                {item.image ? (
-                                  <img
-                                    src={item.image}
-                                    alt={item.productName}
-                                    className="h-10 w-10 rounded-xl border border-[#b8902e]/15 object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
-                                    <FiPackage size={15} />
-                                  </div>
+                          return (
+                            <tr key={item.id} className="border-b border-[#b8902e]/10 transition hover:bg-[#faf8f3]">
+                              <td className="px-4 py-3 text-sm text-[#8f6d1d]">{idx + 1}</td>
+
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-3">
+                                  {item.image ? (
+                                    <img
+                                      src={item.image}
+                                      alt={item.productName}
+                                      className="h-10 w-10 rounded-xl border border-[#b8902e]/15 object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+                                      <FiPackage size={15} />
+                                    </div>
+                                  )}
+                                  <span className="text-sm font-semibold text-[#2a2620]">{item.productName}</span>
+                                </div>
+                              </td>
+
+                              <td className="px-4 py-3">
+                                <span className="rounded-lg bg-[#faf8f3] px-2.5 py-1 text-xs font-semibold text-[#786f60]">
+                                  {item.sku}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-3 text-center text-sm text-[#4a4436]">{item.quantity}</td>
+
+                              <td className="px-4 py-3 text-right text-sm text-[#786f60]">{item.price}</td>
+
+                              <td className="px-4 py-3 text-right text-sm font-bold text-[#2a2620]">{item.total}</td>
+
+                              <td className="px-4 py-3 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                                    item.status
+                                  )}`}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                  {getStatusText(item.status)}
+                                </span>
+                              </td>
+
+                              <td className="px-4 py-3 text-center">
+                                {isDelivered && orderDetails?.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const orderId = orderDetails?.id;
+                                      if (orderId) {
+                                        handleViewInvoiceFromViewPopup(orderId, item.lineId);
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#b8902e]/10 px-3 py-1.5 text-xs font-bold text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
+                                  >
+                                    <FiFileText size={13} />
+                                    Invoice
+                                  </button>
                                 )}
-                                <span className="text-sm font-semibold text-[#2a2620]">{item.productName}</span>
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-3">
-                              <span className="rounded-lg bg-[#faf8f3] px-2.5 py-1 text-xs font-semibold text-[#786f60]">
-                                {item.sku}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-3 text-center text-sm text-[#4a4436]">{item.quantity}</td>
-
-                            <td className="px-4 py-3 text-right text-sm text-[#786f60]">{item.price}</td>
-
-                            <td className="px-4 py-3 text-right text-sm font-bold text-[#2a2620]">{item.total}</td>
-
-                            <td className="px-4 py-3 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  item.status
-                                )}`}
-                              >
-                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                                {getStatusText(item.status)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))
+                              </td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#a89a7d]">
+                          <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#a89a7d]">
                             No items found in this order
                           </td>
                         </tr>
@@ -570,7 +995,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                 </div>
               </div>
 
-              {/* Order Summary - Now showing correct values */}
+              {/* Order Summary */}
               <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3] p-5">
                 <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
 
@@ -665,36 +1090,35 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                     <h4 className="font-bold text-[#2a2620]">Shipping Address</h4>
                   </div>
 
-                  {/* Shipping Address - Now showing correctly */}
-                  {delivery_address ? (
+                  {addr ? (
                     <>
                       <p className="text-sm leading-6 text-[#6b6152]">
-                        {delivery_address.full_address || "No address provided"}
+                        {addr.full_address || "No address provided"}
                       </p>
                       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#b8902e]/10 bg-white p-3 text-xs">
                         <div>
                           <span className="text-[#a89a7d]">Address Line 1:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.address_line_1 || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.address_line_1 || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#a89a7d]">Address Line 2:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.address_line_2 || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.address_line_2 || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#a89a7d]">City:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.city || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.city || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#a89a7d]">State:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.state || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.state || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#a89a7d]">Country:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.country || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.country || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#a89a7d]">Pincode:</span>
-                          <span className="ml-1 font-semibold text-[#4a4436]">{delivery_address.postal_code || delivery_address.pincode || "N/A"}</span>
+                          <span className="ml-1 font-semibold text-[#4a4436]">{addr.postal_code || addr.pincode || "N/A"}</span>
                         </div>
                       </div>
                     </>
@@ -763,6 +1187,43 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({ isOpen, onClose, orderI
                       ₹{Number(payment?.amount_paid || orderDetails?.amount_paid || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
+
+                  {/* Shipping Details - Courier Info */}
+                  {(shipping_details || orderDetails?.courier_company) && (
+                    <>
+                      <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
+                        <span className="text-xs text-[#a89a7d]">Courier Company</span>
+                        <span className="text-sm font-semibold text-[#2a2620]">
+                          {shipping_details?.courier_company || orderDetails?.courier_company || "N/A"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
+                        <span className="text-xs text-[#a89a7d]">Tracking Number</span>
+                        <span className="text-sm font-semibold text-[#2a2620]">
+                          {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
+                        </span>
+                      </div>
+
+                      {shipping_details?.courier_delivery_date && (
+                        <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
+                          <span className="text-xs text-[#a89a7d]">Expected Delivery</span>
+                          <span className="text-sm font-semibold text-[#2a2620]">
+                            {formatDate(shipping_details.courier_delivery_date)}
+                          </span>
+                        </div>
+                      )}
+
+                      {shipping_details?.delivery_notes && (
+                        <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3">
+                          <span className="text-xs text-[#a89a7d]">Delivery Notes</span>
+                          <span className="text-sm font-semibold text-[#2a2620]">
+                            {shipping_details.delivery_notes}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1170,8 +1631,8 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
-                  : `Dispatch ${itemsToDispatch.length} Items`}
+                    ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
+                    : `Dispatch ${itemsToDispatch.length} Items`}
               </button>
             </div>
           </form>
@@ -1388,8 +1849,8 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Ship Entire Order (${itemsToShip.length} items)`
-                  : `Ship ${itemsToShip.length} Items`}
+                    ? `Ship Entire Order (${itemsToShip.length} items)`
+                    : `Ship ${itemsToShip.length} Items`}
               </button>
             </div>
           </form>
@@ -1606,8 +2067,8 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Deliver Entire Order (${itemsToDeliver.length} items)`
-                  : `Deliver ${itemsToDeliver.length} Items`}
+                    ? `Deliver Entire Order (${itemsToDeliver.length} items)`
+                    : `Deliver ${itemsToDeliver.length} Items`}
               </button>
             </div>
           </form>
@@ -1660,6 +2121,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     message: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
+  const [showInvoicePopup, setShowInvoicePopup] = useState(false);
+  const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
+  const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] = useState<number | null>(null);
+  const [viewOrderPopupInvoiceCallback, setViewOrderPopupInvoiceCallback] = useState<((orderId: number, itemId?: number) => void) | null>(null);
 
   const itemsPerPage = 6;
 
@@ -1746,15 +2211,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const convertToOrder = (apiOrder: any, index: number): Order => {
     return {
       id: apiOrder.order_reference,
-      orderId: apiOrder.order_id,
+      orderId: apiOrder.id,
       orderReference: apiOrder.order_reference,
       sNo: index + 1,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -1771,20 +2236,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       userEmail: apiOrder.user?.email || "N/A",
       userPhone: apiOrder.user?.phone || "N/A",
       shippingAddress: apiOrder.shipping_address?.full_address || "N/A",
+      shippingAddressFull: apiOrder.shipping_address?.full_address || "N/A",
       trackingNumber: apiOrder.gateway_transaction_id || "N/A",
+      paymentGateway: apiOrder.payment_gateway || undefined,
+      gatewayTransactionId: apiOrder.gateway_transaction_id || undefined,
+      courierCompany: apiOrder.courier_company || undefined,
+      courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
+      courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
+      shippingDetails: apiOrder.shipping_details || undefined,
       items: apiOrder.items?.map((item: any) => ({
-        id: String(item.line_id),
-        lineId: item.line_id,
+        id: String(item.line_id || item.id || ''),
+        lineId: item.line_id || item.id,
         productName: item.product_name || "N/A",
         sku: item.product_code || "N/A",
-        quantity: item.quantity,
+        quantity: item.quantity || 0,
         price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
         total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
         unitPrice: item.unit_price || 0,
         lineTotal: item.line_total || 0,
         status: item.delivery_status?.charAt(0).toUpperCase() + item.delivery_status?.slice(1) || "Pending",
         delivery_status: item.delivery_status || "pending",
-        image: item.primary_image || undefined,
+        image: item.primary_image || item.product_image || undefined,
+        productId: item.product_id,
+        isReturnable: item.is_returnable,
+        availableForReturn: item.available_for_return,
+        gstRate: item.gst_rate,
+        gstAmount: item.gst_amount,
       })) || [],
     };
   };
@@ -1877,6 +2354,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   // ===================================================
+  // VIEW INVOICE - ONLY FOR DELIVERED ORDERS
+  // ===================================================
+
+  const handleViewInvoice = (orderId: number) => {
+    setSelectedOrderIdForInvoice(orderId);
+    setSelectedOrderItemIdForInvoice(null);
+    setShowInvoicePopup(true);
+  };
+
+  const handleViewInvoiceItem = (orderId: number, itemId: number) => {
+    setSelectedOrderIdForInvoice(orderId);
+    setSelectedOrderItemIdForInvoice(itemId);
+    setShowInvoicePopup(true);
+  };
+
+  // This function is passed to ViewOrderPopup to handle invoice clicks from inside it
+  const handleViewInvoiceFromViewPopup = (orderId: number, itemId?: number) => {
+    if (itemId) {
+      handleViewInvoiceItem(orderId, itemId);
+    } else {
+      handleViewInvoice(orderId);
+    }
+  };
+
+  // ===================================================
   // ITEM SELECTION
   // ===================================================
 
@@ -1917,8 +2419,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const canDispatch = (orderStatus: string) => {
     return orderStatus === "pending" ||
-           orderStatus === "confirmed" ||
-           orderStatus === "partial_dispatched";
+      orderStatus === "confirmed" ||
+      orderStatus === "partial_dispatched";
   };
 
   const canShip = (orderStatus: string) => {
@@ -2252,6 +2754,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setIsFullOrderDeliver(false);
   };
 
+  const closeInvoicePopup = () => {
+    setShowInvoicePopup(false);
+    setSelectedOrderIdForInvoice(null);
+    setSelectedOrderItemIdForInvoice(null);
+  };
+
   // ===================================================
   // LOADING
   // ===================================================
@@ -2298,13 +2806,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     <>
       {/* TOAST NOTIFICATION */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 max-w-md rounded-xl border p-4 shadow-lg animate-slideDown ${
-          toast.type === 'success'
-            ? 'border-[#b8902e]/30 bg-[#f8f3e5] text-[#8f6d1d]'
-            : toast.type === 'error'
+        <div className={`fixed top-4 right-4 z-50 max-w-md rounded-xl border p-4 shadow-lg animate-slideDown ${toast.type === 'success'
+          ? 'border-[#b8902e]/30 bg-[#f8f3e5] text-[#8f6d1d]'
+          : toast.type === 'error'
             ? 'border-[#b46055]/30 bg-[#fff8f6] text-[#b46055]'
             : 'border-[#b8902e]/20 bg-[#faf8f3] text-[#4a4436]'
-        }`}>
+          }`}>
           <div className="flex items-center gap-3">
             {toast.type === 'success' && <FiCheck className="text-[#b8902e]" size={20} />}
             {toast.type === 'error' && <FiAlertCircle className="text-[#b46055]" size={20} />}
@@ -2373,11 +2880,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-12 rounded-xl px-4 text-sm font-semibold transition-all ${
-                  hasActiveFilters
-                    ? "bg-[#b8902e]/10 text-[#8f6d1d] hover:bg-[#b8902e]/15"
-                    : "text-[#a89a7d] hover:text-[#8f6d1d]"
-                }`}
+                className={`h-12 rounded-xl px-4 text-sm font-semibold transition-all ${hasActiveFilters
+                  ? "bg-[#b8902e]/10 text-[#8f6d1d] hover:bg-[#b8902e]/15"
+                  : "text-[#a89a7d] hover:text-[#8f6d1d]"
+                  }`}
               >
                 <FiFilter size={15} className="mr-1.5 inline" />
                 Clear Filters
@@ -2457,9 +2963,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     <React.Fragment key={order.id}>
                       <tr
                         onClick={() => toggleRow(order.id)}
-                        className={`group cursor-pointer border-b border-[#b8902e]/10 transition-colors ${
-                          selectedOrderId === order.id ? "bg-[#fffaf0]" : "bg-white hover:bg-[#faf8f3]"
-                        }`}
+                        className={`group cursor-pointer border-b border-[#b8902e]/10 transition-colors ${selectedOrderId === order.id ? "bg-[#fffaf0]" : "bg-white hover:bg-[#faf8f3]"
+                          }`}
                       >
                         <td className="px-4 py-4 text-center">
                           <button
@@ -2569,6 +3074,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/deliver:opacity-100">Deliver</span>
                               </button>
                             )}
+
+                            {/* Invoice Button - ONLY FOR DELIVERED ORDERS */}
+                            {order.orderStatus === "delivered" && order.orderId && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewInvoice(order.orderId!);
+                                }}
+                                className="group/invoice relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white hover:shadow-md hover:shadow-[#b8902e]/20"
+                                title="View Invoice"
+                              >
+                                <FiFileText size={16} />
+                                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-semibold text-[#a89a7d] opacity-0 transition-opacity group-hover/invoice:opacity-100">Invoice</span>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -2652,12 +3173,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           className="text-xs font-bold text-[#a8841c]"
                                         >
                                           {order.items &&
-                                          order.items.length > 0 &&
-                                          order.items.filter(item => canItemDispatch(item)).every((item) =>
-                                            selectedItemsMap.get(`${order.id}-${item.id}`)
-                                          )
+                                            order.items.length > 0 &&
+                                            order.items.filter(item => canItemDispatch(item)).every((item) =>
+                                              selectedItemsMap.get(`${order.id}-${item.id}`)
+                                            )
                                             ? "Deselect All"
                                             : "Select All"}
+                                        </button>
+                                      )}
+
+                                      {/* Invoice Button in Expanded Header - ONLY FOR DELIVERED ORDERS */}
+                                      {order.orderStatus === "delivered" && order.orderId && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleViewInvoice(order.orderId!);
+                                          }}
+                                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition hover:from-[#a8841c] hover:to-[#795b14]"
+                                        >
+                                          <FiFileText size={14} />
+                                          View Invoice
                                         </button>
                                       )}
                                     </div>
@@ -2678,10 +3214,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                               className="text-[#8f6d1d] hover:text-[#b8902e]"
                                             >
                                               {order.items &&
-                                              order.items.length > 0 &&
-                                              order.items.filter(item => canItemDispatch(item)).every(
-                                                (item) => selectedItemsMap.get(`${order.id}-${item.id}`)
-                                              ) ? (
+                                                order.items.length > 0 &&
+                                                order.items.filter(item => canItemDispatch(item)).every(
+                                                  (item) => selectedItemsMap.get(`${order.id}-${item.id}`)
+                                                ) ? (
                                                 <FiCheck size={16} />
                                               ) : (
                                                 <FiSquare size={16} />
@@ -2696,6 +3232,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#a89a7d]">Total</th>
                                           <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#a89a7d]">Status</th>
                                           <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#a89a7d]">Action</th>
+                                          <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#a89a7d]">Invoice</th>
                                         </tr>
                                       </thead>
 
@@ -2706,13 +3243,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           const isShipable = canItemShip(item);
                                           const isDeliverable = canItemDeliver(item);
                                           const isDisabled = !isDispatchable && !isShipable && !isDeliverable;
+                                          const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
 
                                           return (
                                             <tr
                                               key={item.id}
-                                              className={`border-b border-[#b8902e]/10 last:border-0 ${
-                                                isSelected ? "bg-[#fffaf0]" : "hover:bg-[#faf8f3]"
-                                              } ${isDisabled ? "opacity-60" : ""}`}
+                                              className={`border-b border-[#b8902e]/10 last:border-0 ${isSelected ? "bg-[#fffaf0]" : "hover:bg-[#faf8f3]"
+                                                } ${isDisabled ? "opacity-60" : ""}`}
                                             >
                                               <td className="px-4 py-3 text-center">
                                                 <button
@@ -2723,9 +3260,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       toggleItemSelection(order.id, item.id);
                                                     }
                                                   }}
-                                                  className={`text-[#8f6d1d] hover:text-[#b8902e] ${
-                                                    isDisabled || !isDispatchable ? "cursor-not-allowed opacity-40" : ""
-                                                  }`}
+                                                  className={`text-[#8f6d1d] hover:text-[#b8902e] ${isDisabled || !isDispatchable ? "cursor-not-allowed opacity-40" : ""
+                                                    }`}
                                                   disabled={isDisabled || !isDispatchable}
                                                   title={isDispatchable ? "Select item" : "Item cannot be selected"}
                                                 >
@@ -2829,6 +3365,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                   )}
                                                 </div>
                                               </td>
+
+                                              <td className="px-4 py-3 text-center">
+                                                {/* Invoice button for item - ONLY FOR DELIVERED ITEMS */}
+                                                {isDelivered && order.orderId && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id));
+                                                    }}
+                                                    className="inline-flex items-center gap-1 rounded-lg bg-[#b8902e]/10 px-2.5 py-1 text-[10px] font-bold text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
+                                                  >
+                                                    <FiFileText size={11} />
+                                                    Invoice
+                                                  </button>
+                                                )}
+                                              </td>
                                             </tr>
                                           );
                                         })}
@@ -2897,6 +3450,21 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                           Deliver Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
                                         </button>
                                       )}
+
+                                      {/* Invoice Button in Expanded Footer - ONLY FOR DELIVERED ORDERS */}
+                                      {order.orderStatus === "delivered" && order.orderId && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleViewInvoice(order.orderId!);
+                                          }}
+                                          className="flex items-center gap-1.5 rounded-xl bg-[#2f2a22] px-4 py-2 text-xs font-bold text-[#f3dfab] transition hover:bg-[#403a30]"
+                                        >
+                                          <FiFileText size={14} />
+                                          View Invoice
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -2931,9 +3499,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <div
                   key={order.id}
                   onClick={() => toggleRow(order.id)}
-                  className={`cursor-pointer border-b border-[#b8902e]/10 p-5 transition-colors ${
-                    selectedOrderId === order.id ? "bg-[#fffaf0]" : "bg-white hover:bg-[#faf8f3]"
-                  }`}
+                  className={`cursor-pointer border-b border-[#b8902e]/10 p-5 transition-colors ${selectedOrderId === order.id ? "bg-[#fffaf0]" : "bg-white hover:bg-[#faf8f3]"
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -3005,6 +3572,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {getDeliverableItemsCount(order)}
                             </span>
                           )}
+                        </button>
+                      )}
+                      {/* Invoice Button in Mobile - ONLY FOR DELIVERED ORDERS */}
+                      {order.orderStatus === "delivered" && order.orderId && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewInvoice(order.orderId!);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#8f6d1d]"
+                          title="Invoice"
+                        >
+                          <FiFileText size={15} />
                         </button>
                       )}
                       <button
@@ -3098,12 +3679,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               className="text-xs font-bold text-[#a8841c]"
                             >
                               {order.items &&
-                              order.items.length > 0 &&
-                              order.items.filter(item => canItemDispatch(item)).every((item) =>
-                                selectedItemsMap.get(`${order.id}-${item.id}`)
-                              )
+                                order.items.length > 0 &&
+                                order.items.filter(item => canItemDispatch(item)).every((item) =>
+                                  selectedItemsMap.get(`${order.id}-${item.id}`)
+                                )
                                 ? "Deselect All"
                                 : "Select All"}
+                            </button>
+                          )}
+                          {/* Invoice Button in Mobile Expanded - ONLY FOR DELIVERED ORDERS */}
+                          {order.orderStatus === "delivered" && order.orderId && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewInvoice(order.orderId!);
+                              }}
+                              className="text-xs font-bold text-[#8f6d1d]"
+                            >
+                              <FiFileText size={13} className="mr-1 inline" />
+                              Invoice
                             </button>
                           )}
                         </div>
@@ -3116,13 +3711,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           const isShipable = canItemShip(item);
                           const isDeliverable = canItemDeliver(item);
                           const isDisabled = !isDispatchable && !isShipable && !isDeliverable;
+                          const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
 
                           return (
                             <div
                               key={item.id}
-                              className={`flex items-center justify-between gap-2 rounded-xl border p-3 ${
-                                isSelected ? "border-[#b8902e]/25 bg-[#fffaf0]" : "border-[#b8902e]/10 bg-[#faf8f3]"
-                              } ${isDisabled ? "opacity-60" : ""}`}
+                              className={`flex items-center justify-between gap-2 rounded-xl border p-3 ${isSelected ? "border-[#b8902e]/25 bg-[#fffaf0]" : "border-[#b8902e]/10 bg-[#faf8f3]"
+                                } ${isDisabled ? "opacity-60" : ""}`}
                             >
                               <button
                                 type="button"
@@ -3132,9 +3727,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     toggleItemSelection(order.id, item.id);
                                   }
                                 }}
-                                className={`shrink-0 text-[#8f6d1d] ${
-                                  isDisabled || !isDispatchable ? "cursor-not-allowed opacity-40" : ""
-                                }`}
+                                className={`shrink-0 text-[#8f6d1d] ${isDisabled || !isDispatchable ? "cursor-not-allowed opacity-40" : ""
+                                  }`}
                                 disabled={isDisabled || !isDispatchable}
                               >
                                 {isSelected ? <FiCheck size={16} /> : <FiSquare size={16} />}
@@ -3208,6 +3802,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     <FiCheckCircle size={11} />
                                   </button>
                                 )}
+                                {/* Invoice button for item in mobile - ONLY FOR DELIVERED ITEMS */}
+                                {isDelivered && order.orderId && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id));
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg bg-[#b8902e]/10 px-2.5 py-1 text-[10px] font-bold text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
+                                  >
+                                    <FiFileText size={11} />
+                                    Invoice
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
@@ -3252,6 +3860,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           >
                             <FiCheckCircle size={14} />
                             Deliver Selected ({getSelectedItemsForOrder(order.id, order.items || []).length})
+                          </button>
+                        )}
+                        {/* Invoice Button in Mobile Expanded Footer - ONLY FOR DELIVERED ORDERS */}
+                        {order.orderStatus === "delivered" && order.orderId && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewInvoice(order.orderId!);
+                            }}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15"
+                          >
+                            <FiFileText size={14} />
+                            View Invoice
                           </button>
                         )}
                       </div>
@@ -3300,11 +3922,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         key={page}
                         type="button"
                         onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                          currentPage === page
-                            ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
-                            : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                        }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
+                          ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
+                          : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                          }`}
                       >
                         {page}
                       </button>
@@ -3317,11 +3938,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                          currentPage === totalPages
-                            ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white"
-                            : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                        }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
+                          ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white"
+                          : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                          }`}
                       >
                         {totalPages}
                       </button>
@@ -3381,6 +4001,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         isFullOrder={isFullOrderDeliver}
       />
 
+      {/* INVOICE POPUP */}
+      <InvoiceViewPopup
+        isOpen={showInvoicePopup}
+        onClose={closeInvoicePopup}
+        orderId={selectedOrderIdForInvoice}
+        orderItemId={selectedOrderItemIdForInvoice}
+      />
+
       <style>
         {`
           @keyframes slideDown {
@@ -3438,15 +4066,15 @@ const Orders: React.FC = () => {
   const convertToOrder = (apiOrder: any, index: number): Order => {
     return {
       id: apiOrder.order_reference,
-      orderId: apiOrder.order_id,
+      orderId: apiOrder.id,
       orderReference: apiOrder.order_reference,
       sNo: index + 1,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -3463,10 +4091,17 @@ const Orders: React.FC = () => {
       userEmail: apiOrder.user?.email || "N/A",
       userPhone: apiOrder.user?.phone || "N/A",
       shippingAddress: apiOrder.shipping_address?.full_address || "N/A",
+      shippingAddressFull: apiOrder.shipping_address?.full_address || "N/A",
       trackingNumber: apiOrder.gateway_transaction_id || "N/A",
+      paymentGateway: apiOrder.payment_gateway || undefined,
+      gatewayTransactionId: apiOrder.gateway_transaction_id || undefined,
+      courierCompany: apiOrder.courier_company || undefined,
+      courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
+      courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
+      shippingDetails: apiOrder.shipping_details || undefined,
       items: apiOrder.items?.map((item: any) => ({
-        id: String(item.line_id),
-        lineId: item.line_id,
+        id: String(item.line_id || item.id || ''),
+        lineId: item.line_id || item.id,
         productName: item.product_name || "N/A",
         sku: item.product_code || "N/A",
         quantity: item.quantity,
@@ -3476,7 +4111,12 @@ const Orders: React.FC = () => {
         lineTotal: item.line_total || 0,
         status: item.delivery_status?.charAt(0).toUpperCase() + item.delivery_status?.slice(1) || "Pending",
         delivery_status: item.delivery_status || "pending",
-        image: item.primary_image || undefined,
+        image: item.primary_image || item.product_image || undefined,
+        productId: item.product_id,
+        isReturnable: item.is_returnable,
+        availableForReturn: item.available_for_return,
+        gstRate: item.gst_rate,
+        gstAmount: item.gst_amount,
       })) || [],
     };
   };

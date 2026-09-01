@@ -856,7 +856,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       if (existingImageIds.length > 0) {
         formData.append('existing_image_ids', JSON.stringify(existingImageIds));
       }
-      formData.append('_method', 'PUT');
+     
     }
 
     const newImages = images.filter(img => !img.is_existing);
