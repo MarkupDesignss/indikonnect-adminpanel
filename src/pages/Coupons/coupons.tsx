@@ -41,7 +41,6 @@ import couponApi, {
 // =====================================================
 // ANIMATION
 // =====================================================
-
 const containerVariants = {
     hidden: {
         opacity: 0,

@@ -37,15 +37,52 @@ export interface HeaderActionResponse {
 }
 
 // =====================================================
+// GLOBAL SEARCH TYPES
+// =====================================================
+
+export interface GlobalSearchPayload {
+  search: string;
+}
+
+export interface GlobalSearchProduct {
+  id: number;
+  name?: string;
+  title?: string;
+  [key: string]: any;
+}
+
+export interface GlobalSearchAdmin {
+  id: number;
+  name: string;
+  email: string;
+  profile_picture: string | null;
+  [key: string]: any;
+}
+
+export interface GlobalSearchUser {
+  id: number;
+  name: string;
+  email: string;
+  profile_picture: string | null;
+  [key: string]: any;
+}
+
+export interface GlobalSearchData {
+  products: GlobalSearchProduct[];
+  admins: GlobalSearchAdmin[];
+  users: GlobalSearchUser[];
+  total_results: number;
+}
+
+export interface GlobalSearchResponse {
+  success: boolean;
+  message?: string;
+  data: GlobalSearchData;
+}
+
+// =====================================================
 // CREATE HEADER / MENU
 // POST /header/add
-//
-// FormData:
-// logo      -> File
-// favicon   -> File
-// title     -> Text
-// status    -> 1 / 0
-// type      -> menu
 // =====================================================
 
 export interface AddHeaderPayload {
@@ -56,9 +93,7 @@ export interface AddHeaderPayload {
   type: string;
 }
 
-const buildHeaderFormData = (
-  payload: AddHeaderPayload
-) => {
+const buildHeaderFormData = (payload: AddHeaderPayload) => {
   const formData = new FormData();
 
   if (payload.logo) {
@@ -134,6 +169,19 @@ export const headerApi = {
   ) =>
     apiClient.delete<HeaderActionResponse>(
       `/header/delete/${id}`
+    ),
+
+  // ===================================================
+  // GLOBAL SEARCH
+  // POST /api/global-search
+  // ===================================================
+
+  globalSearch: (
+    payload: GlobalSearchPayload
+  ) =>
+    apiClient.post<GlobalSearchResponse>(
+      "/global-search",
+      payload
     ),
 };
 

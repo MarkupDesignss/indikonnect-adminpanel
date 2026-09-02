@@ -91,7 +91,7 @@ updateAdmin: (
 id: number,
 payload: UpdateAdminPayload
 ) =>
-apiClient.put<SuccessResponse<AdminMember>>(
+apiClient.post<SuccessResponse<AdminMember>>(
 `/admin/update/${id}`,
 payload
 ),

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   FiSearch,
@@ -13,34 +14,14 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiImage,
-  FiBox,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import { productApi } from "../../api/endpoints/product";
+import { stockApi } from "../../api/endpoints/stockApi";
 import { Product } from "@/types/product";
-
-// =====================================================
-// THEME
-// =====================================================
-
-const theme = {
-  cream: "#faf8f3",
-  white: "#ffffff",
-  dark: "#2f2a22",
-  text: "#2a2620",
-  secondary: "#786f60",
-  muted: "#a89a7d",
-  gold: "#b8902e",
-  lightGold: "#d4af52",
-  darkGold: "#8f6d1d",
-};
-
-// =====================================================
-// ANIMATION
-// =====================================================
 
 const containerVariants = {
   hidden: {
@@ -81,6 +62,7 @@ type StockFilter =
   | "out_of_stock";
 
 interface StockUpdatePayload {
+  operation: "add" | "subtract";
   stock_quantity: number;
 }
 
@@ -115,13 +97,9 @@ const InventoryStatCard: React.FC<
       }}
       className="group relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm transition-all duration-300"
     >
-      {/* Top accent */}
-
       <div
         className={`absolute left-0 top-0 h-1 w-full ${accentClass}`}
       />
-
-      {/* Decorative circles */}
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
 
@@ -199,8 +177,9 @@ const StockBadge: React.FC<StockBadgeProps> = ({
   );
 };
 
+
 // =====================================================
-// UPDATE STOCK MODAL
+// UPDATE STOCK MODAL - COMPACT HEIGHT VERSION
 // =====================================================
 
 interface UpdateStockModalProps {
@@ -208,30 +187,26 @@ interface UpdateStockModalProps {
   product: Product | null;
   loading: boolean;
   onClose: () => void;
-  onSubmit: (
-    payload: StockUpdatePayload
-  ) => void;
+  onSubmit: (payload: StockUpdatePayload) => void;
 }
 
-const UpdateStockModal: React.FC<
-  UpdateStockModalProps
-> = ({
+const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
   open,
   product,
   loading,
   onClose,
   onSubmit,
 }) => {
-  const [quantity, setQuantity] =
-    useState(0);
+  const [quantity, setQuantity] = useState(1);
+
+  const [operation, setOperation] = useState<"add" | "subtract">(
+    "add"
+  );
 
   useEffect(() => {
     if (product) {
-      setQuantity(
-        Number(
-          product.stock_quantity || 0
-        )
-      );
+      setQuantity(1);
+      setOperation("add");
     }
   }, [product]);
 
@@ -239,48 +214,55 @@ const UpdateStockModal: React.FC<
     return null;
   }
 
-  const threshold = Number(
-    product.low_stock_threshold || 0
-  );
+  const currentStock = Number(product.stock_quantity || 0);
+
+  const threshold = Number(product.low_stock_threshold || 0);
+
+  const previewStock =
+    operation === "add"
+      ? currentStock + quantity
+      : Math.max(0, currentStock - quantity);
 
   const increase = () => {
     setQuantity((prev) => prev + 1);
   };
 
   const decrease = () => {
-    setQuantity((prev) =>
-      Math.max(0, prev - 1)
-    );
+    setQuantity((prev) => Math.max(1, prev - 1));
   };
 
-  const handleQuantityChange = (
-    value: string
-  ) => {
+  const handleQuantityChange = (value: string) => {
     if (value === "") {
-      setQuantity(0);
+      setQuantity(1);
       return;
     }
 
     const parsed = Number(value);
 
-    if (
-      Number.isNaN(parsed) ||
-      parsed < 0
-    ) {
+    if (Number.isNaN(parsed) || parsed < 1) {
       return;
     }
 
-    setQuantity(
-      Math.floor(parsed)
-    );
+    setQuantity(Math.floor(parsed));
   };
 
-  const handleSubmit = (
-    e: React.FormEvent
-  ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (quantity <= 0) {
+      toast.error("Stock quantity must be greater than 0.");
+      return;
+    }
+
+    if (operation === "subtract" && quantity > currentStock) {
+      toast.error(
+        `You cannot subtract more than current stock (${currentStock}).`
+      );
+      return;
+    }
+
     onSubmit({
+      operation,
       stock_quantity: quantity,
     });
   };
@@ -291,19 +273,18 @@ const UpdateStockModal: React.FC<
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="relative w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-        {/* Accent */}
+      <div className="relative w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
 
+        {/* TOP ACCENT */}
         <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
 
-        {/* Header */}
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-4">
+        {/* HEADER */}
+        <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-3.5">
           <div>
-            <div className="mb-1 flex items-center gap-2">
+            <div className="mb-0.5 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#b8902e]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
                 Inventory Management
               </span>
             </div>
@@ -312,8 +293,8 @@ const UpdateStockModal: React.FC<
               Update Stock
             </h2>
 
-            <p className="mt-1 text-xs text-[#a89a7d]">
-              Change the available inventory quantity
+            <p className="mt-0.5 text-[11px] text-[#a89a7d]">
+              Add or subtract stock from available inventory
             </p>
           </div>
 
@@ -321,31 +302,27 @@ const UpdateStockModal: React.FC<
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e]/10 disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e]/10 disabled:opacity-50"
           >
-            <FiX size={18} />
+            <FiX size={16} />
           </button>
         </div>
 
-        {/* Body */}
-
+        {/* BODY */}
         <form onSubmit={handleSubmit}>
-          <div className="p-5">
-            {/* Product */}
+          <div className="p-4">
 
-            <div className="flex items-center gap-4 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
+            {/* PRODUCT */}
+            <div className="flex items-center gap-3 rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
               {product.images?.[0]?.image_url ? (
                 <img
-                  src={
-                    product.images[0]
-                      .image_url
-                  }
+                  src={product.images[0].image_url}
                   alt={product.name}
-                  className="h-16 w-16 rounded-xl border border-[#b8902e]/15 bg-white object-cover"
+                  className="h-14 w-14 rounded-lg border border-[#b8902e]/15 bg-white object-cover"
                 />
               ) : (
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-white text-[#b8902e]">
-                  <FiImage size={22} />
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#b8902e]">
+                  <FiImage size={20} />
                 </div>
               )}
 
@@ -354,159 +331,191 @@ const UpdateStockModal: React.FC<
                   {product.name}
                 </h3>
 
-                <p className="mt-1 text-xs text-[#a89a7d]">
-                  SKU:{" "}
-                  {product.product_code ||
-                    "N/A"}
+                <p className="mt-0.5 text-[11px] text-[#a89a7d]">
+                  SKU: {product.product_code || "N/A"}
                 </p>
 
-                <div className="mt-2">
+                <div className="mt-1.5">
                   <StockBadge
-                    stock={Number(
-                      product.stock_quantity ||
-                        0
-                    )}
+                    stock={currentStock}
                     threshold={threshold}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Quantity */}
-
-            <div className="mt-6">
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#6b6152]">
-                Stock Quantity
+            {/* OPERATION */}
+            <div className="mt-4">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6b6152]">
+                Stock Operation
               </label>
 
-              <div className="flex items-center gap-3">
-                {/* Minus */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOperation("add")}
+                  disabled={loading}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-bold transition-all ${
+                    operation === "add"
+                      ? "border-[#b8902e] bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                      : "border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                  }`}
+                >
+                  <FiPlus size={15} />
+                  Add Stock
+                </button>
 
                 <button
                   type="button"
-                  onClick={
-                    decrease
-                  }
-                  disabled={
-                    loading ||
-                    quantity <= 0
-                  }
-                  className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition hover:border-[#b8902e]/40 hover:bg-[#b8902e]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => setOperation("subtract")}
+                  disabled={loading}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-bold transition-all ${
+                    operation === "subtract"
+                      ? "border-[#b8902e] bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                      : "border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                  }`}
                 >
-                  <FiMinus size={18} />
+                  <FiMinus size={15} />
+                  Subtract Stock
                 </button>
+              </div>
+            </div>
 
-                {/* Input */}
+            {/* QUANTITY */}
+            <div className="mt-4">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6b6152]">
+                Quantity
+              </label>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={decrease}
+                  disabled={loading || quantity <= 1}
+                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition hover:border-[#b8902e]/40 hover:bg-[#b8902e]/10 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <FiMinus size={16} />
+                </button>
 
                 <input
                   type="number"
-                  min="0"
+                  min="1"
                   step="1"
                   value={quantity}
                   onChange={(e) =>
-                    handleQuantityChange(
-                      e.target.value
-                    )
+                    handleQuantityChange(e.target.value)
                   }
                   disabled={loading}
-                  className="h-14 flex-1 rounded-xl border border-[#b8902e]/25 bg-white text-center text-xl font-bold text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:ring-2 focus:ring-[#b8902e]/15"
+                  className="h-11 flex-1 rounded-lg border border-[#b8902e]/25 bg-white text-center text-lg font-bold text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:ring-2 focus:ring-[#b8902e]/15"
                 />
-
-                {/* Plus */}
 
                 <button
                   type="button"
-                  onClick={
-                    increase
-                  }
+                  onClick={increase}
                   disabled={loading}
-                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#c49b3a] hover:to-[#8f6d1d] disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#c49b3a] hover:to-[#8f6d1d] disabled:opacity-50"
                 >
-                  <FiPlus size={18} />
+                  <FiPlus size={16} />
                 </button>
               </div>
             </div>
 
-            {/* Quick Quantities */}
-
-            <div className="mt-5">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#6b6152]">
+            {/* QUICK QUANTITIES */}
+            <div className="mt-3">
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#6b6152]">
                 Quick Update
               </p>
 
-              <div className="flex flex-wrap gap-2">
-                {[0, 5, 10, 20, 50, 100].map(
-                  (value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() =>
-                        setQuantity(
-                          value
-                        )
-                      }
-                      disabled={loading}
-                      className={`rounded-xl border px-4 py-2 text-xs font-bold transition-all ${
-                        quantity ===
-                        value
-                          ? "border-[#b8902e] bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/15"
-                          : "border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                      }`}
-                    >
-                      {value}
-                    </button>
-                  )
-                )}
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 5, 10, 20, 50, 100].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setQuantity(value)}
+                    disabled={loading}
+                    className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all ${
+                      quantity === value
+                        ? "border-[#b8902e] bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/15"
+                        : "border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                    }`}
+                  >
+                    {value}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Current / New */}
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
-                  Current Stock
+            {/* CURRENT / CHANGE / NEW */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-lg border border-[#b8902e]/10 bg-[#faf8f3] p-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                  Current
                 </p>
 
-                <p className="mt-1 text-xl font-bold text-[#2a2620]">
-                  {Number(
-                    product.stock_quantity ||
-                      0
-                  )}
+                <p className="mt-0.5 text-lg font-bold text-[#2a2620]">
+                  {currentStock}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#b8902e]/20 bg-[#fffaf0] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a06f13]">
+              <div className="rounded-lg border border-[#b8902e]/10 bg-white p-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                  {operation === "add"
+                    ? "Adding"
+                    : "Subtracting"}
+                </p>
+
+                <p className="mt-0.5 text-lg font-bold text-[#8f6d1d]">
+                  {operation === "add"
+                    ? `+${quantity}`
+                    : `-${quantity}`}
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-[#b8902e]/20 bg-[#fffaf0] p-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#a06f13]">
                   New Stock
                 </p>
 
-                <p className="mt-1 text-xl font-bold text-[#8f6d1d]">
-                  {quantity}
+                <p className="mt-0.5 text-lg font-bold text-[#8f6d1d]">
+                  {previewStock}
                 </p>
               </div>
             </div>
 
-            {/* Threshold */}
+            {/* THRESHOLD + API INFO */}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-[#b8902e]/10 bg-white p-2.5">
+                <p className="text-[10px] text-[#786f60]">
+                  Low stock threshold:{" "}
+                  <span className="font-bold text-[#8f6d1d]">
+                    {threshold}
+                  </span>
+                </p>
+              </div>
 
-            <div className="mt-4 rounded-xl border border-[#b8902e]/10 bg-white p-3">
-              <p className="text-xs text-[#786f60]">
-                Low stock threshold:{" "}
-                <span className="font-bold text-[#8f6d1d]">
-                  {threshold}
-                </span>
-              </p>
+              <div className="rounded-lg border border-[#b8902e]/10 bg-[#faf8f3] p-2.5">
+                <p className="text-[10px] text-[#786f60]">
+                  Operation:{" "}
+                  <span className="font-bold text-[#8f6d1d]">
+                    {operation}
+                  </span>
+                  {" • "}
+                  Qty:{" "}
+                  <span className="font-bold text-[#8f6d1d]">
+                    {quantity}
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Footer */}
-
-          <div className="flex justify-end gap-3 border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4">
+          {/* FOOTER */}
+          <div className="flex justify-end gap-2.5 border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#b8902e]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#786f60] transition hover:border-[#b8902e]/30 hover:bg-[#faf8f3] hover:text-[#8f6d1d] disabled:opacity-50"
+              className="rounded-lg border border-[#b8902e]/20 bg-white px-4 py-2 text-xs font-semibold text-[#786f60] transition hover:border-[#b8902e]/30 hover:bg-[#faf8f3] hover:text-[#8f6d1d] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -514,21 +523,19 @@ const UpdateStockModal: React.FC<
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#a8841c] hover:to-[#795b14] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-5 py-2 text-xs font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#a8841c] hover:to-[#795b14] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <>
                   <FiRefreshCw
-                    size={15}
+                    size={14}
                     className="animate-spin"
                   />
                   Updating...
                 </>
               ) : (
                 <>
-                  <FiCheckCircle
-                    size={15}
-                  />
+                  <FiCheckCircle size={14} />
                   Update Stock
                 </>
               )}
@@ -540,28 +547,27 @@ const UpdateStockModal: React.FC<
   );
 };
 
+
 // =====================================================
 // INVENTORY PAGE
 // =====================================================
 
 const Stock: React.FC = () => {
-  const [products, setProducts] =
-    useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(
+    []
+  );
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [stockUpdating, setStockUpdating] =
     useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
   const [stockFilter, setStockFilter] =
     useState<StockFilter>("all");
 
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [updateModalOpen, setUpdateModalOpen] =
     useState(false);
@@ -610,21 +616,23 @@ const Stock: React.FC = () => {
   // ===================================================
 
   const metrics = useMemo(() => {
-    const totalProducts =
-      products.length;
+    const totalProducts = products.length;
 
     const inStock = products.filter(
-      (product) =>
-        Number(
+      (product) => {
+        const stock = Number(
           product.stock_quantity || 0
-        ) > 0 &&
-        Number(
-          product.stock_quantity || 0
-        ) >
-          Number(
-            product.low_stock_threshold ||
-              0
-          )
+        );
+
+        const threshold = Number(
+          product.low_stock_threshold || 0
+        );
+
+        return (
+          stock > 0 &&
+          stock > threshold
+        );
+      }
     ).length;
 
     const lowStock = products.filter(
@@ -634,8 +642,7 @@ const Stock: React.FC = () => {
         );
 
         const threshold = Number(
-          product.low_stock_threshold ||
-            0
+          product.low_stock_threshold || 0
         );
 
         return (
@@ -665,74 +672,62 @@ const Stock: React.FC = () => {
   // SEARCH + FILTER
   // ===================================================
 
-  const filteredProducts =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      return products.filter(
-        (product) => {
-          const stock = Number(
-            product.stock_quantity ||
-              0
-          );
-
-          const threshold =
-            Number(
-              product.low_stock_threshold ||
-                0
-            );
-
-          const matchesSearch =
-            !query ||
-            [
-              product.name,
-              product.product_code,
-              product.slug,
-              product.description,
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(query);
-
-          let matchesFilter = true;
-
-          switch (stockFilter) {
-            case "in_stock":
-              matchesFilter =
-                stock >
-                threshold;
-              break;
-
-            case "low_stock":
-              matchesFilter =
-                stock > 0 &&
-                stock <=
-                  threshold;
-              break;
-
-            case "out_of_stock":
-              matchesFilter =
-                stock <= 0;
-              break;
-
-            default:
-              matchesFilter = true;
-          }
-
-          return (
-            matchesSearch &&
-            matchesFilter
-          );
-        }
+    return products.filter((product) => {
+      const stock = Number(
+        product.stock_quantity || 0
       );
-    }, [
-      products,
-      search,
-      stockFilter,
-    ]);
+
+      const threshold = Number(
+        product.low_stock_threshold || 0
+      );
+
+      const matchesSearch =
+        !query ||
+        [
+          product.name,
+          product.product_code,
+          product.slug,
+          product.description,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+
+      let matchesFilter = true;
+
+      switch (stockFilter) {
+        case "in_stock":
+          matchesFilter =
+            stock > threshold;
+          break;
+
+        case "low_stock":
+          matchesFilter =
+            stock > 0 &&
+            stock <= threshold;
+          break;
+
+        case "out_of_stock":
+          matchesFilter = stock <= 0;
+          break;
+
+        default:
+          matchesFilter = true;
+      }
+
+      return (
+        matchesSearch &&
+        matchesFilter
+      );
+    });
+  }, [
+    products,
+    search,
+    stockFilter,
+  ]);
 
   // ===================================================
   // PAGINATION
@@ -753,8 +748,7 @@ const Stock: React.FC = () => {
   const paginatedProducts =
     filteredProducts.slice(
       startIndex,
-      startIndex +
-        ITEMS_PER_PAGE
+      startIndex + ITEMS_PER_PAGE
     );
 
   const startEntry =
@@ -763,8 +757,7 @@ const Stock: React.FC = () => {
       : startIndex + 1;
 
   const endEntry = Math.min(
-    startIndex +
-      ITEMS_PER_PAGE,
+    startIndex + ITEMS_PER_PAGE,
     filteredProducts.length
   );
 
@@ -802,7 +795,7 @@ const Stock: React.FC = () => {
   };
 
   // ===================================================
-  // UPDATE STOCK
+  // UPDATE STOCK USING DEDICATED API
   // ===================================================
 
   const handleUpdateStock = async (
@@ -815,30 +808,18 @@ const Stock: React.FC = () => {
     try {
       setStockUpdating(true);
 
-      /*
-       * Using existing product update API.
-       * stock_quantity is sent as FormData.
-       *
-       * If your backend has a dedicated
-       * inventory/stock endpoint, only this
-       * API call needs to be changed.
-       */
-
-      const formData =
-        new FormData();
-
-      formData.append(
-        "stock_quantity",
-        String(
-          payload.stock_quantity
-        )
-      );
-
       const response =
-        await productApi.updateProduct(
-          selectedProduct.id,
-          formData
-        );
+        await stockApi.updateStock({
+          product_id: selectedProduct.id,
+          operation: payload.operation,
+          stock_quantity:
+            payload.stock_quantity,
+        });
+
+      /*
+       * Refetch products after successful stock update
+       * so current stock, status and metrics stay updated.
+       */
 
       await fetchProducts();
 
@@ -870,7 +851,9 @@ const Stock: React.FC = () => {
   // ===================================================
 
   const closeUpdateModal = () => {
-    if (stockUpdating) return;
+    if (stockUpdating) {
+      return;
+    }
 
     setUpdateModalOpen(false);
     setSelectedProduct(null);
@@ -909,8 +892,7 @@ const Stock: React.FC = () => {
     if (totalPages <= 5) {
       return Array.from(
         { length: totalPages },
-        (_, index) =>
-          index + 1
+        (_, index) => index + 1
       );
     }
 
@@ -955,9 +937,7 @@ const Stock: React.FC = () => {
         initial="hidden"
         animate="visible"
       >
-        {/* =================================================
-            HEADER
-        ================================================= */}
+        {/* HEADER */}
 
         <motion.div
           variants={itemVariants}
@@ -982,13 +962,11 @@ const Stock: React.FC = () => {
             </p>
           </div>
 
-          {/* Refresh */}
+          {/* REFRESH */}
 
           <motion.button
             type="button"
-            onClick={
-              handleRefresh
-            }
+            onClick={handleRefresh}
             disabled={loading}
             whileHover={{
               y: -2,
@@ -1011,9 +989,7 @@ const Stock: React.FC = () => {
           </motion.button>
         </motion.div>
 
-        {/* =================================================
-            STAT CARDS
-        ================================================= */}
+        {/* STAT CARDS */}
 
         <motion.div
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -1021,78 +997,53 @@ const Stock: React.FC = () => {
         >
           <InventoryStatCard
             title="Total Products"
-            value={
-
-              metrics.totalProducts
-            }
+            value={metrics.totalProducts}
             subtitle="Products in catalog"
-            icon={
-              <FiPackage size={21} />
-            }
+            icon={<FiPackage size={21} />}
             accentClass="bg-gradient-to-r from-[#d4af52] to-[#8f6d1d]"
           />
 
           <InventoryStatCard
             title="In Stock"
-            value={
-              metrics.inStock
-            }
+            value={metrics.inStock}
             subtitle="Healthy inventory"
             icon={
-              <FiCheckCircle
-                size={21}
-              />
+              <FiCheckCircle size={21} />
             }
             accentClass="bg-gradient-to-r from-[#e0b85d] to-[#a8841c]"
           />
 
           <InventoryStatCard
             title="Low Stock"
-            value={
-              metrics.lowStock
-            }
+            value={metrics.lowStock}
             subtitle="Needs attention"
             icon={
-              <FiAlertTriangle
-                size={21}
-              />
+              <FiAlertTriangle size={21} />
             }
             accentClass="bg-gradient-to-r from-[#e8c97a] to-[#b8902e]"
           />
 
           <InventoryStatCard
             title="Out of Stock"
-            value={
-              metrics.outOfStock
-            }
+            value={metrics.outOfStock}
             subtitle="Requires restocking"
-            icon={
-              <FiXCircle size={21} />
-            }
+            icon={<FiXCircle size={21} />}
             accentClass="bg-gradient-to-r from-[#c49b3a] to-[#806319]"
           />
         </motion.div>
 
-        {/* =================================================
-            MAIN INVENTORY CARD
-        ================================================= */}
+        {/* MAIN INVENTORY CARD */}
 
         <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm"
         >
-          {/* Accent */}
-
           <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
 
-          {/* =================================================
-              TOOLBAR
-          ================================================= */}
+          {/* TOOLBAR */}
 
           <div className="border-b border-[#b8902e]/10 p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              {/* Search */}
-
               <div className="relative w-full xl:max-w-[560px]">
                 <FiSearch
                   size={19}
@@ -1124,8 +1075,6 @@ const Stock: React.FC = () => {
                 )}
               </div>
 
-              {/* Filter Buttons */}
-
               <div className="flex flex-wrap items-center gap-2">
                 {[
                   {
@@ -1144,38 +1093,30 @@ const Stock: React.FC = () => {
                     key: "out_of_stock" as StockFilter,
                     label: "Out of Stock",
                   },
-                ].map(
-                  (filter) => (
-                    <button
-                      key={
+                ].map((filter) => (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() =>
+                      handleFilterChange(
                         filter.key
-                      }
-                      type="button"
-                      onClick={() =>
-                        handleFilterChange(
-                          filter.key
-                        )
-                      }
-                      className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
-                        stockFilter ===
-                        filter.key
-                          ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                          : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  )
-                )}
+                      )
+                    }
+                    className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                      stockFilter ===
+                      filter.key
+                        ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
+                        : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-     
-
-          {/* =================================================
-              DESKTOP TABLE
-          ================================================= */}
+          {/* DESKTOP TABLE */}
 
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1100px] border-collapse">
@@ -1223,11 +1164,7 @@ const Stock: React.FC = () => {
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
-                          <FiPackage
-                            size={22}
-                          />
-                        </div>
+                        <FiLoaderIcon />
 
                         <p className="mt-4 text-sm font-bold text-[#2a2620]">
                           Loading inventory...
@@ -1248,9 +1185,7 @@ const Stock: React.FC = () => {
                     >
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
-                          <FiPackage
-                            size={24}
-                          />
+                          <FiPackage size={24} />
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-[#2a2620]">
@@ -1258,35 +1193,35 @@ const Stock: React.FC = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#a89a7d]">
-                          Try another search or
-                          stock filter.
+                          Try another search or stock filter.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   paginatedProducts.map(
-                    (
-                      product,
-                      index
-                    ) => {
-                      const stock =
-                        Number(
-                          product.stock_quantity ||
-                            0
-                        );
+                    (product, index) => {
+                      const stock = Number(
+                        product.stock_quantity ||
+                          0
+                      );
 
-                      const threshold =
-                        Number(
-                          product.low_stock_threshold ||
-                            0
-                        );
+                      const threshold = Number(
+                        product.low_stock_threshold ||
+                          0
+                      );
+
+                      const primaryImage =
+                        product.images?.find(
+                          (image) =>
+                            image.is_primary ===
+                            true
+                        ) ||
+                        product.images?.[0];
 
                       return (
                         <tr
-                          key={
-                            product.id
-                          }
+                          key={product.id}
                           className="group border-b border-[#b8902e]/10 bg-white transition-all hover:bg-[#faf8f3]"
                         >
                           {/* S.NO */}
@@ -1303,29 +1238,10 @@ const Stock: React.FC = () => {
 
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              {product.images?.find(
-                                (
-                                  image
-                                ) =>
-                                  image.is_primary ===
-                                  true
-                              )?.image_url ||
-                              product
-                                .images?.[0]
-                                ?.image_url ? (
+                              {primaryImage?.image_url ? (
                                 <img
                                   src={
-                                    product.images?.find(
-                                      (
-                                        image
-                                      ) =>
-                                        image.is_primary ===
-                                        true
-                                    )
-                                      ?.image_url ||
-                                    product
-                                      .images?.[0]
-                                      ?.image_url
+                                    primaryImage.image_url
                                   }
                                   alt={
                                     product.name
@@ -1335,9 +1251,7 @@ const Stock: React.FC = () => {
                               ) : (
                                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
                                   <FiImage
-                                    size={
-                                      18
-                                    }
+                                    size={18}
                                   />
                                 </div>
                               )}
@@ -1375,8 +1289,7 @@ const Stock: React.FC = () => {
                               <span className="text-sm font-medium text-[#4a4436]">
                                 {product
                                   .category
-                                  ?.name ||
-                                  "-"}
+                                  ?.name || "-"}
                               </span>
                             </div>
                           </td>
@@ -1410,9 +1323,7 @@ const Stock: React.FC = () => {
 
                           <td className="px-5 py-4 text-center">
                             <StockBadge
-                              stock={
-                                stock
-                              }
+                              stock={stock}
                               threshold={
                                 threshold
                               }
@@ -1439,9 +1350,7 @@ const Stock: React.FC = () => {
                                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition hover:from-[#a8841c] hover:to-[#795b14]"
                               >
                                 <FiEdit2
-                                  size={
-                                    14
-                                  }
+                                  size={14}
                                 />
 
                                 Update Stock
@@ -1457,14 +1366,13 @@ const Stock: React.FC = () => {
             </table>
           </div>
 
-          {/* =================================================
-              MOBILE CARDS
-          ================================================= */}
+          {/* MOBILE CARDS */}
 
           <div className="block lg:hidden">
             {loading ? (
               <div className="flex flex-col items-center px-5 py-16">
                 <FiLoaderIcon />
+
                 <p className="mt-3 text-sm font-bold text-[#2a2620]">
                   Loading inventory...
                 </p>
@@ -1473,9 +1381,7 @@ const Stock: React.FC = () => {
               0 ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
-                  <FiPackage
-                    size={24}
-                  />
+                  <FiPackage size={24} />
                 </div>
 
                 <p className="mt-4 text-sm font-bold text-[#2a2620]">
@@ -1488,21 +1394,16 @@ const Stock: React.FC = () => {
               </div>
             ) : (
               paginatedProducts.map(
-                (
-                  product,
-                  index
-                ) => {
-                  const stock =
-                    Number(
-                      product.stock_quantity ||
-                        0
-                    );
+                (product, index) => {
+                  const stock = Number(
+                    product.stock_quantity ||
+                      0
+                  );
 
-                  const threshold =
-                    Number(
-                      product.low_stock_threshold ||
-                        0
-                    );
+                  const threshold = Number(
+                    product.low_stock_threshold ||
+                      0
+                  );
 
                   const primaryImage =
                     product.images?.find(
@@ -1514,9 +1415,7 @@ const Stock: React.FC = () => {
 
                   return (
                     <div
-                      key={
-                        product.id
-                      }
+                      key={product.id}
                       className="border-b border-[#b8902e]/10 bg-white p-4"
                     >
                       <div className="flex items-start gap-3">
@@ -1532,11 +1431,7 @@ const Stock: React.FC = () => {
                           />
                         ) : (
                           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
-                            <FiImage
-                              size={
-                                20
-                              }
-                            />
+                            <FiImage size={20} />
                           </div>
                         )}
 
@@ -1566,20 +1461,15 @@ const Stock: React.FC = () => {
 
                           <div className="mt-3 flex flex-wrap items-center gap-2">
                             <StockBadge
-                              stock={
-                                stock
-                              }
+                              stock={stock}
                               threshold={
                                 threshold
                               }
-
                             />
 
                             <span className="rounded-full border border-[#b8902e]/15 bg-[#faf8f3] px-3 py-1 text-[10px] font-bold text-[#786f60]">
                               Threshold:{" "}
-                              {
-                                threshold
-                              }
+                              {threshold}
                             </span>
                           </div>
                         </div>
@@ -1604,8 +1494,7 @@ const Stock: React.FC = () => {
                           <p className="mt-1 truncate text-sm font-bold text-[#4a4436]">
                             {product
                               .category
-                              ?.name ||
-                              "-"}
+                              ?.name || "-"}
                           </p>
                         </div>
                       </div>
@@ -1619,11 +1508,7 @@ const Stock: React.FC = () => {
                         }
                         className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-3 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15"
                       >
-                        <FiEdit2
-                          size={
-                            15
-                          }
-                        />
+                        <FiEdit2 size={15} />
 
                         Update Stock
                       </button>
@@ -1634,12 +1519,9 @@ const Stock: React.FC = () => {
             )}
           </div>
 
-          {/* =================================================
-              PAGINATION
-          ================================================= */}
+          {/* PAGINATION */}
 
-          {filteredProducts.length >
-            0 && (
+          {filteredProducts.length > 0 && (
             <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#8b8171]">
@@ -1664,21 +1546,17 @@ const Stock: React.FC = () => {
                   <button
                     type="button"
                     disabled={
-                      currentPage ===
-                      1
+                      currentPage === 1
                     }
                     onClick={() =>
                       handlePageChange(
-                        currentPage -
-                          1
+                        currentPage - 1
                       )
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] transition hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft
-                      size={
-                        17
-                      }
+                      size={17}
                     />
                   </button>
 
@@ -1712,16 +1590,13 @@ const Stock: React.FC = () => {
                     }
                     onClick={() =>
                       handlePageChange(
-                        currentPage +
-                          1
+                        currentPage + 1
                       )
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] transition hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight
-                      size={
-                        17
-                      }
+                      size={17}
                     />
                   </button>
                 </div>
@@ -1731,20 +1606,14 @@ const Stock: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* =================================================
-          UPDATE STOCK MODAL
-      ================================================= */}
+      {/* UPDATE STOCK MODAL */}
 
       <UpdateStockModal
         open={updateModalOpen}
         product={selectedProduct}
         loading={stockUpdating}
-        onClose={
-          closeUpdateModal
-        }
-        onSubmit={
-          handleUpdateStock
-        }
+        onClose={closeUpdateModal}
+        onSubmit={handleUpdateStock}
       />
     </>
   );

@@ -1,27 +1,29 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { Toaster } from "react-hot-toast";
+
 import { router } from "./routes";
-import "react-toastify/dist/ReactToastify.css";
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+ReactDOM.createRoot(
+  document.getElementById("root")!
+).render(
   <React.StrictMode>
     <RouterProvider router={router} />
 
-    <ToastContainer
+    <Toaster
       position="top-right"
-      autoClose={3000}
-      hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
-      theme="light"
-      limit={3}
+      reverseOrder={false}
+      toastOptions={{
+        duration: 3000,
+        style: {
+          borderRadius: "12px",
+          padding: "12px 16px",
+          fontSize: "14px",
+          fontWeight: "600",
+        },
+      }}
     />
   </React.StrictMode>
 );

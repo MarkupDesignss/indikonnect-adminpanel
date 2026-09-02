@@ -173,7 +173,9 @@ const ReadStatusBadge: React.FC<{
     >
         <span
             className={`h-1.5 w-1.5 rounded-full ${
-                isRead ? "bg-gray-400" : "bg-[#b8902e]"
+                isRead
+                    ? "bg-gray-400"
+                    : "bg-[#b8902e]"
             }`}
         />
         {isRead ? "Read" : "Unread"}
@@ -201,11 +203,13 @@ const StatCard: React.FC<StatCardProps> = ({
         variants={itemVariants}
         whileHover={{
             y: -3,
-            boxShadow: "0 14px 30px -18px rgba(140,105,25,0.28)",
+            boxShadow:
+                "0 14px 30px -18px rgba(140,105,25,0.28)",
         }}
         className="relative min-h-[130px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm"
     >
         <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+
         <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full border border-[#d4af52]/15" />
 
         <div className="relative flex items-start justify-between gap-4">
@@ -213,13 +217,16 @@ const StatCard: React.FC<StatCardProps> = ({
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#a89a7d]">
                     {title}
                 </p>
+
                 <p className="mt-2 text-3xl font-bold text-[#2a2620]">
                     {value.toLocaleString("en-IN")}
                 </p>
+
                 <p className="mt-1 text-xs text-[#786f60]">
                     {subtitle}
                 </p>
             </div>
+
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
                 {icon}
             </div>
@@ -260,15 +267,20 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
         >
             <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
                 <div className="h-1 w-full bg-gradient-to-r from-[#d4af52] to-[#8a6c1f]" />
+
                 <div className="p-5 sm:p-6">
                     <div className="flex items-start gap-4">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
                             <FiAlertTriangle size={22} />
                         </div>
+
                         <div>
                             <h2 className="text-lg font-bold text-[#2a2620]">
-                                {isBulk ? "Delete Contacts" : "Delete Contact"}
+                                {isBulk
+                                    ? "Delete Contacts"
+                                    : "Delete Contact"}
                             </h2>
+
                             <p className="mt-1 text-sm leading-6 text-[#786f60]">
                                 {isBulk
                                     ? `Are you sure you want to delete ${count} selected contacts? This action cannot be undone.`
@@ -282,6 +294,7 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
                             <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
                                 Selected Contact
                             </p>
+
                             <p className="mt-1 text-sm font-semibold text-[#2a2620]">
                                 {name}
                             </p>
@@ -293,10 +306,12 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
                             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#b8902e]/10 text-[#8f6d1d]">
                                 <FiTrash2 size={16} />
                             </div>
+
                             <div>
                                 <p className="text-xs font-bold text-[#2a2620]">
                                     {count} contacts selected
                                 </p>
+
                                 <p className="mt-0.5 text-[11px] text-[#a89a7d]">
                                     All selected records will be removed.
                                 </p>
@@ -313,6 +328,7 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
                         >
                             Cancel
                         </button>
+
                         <button
                             type="button"
                             onClick={onConfirm}
@@ -320,11 +336,19 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
                             className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-5 py-2.5 text-sm font-bold text-white transition hover:from-red-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {loading ? (
-                                <FiRefreshCw size={15} className="animate-spin" />
+                                <FiRefreshCw
+                                    size={15}
+                                    className="animate-spin"
+                                />
                             ) : (
                                 <FiTrash2 size={15} />
                             )}
-                            {loading ? "Deleting..." : isBulk ? "Delete Selected" : "Delete Contact"}
+
+                            {loading
+                                ? "Deleting..."
+                                : isBulk
+                                ? "Delete Selected"
+                                : "Delete Contact"}
                         </button>
                     </div>
                 </div>
@@ -366,7 +390,9 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
 }) => {
     const allSelected =
         contacts.length > 0 &&
-        contacts.every((contact) => selectedIds.includes(contact.id));
+        contacts.every((contact) =>
+            selectedIds.includes(contact.id)
+        );
 
     return (
         <aside className="flex h-[680px] w-full flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm lg:h-[720px] lg:w-[390px] xl:w-[410px]">
@@ -376,16 +402,19 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
 
                 <div className="mb-4 flex items-center justify-between">
                     <div>
-                        <h3 className="text-base font-bold text-[#2a2620] flex items-center gap-2">
+                        <h3 className="flex items-center gap-2 text-base font-bold text-[#2a2620]">
                             Contact Messages
+
                             <span className="inline-flex items-center justify-center rounded-full bg-[#b8902e]/10 px-2.5 py-0.5 text-xs font-semibold text-[#8f6d1d]">
                                 {contacts.length}
                             </span>
                         </h3>
+
                         <p className="mt-1 text-xs text-[#a89a7d]">
                             Review customer enquiries
                         </p>
                     </div>
+
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
                         <FiMessageSquare size={17} />
                     </div>
@@ -410,7 +439,9 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                         <button
                             key={item.key}
                             type="button"
-                            onClick={() => onFilter(item.key)}
+                            onClick={() =>
+                                onFilter(item.key)
+                            }
                             className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
                                 filter === item.key
                                     ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-sm"
@@ -432,7 +463,9 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                     <input
                         type="text"
                         value={search}
-                        onChange={(e) => onSearch(e.target.value)}
+                        onChange={(e) =>
+                            onSearch(e.target.value)
+                        }
                         placeholder="Search name, email or phone..."
                         className="h-11 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-10 pr-3 text-xs text-[#2a2620] outline-none transition placeholder:text-[#a89a7d] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
                     />
@@ -463,7 +496,10 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                         ) : (
                             <FiSquare size={15} />
                         )}
-                        {allSelected ? "Deselect All" : "Select All"}
+
+                        {allSelected
+                            ? "Deselect All"
+                            : "Select All"}
                     </button>
 
                     <span className="rounded-full bg-[#b8902e]/10 px-2.5 py-1 text-[10px] font-bold text-[#8f6d1d]">
@@ -479,8 +515,12 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                 {loading ? (
                     <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
-                            <FiRefreshCw size={21} className="animate-spin" />
+                            <FiRefreshCw
+                                size={21}
+                                className="animate-spin"
+                            />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#2a2620]">
                             Loading contacts...
                         </p>
@@ -490,17 +530,24 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
                             <FiInbox size={24} />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#2a2620]">
                             No contacts found
                         </p>
+
                         <p className="mt-1 text-xs text-[#a89a7d]">
                             Try another search or filter.
                         </p>
                     </div>
                 ) : (
                     contacts.map((contact) => {
-                        const selected = contact.id === selectedId;
-                        const checked = selectedIds.includes(contact.id);
+                        const selected =
+                            contact.id === selectedId;
+
+                        const checked =
+                            selectedIds.includes(
+                                contact.id
+                            );
 
                         return (
                             <motion.div
@@ -508,7 +555,9 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                                 whileHover={{
                                     x: 2,
                                 }}
-                                onClick={() => onSelect(contact)}
+                                onClick={() =>
+                                    onSelect(contact)
+                                }
                                 className={`relative cursor-pointer border-b border-[#b8902e]/10 p-4 transition-all ${
                                     selected
                                         ? "bg-[#faf8f3]"
@@ -525,13 +574,22 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onToggleSelect(contact.id);
+                                            onToggleSelect(
+                                                contact.id
+                                            );
                                         }}
                                         className="mt-1 shrink-0 text-[#a89a7d] transition hover:text-[#b8902e]"
-                                        title={checked ? "Deselect" : "Select"}
+                                        title={
+                                            checked
+                                                ? "Deselect"
+                                                : "Select"
+                                        }
                                     >
                                         {checked ? (
-                                            <FiCheckSquare size={17} className="text-[#b8902e]" />
+                                            <FiCheckSquare
+                                                size={17}
+                                                className="text-[#b8902e]"
+                                            />
                                         ) : (
                                             <FiSquare size={17} />
                                         )}
@@ -545,7 +603,9 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                                                 : "bg-gradient-to-br from-[#d4af52] to-[#a8841c]"
                                         }`}
                                     >
-                                        {getInitials(contact.name)}
+                                        {getInitials(
+                                            contact.name
+                                        )}
                                     </div>
 
                                     <div className="min-w-0 flex-1">
@@ -557,8 +617,10 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                                                         : "font-semibold text-[#4a4436]"
                                                 }`}
                                             >
-                                                {contact.name || "Unknown User"}
+                                                {contact.name ||
+                                                    "Unknown User"}
                                             </h4>
+
                                             <FiChevronRight
                                                 size={15}
                                                 className={`mt-0.5 shrink-0 ${
@@ -575,9 +637,16 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
 
                                         <div className="mt-2 flex items-center justify-between gap-2">
                                             <span className="text-[10px] text-[#a89a7d]">
-                                                {formatDateOnly(contact.created_at)}
+                                                {formatDateOnly(
+                                                    contact.created_at
+                                                )}
                                             </span>
-                                            <ReadStatusBadge isRead={contact.is_read} />
+
+                                            <ReadStatusBadge
+                                                isRead={
+                                                    contact.is_read
+                                                }
+                                            />
                                         </div>
 
                                         <p
@@ -615,11 +684,15 @@ const DetailBox: React.FC<{
 }) => (
     <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
         <div className="mb-2 flex items-center gap-2">
-            <span className="text-[#b8902e]">{icon}</span>
+            <span className="text-[#b8902e]">
+                {icon}
+            </span>
+
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
                 {label}
             </p>
         </div>
+
         <p className="break-words text-sm font-bold text-[#2a2620]">
             {value || "—"}
         </p>
@@ -634,12 +707,14 @@ interface ContactDetailProps {
     contact: Contact;
     onDelete: (contact: Contact) => void;
     onMarkRead: (contact: Contact) => void;
+    markReadLoading: boolean;
 }
 
 const ContactDetailPane: React.FC<ContactDetailProps> = ({
     contact,
     onDelete,
     onMarkRead,
+    markReadLoading,
 }) => {
     return (
         <section className="flex min-h-[680px] flex-1 flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm lg:min-h-[720px]">
@@ -656,10 +731,17 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                         <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                                 <h2 className="truncate text-lg font-bold text-[#2a2620] sm:text-xl">
-                                    {contact.name || "Unknown User"}
+                                    {contact.name ||
+                                        "Unknown User"}
                                 </h2>
-                                <ReadStatusBadge isRead={contact.is_read} />
+
+                                <ReadStatusBadge
+                                    isRead={
+                                        contact.is_read
+                                    }
+                                />
                             </div>
+
                             <p className="mt-1 truncate text-xs text-[#a89a7d]">
                                 {contact.email}
                             </p>
@@ -670,17 +752,38 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                         {!contact.is_read && (
                             <button
                                 type="button"
-                                onClick={() => onMarkRead(contact)}
-                                className="flex items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] px-4 py-2.5 text-xs font-bold text-[#8f6d1d] transition hover:border-[#b8902e]/35 hover:bg-[#b8902e]/10"
+                                onClick={() =>
+                                    onMarkRead(
+                                        contact
+                                    )
+                                }
+                                disabled={
+                                    markReadLoading
+                                }
+                                className="flex items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] px-4 py-2.5 text-xs font-bold text-[#8f6d1d] transition hover:border-[#b8902e]/35 hover:bg-[#b8902e]/10 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                <FiCheckCircle size={15} />
-                                Mark as Read
+                                {markReadLoading ? (
+                                    <FiRefreshCw
+                                        size={15}
+                                        className="animate-spin"
+                                    />
+                                ) : (
+                                    <FiCheckCircle
+                                        size={15}
+                                    />
+                                )}
+
+                                {markReadLoading
+                                    ? "Marking..."
+                                    : "Mark as Read"}
                             </button>
                         )}
 
                         <button
                             type="button"
-                            onClick={() => onDelete(contact)}
+                            onClick={() =>
+                                onDelete(contact)
+                            }
                             className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-500 transition hover:border-red-400 hover:bg-red-500 hover:text-white"
                         >
                             <FiTrash2 size={15} />
@@ -704,21 +807,29 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
                                         <FiMessageSquare size={18} />
                                     </div>
+
                                     <div>
                                         <h3 className="text-base font-bold text-[#2a2620]">
                                             Message
                                         </h3>
+
                                         <p className="mt-1 text-xs text-[#a89a7d]">
                                             Customer enquiry
                                         </p>
                                     </div>
                                 </div>
-                                <ReadStatusBadge isRead={contact.is_read} />
+
+                                <ReadStatusBadge
+                                    isRead={
+                                        contact.is_read
+                                    }
+                                />
                             </div>
 
                             <div className="rounded-xl border border-[#b8902e]/10 bg-[#fffdfa] p-5">
                                 <p className="whitespace-pre-wrap text-sm leading-7 text-[#4a4436]">
-                                    {contact.message || "No message provided."}
+                                    {contact.message ||
+                                        "No message provided."}
                                 </p>
                             </div>
                         </div>
@@ -731,10 +842,12 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
                                     <FiUser size={17} />
                                 </div>
+
                                 <div>
                                     <h3 className="text-base font-bold text-[#2a2620]">
                                         Contact Information
                                     </h3>
+
                                     <p className="mt-1 text-xs text-[#a89a7d]">
                                         Details submitted by the customer
                                     </p>
@@ -744,20 +857,40 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <DetailBox
                                     label="Full Name"
-                                    value={contact.name || "Unknown User"}
-                                    icon={<FiUser size={15} />}
+                                    value={
+                                        contact.name ||
+                                        "Unknown User"
+                                    }
+                                    icon={
+                                        <FiUser
+                                            size={15}
+                                        />
+                                    }
                                 />
 
                                 <DetailBox
                                     label="Email Address"
-                                    value={contact.email}
-                                    icon={<FiMail size={15} />}
+                                    value={
+                                        contact.email
+                                    }
+                                    icon={
+                                        <FiMail
+                                            size={15}
+                                        />
+                                    }
                                 />
 
                                 <DetailBox
                                     label="Phone Number"
-                                    value={contact.phone || "Not provided"}
-                                    icon={<FiPhone size={15} />}
+                                    value={
+                                        contact.phone ||
+                                        "Not provided"
+                                    }
+                                    icon={
+                                        <FiPhone
+                                            size={15}
+                                        />
+                                    }
                                 />
                             </div>
                         </div>
@@ -783,17 +916,25 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                                         }`}
                                     >
                                         {contact.is_read ? (
-                                            <FiCheckCircle size={19} />
+                                            <FiCheckCircle
+                                                size={19}
+                                            />
                                         ) : (
-                                            <FiClock size={19} />
+                                            <FiClock
+                                                size={19}
+                                            />
                                         )}
                                     </div>
+
                                     <div>
                                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
                                             Current Status
                                         </p>
+
                                         <p className="mt-1 text-sm font-bold text-[#2a2620]">
-                                            {contact.is_read ? "Read" : "Unread"}
+                                            {contact.is_read
+                                                ? "Read"
+                                                : "Unread"}
                                         </p>
                                     </div>
                                 </div>
@@ -810,28 +951,46 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
 
                             <div className="space-y-4">
                                 <TimelineRow
-                                    icon={<FiSend size={13} />}
+                                    icon={
+                                        <FiSend size={13} />
+                                    }
                                     title="Message Received"
-                                    value={formatDate(contact.created_at)}
+                                    value={formatDate(
+                                        contact.created_at
+                                    )}
                                 />
 
                                 <TimelineRow
-                                    icon={<FiClock size={13} />}
+                                    icon={
+                                        <FiClock size={13} />
+                                    }
                                     title="Received Time"
-                                    value={formatTime(contact.created_at)}
+                                    value={formatTime(
+                                        contact.created_at
+                                    )}
                                 />
 
                                 <TimelineRow
-                                    icon={<FiCheck size={13} />}
+                                    icon={
+                                        <FiCheck size={13} />
+                                    }
                                     title="Last Updated"
-                                    value={formatDate(contact.updated_at)}
+                                    value={formatDate(
+                                        contact.updated_at
+                                    )}
                                 />
 
                                 {contact.read_at && (
                                     <TimelineRow
-                                        icon={<FiCheck size={13} />}
+                                        icon={
+                                            <FiCheck
+                                                size={13}
+                                            />
+                                        }
                                         title="Read At"
-                                        value={formatDate(contact.read_at)}
+                                        value={formatDate(
+                                            contact.read_at
+                                        )}
                                     />
                                 )}
                             </div>
@@ -850,9 +1009,17 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                                     href={`mailto:${contact.email}`}
                                     className="flex items-center gap-3 rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] px-4 py-3 text-xs font-bold text-[#4a4436] transition hover:border-[#b8902e]/25 hover:bg-[#b8902e]/10"
                                 >
-                                    <FiMail size={16} className="text-[#b8902e]" />
+                                    <FiMail
+                                        size={16}
+                                        className="text-[#b8902e]"
+                                    />
+
                                     Send Email
-                                    <FiChevronRight size={15} className="ml-auto text-[#a89a7d]" />
+
+                                    <FiChevronRight
+                                        size={15}
+                                        className="ml-auto text-[#a89a7d]"
+                                    />
                                 </a>
 
                                 {contact.phone && (
@@ -860,9 +1027,17 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                                         href={`tel:${contact.phone}`}
                                         className="flex items-center gap-3 rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] px-4 py-3 text-xs font-bold text-[#4a4436] transition hover:border-[#b8902e]/25 hover:bg-[#b8902e]/10"
                                     >
-                                        <FiPhone size={16} className="text-[#b8902e]" />
+                                        <FiPhone
+                                            size={16}
+                                            className="text-[#b8902e]"
+                                        />
+
                                         Call Customer
-                                        <FiChevronRight size={15} className="ml-auto text-[#a89a7d]" />
+
+                                        <FiChevronRight
+                                            size={15}
+                                            className="ml-auto text-[#a89a7d]"
+                                        />
                                     </a>
                                 )}
                             </div>
@@ -875,7 +1050,10 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
             <div className="border-t border-[#b8902e]/10 bg-white px-5 py-4 sm:px-6">
                 <div className="flex items-center justify-between">
                     <span className="text-[10px] text-[#a89a7d]">
-                        Received {formatDate(contact.created_at)}
+                        Received{" "}
+                        {formatDate(
+                            contact.created_at
+                        )}
                     </span>
                 </div>
             </div>
@@ -900,10 +1078,12 @@ const TimelineRow: React.FC<{
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#b8902e]/10 text-[#b8902e]">
             {icon}
         </div>
+
         <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
                 {title}
             </p>
+
             <p className="mt-1 text-xs font-bold text-[#4a4436]">
                 {value}
             </p>
@@ -918,14 +1098,35 @@ const TimelineRow: React.FC<{
 const Contact: React.FC = () => {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [loading, setLoading] = useState(false);
+
     const [search, setSearch] = useState("");
-    const [filter, setFilter] = useState<ContactFilter>("all");
-    const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [deleteOpen, setDeleteOpen] = useState(false);
-    const [deleteLoading, setDeleteLoading] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
-    const [isBulkDelete, setIsBulkDelete] = useState(false);
+    const [filter, setFilter] =
+        useState<ContactFilter>("all");
+
+    const [selectedId, setSelectedId] =
+        useState<number | null>(null);
+
+    const [selectedIds, setSelectedIds] =
+        useState<number[]>([]);
+
+    const [deleteOpen, setDeleteOpen] =
+        useState(false);
+
+    const [deleteLoading, setDeleteLoading] =
+        useState(false);
+
+    const [deleteTarget, setDeleteTarget] =
+        useState<Contact | null>(null);
+
+    const [isBulkDelete, setIsBulkDelete] =
+        useState(false);
+
+    // ===================================================
+    // MARK READ LOADING
+    // ===================================================
+
+    const [markReadLoading, setMarkReadLoading] =
+        useState(false);
 
     // ===================================================
     // GET CONTACTS
@@ -934,18 +1135,37 @@ const Contact: React.FC = () => {
     const fetchContacts = async () => {
         try {
             setLoading(true);
-            const response = await contactApi.getAll();
+
+            const response =
+                await contactApi.getAll();
 
             if (response.data.success) {
-                const data = response.data.data?.data || [];
+                const data =
+                    response.data.data?.data || [];
+
                 setContacts(data);
-                setSelectedId((current) => current ?? data[0]?.id ?? null);
+
+                setSelectedId(
+                    (current) =>
+                        current ??
+                        data[0]?.id ??
+                        null
+                );
             } else {
-                toast.error("Unable to fetch contacts.");
+                toast.error(
+                    "Unable to fetch contacts."
+                );
             }
         } catch (error: any) {
-            console.error("Fetch contacts error:", error);
-            toast.error(error?.response?.data?.message || "Unable to fetch contacts.");
+            console.error(
+                "Fetch contacts error:",
+                error
+            );
+
+            toast.error(
+                error?.response?.data?.message ||
+                    "Unable to fetch contacts."
+            );
         } finally {
             setLoading(false);
         }
@@ -960,7 +1180,9 @@ const Contact: React.FC = () => {
     // ===================================================
 
     const filteredContacts = useMemo(() => {
-        const query = search.trim().toLowerCase();
+        const query = search
+            .trim()
+            .toLowerCase();
 
         return contacts.filter((contact) => {
             const matchesSearch =
@@ -1001,16 +1223,27 @@ const Contact: React.FC = () => {
             return;
         }
 
-        const exists = filteredContacts.some(
-            (contact) => contact.id === selectedId
-        );
+        const exists =
+            filteredContacts.some(
+                (contact) =>
+                    contact.id === selectedId
+            );
 
         if (!exists) {
-            setSelectedId(filteredContacts[0].id);
+            setSelectedId(
+                filteredContacts[0].id
+            );
         }
-    }, [filteredContacts, selectedId]);
+    }, [
+        filteredContacts,
+        selectedId,
+    ]);
 
-    const selectedContact = contacts.find((contact) => contact.id === selectedId) ||
+    const selectedContact =
+        contacts.find(
+            (contact) =>
+                contact.id === selectedId
+        ) ||
         filteredContacts[0] ||
         null;
 
@@ -1020,10 +1253,20 @@ const Contact: React.FC = () => {
 
     const stats = useMemo(() => {
         const total = contacts.length;
-        const unread = contacts.filter((contact) => !contact.is_read).length;
-        const read = contacts.filter((contact) => contact.is_read).length;
 
-        return { total, unread, read };
+        const unread = contacts.filter(
+            (contact) => !contact.is_read
+        ).length;
+
+        const read = contacts.filter(
+            (contact) => contact.is_read
+        ).length;
+
+        return {
+            total,
+            unread,
+            read,
+        };
     }, [contacts]);
 
     // ===================================================
@@ -1033,22 +1276,40 @@ const Contact: React.FC = () => {
     const toggleSelect = (id: number) => {
         setSelectedIds((prev) =>
             prev.includes(id)
-                ? prev.filter((item) => item !== id)
+                ? prev.filter(
+                      (item) => item !== id
+                  )
                 : [...prev, id]
         );
     };
 
     const toggleSelectAll = () => {
-        const visibleIds = filteredContacts.map((contact) => contact.id);
+        const visibleIds =
+            filteredContacts.map(
+                (contact) => contact.id
+            );
+
         const everySelected =
             visibleIds.length > 0 &&
-            visibleIds.every((id) => selectedIds.includes(id));
+            visibleIds.every((id) =>
+                selectedIds.includes(id)
+            );
 
         if (everySelected) {
-            setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+            setSelectedIds((prev) =>
+                prev.filter(
+                    (id) =>
+                        !visibleIds.includes(id)
+                )
+            );
         } else {
             setSelectedIds((prev) =>
-                Array.from(new Set([...prev, ...visibleIds]))
+                Array.from(
+                    new Set([
+                        ...prev,
+                        ...visibleIds,
+                    ])
+                )
             );
         }
     };
@@ -1057,7 +1318,9 @@ const Contact: React.FC = () => {
     // DELETE SINGLE
     // ===================================================
 
-    const openDeleteSingle = (contact: Contact) => {
+    const openDeleteSingle = (
+        contact: Contact
+    ) => {
         setDeleteTarget(contact);
         setIsBulkDelete(false);
         setDeleteOpen(true);
@@ -1069,7 +1332,9 @@ const Contact: React.FC = () => {
 
     const openDeleteBulk = () => {
         if (selectedIds.length === 0) {
-            toast.error("Please select at least one contact.");
+            toast.error(
+                "Please select at least one contact."
+            );
             return;
         }
 
@@ -1080,6 +1345,7 @@ const Contact: React.FC = () => {
 
     const closeDelete = () => {
         if (deleteLoading) return;
+
         setDeleteOpen(false);
         setDeleteTarget(null);
         setIsBulkDelete(false);
@@ -1094,73 +1360,172 @@ const Contact: React.FC = () => {
             setDeleteLoading(true);
 
             if (isBulkDelete) {
-                const response = await contactApi.bulkDelete(selectedIds);
+                const response =
+                    await contactApi.bulkDelete(
+                        selectedIds
+                    );
 
                 if (response.data.success) {
-                    const idsToDelete = [...selectedIds];
+                    const idsToDelete =
+                        [...selectedIds];
 
                     setContacts((prev) =>
-                        prev.filter((contact) => !idsToDelete.includes(contact.id))
+                        prev.filter(
+                            (contact) =>
+                                !idsToDelete.includes(
+                                    contact.id
+                                )
+                        )
                     );
 
                     setSelectedIds([]);
 
-                    if (selectedId && idsToDelete.includes(selectedId)) {
+                    if (
+                        selectedId &&
+                        idsToDelete.includes(
+                            selectedId
+                        )
+                    ) {
                         setSelectedId(null);
                     }
 
-                    toast.success(response.data.message || "Contacts deleted successfully.");
+                    toast.success(
+                        response.data.message ||
+                            "Contacts deleted successfully."
+                    );
+
                     closeDelete();
                 } else {
-                    toast.error(response.data.message || "Unable to delete contacts.");
+                    toast.error(
+                        response.data.message ||
+                            "Unable to delete contacts."
+                    );
                 }
             } else {
                 if (!deleteTarget) return;
 
-                const response = await contactApi.delete(deleteTarget.id);
+                const response =
+                    await contactApi.delete(
+                        deleteTarget.id
+                    );
 
                 if (response.data.success) {
-                    const deletedId = deleteTarget.id;
+                    const deletedId =
+                        deleteTarget.id;
 
-                    setContacts((prev) => prev.filter((contact) => contact.id !== deletedId));
-                    setSelectedIds((prev) => prev.filter((id) => id !== deletedId));
+                    setContacts((prev) =>
+                        prev.filter(
+                            (contact) =>
+                                contact.id !==
+                                deletedId
+                        )
+                    );
 
-                    if (selectedId === deletedId) {
+                    setSelectedIds((prev) =>
+                        prev.filter(
+                            (id) =>
+                                id !== deletedId
+                        )
+                    );
+
+                    if (
+                        selectedId ===
+                        deletedId
+                    ) {
                         setSelectedId(null);
                     }
 
-                    toast.success(response.data.message || "Contact deleted successfully.");
+                    toast.success(
+                        response.data.message ||
+                            "Contact deleted successfully."
+                    );
+
                     closeDelete();
                 } else {
-                    toast.error(response.data.message || "Unable to delete contact.");
+                    toast.error(
+                        response.data.message ||
+                            "Unable to delete contact."
+                    );
                 }
             }
         } catch (error: any) {
-            console.error("Delete contact error:", error);
-            toast.error(error?.response?.data?.message || "Unable to delete contact.");
+            console.error(
+                "Delete contact error:",
+                error
+            );
+
+            toast.error(
+                error?.response?.data?.message ||
+                    "Unable to delete contact."
+            );
         } finally {
             setDeleteLoading(false);
         }
     };
 
     // ===================================================
-    // MARK READ
+    // MARK READ API
     // ===================================================
 
-    const handleMarkRead = (contact: Contact) => {
-        setContacts((prev) =>
-            prev.map((item) =>
-                item.id === contact.id
-                    ? {
-                        ...item,
-                        is_read: true,
-                        read_at: new Date().toISOString(),
-                    }
-                    : item
-            )
-        );
+    const handleMarkRead = async (
+        contact: Contact
+    ) => {
+        if (contact.is_read) {
+            return;
+        }
 
-        toast.success("Contact marked as read.");
+        try {
+            setMarkReadLoading(true);
+
+            const response =
+                await contactApi.markAsRead(
+                    contact.id
+                );
+
+            if (response.data.success) {
+                const apiContact =
+                    response.data.data;
+
+                setContacts((prev) =>
+                    prev.map((item) =>
+                        item.id === contact.id
+                            ? {
+                                  ...item,
+                                  is_read: true,
+                                  read_at:
+                                      apiContact?.read_at ||
+                                      new Date().toISOString(),
+                                  updated_at:
+                                      apiContact?.updated_at ||
+                                      item.updated_at,
+                              }
+                            : item
+                    )
+                );
+
+                toast.success(
+                    response.data.message ||
+                        "Contact marked as read."
+                );
+            } else {
+                toast.error(
+                    response.data.message ||
+                        "Unable to mark contact as read."
+                );
+            }
+        } catch (error: any) {
+            console.error(
+                "Mark contact as read error:",
+                error
+            );
+
+            toast.error(
+                error?.response?.data?.message ||
+                    "Unable to mark contact as read."
+            );
+        } finally {
+            setMarkReadLoading(false);
+        }
     };
 
     // ===================================================
@@ -1173,9 +1538,8 @@ const Contact: React.FC = () => {
                 initial="hidden"
                 animate="visible"
                 variants={containerVariants}
-                className="min-h-screen  p-4"
+                className="min-h-screen p-4"
             >
-        
                 {/* BULK ACTION */}
                 {selectedIds.length > 0 && (
                     <motion.div
@@ -1193,10 +1557,15 @@ const Contact: React.FC = () => {
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#8f6d1d]">
                                 <FiCheckSquare size={17} />
                             </div>
+
                             <div>
                                 <p className="text-sm font-bold text-[#2a2620]">
-                                    {selectedIds.length} contacts selected
+                                    {
+                                        selectedIds.length
+                                    }{" "}
+                                    contacts selected
                                 </p>
+
                                 <p className="mt-0.5 text-xs text-[#a89a7d]">
                                     Bulk actions are available for the selected messages.
                                 </p>
@@ -1205,7 +1574,9 @@ const Contact: React.FC = () => {
 
                         <button
                             type="button"
-                            onClick={openDeleteBulk}
+                            onClick={
+                                openDeleteBulk
+                            }
                             className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-5 text-xs font-bold text-white transition hover:from-red-600 hover:to-red-700"
                         >
                             <FiTrash2 size={15} />
@@ -1220,16 +1591,32 @@ const Contact: React.FC = () => {
                     className="flex flex-col gap-5 lg:flex-row"
                 >
                     <ContactSidebar
-                        contacts={filteredContacts}
-                        selectedId={selectedId}
-                        selectedIds={selectedIds}
+                        contacts={
+                            filteredContacts
+                        }
+                        selectedId={
+                            selectedId
+                        }
+                        selectedIds={
+                            selectedIds
+                        }
                         search={search}
                         filter={filter}
                         loading={loading}
-                        onSelect={(contact) => setSelectedId(contact.id)}
-                        onToggleSelect={toggleSelect}
-                        onToggleAll={toggleSelectAll}
-                        onSearch={(value) => setSearch(value)}
+                        onSelect={(contact) =>
+                            setSelectedId(
+                                contact.id
+                            )
+                        }
+                        onToggleSelect={
+                            toggleSelect
+                        }
+                        onToggleAll={
+                            toggleSelectAll
+                        }
+                        onSearch={(value) =>
+                            setSearch(value)
+                        }
                         onFilter={(value) => {
                             setFilter(value);
                             setSelectedIds([]);
@@ -1238,19 +1625,32 @@ const Contact: React.FC = () => {
 
                     {selectedContact ? (
                         <ContactDetailPane
-                            contact={selectedContact}
-                            onDelete={openDeleteSingle}
-                            onMarkRead={handleMarkRead}
+                            contact={
+                                selectedContact
+                            }
+                            onDelete={
+                                openDeleteSingle
+                            }
+                            onMarkRead={
+                                handleMarkRead
+                            }
+                            markReadLoading={
+                                markReadLoading
+                            }
                         />
                     ) : (
                         <section className="flex min-h-[680px] flex-1 items-center justify-center rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
                             <div className="text-center">
                                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
-                                    <FiMessageSquare size={27} />
+                                    <FiMessageSquare
+                                        size={27}
+                                    />
                                 </div>
+
                                 <h3 className="mt-4 text-base font-bold text-[#2a2620]">
                                     No contact selected
                                 </h3>
+
                                 <p className="mt-1 text-xs text-[#a89a7d]">
                                     Select a contact from the list to view the complete message.
                                 </p>
@@ -1264,8 +1664,14 @@ const Contact: React.FC = () => {
             <DeleteContactModal
                 open={deleteOpen}
                 loading={deleteLoading}
-                count={isBulkDelete ? selectedIds.length : 1}
-                name={deleteTarget?.name || ""}
+                count={
+                    isBulkDelete
+                        ? selectedIds.length
+                        : 1
+                }
+                name={
+                    deleteTarget?.name || ""
+                }
                 onClose={closeDelete}
                 onConfirm={handleDelete}
             />

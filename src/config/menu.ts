@@ -99,4 +99,14 @@ export const menuItems = [
     label: 'Contact', 
     icon: 'contact_mail' 
   },
+  { 
+    path: '/ChangePassword', 
+    label: 'Change Password',  
+    icon: 'lock'               
+  },
+  { 
+    path: '/UpdateProfile', 
+    label: 'Update Profile',   
+    icon: 'person'             
+  },
 ];

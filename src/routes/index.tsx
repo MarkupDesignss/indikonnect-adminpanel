@@ -28,6 +28,8 @@ import AttributesManagement from "@/pages/AttributesManagement/AttributesManagem
 import BuyBack from "@/pages/BuyBack";
 import Payout from "@/pages/PaymentManagement/Payout";
 import Payment from "@/pages/PaymentManagement/Payment";
+import UpdateProfile from "@/pages/User/UpdateProfile";
+import ChangePassword from "@/pages/User/ChangePassword";
 
 const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
 
@@ -123,6 +125,14 @@ export const router = createBrowserRouter(
         {
           path: "UserManagement",
           element: <UserManagement />,
+        },
+        {
+          path: "UpdateProfile",
+          element: <UpdateProfile />,
+        },
+        {
+          path: "ChangePassword",
+          element: <ChangePassword />,
         },
         ...appRoutes,
       ],

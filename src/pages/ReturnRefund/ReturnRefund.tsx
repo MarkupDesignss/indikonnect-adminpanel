@@ -1483,6 +1483,7 @@ const ReturnRefund: React.FC = () => {
               ?.data || [];
 
           setRequests(list);
+          toast.success("Return requests loaded successfully.");
         } else {
           toast.error(
             "Unable to fetch return requests."
@@ -1637,6 +1638,7 @@ const ReturnRefund: React.FC = () => {
           setSelectedDetail(
             response.data.data
           );
+          toast.success("Return details loaded successfully.");
         } else {
           toast.error(
             "Unable to fetch return details."

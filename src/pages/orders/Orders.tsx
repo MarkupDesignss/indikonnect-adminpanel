@@ -22,17 +22,15 @@ import {
   FiFileText,
   FiExternalLink,
 } from "react-icons/fi";
+import { toast } from "react-hot-toast";
 
 import {
   orderApi,
 } from "../../api/endpoints/orders";
 
 import orderInvoiceApi, {
-  OrderInvoiceData,
   Invoice,
   Order as InvoiceOrder,
-  OrderLine,
-  OrderInvoiceResponse
 } from "../../api/endpoints/orderInvoice";
 
 import GlobalModal from "@/components/common/GlobalModal";
@@ -1399,6 +1397,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
       const response = await orderApi.dispatchOrder(dispatchData);
 
       if (response.data.success) {
+        toast.success(`✅ Successfully dispatched ${itemsToDispatch.length} item(s)`);
         onDispatch({
           orderId: order.id,
           items: itemsToDispatch.map((item) => ({
@@ -1419,9 +1418,12 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
         onClose();
       } else {
         setError(response.data.message || "Failed to dispatch order");
+        toast.error(response.data.message || "Failed to dispatch order");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while dispatching");
+      const errorMsg = err.message || "An error occurred while dispatching";
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -1702,6 +1704,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
       const response = await orderApi.shipOrder(shipData);
 
       if (response.data.success) {
+        toast.success(`✅ Successfully shipped ${itemsToShip.length} item(s)`);
         onShip({
           orderId: order.id,
           items: itemsToShip.map((item) => ({
@@ -1716,9 +1719,12 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
         onClose();
       } else {
         setError(response.data.message || "Failed to ship order");
+        toast.error(response.data.message || "Failed to ship order");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while shipping");
+      const errorMsg = err.message || "An error occurred while shipping";
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -1920,6 +1926,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
       const response = await orderApi.deliverOrder(deliverData);
 
       if (response.data.success) {
+        toast.success(`✅ Successfully delivered ${itemsToDeliver.length} item(s)`);
         onDeliver({
           orderId: order.id,
           items: itemsToDeliver.map((item) => ({
@@ -1934,9 +1941,12 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
         onClose();
       } else {
         setError(response.data.message || "Failed to deliver order");
+        toast.error(response.data.message || "Failed to deliver order");
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred while delivering");
+      const errorMsg = err.message || "An error occurred while delivering";
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error(err);
     } finally {
       setLoading(false);
@@ -2117,10 +2127,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: 'success' | 'error' | 'info';
-  } | null>(null);
   const [showInvoicePopup, setShowInvoicePopup] = useState(false);
   const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
   const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] = useState<number | null>(null);
@@ -2136,13 +2142,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     fetchOrders();
     fetchStatuses();
   }, []);
-
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -2497,20 +2496,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleDispatchSelected = (order: Order) => {
     if (!canDispatch(order.orderStatus) && order.orderStatus !== "partial_dispatched") {
-      setToast({
-        message: `Cannot dispatch order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot dispatch order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     const selectedItems = getSelectedItemsForOrder(order.id, order.items || []);
 
     if (selectedItems.length === 0) {
-      setToast({
-        message: "Please select at least one item to dispatch.",
-        type: 'error'
-      });
+      toast.error("Please select at least one item to dispatch.");
       return;
     }
 
@@ -2522,26 +2515,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleDispatchFullOrder = (order: Order) => {
     if (!canDispatch(order.orderStatus) && order.orderStatus !== "partial_dispatched") {
-      setToast({
-        message: `Cannot dispatch order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot dispatch order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     if (!order.items || order.items.length === 0) {
-      setToast({
-        message: "This order has no items to dispatch.",
-        type: 'error'
-      });
+      toast.error("This order has no items to dispatch.");
       return;
     }
 
     if (!hasDispatchableItems(order)) {
-      setToast({
-        message: "No items available for dispatch in this order.",
-        type: 'error'
-      });
+      toast.error("No items available for dispatch in this order.");
       return;
     }
 
@@ -2567,10 +2551,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     notes: string;
     isFullOrder: boolean;
   }) => {
-    setToast({
-      message: `✅ Successfully dispatched ${trackingDetails.itemCount} item(s)`,
-      type: 'success'
-    });
     fetchOrders();
     setSelectedItemsMap(new Map());
   };
@@ -2581,20 +2561,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleShipSelected = (order: Order) => {
     if (!canShip(order.orderStatus) && order.orderStatus !== "partial_dispatched") {
-      setToast({
-        message: `Cannot ship order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot ship order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     const selectedItems = getSelectedItemsForOrder(order.id, order.items || []);
 
     if (selectedItems.length === 0) {
-      setToast({
-        message: "Please select at least one item to ship.",
-        type: 'error'
-      });
+      toast.error("Please select at least one item to ship.");
       return;
     }
 
@@ -2606,26 +2580,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleShipFullOrder = (order: Order) => {
     if (!canShip(order.orderStatus) && order.orderStatus !== "partial_dispatched") {
-      setToast({
-        message: `Cannot ship order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot ship order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     if (!order.items || order.items.length === 0) {
-      setToast({
-        message: "This order has no items to ship.",
-        type: 'error'
-      });
+      toast.error("This order has no items to ship.");
       return;
     }
 
     if (!hasShipableItems(order)) {
-      setToast({
-        message: "No items available for shipping in this order.",
-        type: 'error'
-      });
+      toast.error("No items available for shipping in this order.");
       return;
     }
 
@@ -2641,10 +2606,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     itemCount: number;
     isFullOrder: boolean;
   }) => {
-    setToast({
-      message: `✅ Successfully shipped ${data.itemCount} item(s)`,
-      type: 'success'
-    });
     fetchOrders();
     setSelectedItemsMap(new Map());
   };
@@ -2655,20 +2616,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleDeliverSelected = (order: Order) => {
     if (!canDeliver(order.orderStatus) && order.orderStatus !== "partial_shipped") {
-      setToast({
-        message: `Cannot deliver order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot deliver order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     const selectedItems = getSelectedItemsForOrder(order.id, order.items || []);
 
     if (selectedItems.length === 0) {
-      setToast({
-        message: "Please select at least one item to deliver.",
-        type: 'error'
-      });
+      toast.error("Please select at least one item to deliver.");
       return;
     }
 
@@ -2680,26 +2635,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleDeliverFullOrder = (order: Order) => {
     if (!canDeliver(order.orderStatus) && order.orderStatus !== "partial_shipped") {
-      setToast({
-        message: `Cannot deliver order with status: ${formatStatus(order.orderStatus)}`,
-        type: 'error'
-      });
+      toast.error(`Cannot deliver order with status: ${formatStatus(order.orderStatus)}`);
       return;
     }
 
     if (!order.items || order.items.length === 0) {
-      setToast({
-        message: "This order has no items to deliver.",
-        type: 'error'
-      });
+      toast.error("This order has no items to deliver.");
       return;
     }
 
     if (!hasDeliverableItems(order)) {
-      setToast({
-        message: "No items available for delivery in this order.",
-        type: 'error'
-      });
+      toast.error("No items available for delivery in this order.");
       return;
     }
 
@@ -2715,10 +2661,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     itemCount: number;
     isFullOrder: boolean;
   }) => {
-    setToast({
-      message: `✅ Successfully delivered ${data.itemCount} item(s)`,
-      type: 'success'
-    });
     fetchOrders();
     setSelectedItemsMap(new Map());
   };
@@ -2804,29 +2746,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   return (
     <>
-      {/* TOAST NOTIFICATION */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 max-w-md rounded-xl border p-4 shadow-lg animate-slideDown ${toast.type === 'success'
-          ? 'border-[#b8902e]/30 bg-[#f8f3e5] text-[#8f6d1d]'
-          : toast.type === 'error'
-            ? 'border-[#b46055]/30 bg-[#fff8f6] text-[#b46055]'
-            : 'border-[#b8902e]/20 bg-[#faf8f3] text-[#4a4436]'
-          }`}>
-          <div className="flex items-center gap-3">
-            {toast.type === 'success' && <FiCheck className="text-[#b8902e]" size={20} />}
-            {toast.type === 'error' && <FiAlertCircle className="text-[#b46055]" size={20} />}
-            <span className="text-sm font-semibold">{toast.message}</span>
-            <button
-              type="button"
-              onClick={() => setToast(null)}
-              className="ml-auto text-[#a89a7d] hover:text-[#786f60]"
-            >
-              <FiX size={18} />
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="space-y-5">
         {/* FILTER CARD */}
         <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-4 shadow-sm sm:p-5">

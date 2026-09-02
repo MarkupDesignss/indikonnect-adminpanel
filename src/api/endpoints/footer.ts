@@ -113,7 +113,7 @@ export const footerApi = {
     payload: FooterUpdatePayload
   ) =>
     apiClient.post<FooterUpdateResponse>(
-      "/footer",
+      "/footer/update",
       createFooterFormData(payload),
       {
         headers: {
