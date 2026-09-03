@@ -30,6 +30,8 @@ import Payout from "@/pages/PaymentManagement/Payout";
 import Payment from "@/pages/PaymentManagement/Payment";
 import UpdateProfile from "@/pages/User/UpdateProfile";
 import ChangePassword from "@/pages/User/ChangePassword";
+import BrandsManagement from "@/pages/Cms/BrandsManagement";
+import CreditNotes from "@/pages/CreditNotes/CreditNotes";
 
 const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
 
@@ -123,8 +125,16 @@ export const router = createBrowserRouter(
           element: <ContentsManagement />,
         },
         {
+          path: "cms/brands",
+          element: <BrandsManagement />,
+        },
+        {
           path: "UserManagement",
           element: <UserManagement />,
+        },
+        {
+          path: "CreditNotes",
+          element: <CreditNotes />,
         },
         {
           path: "UpdateProfile",

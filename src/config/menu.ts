@@ -32,6 +32,11 @@ export const menuItems = [
     icon: 'assignment_return' 
   },
   { 
+    path: '/CreditNotes', 
+    label: 'Credit Notes', 
+    icon: 'assignment_return' 
+  },
+  { 
     path: '/coupons', 
     label: 'Promo Codes', 
     icon: 'local_offer' 
@@ -66,6 +71,7 @@ export const menuItems = [
       { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
       { path: '/cms/content', label: 'Content Management', icon: 'description' },
       { path: '/cms/growth', label: 'Leaders Management', icon: 'trending_up' },
+      { path: '/cms/brands', label: 'Brands Management', icon: 'brands' },
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
     ]
   },
@@ -109,4 +115,5 @@ export const menuItems = [
     label: 'Update Profile',   
     icon: 'person'             
   },
+ 
 ];
