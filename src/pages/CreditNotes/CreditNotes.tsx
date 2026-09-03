@@ -72,12 +72,27 @@ const itemVariants = {
 // HELPERS
 // =====================================================
 
+// Used for on-screen UI. Browsers render the ₹ glyph fine.
 const formatAmount = (
   value: string | number | null | undefined
 ) => {
   const amount = Number(value ?? 0);
 
   return `₹${amount.toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+// Used ONLY inside the PDF (jsPDF's built-in "helvetica" font has no
+// glyph for ₹, so it prints a broken "1"-like box). We use "Rs." there
+// instead so the PDF renders clean numbers.
+const formatAmountPdf = (
+  value: string | number | null | undefined
+) => {
+  const amount = Number(value ?? 0);
+
+  return `Rs. ${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -1194,8 +1209,9 @@ const CreditNotes: React.FC = () => {
           }
         );
 
+        // FIX: use Rs.-based formatter (jsPDF helvetica has no ₹ glyph)
         doc.text(
-          formatAmount(
+          formatAmountPdf(
             item.taxable_value
           ),
           145,
@@ -1214,8 +1230,9 @@ const CreditNotes: React.FC = () => {
           }
         );
 
+        // FIX: use Rs.-based formatter
         doc.text(
-          formatAmount(
+          formatAmountPdf(
             item.line_total
           ),
           pageWidth - 17,
@@ -1256,34 +1273,37 @@ const CreditNotes: React.FC = () => {
 
       y += 7;
 
+      // FIX: totals list now uses formatAmountPdf (Rs.) instead of
+      // formatAmount (₹) — this is exactly the row of numbers that
+      // was showing the broken "1" glyph in the screenshot.
       const totals = [
         [
           "Taxable Value",
-          formatAmount(
+          formatAmountPdf(
             note.taxable_value
           ),
         ],
         [
           "CGST",
-          formatAmount(
+          formatAmountPdf(
             note.cgst_amount
           ),
         ],
         [
           "SGST",
-          formatAmount(
+          formatAmountPdf(
             note.sgst_amount
           ),
         ],
         [
           "IGST",
-          formatAmount(
+          formatAmountPdf(
             note.igst_amount
           ),
         ],
         [
           "Total GST",
-          formatAmount(
+          formatAmountPdf(
             note.total_gst
           ),
         ],
@@ -1381,8 +1401,9 @@ const CreditNotes: React.FC = () => {
         15
       );
 
+      // FIX: use Rs.-based formatter for the big final amount too
       doc.text(
-        formatAmount(
+        formatAmountPdf(
           note.amount
         ),
         pageWidth - 17,
@@ -1918,8 +1939,6 @@ const CreditNotes: React.FC = () => {
                                     note.credit_note_number
                                   }
                                 </p>
-
-                               
                               </div>
                             </div>
                           </td>
