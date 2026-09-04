@@ -14,6 +14,7 @@ export const menuItems = [
     label: 'Inventory', 
     icon: 'inventory_2',
     children: [
+      { path: '/cms/brands', label: 'Brands', icon: 'brands' },
       { path: '/inventory/categories', label: 'Categories', icon: 'category' },
       { path: '/inventory/tax-categories', label: 'Tax Categories', icon: 'percent' },
       { path: '/inventory/AttributesManagement', label: 'Attributes Management', icon: 'tune' },
@@ -71,7 +72,6 @@ export const menuItems = [
       { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
       { path: '/cms/content', label: 'Content Management', icon: 'description' },
       { path: '/cms/growth', label: 'Leaders Management', icon: 'trending_up' },
-      { path: '/cms/brands', label: 'Brands Management', icon: 'brands' },
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
     ]
   },

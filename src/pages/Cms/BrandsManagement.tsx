@@ -17,7 +17,6 @@ import {
   FiPlus,
   FiRefreshCw,
   FiSearch,
-  FiTrash2,
   FiUpload,
   FiX,
 } from "react-icons/fi";
@@ -62,7 +61,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 110,
       damping: 16,
     },
@@ -82,19 +81,13 @@ interface BrandFormModalProps {
   onSubmit: (payload: BrandPayload) => void;
 }
 
-interface DeleteBrandModalProps {
-  open: boolean;
-  loading: boolean;
-  brand: Brand | null;
-  onClose: () => void;
-  onConfirm: () => void;
-}
-
 // =====================================================
 // IMAGE URL
 // =====================================================
 
-const getImageUrl = (url?: string | null) => {
+const getImageUrl = (
+  url?: string | null
+) => {
   if (!url) {
     return "";
   }
@@ -103,10 +96,51 @@ const getImageUrl = (url?: string | null) => {
 };
 
 // =====================================================
+// ERROR MESSAGE HELPER
+// =====================================================
+
+const getApiErrorMessage = (
+  error: any,
+  fallback: string
+) => {
+  const responseData =
+    error?.response?.data;
+
+  if (
+    typeof responseData === "string" &&
+    responseData.trim()
+  ) {
+    return responseData;
+  }
+
+  if (
+    responseData?.message &&
+    typeof responseData.message === "string"
+  ) {
+    return responseData.message;
+  }
+
+  if (
+    responseData?.error &&
+    typeof responseData.error === "string"
+  ) {
+    return responseData.error;
+  }
+
+  if (error?.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
+// =====================================================
 // BRAND FORM MODAL
 // =====================================================
 
-const BrandFormModal: React.FC<BrandFormModalProps> = ({
+const BrandFormModal: React.FC<
+  BrandFormModalProps
+> = ({
   open,
   loading,
   mode,
@@ -114,9 +148,13 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [title, setTitle] = useState("");
-  const [discountPercentage, setDiscountPercentage] =
+  const [title, setTitle] =
     useState("");
+
+  const [
+    discountPercentage,
+    setDiscountPercentage,
+  ] = useState("");
 
   const [logoFile, setLogoFile] =
     useState<File | null>(null);
@@ -131,10 +169,14 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     useState("");
 
   const logoInputRef =
-    useRef<HTMLInputElement | null>(null);
+    useRef<HTMLInputElement | null>(
+      null
+    );
 
   const bannerInputRef =
-    useRef<HTMLInputElement | null>(null);
+    useRef<HTMLInputElement | null>(
+      null
+    );
 
   const logoObjectUrlRef =
     useRef<string | null>(null);
@@ -148,11 +190,18 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
 
   const cleanupObjectUrls = () => {
     if (logoObjectUrlRef.current) {
-      URL.revokeObjectURL(logoObjectUrlRef.current);
+      URL.revokeObjectURL(
+        logoObjectUrlRef.current
+      );
+
       logoObjectUrlRef.current = null;
     }
+
     if (bannerObjectUrlRef.current) {
-      URL.revokeObjectURL(bannerObjectUrlRef.current);
+      URL.revokeObjectURL(
+        bannerObjectUrlRef.current
+      );
+
       bannerObjectUrlRef.current = null;
     }
   };
@@ -170,166 +219,247 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     cleanupObjectUrls();
 
     if (mode === "edit" && brand) {
-      setTitle(brand.title || "");
+      setTitle(
+        brand.title || ""
+      );
 
       setDiscountPercentage(
-        brand.discount_percentage !== undefined &&
-          brand.discount_percentage !== null
-          ? String(brand.discount_percentage)
+        brand.discount_percentage !==
+          undefined &&
+          brand.discount_percentage !==
+            null
+          ? String(
+              brand.discount_percentage
+            )
           : ""
       );
 
       setLogoFile(null);
+
       setLogoPreview(
-        getImageUrl(brand.logo)
+        getImageUrl(
+          brand.logo
+        )
       );
 
       setBannerFile(null);
+
       setBannerPreview(
-        getImageUrl(brand.banner)
+        getImageUrl(
+          brand.banner
+        )
       );
     } else {
       setTitle("");
       setDiscountPercentage("");
+
       setLogoFile(null);
       setLogoPreview("");
+
       setBannerFile(null);
       setBannerPreview("");
     }
 
     if (logoInputRef.current) {
-      logoInputRef.current.value = "";
+      logoInputRef.current.value =
+        "";
     }
+
     if (bannerInputRef.current) {
-      bannerInputRef.current.value = "";
+      bannerInputRef.current.value =
+        "";
     }
 
     return () => {
       cleanupObjectUrls();
     };
-  }, [open, mode, brand]);
+  }, [
+    open,
+    mode,
+    brand,
+  ]);
 
   // ===================================================
-  // FILE CHANGE - LOGO
+  // LOGO CHANGE
   // ===================================================
 
   const handleLogoChange = (
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+      toast.error(
+        "Please select a valid image file."
+      );
+
+      event.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Logo size should be less than 5MB.");
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      toast.error(
+        "Logo size should be less than 5MB."
+      );
+
+      event.target.value = "";
       return;
     }
 
     if (logoObjectUrlRef.current) {
-      URL.revokeObjectURL(logoObjectUrlRef.current);
-      logoObjectUrlRef.current = null;
+      URL.revokeObjectURL(
+        logoObjectUrlRef.current
+      );
     }
 
     const preview =
       URL.createObjectURL(file);
 
-    logoObjectUrlRef.current = preview;
+    logoObjectUrlRef.current =
+      preview;
 
     setLogoFile(file);
     setLogoPreview(preview);
   };
 
   // ===================================================
-  // FILE CHANGE - BANNER
+  // BANNER CHANGE
   // ===================================================
 
   const handleBannerChange = (
     event: ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
+    const file =
+      event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image file.");
+    if (
+      !file.type.startsWith(
+        "image/"
+      )
+    ) {
+      toast.error(
+        "Please select a valid image file."
+      );
+
+      event.target.value = "";
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Banner size should be less than 10MB.");
+    if (
+      file.size >
+      10 * 1024 * 1024
+    ) {
+      toast.error(
+        "Banner size should be less than 10MB."
+      );
+
+      event.target.value = "";
       return;
     }
 
-    if (bannerObjectUrlRef.current) {
-      URL.revokeObjectURL(bannerObjectUrlRef.current);
-      bannerObjectUrlRef.current = null;
+    if (
+      bannerObjectUrlRef.current
+    ) {
+      URL.revokeObjectURL(
+        bannerObjectUrlRef.current
+      );
     }
 
     const preview =
       URL.createObjectURL(file);
 
-    bannerObjectUrlRef.current = preview;
+    bannerObjectUrlRef.current =
+      preview;
 
     setBannerFile(file);
     setBannerPreview(preview);
   };
 
   // ===================================================
-  // REMOVE / RESET LOGO
+  // RESET LOGO
   // ===================================================
 
   const removeLogo = () => {
     if (logoObjectUrlRef.current) {
-      URL.revokeObjectURL(logoObjectUrlRef.current);
-      logoObjectUrlRef.current = null;
+      URL.revokeObjectURL(
+        logoObjectUrlRef.current
+      );
+
+      logoObjectUrlRef.current =
+        null;
     }
 
     setLogoFile(null);
 
-    if (mode === "edit" && brand?.logo) {
+    if (
+      mode === "edit" &&
+      brand?.logo
+    ) {
       setLogoPreview(
-        getImageUrl(brand.logo)
+        getImageUrl(
+          brand.logo
+        )
       );
     } else {
       setLogoPreview("");
     }
 
     if (logoInputRef.current) {
-      logoInputRef.current.value = "";
+      logoInputRef.current.value =
+        "";
     }
   };
 
   // ===================================================
-  // REMOVE / RESET BANNER
+  // RESET BANNER
   // ===================================================
 
   const removeBanner = () => {
-    if (bannerObjectUrlRef.current) {
-      URL.revokeObjectURL(bannerObjectUrlRef.current);
-      bannerObjectUrlRef.current = null;
+    if (
+      bannerObjectUrlRef.current
+    ) {
+      URL.revokeObjectURL(
+        bannerObjectUrlRef.current
+      );
+
+      bannerObjectUrlRef.current =
+        null;
     }
 
     setBannerFile(null);
 
-    if (mode === "edit" && brand?.banner) {
+    if (
+      mode === "edit" &&
+      brand?.banner
+    ) {
       setBannerPreview(
-        getImageUrl(brand.banner)
+        getImageUrl(
+          brand.banner
+        )
       );
     } else {
       setBannerPreview("");
     }
 
     if (bannerInputRef.current) {
-      bannerInputRef.current.value = "";
+      bannerInputRef.current.value =
+        "";
     }
   };
 
@@ -348,7 +478,10 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       return;
     }
 
-    if (!discountPercentage) {
+    if (
+      discountPercentage.trim() ===
+      ""
+    ) {
       toast.error(
         "Please enter discount percentage."
       );
@@ -359,7 +492,9 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       Number(discountPercentage);
 
     if (
-      Number.isNaN(percentage)
+      Number.isNaN(
+        percentage
+      )
     ) {
       toast.error(
         "Please enter a valid percentage."
@@ -377,6 +512,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       return;
     }
 
+    // CREATE REQUIREMENTS
     if (
       mode === "add" &&
       !logoFile
@@ -397,25 +533,21 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       return;
     }
 
-    const payload: BrandPayload = {
-      title: trimmedTitle,
-      discount_percentage:
-        percentage,
+    const payload: BrandPayload =
+      {
+        title: trimmedTitle,
+        discount_percentage:
+          percentage,
+      };
 
-      // New logo only.
-      // During edit existing logo remains unchanged
-      // until a new file is selected.
-      ...(logoFile
-        ? { logo: logoFile }
-        : {}),
+    if (logoFile) {
+      payload.logo = logoFile;
+    }
 
-      // New banner only.
-      // During edit existing banner remains unchanged
-      // until a new file is selected.
-      ...(bannerFile
-        ? { banner: bannerFile }
-        : {}),
-    };
+    if (bannerFile) {
+      payload.banner =
+        bannerFile;
+    }
 
     onSubmit(payload);
   };
@@ -441,7 +573,9 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     <GlobalModal
       isOpen={open}
       onClose={handleClose}
-      closeOnOverlayClick={!loading}
+      closeOnOverlayClick={
+        !loading
+      }
       title=""
     >
       <div className="w-full max-w-[640px] overflow-hidden rounded-[20px] border border-[#b8902e]/15 bg-white shadow-2xl">
@@ -502,7 +636,9 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                 type="text"
                 value={title}
                 onChange={(e) =>
-                  setTitle(e.target.value)
+                  setTitle(
+                    e.target.value
+                  )
                 }
                 disabled={loading}
                 placeholder="e.g. PUMA"
@@ -514,7 +650,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-700">
                 Discount Percentage
-              
               </label>
 
               <div className="relative">
@@ -605,7 +740,9 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                     {/* PREVIEW */}
                     <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
                       <img
-                        src={logoPreview}
+                        src={
+                          logoPreview
+                        }
                         alt={
                           title ||
                           "Brand logo"
@@ -638,7 +775,8 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                           }
                           className="text-xs font-semibold"
                           style={{
-                            color: DARK_GOLD,
+                            color:
+                              DARK_GOLD,
                           }}
                         >
                           Change Logo
@@ -728,7 +866,9 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                     {/* PREVIEW */}
                     <div className="flex h-[72px] w-[128px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
                       <img
-                        src={bannerPreview}
+                        src={
+                          bannerPreview
+                        }
                         alt={
                           title ||
                           "Brand banner"
@@ -761,7 +901,8 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                           }
                           className="text-xs font-semibold"
                           style={{
-                            color: DARK_GOLD,
+                            color:
+                              DARK_GOLD,
                           }}
                         >
                           Change Banner
@@ -801,11 +942,12 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
               </div>
 
               <div className="relative overflow-hidden rounded-[18px] bg-[#f1f1f1] p-5">
-                {/* Banner Preview */}
                 {bannerPreview && (
                   <div className="mb-4 h-[100px] w-full overflow-hidden rounded-xl border border-gray-200 bg-white">
                     <img
-                      src={bannerPreview}
+                      src={
+                        bannerPreview
+                      }
                       alt="Banner Preview"
                       className="h-full w-full object-cover"
                     />
@@ -815,18 +957,23 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">
-                      {title || "BRAND NAME"}
+                      {title ||
+                        "BRAND NAME"}
                     </p>
 
                     <h3 className="text-[25px] font-medium leading-none text-gray-900">
-                      {discountPercentage || "20"}% Off
+                      {discountPercentage ||
+                        "20"}
+                      % Off
                     </h3>
                   </div>
 
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white">
                     {logoPreview ? (
                       <img
-                        src={logoPreview}
+                        src={
+                          logoPreview
+                        }
                         alt="Preview"
                         className="h-full w-full object-contain p-2.5"
                       />
@@ -882,153 +1029,14 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
 };
 
 // =====================================================
-// DELETE MODAL
-// =====================================================
-
-const DeleteBrandModal: React.FC<
-  DeleteBrandModalProps
-> = ({
-  open,
-  loading,
-  brand,
-  onClose,
-  onConfirm,
-}) => {
-  return (
-    <GlobalModal
-      isOpen={open}
-      onClose={() => {
-        if (!loading) {
-          onClose();
-        }
-      }}
-      closeOnOverlayClick={!loading}
-      title=""
-    >
-      <div className="w-full max-w-[420px] overflow-hidden rounded-[20px] border border-red-100 bg-white shadow-2xl">
-        {/* TOP LINE */}
-        <div className="h-[3px] bg-gradient-to-r from-[#e8a59b] via-[#c96d61] to-[#a64d43]" />
-
-        {/* CONTENT */}
-        <div className="p-5">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#fff4f2] text-red-500">
-              <FiTrash2 size={19} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Delete Brand?
-              </h2>
-
-              <p className="mt-1.5 text-xs leading-5 text-gray-500">
-                This action will permanently remove
-                the selected brand. This cannot be
-                undone.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-            >
-              <FiX size={17} />
-            </button>
-          </div>
-
-          {/* BRAND */}
-          <div className="mt-5 flex items-center gap-3 rounded-xl border border-gray-200 bg-[#faf8f3] p-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white">
-              {brand?.logo ? (
-                <img
-                  src={getImageUrl(
-                    brand.logo
-                  )}
-                  alt={
-                    brand.title ||
-                    "Brand"
-                  }
-                  className="h-full w-full object-contain p-1.5"
-                />
-              ) : (
-                <FiImage
-                  size={18}
-                  className="text-gray-300"
-                />
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
-                Selected Brand
-              </p>
-
-              <p className="mt-0.5 truncate text-sm font-semibold text-gray-800">
-                {brand?.title ||
-                  "This brand"}
-              </p>
-
-              <p className="mt-0.5 text-xs text-gray-500">
-                {Number(
-                  brand?.discount_percentage ||
-                    0
-                )}
-                % discount
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-gray-100 bg-[#fffdfa] px-5 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex min-w-[125px] items-center justify-center gap-2 rounded-xl bg-[#b46055] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#994a40] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <FiRefreshCw
-                  size={14}
-                  className="animate-spin"
-                />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <FiTrash2
-                  size={14}
-                />
-                Delete Brand
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
-
-// =====================================================
 // BRAND CARD
 // =====================================================
 
 interface BrandCardProps {
   brand: Brand;
-  onEdit: (brand: Brand) => void;
-  onDelete: (brand: Brand) => void;
+  onEdit: (
+    brand: Brand
+  ) => void;
 }
 
 const BrandCard: React.FC<
@@ -1036,25 +1044,26 @@ const BrandCard: React.FC<
 > = ({
   brand,
   onEdit,
-  onDelete,
 }) => {
   return (
     <motion.div
       variants={itemVariants}
       className="group relative overflow-hidden rounded-[18px] bg-[#f1f1f1] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
     >
-      {/* Banner Preview (small) */}
+      {/* BANNER */}
       {brand.banner && (
         <div className="absolute inset-0 opacity-20">
           <img
-            src={getImageUrl(brand.banner)}
+            src={getImageUrl(
+              brand.banner
+            )}
             alt=""
             className="h-full w-full object-cover"
           />
         </div>
       )}
 
-      {/* BRAND INFO */}
+      {/* INFO */}
       <div className="relative z-10">
         <p className="mb-2.5 text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">
           {brand.title}
@@ -1090,7 +1099,7 @@ const BrandCard: React.FC<
         </div>
       </div>
 
-      {/* ACTIONS */}
+      {/* EDIT ACTION */}
       <div className="relative z-10 mt-6 flex items-center gap-2">
         <button
           type="button"
@@ -1101,17 +1110,6 @@ const BrandCard: React.FC<
           title="Edit"
         >
           <FiEdit2 size={14} />
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            onDelete(brand)
-          }
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition hover:border-red-400 hover:text-red-500"
-          title="Delete"
-        >
-          <FiTrash2 size={14} />
         </button>
       </div>
     </motion.div>
@@ -1133,16 +1131,10 @@ const BrandsManagement: React.FC =
     const [saveLoading, setSaveLoading] =
       useState(false);
 
-    const [deleteLoading, setDeleteLoading] =
-      useState(false);
-
     const [search, setSearch] =
       useState("");
 
     const [addEditOpen, setAddEditOpen] =
-      useState(false);
-
-    const [deleteOpen, setDeleteOpen] =
       useState(false);
 
     const [modalMode, setModalMode] =
@@ -1150,10 +1142,12 @@ const BrandsManagement: React.FC =
         "add"
       );
 
-    const [selectedBrand, setSelectedBrand] =
-      useState<Brand | null>(
-        null
-      );
+    const [
+      selectedBrand,
+      setSelectedBrand,
+    ] = useState<Brand | null>(
+      null
+    );
 
     // =================================================
     // FETCH
@@ -1186,9 +1180,10 @@ const BrandsManagement: React.FC =
         );
 
         toast.error(
-          error?.response?.data
-            ?.message ||
+          getApiErrorMessage(
+            error,
             "Unable to fetch brands."
+          )
         );
       } finally {
         setLoading(false);
@@ -1237,8 +1232,12 @@ const BrandsManagement: React.FC =
     // =================================================
 
     const openAdd = () => {
-      setSelectedBrand(null);
+      setSelectedBrand(
+        null
+      );
+
       setModalMode("add");
+
       setAddEditOpen(true);
     };
 
@@ -1252,21 +1251,10 @@ const BrandsManagement: React.FC =
       setSelectedBrand(
         brand
       );
+
       setModalMode("edit");
+
       setAddEditOpen(true);
-    };
-
-    // =================================================
-    // DELETE
-    // =================================================
-
-    const openDelete = (
-      brand: Brand
-    ) => {
-      setSelectedBrand(
-        brand
-      );
-      setDeleteOpen(true);
     };
 
     // =================================================
@@ -1280,8 +1268,7 @@ const BrandsManagement: React.FC =
         setSaveLoading(true);
 
         if (
-          modalMode ===
-            "edit" &&
+          modalMode === "edit" &&
           selectedBrand
         ) {
           const response =
@@ -1290,23 +1277,31 @@ const BrandsManagement: React.FC =
               payload
             );
 
+          console.log(
+            "UPDATE BRAND RESPONSE:",
+            response.data
+          );
+
           if (
             response.data.success
           ) {
             toast.success(
-              response.data
-                .message ||
+              response.data.message ||
                 "Brand updated successfully."
             );
 
-            setAddEditOpen(false);
-            setSelectedBrand(null);
+            setAddEditOpen(
+              false
+            );
+
+            setSelectedBrand(
+              null
+            );
 
             await fetchBrands();
           } else {
             toast.error(
-              response.data
-                .message ||
+              response.data.message ||
                 "Unable to update brand."
             );
           }
@@ -1316,23 +1311,31 @@ const BrandsManagement: React.FC =
               payload
             );
 
+          console.log(
+            "CREATE BRAND RESPONSE:",
+            response.data
+          );
+
           if (
             response.data.success
           ) {
             toast.success(
-              response.data
-                .message ||
+              response.data.message ||
                 "Brand created successfully."
             );
 
-            setAddEditOpen(false);
-            setSelectedBrand(null);
+            setAddEditOpen(
+              false
+            );
+
+            setSelectedBrand(
+              null
+            );
 
             await fetchBrands();
           } else {
             toast.error(
-              response.data
-                .message ||
+              response.data.message ||
                 "Unable to create brand."
             );
           }
@@ -1343,75 +1346,23 @@ const BrandsManagement: React.FC =
           error
         );
 
-        toast.error(
+        console.error(
+          "Save brand error response:",
           error?.response?.data
-            ?.message ||
+        );
+
+        toast.error(
+          getApiErrorMessage(
+            error,
             "Something went wrong while saving brand."
+          )
         );
       } finally {
-        setSaveLoading(false);
+        setSaveLoading(
+          false
+        );
       }
     };
-
-    // =================================================
-    // DELETE CONFIRM
-    // =================================================
-
-    const handleDelete =
-      async () => {
-        if (
-          !selectedBrand
-        ) {
-          return;
-        }
-
-        try {
-          setDeleteLoading(
-            true
-          );
-
-          const response =
-            await brandsApi.delete(
-              selectedBrand.id
-            );
-
-          if (
-            response.data.success
-          ) {
-            toast.success(
-              response.data
-                .message ||
-                "Brand deleted successfully."
-            );
-
-            setDeleteOpen(false);
-            setSelectedBrand(null);
-
-            await fetchBrands();
-          } else {
-            toast.error(
-              response.data
-                .message ||
-                "Unable to delete brand."
-            );
-          }
-        } catch (error: any) {
-          console.error(
-            "Delete brand error:",
-            error
-          );
-
-          toast.error(
-            error?.response?.data
-              ?.message ||
-              "Something went wrong while deleting brand."
-          );
-        } finally {
-          setDeleteLoading(
-            false
-          );
-        }
-      };
 
     // =================================================
     // LOADING
@@ -1479,12 +1430,15 @@ const BrandsManagement: React.FC =
               </h1>
 
               <p className="mt-1.5 text-sm text-gray-500">
-                Manage brand logos, banners and
-                discount percentages.
+                Manage brand logos,
+                banners and
+                discount
+                percentages.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
+              {/* REFRESH */}
               <button
                 type="button"
                 onClick={
@@ -1509,6 +1463,7 @@ const BrandsManagement: React.FC =
                 </span>
               </button>
 
+              {/* ADD BRAND */}
               <button
                 type="button"
                 onClick={
@@ -1519,6 +1474,7 @@ const BrandsManagement: React.FC =
                 <FiPlus
                   size={17}
                 />
+
                 Add Brand
               </button>
             </div>
@@ -1559,6 +1515,7 @@ const BrandsManagement: React.FC =
                 </p>
               </div>
 
+              {/* SEARCH */}
               <div className="relative w-full md:max-w-sm">
                 <FiSearch
                   size={17}
@@ -1581,15 +1538,11 @@ const BrandsManagement: React.FC =
                   <button
                     type="button"
                     onClick={() =>
-                      setSearch(
-                        ""
-                      )
+                      setSearch("")
                     }
                     className="absolute right-3 top-1/2 flex -translate-y-1/2 text-gray-400 hover:text-gray-700"
                   >
-                    <FiX
-                      size={16}
-                    />
+                    <FiX size={16} />
                   </button>
                 )}
               </div>
@@ -1643,7 +1596,9 @@ const BrandsManagement: React.FC =
                   className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
                 >
                   {filteredBrands.map(
-                    (brand) => (
+                    (
+                      brand
+                    ) => (
                       <BrandCard
                         key={
                           brand.id
@@ -1654,9 +1609,6 @@ const BrandsManagement: React.FC =
                         onEdit={
                           openEdit
                         }
-                        onDelete={
-                          openDelete
-                        }
                       />
                     )
                   )}
@@ -1666,7 +1618,7 @@ const BrandsManagement: React.FC =
           </motion.div>
         </div>
 
-        {/* ADD / EDIT */}
+        {/* ADD / EDIT MODAL */}
         <BrandFormModal
           open={
             addEditOpen
@@ -1687,6 +1639,7 @@ const BrandsManagement: React.FC =
               setAddEditOpen(
                 false
               );
+
               setSelectedBrand(
                 null
               );
@@ -1694,34 +1647,6 @@ const BrandsManagement: React.FC =
           }}
           onSubmit={
             handleSave
-          }
-        />
-
-        {/* DELETE */}
-        <DeleteBrandModal
-          open={
-            deleteOpen
-          }
-          loading={
-            deleteLoading
-          }
-          brand={
-            selectedBrand
-          }
-          onClose={() => {
-            if (
-              !deleteLoading
-            ) {
-              setDeleteOpen(
-                false
-              );
-              setSelectedBrand(
-                null
-              );
-            }
-          }}
-          onConfirm={
-            handleDelete
           }
         />
       </motion.div>
