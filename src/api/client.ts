@@ -32,7 +32,7 @@ apiClient.interceptors.response.use(
       sessionStorage.removeItem('adminRoles');
 
       if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+        window.location.href = '/indiekonnect-admin/login';
       }
     }
 
