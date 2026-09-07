@@ -71,7 +71,8 @@ export const menuItems = [
     children: [
       { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
       { path: '/cms/content', label: 'Content Management', icon: 'description' },
-      { path: '/cms/growth', label: 'Leaders Management', icon: 'trending_up' },
+      // { path: '/cms/growth', label: 'Leaders Management', icon: 'trending_up' },
+      { path: '/cms/ReelsManagement', label: 'Reels Management', icon: 'ReelsManagement' },
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
     ]
   },

@@ -50,12 +50,6 @@ type UserFilter =
   | "active"
   | "inactive";
 
-type DistributorStatusFilter =
-  | "all"
-  | "pending"
-  | "active"
-  | "rejected";
-
 // =====================================================
 // ANIMATION
 // =====================================================
@@ -1199,7 +1193,6 @@ const UserManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<UserFilter>("all");
-  const [distributorStatusFilter, setDistributorStatusFilter] = useState<DistributorStatusFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<RegisteredUser | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -1353,20 +1346,10 @@ const UserManagement: React.FC = () => {
           return !user.is_active;
 
         default:
-          break;
+          return true;
       }
-
-      if (distributorStatusFilter !== "all") {
-        if (user.account_type !== "distributor") {
-          return false;
-        }
-        const status = user.distributor_status?.toLowerCase() || "pending";
-        return status === distributorStatusFilter;
-      }
-
-      return true;
     });
-  }, [users, search, activeFilter, distributorStatusFilter]);
+  }, [users, search, activeFilter]);
 
   // =================================================
   // PAGINATION
@@ -1403,11 +1386,6 @@ const UserManagement: React.FC = () => {
 
   const handleFilter = (filter: UserFilter) => {
     setActiveFilter(filter);
-    setCurrentPage(1);
-  };
-
-  const handleDistributorStatusFilter = (filter: DistributorStatusFilter) => {
-    setDistributorStatusFilter(filter);
     setCurrentPage(1);
   };
 
@@ -1795,36 +1773,6 @@ const UserManagement: React.FC = () => {
                         ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
                         : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
                     }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Distributor Status Filter Row */}
-
-            <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[#b8902e]/10 pt-4">
-              <span className="text-xs font-bold text-[#a89a7d] uppercase tracking-wider">
-                Distributor Status:
-              </span>
-
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { key: "all" as DistributorStatusFilter, label: "All" },
-                  { key: "pending" as DistributorStatusFilter, label: "Pending", color: "text-[#a06f13]" },
-                  { key: "active" as DistributorStatusFilter, label: "Active", color: "text-[#806319]" },
-                  { key: "rejected" as DistributorStatusFilter, label: "Rejected", color: "text-[#b46055]" },
-                ].map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => handleDistributorStatusFilter(filter.key)}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                      distributorStatusFilter === filter.key
-                        ? "bg-[#b8902e] text-white shadow-md shadow-[#b8902e]/20"
-                        : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10"
-                    } ${distributorStatusFilter === filter.key ? "" : filter.color || ""}`}
                   >
                     {filter.label}
                   </button>

@@ -32,6 +32,7 @@ import UpdateProfile from "@/pages/User/UpdateProfile";
 import ChangePassword from "@/pages/User/ChangePassword";
 import BrandsManagement from "@/pages/Cms/BrandsManagement";
 import CreditNotes from "@/pages/CreditNotes/CreditNotes";
+import ReelsManagement from "@/pages/ReelsManagement/ReelsManagement";
 
 const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
 
@@ -143,6 +144,10 @@ export const router = createBrowserRouter(
         {
           path: "ChangePassword",
           element: <ChangePassword />,
+        },
+        {
+          path: "/cms/ReelsManagement",
+          element: <ReelsManagement />,
         },
         ...appRoutes,
       ],
