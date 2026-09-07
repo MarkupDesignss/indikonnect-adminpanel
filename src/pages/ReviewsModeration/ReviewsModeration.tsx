@@ -235,7 +235,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
 
   return (
     <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm md:w-1/3">
-      <div className="relative border-b border-[#b8902e]/10 p-4 sm:p-5">
+      {/* Header Section - Fixed */}
+      <div className="relative flex-shrink-0 border-b border-[#b8902e]/10 p-4 sm:p-5">
         <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
 
         <div className="mb-4 flex items-center justify-between">
@@ -248,6 +249,7 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
           </div>
         </div>
 
+        {/* Filter Buttons */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {[
             { label: "All Reviews", value: "all" },
@@ -261,11 +263,10 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
                 key={filter.value}
                 type="button"
                 onClick={() => setActiveFilter(filter.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
-                  isActive
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${isActive
                     ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-sm"
                     : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                }`}
+                  }`}
               >
                 {filter.label}
               </button>
@@ -273,6 +274,7 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
           })}
         </div>
 
+        {/* Search Input */}
         <div className="relative">
           <FiSearch
             size={17}
@@ -288,7 +290,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      {/* Reviews List - Scrollable */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         {filteredReviews.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center px-5 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
@@ -309,9 +312,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
               <div
                 key={review.id}
                 onClick={() => setSelectedId(review.id)}
-                className={`relative cursor-pointer border-b border-[#b8902e]/10 p-4 transition-all duration-200 sm:p-5 ${
-                  isSelected ? "bg-[#faf8f3]" : "bg-white hover:bg-[#fffdf7]"
-                }`}
+                className={`relative cursor-pointer border-b border-[#b8902e]/10 p-4 transition-all duration-200 sm:p-5 ${isSelected ? "bg-[#faf8f3]" : "bg-white hover:bg-[#fffdf7]"
+                  }`}
               >
                 {isSelected && (
                   <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#d4af52] to-[#8a6c1f]" />
@@ -323,9 +325,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
                       <FiUser size={14} />
                     </div>
                     <h4
-                      className={`truncate text-sm ${
-                        isSelected ? "font-bold text-[#2a2620]" : "font-semibold text-[#4a4436]"
-                      }`}
+                      className={`truncate text-sm ${isSelected ? "font-bold text-[#2a2620]" : "font-semibold text-[#4a4436]"
+                        }`}
                     >
                       {productName}
                     </h4>
@@ -374,7 +375,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
         )}
       </div>
 
-      <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-3">
+      {/* Footer - Fixed */}
+      <div className="flex-shrink-0 border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">
             Total Reviews
@@ -812,11 +814,11 @@ const ReviewsModeration = () => {
       // =================================================
 
       await fetchReviews();
-      
+
     } catch (err: any) {
       console.error(`Review ${action} error:`, err);
       alert(err?.response?.data?.message || err?.message || `Failed to ${action} review.`);
-      
+
       // Re-fetch to ensure UI is in sync with server state
       await fetchReviews();
     } finally {

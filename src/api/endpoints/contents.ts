@@ -71,7 +71,7 @@ export interface ContentBlockPayload {
   /**
    * Existing images that are still kept for this block.
    *
-   * This is especially useful while editing.
+   * This is useful while editing.
    */
   existingImages?: ContentImage[];
 }
@@ -110,8 +110,7 @@ export interface ContentPayload {
 const buildFormData = (
   payload: ContentPayload
 ): FormData => {
-  const formData =
-    new FormData();
+  const formData = new FormData();
 
   // ===================================================
   // PAGE DATA
@@ -132,10 +131,7 @@ const buildFormData = (
   // ===================================================
 
   payload.blocks.forEach(
-    (
-      block,
-      blockIndex
-    ) => {
+    (block, blockIndex) => {
       // -------------------------------------------------
       // BASIC BLOCK FIELDS
       // -------------------------------------------------
@@ -157,9 +153,7 @@ const buildFormData = (
 
       formData.append(
         `blocks[${blockIndex}][sort_order]`,
-        String(
-          block.sort_order ?? 0
-        )
+        String(block.sort_order ?? 0)
       );
 
       // -------------------------------------------------
@@ -181,33 +175,28 @@ const buildFormData = (
 
       if (
         block.existingImages &&
-        block.existingImages.length >
-          0
+        block.existingImages.length > 0
       ) {
         block.existingImages.forEach(
           (
             image,
             existingImageIndex
           ) => {
+            // Existing image ID
             if (
-              image.id !==
-              undefined &&
-              image.id !==
-              null
+              image.id !== undefined &&
+              image.id !== null
             ) {
               formData.append(
                 `blocks[${blockIndex}][existing_images][${existingImageIndex}][id]`,
-                String(
-                  image.id
-                )
+                String(image.id)
               );
             }
 
+            // Existing image alt text
             if (
-              image.alt_text !==
-              undefined &&
-              image.alt_text !==
-              null
+              image.alt_text !== undefined &&
+              image.alt_text !== null
             ) {
               formData.append(
                 `blocks[${blockIndex}][existing_images][${existingImageIndex}][alt_text]`,
@@ -215,15 +204,13 @@ const buildFormData = (
               );
             }
 
+            // Existing image primary status
             if (
-              image.is_primary !==
-              undefined
+              image.is_primary !== undefined
             ) {
               formData.append(
                 `blocks[${blockIndex}][existing_images][${existingImageIndex}][is_primary]`,
-                image.is_primary
-                  ? "1"
-                  : "0"
+                image.is_primary ? "1" : "0"
               );
             }
           }
@@ -234,7 +221,7 @@ const buildFormData = (
       // NEW IMAGES
       // -------------------------------------------------
       //
-      // THIS IS THE MOST IMPORTANT PART.
+      // IMPORTANT:
       //
       // imageIndex starts from ZERO for every block.
       //
@@ -252,17 +239,14 @@ const buildFormData = (
 
       if (
         block.imageFiles &&
-        block.imageFiles.length >
-          0
+        block.imageFiles.length > 0
       ) {
         block.imageFiles.forEach(
           (
             file,
             imageIndex
           ) => {
-            if (
-              file instanceof File
-            ) {
+            if (file instanceof File) {
               formData.append(
                 `blocks[${blockIndex}][images][${imageIndex}]`,
                 file
@@ -304,19 +288,14 @@ const logFormData = (
       value,
       key
     ) => {
-      if (
-        value instanceof File
-      ) {
+      if (value instanceof File) {
         console.log(
           key,
           "=>",
           {
-            name:
-              value.name,
-            type:
-              value.type,
-            size:
-              value.size,
+            name: value.name,
+            type: value.type,
+            size: value.size,
           }
         );
       } else {
@@ -338,7 +317,7 @@ const logFormData = (
 
 const contentsApi = {
   // ===================================================
-  // GET ALL
+  // GET ALL CONTENTS
   // ===================================================
 
   getAll: () =>
@@ -347,20 +326,16 @@ const contentsApi = {
     ),
 
   // ===================================================
-  // CREATE
+  // CREATE CONTENT
   // ===================================================
 
   create: (
     payload: ContentPayload
   ) => {
     const formData =
-      buildFormData(
-        payload
-      );
+      buildFormData(payload);
 
-    logFormData(
-      formData
-    );
+    logFormData(formData);
 
     return apiClient.post<ContentActionResponse>(
       "/contents/add",
@@ -375,7 +350,7 @@ const contentsApi = {
   },
 
   // ===================================================
-  // UPDATE
+  // UPDATE CONTENT
   // ===================================================
 
   update: (
@@ -383,13 +358,9 @@ const contentsApi = {
     payload: ContentPayload
   ) => {
     const formData =
-      buildFormData(
-        payload
-      );
+      buildFormData(payload);
 
-    logFormData(
-      formData
-    );
+    logFormData(formData);
 
     return apiClient.post<ContentActionResponse>(
       `/contents/update/${id}`,
@@ -404,7 +375,7 @@ const contentsApi = {
   },
 
   // ===================================================
-  // DELETE
+  // DELETE CONTENT PAGE
   // ===================================================
 
   delete: (
@@ -412,6 +383,25 @@ const contentsApi = {
   ) =>
     apiClient.delete<ContentActionResponse>(
       `/contents/delete/${id}`
+    ),
+
+  // ===================================================
+  // DELETE CONTENT MEDIA / IMAGE
+  // ===================================================
+  //
+  // API:
+  // DELETE /api/content-media/{id}
+  //
+  // Example:
+  // DELETE /api/content-media/2
+  //
+  // ===================================================
+
+  deleteMedia: (
+    mediaId: number
+  ) =>
+    apiClient.delete<ContentActionResponse>(
+      `/content-media/${mediaId}`
     ),
 };
 

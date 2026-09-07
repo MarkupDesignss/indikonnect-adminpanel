@@ -1367,44 +1367,100 @@ const PageFormModal: React.FC<
     );
   };
 
-  // ===================================================
-  // REMOVE EXISTING IMAGE
-  // ===================================================
-
-  const removeExistingImage = (
+  const removeExistingImage = async (
     blockIndex: number,
     imageIndex: number
   ) => {
-    setBlocks(
-      (previous) =>
-        previous.map(
-          (
-            block,
-            currentIndex
-          ) => {
-            if (
-              currentIndex !==
-              blockIndex
-            ) {
-              return block;
-            }
-
-            return {
-              ...block,
-
-              existingImages:
-                block.existingImages.filter(
-                  (
-                    _,
-                    currentImageIndex
-                  ) =>
-                    currentImageIndex !==
-                    imageIndex
-                ),
-            };
+    const block = blocks[blockIndex];
+    const image = block?.existingImages?.[imageIndex];
+  
+    if (!image) {
+      toast.error("Image not found.");
+      return;
+    }
+  
+    if (!image.id) {
+      // Agar image ka API id nahi hai to sirf UI se remove karo
+      setBlocks((previous) =>
+        previous.map((currentBlock, currentIndex) => {
+          if (currentIndex !== blockIndex) {
+            return currentBlock;
           }
-        )
-    );
+  
+          return {
+            ...currentBlock,
+            existingImages:
+              currentBlock.existingImages.filter(
+                (_, currentImageIndex) =>
+                  currentImageIndex !== imageIndex
+              ),
+          };
+        })
+      );
+  
+      return;
+    }
+  
+    try {
+      const response =
+        await contentsApi.deleteMedia(
+          image.id
+        );
+  
+      if (
+        response.data?.success
+      ) {
+        // API success ke baad UI se image remove karo
+        setBlocks((previous) =>
+          previous.map(
+            (
+              currentBlock,
+              currentIndex
+            ) => {
+              if (
+                currentIndex !==
+                blockIndex
+              ) {
+                return currentBlock;
+              }
+  
+              return {
+                ...currentBlock,
+                existingImages:
+                  currentBlock.existingImages.filter(
+                    (
+                      _,
+                      currentImageIndex
+                    ) =>
+                      currentImageIndex !==
+                      imageIndex
+                  ),
+              };
+            }
+          )
+        );
+  
+        toast.success(
+          response.data?.message ||
+            "Image deleted successfully."
+        );
+      } else {
+        toast.error(
+          response.data?.message ||
+            "Unable to delete image."
+        );
+      }
+    } catch (error: any) {
+      console.error(
+        "Delete image error:",
+        error
+      );
+  
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to delete image."
+      );
+    }
   };
 
   // ===================================================

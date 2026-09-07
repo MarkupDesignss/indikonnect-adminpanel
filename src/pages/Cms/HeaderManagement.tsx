@@ -27,18 +27,8 @@ import toast from "react-hot-toast";
 import GlobalModal from "@/components/common/GlobalModal";
 import headerApi, {
   HeaderMenu,
-} from "../../api/endpoints/header";
+} from "../../api/endpoints/cmsheader";
 
-// =====================================================
-// THEME
-// =====================================================
-
-const bgColor = "#f7f5ef";
-const gold = "#b8902e";
-const darkGold = "#8f6d1d";
-const cream = "#faf8f3";
-const darkText = "#29251f";
-const mutedText = "#8d8372";
 
 // =====================================================
 // TYPES

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   FiChevronLeft,
@@ -35,12 +36,18 @@ interface ProductTableProps {
 
   trendingLoadingId: number | null;
 
+  // Publish / Unpublish
+  onPublishToggle: (
+    product: Product,
+    isPublished: boolean
+  ) => void;
+
+  publishLoadingId: number | null;
+
   onDelete?: (product: Product) => void;
 }
 
-const ProductTable: React.FC<
-  ProductTableProps
-> = ({
+const ProductTable: React.FC<ProductTableProps> = ({
   products,
   loading,
   currentPage,
@@ -53,6 +60,8 @@ const ProductTable: React.FC<
   onView,
   onTrendingToggle,
   trendingLoadingId,
+  onPublishToggle,
+  publishLoadingId,
 }) => {
   const ITEMS_PER_PAGE = 10;
 
@@ -83,10 +92,7 @@ const ProductTable: React.FC<
       return [1, 2, 3, 4, 5];
     }
 
-    if (
-      currentPage >=
-      totalPages - 2
-    ) {
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -105,8 +111,7 @@ const ProductTable: React.FC<
     ];
   };
 
-  const paginationPages =
-    getPaginationPages();
+  const paginationPages = getPaginationPages();
 
   // ===================================================
   // IMAGE ZOOM HANDLERS
@@ -126,7 +131,10 @@ const ProductTable: React.FC<
     setZoomedImage(null);
   };
 
-  // Handle Escape key
+  // ===================================================
+  // ESCAPE KEY
+  // ===================================================
+
   React.useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -134,14 +142,23 @@ const ProductTable: React.FC<
       }
     };
 
-    document.addEventListener("keydown", handleEsc);
+    document.addEventListener(
+      "keydown",
+      handleEsc
+    );
 
     return () => {
-      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener(
+        "keydown",
+        handleEsc
+      );
     };
   }, []);
 
-  // Prevent scroll when zoomed
+  // ===================================================
+  // PREVENT SCROLL WHEN ZOOMED
+  // ===================================================
+
   React.useEffect(() => {
     if (zoomedImage) {
       document.body.style.overflow = "hidden";
@@ -173,14 +190,12 @@ const ProductTable: React.FC<
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1370px] border-collapse">
-
             {/* =================================================
                 TABLE HEADER
             ================================================= */}
 
             <thead>
               <tr className="bg-[#2f2a22] text-left">
-
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   S.No
                 </th>
@@ -234,7 +249,6 @@ const ProductTable: React.FC<
             ================================================= */}
 
             <tbody>
-
               {/* =================================================
                   LOADING
               ================================================= */}
@@ -246,7 +260,6 @@ const ProductTable: React.FC<
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-
                       <div className="mb-4 flex h-12 w-12 animate-pulse items-center justify-center rounded-full bg-[#b8902e]/10">
                         <FiPackage
                           size={22}
@@ -259,14 +272,13 @@ const ProductTable: React.FC<
                       </p>
 
                       <p className="mt-1 text-xs text-[#a89a7d]">
-                        Please wait while we fetch your
-                        product inventory.
+                        Please wait while we fetch
+                        your product inventory.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
-
                 /* =================================================
                     EMPTY
                 ================================================= */
@@ -277,7 +289,6 @@ const ProductTable: React.FC<
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3]">
                         <FiPackage
                           size={24}
@@ -290,417 +301,487 @@ const ProductTable: React.FC<
                       </p>
 
                       <p className="mt-1 max-w-sm text-xs text-[#a89a7d]">
-                        There are no products matching
-                        your current search or filter.
+                        There are no products
+                        matching your current
+                        search or filter.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
-
                 /* =================================================
                     PRODUCTS
                 ================================================= */
 
-                products.map(
-                  (product, index) => {
-                    const serialNumber =
-                      (currentPage - 1) *
-                        ITEMS_PER_PAGE +
-                      index +
-                      1;
+                products.map((product, index) => {
+                  const serialNumber =
+                    (currentPage - 1) *
+                      ITEMS_PER_PAGE +
+                    index +
+                    1;
 
-                    // =================================================
-                    // PRIMARY IMAGE
-                    // =================================================
+                  // =================================================
+                  // PRIMARY IMAGE
+                  // =================================================
 
-                    const primaryImage =
-                      product.images?.find(
-                        (image) =>
-                          image.is_primary ===
-                          true
-                      ) ||
-                      product.images?.[0];
+                  const primaryImage =
+                    product.images?.find(
+                      (image) =>
+                        image.is_primary === true
+                    ) ||
+                    product.images?.[0];
 
-                    // =================================================
-                    // CATEGORY
-                    // =================================================
+                  // =================================================
+                  // CATEGORY
+                  // =================================================
 
-                    const categoryName =
-                      product.category?.name ||
-                      "-";
+                  const categoryName =
+                    product.category?.name ||
+                    "-";
 
-                    // =================================================
-                    // TAX CATEGORY
-                    // =================================================
+                  // =================================================
+                  // TAX CATEGORY
+                  // =================================================
 
-                    const taxCategoryName =
-                      product.tax_category
-                        ?.name || "-";
+                  const taxCategoryName =
+                    product.tax_category?.name ||
+                    "-";
 
-                    // =================================================
-                    // STOCK
-                    // =================================================
+                  // =================================================
+                  // STOCK
+                  // =================================================
 
-                    const stock = Number(
-                      product.stock_quantity ||
+                  const stock = Number(
+                    product.stock_quantity || 0
+                  );
+
+                  const lowStockThreshold =
+                    Number(
+                      product.low_stock_threshold ||
                         0
                     );
 
-                    const lowStockThreshold =
-                      Number(
-                        product.low_stock_threshold ||
-                          0
-                      );
+                  const isLowStock =
+                    stock <=
+                    lowStockThreshold;
 
-                    const isLowStock =
-                      stock <=
-                      lowStockThreshold;
+                  // =================================================
+                  // PUBLISH STATUS
+                  // =================================================
 
-                    // =================================================
-                    // STATUS
-                    // =================================================
+                  const rawPublished =
+                    (
+                      product as Product & {
+                        is_published?:
+                          | number
+                          | boolean;
+                      }
+                    ).is_published;
 
-                    const isActive =
-                      product.is_published ===
-                      true;
+                  const isPublished =
+                    rawPublished === true ||
+                    Number(rawPublished) === 1;
 
-                    // =================================================
-                    // TRENDING
-                    //
-                    // Supports both:
-                    // is_trending: 1 / 0
-                    // is_trending: true / false
-                    // =================================================
+                  const isPublishLoading =
+                    publishLoadingId ===
+                    product.id;
 
-                    const isTrending =
-                      Number(
-                        (product as Product & {
-                          is_trending?:
-                            | number
-                            | boolean;
-                        }).is_trending || 0
-                      ) === 1;
+                  // =================================================
+                  // TRENDING
+                  // Supports:
+                  // 1 / 0
+                  // true / false
+                  // =================================================
 
-                    const isTrendingLoading =
-                      trendingLoadingId ===
-                      product.id;
+                  const rawTrending =
+                    (
+                      product as Product & {
+                        is_trending?:
+                          | number
+                          | boolean;
+                      }
+                    ).is_trending;
 
-                    return (
-                      <tr
-                        key={product.id}
-                        className="group border-b border-[#b8902e]/10 bg-white transition-all duration-200 hover:bg-[#faf8f3]"
-                      >
+                  const isTrending =
+                    rawTrending === true ||
+                    Number(rawTrending) === 1;
 
-                        {/* =================================================
-                            S.NO
-                        ================================================= */}
+                  const isTrendingLoading =
+                    trendingLoadingId ===
+                    product.id;
 
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
-                            {serialNumber}
-                          </span>
-                        </td>
+                  return (
+                    <tr
+                      key={product.id}
+                      className="group border-b border-[#b8902e]/10 bg-white transition-all duration-200 hover:bg-[#faf8f3]"
+                    >
+                      {/* =================================================
+                          S.NO
+                      ================================================= */}
 
-                        {/* =================================================
-                            IMAGE - CLICK TO ZOOM
-                        ================================================= */}
+                      <td className="px-5 py-4">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
+                          {serialNumber}
+                        </span>
+                      </td>
 
-                        <td className="px-5 py-4">
-                          {primaryImage ? (
-                            <div 
-                              className="relative h-[58px] w-[58px] cursor-pointer overflow-hidden rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] p-0.5 transition-all duration-200 group-hover:border-[#b8902e]/40 group-hover:shadow-lg"
-                              onClick={() => 
-                                handleImageClick(
-                                  primaryImage.image_url,
-                                  product.name
-                                )
+                      {/* =================================================
+                          IMAGE - CLICK TO ZOOM
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        {primaryImage ? (
+                          <div
+                            className="relative h-[58px] w-[58px] cursor-pointer overflow-hidden rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] p-0.5 transition-all duration-200 group-hover:border-[#b8902e]/40 group-hover:shadow-lg"
+                            onClick={() =>
+                              handleImageClick(
+                                primaryImage.image_url,
+                                product.name
+                              )
+                            }
+                            title="Click to zoom image"
+                          >
+                            <img
+                              src={
+                                primaryImage.image_url
                               }
-                              title="Click to zoom image"
-                            >
-                              <img
-                                src={
-                                  primaryImage.image_url
-                                }
-                                alt={
-                                  product.name
-                                }
-                                className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
-                                onError={(e) => {
-                                  const target =
-                                    e.target as HTMLImageElement;
+                              alt={
+                                product.name
+                              }
+                              className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                const target =
+                                  e.target as HTMLImageElement;
 
-                                  target.style.display =
-                                    "none";
-                                }}
-                              />
-
-                              {/* Zoom Icon Overlay */}
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/30">
-                                <FiZoomIn 
-                                  size={18}
-                                  className="scale-0 text-white opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
-                              <FiImage
-                                size={21}
-                              />
-                            </div>
-                          )}
-                        </td>
-
-                        {/* =================================================
-                            PRODUCT
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <div className="max-w-[230px]">
-
-                            <p className="truncate text-sm font-bold text-[#2a2620]">
-                              {product.name}
-                            </p>
-
-                            <p className="mt-1 truncate text-xs leading-5 text-[#a89a7d]">
-                              {product.description ||
-                                "No description available"}
-                            </p>
-
-                          </div>
-                        </td>
-
-                        {/* =================================================
-                            SKU
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <span className="inline-flex rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] px-3 py-1.5 text-xs font-semibold tracking-wide text-[#786f60]">
-                            {product.product_code ||
-                              "-"}
-                          </span>
-                        </td>
-
-                        {/* =================================================
-                            CATEGORY
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#d4af52]" />
-
-                            <span className="text-sm font-medium text-[#4a4436]">
-                              {categoryName}
-                            </span>
-
-                          </div>
-                        </td>
-
-                        {/* =================================================
-                            TAX CATEGORY
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <span className="text-sm font-medium text-[#6b6152]">
-                            {taxCategoryName}
-                          </span>
-                        </td>
-
-                        {/* =================================================
-                            RETAIL PRICE
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1">
-
-                            <span className="text-[11px] font-semibold text-[#a8841c]">
-                              ₹
-                            </span>
-
-                            <span className="text-sm font-bold text-[#2a2620]">
-                              {Number(
-                                product.retail_price ||
-                                  0
-                              ).toLocaleString(
-                                "en-IN"
-                              )}
-                            </span>
-
-                          </div>
-                        </td>
-
-                        {/* =================================================
-                            STOCK
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
-                              isLowStock
-                                ? "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]"
-                                : "border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
-                            }`}
-                          >
-                            {stock}
-                          </span>
-                        </td>
-
-                        {/* =================================================
-                            STATUS
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${
-                              isActive
-                                ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]"
-                                : "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]"
-                            }`}
-                          >
-
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                isActive
-                                  ? "bg-[#b8902e]"
-                                  : "bg-[#a89a7d]"
-                              }`}
+                                target.style.display =
+                                  "none";
+                              }}
                             />
 
-                            {isActive
-                              ? "Active"
-                              : "Inactive"}
+                            {/* Zoom Icon Overlay */}
 
-                          </span>
-                        </td>
-
-                        {/* =================================================
-                            TRENDING
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex justify-center">
-
-                            <label
-                              className={`relative inline-flex items-center ${
-                                isTrendingLoading
-                                  ? "cursor-wait"
-                                  : "cursor-pointer"
-                              }`}
-                              title={
-                                isTrending
-                                  ? "Remove from Trending"
-                                  : "Add to Trending"
-                              }
-                            >
-
-                              <input
-                                type="checkbox"
-                                checked={
-                                  isTrending
-                                }
-                                disabled={
-                                  isTrendingLoading
-                                }
-                                onChange={(e) =>
-                                  onTrendingToggle(
-                                    product,
-                                    e.target.checked
-                                  )
-                                }
-                                className="peer sr-only"
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/30">
+                              <FiZoomIn
+                                size={18}
+                                className="scale-0 text-white opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100"
                               />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
+                            <FiImage size={21} />
+                          </div>
+                        )}
+                      </td>
 
-                              {/* Toggle */}
-                              <div
+                      {/* =================================================
+                          PRODUCT
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="max-w-[230px]">
+                          <p className="truncate text-sm font-bold text-[#2a2620]">
+                            {product.name}
+                          </p>
+
+                          <p className="mt-1 truncate text-xs leading-5 text-[#a89a7d]">
+                            {product.description ||
+                              "No description available"}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* =================================================
+                          SKU
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <span className="inline-flex rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] px-3 py-1.5 text-xs font-semibold tracking-wide text-[#786f60]">
+                          {product.product_code ||
+                            "-"}
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          CATEGORY
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#d4af52]" />
+
+                          <span className="text-sm font-medium text-[#4a4436]">
+                            {categoryName}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* =================================================
+                          TAX CATEGORY
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <span className="text-sm font-medium text-[#6b6152]">
+                          {taxCategoryName}
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          RETAIL PRICE
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-semibold text-[#a8841c]">
+                            ₹
+                          </span>
+
+                          <span className="text-sm font-bold text-[#2a2620]">
+                            {Number(
+                              product.retail_price ||
+                                0
+                            ).toLocaleString(
+                              "en-IN"
+                            )}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* =================================================
+                          STOCK
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
+                            isLowStock
+                              ? "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]"
+                              : "border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
+                          }`}
+                        >
+                          {stock}
+                        </span>
+                      </td>
+
+                      {/* =================================================
+                          STATUS DROPDOWN
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="relative">
+                          <select
+                            value={
+                              isPublished
+                                ? "active"
+                                : "inactive"
+                            }
+                            disabled={
+                              isPublishLoading
+                            }
+                            onChange={(e) => {
+                              const nextStatus =
+                                e.target.value ===
+                                "active";
+
+                              // Only call API if status is actually changed
+                              if (
+                                nextStatus !==
+                                isPublished
+                              ) {
+                                onPublishToggle(
+                                  product,
+                                  nextStatus
+                                );
+                              }
+                            }}
+                            className={`
+                              h-[38px]
+                              min-w-[112px]
+                              appearance-none
+                              rounded-full
+                              border
+                              px-3
+                              pr-8
+                              text-xs
+                              font-bold
+                              outline-none
+                              transition-all
+                              duration-200
+                              cursor-pointer
+                              disabled:cursor-not-allowed
+                              disabled:opacity-60
+                              ${
+                                isPublished
+                                  ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d] hover:border-[#b8902e]/50"
+                                  : "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c] hover:border-[#b8aea0]"
+                              }
+                              focus:border-[#b8902e]
+                              focus:ring-2
+                              focus:ring-[#b8902e]/15
+                            `}
+                          >
+                            <option value="active">
+                              Active
+                            </option>
+
+                            <option value="inactive">
+                              Inactive
+                            </option>
+                          </select>
+
+                          {/* Dropdown Arrow */}
+
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                            {isPublishLoading ? (
+                              <span className="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#b8902e]/25 border-t-[#b8902e]" />
+                            ) : (
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 12 12"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M3 4.5L6 7.5L9 4.5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            )}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* =================================================
+                          TRENDING
+                      ================================================= */}
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center">
+                          <label
+                            className={`relative inline-flex items-center ${
+                              isTrendingLoading
+                                ? "cursor-wait"
+                                : "cursor-pointer"
+                            }`}
+                            title={
+                              isTrending
+                                ? "Remove from Trending"
+                                : "Add to Trending"
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isTrending}
+                              disabled={
+                                isTrendingLoading
+                              }
+                              onChange={(e) =>
+                                onTrendingToggle(
+                                  product,
+                                  e.target.checked
+                                )
+                              }
+                              className="peer sr-only"
+                            />
+
+                            {/* Toggle */}
+
+                            <div
+                              className={`
+                                relative
+                                h-7
+                                w-12
+                                rounded-full
+                                border
+                                transition-all
+                                duration-200
+                                ${
+                                  isTrending
+                                    ? "border-[#b8902e] bg-gradient-to-r from-[#d4af52] to-[#a8841c]"
+                                    : "border-[#d8d0c0] bg-[#eeeae2]"
+                                }
+                                peer-focus:outline-none
+                                peer-focus:ring-2
+                                peer-focus:ring-[#b8902e]/20
+                              `}
+                            >
+                              <span
                                 className={`
-                                  relative h-7 w-12 rounded-full
-                                  border transition-all duration-200
+                                  absolute
+                                  top-[3px]
+                                  h-5
+                                  w-5
+                                  rounded-full
+                                  bg-white
+                                  shadow-sm
+                                  transition-all
+                                  duration-200
                                   ${
                                     isTrending
-                                      ? "border-[#b8902e] bg-gradient-to-r from-[#d4af52] to-[#a8841c]"
-                                      : "border-[#d8d0c0] bg-[#eeeae2]"
+                                      ? "left-[23px]"
+                                      : "left-[3px]"
                                   }
-                                  peer-focus:outline-none
-                                  peer-focus:ring-2
-                                  peer-focus:ring-[#b8902e]/20
                                 `}
-                              >
-
-                                <span
-                                  className={`
-                                    absolute top-[3px]
-                                    h-5 w-5 rounded-full
-                                    bg-white shadow-sm
-                                    transition-all duration-200
-                                    ${
-                                      isTrending
-                                        ? "left-[23px]"
-                                        : "left-[3px]"
-                                    }
-                                  `}
-                                />
-
-                              </div>
-
-                              {/* Loading overlay */}
-                              {isTrendingLoading && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#8f6d1d]/25 border-t-[#8f6d1d]" />
-                                </span>
-                              )}
-                            </label>
-
-                          </div>
-                        </td>
-
-                        {/* =================================================
-                            ACTIONS
-                        ================================================= */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex justify-end gap-2">
-
-                            {/* VIEW */}
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onView(product)
-                              }
-                              className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white hover:shadow-md hover:shadow-[#b8902e]/20"
-                              title="View Product"
-                            >
-                              <FiEye
-                                size={16}
-                                className="transition-transform group-hover/view:scale-110"
                               />
-                            </button>
+                            </div>
 
-                            {/* EDIT */}
+                            {/* Loading overlay */}
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                onEdit(product)
-                              }
-                              className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#8f6d1d] hover:bg-[#8f6d1d] hover:text-white hover:shadow-md hover:shadow-[#8f6d1d]/20"
-                              title="Edit Product"
-                            >
-                              <FiEdit2
-                                size={15}
-                                className="transition-transform group-hover/edit:scale-110"
-                              />
-                            </button>
+                            {isTrendingLoading && (
+                              <span className="absolute inset-0 flex items-center justify-center">
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#8f6d1d]/25 border-t-[#8f6d1d]" />
+                              </span>
+                            )}
+                          </label>
+                        </div>
+                      </td>
 
-                          </div>
-                        </td>
+                      {/* =================================================
+                          ACTIONS
+                      ================================================= */}
 
-                      </tr>
-                    );
-                  }
-                )
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          {/* VIEW */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onView(product)
+                            }
+                            className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white hover:shadow-md hover:shadow-[#b8902e]/20"
+                            title="View Product"
+                          >
+                            <FiEye
+                              size={16}
+                              className="transition-transform group-hover/view:scale-110"
+                            />
+                          </button>
+
+                          {/* EDIT */}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onEdit(product)
+                            }
+                            className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition-all duration-200 hover:border-[#8f6d1d] hover:bg-[#8f6d1d] hover:text-white hover:shadow-md hover:shadow-[#8f6d1d]/20"
+                            title="Edit Product"
+                          >
+                            <FiEdit2
+                              size={15}
+                              className="transition-transform group-hover/edit:scale-110"
+                            />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -711,48 +792,35 @@ const ProductTable: React.FC<
         ================================================= */}
 
         <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-4 sm:px-5">
-
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-
             {/* ENTRY INFORMATION */}
 
             <div className="text-center sm:text-left">
-
               <p className="text-xs text-[#8b8171]">
                 Showing{" "}
-
                 <span className="font-bold text-[#4a4436]">
                   {startEntry}
                 </span>{" "}
-
                 to{" "}
-
                 <span className="font-bold text-[#4a4436]">
                   {endEntry}
                 </span>{" "}
-
                 of{" "}
-
                 <span className="font-bold text-[#4a4436]">
                   {totalEntries}
                 </span>{" "}
-
                 entries
               </p>
-
             </div>
 
             {/* PAGINATION */}
 
             <div className="flex items-center gap-1.5">
-
               {/* PREVIOUS */}
 
               <button
                 type="button"
-                disabled={
-                  currentPage === 1
-                }
+                disabled={currentPage === 1}
                 onClick={() =>
                   onPageChange(
                     currentPage - 1
@@ -761,31 +829,27 @@ const ProductTable: React.FC<
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] transition-all hover:border-[#b8902e]/30 hover:bg-[#faf8f3] disabled:cursor-not-allowed disabled:opacity-30"
                 title="Previous page"
               >
-                <FiChevronLeft
-                  size={17}
-                />
+                <FiChevronLeft size={17} />
               </button>
 
               {/* PAGES */}
 
-              {paginationPages.map(
-                (page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() =>
-                      onPageChange(page)
-                    }
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                      currentPage === page
-                        ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
-                        : "border border-transparent text-[#786f60] hover:border-[#b8902e]/20 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
+              {paginationPages.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  onClick={() =>
+                    onPageChange(page)
+                  }
+                  className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                    currentPage === page
+                      ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
+                      : "border border-transparent text-[#786f60] hover:border-[#b8902e]/20 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
 
               {/* NEXT */}
 
@@ -808,42 +872,44 @@ const ProductTable: React.FC<
                   size={17}
                 />
               </button>
-
             </div>
           </div>
         </div>
       </div>
 
       {/* =================================================
-          IMAGE ZOOM MODAL - Using GlobalModal
+          IMAGE ZOOM MODAL
       ================================================= */}
 
       <GlobalModal
         isOpen={!!zoomedImage}
         onClose={handleCloseZoom}
         closeOnOverlayClick={true}
-        className="!max-w-[90vw] !max-h-[90vh] !bg-transparent !shadow-none"
+        className="!max-h-[90vh] !max-w-[90vw] !bg-transparent !shadow-none"
       >
         {zoomedImage && (
           <div className="relative flex items-center justify-center">
-            {/* Close button */}
+            {/* CLOSE BUTTON */}
+
             <button
               type="button"
               onClick={handleCloseZoom}
-              className="absolute right-0 -top-6 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:bg-white/20 hover:scale-110"
+              className="absolute -top-6 right-0 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:scale-110 hover:bg-white/20"
               aria-label="Close zoom"
             >
               <FiX size={28} />
             </button>
 
-            {/* Product name */}
+            {/* PRODUCT NAME */}
+
             <div className="absolute -top-12 left-0 z-10 max-w-[80%] rounded-lg bg-black/0 px-4 py-2 backdrop-blur-sm">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="truncate text-sm font-medium text-white">
                 {zoomedImage.name}
               </p>
             </div>
 
-            {/* Image container */}
+            {/* IMAGE CONTAINER */}
+
             <div
               className="relative max-h-[85vh] max-w-[85vw] cursor-zoom-out"
               onClick={handleCloseZoom}
@@ -853,15 +919,22 @@ const ProductTable: React.FC<
                 alt={zoomedImage.name}
                 className="max-h-[80vh] max-w-[80vw] rounded-2xl object-contain shadow-2xl"
                 onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
+                  const target =
+                    e.target as HTMLImageElement;
+
+                  target.style.display =
+                    "none";
                 }}
               />
             </div>
 
-            {/* Hint text */}
-            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 text-center text-xs text-white/50 whitespace-nowrap">
-              <p>Click anywhere to close • ESC to exit</p>
+            {/* HINT TEXT */}
+
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-xs text-white/50">
+              <p>
+                Click anywhere to close • ESC to
+                exit
+              </p>
             </div>
           </div>
         )}

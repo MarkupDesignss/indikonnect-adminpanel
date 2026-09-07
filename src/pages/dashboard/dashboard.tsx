@@ -579,10 +579,11 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  const handleReview = (id: number) => {
+  // ✅ Updated to send user_name instead of id
+  const handleReview = (review: any) => {
     navigate("/UserManagement", {
       state: {
-        kycReviewId: id,
+        kycUserName: review.user_name, // Send name instead of ID
       },
     });
   };
@@ -1898,9 +1899,10 @@ const Dashboard = () => {
                       </div>
                     </div>
 
+                    {/* ✅ Updated onClick to pass entire review object */}
                     <button
                       type="button"
-                      onClick={() => handleReview(review.id)}
+                      onClick={() => handleReview(review)}
                       className="shrink-0 rounded-lg border border-[#b8902e]/18 bg-white px-3 py-1.5 text-[9px] font-bold text-[#8d691d] transition hover:bg-[#b8902e] hover:text-white"
                     >
                       Review

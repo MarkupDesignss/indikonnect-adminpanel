@@ -10,7 +10,6 @@ import {
   FiSearch,
   FiRefreshCw,
   FiEye,
-  FiCheck,
   FiX,
   FiUser,
   FiUsers,
@@ -21,7 +20,6 @@ import {
   FiMail,
   FiPhone,
   FiCalendar,
-  FiMapPin,
   FiShield,
   FiCreditCard,
   FiBriefcase,
@@ -325,22 +323,15 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   onStatusChange,
   isLoading,
 }) => {
-  // All hooks must be called before any early return
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Normalize KYC status for comparison
   const normalizedKycStatus = kycStatus?.toLowerCase() || "";
   
-  // Check if KYC is pending
   const isKycPending = normalizedKycStatus === "pending";
-
-  // Check if KYC is verified (active, verified, approved)
   const isKycVerified = normalizedKycStatus === "active" || 
                         normalizedKycStatus === "verified" || 
                         normalizedKycStatus === "approved";
-  
-  // Check if KYC is rejected
   const isKycRejected = normalizedKycStatus === "rejected";
 
   useEffect(() => {
@@ -353,7 +344,6 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // If KYC is not pending, show static status badge
   if (!isKycPending) {
     let label = "N/A";
     let statusClass = "";
@@ -378,7 +368,6 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
     );
   }
 
-  // KYC is pending - show dropdown with Verify and Reject options
   const statusOptions = [
     { value: "active", label: "Verify & Activate", color: "text-[#806319]" },
     { value: "rejected", label: "Reject", color: "text-[#b46055]" },
@@ -1182,11 +1171,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const UserManagement: React.FC = () => {
   const location = useLocation();
   
-  // ✅ Get user/admin from header navigation state
+  // ✅ Get KYC user name from dashboard navigation
+  const kycUserName = location.state?.kycUserName as string | undefined;
+  
+  // ✅ Also support direct user/admin from header
   const userFromHeader = location.state?.user as RegisteredUser | undefined;
   const adminFromHeader = location.state?.admin as RegisteredUser | undefined;
-  
-  // Priority: userFromHeader first, then adminFromHeader
   const personFromHeader = userFromHeader || adminFromHeader;
 
   const [users, setUsers] = useState<RegisteredUser[]>([]);
@@ -1218,10 +1208,19 @@ const UserManagement: React.FC = () => {
         const userData = response.data.data || [];
         setUsers(userData);
 
-        // ✅ Handle person from header (user or admin)
-        if (personFromHeader && isInitialLoad && userData.length > 0) {
+        // ✅ PRIORITY 1: Handle KYC User Name from Dashboard
+        if (kycUserName && isInitialLoad && userData.length > 0) {
+          // Search for user by name (case insensitive partial match)
+          const searchTerm = kycUserName.trim().toLowerCase();
+          
           const targetUser = userData.find(
-            (user: RegisteredUser) => String(user.id) === String(personFromHeader.id)
+            (user: RegisteredUser) => {
+              const fullName = (user.full_name || "").toLowerCase();
+              const email = (user.email || "").toLowerCase();
+              return fullName.includes(searchTerm) || 
+                     email.includes(searchTerm) ||
+                     fullName === searchTerm;
+            }
           );
 
           if (targetUser) {
@@ -1231,9 +1230,32 @@ const UserManagement: React.FC = () => {
             setHighlightedUserId(targetUser.id);
             
             // Also open the detail modal for the user
-            handleView(targetUser.id);
+            await handleView(targetUser.id);
+            
+            toast.success(`Found KYC review for ${getUserName(targetUser)}`);
           } else {
-            // If user not found, try searching by ID as a fallback
+            // If user not found by name, search by the name itself
+            setSearch(kycUserName);
+            toast.info(`Searching for user: ${kycUserName}`);
+          }
+          
+          setIsInitialLoad(false);
+          return; // ✅ Exit early so we don't process header user
+        }
+
+        // ✅ PRIORITY 2: Handle person from header (user or admin)
+        if (personFromHeader && isInitialLoad && userData.length > 0) {
+          const targetUser = userData.find(
+            (user: RegisteredUser) => String(user.id) === String(personFromHeader.id)
+          );
+
+          if (targetUser) {
+            const searchTerm = targetUser.full_name || targetUser.email || String(targetUser.id);
+            setSearch(searchTerm);
+            setHighlightedUserId(targetUser.id);
+            
+            await handleView(targetUser.id);
+          } else {
             setSearch(String(personFromHeader.id));
             toast.info(`Looking for user with ID: ${personFromHeader.id}`);
           }
@@ -1266,44 +1288,19 @@ const UserManagement: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = users.length;
-
     const active = users.filter((user) => user.is_active).length;
-
     const inactive = users.filter((user) => !user.is_active).length;
-
     const distributors = users.filter(
       (user) => user.account_type === "distributor"
     ).length;
-
-    const distributorActive = users.filter(
-      (user) =>
-        user.account_type === "distributor" &&
-        user.distributor_status?.toLowerCase() === "active"
-    ).length;
-
-    const distributorPending = users.filter(
-      (user) =>
-        user.account_type === "distributor" &&
-        user.distributor_status?.toLowerCase() === "pending"
-    ).length;
-
-    const distributorRejected = users.filter(
-      (user) =>
-        user.account_type === "distributor" &&
-        user.distributor_status?.toLowerCase() === "rejected"
-    ).length;
-
+  
     return {
       total,
       active,
       inactive,
       distributors,
-      distributorActive,
-      distributorPending,
-      distributorRejected,
     };
   }, [users]);
-
   // =================================================
   // FILTER
   // =================================================
@@ -1488,70 +1485,70 @@ const UserManagement: React.FC = () => {
   };
 
   const handleUpdateDistributorStatus = async (userId: number, newStatus: string) => {
-      try {
-        setDistributorLoadingId(userId);
-    
-        // Map "active" to "verified" before sending the payload
-        const payloadStatus = newStatus === "active" ? "verified" : newStatus;
-    
-        const response = await userManagementApi.updateDistributorStatus(
-          userId,
-          payloadStatus
-        );
-    
-        if (response.data.success) {
-          setUsers((prev) =>
-            prev.map((item) =>
-              item.id === userId
-                ? {
-                    ...item,
-                    distributor_status: newStatus,
-                    business_profile: item.business_profile
-                      ? {
-                          ...item.business_profile,
-                          kyc_status: newStatus,
-                        }
-                      : null,
-                  }
-                : item
-            )
-          );
-    
-          setSelectedUser((current) =>
-            current?.id === userId
+    try {
+      setDistributorLoadingId(userId);
+
+      // Map "active" to "verified" before sending the payload
+      const payloadStatus = newStatus === "active" ? "verified" : newStatus;
+
+      const response = await userManagementApi.updateDistributorStatus(
+        userId,
+        payloadStatus
+      );
+
+      if (response.data.success) {
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.id === userId
               ? {
-                  ...current,
+                  ...item,
                   distributor_status: newStatus,
-                  business_profile: current.business_profile
+                  business_profile: item.business_profile
                     ? {
-                        ...current.business_profile,
+                        ...item.business_profile,
                         kyc_status: newStatus,
                       }
                     : null,
-              }
-              : current
-          );
-    
-          const displayStatus = newStatus === "active" ? "Verified" : newStatus;
-          toast.success(
-            response.data.message ||
-              `KYC status updated to ${displayStatus} successfully.`
-          );
-        } else {
-          toast.error(
-            response.data.message || "Unable to update KYC status."
-          );
-        }
-      } catch (error: any) {
-        console.error("Update KYC status error:", error);
-    
-        toast.error(
-          error?.response?.data?.message || "Unable to update KYC status."
+                }
+              : item
+          )
         );
-      } finally {
-        setDistributorLoadingId(null);
+
+        setSelectedUser((current) =>
+          current?.id === userId
+            ? {
+                ...current,
+                distributor_status: newStatus,
+                business_profile: current.business_profile
+                  ? {
+                      ...current.business_profile,
+                      kyc_status: newStatus,
+                    }
+                  : null,
+              }
+            : current
+        );
+
+        const displayStatus = newStatus === "active" ? "Verified" : newStatus;
+        toast.success(
+          response.data.message ||
+            `KYC status updated to ${displayStatus} successfully.`
+        );
+      } else {
+        toast.error(
+          response.data.message || "Unable to update KYC status."
+        );
       }
-    };
+    } catch (error: any) {
+      console.error("Update KYC status error:", error);
+
+      toast.error(
+        error?.response?.data?.message || "Unable to update KYC status."
+      );
+    } finally {
+      setDistributorLoadingId(null);
+    }
+  };
 
   // =================================================
   // PAGINATION PAGES
@@ -1641,7 +1638,7 @@ const UserManagement: React.FC = () => {
 
         <motion.div
           variants={containerVariants}
-          className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7"
+          className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <StatCard
             title="Total Users"
@@ -1675,29 +1672,6 @@ const UserManagement: React.FC = () => {
             accent="bg-gradient-to-r from-[#d4af52] to-[#806319]"
           />
 
-          <StatCard
-            title="Dist. Active"
-            value={stats.distributorActive}
-            subtitle="Active distributors"
-            icon={<FiCheckCircle size={21} />}
-            accent="bg-gradient-to-r from-[#b8902e] to-[#806319]"
-          />
-
-          <StatCard
-            title="Dist. Pending"
-            value={stats.distributorPending}
-            subtitle="Pending approval"
-            icon={<FiAlertCircle size={21} />}
-            accent="bg-gradient-to-r from-[#d9a441] to-[#a06f13]"
-          />
-
-          <StatCard
-            title="Dist. Rejected"
-            value={stats.distributorRejected}
-            subtitle="Rejected distributors"
-            icon={<FiX size={21} />}
-            accent="bg-gradient-to-r from-[#c98d83] to-[#b46055]"
-          />
         </motion.div>
 
         {/* MAIN CARD */}

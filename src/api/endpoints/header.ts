@@ -1,8 +1,5 @@
 import apiClient from "../client";
 
-// =====================================================
-// TYPES
-// =====================================================
 
 export interface HeaderLogo {
   id: number;
@@ -17,7 +14,6 @@ export interface HeaderMenu {
   slug: string;
   sort_order: number;
   status: boolean;
-  type?: string;
 }
 
 export interface HeaderData {
@@ -38,7 +34,82 @@ export interface HeaderActionResponse {
 }
 
 // =====================================================
-// API FUNCTIONS
+// GLOBAL SEARCH TYPES
+// =====================================================
+
+export interface GlobalSearchPayload {
+  search: string;
+}
+
+export interface GlobalSearchProduct {
+  id: number;
+  name?: string;
+  title?: string;
+  [key: string]: any;
+}
+
+export interface GlobalSearchAdmin {
+  id: number;
+  name: string;
+  email: string;
+  profile_picture: string | null;
+  [key: string]: any;
+}
+
+export interface GlobalSearchUser {
+  id: number;
+  name: string;
+  email: string;
+  profile_picture: string | null;
+  [key: string]: any;
+}
+
+export interface GlobalSearchData {
+  products: GlobalSearchProduct[];
+  admins: GlobalSearchAdmin[];
+  users: GlobalSearchUser[];
+  total_results: number;
+}
+
+export interface GlobalSearchResponse {
+  success: boolean;
+  message?: string;
+  data: GlobalSearchData;
+}
+
+// =====================================================
+// CREATE HEADER / MENU
+// POST /header/add
+// =====================================================
+
+export interface AddHeaderPayload {
+  logo?: File | null;
+  favicon?: File | null;
+  title: string;
+  status: boolean;
+  type: string;
+}
+
+const buildHeaderFormData = (payload: AddHeaderPayload) => {
+  const formData = new FormData();
+
+  if (payload.logo) {
+    formData.append("logo", payload.logo);
+  }
+
+  if (payload.favicon) {
+    formData.append("favicon", payload.favicon);
+  }
+
+  formData.append("title", payload.title);
+  formData.append("status", payload.status ? "1" : "0");
+  formData.append("type", payload.type);
+
+  return formData;
+};
+
+// =====================================================
+// API
 // =====================================================
 
 export const headerApi = {
@@ -47,63 +118,68 @@ export const headerApi = {
    * Get header logo, favicon and menus
    */
   getAll: () =>
-    apiClient.get<HeaderResponse>("/header"),
+    apiClient.get<HeaderResponse>(
+      "/header"
+    ),
 
   /**
    * POST /header/add
-   * Add header menu
-   * Sending as JSON instead of FormData
+   * Add header menu / header configuration
    */
-  addMenu: (payload: { title: string; status: boolean; type: string }) =>
-    apiClient.post<HeaderActionResponse>("/header/add", payload),
-
-  /**
-   * POST /header/update/:id
-   * Update header menu
-   * Sending as JSON instead of FormData
-   */
-  updateMenu: (
-    id: number,
-    payload: { title: string; status: boolean; type: string }
+  add: (
+    payload: AddHeaderPayload
   ) =>
-    apiClient.post<HeaderActionResponse>(`/header/update/${id}`, payload),
-
-  /**
-   * DELETE /header/delete/:id
-   * Delete header menu
-   */
-  deleteMenu: (id: number) =>
-    apiClient.delete<HeaderActionResponse>(`/header/delete/${id}`),
-
-  /**
-   * POST /header/update-branding/:id
-   * Update branding (logo & favicon)
-   * Using FormData for file uploads
-   */
-  updateBranding: (
-    id: number,
-    payload: { logo: File | null; favicon: File | null }
-  ) => {
-    const formData = new FormData();
-    
-    if (payload.logo) {
-      formData.append("logo", payload.logo);
-    }
-    
-    if (payload.favicon) {
-      formData.append("favicon", payload.favicon);
-    }
-    
-    return apiClient.post<HeaderActionResponse>(
-      `/header/update-branding/${id}`,
-      formData,
+    apiClient.post<HeaderActionResponse>(
+      "/header/add",
+      buildHeaderFormData(payload),
       {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       }
-    );
-  },
+    ),
+
+  /**
+   * POST /header/update/:id
+   * Update header menu / header configuration
+   */
+  update: (
+    id: number,
+    payload: AddHeaderPayload
+  ) =>
+    apiClient.post<HeaderActionResponse>(
+      `/header/update/${id}`,
+      buildHeaderFormData(payload),
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    ),
+
+  /**
+   * DELETE /header/delete/:id
+   * Delete header menu
+   */
+  delete: (
+    id: number
+  ) =>
+    apiClient.delete<HeaderActionResponse>(
+      `/header/delete/${id}`
+    ),
+
+  // ===================================================
+  // GLOBAL SEARCH
+  // POST /api/global-search
+  // ===================================================
+
+  globalSearch: (
+    payload: GlobalSearchPayload
+  ) =>
+    apiClient.post<GlobalSearchResponse>(
+      "/global-search",
+      payload
+    ),
 };
 
 export default headerApi;

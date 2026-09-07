@@ -216,6 +216,14 @@ export interface DealPayload {
   sale_type: string;
 }
 
+// ============================
+// PUBLISH / UNPUBLISH PAYLOAD
+// ============================
+
+export interface PublishProductPayload {
+  is_published: 0 | 1;
+}
+
 export interface Pagination {
   total: number;
   per_page: number;
@@ -240,56 +248,37 @@ export interface ApiResponse<T = unknown> {
   filters?: ProductFilters;
 }
 
-
 export const productApi = {
-  
-  getProducts: (
-    params?: Record<string, unknown>
-  ) =>
-    apiClient.get<ApiResponse<Product[]>>(
-      "/products",
-      { params }
-    ),
+  // ============================
+  // PRODUCT CRUD
+  // ============================
+
+  getProducts: (params?: Record<string, unknown>) =>
+    apiClient.get<ApiResponse<Product[]>>("/products", {
+      params,
+    }),
 
   getProductById: (id: number) =>
-    apiClient.get<ApiResponse<Product>>(
-      `/products/${id}`
-    ),
+    apiClient.get<ApiResponse<Product>>(`/products/${id}`),
 
   getProductBySlug: (slug: string) =>
-    apiClient.get<ApiResponse<Product>>(
-      `/products/slug/${slug}`
-    ),
+    apiClient.get<ApiResponse<Product>>(`/products/slug/${slug}`),
 
   createProduct: (data: FormData) =>
-    apiClient.post<ApiResponse<Product>>(
-      "/products",
-      data,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    ),
+    apiClient.post<ApiResponse<Product>>("/products", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
 
-  updateProduct: (
-    id: number,
-    data: FormData
-  ) =>
-    apiClient.post<ApiResponse<Product>>(
-      `/products/update/${id}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    ),
+  updateProduct: (id: number, data: FormData) =>
+    apiClient.post<ApiResponse<Product>>(`/products/update/${id}`, data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
 
-  deleteImages: (
-    productId: number,
-    imageIds: number[]
-  ) =>
+  deleteImages: (productId: number, imageIds: number[]) =>
     apiClient.delete<ApiResponse<null>>(
       `/products/${productId}/images`,
       {
@@ -300,9 +289,21 @@ export const productApi = {
     ),
 
   // ============================
-  // deal CRUD
+  // PUBLISH / UNPUBLISH PRODUCT
   // ============================
 
+  publishProduct: (
+    productId: number,
+    data: PublishProductPayload
+  ) =>
+    apiClient.post<ApiResponse<Product>>(
+      `/publish/${productId}/product`,
+      data
+    ),
+
+  // ============================
+  // DEAL CRUD
+  // ============================
 
   getDeals: () =>
     apiClient.get<ApiResponse<Product[]>>(

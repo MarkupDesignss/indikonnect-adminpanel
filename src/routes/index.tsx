@@ -1,5 +1,4 @@
-
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import Login from "../pages/User/Login";
 import MainLayout from "../components/layout/MainLayout";
@@ -18,7 +17,7 @@ import Subscribers from "@/pages/Subscribers/Subscribers";
 import Contact from "@/pages/Contact/contact";
 import Coupons from "@/pages/Coupons/coupons";
 import RoleManagement from "@/pages/Rolemanagement/RoleManagement";
-import AdminManagement from "@/pages/Rolemanagement/AdminManagement"; 
+import AdminManagement from "@/pages/Rolemanagement/AdminManagement";
 
 import HeaderManagement from "@/pages/Cms/HeaderManagement";
 import FooterManagement from "@/pages/Cms/FooterManagement";
@@ -35,10 +34,24 @@ import CreditNotes from "@/pages/CreditNotes/CreditNotes";
 import ReelsManagement from "@/pages/ReelsManagement/ReelsManagement";
 import SubCategories from "@/pages/Inventory/SubCategories";
 
+import ScrollToTop from "../ScrollToTop";
+
+const ScrollLayout = () => {
+  return (
+    <>
+      <ScrollToTop />
+      <Outlet />
+    </>
+  );
+};
+
 const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
 
 export const router = createBrowserRouter(
   [
+    // =========================
+    // AUTH ROUTES
+    // =========================
     {
       path: "/login",
       element: <Login />,
@@ -55,107 +68,135 @@ export const router = createBrowserRouter(
       path: "/otp-verification",
       element: <OTPVerification />,
     },
-  
+
+    // =========================
+    // MAIN APPLICATION
+    // =========================
     {
       path: "/",
-      element: <MainLayout />,
+      element: <ScrollLayout />,
       children: [
         {
-          index: true,
-          element: <Dashboard />,
+          element: <MainLayout />,
+          children: [
+            {
+              index: true,
+              element: <Dashboard />,
+            },
+
+            {
+              path: "inventory/Taxcategories",
+              element: <Taxcategories />,
+            },
+
+            {
+              path: "inventory/AttributesManagement",
+              element: <AttributesManagement />,
+            },
+
+            {
+              path: "inventory/SubCategories",
+              element: <SubCategories />,
+            },
+
+            {
+              path: "Notifications",
+              element: <Notifications />,
+            },
+
+            {
+              path: "Subscribers",
+              element: <Subscribers />,
+            },
+
+            {
+              path: "Payout",
+              element: <Payout />,
+            },
+
+            {
+              path: "Payment",
+              element: <Payment />,
+            },
+
+            {
+              path: "Contact",
+              element: <Contact />,
+            },
+
+            {
+              path: "Coupons",
+              element: <Coupons />,
+            },
+
+            {
+              path: "BuyBack",
+              element: <BuyBack />,
+            },
+
+            {
+              path: "RoleManagement/role",
+              element: <RoleManagement />,
+            },
+
+            {
+              path: "RoleManagement/addmember",
+              element: <AdminManagement />,
+            },
+
+            {
+              path: "cms/header",
+              element: <HeaderManagement />,
+            },
+
+            {
+              path: "cms/footer",
+              element: <FooterManagement />,
+            },
+
+            {
+              path: "cms/growth",
+              element: <GrowthSteps />,
+            },
+
+            {
+              path: "cms/content",
+              element: <ContentsManagement />,
+            },
+
+            {
+              path: "cms/brands",
+              element: <BrandsManagement />,
+            },
+
+            {
+              path: "UserManagement",
+              element: <UserManagement />,
+            },
+
+            {
+              path: "CreditNotes",
+              element: <CreditNotes />,
+            },
+
+            {
+              path: "UpdateProfile",
+              element: <UpdateProfile />,
+            },
+
+            {
+              path: "ChangePassword",
+              element: <ChangePassword />,
+            },
+
+            {
+              path: "cms/ReelsManagement",
+              element: <ReelsManagement />,
+            },
+
+            ...appRoutes,
+          ],
         },
-        {
-          path: "inventory/Taxcategories",
-          element: <Taxcategories />,
-        },
-        {
-          path: "inventory/AttributesManagement",
-          element: <AttributesManagement />,
-        },
-        {
-          path: "/inventory/SubCategories",
-          element: <SubCategories />,
-        },
-        {
-          path: "Notifications",
-          element: <Notifications />,
-        },
-        {
-          path: "Subscribers",
-          element: <Subscribers />,
-        },
-        {
-          path: "/Payout",
-          element: <Payout />,
-        },
-        {
-          path: "/Payment",
-          element: <Payment />,
-        },
-        {
-          path: "Contact",
-          element: <Contact />,
-        },
-        {
-          path: "Coupons",
-          element: <Coupons />,
-        },
-       
-        {
-          path: "/BuyBack",
-          element: <BuyBack />,
-        },
-        
-        {
-          path: "RoleManagement/role",
-          element: <RoleManagement />,
-        },
-        {
-          path: "RoleManagement/addmember",
-          element: <AdminManagement />,
-        },
-        {
-          path: "cms/header",
-          element: <HeaderManagement />,
-        },
-        {
-          path: "cms/footer",
-          element: <FooterManagement />,
-        },
-        {
-          path: "cms/growth",
-          element: <GrowthSteps />,
-        },
-        {
-          path: "cms/content",
-          element: <ContentsManagement />,
-        },
-        {
-          path: "cms/brands",
-          element: <BrandsManagement />,
-        },
-        {
-          path: "UserManagement",
-          element: <UserManagement />,
-        },
-        {
-          path: "CreditNotes",
-          element: <CreditNotes />,
-        },
-        {
-          path: "UpdateProfile",
-          element: <UpdateProfile />,
-        },
-        {
-          path: "ChangePassword",
-          element: <ChangePassword />,
-        },
-        {
-          path: "/cms/ReelsManagement",
-          element: <ReelsManagement />,
-        },
-       
-        ...appRoutes,
       ],
     },
   ],
