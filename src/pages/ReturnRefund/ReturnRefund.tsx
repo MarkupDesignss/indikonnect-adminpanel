@@ -874,24 +874,7 @@ const ReturnDetailModal: React.FC<
               </div>
             </div>
 
-            {/* RETURN REASON */}
-
-            <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
-              <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
-                  <FiFileText size={17} />
-                </div>
-
-                <h3 className="text-sm font-bold text-[#2a2620]">
-                  Return Reason
-                </h3>
-              </div>
-
-              <p className="text-sm leading-6 text-[#6b6152]">
-                {detail.reason ||
-                  "No overall reason provided."}
-              </p>
-            </div>
+      
 
             {/* ITEMS */}
 
@@ -1092,7 +1075,7 @@ const ReturnDetailModal: React.FC<
               </div>
             </div>
 
-            {/* REFUND */}
+            {/* REFUND SUMMARY - SHIPPING REMOVED */}
 
             <div className="mt-5 rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3] p-5">
               <div className="mb-4 flex items-center gap-3">
@@ -1105,7 +1088,7 @@ const ReturnDetailModal: React.FC<
                 </h3>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
                     Subtotal
@@ -1128,19 +1111,6 @@ const ReturnDetailModal: React.FC<
                     {formatCurrency(
                       detail.refund_details
                         ?.tax
-                    )}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
-                    Shipping
-                  </p>
-
-                  <p className="mt-1 text-base font-bold text-[#2a2620]">
-                    {formatCurrency(
-                      detail.refund_details
-                        ?.shipping
                     )}
                   </p>
                 </div>

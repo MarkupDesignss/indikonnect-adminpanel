@@ -16,6 +16,7 @@ export const menuItems = [
     children: [
       { path: '/cms/brands', label: 'Brands', icon: 'brands' },
       { path: '/inventory/categories', label: 'Categories', icon: 'category' },
+      { path: '/inventory/SubCategories', label: 'Sub Categories', icon: 'SubCategories' },
       { path: '/inventory/tax-categories', label: 'Tax Categories', icon: 'percent' },
       { path: '/inventory/AttributesManagement', label: 'Attributes Management', icon: 'tune' },
       { path: '/inventory/products', label: 'Products', icon: 'shopping_bag' },
