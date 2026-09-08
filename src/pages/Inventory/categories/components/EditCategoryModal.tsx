@@ -206,7 +206,6 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                  <option value="draft">Draft</option>
                 </select>
               </div>
             </form>

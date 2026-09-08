@@ -1038,6 +1038,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                         onBlur={handleBlur}
                                         className={`mt-1 w-full rounded-xl border ${errors.encrypted_bank_account && touched.encrypted_bank_account ? "border-red-400" : "border-[#d8d0c0]"} bg-white px-4 py-2.5 text-sm text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:ring-2 focus:ring-[#b8902e]/15`}
                                         placeholder="Enter bank account number"
+                                        maxLength={20}
                                     />
                                     {errors.encrypted_bank_account && touched.encrypted_bank_account && (
                                         <p className="mt-1 text-xs text-red-500">
@@ -1063,6 +1064,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                                     : "border-[#d8d0c0]"
                                             } bg-white px-4 py-2.5 text-sm text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:ring-2 focus:ring-[#b8902e]/15`}
                                         placeholder="Confirm account number"
+                                        maxLength={20}
                                     />
                                     {errors.confirm_account_number && touched.confirm_account_number && (
                                         <p className="mt-1 text-xs text-red-500">

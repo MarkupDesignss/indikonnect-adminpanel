@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   FiChevronLeft,
@@ -7,7 +6,6 @@ import {
   FiEye,
   FiImage,
   FiPackage,
-  FiTrendingUp,
   FiX,
   FiZoomIn,
 } from "react-icons/fi";
@@ -189,44 +187,50 @@ const ProductTable: React.FC<ProductTableProps> = ({
         ================================================= */}
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1370px] border-collapse">
+          <table className="w-full min-w-[1100px] border-collapse">
             {/* =================================================
                 TABLE HEADER
             ================================================= */}
 
             <thead>
               <tr className="bg-[#2f2a22] text-left">
+                {/* S.NO */}
+
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   S.No
                 </th>
+
+                {/* IMAGE */}
 
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Image
                 </th>
 
+                {/* PRODUCT */}
+
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Product
                 </th>
+
+                {/* SKU */}
 
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   SKU
                 </th>
 
-                <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
-                  Category
-                </th>
-
-                <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
-                  Tax Category
-                </th>
+                {/* RETAIL PRICE */}
 
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Retail Price
                 </th>
 
+                {/* STOCK */}
+
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Stock
                 </th>
+
+                {/* STATUS */}
 
                 <th className="whitespace-nowrap px-5 py-4 text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Status
@@ -237,6 +241,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <th className="whitespace-nowrap px-5 py-4 text-center text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Trending
                 </th>
+
+                {/* ACTIONS */}
 
                 <th className="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-[#f3dfab]">
                   Actions
@@ -256,7 +262,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               {loading ? (
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={9}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
@@ -285,7 +291,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                 <tr>
                   <td
-                    colSpan={11}
+                    colSpan={9}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
@@ -314,9 +320,13 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 ================================================= */
 
                 products.map((product, index) => {
+                  // =================================================
+                  // SERIAL NUMBER
+                  // =================================================
+
                   const serialNumber =
                     (currentPage - 1) *
-                      ITEMS_PER_PAGE +
+                    ITEMS_PER_PAGE +
                     index +
                     1;
 
@@ -332,22 +342,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     product.images?.[0];
 
                   // =================================================
-                  // CATEGORY
-                  // =================================================
-
-                  const categoryName =
-                    product.category?.name ||
-                    "-";
-
-                  // =================================================
-                  // TAX CATEGORY
-                  // =================================================
-
-                  const taxCategoryName =
-                    product.tax_category?.name ||
-                    "-";
-
-                  // =================================================
                   // STOCK
                   // =================================================
 
@@ -358,7 +352,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   const lowStockThreshold =
                     Number(
                       product.low_stock_threshold ||
-                        0
+                      0
                     );
 
                   const isLowStock =
@@ -373,13 +367,15 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     (
                       product as Product & {
                         is_published?:
-                          | number
-                          | boolean;
+                        | number
+                        | boolean
+                        | string;
                       }
                     ).is_published;
 
                   const isPublished =
                     rawPublished === true ||
+                    rawPublished === "true" ||
                     Number(rawPublished) === 1;
 
                   const isPublishLoading =
@@ -388,22 +384,21 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                   // =================================================
                   // TRENDING
-                  // Supports:
-                  // 1 / 0
-                  // true / false
                   // =================================================
 
                   const rawTrending =
                     (
                       product as Product & {
                         is_trending?:
-                          | number
-                          | boolean;
+                        | number
+                        | boolean
+                        | string;
                       }
                     ).is_trending;
 
                   const isTrending =
                     rawTrending === true ||
+                    rawTrending === "true" ||
                     Number(rawTrending) === 1;
 
                   const isTrendingLoading =
@@ -426,7 +421,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       </td>
 
                       {/* =================================================
-                          IMAGE - CLICK TO ZOOM
+                          IMAGE
                       ================================================= */}
 
                       <td className="px-5 py-4">
@@ -458,8 +453,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                               }}
                             />
 
-                            {/* Zoom Icon Overlay */}
-
                             <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/30">
                               <FiZoomIn
                                 size={18}
@@ -479,7 +472,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       ================================================= */}
 
                       <td className="px-5 py-4">
-                        <div className="max-w-[230px]">
+                        <div className="max-w-[250px]">
                           <p className="truncate text-sm font-bold text-[#2a2620]">
                             {product.name}
                           </p>
@@ -503,30 +496,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       </td>
 
                       {/* =================================================
-                          CATEGORY
-                      ================================================= */}
-
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[#d4af52]" />
-
-                          <span className="text-sm font-medium text-[#4a4436]">
-                            {categoryName}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* =================================================
-                          TAX CATEGORY
-                      ================================================= */}
-
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-medium text-[#6b6152]">
-                          {taxCategoryName}
-                        </span>
-                      </td>
-
-                      {/* =================================================
                           RETAIL PRICE
                       ================================================= */}
 
@@ -539,7 +508,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                           <span className="text-sm font-bold text-[#2a2620]">
                             {Number(
                               product.retail_price ||
-                                0
+                              0
                             ).toLocaleString(
                               "en-IN"
                             )}
@@ -553,18 +522,17 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                       <td className="px-5 py-4">
                         <span
-                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
-                            isLowStock
+                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${isLowStock
                               ? "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]"
                               : "border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
-                          }`}
+                            }`}
                         >
                           {stock}
                         </span>
                       </td>
 
                       {/* =================================================
-                          STATUS DROPDOWN
+                          STATUS
                       ================================================= */}
 
                       <td className="px-5 py-4">
@@ -572,37 +540,37 @@ const ProductTable: React.FC<ProductTableProps> = ({
                           <select
                             value={
                               isPublished
-                                ? "active"
-                                : "inactive"
+                                ? "published"
+                                : "unpublished"
                             }
                             disabled={
                               isPublishLoading
                             }
                             onChange={(e) => {
-                              const nextStatus =
+                              const nextPublished =
                                 e.target.value ===
-                                "active";
+                                "published";
 
-                              // Only call API if status is actually changed
                               if (
-                                nextStatus !==
+                                nextPublished !==
                                 isPublished
                               ) {
                                 onPublishToggle(
                                   product,
-                                  nextStatus
+                                  nextPublished
                                 );
                               }
                             }}
                             className={`
-                              h-[38px]
-                              min-w-[112px]
+                              h-[36px]
+                              min-w-[108px]
+                              max-w-[108px]
                               appearance-none
                               rounded-full
                               border
                               px-3
-                              pr-8
-                              text-xs
+                              pr-7
+                              text-[11px]
                               font-bold
                               outline-none
                               transition-all
@@ -610,34 +578,35 @@ const ProductTable: React.FC<ProductTableProps> = ({
                               cursor-pointer
                               disabled:cursor-not-allowed
                               disabled:opacity-60
-                              ${
-                                isPublished
-                                  ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d] hover:border-[#b8902e]/50"
-                                  : "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c] hover:border-[#b8aea0]"
+                              ${isPublished
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
+                                : "border-red-200 bg-red-50 text-red-600 hover:border-red-300"
                               }
                               focus:border-[#b8902e]
                               focus:ring-2
                               focus:ring-[#b8902e]/15
                             `}
                           >
-                            <option value="active">
-                              Active
+                            <option value="published">
+                              Published
                             </option>
 
-                            <option value="inactive">
-                              Inactive
+                            <option value="unpublished">
+                              Unpublished
                             </option>
                           </select>
 
-                          {/* Dropdown Arrow */}
+                          {/* DROPDOWN ARROW */}
 
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                          {/* DROPDOWN ARROW */}
+
+                          <span className="pointer-events-none absolute right-6.5 top-1/2 -translate-y-1/2">
                             {isPublishLoading ? (
-                              <span className="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#b8902e]/25 border-t-[#b8902e]" />
+                              <span className="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                             ) : (
                               <svg
-                                width="12"
-                                height="12"
+                                width="11"
+                                height="11"
                                 viewBox="0 0 12 12"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -662,11 +631,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       <td className="px-5 py-4">
                         <div className="flex justify-center">
                           <label
-                            className={`relative inline-flex items-center ${
-                              isTrendingLoading
+                            className={`relative inline-flex items-center ${isTrendingLoading
                                 ? "cursor-wait"
                                 : "cursor-pointer"
-                            }`}
+                              }`}
                             title={
                               isTrending
                                 ? "Remove from Trending"
@@ -688,48 +656,23 @@ const ProductTable: React.FC<ProductTableProps> = ({
                               className="peer sr-only"
                             />
 
-                            {/* Toggle */}
+                            {/* TOGGLE */}
 
                             <div
-                              className={`
-                                relative
-                                h-7
-                                w-12
-                                rounded-full
-                                border
-                                transition-all
-                                duration-200
-                                ${
-                                  isTrending
-                                    ? "border-[#b8902e] bg-gradient-to-r from-[#d4af52] to-[#a8841c]"
-                                    : "border-[#d8d0c0] bg-[#eeeae2]"
-                                }
-                                peer-focus:outline-none
-                                peer-focus:ring-2
-                                peer-focus:ring-[#b8902e]/20
-                              `}
+                              className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${isTrending
+                                  ? "border-[#b8902e] bg-gradient-to-r from-[#d4af52] to-[#a8841c]"
+                                  : "border-[#d8d0c0] bg-[#eeeae2]"
+                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#b8902e]/20`}
                             >
                               <span
-                                className={`
-                                  absolute
-                                  top-[3px]
-                                  h-5
-                                  w-5
-                                  rounded-full
-                                  bg-white
-                                  shadow-sm
-                                  transition-all
-                                  duration-200
-                                  ${
-                                    isTrending
-                                      ? "left-[23px]"
-                                      : "left-[3px]"
-                                  }
-                                `}
+                                className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${isTrending
+                                    ? "left-[23px]"
+                                    : "left-[3px]"
+                                  }`}
                               />
                             </div>
 
-                            {/* Loading overlay */}
+                            {/* LOADING */}
 
                             {isTrendingLoading && (
                               <span className="absolute inset-0 flex items-center justify-center">
@@ -820,7 +763,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
               <button
                 type="button"
-                disabled={currentPage === 1}
+                disabled={
+                  currentPage === 1
+                }
                 onClick={() =>
                   onPageChange(
                     currentPage - 1
@@ -834,22 +779,26 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
               {/* PAGES */}
 
-              {paginationPages.map((page) => (
-                <button
-                  key={page}
-                  type="button"
-                  onClick={() =>
-                    onPageChange(page)
-                  }
-                  className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                    currentPage === page
-                      ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
-                      : "border border-transparent text-[#786f60] hover:border-[#b8902e]/20 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+              {paginationPages.map(
+                (page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() =>
+                      onPageChange(
+                        page
+                      )
+                    }
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage ===
+                        page
+                        ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
+                        : "border border-transparent text-[#786f60] hover:border-[#b8902e]/20 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                      }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
 
               {/* NEXT */}
 
@@ -857,7 +806,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 type="button"
                 disabled={
                   currentPage ===
-                    totalPages ||
+                  totalPages ||
                   totalPages === 0
                 }
                 onClick={() =>
@@ -883,7 +832,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
       <GlobalModal
         isOpen={!!zoomedImage}
-        onClose={handleCloseZoom}
+        onClose={
+          handleCloseZoom
+        }
         closeOnOverlayClick={true}
         className="!max-h-[90vh] !max-w-[90vw] !bg-transparent !shadow-none"
       >
@@ -893,7 +844,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
             <button
               type="button"
-              onClick={handleCloseZoom}
+              onClick={
+                handleCloseZoom
+              }
               className="absolute -top-6 right-0 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white transition-all hover:scale-110 hover:bg-white/20"
               aria-label="Close zoom"
             >
@@ -904,19 +857,27 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
             <div className="absolute -top-12 left-0 z-10 max-w-[80%] rounded-lg bg-black/0 px-4 py-2 backdrop-blur-sm">
               <p className="truncate text-sm font-medium text-white">
-                {zoomedImage.name}
+                {
+                  zoomedImage.name
+                }
               </p>
             </div>
 
-            {/* IMAGE CONTAINER */}
+            {/* IMAGE */}
 
             <div
               className="relative max-h-[85vh] max-w-[85vw] cursor-zoom-out"
-              onClick={handleCloseZoom}
+              onClick={
+                handleCloseZoom
+              }
             >
               <img
-                src={zoomedImage.url}
-                alt={zoomedImage.name}
+                src={
+                  zoomedImage.url
+                }
+                alt={
+                  zoomedImage.name
+                }
                 className="max-h-[80vh] max-w-[80vw] rounded-2xl object-contain shadow-2xl"
                 onError={(e) => {
                   const target =
@@ -928,7 +889,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               />
             </div>
 
-            {/* HINT TEXT */}
+            {/* HINT */}
 
             <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-xs text-white/50">
               <p>

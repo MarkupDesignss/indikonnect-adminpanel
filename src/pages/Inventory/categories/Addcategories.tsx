@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   FiPlus,
   FiSearch,
-  FiLayers,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -107,14 +106,34 @@ const Addcategories: React.FC = () => {
     useState(false);
 
   // ===================================================
+  // STATUS LOADING
+  // ===================================================
+
+  const [statusLoadingId, setStatusLoadingId] =
+    useState<number | null>(null);
+
+  // ===================================================
   // GET CATEGORIES
+  // IMPORTANT:
+  // ACTIVE + INACTIVE BOTH WILL BE KEPT
   // ===================================================
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
 
-      const response = await categoryApi.getAll();
+      const response =
+        await categoryApi.getAll();
+
+      /*
+       * Do NOT filter status here.
+       *
+       * Both:
+       * active
+       * inactive
+       *
+       * categories should remain visible in admin.
+       */
 
       setCategories(
         response.data?.data || []
@@ -143,6 +162,26 @@ const Addcategories: React.FC = () => {
   }, []);
 
   // ===================================================
+  // STATUS COUNTS
+  // ===================================================
+
+  const activeCount = useMemo(() => {
+    return categories.filter(
+      (item: any) =>
+        String(item.status).toLowerCase() ===
+        "active"
+    ).length;
+  }, [categories]);
+
+  const inactiveCount = useMemo(() => {
+    return categories.filter(
+      (item: any) =>
+        String(item.status).toLowerCase() ===
+        "inactive"
+    ).length;
+  }, [categories]);
+
+  // ===================================================
   // SEARCH
   // ===================================================
 
@@ -154,7 +193,7 @@ const Addcategories: React.FC = () => {
       return categories;
     }
 
-    return categories.filter((item) =>
+    return categories.filter((item: any) =>
       [
         item.title,
         item.description,
@@ -208,6 +247,46 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
+  // FORM DATA BUILDER
+  // ===================================================
+
+  const buildFormData = (
+    payload: CategoryPayload
+  ) => {
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(
+      ([key, value]) => {
+        if (
+          value !== undefined &&
+          value !== null
+        ) {
+          if (
+            key === "image" &&
+            value instanceof File
+          ) {
+            formData.append(
+              "image",
+              value
+            );
+          } else if (
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean"
+          ) {
+            formData.append(
+              key,
+              String(value)
+            );
+          }
+        }
+      }
+    );
+
+    return formData;
+  };
+
+  // ===================================================
   // ADD CATEGORY
   // ===================================================
 
@@ -217,35 +296,8 @@ const Addcategories: React.FC = () => {
     try {
       setAddLoading(true);
 
-      const formData = new FormData();
-
-      Object.entries(payload).forEach(
-        ([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== null
-          ) {
-            if (
-              key === "image" &&
-              value instanceof File
-            ) {
-              formData.append(
-                "image",
-                value
-              );
-            } else if (
-              typeof value === "string" ||
-              typeof value === "number" ||
-              typeof value === "boolean"
-            ) {
-              formData.append(
-                key,
-                String(value)
-              );
-            }
-          }
-        }
-      );
+      const formData =
+        buildFormData(payload);
 
       const response =
         await categoryApi.add(
@@ -294,43 +346,15 @@ const Addcategories: React.FC = () => {
     async (
       payload: CategoryPayload
     ) => {
-      if (!selectedCategory) return;
+      if (!selectedCategory) {
+        return;
+      }
 
       try {
         setEditLoading(true);
 
-        const formData = new FormData();
-
-        Object.entries(payload).forEach(
-          ([key, value]) => {
-            if (
-              value !== undefined &&
-              value !== null
-            ) {
-              if (
-                key === "image" &&
-                value instanceof File
-              ) {
-                formData.append(
-                  "image",
-                  value
-                );
-              } else if (
-                typeof value ===
-                  "string" ||
-                typeof value ===
-                  "number" ||
-                typeof value ===
-                  "boolean"
-              ) {
-                formData.append(
-                  key,
-                  String(value)
-                );
-              }
-            }
-          }
-        );
+        const formData =
+          buildFormData(payload);
 
         const response =
           await categoryApi.update(
@@ -363,6 +387,66 @@ const Addcategories: React.FC = () => {
     };
 
   // ===================================================
+  // STATUS TOGGLE
+  // ACTIVE <-> INACTIVE
+  // ===================================================
+
+  const handleStatusToggle = async (
+    category: Category,
+    nextStatus: "active" | "inactive"
+  ) => {
+    try {
+      setStatusLoadingId(
+        category.id
+      );
+
+      const formData = new FormData();
+
+      /*
+       * Only status is being changed.
+       */
+
+      formData.append(
+        "status",
+        nextStatus
+      );
+
+      const response =
+        await categoryApi.update(
+          category.id,
+          formData
+        );
+
+      /*
+       * Refresh the complete list.
+       * Both active and inactive categories
+       * will still be returned.
+       */
+
+      await fetchCategories();
+
+      toast.success(
+        response?.data?.message ||
+          (nextStatus === "active"
+            ? "Category activated successfully."
+            : "Category deactivated successfully.")
+      );
+    } catch (error: any) {
+      console.error(
+        "Category status update error:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to update category status."
+      );
+    } finally {
+      setStatusLoadingId(null);
+    }
+  };
+
+  // ===================================================
   // DELETE OPEN
   // ===================================================
 
@@ -379,7 +463,9 @@ const Addcategories: React.FC = () => {
 
   const handleConfirmDelete =
     async () => {
-      if (!selectedCategory) return;
+      if (!selectedCategory) {
+        return;
+      }
 
       try {
         setDeleteLoading(true);
@@ -420,7 +506,9 @@ const Addcategories: React.FC = () => {
   const handlePageChange = (
     page: number
   ) => {
-    if (page < 1) return;
+    if (page < 1) {
+      return;
+    }
 
     if (
       totalPages > 0 &&
@@ -470,15 +558,43 @@ const Addcategories: React.FC = () => {
           </p>
         </div>
 
-        {/* Total Categories */}
+        {/* STATUS SUMMARY */}
 
-        <div className="hidden rounded-xl border border-[#b8902e]/15 bg-white px-4 py-2.5 shadow-sm sm:block">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-[#a89a7d]">
-            Total Categories
+        <div className="flex flex-wrap items-center gap-3">
+          {/* TOTAL */}
+
+          <div className="rounded-xl border border-[#b8902e]/15 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-[#a89a7d]">
+              Total Categories
+            </div>
+
+            <div className="mt-0.5 text-lg font-bold text-[#2a2620]">
+              {categories.length}
+            </div>
           </div>
 
-          <div className="mt-0.5 text-lg font-bold text-[#2a2620]">
-            {categories.length}
+          {/* ACTIVE */}
+
+          <div className="rounded-xl border border-emerald-200 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
+              Active
+            </div>
+
+            <div className="mt-0.5 text-lg font-bold text-emerald-700">
+              {activeCount}
+            </div>
+          </div>
+
+          {/* INACTIVE */}
+
+          <div className="rounded-xl border border-red-200 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-red-500">
+              Inactive
+            </div>
+
+            <div className="mt-0.5 text-lg font-bold text-red-600">
+              {inactiveCount}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -581,6 +697,18 @@ const Addcategories: React.FC = () => {
             }
             onEdit={handleEdit}
             onDelete={handleDelete}
+
+            /*
+             * STATUS
+             */
+
+            onStatusToggle={
+              handleStatusToggle
+            }
+
+            statusLoadingId={
+              statusLoadingId
+            }
           />
         </div>
       </motion.div>
@@ -650,7 +778,8 @@ const Addcategories: React.FC = () => {
           open={deleteModalOpen}
           loading={deleteLoading}
           categoryName={
-            selectedCategory?.title || ""
+            selectedCategory?.title ||
+            ""
           }
           onClose={() => {
             setDeleteModalOpen(false);

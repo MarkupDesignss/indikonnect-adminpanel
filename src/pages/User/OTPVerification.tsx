@@ -115,7 +115,7 @@ const OTPVerification = () => {
         // Navigate to reset password with email, otp, and reset token
         setTimeout(() => {
           setIsLoading(false);
-          navigate('/ResetPassword', {
+          navigate('/reset-password', {
             state: {
               email: email,
               otp: otpValue,

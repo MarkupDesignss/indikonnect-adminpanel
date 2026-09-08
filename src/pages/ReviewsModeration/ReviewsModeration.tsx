@@ -264,8 +264,8 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
                 type="button"
                 onClick={() => setActiveFilter(filter.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${isActive
-                    ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-sm"
-                    : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                  ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-sm"
+                  : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
                   }`}
               >
                 {filter.label}
@@ -611,6 +611,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
           </div>
 
           <div className="space-y-5">
+            {/* Customer Profile */}
             <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
               <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#d4af52] to-[#8a6c1f]" />
 
@@ -619,27 +620,30 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
               </h5>
 
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
                   {getInitials(getCustomerName())}
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-bold text-[#2a2620]">
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-[#2a2620]">
                     {getCustomerName()}
                   </div>
-                  <div className="mt-1 text-xs text-[#a89a7d]">{getCustomerEmail()}</div>
+
+                  <div className="mt-1 break-all text-xs text-[#a89a7d]">
+                    {getCustomerEmail()}
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <div className="flex items-center justify-between border-b border-[#b8902e]/10 py-2.5">
-                  <span className="text-xs text-[#a89a7d]">Email</span>
-                  <span className="text-sm font-bold text-[#2a2620]">
-                    {getCustomerEmail()}
+           
+                {/* Account Status */}
+                <div className="flex items-center justify-between gap-4 py-2.5">
+                  <span className="shrink-0 text-xs text-[#a89a7d]">
+                    Account Status
                   </span>
-                </div>
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-xs text-[#a89a7d]">Account Status</span>
-                  <span className="flex items-center gap-1.5 text-xs font-bold text-[#806319]">
+
+                  <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#806319]">
                     <FiCheckCircle size={13} />
                     Verified
                   </span>
@@ -647,6 +651,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
               </div>
             </div>
 
+            {/* Product Context */}
             <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
               <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] to-[#b8902e]" />
 
@@ -655,17 +660,19 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
               </h5>
 
               <div className="mb-4 flex gap-3">
-                <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl border border-[#b8902e]/15 bg-[#faf8f3]">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#b8902e]/15 bg-[#faf8f3]">
                   <img
                     alt={getProductName()}
                     className="h-full w-full object-cover"
                     src={getProductImage()}
                   />
                 </div>
-                <div className="min-w-0">
+
+                <div className="min-w-0 flex-1">
                   <div className="mb-2 line-clamp-2 text-sm font-bold text-[#2a2620]">
                     {getProductName()}
                   </div>
+
                   <div className="inline-flex rounded-lg bg-[#faf8f3] px-2 py-1 font-mono text-[10px] font-semibold text-[#8f6d1d]">
                     SKU: {selectedReview.product?.product_code || "N/A"}
                   </div>
@@ -673,12 +680,13 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                <span className="text-xs text-[#a89a7d]">Product ID</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-[#2a2620]">
-                    #{selectedReview.product?.id || "N/A"}
-                  </span>
-                </div>
+                <span className="text-xs text-[#a89a7d]">
+                  Product ID
+                </span>
+
+                <span className="text-sm font-bold text-[#2a2620]">
+                  #{selectedReview.product?.id || "N/A"}
+                </span>
               </div>
             </div>
           </div>
