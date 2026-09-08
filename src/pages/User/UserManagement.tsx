@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
 import {
@@ -32,21 +27,14 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
-
-import userManagementApi, {
-  RegisteredUser,
-} from "../../api/endpoints/user";
+import CreateDistributorModal from "./CreateDistributorModal";
+import userManagementApi, { RegisteredUser } from "../../api/endpoints/user";
 
 // =====================================================
 // FILTER TYPE
 // =====================================================
 
-type UserFilter =
-  | "all"
-  | "customer"
-  | "distributor"
-  | "active"
-  | "inactive";
+type UserFilter = "all" | "customer" | "distributor" | "active" | "inactive";
 
 // =====================================================
 // ANIMATION
@@ -133,10 +121,7 @@ const getUserName = (user: RegisteredUser) => {
 const getInitials = (user: RegisteredUser) => {
   const name = getUserName(user);
 
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = name.trim().split(/\s+/).filter(Boolean);
 
   if (parts.length === 1) {
     return parts[0].slice(0, 2).toUpperCase();
@@ -163,7 +148,7 @@ const getActiveStatusClass = (active: boolean) => {
 
 const getDistributorStatusClass = (status: string) => {
   const normalizedStatus = status?.toLowerCase() || "";
-  
+
   switch (normalizedStatus) {
     case "active":
       return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
@@ -181,7 +166,7 @@ const getDistributorStatusClass = (status: string) => {
 
 const getKycStatusClass = (status: string) => {
   const normalizedStatus = status?.toLowerCase() || "";
-  
+
   switch (normalizedStatus) {
     case "active":
     case "verified":
@@ -201,19 +186,23 @@ const getKycStatusClass = (status: string) => {
 
 const getKycDisplayLabel = (status: string) => {
   const normalizedStatus = status?.toLowerCase() || "";
-  
-  if (normalizedStatus === "active" || normalizedStatus === "verified" || normalizedStatus === "approved") {
+
+  if (
+    normalizedStatus === "active" ||
+    normalizedStatus === "verified" ||
+    normalizedStatus === "approved"
+  ) {
     return "Verified";
   }
-  
+
   if (normalizedStatus === "pending") {
     return "Pending";
   }
-  
+
   if (normalizedStatus === "rejected") {
     return "Rejected";
   }
-  
+
   return status || "N/A";
 };
 
@@ -244,7 +233,10 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -270,7 +262,9 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-          isLoading ? "opacity-50 cursor-not-allowed" : "hover:border-[#b8902e]/40"
+          isLoading
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:border-[#b8902e]/40"
         } ${getActiveStatusClass(isActive)}`}
       >
         <span className={isActive ? "text-[#806319]" : "text-[#7b6f61]"}>
@@ -290,9 +284,7 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
               type="button"
               onClick={() => handleSelect(option.value)}
               className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#faf8f3] ${
-                option.value === isActive
-                  ? "bg-[#f8f3e5] cursor-default"
-                  : ""
+                option.value === isActive ? "bg-[#f8f3e5] cursor-default" : ""
               } ${option.color}`}
             >
               {option.label}
@@ -327,16 +319,20 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const normalizedKycStatus = kycStatus?.toLowerCase() || "";
-  
+
   const isKycPending = normalizedKycStatus === "pending";
-  const isKycVerified = normalizedKycStatus === "active" || 
-                        normalizedKycStatus === "verified" || 
-                        normalizedKycStatus === "approved";
+  const isKycVerified =
+    normalizedKycStatus === "active" ||
+    normalizedKycStatus === "verified" ||
+    normalizedKycStatus === "approved";
   const isKycRejected = normalizedKycStatus === "rejected";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -347,7 +343,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   if (!isKycPending) {
     let label = "N/A";
     let statusClass = "";
-    
+
     if (isKycVerified) {
       label = "Verified";
       statusClass = "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
@@ -381,12 +377,12 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   };
 
   const getCurrentLabel = () => {
-    const option = statusOptions.find(opt => opt.value === currentStatus);
+    const option = statusOptions.find((opt) => opt.value === currentStatus);
     return option ? option.label : "Pending";
   };
 
   const getCurrentColor = () => {
-    const option = statusOptions.find(opt => opt.value === currentStatus);
+    const option = statusOptions.find((opt) => opt.value === currentStatus);
     return option ? option.color : "text-[#a06f13]";
   };
 
@@ -397,12 +393,12 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
-          isLoading ? "opacity-50 cursor-not-allowed" : "hover:border-[#b8902e]/40"
+          isLoading
+            ? "opacity-50 cursor-not-allowed"
+            : "hover:border-[#b8902e]/40"
         } ${getDistributorStatusClass(currentStatus)}`}
       >
-        <span className={getCurrentColor()}>
-          {getCurrentLabel()}
-        </span>
+        <span className={getCurrentColor()}>{getCurrentLabel()}</span>
         <FiChevronDown
           size={14}
           className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -464,9 +460,7 @@ const StatCard: React.FC<StatCardProps> = ({
       }}
       className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm"
     >
-      <div
-        className={`absolute left-0 top-0 h-1 w-full ${accent}`}
-      />
+      <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
 
@@ -482,9 +476,7 @@ const StatCard: React.FC<StatCardProps> = ({
             {value.toLocaleString("en-IN")}
           </p>
 
-          <p className="mt-1 text-xs text-[#786f60]">
-            {subtitle}
-          </p>
+          <p className="mt-1 text-xs text-[#786f60]">{subtitle}</p>
         </div>
 
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
@@ -504,15 +496,10 @@ interface InfoRowProps {
   value: React.ReactNode;
 }
 
-const InfoRow: React.FC<InfoRowProps> = ({
-  label,
-  value,
-}) => {
+const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 py-3 last:border-b-0">
-      <span className="text-xs text-[#a89a7d]">
-        {label}
-      </span>
+      <span className="text-xs text-[#a89a7d]">{label}</span>
 
       <span className="max-w-[62%] text-right text-sm font-semibold text-[#2a2620]">
         {value}
@@ -551,11 +538,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const kycStatus = user?.business_profile?.kyc_status?.toLowerCase() || "";
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={false}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
 
@@ -564,9 +547,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
-              {user
-                ? getInitials(user)
-                : <FiUser size={19} />}
+              {user ? getInitials(user) : <FiUser size={19} />}
             </div>
 
             <div>
@@ -575,9 +556,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </p>
 
               <h2 className="mt-0.5 text-xl font-bold text-[#2a2620]">
-                {user
-                  ? getUserName(user)
-                  : "User Details"}
+                {user ? getUserName(user) : "User Details"}
               </h2>
 
               {user && (
@@ -603,10 +582,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {loading ? (
             <div className="flex min-h-[360px] flex-col items-center justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
-                <FiRefreshCw
-                  size={25}
-                  className="animate-spin"
-                />
+                <FiRefreshCw size={25} className="animate-spin" />
               </div>
 
               <p className="mt-4 text-sm font-bold text-[#2a2620]">
@@ -658,20 +634,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     ) : (
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${getActiveStatusClass(
-                          user.is_active
+                          user.is_active,
                         )}`}
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            user.is_active
-                              ? "bg-[#b8902e]"
-                              : "bg-[#82776a]"
+                            user.is_active ? "bg-[#b8902e]" : "bg-[#82776a]"
                           }`}
                         />
 
-                        {user.is_active
-                          ? "Active"
-                          : "Inactive"}
+                        {user.is_active ? "Active" : "Inactive"}
                       </span>
                     )}
                   </div>
@@ -683,7 +655,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </p>
 
                   <div className="mt-2">
-                    {user.account_type === "distributor" && onDistributorStatusChange ? (
+                    {user.account_type === "distributor" &&
+                    onDistributorStatusChange ? (
                       <DistributorStatusDropdown
                         userId={user.id}
                         currentStatus={user.distributor_status || "pending"}
@@ -694,7 +667,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     ) : (
                       <span
                         className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getKycStatusClass(
-                          kycStatus
+                          kycStatus,
                         )}`}
                       >
                         {getKycDisplayLabel(kycStatus)}
@@ -718,25 +691,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     </h3>
                   </div>
 
-                  <InfoRow
-                    label="Full Name"
-                    value={getUserName(user)}
-                  />
+                  <InfoRow label="Full Name" value={getUserName(user)} />
 
-                  <InfoRow
-                    label="Email"
-                    value={user.email}
-                  />
+                  <InfoRow label="Email" value={user.email} />
 
-                  <InfoRow
-                    label="Phone"
-                    value={user.phone || "N/A"}
-                  />
+                  <InfoRow label="Phone" value={user.phone || "N/A"} />
 
-                  <InfoRow
-                    label="Country"
-                    value={user.country || "N/A"}
-                  />
+                  <InfoRow label="Country" value={user.country || "N/A"} />
 
                   <InfoRow
                     label="Date of Birth"
@@ -800,9 +761,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">
-                        Phone
-                      </span>
+                      <span className="text-xs text-[#a89a7d]">Phone</span>
 
                       <span
                         className={`text-[10px] font-bold ${
@@ -811,9 +770,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#b46055]"
                         }`}
                       >
-                        {user.phone_verified
-                          ? "Verified"
-                          : "Not Verified"}
+                        {user.phone_verified ? "Verified" : "Not Verified"}
                       </span>
                     </div>
 
@@ -826,9 +783,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">
-                        Email
-                      </span>
+                      <span className="text-xs text-[#a89a7d]">Email</span>
 
                       <span
                         className={`text-[10px] font-bold ${
@@ -837,9 +792,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#b46055]"
                         }`}
                       >
-                        {user.email_verified_at
-                          ? "Verified"
-                          : "Not Verified"}
+                        {user.email_verified_at ? "Verified" : "Not Verified"}
                       </span>
                     </div>
 
@@ -852,9 +805,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">
-                        Terms
-                      </span>
+                      <span className="text-xs text-[#a89a7d]">Terms</span>
 
                       <span
                         className={`text-[10px] font-bold ${
@@ -863,9 +814,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#b46055]"
                         }`}
                       >
-                        {user.terms_condition
-                          ? "Accepted"
-                          : "Not Accepted"}
+                        {user.terms_condition ? "Accepted" : "Not Accepted"}
                       </span>
                     </div>
                   </div>
@@ -950,7 +899,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       ) : (
                         <span
                           className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getKycStatusClass(
-                            kycStatus
+                            kycStatus,
                           )}`}
                         >
                           {getKycDisplayLabel(kycStatus)}
@@ -1131,14 +1080,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                       <span
                         className={`text-[10px] font-bold ${
-                          item.value
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                          item.value ? "text-[#806319]" : "text-[#b46055]"
                         }`}
                       >
-                        {item.value
-                          ? "Accepted"
-                          : "Not Accepted"}
+                        {item.value ? "Accepted" : "Not Accepted"}
                       </span>
                     </div>
                   ))}
@@ -1170,10 +1115,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
 const UserManagement: React.FC = () => {
   const location = useLocation();
-  
+
   // ✅ Get KYC user name from dashboard navigation
   const kycUserName = location.state?.kycUserName as string | undefined;
-  
+
   // ✅ Also support direct user/admin from header
   const userFromHeader = location.state?.user as RegisteredUser | undefined;
   const adminFromHeader = location.state?.admin as RegisteredUser | undefined;
@@ -1188,9 +1133,15 @@ const UserManagement: React.FC = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
-  const [distributorLoadingId, setDistributorLoadingId] = useState<number | null>(null);
+  const [distributorLoadingId, setDistributorLoadingId] = useState<
+    number | null
+  >(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [highlightedUserId, setHighlightedUserId] = useState<number | null>(null);
+  const [highlightedUserId, setHighlightedUserId] = useState<number | null>(
+    null,
+  );
+  // ✅ Add state for Create Distributor Modal
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -1212,33 +1163,34 @@ const UserManagement: React.FC = () => {
         if (kycUserName && isInitialLoad && userData.length > 0) {
           // Search for user by name (case insensitive partial match)
           const searchTerm = kycUserName.trim().toLowerCase();
-          
-          const targetUser = userData.find(
-            (user: RegisteredUser) => {
-              const fullName = (user.full_name || "").toLowerCase();
-              const email = (user.email || "").toLowerCase();
-              return fullName.includes(searchTerm) || 
-                     email.includes(searchTerm) ||
-                     fullName === searchTerm;
-            }
-          );
+
+          const targetUser = userData.find((user: RegisteredUser) => {
+            const fullName = (user.full_name || "").toLowerCase();
+            const email = (user.email || "").toLowerCase();
+            return (
+              fullName.includes(searchTerm) ||
+              email.includes(searchTerm) ||
+              fullName === searchTerm
+            );
+          });
 
           if (targetUser) {
             // Set search to the user's name or email to filter
-            const searchTerm = targetUser.full_name || targetUser.email || String(targetUser.id);
+            const searchTerm =
+              targetUser.full_name || targetUser.email || String(targetUser.id);
             setSearch(searchTerm);
             setHighlightedUserId(targetUser.id);
-            
+
             // Also open the detail modal for the user
             await handleView(targetUser.id);
-            
+
             toast.success(`Found KYC review for ${getUserName(targetUser)}`);
           } else {
             // If user not found by name, search by the name itself
             setSearch(kycUserName);
             toast.info(`Searching for user: ${kycUserName}`);
           }
-          
+
           setIsInitialLoad(false);
           return; // ✅ Exit early so we don't process header user
         }
@@ -1246,33 +1198,31 @@ const UserManagement: React.FC = () => {
         // ✅ PRIORITY 2: Handle person from header (user or admin)
         if (personFromHeader && isInitialLoad && userData.length > 0) {
           const targetUser = userData.find(
-            (user: RegisteredUser) => String(user.id) === String(personFromHeader.id)
+            (user: RegisteredUser) =>
+              String(user.id) === String(personFromHeader.id),
           );
 
           if (targetUser) {
-            const searchTerm = targetUser.full_name || targetUser.email || String(targetUser.id);
+            const searchTerm =
+              targetUser.full_name || targetUser.email || String(targetUser.id);
             setSearch(searchTerm);
             setHighlightedUserId(targetUser.id);
-            
+
             await handleView(targetUser.id);
           } else {
             setSearch(String(personFromHeader.id));
             toast.info(`Looking for user with ID: ${personFromHeader.id}`);
           }
-          
+
           setIsInitialLoad(false);
         }
       } else {
-        toast.error(
-          response.data.message || "Unable to fetch users."
-        );
+        toast.error(response.data.message || "Unable to fetch users.");
       }
     } catch (error: any) {
       console.error("Fetch users error:", error);
 
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch users."
-      );
+      toast.error(error?.response?.data?.message || "Unable to fetch users.");
     } finally {
       setLoading(false);
     }
@@ -1291,9 +1241,9 @@ const UserManagement: React.FC = () => {
     const active = users.filter((user) => user.is_active).length;
     const inactive = users.filter((user) => !user.is_active).length;
     const distributors = users.filter(
-      (user) => user.account_type === "distributor"
+      (user) => user.account_type === "distributor",
     ).length;
-  
+
     return {
       total,
       active,
@@ -1354,22 +1304,19 @@ const UserManagement: React.FC = () => {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE)
+    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE),
   );
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const paginatedUsers = filteredUsers.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + ITEMS_PER_PAGE,
   );
 
   const startEntry = filteredUsers.length === 0 ? 0 : startIndex + 1;
 
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredUsers.length
-  );
+  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -1412,15 +1359,13 @@ const UserManagement: React.FC = () => {
         const detail = response.data.data?.[0] || null;
         setSelectedUser(detail);
       } else {
-        toast.error(
-          response.data.message || "Unable to fetch user details."
-        );
+        toast.error(response.data.message || "Unable to fetch user details.");
       }
     } catch (error: any) {
       console.error("View user error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to fetch user details."
+        error?.response?.data?.message || "Unable to fetch user details.",
       );
     } finally {
       setDetailLoading(false);
@@ -1433,14 +1378,14 @@ const UserManagement: React.FC = () => {
 
   const handleToggleUserStatus = async (
     userId: number,
-    nextStatus: boolean
+    nextStatus: boolean,
   ) => {
     try {
       setStatusLoadingId(userId);
 
       const response = await userManagementApi.updateUserStatus(
         userId,
-        nextStatus
+        nextStatus,
       );
 
       if (response.data.success) {
@@ -1451,8 +1396,8 @@ const UserManagement: React.FC = () => {
                   ...item,
                   is_active: nextStatus,
                 }
-              : item
-          )
+              : item,
+          ),
         );
 
         setSelectedUser((current) =>
@@ -1461,30 +1406,31 @@ const UserManagement: React.FC = () => {
                 ...current,
                 is_active: nextStatus,
               }
-            : current
+            : current,
         );
 
         toast.success(
           response.data.message ||
-            `User ${nextStatus ? "activated" : "deactivated"} successfully.`
+            `User ${nextStatus ? "activated" : "deactivated"} successfully.`,
         );
       } else {
-        toast.error(
-          response.data.message || "Unable to update user status."
-        );
+        toast.error(response.data.message || "Unable to update user status.");
       }
     } catch (error: any) {
       console.error("User status error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to update user status."
+        error?.response?.data?.message || "Unable to update user status.",
       );
     } finally {
       setStatusLoadingId(null);
     }
   };
 
-  const handleUpdateDistributorStatus = async (userId: number, newStatus: string) => {
+  const handleUpdateDistributorStatus = async (
+    userId: number,
+    newStatus: string,
+  ) => {
     try {
       setDistributorLoadingId(userId);
 
@@ -1493,7 +1439,7 @@ const UserManagement: React.FC = () => {
 
       const response = await userManagementApi.updateDistributorStatus(
         userId,
-        payloadStatus
+        payloadStatus,
       );
 
       if (response.data.success) {
@@ -1510,8 +1456,8 @@ const UserManagement: React.FC = () => {
                       }
                     : null,
                 }
-              : item
-          )
+              : item,
+          ),
         );
 
         setSelectedUser((current) =>
@@ -1526,24 +1472,22 @@ const UserManagement: React.FC = () => {
                     }
                   : null,
               }
-            : current
+            : current,
         );
 
         const displayStatus = newStatus === "active" ? "Verified" : newStatus;
         toast.success(
           response.data.message ||
-            `KYC status updated to ${displayStatus} successfully.`
+            `KYC status updated to ${displayStatus} successfully.`,
         );
       } else {
-        toast.error(
-          response.data.message || "Unable to update KYC status."
-        );
+        toast.error(response.data.message || "Unable to update KYC status.");
       }
     } catch (error: any) {
       console.error("Update KYC status error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to update KYC status."
+        error?.response?.data?.message || "Unable to update KYC status.",
       );
     } finally {
       setDistributorLoadingId(null);
@@ -1614,24 +1558,35 @@ const UserManagement: React.FC = () => {
             </h1>
 
             <p className="mt-1 text-sm text-[#786f60]">
-              Manage customers, distributors, account status,
-              and registration details.
+              Manage customers, distributors, account status, and registration
+              details.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={fetchUsers}
-            disabled={loading}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 text-sm font-bold text-[#8f6d1d] shadow-sm transition hover:border-[#b8902e]/35 hover:bg-[#faf8f3] disabled:opacity-50"
-          >
-            <FiRefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
+          <div className="flex items-center gap-3">
+            {/* ✅ NEW: Create Distributor Button */}
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(true)}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:shadow-lg"
+            >
+              <FiBriefcase size={16} />
+              Create Distributor
+            </button>
 
-            Refresh
-          </button>
+            <button
+              type="button"
+              onClick={fetchUsers}
+              disabled={loading}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 text-sm font-bold text-[#8f6d1d] shadow-sm transition hover:border-[#b8902e]/35 hover:bg-[#faf8f3] disabled:opacity-50"
+            >
+              <FiRefreshCw
+                size={16}
+                className={loading ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+          </div>
         </motion.div>
 
         {/* STATS */}
@@ -1671,7 +1626,6 @@ const UserManagement: React.FC = () => {
             icon={<FiBriefcase size={21} />}
             accent="bg-gradient-to-r from-[#d4af52] to-[#806319]"
           />
-
         </motion.div>
 
         {/* MAIN CARD */}
@@ -1801,10 +1755,7 @@ const UserManagement: React.FC = () => {
                     <td colSpan={8} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
-                          <FiRefreshCw
-                            size={22}
-                            className="animate-spin"
-                          />
+                          <FiRefreshCw size={22} className="animate-spin" />
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-[#2a2620]">
@@ -1836,17 +1787,19 @@ const UserManagement: React.FC = () => {
                     const statusLoading = statusLoadingId === user.id;
                     const distributorLoading = distributorLoadingId === user.id;
                     const isDistributor = user.account_type === "distributor";
-                    const distributorStatus = user.distributor_status || "pending";
-                    const kycStatus = user.business_profile?.kyc_status?.toLowerCase() || "";
+                    const distributorStatus =
+                      user.distributor_status || "pending";
+                    const kycStatus =
+                      user.business_profile?.kyc_status?.toLowerCase() || "";
                     const isHighlighted = highlightedUserId === user.id;
 
                     return (
                       <tr
                         key={user.id}
                         className={`border-b border-[#b8902e]/10 transition-all duration-300 ${
-                          isHighlighted 
-                            ? 'bg-[#d4af52]/15 border-l-4 border-l-[#b8902e] shadow-inner' 
-                            : 'bg-white hover:bg-[#faf8f3]'
+                          isHighlighted
+                            ? "bg-[#d4af52]/15 border-l-4 border-l-[#b8902e] shadow-inner"
+                            : "bg-white hover:bg-[#faf8f3]"
                         }`}
                       >
                         <td className="px-5 py-4">
@@ -1939,18 +1892,13 @@ const UserManagement: React.FC = () => {
                               />
                             </div>
                           ) : (
-                            <span className="text-xs text-[#b1a58e]">
-                              —
-                            </span>
+                            <span className="text-xs text-[#b1a58e]">—</span>
                           )}
                         </td>
 
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
-                            <FiCalendar
-                              size={13}
-                              className="text-[#b8902e]"
-                            />
+                            <FiCalendar size={13} className="text-[#b8902e]" />
 
                             <span className="text-xs font-semibold text-[#4a4436]">
                               {formatDateOnly(user.created_at)}
@@ -1987,16 +1935,17 @@ const UserManagement: React.FC = () => {
                 const distributorLoading = distributorLoadingId === user.id;
                 const isDistributor = user.account_type === "distributor";
                 const distributorStatus = user.distributor_status || "pending";
-                const kycStatus = user.business_profile?.kyc_status?.toLowerCase() || "";
+                const kycStatus =
+                  user.business_profile?.kyc_status?.toLowerCase() || "";
                 const isHighlighted = highlightedUserId === user.id;
 
                 return (
                   <div
                     key={user.id}
                     className={`border-b border-[#b8902e]/10 p-4 transition-all duration-300 ${
-                      isHighlighted 
-                        ? 'bg-[#d4af52]/15 border-l-4 border-l-[#b8902e]' 
-                        : ''
+                      isHighlighted
+                        ? "bg-[#d4af52]/15 border-l-4 border-l-[#b8902e]"
+                        : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -2077,7 +2026,6 @@ const UserManagement: React.FC = () => {
                         className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] px-4 py-2.5 text-xs font-bold text-[#8f6d1d]"
                       >
                         <FiEye size={14} />
-
                         View
                       </button>
                     </div>
@@ -2108,13 +2056,9 @@ const UserManagement: React.FC = () => {
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#8b8171]">
                   Showing{" "}
-                  <span className="font-bold text-[#4a4436]">
-                    {startEntry}
-                  </span>{" "}
+                  <span className="font-bold text-[#4a4436]">{startEntry}</span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#4a4436]">
-                    {endEntry}
-                  </span>{" "}
+                  <span className="font-bold text-[#4a4436]">{endEntry}</span>{" "}
                   of{" "}
                   <span className="font-bold text-[#4a4436]">
                     {filteredUsers.length}
@@ -2176,6 +2120,15 @@ const UserManagement: React.FC = () => {
         onDistributorStatusChange={handleUpdateDistributorStatus}
         isLoading={statusLoadingId !== null}
         isDistributorLoading={distributorLoadingId !== null}
+      />
+
+      {/* ✅ CREATE DISTRIBUTOR MODAL */}
+      <CreateDistributorModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={() => {
+          fetchUsers();
+        }}
       />
     </>
   );

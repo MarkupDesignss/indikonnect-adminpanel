@@ -111,7 +111,6 @@ export interface RegisteredUser {
   business_profile: BusinessProfile | null;
 }
 
-
 export interface RegisteredUsersResponse {
   success: boolean;
   message: string;
@@ -146,39 +145,79 @@ export interface DistributorStatusResponse {
   };
 }
 
-export const userManagementApi = {
+// ✅ Create Distributor Request/Response Types
+export interface CreateDistributorRequest {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+  password_confirmation: string;
+  country: string;
+  date_of_birth: string;
+  terms_condition: number;
 
+  sponsor_id: string;
+  placement_leg: string;
+
+  encrypted_aadhaar: string;
+  aadhaar_consent: number;
+
+  encrypted_pan: string;
+
+  bank_holder_name: string;
+  bank_name: string;
+  title: string;
+  type_of_entity: string;
+  branch_name: string;
+  encrypted_bank_account: string;
+  confirm_account_number: string;
+  bank_ifsc: string;
+  account_type: string;
+
+  location_consent: number;
+  latitude: number;
+  longitude: number;
+
+  accept_terms: number;
+  accept_agreement: number;
+  accept_code_of_conduct: number;
+
+  distributor_status: string;
+}
+
+export interface CreateDistributorResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user: RegisteredUser;
+  };
+}
+
+export const userManagementApi = {
   getRegisteredUsers: () =>
-    apiClient.get<RegisteredUsersResponse>(
-      "/admin/registered-users"
-    ),
+    apiClient.get<RegisteredUsersResponse>("/admin/registered-users"),
 
   getUserById: (id: number) =>
     apiClient.get<RegisteredUserDetailResponse>(
-      `/admin/registered-users/${id}`
+      `/admin/registered-users/${id}`,
     ),
 
-  updateUserStatus: (
-    id: number,
-    is_active: boolean
-  ) =>
-    apiClient.post<UserStatusResponse>(
-      `/admin/update-user-status/${id}`,
-      {
-        is_active,
-      }
-    ),
+  updateUserStatus: (id: number, is_active: boolean) =>
+    apiClient.post<UserStatusResponse>(`/admin/update-user-status/${id}`, {
+      is_active,
+    }),
 
-  updateDistributorStatus: (
-    id: number,
-    kyc_status: string
-  ) =>
+  updateDistributorStatus: (id: number, kyc_status: string) =>
     apiClient.post<DistributorStatusResponse>(
       `/admin/distributors/${id}/status`,
       {
         kyc_status,
-      }
+      },
     ),
+
+  // ✅ NEW: Create Distributor
+  createDistributor: (data: CreateDistributorRequest) =>
+    apiClient.post<CreateDistributorResponse>("/admin/users", data),
 };
 
 export default userManagementApi;
