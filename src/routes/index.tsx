@@ -35,6 +35,7 @@ import ReelsManagement from "@/pages/ReelsManagement/ReelsManagement";
 import SubCategories from "@/pages/Inventory/SubCategories";
 
 import ScrollToTop from "../ScrollToTop";
+import TestimonialsManagement from "@/pages/Cms/TestimonialsManagement";
 
 const ScrollLayout = () => {
   return (
@@ -193,6 +194,12 @@ export const router = createBrowserRouter(
               path: "cms/ReelsManagement",
               element: <ReelsManagement />,
             },
+
+            {
+              path: "cms/TestimonialsManagement",
+              element: <TestimonialsManagement />,
+            },
+
 
             ...appRoutes,
           ],

@@ -74,6 +74,7 @@ export const menuItems = [
       { path: '/cms/content', label: 'Content Management', icon: 'description' },
       // { path: '/cms/growth', label: 'Leaders Management', icon: 'trending_up' },
       { path: '/cms/ReelsManagement', label: 'Reels Management', icon: 'ReelsManagement' },
+      { path: '/cms/TestimonialsManagement', label: 'Testimonials Management', icon: 'TestimonialsManagement' },
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
     ]
   },
