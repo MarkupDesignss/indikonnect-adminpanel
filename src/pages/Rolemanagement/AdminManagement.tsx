@@ -1,11 +1,5 @@
-import React, {
-  ChangeEvent,
-  FC,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { useLocation } from "react-router-dom"; // ✅ Added
+import React, { ChangeEvent, FC, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import {
   FiPlus,
@@ -53,42 +47,20 @@ interface DeleteTarget {
 // HELPERS
 // =====================================================
 
-const getInitials = (
-  name?: string | null
-): string => {
-  if (!name) {
-    return "AD";
-  }
+const getInitials = (name?: string | null): string => {
+  if (!name) return "AD";
 
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
 
-  if (parts.length === 1) {
-    return parts[0]
-      .slice(0, 2)
-      .toUpperCase();
-  }
-
-  return (
-    parts[0][0] +
-    parts[1][0]
-  ).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
-const formatDate = (
-  value?: string | null
-): string => {
-  if (!value) {
-    return "—";
-  }
+const formatDate = (value?: string | null): string => {
+  if (!value) return "—";
 
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString("en-IN", {
     day: "2-digit",
@@ -109,16 +81,12 @@ interface AdminFormModalProps {
   editingAdmin: AdminMember | null;
   roles: Role[];
   form: AdminFormState;
-  setForm: React.Dispatch<
-    React.SetStateAction<AdminFormState>
-  >;
+  setForm: React.Dispatch<React.SetStateAction<AdminFormState>>;
   onClose: () => void;
   onSubmit: () => void;
 }
 
-const AdminFormModal: FC<
-  AdminFormModalProps
-> = ({
+const AdminFormModal: FC<AdminFormModalProps> = ({
   open,
   loading,
   editingAdmin,
@@ -128,50 +96,39 @@ const AdminFormModal: FC<
   onClose,
   onSubmit,
 }) => {
-  const selectedRole = roles.find(
-    (role) =>
-      role.id === form.role_id
-  );
+  const selectedRole = roles.find((role) => role.id === form.role_id);
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   return (
     <GlobalModal
       isOpen={open}
       onClose={() => {
-        if (!loading) {
-          onClose();
-        }
+        if (!loading) onClose();
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[620px] overflow-hidden rounded-[22px] border border-[#b8902e]/15 bg-white shadow-[0_25px_70px_rgba(40,32,15,0.18)]">
+      <div className="w-full max-w-[620px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_25px_70px_rgba(22,63,32,0.18)]">
         {/* ACCENT */}
-
-        <div className="h-[3px] bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+        <div className="h-[3px] bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         {/* HEADER */}
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-6 py-5">
+        <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
               <FiUsers size={20} />
             </div>
 
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#9a741b]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
                 Admin Access
               </p>
 
-              <h2 className="mt-1 text-[21px] font-bold text-[#29251f]">
-                {editingAdmin
-                  ? "Edit Admin"
-                  : "Create Admin"}
+              <h2 className="mt-1 text-[21px] font-bold text-[#202721]">
+                {editingAdmin ? "Edit Admin" : "Create Admin"}
               </h2>
 
-              <p className="mt-0.5 text-xs text-[#a19583]">
+              <p className="mt-0.5 text-xs text-[#9AA29C]">
                 {editingAdmin
                   ? "Update administrator details and role."
                   : "Add a new administrator and assign a role."}
@@ -183,228 +140,180 @@ const AdminFormModal: FC<
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#f2ead8] disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-40"
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* BODY */}
-
-        <div className="max-h-[70vh] overflow-y-auto bg-[#faf8f3] p-5">
+        <div className="max-h-[70vh] overflow-y-auto bg-[#F5F7F5] p-5">
           <div className="space-y-4">
             {/* BASIC INFORMATION */}
-
-            <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-5">
+            <div className="rounded-2xl border border-[#163F20]/10 bg-white p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                   <FiUsers size={16} />
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-[#29251f]">
+                  <h3 className="text-sm font-bold text-[#202721]">
                     Administrator Information
                   </h3>
 
-                  <p className="mt-0.5 text-[10px] text-[#a19583]">
+                  <p className="mt-0.5 text-[10px] text-[#9AA29C]">
                     Enter the admin account details.
                   </p>
                 </div>
               </div>
 
               {/* NAME */}
-
               <div>
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#786f60]">
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
                   Full Name *
                 </label>
 
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(
-                    event: ChangeEvent<HTMLInputElement>
-                  ) =>
-                    setForm(
-                      (previous) => ({
-                        ...previous,
-                        name:
-                          event.target
-                            .value,
-                      })
-                    )
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      name: event.target.value,
+                    }))
                   }
                   placeholder="John Admin"
-                  className="h-11 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] px-4 text-sm text-[#29251f] outline-none placeholder:text-[#aaa08e] transition focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/10"
+                  className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] transition focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
                 />
               </div>
 
               {/* EMAIL */}
-
               <div className="mt-4">
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#786f60]">
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
                   Email *
                 </label>
 
                 <div className="relative">
                   <FiMail
                     size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b8902e]"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
                   />
 
                   <input
                     type="email"
                     value={form.email}
-                    disabled={
-                      !!editingAdmin
-                    }
-                    onChange={(
-                      event: ChangeEvent<HTMLInputElement>
-                    ) =>
-                      setForm(
-                        (previous) => ({
-                          ...previous,
-                          email:
-                            event.target
-                              .value,
-                        })
-                      )
+                    disabled={!!editingAdmin}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setForm((previous) => ({
+                        ...previous,
+                        email: event.target.value,
+                      }))
                     }
                     placeholder="admin@example.com"
-                    className={`h-11 w-full rounded-xl border border-[#d8d0c0] pl-10 pr-4 text-sm text-[#29251f] outline-none transition focus:border-[#b8902e] focus:ring-2 focus:ring-[#b8902e]/10 ${
+                    className={`h-11 w-full rounded-xl border border-[#D8E2D8] pl-10 pr-4 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10 ${
                       editingAdmin
-                        ? "bg-[#f2eee5]"
-                        : "bg-[#faf8f3] focus:bg-white"
+                        ? "bg-[#EAF3EA]"
+                        : "bg-[#F5F7F5] focus:bg-white"
                     }`}
                   />
                 </div>
 
                 {editingAdmin && (
-                  <p className="mt-1.5 text-[10px] text-[#a19583]">
-                    Email cannot be changed while
-                    editing an admin.
+                  <p className="mt-1.5 text-[10px] text-[#9AA29C]">
+                    Email cannot be changed while editing an admin.
                   </p>
                 )}
               </div>
 
               {/* PASSWORD */}
-
               <div className="mt-4">
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#786f60]">
-                  {editingAdmin
-                    ? "New Password"
-                    : "Password *"}
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                  {editingAdmin ? "New Password" : "Password *"}
                 </label>
 
                 <div className="relative">
                   <FiLock
                     size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b8902e]"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
                   />
 
                   <input
                     type="password"
                     value={form.password}
-                    onChange={(
-                      event: ChangeEvent<HTMLInputElement>
-                    ) =>
-                      setForm(
-                        (previous) => ({
-                          ...previous,
-                          password:
-                            event.target
-                              .value,
-                        })
-                      )
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setForm((previous) => ({
+                        ...previous,
+                        password: event.target.value,
+                      }))
                     }
                     placeholder={
                       editingAdmin
                         ? "Leave blank to keep current password"
                         : "Admin@12345"
                     }
-                    className="h-11 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-10 pr-4 text-sm text-[#29251f] outline-none placeholder:text-[#aaa08e] transition focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/10"
+                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] transition focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
                   />
                 </div>
               </div>
             </div>
 
             {/* ROLE */}
-
-            <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-5">
+            <div className="rounded-2xl border border-[#163F20]/10 bg-white p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiShield size={16} />
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-bold text-[#29251f]">
+                    <h3 className="text-sm font-bold text-[#202721]">
                       Assign Role
                     </h3>
 
-                    <p className="mt-0.5 text-[10px] text-[#a19583]">
+                    <p className="mt-0.5 text-[10px] text-[#9AA29C]">
                       Select one role for this administrator.
                     </p>
                   </div>
                 </div>
 
-                <span className="rounded-full bg-[#faf4df] px-3 py-1.5 text-[9px] font-bold text-[#8f6d1d]">
+                <span className="rounded-full bg-[#EAF3EA] px-3 py-1.5 text-[9px] font-bold text-[#163F20]">
                   {roles.length} Roles
                 </span>
               </div>
 
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#786f60]">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
                 Select Role *
               </label>
 
               <div className="relative">
                 <FiShield
                   size={16}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#b8902e]"
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
                 />
 
                 <select
-                  value={
-                    form.role_id ?? ""
+                  value={form.role_id ?? ""}
+                  onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      role_id: event.target.value
+                        ? Number(event.target.value)
+                        : null,
+                    }))
                   }
-                  onChange={(
-                    event: ChangeEvent<HTMLSelectElement>
-                  ) =>
-                    setForm(
-                      (previous) => ({
-                        ...previous,
-                        role_id:
-                          event.target
-                            .value
-                            ? Number(
-                                event
-                                  .target
-                                  .value
-                              )
-                            : null,
-                      })
-                    )
-                  }
-                  className="h-12 w-full appearance-none rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-10 pr-10 text-sm font-semibold text-[#29251f] outline-none transition focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/10"
+                  className="h-12 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-10 text-sm font-semibold text-[#202721] outline-none transition focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
                 >
-                  <option value="">
-                    Select a role
-                  </option>
+                  <option value="">Select a role</option>
 
-                  {roles.map(
-                    (role) => (
-                      <option
-                        key={role.id}
-                        value={role.id}
-                      >
-                        {role.name}
-                      </option>
-                    )
-                  )}
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
                 </select>
 
                 <svg
-                  className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8f6d1d]"
+                  className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#163F20]"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -417,73 +326,48 @@ const AdminFormModal: FC<
               </div>
 
               {/* SELECTED ROLE PREVIEW */}
-
               {selectedRole && (
-                <div className="mt-4 rounded-xl border border-[#b8902e]/15 bg-[#fffaf0] p-4">
+                <div className="mt-4 rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#9a741b]">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
                         Selected Role
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#29251f]">
-                        {
-                          selectedRole.name
-                        }
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
+                        {selectedRole.name}
                       </p>
 
-                      <p className="mt-1 font-mono text-[10px] text-[#a19583]">
-                        {
-                          selectedRole.slug
-                        }
+                      <p className="mt-1 font-mono text-[10px] text-[#9AA29C]">
+                        {selectedRole.slug}
                       </p>
                     </div>
 
-                    <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-bold text-[#8f6d1d]">
-                      {selectedRole.permissions
-                        ?.length || 0}{" "}
-                      Permissions
+                    <span className="rounded-full bg-white px-3 py-1.5 text-[9px] font-bold text-[#163F20]">
+                      {selectedRole.permissions?.length || 0} Permissions
                     </span>
                   </div>
 
-                  {selectedRole
-                    .description && (
-                    <p className="mt-3 text-xs leading-5 text-[#786f60]">
-                      {
-                        selectedRole.description
-                      }
+                  {selectedRole.description && (
+                    <p className="mt-3 text-xs leading-5 text-[#59645C]">
+                      {selectedRole.description}
                     </p>
                   )}
 
                   {/* PERMISSIONS */}
-
                   {selectedRole.permissions &&
-                    selectedRole.permissions.length >
-                      0 && (
-                      <div className="mt-3 border-t border-[#b8902e]/10 pt-3">
+                    selectedRole.permissions.length > 0 && (
+                      <div className="mt-3 border-t border-[#163F20]/10 pt-3">
                         <div className="flex flex-wrap gap-1.5">
-                          {selectedRole.permissions.map(
-                            (
-                              permission
-                            ) => (
-                              <span
-                                key={
-                                  permission.id
-                                }
-                                className="inline-flex items-center gap-1 rounded-lg border border-[#b8902e]/15 bg-white px-2.5 py-1.5 text-[9px] font-semibold text-[#4d463b]"
-                              >
-                                <FiCheck
-                                  size={
-                                    10
-                                  }
-                                  className="text-[#b8902e]"
-                                />
-                                {
-                                  permission.name
-                                }
-                              </span>
-                            )
-                          )}
+                          {selectedRole.permissions.map((permission) => (
+                            <span
+                              key={permission.id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#163F20]/15 bg-white px-2.5 py-1.5 text-[9px] font-semibold text-[#3F4A41]"
+                            >
+                              <FiCheck size={10} className="text-[#163F20]" />
+                              {permission.name}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -494,13 +378,12 @@ const AdminFormModal: FC<
         </div>
 
         {/* FOOTER */}
-
-        <div className="flex justify-end gap-2 border-t border-[#b8902e]/10 bg-white px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-white px-6 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="h-10 rounded-xl border border-[#b8902e]/15 bg-white px-5 text-sm font-bold text-[#786f60] transition hover:bg-[#faf8f3] disabled:opacity-50"
+            className="h-10 rounded-xl border border-[#163F20]/15 bg-white px-5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -509,13 +392,10 @@ const AdminFormModal: FC<
             type="button"
             onClick={onSubmit}
             disabled={loading}
-            className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 text-sm font-bold text-white transition hover:from-[#a98227] hover:to-[#7e6017] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
-              <FiRefreshCw
-                size={14}
-                className="animate-spin"
-              />
+              <FiRefreshCw size={14} className="animate-spin" />
             ) : (
               <FiCheck size={14} />
             )}
@@ -525,8 +405,8 @@ const AdminFormModal: FC<
                 ? "Updating..."
                 : "Creating..."
               : editingAdmin
-              ? "Update Admin"
-              : "Create Admin"}
+                ? "Update Admin"
+                : "Create Admin"}
           </button>
         </div>
       </div>
@@ -546,42 +426,34 @@ interface DeleteModalProps {
   onConfirm: () => void;
 }
 
-const DeleteAdminModal: FC<
-  DeleteModalProps
-> = ({
+const DeleteAdminModal: FC<DeleteModalProps> = ({
   open,
   loading,
   target,
   onClose,
   onConfirm,
 }) => {
-  if (!open || !target) {
-    return null;
-  }
+  if (!open || !target) return null;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
-      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#b8902e]/15 bg-white shadow-2xl">
-        <div className="h-[3px] bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
+      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
+        <div className="h-[3px] bg-gradient-to-r from-[#4C8A57] to-[#C23B32]" />
 
         <div className="p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fff5f3] text-[#b46055]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
               <FiTrash2 size={22} />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#b46055]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#C23B32]">
                     Confirmation
                   </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-[#29251f]">
+                  <h2 className="mt-1 text-xl font-bold text-[#202721]">
                     Delete Admin
                   </h2>
                 </div>
@@ -590,30 +462,27 @@ const DeleteAdminModal: FC<
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-[#8f6d1d] disabled:opacity-40"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] disabled:opacity-40"
                 >
                   <FiX size={16} />
                 </button>
               </div>
 
-              <p className="mt-2 text-sm leading-6 text-[#786f60]">
-                Are you sure you want to delete this
-                administrator? This action cannot be
-                undone.
+              <p className="mt-2 text-sm leading-6 text-[#59645C]">
+                Are you sure you want to delete this administrator? This action
+                cannot be undone.
               </p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-[#a89a7d]">
+          <div className="mt-5 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-4">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
               Selected Admin
             </p>
 
-            <p className="mt-1.5 text-base font-bold text-[#29251f]">
+            <p className="mt-1.5 text-base font-bold text-[#202721]">
               {target.name}
             </p>
-
-         
           </div>
 
           <div className="mt-5 flex justify-end gap-2">
@@ -621,7 +490,7 @@ const DeleteAdminModal: FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="h-10 rounded-xl border border-[#b8902e]/15 bg-white px-5 text-sm font-bold text-[#786f60] hover:bg-[#faf8f3] disabled:opacity-50"
+              className="h-10 rounded-xl border border-[#163F20]/15 bg-white px-5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -630,20 +499,15 @@ const DeleteAdminModal: FC<
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className="flex h-10 items-center gap-2 rounded-xl bg-[#b46055] px-5 text-sm font-bold text-white hover:bg-[#96483f] disabled:opacity-50"
+              className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw
-                  size={14}
-                  className="animate-spin"
-                />
+                <FiRefreshCw size={14} className="animate-spin" />
               ) : (
                 <FiTrash2 size={14} />
               )}
 
-              {loading
-                ? "Deleting..."
-                : "Delete Admin"}
+              {loading ? "Deleting..." : "Delete Admin"}
             </button>
           </div>
         </div>
@@ -657,85 +521,32 @@ const DeleteAdminModal: FC<
 // =====================================================
 
 const AdminManagement: FC = () => {
-  const location = useLocation(); // ✅ Get location for state
-  
-  // ✅ Get admin from header navigation state
+  const location = useLocation();
   const adminFromHeader = location.state?.admin as AdminMember | undefined;
 
-  const [admins, setAdmins] =
-    useState<AdminMember[]>([]);
-
-  const [roles, setRoles] =
-    useState<Role[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [
-    actionLoading,
-    setActionLoading,
-  ] = useState(false);
-
-  const [
-    deleteLoading,
-    setDeleteLoading,
-  ] = useState(false);
-
-  const [
-    search,
-    setSearch,
-  ] = useState("");
-
-  const [
-    statusFilter,
-    setStatusFilter,
-  ] = useState<
+  const [admins, setAdmins] = useState<AdminMember[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
     "all" | "assigned" | "unassigned"
   >("all");
-
-  const [
-    currentPage,
-    setCurrentPage,
-  ] = useState(1);
-
-  const [
-    modalOpen,
-    setModalOpen,
-  ] = useState(false);
-
-  const [
-    editingAdmin,
-    setEditingAdmin,
-  ] =
-    useState<AdminMember | null>(
-      null
-    );
-
-  const [
-    deleteModalOpen,
-    setDeleteModalOpen,
-  ] = useState(false);
-
-  const [
-    deleteTarget,
-    setDeleteTarget,
-  ] =
-    useState<DeleteTarget | null>(
-      null
-    );
-
-  const [
-    adminForm,
-    setAdminForm,
-  ] =
-    useState<AdminFormState>({
-      name: "",
-      email: "",
-      password: "",
-      role_id: null,
-    });
-
-  const [highlightedAdminId, setHighlightedAdminId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState<AdminMember | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [adminForm, setAdminForm] = useState<AdminFormState>({
+    name: "",
+    email: "",
+    password: "",
+    role_id: null,
+  });
+  const [highlightedAdminId, setHighlightedAdminId] = useState<number | null>(
+    null,
+  );
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const ITEMS_PER_PAGE = 10;
@@ -748,89 +559,62 @@ const AdminManagement: FC = () => {
     try {
       setLoading(true);
 
-      const [
-        adminsResponse,
-        rolesResponse,
-      ] = await Promise.all([
+      const [adminsResponse, rolesResponse] = await Promise.all([
         adminManagementApi.getAdmins(),
         adminManagementApi.getRoles(),
       ]);
 
-      // ADMIN RESPONSE NORMALIZATION
-
-      const adminsRaw =
-        adminsResponse.data;
-
-      const adminsData =
-        Array.isArray(adminsRaw)
-          ? adminsRaw
-          : adminsRaw &&
-            typeof adminsRaw ===
-              "object" &&
+      // ADMIN NORMALIZATION
+      const adminsRaw = adminsResponse.data;
+      const adminsData = Array.isArray(adminsRaw)
+        ? adminsRaw
+        : adminsRaw &&
+            typeof adminsRaw === "object" &&
             "data" in adminsRaw &&
-            Array.isArray(
-              adminsRaw.data
-            )
+            Array.isArray(adminsRaw.data)
           ? adminsRaw.data
           : [];
 
-      // ROLE RESPONSE NORMALIZATION
-
-      const rolesRaw =
-        rolesResponse.data;
-
-      const rolesData =
-        Array.isArray(rolesRaw)
-          ? rolesRaw
-          : rolesRaw &&
-            typeof rolesRaw ===
-              "object" &&
+      // ROLE NORMALIZATION
+      const rolesRaw = rolesResponse.data;
+      const rolesData = Array.isArray(rolesRaw)
+        ? rolesRaw
+        : rolesRaw &&
+            typeof rolesRaw === "object" &&
             "data" in rolesRaw &&
-            Array.isArray(
-              rolesRaw.data
-            )
+            Array.isArray(rolesRaw.data)
           ? rolesRaw.data
           : [];
 
-      setAdmins(
-        adminsData as AdminMember[]
-      );
+      setAdmins(adminsData as AdminMember[]);
+      setRoles(rolesData as Role[]);
 
-      setRoles(
-        rolesData as Role[]
-      );
-
-      // ✅ Handle admin from header after data is loaded
+      // Handle admin from header
       if (adminFromHeader && isInitialLoad && adminsData.length > 0) {
         const targetAdmin = adminsData.find(
-          (admin: AdminMember) => String(admin.id) === String(adminFromHeader.id)
+          (admin: AdminMember) =>
+            String(admin.id) === String(adminFromHeader.id),
         );
 
         if (targetAdmin) {
-          // Set search to the admin's name or email to filter
-          const searchTerm = targetAdmin.name || targetAdmin.email || String(targetAdmin.id);
+          const searchTerm =
+            targetAdmin.name || targetAdmin.email || String(targetAdmin.id);
           setSearch(searchTerm);
           setHighlightedAdminId(targetAdmin.id);
-          
-          // Also open the edit modal for the admin
+
           openEditAdmin(targetAdmin);
         } else {
-          // If admin not found, try searching by ID as a fallback
           setSearch(String(adminFromHeader.id));
           toast.info(`Looking for admin with ID: ${adminFromHeader.id}`);
         }
-        
+
         setIsInitialLoad(false);
       }
     } catch (error: any) {
-      console.error(
-        "Admin management fetch error:",
-        error
-      );
-
+      console.error("Admin management fetch error:", error);
       toast.error(
         error?.response?.data?.message ||
-          "Unable to load admin management data."
+          "Unable to load admin management data.",
       );
     } finally {
       setLoading(false);
@@ -845,199 +629,109 @@ const AdminManagement: FC = () => {
   // FILTER
   // ===================================================
 
-  const filteredAdmins =
-    useMemo(() => {
-      const query =
-        search.trim().toLowerCase();
+  const filteredAdmins = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      return admins.filter(
-        (admin) => {
-          const matchesSearch =
-            !query ||
-            [
-              admin.name,
-              admin.email,
-              String(
-                admin.id
-              ),
-              ...(admin.roles ||
-                []
-              ).map(
-                (role) =>
-                  role.name
-              ),
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(query);
+    return admins.filter((admin) => {
+      const matchesSearch =
+        !query ||
+        [
+          admin.name,
+          admin.email,
+          String(admin.id),
+          ...(admin.roles || []).map((role) => role.name),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
 
-          const hasRole =
-            (admin.roles?.length ||
-              0) > 0;
+      const hasRole = (admin.roles?.length || 0) > 0;
 
-          const matchesStatus =
-            statusFilter ===
-              "all"
-              ? true
-              : statusFilter ===
-                "assigned"
-              ? hasRole
-              : !hasRole;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "assigned"
+            ? hasRole
+            : !hasRole;
 
-          return (
-            matchesSearch &&
-            matchesStatus
-          );
-        }
-      );
-    }, [
-      admins,
-      search,
-      statusFilter,
-    ]);
+      return matchesSearch && matchesStatus;
+    });
+  }, [admins, search, statusFilter]);
 
   // ===================================================
   // PAGINATION
   // ===================================================
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        filteredAdmins.length /
-          ITEMS_PER_PAGE
-      )
-    );
-
-  const startIndex =
-    (currentPage - 1) *
-    ITEMS_PER_PAGE;
-
-  const paginatedAdmins =
-    filteredAdmins.slice(
-      startIndex,
-      startIndex +
-        ITEMS_PER_PAGE
-    );
-
-  const startEntry =
-    filteredAdmins.length ===
-    0
-      ? 0
-      : startIndex + 1;
-
-  const endEntry = Math.min(
-    startIndex +
-      ITEMS_PER_PAGE,
-    filteredAdmins.length
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAdmins.length / ITEMS_PER_PAGE),
   );
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedAdmins = filteredAdmins.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
+  const startEntry = filteredAdmins.length === 0 ? 0 : startIndex + 1;
+  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredAdmins.length);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    search,
-    statusFilter,
-  ]);
+  }, [search, statusFilter]);
 
   useEffect(() => {
-    if (
-      currentPage > totalPages
-    ) {
-      setCurrentPage(
-        totalPages
-      );
-    }
-  }, [
-    currentPage,
-    totalPages,
-  ]);
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
-  const paginationPages =
-    useMemo(() => {
-      if (totalPages <= 5) {
-        return Array.from(
-          {
-            length:
-              totalPages,
-          },
-          (_, index) =>
-            index + 1
-        );
-      }
+  const paginationPages = useMemo(() => {
+    if (totalPages <= 5)
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
 
-      if (currentPage <= 3) {
-        return [
-          1,
-          2,
-          3,
-          4,
-          5,
-        ];
-      }
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
 
-      if (
-        currentPage >=
-        totalPages - 2
-      ) {
-        return [
-          totalPages - 4,
-          totalPages - 3,
-          totalPages - 2,
-          totalPages - 1,
-          totalPages,
-        ];
-      }
-
+    if (currentPage >= totalPages - 2)
       return [
-        currentPage - 2,
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        currentPage + 2,
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
       ];
-    }, [
+
+    return [
+      currentPage - 2,
+      currentPage - 1,
       currentPage,
-      totalPages,
-    ]);
+      currentPage + 1,
+      currentPage + 2,
+    ];
+  }, [currentPage, totalPages]);
 
   // ===================================================
-  // CREATE
+  // CREATE / EDIT
   // ===================================================
 
-  const openCreateAdmin =
-    () => {
-      setEditingAdmin(null);
+  const openCreateAdmin = () => {
+    setEditingAdmin(null);
 
-      setAdminForm({
-        name: "",
-        email: "",
-        password: "",
-        role_id:
-          roles.length > 0
-            ? roles[0].id
-            : null,
-      });
+    setAdminForm({
+      name: "",
+      email: "",
+      password: "",
+      role_id: roles.length > 0 ? roles[0].id : null,
+    });
 
-      setModalOpen(true);
-    };
+    setModalOpen(true);
+  };
 
-  // ===================================================
-  // EDIT
-  // ===================================================
-
-  const openEditAdmin = (
-    admin: AdminMember
-  ) => {
+  const openEditAdmin = (admin: AdminMember) => {
     setEditingAdmin(admin);
 
     setAdminForm({
       name: admin.name || "",
-      email:
-        admin.email || "",
+      email: admin.email || "",
       password: "",
-      role_id:
-        admin.roles?.[0]?.id ||
-        null,
+      role_id: admin.roles?.[0]?.id || null,
     });
 
     setModalOpen(true);
@@ -1048,117 +742,65 @@ const AdminManagement: FC = () => {
   // ===================================================
 
   const submitAdmin = async () => {
-    if (
-      !adminForm.name.trim()
-    ) {
-      toast.error(
-        "Please enter admin name."
-      );
+    if (!adminForm.name.trim()) {
+      toast.error("Please enter admin name.");
       return;
     }
 
-    if (
-      !adminForm.email.trim()
-    ) {
-      toast.error(
-        "Please enter email."
-      );
+    if (!adminForm.email.trim()) {
+      toast.error("Please enter email.");
       return;
     }
 
-    if (
-      !editingAdmin &&
-      !adminForm.password
-    ) {
-      toast.error(
-        "Please enter password."
-      );
+    if (!editingAdmin && !adminForm.password) {
+      toast.error("Please enter password.");
       return;
     }
 
     if (!adminForm.role_id) {
-      toast.error(
-        "Please select a role."
-      );
+      toast.error("Please select a role.");
       return;
     }
 
     try {
       setActionLoading(true);
 
-      // CREATE PAYLOAD
-
       if (!editingAdmin) {
         const payload = {
           name: adminForm.name.trim(),
-          email:
-            adminForm.email.trim(),
-          password:
-            adminForm.password,
-          roles: [
-            adminForm.role_id,
-          ],
+          email: adminForm.email.trim(),
+          password: adminForm.password,
+          roles: [adminForm.role_id],
         };
 
-        const response =
-          await adminManagementApi.createAdmin(
-            payload
-          );
+        const response = await adminManagementApi.createAdmin(payload);
 
-        toast.success(
-          response.data?.message ||
-            "Admin created successfully."
-        );
+        toast.success(response.data?.message || "Admin created successfully.");
       }
-
-      // UPDATE PAYLOAD
 
       if (editingAdmin) {
         const payload = {
           name: adminForm.name.trim(),
-          password:
-            adminForm.password ||
-            undefined,
-          roles: [
-            adminForm.role_id,
-          ],
+          password: adminForm.password || undefined,
+          roles: [adminForm.role_id],
         };
 
-        const response =
-          await adminManagementApi.updateAdmin(
-            editingAdmin.id,
-            payload
-          );
-
-        toast.success(
-          response.data?.message ||
-            "Admin updated successfully."
+        const response = await adminManagementApi.updateAdmin(
+          editingAdmin.id,
+          payload,
         );
+
+        toast.success(response.data?.message || "Admin updated successfully.");
       }
 
       setModalOpen(false);
-
       setEditingAdmin(null);
-
-      setAdminForm({
-        name: "",
-        email: "",
-        password: "",
-        role_id: null,
-      });
+      setAdminForm({ name: "", email: "", password: "", role_id: null });
 
       await fetchAll();
     } catch (error: any) {
-      console.error(
-        "Save admin error:",
-        error
-      );
-
-      toast.error(
-        error?.response?.data
-          ?.message ||
-          "Unable to save admin."
-      );
+      console.error("Save admin error:", error);
+      toast.error(error?.response?.data?.message || "Unable to save admin.");
     } finally {
       setActionLoading(false);
     }
@@ -1168,92 +810,59 @@ const AdminManagement: FC = () => {
   // DELETE
   // ===================================================
 
-  const openDeleteAdmin = (
-    admin: AdminMember
-  ) => {
-    setDeleteTarget({
-      id: admin.id,
-      name: admin.name,
-    });
-
+  const openDeleteAdmin = (admin: AdminMember) => {
+    setDeleteTarget({ id: admin.id, name: admin.name });
     setDeleteModalOpen(true);
   };
 
-  const handleDelete =
-    async () => {
-      if (!deleteTarget) {
-        return;
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
 
-      try {
-        setDeleteLoading(true);
+    try {
+      setDeleteLoading(true);
 
-        const response =
-          await adminManagementApi.deleteAdmin(
-            deleteTarget.id
-          );
+      const response = await adminManagementApi.deleteAdmin(deleteTarget.id);
 
-        toast.success(
-          response.data?.message ||
-            "Admin deleted successfully."
-        );
+      toast.success(response.data?.message || "Admin deleted successfully.");
 
-        setDeleteModalOpen(
-          false
-        );
-
-        setDeleteTarget(null);
-
-        await fetchAll();
-      } catch (error: any) {
-        console.error(
-          "Delete admin error:",
-          error
-        );
-
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            "Unable to delete admin."
-        );
-      } finally {
-        setDeleteLoading(false);
-      }
-    };
+      setDeleteModalOpen(false);
+      setDeleteTarget(null);
+      await fetchAll();
+    } catch (error: any) {
+      console.error("Delete admin error:", error);
+      toast.error(error?.response?.data?.message || "Unable to delete admin.");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   // ===================================================
-  // HANDLE SEARCH - Clear highlight on manual search
+  // SEARCH
   // ===================================================
 
   const handleSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
-    setHighlightedAdminId(null); // ✅ Clear highlight on manual search
+    setHighlightedAdminId(null);
   };
 
   // ===================================================
   // LOADING
   // ===================================================
 
-  if (
-    loading &&
-    admins.length === 0
-  ) {
+  if (loading && admins.length === 0) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#faf8f3]">
+      <div className="flex min-h-[420px] items-center justify-center bg-[#F5F7F5]">
         <div className="flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
-            <FiRefreshCw
-              size={23}
-              className="animate-spin"
-            />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+            <FiRefreshCw size={23} className="animate-spin" />
           </div>
 
-          <p className="mt-4 text-base font-bold text-[#29251f]">
+          <p className="mt-4 text-base font-bold text-[#202721]">
             Loading admins...
           </p>
 
-          <p className="mt-1 text-xs text-[#a19583]">
+          <p className="mt-1 text-xs text-[#9AA29C]">
             Fetching administrators and roles.
           </p>
         </div>
@@ -1268,31 +877,26 @@ const AdminManagement: FC = () => {
   return (
     <>
       <motion.div
-        initial={{
-          opacity: 0,
-        }}
-        animate={{
-          opacity: 1,
-        }}
-        className="min-h-screen bg-[#faf8f3] p-4 sm:p-5 lg:p-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
       >
         {/* HEADER */}
-
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#b8902e]" />
+              <span className="h-2 w-2 rounded-full bg-[#163F20]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9a741b]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4C8A57]">
                 User Management
               </span>
             </div>
 
-            <h1 className="font-serif text-[30px] font-bold tracking-tight text-[#29251f] sm:text-[34px]">
+            <h1 className="text-[30px] font-bold tracking-tight text-[#202721] sm:text-[34px]">
               Admin Management
             </h1>
 
-            <p className="mt-1.5 text-sm text-[#8d8372]">
+            <p className="mt-1.5 text-sm text-[#59645C]">
               Manage administrators and assign roles from one place.
             </p>
           </div>
@@ -1302,26 +906,19 @@ const AdminManagement: FC = () => {
               type="button"
               onClick={fetchAll}
               disabled={loading}
-              className="flex h-11 items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-5 text-sm font-bold text-[#8f6d1d] shadow-sm transition hover:bg-[#faf8f3] disabled:opacity-50"
+              className="flex h-11 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-5 text-sm font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={16}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+                className={loading ? "animate-spin" : ""}
               />
-
               Refresh
             </button>
 
             <button
               type="button"
-              onClick={
-                openCreateAdmin
-              }
-              className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 text-sm font-bold text-white shadow-md shadow-[#b8902e]/15 transition hover:from-[#a98227] hover:to-[#7e6017]"
+              onClick={openCreateAdmin}
+              className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
             >
               <FiPlus size={17} />
               Add Admin
@@ -1330,158 +927,109 @@ const AdminManagement: FC = () => {
         </div>
 
         {/* MAIN CARD */}
-
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 10,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          className="relative overflow-hidden rounded-[22px] border border-[#b8902e]/12 bg-white shadow-[0_8px_30px_rgba(70,55,20,0.045)]"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
           {/* TOOLBAR */}
-
-          <div className="border-b border-[#b8902e]/10 p-5">
+          <div className="border-b border-[#163F20]/10 p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[500px]">
                 <FiSearch
                   size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a8841c]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
                 />
 
                 <input
                   type="text"
                   value={search}
-                  onChange={(
-                    event
-                  ) =>
-                    handleSearch(
-                      event.target
-                        .value
-                    )
-                  }
+                  onChange={(event) => handleSearch(event.target.value)}
                   placeholder="Search name, email, ID or role..."
-                  className="h-12 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-11 pr-4 text-sm text-[#29251f] outline-none placeholder:text-[#aaa08e] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/10"
+                  className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
                 />
               </div>
 
               <div className="flex flex-wrap gap-2">
                 {[
-                  {
-                    key: "all" as const,
-                    label: "All",
-                  },
-                  {
-                    key: "assigned" as const,
-                    label: "Assigned",
-                  },
-                  {
-                    key: "unassigned" as const,
-                    label: "No Role",
-                  },
-                ].map(
-                  (item) => (
-                    <button
-                      key={
-                        item.key
-                      }
-                      type="button"
-                      onClick={() => {
-                        setStatusFilter(
-                          item.key
-                        );
-                        setCurrentPage(1);
-                        setHighlightedAdminId(null); // ✅ Clear highlight on filter change
-                      }}
-                      className={`rounded-xl px-5 py-2.5 text-xs font-bold transition ${
-                        statusFilter ===
-                        item.key
-                          ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md"
-                          : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:bg-[#f2ead8]"
-                      }`}
-                    >
-                      {
-                        item.label
-                      }
-                    </button>
-                  )
-                )}
+                  { key: "all" as const, label: "All" },
+                  { key: "assigned" as const, label: "Assigned" },
+                  { key: "unassigned" as const, label: "No Role" },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilter(item.key);
+                      setCurrentPage(1);
+                      setHighlightedAdminId(null);
+                    }}
+                    className={`rounded-xl px-5 py-2.5 text-xs font-bold transition ${
+                      statusFilter === item.key
+                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                        : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
           {/* TABLE HEADER */}
-
-          <div className="flex flex-col justify-between gap-3 border-b border-[#b8902e]/10 px-5 py-4 sm:flex-row sm:items-center">
+          <div className="flex flex-col justify-between gap-3 border-b border-[#163F20]/10 px-5 py-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
-                <FiUsers
-                  size={18}
-                />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <FiUsers size={18} />
               </div>
 
               <div>
-                <h2 className="text-base font-bold text-[#29251f]">
+                <h2 className="text-base font-bold text-[#202721]">
                   Admin Directory
                 </h2>
 
-                <p className="mt-1 text-xs text-[#a19583]">
-                  {
-                    filteredAdmins.length
-                  }{" "}
-                  administrator
-                  {filteredAdmins.length ===
-                  1
-                    ? ""
-                    : "s"}{" "}
-                  found
+                <p className="mt-1 text-xs text-[#9AA29C]">
+                  {filteredAdmins.length} administrator
+                  {filteredAdmins.length === 1 ? "" : "s"} found
                 </p>
               </div>
             </div>
 
             <div className="flex gap-2">
-              <span className="rounded-lg bg-[#faf8f3] px-3 py-2 text-[10px] font-bold text-[#8f6d1d]">
+              <span className="rounded-lg bg-[#F5F7F5] px-3 py-2 text-[10px] font-bold text-[#163F20]">
                 {admins.length} Total
               </span>
 
-              <span className="rounded-lg bg-[#faf4df] px-3 py-2 text-[10px] font-bold text-[#8f6d1d]">
+              <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold text-[#163F20]">
                 {roles.length} Roles
               </span>
             </div>
           </div>
 
           {/* DESKTOP TABLE */}
-
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1050px] border-collapse">
               <thead>
-                <tr className="bg-[#2f2a22]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                <tr className="bg-[#163F20]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     S.No.
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Administrator
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Email
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Role
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Created
                   </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Actions
                   </th>
                 </tr>
@@ -1490,332 +1038,219 @@ const AdminManagement: FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-5 py-16 text-center"
-                    >
+                    <td colSpan={6} className="px-5 py-16 text-center">
                       <FiRefreshCw
                         size={26}
-                        className="mx-auto animate-spin text-[#b8902e]"
+                        className="mx-auto animate-spin text-[#163F20]"
                       />
 
-                      <p className="mt-4 text-sm font-bold text-[#29251f]">
+                      <p className="mt-4 text-sm font-bold text-[#202721]">
                         Loading administrators...
                       </p>
                     </td>
                   </tr>
-                ) : paginatedAdmins.length ===
-                  0 ? (
+                ) : paginatedAdmins.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-5 py-16 text-center"
-                    >
+                    <td colSpan={6} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
-                          <FiUsers
-                            size={25}
-                          />
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                          <FiUsers size={25} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#29251f]">
+                        <p className="mt-4 text-sm font-bold text-[#202721]">
                           No administrators found
                         </p>
 
-                        <p className="mt-1 text-xs text-[#a19583]">
+                        <p className="mt-1 text-xs text-[#9AA29C]">
                           Try another search or add a new admin.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedAdmins.map(
-                    (
-                      admin,
-                      index
-                    ) => {
-                      const adminRole =
-                        admin.roles?.[0] ||
-                        null;
-                      
-                      const isHighlighted = highlightedAdminId === admin.id;
+                  paginatedAdmins.map((admin, index) => {
+                    const adminRole = admin.roles?.[0] || null;
+                    const isHighlighted = highlightedAdminId === admin.id;
 
-                      return (
-                        <tr
-                          key={admin.id}
-                          className={`border-b border-[#b8902e]/10 transition-all duration-300 ${
-                            isHighlighted 
-                              ? 'bg-[#d4af52]/15 border-l-4 border-l-[#b8902e] shadow-inner' 
-                              : 'bg-white hover:bg-[#fcfaf5]'
-                          }`}
-                        >
-                          {/* S.NO */}
+                    return (
+                      <tr
+                        key={admin.id}
+                        className={`border-b border-[#163F20]/10 transition-all duration-300 ${
+                          isHighlighted
+                            ? "bg-[#EAF3EA] border-l-4 border-l-[#163F20] shadow-inner"
+                            : "bg-white hover:bg-[#FAFBFA]"
+                        }`}
+                      >
+                        <td className="px-5 py-4">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                            {startIndex + index + 1}
+                          </span>
+                        </td>
 
-                          <td className="px-5 py-4">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
-                              {startIndex +
-                                index +
-                                1}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
+                              {getInitials(admin.name)}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-[#202721]">
+                                {admin.name}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            <FiMail size={14} className="text-[#163F20]" />
+                            <span className="text-xs font-semibold text-[#3F4A41]">
+                              {admin.email}
                             </span>
-                          </td>
+                          </div>
+                        </td>
 
-                          {/* ADMIN */}
-
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-xs font-bold text-white">
-                                {getInitials(
-                                  admin.name
-                                )}
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-[#29251f]">
-                                  {
-                                    admin.name
-                                  }
-                                </p>
-
-                                
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* EMAIL */}
-
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <FiMail
-                                size={
-                                  14
-                                }
-                                className="text-[#b8902e]"
-                              />
-
-                              <span className="text-xs font-semibold text-[#4d463b]">
-                                {
-                                  admin.email
-                                }
+                        <td className="px-5 py-4">
+                          {adminRole ? (
+                            <div>
+                              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/20 bg-[#EAF3EA] px-3 py-1.5 text-[10px] font-bold text-[#163F20]">
+                                <FiShield size={11} />
+                                {adminRole.name}
                               </span>
+
+                              <p className="mt-1 font-mono text-[9px] text-[#9AA29C]">
+                                {adminRole.slug}
+                              </p>
                             </div>
-                          </td>
-
-                          {/* ROLE */}
-
-                          <td className="px-5 py-4">
-                            {adminRole ? (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#b8902e]/20 bg-[#f8f3e5] px-3 py-1.5 text-[10px] font-bold text-[#806319]">
-                                  <FiShield
-                                    size={
-                                      11
-                                    }
-                                  />
-
-                                  {
-                                    adminRole.name
-                                  }
-                                </span>
-
-                                <p className="mt-1 font-mono text-[9px] text-[#a19583]">
-                                  {
-                                    adminRole.slug
-                                  }
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="inline-flex rounded-full border border-[#d8d1c4] bg-[#f6f4ef] px-3 py-1.5 text-[10px] font-bold text-[#786f60]">
-                                No Role
-                              </span>
-                            )}
-                          </td>
-
-                          {/* CREATED */}
-
-                          <td className="px-5 py-4">
-                            <span className="text-[10px] font-semibold text-[#786f60]">
-                              {formatDate(
-                                admin.created_at
-                              )}
+                          ) : (
+                            <span className="inline-flex rounded-full border border-[#D8E2D8] bg-[#F3F6F3] px-3 py-1.5 text-[10px] font-bold text-[#59645C]">
+                              No Role
                             </span>
-                          </td>
+                          )}
+                        </td>
 
-                          {/* ACTIONS */}
+                        <td className="px-5 py-4">
+                          <span className="text-[10px] font-semibold text-[#59645C]">
+                            {formatDate(admin.created_at)}
+                          </span>
+                        </td>
 
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openEditAdmin(
-                                    admin
-                                  )
-                                }
-                                title="Edit Admin"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
-                              >
-                                <FiEdit2
-                                  size={
-                                    14
-                                  }
-                                />
-                              </button>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditAdmin(admin)}
+                              title="Edit Admin"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                            >
+                              <FiEdit2 size={14} />
+                            </button>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openDeleteAdmin(
-                                    admin
-                                  )
-                                }
-                                title="Delete Admin"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#c98d83]/20 bg-[#fff8f6] text-[#b46055] transition hover:bg-[#b46055] hover:text-white"
-                              >
-                                <FiTrash2
-                                  size={
-                                    14
-                                  }
-                                />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )
+                            <button
+                              type="button"
+                              onClick={() => openDeleteAdmin(admin)}
+                              title="Delete Admin"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
 
           {/* MOBILE */}
-
           <div className="block lg:hidden">
-            {paginatedAdmins.length >
-            0 ? (
-              paginatedAdmins.map(
-                (
-                  admin,
-                  index
-                ) => {
-                  const adminRole =
-                    admin.roles?.[0] ||
-                    null;
-                  
-                  const isHighlighted = highlightedAdminId === admin.id;
+            {paginatedAdmins.length > 0 ? (
+              paginatedAdmins.map((admin, index) => {
+                const adminRole = admin.roles?.[0] || null;
+                const isHighlighted = highlightedAdminId === admin.id;
 
-                  return (
-                    <div
-                      key={admin.id}
-                      className={`border-b border-[#b8902e]/10 p-5 transition-all duration-300 ${
-                        isHighlighted 
-                          ? 'bg-[#d4af52]/15 border-l-4 border-l-[#b8902e]' 
-                          : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-xs font-bold text-white">
-                            {getInitials(
-                              admin.name
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-[#29251f]">
-                              {
-                                admin.name
-                              }
-                            </p>
-
-                            <p className="mt-1 truncate text-xs text-[#786f60]">
-                              {
-                                admin.email
-                              }
-                            </p>
-                          </div>
+                return (
+                  <div
+                    key={admin.id}
+                    className={`border-b border-[#163F20]/10 p-5 transition-all duration-300 ${
+                      isHighlighted
+                        ? "bg-[#EAF3EA] border-l-4 border-l-[#163F20]"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
+                          {getInitials(admin.name)}
                         </div>
 
-                        <span className="text-[10px] font-bold text-[#a19583]">
-                          #
-                          {startIndex +
-                            index +
-                            1}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#a89a7d]">
-                            Role
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[#202721]">
+                            {admin.name}
                           </p>
 
-                          <p className="mt-1.5 text-xs font-bold text-[#29251f]">
-                            {adminRole?.name ||
-                              "No Role"}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#a89a7d]">
-                            Created
-                          </p>
-
-                          <p className="mt-1.5 text-xs font-bold text-[#29251f]">
-                            {formatDate(
-                              admin.created_at
-                            )}
+                          <p className="mt-1 truncate text-xs text-[#59645C]">
+                            {admin.email}
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-4 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openEditAdmin(
-                              admin
-                            )
-                          }
-                          className="flex h-9 items-center gap-1.5 rounded-lg border border-[#b8902e]/15 bg-[#faf8f3] px-3 text-xs font-bold text-[#8f6d1d]"
-                        >
-                          <FiEdit2
-                            size={
-                              13
-                            }
-                          />
-                          Edit
-                        </button>
+                      <span className="text-[10px] font-bold text-[#9AA29C]">
+                        #{startIndex + index + 1}
+                      </span>
+                    </div>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openDeleteAdmin(
-                              admin
-                            )
-                          }
-                          className="flex h-9 items-center gap-1.5 rounded-lg border border-[#c98d83]/20 bg-[#fff8f6] px-3 text-xs font-bold text-[#b46055]"
-                        >
-                          <FiTrash2
-                            size={
-                              13
-                            }
-                          />
-                          Delete
-                        </button>
+                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          Role
+                        </p>
+
+                        <p className="mt-1.5 text-xs font-bold text-[#202721]">
+                          {adminRole?.name || "No Role"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          Created
+                        </p>
+
+                        <p className="mt-1.5 text-xs font-bold text-[#202721]">
+                          {formatDate(admin.created_at)}
+                        </p>
                       </div>
                     </div>
-                  );
-                }
-              )
+
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditAdmin(admin)}
+                        className="flex h-9 items-center gap-1.5 rounded-lg border border-[#163F20]/15 bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
+                      >
+                        <FiEdit2 size={13} />
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openDeleteAdmin(admin)}
+                        className="flex h-9 items-center gap-1.5 rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] px-3 text-xs font-bold text-[#C23B32]"
+                      >
+                        <FiTrash2 size={13} />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <div className="flex flex-col items-center py-16 text-center">
-                <FiUsers
-                  size={27}
-                  className="text-[#b8902e]"
-                />
+                <FiUsers size={27} className="text-[#163F20]" />
 
-                <p className="mt-4 text-sm font-bold text-[#29251f]">
+                <p className="mt-4 text-sm font-bold text-[#202721]">
                   No administrators found
                 </p>
               </div>
@@ -1823,24 +1258,15 @@ const AdminManagement: FC = () => {
           </div>
 
           {/* PAGINATION */}
-
-          {filteredAdmins.length >
-            0 && (
-            <div className="flex flex-col items-center justify-between gap-4 border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4 sm:flex-row">
-              <p className="text-xs text-[#8b8171]">
+          {filteredAdmins.length > 0 && (
+            <div className="flex flex-col items-center justify-between gap-4 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row">
+              <p className="text-xs text-[#89918B]">
                 Showing{" "}
-                <span className="font-bold text-[#4a4436]">
-                  {startEntry}
-                </span>{" "}
-                to{" "}
-                <span className="font-bold text-[#4a4436]">
-                  {endEntry}
-                </span>{" "}
+                <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
+                to <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
                 of{" "}
-                <span className="font-bold text-[#4a4436]">
-                  {
-                    filteredAdmins.length
-                  }
+                <span className="font-bold text-[#3F4A41]">
+                  {filteredAdmins.length}
                 </span>{" "}
                 entries
               </p>
@@ -1849,67 +1275,38 @@ const AdminManagement: FC = () => {
                 <button
                   type="button"
                   onClick={() =>
-                    setCurrentPage(
-                      (page) =>
-                        Math.max(
-                          1,
-                          page - 1
-                        )
-                    )
+                    setCurrentPage((page) => Math.max(1, page - 1))
                   }
-                  disabled={
-                    currentPage ===
-                    1
-                  }
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                  disabled={currentPage === 1}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <FiChevronLeft
-                    size={16}
-                  />
+                  <FiChevronLeft size={16} />
                 </button>
 
-                {paginationPages.map(
-                  (page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        setCurrentPage(
-                          page
-                        )
-                      }
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2.5 text-xs font-bold ${
-                        currentPage ===
-                        page
-                          ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white"
-                          : "text-[#786f60] hover:bg-[#faf8f3]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                )}
+                {paginationPages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2.5 text-xs font-bold ${
+                      currentPage === page
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                        : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 <button
                   type="button"
                   onClick={() =>
-                    setCurrentPage(
-                      (page) =>
-                        Math.min(
-                          totalPages,
-                          page + 1
-                        )
-                    )
+                    setCurrentPage((page) => Math.min(totalPages, page + 1))
                   }
-                  disabled={
-                    currentPage ===
-                    totalPages
-                  }
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                  disabled={currentPage === totalPages}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <FiChevronRight
-                    size={16}
-                  />
+                  <FiChevronRight size={16} />
                 </button>
               </div>
             </div>
@@ -1917,55 +1314,35 @@ const AdminManagement: FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* CREATE / EDIT */}
-
+      {/* CREATE / EDIT MODAL */}
       <AdminFormModal
         open={modalOpen}
         loading={actionLoading}
-        editingAdmin={
-          editingAdmin
-        }
+        editingAdmin={editingAdmin}
         roles={roles}
         form={adminForm}
         setForm={setAdminForm}
         onClose={() => {
           if (!actionLoading) {
             setModalOpen(false);
-            setEditingAdmin(
-              null
-            );
+            setEditingAdmin(null);
           }
         }}
-        onSubmit={
-          submitAdmin
-        }
+        onSubmit={submitAdmin}
       />
 
-      {/* DELETE */}
-
+      {/* DELETE MODAL */}
       <DeleteAdminModal
-        open={
-          deleteModalOpen
-        }
-        loading={
-          deleteLoading
-        }
-        target={
-          deleteTarget
-        }
+        open={deleteModalOpen}
+        loading={deleteLoading}
+        target={deleteTarget}
         onClose={() => {
           if (!deleteLoading) {
-            setDeleteModalOpen(
-              false
-            );
-            setDeleteTarget(
-              null
-            );
+            setDeleteModalOpen(false);
+            setDeleteTarget(null);
           }
         }}
-        onConfirm={
-          handleDelete
-        }
+        onConfirm={handleDelete}
       />
     </>
   );

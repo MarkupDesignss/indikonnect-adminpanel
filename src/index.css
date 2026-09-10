@@ -90,6 +90,56 @@ a {
   background: rgba(0, 0, 0, 0.25);
 }
 
+
+/* =====================================================
+   DISPATCH STATUS CARD — GLITTER / RIPPLE ANIMATIONS
+   ===================================================== */
+
+@keyframes dispatch-ripple {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes dispatch-shimmer {
+  0% {
+    transform: translateX(-150%) rotate(20deg);
+  }
+  100% {
+    transform: translateX(250%) rotate(20deg);
+  }
+}
+
+@keyframes dispatch-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px rgba(22, 63, 32, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(22, 63, 32, 0.35));
+  }
+}
+
+.dispatch-ripple {
+  animation: dispatch-ripple 2.6s ease-out infinite;
+}
+
+.dispatch-shimmer {
+  animation: dispatch-shimmer 3s ease-in-out infinite;
+}
+
+.dispatch-glow {
+  animation: dispatch-glow 3s ease-in-out infinite;
+}
+
 /* Material Icons refinement */
 .material-symbols-outlined {
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;

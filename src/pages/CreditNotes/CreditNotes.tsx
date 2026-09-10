@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -29,12 +30,20 @@ import creditNotesApi, {
 } from "../../api/endpoints/creditNotes";
 
 // =====================================================
-// CONSTANTS
+// THEME
 // =====================================================
 
-const GOLD = "#b8902e";
-const DARK_GOLD = "#8f6d1d";
-const PAGE_BG = "#f7f5ef";
+const PRIMARY = "#163F20";
+const DARK_PRIMARY = "#0F3219";
+const ACCENT = "#4C8A57";
+const LIGHT_GREEN = "#EAF3EA";
+const PAGE_BG = "#F5F7F5";
+const TEXT_PRIMARY = "#202721";
+const TEXT_SECONDARY = "#59645C";
+const MUTED = "#9AA29C";
+const BORDER = "#D8E2D8";
+const WHITE = "#FFFFFF";
+const DANGER = "#C23B32";
 
 // =====================================================
 // ANIMATIONS
@@ -72,30 +81,33 @@ const itemVariants = {
 // HELPERS
 // =====================================================
 
-// Used for on-screen UI. Browsers render the ₹ glyph fine.
+// Used for on-screen UI.
 const formatAmount = (
   value: string | number | null | undefined
 ) => {
   const amount = Number(value ?? 0);
 
-  return `₹${amount.toLocaleString("en-IN", {
+  return `₹${
+  amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  })
+} `;
 };
 
-// Used ONLY inside the PDF (jsPDF's built-in "helvetica" font has no
-// glyph for ₹, so it prints a broken "1"-like box). We use "Rs." there
-// instead so the PDF renders clean numbers.
+// Used only inside the PDF.
+// jsPDF built-in Helvetica does not support ₹ reliably.
 const formatAmountPdf = (
   value: string | number | null | undefined
 ) => {
   const amount = Number(value ?? 0);
 
-  return `Rs. ${amount.toLocaleString("en-IN", {
+  return `Rs.${
+  amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  })
+} `;
 };
 
 const formatDate = (
@@ -160,19 +172,19 @@ const capitalize = (
     );
 };
 
-const getStatusClass = (
+const getReasonClass = (
   reason?: string
 ) => {
   switch (reason?.toLowerCase()) {
     case "return":
-      return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
+      return "border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20]";
 
     case "cancel":
     case "cancellation":
-      return "border-[#d8aaa2] bg-[#fff5f3] text-[#a04d43]";
+      return "border-red-200 bg-red-50 text-[#C23B32]";
 
     default:
-      return "border-[#d8d1c4] bg-[#f6f4ef] text-[#786f60]";
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
   }
 };
 
@@ -183,8 +195,9 @@ const getBuyerInitials = (
     return "CN";
   }
 
-  const parts =
-    name.trim().split(/\s+/);
+  const parts = name
+    .trim()
+    .split(/\s+/);
 
   if (parts.length === 1) {
     return parts[0]
@@ -228,23 +241,26 @@ const CreditNoteViewModal: React.FC<
       closeOnOverlayClick
       title=""
     >
-      <div className="w-full max-w-[760px] overflow-hidden rounded-[20px] border border-[#b8902e]/15 bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+      <div className="w-full max-w-[760px] overflow-hidden rounded-[22px] border border-[#163F20]/10 bg-white shadow-2xl">
+        {/* TOP ACCENT */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between border-b border-[#D8E2D8] px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
               <FiFileText size={19} />
             </div>
 
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9a741b]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
                 Credit Note
               </p>
 
-              <h2 className="mt-0.5 text-lg font-semibold text-gray-900">
-                {note.credit_note_number}
+              <h2 className="mt-0.5 text-lg font-semibold text-[#202721]">
+                {
+                  note.credit_note_number
+                }
               </h2>
             </div>
           </div>
@@ -252,46 +268,52 @@ const CreditNoteViewModal: React.FC<
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#9AA29C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
           >
             <FiX size={17} />
           </button>
         </div>
 
         {/* BODY */}
-        <div className="max-h-[75vh] overflow-y-auto bg-[#faf8f3] p-5 sm:p-6">
+        <div className="max-h-[75vh] overflow-y-auto bg-[#F5F7F5] p-5 sm:p-6">
           {/* TOP SUMMARY */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+            <div className="rounded-xl border border-[#D8E2D8] bg-white p-4">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                 Invoice
               </p>
 
-              <p className="mt-1 text-sm font-bold text-gray-800">
-                {note.original_invoice_number}
+              <p className="mt-1 text-sm font-bold text-[#202721]">
+                {
+                  note.original_invoice_number
+                }
               </p>
             </div>
 
-            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+            <div className="rounded-xl border border-[#D8E2D8] bg-white p-4">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                 Reason
               </p>
 
               <span
-                className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getStatusClass(
-                  note.reason
-                )}`}
+                className={`mt - 1.5 inline - flex rounded - full border px - 2.5 py - 1 text - [9px] font - bold ${
+  getReasonClass(
+    note.reason
+  )
+} `}
               >
-                {capitalize(note.reason)}
+                {capitalize(
+                  note.reason
+                )}
               </span>
             </div>
 
-            <div className="rounded-xl border border-[#b8902e]/10 bg-[#fffaf0] p-4">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-[#9a741b]">
+            <div className="rounded-xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
                 Credit Amount
               </p>
 
-              <p className="mt-1 text-lg font-bold text-[#8f6d1d]">
+              <p className="mt-1 text-lg font-bold text-[#163F20]">
                 {formatAmount(
                   note.amount
                 )}
@@ -300,20 +322,20 @@ const CreditNoteViewModal: React.FC<
           </div>
 
           {/* BUYER */}
-          <div className="mt-4 rounded-xl border border-[#b8902e]/10 bg-white p-4">
-            <div className="mb-4 flex items-center gap-3 border-b border-gray-100 pb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#faf4df] text-xs font-bold text-[#8f6d1d]">
+          <div className="mt-4 rounded-xl border border-[#D8E2D8] bg-white p-4">
+            <div className="mb-4 flex items-center gap-3 border-b border-[#D8E2D8] pb-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
                 {getBuyerInitials(
                   note.buyer_name
                 )}
               </div>
 
               <div>
-                <h3 className="text-sm font-bold text-gray-900">
+                <h3 className="text-sm font-bold text-[#202721]">
                   Buyer Details
                 </h3>
 
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-[#9AA29C]">
                   Credit note customer information
                 </p>
               </div>
@@ -321,44 +343,44 @@ const CreditNoteViewModal: React.FC<
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Name
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-gray-800">
+                <p className="mt-1 text-sm font-semibold text-[#202721]">
                   {note.buyer_name ||
                     "Unknown"}
                 </p>
               </div>
 
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Email
                 </p>
 
-                <p className="mt-1 break-all text-sm font-semibold text-gray-800">
+                <p className="mt-1 break-all text-sm font-semibold text-[#202721]">
                   {note.buyer_email ||
                     "—"}
                 </p>
               </div>
 
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   State
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-gray-800">
+                <p className="mt-1 text-sm font-semibold text-[#202721]">
                   {note.buyer_state ||
                     "—"}
                 </p>
               </div>
 
               <div>
-                <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   GSTIN
                 </p>
 
-                <p className="mt-1 text-sm font-semibold text-gray-800">
+                <p className="mt-1 text-sm font-semibold text-[#202721]">
                   {note.buyer_gstin ||
                     "—"}
                 </p>
@@ -367,15 +389,18 @@ const CreditNoteViewModal: React.FC<
           </div>
 
           {/* ITEMS */}
-          <div className="mt-4 overflow-hidden rounded-xl border border-[#b8902e]/10 bg-white">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-sm font-bold text-gray-900">
+          <div className="mt-4 overflow-hidden rounded-xl border border-[#D8E2D8] bg-white">
+            <div className="border-b border-[#D8E2D8] px-4 py-3">
+              <h3 className="text-sm font-bold text-[#202721]">
                 Credit Note Items
               </h3>
 
-              <p className="mt-0.5 text-[10px] text-gray-400">
-                {note.items?.length || 0} item
-                {note.items?.length === 1
+              <p className="mt-0.5 text-[10px] text-[#9AA29C]">
+                {note.items?.length ||
+                  0}{" "}
+                item
+                {note.items?.length ===
+                1
                   ? ""
                   : "s"}
               </p>
@@ -384,24 +409,24 @@ const CreditNoteViewModal: React.FC<
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] border-collapse">
                 <thead>
-                  <tr className="bg-[#faf8f3]">
-                    <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                  <tr className="bg-[#F5F7F5]">
+                    <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
                       Product
                     </th>
 
-                    <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
                       Qty
                     </th>
 
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
                       Taxable
                     </th>
 
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
                       GST
                     </th>
 
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-gray-500">
+                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
                       Total
                     </th>
                   </tr>
@@ -411,36 +436,43 @@ const CreditNoteViewModal: React.FC<
                   {(note.items || []).map(
                     (item) => (
                       <tr
-                        key={`${item.order_line_id}-${item.product_id}`}
-                        className="border-t border-gray-100"
+                        key={`${ item.order_line_id } -${ item.product_id } `}
+                        className="border-t border-[#D8E2D8]"
                       >
                         <td className="px-4 py-3">
-                          <p className="text-xs font-semibold text-gray-800">
-                            {item.product_name}
+                          <p className="text-xs font-semibold text-[#202721]">
+                            {
+                              item.product_name
+                            }
                           </p>
 
-                          <p className="mt-0.5 font-mono text-[9px] text-gray-400">
+                          <p className="mt-0.5 font-mono text-[9px] text-[#9AA29C]">
                             Code:{" "}
                             {item.product_code ||
                               "—"}
                           </p>
                         </td>
 
-                        <td className="px-4 py-3 text-center text-xs font-semibold text-gray-700">
-                          {item.quantity}
+                        <td className="px-4 py-3 text-center text-xs font-semibold text-[#59645C]">
+                          {
+                            item.quantity
+                          }
                         </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-semibold text-gray-700">
+                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
                           {formatAmount(
                             item.taxable_value
                           )}
                         </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-semibold text-gray-700">
-                          {item.gst_rate}%
+                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
+                          {
+                            item.gst_rate
+                          }
+                          %
                         </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-bold text-[#8f6d1d]">
+                        <td className="px-4 py-3 text-right text-xs font-bold text-[#163F20]">
                           {formatAmount(
                             item.line_total
                           )}
@@ -455,18 +487,18 @@ const CreditNoteViewModal: React.FC<
 
           {/* TAX + TOTAL */}
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-              <h3 className="mb-3 text-sm font-bold text-gray-900">
+            <div className="rounded-xl border border-[#D8E2D8] bg-white p-4">
+              <h3 className="mb-3 text-sm font-bold text-[#202721]">
                 Tax Summary
               </h3>
 
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">
+                  <span className="text-[#59645C]">
                     Taxable Value
                   </span>
 
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[#202721]">
                     {formatAmount(
                       note.taxable_value
                     )}
@@ -474,11 +506,11 @@ const CreditNoteViewModal: React.FC<
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">
+                  <span className="text-[#59645C]">
                     CGST
                   </span>
 
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[#202721]">
                     {formatAmount(
                       note.cgst_amount
                     )}
@@ -486,11 +518,11 @@ const CreditNoteViewModal: React.FC<
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">
+                  <span className="text-[#59645C]">
                     SGST
                   </span>
 
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[#202721]">
                     {formatAmount(
                       note.sgst_amount
                     )}
@@ -498,24 +530,24 @@ const CreditNoteViewModal: React.FC<
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-gray-500">
+                  <span className="text-[#59645C]">
                     IGST
                   </span>
 
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[#202721]">
                     {formatAmount(
                       note.igst_amount
                     )}
                   </span>
                 </div>
 
-                <div className="border-t border-gray-100 pt-2.5">
+                <div className="border-t border-[#D8E2D8] pt-2.5">
                   <div className="flex justify-between text-xs">
-                    <span className="font-bold text-gray-700">
+                    <span className="font-bold text-[#202721]">
                       Total GST
                     </span>
 
-                    <span className="font-bold text-[#8f6d1d]">
+                    <span className="font-bold text-[#163F20]">
                       {formatAmount(
                         note.total_gst
                       )}
@@ -525,25 +557,25 @@ const CreditNoteViewModal: React.FC<
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#b8902e]/10 bg-[#fffaf0] p-4">
-              <p className="text-[9px] font-bold uppercase tracking-wide text-[#9a741b]">
+            <div className="rounded-xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
+              <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
                 Final Credit Amount
               </p>
 
-              <p className="mt-2 text-[28px] font-bold tracking-tight text-[#8f6d1d]">
+              <p className="mt-2 text-[28px] font-bold tracking-tight text-[#163F20]">
                 {formatAmount(
                   note.amount
                 )}
               </p>
 
-              <div className="mt-4 border-t border-[#b8902e]/10 pt-3">
+              <div className="mt-4 border-t border-[#4C8A57]/15 pt-3">
                 <div className="flex items-center gap-2">
                   <FiCalendar
                     size={13}
-                    className="text-[#b8902e]"
+                    className="text-[#4C8A57]"
                   />
 
-                  <span className="text-[10px] font-semibold text-gray-600">
+                  <span className="text-[10px] font-semibold text-[#59645C]">
                     Issued{" "}
                     {formatDate(
                       note.issued_at
@@ -556,11 +588,11 @@ const CreditNoteViewModal: React.FC<
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-gray-100 bg-white px-5 py-4 sm:px-6">
+        <div className="flex justify-end gap-2 border-t border-[#D8E2D8] bg-white px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-medium text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
           >
             Close
           </button>
@@ -570,7 +602,7 @@ const CreditNoteViewModal: React.FC<
             onClick={() =>
               onDownload(note)
             }
-            className="flex items-center gap-2 rounded-xl bg-[#b8902e] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#9f7a25]"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
           >
             <FiDownload size={15} />
             Download PDF
@@ -586,8 +618,10 @@ const CreditNoteViewModal: React.FC<
 // =====================================================
 
 const CreditNotes: React.FC = () => {
-  const [creditNotes, setCreditNotes] =
-    useState<CreditNote[]>([]);
+  const [
+    creditNotes,
+    setCreditNotes,
+  ] = useState<CreditNote[]>([]);
 
   const [loading, setLoading] =
     useState(false);
@@ -595,13 +629,17 @@ const CreditNotes: React.FC = () => {
   const [search, setSearch] =
     useState("");
 
-  const [reasonFilter, setReasonFilter] =
-    useState<
-      "all" | "return" | "other"
-    >("all");
+  const [
+    reasonFilter,
+    setReasonFilter,
+  ] = useState<
+    "all" | "return" | "other"
+  >("all");
 
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [
+    currentPage,
+    setCurrentPage,
+  ] = useState(1);
 
   const [
     lastPage,
@@ -693,6 +731,7 @@ const CreditNotes: React.FC = () => {
 
   useEffect(() => {
     fetchCreditNotes(1);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -757,12 +796,8 @@ const CreditNotes: React.FC = () => {
     ]);
 
   // ===================================================
-  // LOCAL DISPLAY PAGINATION
+  // DISPLAY PAGINATION
   // ===================================================
-  //
-  // Backend already gives pagination.
-  // Since only current API page is loaded,
-  // display rows directly.
 
   const startEntry =
     totalRecords === 0
@@ -771,13 +806,12 @@ const CreditNotes: React.FC = () => {
           ITEMS_PER_PAGE +
         1;
 
-  const endEntry =
-    Math.min(
-      startEntry +
-        filteredCreditNotes.length -
-        1,
-      totalRecords
-    );
+  const endEntry = Math.min(
+    startEntry +
+      filteredCreditNotes.length -
+      1,
+    totalRecords
+  );
 
   // ===================================================
   // PAGE CHANGE
@@ -804,10 +838,7 @@ const CreditNotes: React.FC = () => {
   const handleView = (
     note: CreditNote
   ) => {
-    setSelectedNote(
-      note
-    );
-
+    setSelectedNote(note);
     setViewOpen(true);
   };
 
@@ -819,11 +850,10 @@ const CreditNotes: React.FC = () => {
     note: CreditNote
   ) => {
     try {
-      const doc =
-        new jsPDF({
-          unit: "mm",
-          format: "a4",
-        });
+      const doc = new jsPDF({
+        unit: "mm",
+        format: "a4",
+      });
 
       const pageWidth =
         doc.internal.pageSize.getWidth();
@@ -835,9 +865,9 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.setFillColor(
-        47,
-        42,
-        34
+        15,
+        50,
+        25
       );
 
       doc.rect(
@@ -855,6 +885,7 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.setFontSize(20);
+
       doc.setFont(
         "helvetica",
         "bold"
@@ -867,6 +898,7 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.setFontSize(9);
+
       doc.setFont(
         "helvetica",
         "normal"
@@ -879,6 +911,7 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.setFontSize(9);
+
       doc.text(
         note.credit_note_number,
         pageWidth - 15,
@@ -889,9 +922,11 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.text(
-        `Issued: ${formatDate(
-          note.issued_at
-        )}`,
+        `Issued: ${
+  formatDate(
+    note.issued_at
+  )
+} `,
         pageWidth - 15,
         20,
         {
@@ -906,12 +941,13 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.setTextColor(
-        45,
-        42,
-        36
+        32,
+        39,
+        33
       );
 
       doc.setFontSize(11);
+
       doc.setFont(
         "helvetica",
         "bold"
@@ -932,6 +968,7 @@ const CreditNotes: React.FC = () => {
       y += 7;
 
       doc.setFontSize(9);
+
       doc.setFont(
         "helvetica",
         "normal"
@@ -939,17 +976,17 @@ const CreditNotes: React.FC = () => {
 
       doc.text(
         `Name: ${
-          note.buyer_name ||
-          "Unknown"
-        }`,
+  note.buyer_name ||
+    "Unknown"
+} `,
         15,
         y
       );
 
       doc.text(
         `Credit Note: ${
-          note.credit_note_number
-        }`,
+  note.credit_note_number
+} `,
         112,
         y
       );
@@ -958,17 +995,17 @@ const CreditNotes: React.FC = () => {
 
       doc.text(
         `Email: ${
-          note.buyer_email ||
-          "—"
-        }`,
+  note.buyer_email ||
+    "—"
+} `,
         15,
         y
       );
 
       doc.text(
         `Original Invoice: ${
-          note.original_invoice_number
-        }`,
+  note.original_invoice_number
+} `,
         112,
         y
       );
@@ -977,17 +1014,17 @@ const CreditNotes: React.FC = () => {
 
       doc.text(
         `State: ${
-          note.buyer_state ||
-          "—"
-        }`,
+  note.buyer_state ||
+    "—"
+} `,
         15,
         y
       );
 
       doc.text(
         `Order ID: ${
-          note.order_id
-        }`,
+  note.order_id
+} `,
         112,
         y
       );
@@ -996,17 +1033,19 @@ const CreditNotes: React.FC = () => {
 
       doc.text(
         `GSTIN: ${
-          note.buyer_gstin ||
-          "—"
-        }`,
+  note.buyer_gstin ||
+    "—"
+} `,
         15,
         y
       );
 
       doc.text(
         `Reason: ${
-          capitalize(note.reason)
-        }`,
+  capitalize(
+    note.reason
+  )
+} `,
         112,
         y
       );
@@ -1018,9 +1057,9 @@ const CreditNotes: React.FC = () => {
       y += 10;
 
       doc.setDrawColor(
-        210,
-        204,
-        192
+        216,
+        226,
+        216
       );
 
       doc.line(
@@ -1037,6 +1076,7 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.setFontSize(11);
+
       doc.setFont(
         "helvetica",
         "bold"
@@ -1055,9 +1095,9 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.setFillColor(
-        250,
-        248,
-        243
+        234,
+        243,
+        234
       );
 
       doc.rect(
@@ -1069,9 +1109,16 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.setFontSize(8);
+
       doc.setFont(
         "helvetica",
         "bold"
+      );
+
+      doc.setTextColor(
+        22,
+        63,
+        32
       );
 
       doc.text(
@@ -1164,6 +1211,12 @@ const CreditNotes: React.FC = () => {
             "bold"
           );
 
+          doc.setTextColor(
+            32,
+            39,
+            33
+          );
+
           doc.text(
             "Credit Note Items - Continued",
             15,
@@ -1175,21 +1228,32 @@ const CreditNotes: React.FC = () => {
 
         doc.setDrawColor(
           230,
-          226,
-          218
+          235,
+          230
         );
 
         doc.line(
           15,
-          y + rowHeight - 2,
+          y +
+            rowHeight -
+            2,
           pageWidth - 15,
-          y + rowHeight - 2
+          y +
+            rowHeight -
+            2
         );
 
         doc.setFontSize(8);
+
         doc.setFont(
           "helvetica",
           "normal"
+        );
+
+        doc.setTextColor(
+          55,
+          65,
+          57
         );
 
         doc.text(
@@ -1209,7 +1273,6 @@ const CreditNotes: React.FC = () => {
           }
         );
 
-        // FIX: use Rs.-based formatter (jsPDF helvetica has no ₹ glyph)
         doc.text(
           formatAmountPdf(
             item.taxable_value
@@ -1222,7 +1285,7 @@ const CreditNotes: React.FC = () => {
         );
 
         doc.text(
-          `${item.gst_rate}%`,
+          `${ item.gst_rate }% `,
           170,
           y,
           {
@@ -1230,7 +1293,6 @@ const CreditNotes: React.FC = () => {
           }
         );
 
-        // FIX: use Rs.-based formatter
         doc.text(
           formatAmountPdf(
             item.line_total
@@ -1251,17 +1313,15 @@ const CreditNotes: React.FC = () => {
 
       y += 7;
 
-      if (
-        y > 245
-      ) {
+      if (y > 245) {
         doc.addPage();
         y = 20;
       }
 
       doc.setDrawColor(
-        184,
-        144,
-        46
+        76,
+        138,
+        87
       );
 
       doc.line(
@@ -1273,9 +1333,6 @@ const CreditNotes: React.FC = () => {
 
       y += 7;
 
-      // FIX: totals list now uses formatAmountPdf (Rs.) instead of
-      // formatAmount (₹) — this is exactly the row of numbers that
-      // was showing the broken "1" glyph in the screenshot.
       const totals = [
         [
           "Taxable Value",
@@ -1319,9 +1376,9 @@ const CreditNotes: React.FC = () => {
           );
 
           doc.setTextColor(
-            95,
-            90,
-            80
+            89,
+            100,
+            92
           );
 
           doc.text(
@@ -1336,9 +1393,9 @@ const CreditNotes: React.FC = () => {
           );
 
           doc.setTextColor(
-            55,
-            51,
-            44
+            32,
+            39,
+            33
           );
 
           doc.text(
@@ -1361,9 +1418,9 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.setFillColor(
-        255,
-        250,
-        240
+        234,
+        243,
+        234
       );
 
       doc.roundedRect(
@@ -1377,9 +1434,9 @@ const CreditNotes: React.FC = () => {
       );
 
       doc.setTextColor(
-        143,
-        109,
-        29
+        22,
+        63,
+        32
       );
 
       doc.setFont(
@@ -1387,9 +1444,7 @@ const CreditNotes: React.FC = () => {
         "bold"
       );
 
-      doc.setFontSize(
-        9
-      );
+      doc.setFontSize(9);
 
       doc.text(
         "CREDIT NOTE AMOUNT",
@@ -1401,7 +1456,6 @@ const CreditNotes: React.FC = () => {
         15
       );
 
-      // FIX: use Rs.-based formatter for the big final amount too
       doc.text(
         formatAmountPdf(
           note.amount
@@ -1422,8 +1476,8 @@ const CreditNotes: React.FC = () => {
 
       doc.setDrawColor(
         220,
-        215,
-        204
+        228,
+        220
       );
 
       doc.line(
@@ -1444,8 +1498,8 @@ const CreditNotes: React.FC = () => {
 
       doc.setTextColor(
         120,
-        113,
-        101
+        130,
+        122
       );
 
       doc.text(
@@ -1456,9 +1510,9 @@ const CreditNotes: React.FC = () => {
 
       doc.text(
         `Refund ID: ${
-          note.refund_id ??
-          "—"
-        }`,
+  note.refund_id ??
+    "—"
+} `,
         pageWidth - 15,
         footerY,
         {
@@ -1471,7 +1525,7 @@ const CreditNotes: React.FC = () => {
       // =================================================
 
       doc.save(
-        `${note.credit_note_number}.pdf`
+        `${ note.credit_note_number }.pdf`
       );
 
       toast.success(
@@ -1559,9 +1613,9 @@ const CreditNotes: React.FC = () => {
         }}
       >
         <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-gray-200 border-t-[#b8902e]" />
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#D8E2D8] border-t-[#163F20]" />
 
-          <p className="mt-3 text-sm text-gray-500">
+          <p className="mt-3 text-sm text-[#59645C]">
             Loading credit notes...
           </p>
         </div>
@@ -1588,10 +1642,7 @@ const CreditNotes: React.FC = () => {
         }}
       >
         <div className="mx-auto max-w-[1500px]">
-          {/* =================================================
-              PAGE HEADER
-          ================================================= */}
-
+          {/* PAGE HEADER */}
           <motion.div
             variants={
               itemVariants
@@ -1600,18 +1651,18 @@ const CreditNotes: React.FC = () => {
           >
             <div>
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#b8902e]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9a741b]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#163F20]">
                   Finance & Returns
                 </span>
               </div>
 
-              <h1 className="font-serif text-[29px] font-semibold tracking-tight text-gray-900 sm:text-[32px]">
+              <h1 className="text-[29px] font-semibold tracking-tight text-[#202721] sm:text-[32px]">
                 Credit Notes
               </h1>
 
-              <p className="mt-1.5 text-sm text-gray-500">
+              <p className="mt-1.5 text-sm text-[#59645C]">
                 Manage issued credit notes and
                 download customer credit records.
               </p>
@@ -1624,10 +1675,8 @@ const CreditNotes: React.FC = () => {
                   currentPage
                 )
               }
-              disabled={
-                loading
-              }
-              className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={loading}
+              className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm font-semibold text-[#163F20] shadow-sm transition hover:border-[#4C8A57] hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={16}
@@ -1644,40 +1693,30 @@ const CreditNotes: React.FC = () => {
             </button>
           </motion.div>
 
-          {/* =================================================
-              MAIN CARD
-          ================================================= */}
-
+          {/* MAIN CARD */}
           <motion.div
             variants={
               itemVariants
             }
-            className="overflow-hidden rounded-[20px] border border-gray-200 bg-white shadow-sm"
+            className="overflow-hidden rounded-[22px] border border-[#D8E2D8] bg-white shadow-sm"
           >
-            <div
-              className="h-[3px] w-full"
-              style={{
-                background:
-                  `linear-gradient(90deg, ${GOLD}, #d7bd72, ${GOLD})`,
-              }}
-            />
+            {/* TOP ACCENT */}
+            <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#4C8A57]" />
 
-            {/* =================================================
-                TOOLBAR
-            ================================================= */}
-
-            <div className="flex flex-col gap-4 border-b border-gray-100 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+            {/* TOOLBAR */}
+            <div className="flex flex-col gap-4 border-b border-[#D8E2D8] p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">
+                <h2 className="text-base font-semibold text-[#202721]">
                   Credit Note Directory
                 </h2>
 
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-[#9AA29C]">
                   {totalRecords.toLocaleString(
                     "en-IN"
                   )}{" "}
                   credit note
-                  {totalRecords === 1
+                  {totalRecords ===
+                  1
                     ? ""
                     : "s"}{" "}
                   found
@@ -1689,19 +1728,22 @@ const CreditNotes: React.FC = () => {
                 <div className="relative w-full sm:w-[330px]">
                   <FiSearch
                     size={17}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#4C8A57]"
                   />
 
                   <input
                     type="text"
                     value={search}
-                    onChange={(e) =>
+                    onChange={(
+                      e
+                    ) =>
                       setSearch(
-                        e.target.value
+                        e.target
+                          .value
                       )
                     }
                     placeholder="Search credit note, invoice or buyer..."
-                    className="h-11 w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-10 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/10"
+                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/10"
                   />
 
                   {search && (
@@ -1712,10 +1754,12 @@ const CreditNotes: React.FC = () => {
                           ""
                         )
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] transition hover:text-[#163F20]"
                     >
                       <FiX
-                        size={16}
+                        size={
+                          16
+                        }
                       />
                     </button>
                   )}
@@ -1748,12 +1792,12 @@ const CreditNotes: React.FC = () => {
                             filter.key
                           )
                         }
-                        className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-                          reasonFilter ===
-                          filter.key
-                            ? "bg-[#b8902e] text-white shadow-sm"
-                            : "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                        }`}
+                        className={`rounded - xl px - 4 py - 2.5 text - xs font - bold transition ${
+  reasonFilter ===
+    filter.key
+    ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-sm"
+    : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+} `}
                       >
                         {
                           filter.label
@@ -1765,32 +1809,30 @@ const CreditNotes: React.FC = () => {
               </div>
             </div>
 
-            {/* =================================================
-                TABLE INFO
-            ================================================= */}
-
-            <div className="flex flex-col justify-between gap-3 border-b border-gray-100 px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:px-5">
+            {/* TABLE INFO */}
+            <div className="flex flex-col justify-between gap-3 border-b border-[#D8E2D8] px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:px-5">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#faf8f3] text-[#a8841c]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                   <FiFileText
                     size={18}
                   />
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900">
+                  <h3 className="text-sm font-semibold text-[#202721]">
                     Issued Credit Notes
                   </h3>
 
-                  <p className="mt-0.5 text-[11px] text-gray-400">
+                  <p className="mt-0.5 text-[11px] text-[#9AA29C]">
                     Customer refund and return
                     credit records
                   </p>
                 </div>
               </div>
 
-              <span className="rounded-lg bg-[#faf8f3] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#8f6d1d]">
-                {reasonFilter === "all"
+              <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
+                {reasonFilter ===
+                "all"
                   ? "All Credit Notes"
                   : reasonFilter ===
                     "return"
@@ -1799,43 +1841,40 @@ const CreditNotes: React.FC = () => {
               </span>
             </div>
 
-            {/* =================================================
-                DESKTOP TABLE
-            ================================================= */}
-
+            {/* DESKTOP TABLE */}
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[1120px] border-collapse">
                 <thead>
-                  <tr className="bg-[#2f2a22]">
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                  <tr className="bg-[#0F3219]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       S.No.
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Credit Note
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Buyer
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Invoice
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Issued
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Reason
                     </th>
 
-                    <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Amount
                     </th>
 
-                    <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#f3dfab]">
+                    <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                       Actions
                     </th>
                   </tr>
@@ -1845,20 +1884,20 @@ const CreditNotes: React.FC = () => {
                   {loading ? (
                     <tr>
                       <td
-                        colSpan={
-                          8
-                        }
+                        colSpan={8}
                         className="px-5 py-16 text-center"
                       >
                         <div className="flex flex-col items-center">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                             <FiRefreshCw
-                              size={22}
+                              size={
+                                22
+                              }
                               className="animate-spin"
                             />
                           </div>
 
-                          <p className="mt-4 text-sm font-bold text-gray-800">
+                          <p className="mt-4 text-sm font-bold text-[#202721]">
                             Loading credit notes...
                           </p>
                         </div>
@@ -1868,23 +1907,23 @@ const CreditNotes: React.FC = () => {
                     0 ? (
                     <tr>
                       <td
-                        colSpan={
-                          8
-                        }
+                        colSpan={8}
                         className="px-5 py-16 text-center"
                       >
                         <div className="flex flex-col items-center">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#4C8A57]">
                             <FiFileText
-                              size={24}
+                              size={
+                                24
+                              }
                             />
                           </div>
 
-                          <p className="mt-4 text-sm font-bold text-gray-800">
+                          <p className="mt-4 text-sm font-bold text-[#202721]">
                             No credit notes found
                           </p>
 
-                          <p className="mt-1 text-xs text-gray-400">
+                          <p className="mt-1 text-xs text-[#9AA29C]">
                             Try changing your
                             search or filter.
                           </p>
@@ -1914,11 +1953,11 @@ const CreditNotes: React.FC = () => {
                               index *
                               0.025,
                           }}
-                          className="border-b border-gray-100 bg-white transition hover:bg-[#fcfaf5]"
+                          className="border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
                         >
                           {/* S.NO */}
                           <td className="px-5 py-4">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
                               {startEntry +
                                 index}
                             </span>
@@ -1927,14 +1966,16 @@ const CreditNotes: React.FC = () => {
                           {/* CREDIT NOTE */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
                                 <FiFileText
-                                  size={16}
+                                  size={
+                                    16
+                                  }
                                 />
                               </div>
 
                               <div className="min-w-0">
-                                <p className="text-sm font-bold text-gray-800">
+                                <p className="text-sm font-bold text-[#202721]">
                                   {
                                     note.credit_note_number
                                   }
@@ -1946,20 +1987,20 @@ const CreditNotes: React.FC = () => {
                           {/* BUYER */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#faf4df] text-[10px] font-bold text-[#8f6d1d]">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-bold text-[#163F20]">
                                 {getBuyerInitials(
                                   note.buyer_name
                                 )}
                               </div>
 
                               <div className="min-w-0">
-                                <p className="max-w-[190px] truncate text-xs font-semibold text-gray-800">
+                                <p className="max-w-[190px] truncate text-xs font-semibold text-[#202721]">
                                   {
                                     note.buyer_name
                                   }
                                 </p>
 
-                                <p className="mt-1 max-w-[190px] truncate text-[10px] text-gray-400">
+                                <p className="mt-1 max-w-[190px] truncate text-[10px] text-[#9AA29C]">
                                   {
                                     note.buyer_email
                                   }
@@ -1970,13 +2011,13 @@ const CreditNotes: React.FC = () => {
 
                           {/* INVOICE */}
                           <td className="px-5 py-4">
-                            <p className="text-xs font-semibold text-gray-700">
+                            <p className="text-xs font-semibold text-[#59645C]">
                               {
                                 note.original_invoice_number
                               }
                             </p>
 
-                            <p className="mt-1 text-[10px] text-gray-400">
+                            <p className="mt-1 text-[10px] text-[#9AA29C]">
                               Order #
                               {
                                 note.order_id
@@ -1988,18 +2029,20 @@ const CreditNotes: React.FC = () => {
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <FiCalendar
-                                size={14}
-                                className="text-[#b8902e]"
+                                size={
+                                  14
+                                }
+                                className="text-[#4C8A57]"
                               />
 
                               <div>
-                                <p className="text-xs font-semibold text-gray-700">
+                                <p className="text-xs font-semibold text-[#59645C]">
                                   {formatDate(
                                     note.issued_at
                                   )}
                                 </p>
 
-                                <p className="mt-1 text-[10px] text-gray-400">
+                                <p className="mt-1 text-[10px] text-[#9AA29C]">
                                   {formatDateTime(
                                     note.issued_at
                                   )
@@ -2015,9 +2058,11 @@ const CreditNotes: React.FC = () => {
                           {/* REASON */}
                           <td className="px-5 py-4">
                             <span
-                              className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getStatusClass(
-                                note.reason
-                              )}`}
+                              className={`inline - flex rounded - full border px - 3 py - 1.5 text - [9px] font - bold ${
+  getReasonClass(
+    note.reason
+  )
+} `}
                             >
                               {capitalize(
                                 note.reason
@@ -2027,13 +2072,13 @@ const CreditNotes: React.FC = () => {
 
                           {/* AMOUNT */}
                           <td className="px-5 py-4 text-right">
-                            <p className="text-sm font-bold text-[#8f6d1d]">
+                            <p className="text-sm font-bold text-[#163F20]">
                               {formatAmount(
                                 note.amount
                               )}
                             </p>
 
-                            <p className="mt-1 text-[10px] text-gray-400">
+                            <p className="mt-1 text-[10px] text-[#9AA29C]">
                               GST{" "}
                               {formatAmount(
                                 note.total_gst
@@ -2052,10 +2097,12 @@ const CreditNotes: React.FC = () => {
                                   )
                                 }
                                 title="View credit note"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
                               >
                                 <FiEye
-                                  size={15}
+                                  size={
+                                    15
+                                  }
                                 />
                               </button>
 
@@ -2067,10 +2114,12 @@ const CreditNotes: React.FC = () => {
                                   )
                                 }
                                 title="Download PDF"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#fffaf0] text-[#8f6d1d] transition hover:bg-[#b8902e] hover:text-white"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#4C8A57] hover:text-white"
                               >
                                 <FiDownload
-                                  size={15}
+                                  size={
+                                    15
+                                  }
                                 />
                               </button>
                             </div>
@@ -2083,10 +2132,7 @@ const CreditNotes: React.FC = () => {
               </table>
             </div>
 
-            {/* =================================================
-                MOBILE
-            ================================================= */}
-
+            {/* MOBILE */}
             <div className="block lg:hidden">
               {filteredCreditNotes.length >
               0 ? (
@@ -2102,24 +2148,26 @@ const CreditNotes: React.FC = () => {
                       variants={
                         itemVariants
                       }
-                      className="border-b border-gray-100 p-4"
+                      className="border-b border-[#D8E2D8] p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
                             <FiFileText
-                              size={17}
+                              size={
+                                17
+                              }
                             />
                           </div>
 
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-gray-800">
+                            <p className="truncate text-sm font-bold text-[#202721]">
                               {
                                 note.credit_note_number
                               }
                             </p>
 
-                            <p className="mt-1 truncate text-[10px] text-gray-400">
+                            <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
                               {
                                 note.original_invoice_number
                               }
@@ -2127,7 +2175,7 @@ const CreditNotes: React.FC = () => {
                           </div>
                         </div>
 
-                        <span className="text-[10px] font-bold text-gray-400">
+                        <span className="text-[10px] font-bold text-[#9AA29C]">
                           #
                           {startEntry +
                             index}
@@ -2135,57 +2183,59 @@ const CreditNotes: React.FC = () => {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-gray-100 bg-[#faf8f3] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                             Buyer
                           </p>
 
-                          <p className="mt-1 truncate text-xs font-semibold text-gray-800">
+                          <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
                             {
                               note.buyer_name
                             }
                           </p>
 
-                          <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                          <p className="mt-0.5 truncate text-[10px] text-[#9AA29C]">
                             {
                               note.buyer_email
                             }
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-[#fffaf0] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
                             Amount
                           </p>
 
-                          <p className="mt-1 text-sm font-bold text-[#8f6d1d]">
+                          <p className="mt-1 text-sm font-bold text-[#163F20]">
                             {formatAmount(
                               note.amount
                             )}
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-[#faf8f3] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                             Issued
                           </p>
 
-                          <p className="mt-1 text-xs font-semibold text-gray-800">
+                          <p className="mt-1 text-xs font-semibold text-[#202721]">
                             {formatDate(
                               note.issued_at
                             )}
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-gray-100 bg-[#faf8f3] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-400">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                             Reason
                           </p>
 
                           <span
-                            className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getStatusClass(
-                              note.reason
-                            )}`}
+                            className={`mt - 1.5 inline - flex rounded - full border px - 2.5 py - 1 text - [9px] font - bold ${
+  getReasonClass(
+    note.reason
+  )
+} `}
                           >
                             {capitalize(
                               note.reason
@@ -2202,10 +2252,12 @@ const CreditNotes: React.FC = () => {
                               note
                             )
                           }
-                          className="flex h-9 items-center gap-2 rounded-xl border border-gray-200 bg-[#faf8f3] px-3 text-xs font-bold text-[#8f6d1d]"
+                          className="flex h-9 items-center gap-2 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
                         >
                           <FiEye
-                            size={14}
+                            size={
+                              14
+                            }
                           />
                           View
                         </button>
@@ -2217,10 +2269,12 @@ const CreditNotes: React.FC = () => {
                               note
                             )
                           }
-                          className="flex h-9 items-center gap-2 rounded-xl bg-[#b8902e] px-3 text-xs font-bold text-white"
+                          className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-xs font-bold text-white"
                         >
                           <FiDownload
-                            size={14}
+                            size={
+                              14
+                            }
                           />
                           PDF
                         </button>
@@ -2230,17 +2284,17 @@ const CreditNotes: React.FC = () => {
                 )
               ) : (
                 <div className="flex flex-col items-center px-5 py-16 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#4C8A57]">
                     <FiFileText
                       size={24}
                     />
                   </div>
 
-                  <p className="mt-4 text-sm font-bold text-gray-800">
+                  <p className="mt-4 text-sm font-bold text-[#202721]">
                     No credit notes found
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-1 text-xs text-[#9AA29C]">
                     Try another search or
                     filter.
                   </p>
@@ -2248,28 +2302,27 @@ const CreditNotes: React.FC = () => {
               )}
             </div>
 
-            {/* =================================================
-                PAGINATION
-            ================================================= */}
-
+            {/* PAGINATION */}
             {lastPage > 1 && (
-              <div className="border-t border-gray-100 bg-[#fffdfa] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[#59645C]">
                     Showing{" "}
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-[#202721]">
                       {startEntry}
                     </span>{" "}
                     to{" "}
-                    <span className="font-bold text-gray-800">
+                    <span className="font-bold text-[#202721]">
                       {Math.max(
                         startEntry,
                         endEntry
                       )}
                     </span>{" "}
                     of{" "}
-                    <span className="font-bold text-gray-800">
-                      {totalRecords}
+                    <span className="font-bold text-[#202721]">
+                      {
+                        totalRecords
+                      }
                     </span>{" "}
                     entries
                   </p>
@@ -2287,10 +2340,12 @@ const CreditNotes: React.FC = () => {
                         currentPage ===
                         1
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronLeft
-                        size={17}
+                        size={
+                          17
+                        }
                       />
                     </button>
 
@@ -2308,14 +2363,16 @@ const CreditNotes: React.FC = () => {
                               page
                             )
                           }
-                          className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
-                            currentPage ===
-                            page
-                              ? "bg-[#b8902e] text-white shadow-sm"
-                              : "text-gray-600 hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                          }`}
+                          className={`flex h - 9 min - w - 9 items - center justify - center rounded - lg px - 3 text - xs font - bold transition ${
+  currentPage ===
+    page
+    ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+    : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+} `}
                         >
-                          {page}
+                          {
+                            page
+                          }
                         </button>
                       )
                     )}
@@ -2332,10 +2389,12 @@ const CreditNotes: React.FC = () => {
                         currentPage ===
                         lastPage
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronRight
-                        size={17}
+                        size={
+                          17
+                        }
                       />
                     </button>
                   </div>
@@ -2346,24 +2405,13 @@ const CreditNotes: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* =================================================
-          VIEW MODAL
-      ================================================= */}
-
+      {/* VIEW MODAL */}
       <CreditNoteViewModal
-        open={
-          viewOpen
-        }
-        note={
-          selectedNote
-        }
+        open={viewOpen}
+        note={selectedNote}
         onClose={() => {
-          setViewOpen(
-            false
-          );
-          setSelectedNote(
-            null
-          );
+          setViewOpen(false);
+          setSelectedNote(null);
         }}
         onDownload={
           generateCreditNotePdf
@@ -2374,3 +2422,4 @@ const CreditNotes: React.FC = () => {
 };
 
 export default CreditNotes;
+

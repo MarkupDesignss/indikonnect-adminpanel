@@ -14,78 +14,86 @@ import productReviewsApi, {
   ReviewAction,
 } from "../../api/endpoints/review";
 
+// =====================================================
+// STATUS BADGE
+// =====================================================
 
 export const getStatusBadge = (status: string) => {
-  const base = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border';
+  const base =
+    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border";
+
   switch (status?.toLowerCase()) {
-    case 'pending':
-      return `${base} bg-amber-100 text-amber-700 border-amber-200`;
-    case 'approved':
-      return `${base} bg-emerald-100 text-emerald-700 border-emerald-200`;
-    case 'rejected':
-      return `${base} bg-red-100 text-red-700 border-red-200`;
+    case "pending":
+      return `${base} bg-[#FBF3DC] text-[#8A6D16] border-[#D9A900]/30`;
+    case "approved":
+      return `${base} bg-[#EAF3EA] text-[#163F20] border-[#163F20]/25`;
+    case "rejected":
+      return `${base} bg-[#FBEAEA] text-[#C23B32] border-[#C23B32]/25`;
     default:
-      return `${base} bg-gray-100 text-gray-600 border-gray-200`;
+      return `${base} bg-[#F3F6F3] text-[#59645C] border-[#D8E2D8]`;
   }
 };
 
+// =====================================================
+// SKELETON
+// =====================================================
 
 const ReviewsPageSkeleton = () => {
   return (
-    <div className="flex flex-1 gap-4 overflow-hidden p-4">
+    <div className="flex flex-1 gap-4 overflow-hidden bg-[#F5F7F5] p-4">
       {/* LEFT */}
-      <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm md:w-1/3">
-        <div className="border-b border-[#b8902e]/10 p-4 sm:p-5">
+      <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm md:w-1/3">
+        <div className="border-b border-[#163F20]/10 p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="space-y-2">
-              <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-36 animate-pulse rounded bg-gray-100" />
+              <div className="h-4 w-20 animate-pulse rounded bg-[#EAF3EA]" />
+              <div className="h-3 w-36 animate-pulse rounded bg-[#F5F7F5]" />
             </div>
 
-            <div className="h-9 w-9 animate-pulse rounded-xl bg-gray-100" />
+            <div className="h-9 w-9 animate-pulse rounded-xl bg-[#EAF3EA]" />
           </div>
 
           <div className="mb-4 flex gap-2">
-            <div className="h-8 w-24 animate-pulse rounded-full bg-gray-200" />
-            <div className="h-8 w-20 animate-pulse rounded-full bg-gray-100" />
-            <div className="h-8 w-20 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-8 w-24 animate-pulse rounded-full bg-[#EAF3EA]" />
+            <div className="h-8 w-20 animate-pulse rounded-full bg-[#F5F7F5]" />
+            <div className="h-8 w-20 animate-pulse rounded-full bg-[#F5F7F5]" />
           </div>
 
-          <div className="h-11 w-full animate-pulse rounded-xl bg-gray-100" />
+          <div className="h-11 w-full animate-pulse rounded-xl bg-[#F5F7F5]" />
         </div>
 
         <div className="flex-1 overflow-hidden">
           {Array.from({ length: 5 }).map((_, index) => (
             <div
               key={index}
-              className="border-b border-gray-100 p-4 sm:p-5"
+              className="border-b border-[#163F20]/10 p-4 sm:p-5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-1 items-center gap-2">
-                  <div className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-gray-100" />
-                  <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
+                  <div className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-[#EAF3EA]" />
+                  <div className="h-4 w-32 animate-pulse rounded bg-[#EAF3EA]" />
                 </div>
 
-                <div className="h-5 w-16 animate-pulse rounded-full bg-gray-100" />
+                <div className="h-5 w-16 animate-pulse rounded-full bg-[#F5F7F5]" />
               </div>
 
               <div className="mt-3 flex justify-between">
-                <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
-                <div className="h-3 w-16 animate-pulse rounded bg-gray-100" />
+                <div className="h-3 w-24 animate-pulse rounded bg-[#F5F7F5]" />
+                <div className="h-3 w-16 animate-pulse rounded bg-[#F5F7F5]" />
               </div>
 
               <div className="mt-3 flex gap-1">
                 {Array.from({ length: 5 }).map((_, starIndex) => (
                   <div
                     key={starIndex}
-                    className="h-3.5 w-3.5 animate-pulse rounded-full bg-gray-100"
+                    className="h-3.5 w-3.5 animate-pulse rounded-full bg-[#F5F7F5]"
                   />
                 ))}
               </div>
 
               <div className="mt-3 space-y-2">
-                <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
-                <div className="h-3 w-3/4 animate-pulse rounded bg-gray-100" />
+                <div className="h-3 w-full animate-pulse rounded bg-[#F5F7F5]" />
+                <div className="h-3 w-3/4 animate-pulse rounded bg-[#F5F7F5]" />
               </div>
             </div>
           ))}
@@ -93,28 +101,28 @@ const ReviewsPageSkeleton = () => {
       </aside>
 
       {/* RIGHT */}
-      <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
-        <div className="border-b border-[#b8902e]/10 px-5 py-5 sm:px-6">
+      <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm">
+        <div className="border-b border-[#163F20]/10 px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-5 xl:flex-row xl:justify-between">
             <div className="flex-1 space-y-3">
-              <div className="h-6 w-24 animate-pulse rounded-full bg-gray-100" />
-              <div className="h-7 w-64 animate-pulse rounded bg-gray-200" />
+              <div className="h-6 w-24 animate-pulse rounded-full bg-[#EAF3EA]" />
+              <div className="h-7 w-64 animate-pulse rounded bg-[#EAF3EA]" />
 
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 animate-pulse rounded-full bg-gray-100" />
-                <div className="h-4 w-32 animate-pulse rounded bg-gray-100" />
+                <div className="h-8 w-8 animate-pulse rounded-full bg-[#EAF3EA]" />
+                <div className="h-4 w-32 animate-pulse rounded bg-[#F5F7F5]" />
               </div>
             </div>
 
             <div className="flex gap-2">
-              <div className="h-10 w-20 animate-pulse rounded-xl bg-gray-100" />
-              <div className="h-10 w-20 animate-pulse rounded-xl bg-gray-100" />
-              <div className="h-10 w-24 animate-pulse rounded-xl bg-gray-200" />
+              <div className="h-10 w-20 animate-pulse rounded-xl bg-[#F5F7F5]" />
+              <div className="h-10 w-20 animate-pulse rounded-xl bg-[#F5F7F5]" />
+              <div className="h-10 w-24 animate-pulse rounded-xl bg-[#EAF3EA]" />
             </div>
           </div>
         </div>
 
-        <div className="flex-1 bg-[#faf8f3] p-5 sm:p-6">
+        <div className="flex-1 bg-[#F5F7F5] p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
             <div className="space-y-5 xl:col-span-2">
               <div className="rounded-2xl bg-white p-5 shadow-sm">
@@ -122,30 +130,27 @@ const ReviewsPageSkeleton = () => {
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div
                       key={i}
-                      className="h-5 w-5 animate-pulse rounded-full bg-gray-100"
+                      className="h-5 w-5 animate-pulse rounded-full bg-[#EAF3EA]"
                     />
                   ))}
                 </div>
 
-                <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
+                <div className="h-6 w-48 animate-pulse rounded bg-[#EAF3EA]" />
 
-                <div className="my-4 h-px bg-gray-100" />
+                <div className="my-4 h-px bg-[#EAF3EA]" />
 
                 <div className="space-y-3">
-                  <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100" />
+                  <div className="h-4 w-full animate-pulse rounded bg-[#F5F7F5]" />
+                  <div className="h-4 w-full animate-pulse rounded bg-[#F5F7F5]" />
+                  <div className="h-4 w-4/5 animate-pulse rounded bg-[#F5F7F5]" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-2xl bg-white p-4 shadow-sm"
-                  >
-                    <div className="h-3 w-20 animate-pulse rounded bg-gray-100" />
-                    <div className="mt-3 h-6 w-16 animate-pulse rounded bg-gray-200" />
+                  <div key={i} className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="h-3 w-20 animate-pulse rounded bg-[#F5F7F5]" />
+                    <div className="mt-3 h-6 w-16 animate-pulse rounded bg-[#EAF3EA]" />
                   </div>
                 ))}
               </div>
@@ -153,24 +158,21 @@ const ReviewsPageSkeleton = () => {
 
             <div className="space-y-5">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl bg-white p-5 shadow-sm"
-                >
-                  <div className="mb-4 h-3 w-28 animate-pulse rounded bg-gray-100" />
+                <div key={i} className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="mb-4 h-3 w-28 animate-pulse rounded bg-[#F5F7F5]" />
 
                   <div className="mb-5 flex items-center gap-3">
-                    <div className="h-11 w-11 animate-pulse rounded-full bg-gray-100" />
+                    <div className="h-11 w-11 animate-pulse rounded-full bg-[#EAF3EA]" />
 
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 w-28 animate-pulse rounded bg-gray-200" />
-                      <div className="h-3 w-20 animate-pulse rounded bg-gray-100" />
+                      <div className="h-4 w-28 animate-pulse rounded bg-[#EAF3EA]" />
+                      <div className="h-3 w-20 animate-pulse rounded bg-[#F5F7F5]" />
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
-                    <div className="h-3 w-3/4 animate-pulse rounded bg-gray-100" />
+                    <div className="h-3 w-full animate-pulse rounded bg-[#F5F7F5]" />
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-[#F5F7F5]" />
                   </div>
                 </div>
               ))}
@@ -204,6 +206,7 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
     if (!date) return "—";
     const parsedDate = new Date(date);
     if (Number.isNaN(parsedDate.getTime())) return "—";
+
     return parsedDate.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -226,30 +229,32 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
         reviewText.toLowerCase().includes(searchText);
 
       const matchesStatus =
-        activeFilter === "all" ||
-        review.status?.toLowerCase() === activeFilter;
+        activeFilter === "all" || review.status?.toLowerCase() === activeFilter;
 
       return matchesSearch && matchesStatus;
     });
   }, [reviewList, search, activeFilter]);
 
   return (
-    <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm md:w-1/3">
-      {/* Header Section - Fixed */}
-      <div className="relative flex-shrink-0 border-b border-[#b8902e]/10 p-4 sm:p-5">
-        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+    <aside className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm md:w-1/3">
+      {/* HEADER */}
+      <div className="relative flex-shrink-0 border-b border-[#163F20]/10 p-4 sm:p-5">
+        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-[#2a2620]">Reviews</h3>
-            <p className="mt-1 text-xs text-[#a89a7d]">Manage customer feedback</p>
+            <h3 className="text-base font-bold text-[#202721]">Reviews</h3>
+            <p className="mt-1 text-xs text-[#9AA29C]">
+              Manage customer feedback
+            </p>
           </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
-            <FiStar size={16} className="fill-[#d4af52]" />
+
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+            <FiStar size={16} className="fill-[#4C8A57]" />
           </div>
         </div>
 
-        {/* Filter Buttons */}
+        {/* FILTERS */}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {[
             { label: "All Reviews", value: "all" },
@@ -258,15 +263,17 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
             { label: "Rejected", value: "rejected" },
           ].map((filter) => {
             const isActive = activeFilter === filter.value;
+
             return (
               <button
                 key={filter.value}
                 type="button"
                 onClick={() => setActiveFilter(filter.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${isActive
-                  ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-sm"
-                  : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                  }`}
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
+                  isActive
+                    ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                    : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                }`}
               >
                 {filter.label}
               </button>
@@ -274,35 +281,43 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
           })}
         </div>
 
-        {/* Search Input */}
+        {/* SEARCH */}
         <div className="relative">
           <FiSearch
             size={17}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#a8841c]"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
           />
+
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-10 pr-3 text-xs text-[#2a2620] outline-none transition-all placeholder:text-[#a89a7d] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+            className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-3 text-xs text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
             placeholder="Filter by product or customer..."
             type="text"
           />
         </div>
       </div>
 
-      {/* Reviews List - Scrollable */}
+      {/* LIST */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {filteredReviews.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center px-5 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
               <FiStar size={23} />
             </div>
-            <p className="mt-4 text-sm font-bold text-[#2a2620]">No reviews found</p>
-            <p className="mt-1 text-xs text-[#a89a7d]">Customer reviews will appear here.</p>
+
+            <p className="mt-4 text-sm font-bold text-[#202721]">
+              No reviews found
+            </p>
+
+            <p className="mt-1 text-xs text-[#9AA29C]">
+              Customer reviews will appear here.
+            </p>
           </div>
         ) : (
           filteredReviews.map((review) => {
             const isSelected = review.id === selectedId;
+
             const productName = review.product?.name || "Unknown Product";
             const customerName = review.user?.name || "Unknown Customer";
             const comment = review.review_text || "";
@@ -312,28 +327,34 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
               <div
                 key={review.id}
                 onClick={() => setSelectedId(review.id)}
-                className={`relative cursor-pointer border-b border-[#b8902e]/10 p-4 transition-all duration-200 sm:p-5 ${isSelected ? "bg-[#faf8f3]" : "bg-white hover:bg-[#fffdf7]"
-                  }`}
+                className={`relative cursor-pointer border-b border-[#163F20]/10 p-4 transition-all duration-200 sm:p-5 ${
+                  isSelected ? "bg-[#EAF3EA]/50" : "bg-white hover:bg-[#FAFBFA]"
+                }`}
               >
                 {isSelected && (
-                  <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#d4af52] to-[#8a6c1f]" />
+                  <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#4C8A57] to-[#0F3219]" />
                 )}
 
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#faf8f3] text-[#b8902e]">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
                       <FiUser size={14} />
                     </div>
+
                     <h4
-                      className={`truncate text-sm ${isSelected ? "font-bold text-[#2a2620]" : "font-semibold text-[#4a4436]"
-                        }`}
+                      className={`truncate text-sm ${
+                        isSelected
+                          ? "font-bold text-[#202721]"
+                          : "font-semibold text-[#3F4A41]"
+                      }`}
                     >
                       {productName}
                     </h4>
                   </div>
+
                   <span
                     className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-bold capitalize ${getStatusBadge(
-                      review.status
+                      review.status,
                     )}`}
                   >
                     {review.status}
@@ -341,10 +362,13 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-2">
-                  <span className="truncate text-xs font-medium text-[#786f60]">
+                  <span className="truncate text-xs font-medium text-[#59645C]">
                     {customerName}
                   </span>
-                  <span className="shrink-0 text-[10px] text-[#a89a7d]">{date}</span>
+
+                  <span className="shrink-0 text-[10px] text-[#9AA29C]">
+                    {date}
+                  </span>
                 </div>
 
                 <div className="mt-3 flex items-center gap-1">
@@ -354,18 +378,19 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
                       size={14}
                       className={
                         i < review.rating
-                          ? "fill-[#d4af52] text-[#b8902e]"
-                          : "text-[#d8d0c0]"
+                          ? "fill-[#4C8A57] text-[#163F20]"
+                          : "text-[#D8E2D8]"
                       }
                     />
                   ))}
-                  <span className="ml-1 text-[10px] font-bold text-[#8f6d1d]">
+
+                  <span className="ml-1 text-[10px] font-bold text-[#163F20]">
                     {review.rating}.0
                   </span>
                 </div>
 
                 {comment && (
-                  <p className="mt-3 line-clamp-2 text-xs leading-5 text-[#a89a7d]">
+                  <p className="mt-3 line-clamp-2 text-xs leading-5 text-[#9AA29C]">
                     {comment}
                   </p>
                 )}
@@ -375,13 +400,14 @@ const ReviewMasterSidebar: React.FC<ReviewMasterSidebarProps> = ({
         )}
       </div>
 
-      {/* Footer - Fixed */}
-      <div className="flex-shrink-0 border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-3">
+      {/* FOOTER */}
+      <div className="flex-shrink-0 border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#a89a7d]">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
             Total Reviews
           </span>
-          <span className="rounded-full bg-[#b8902e]/10 px-2.5 py-1 text-[10px] font-bold text-[#8f6d1d]">
+
+          <span className="rounded-full bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20]">
             {filteredReviews.length}
           </span>
         </div>
@@ -409,6 +435,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
     if (!date) return "—";
     const parsedDate = new Date(date);
     if (Number.isNaN(parsedDate.getTime())) return "—";
+
     return parsedDate.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -418,58 +445,67 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
 
   const getProductImage = () => {
     const primaryImage = selectedReview.product?.product_images?.find(
-      (img) => img.is_primary
+      (img) => img.is_primary,
     );
-    return primaryImage?.image || selectedReview.product?.product_images?.[0]?.image || "";
+    return (
+      primaryImage?.image ||
+      selectedReview.product?.product_images?.[0]?.image ||
+      ""
+    );
   };
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
 
-  const getProductName = () => selectedReview.product?.name || "Unknown Product";
+  const getProductName = () =>
+    selectedReview.product?.name || "Unknown Product";
   const getCustomerName = () => selectedReview.user?.name || "Unknown Customer";
   const getCustomerEmail = () => selectedReview.user?.email || "";
   const getRatingDisplay = () => `${selectedReview.rating}.0`;
 
   return (
-    <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm">
-      <div className="relative border-b border-[#b8902e]/10 bg-white px-5 py-5 sm:px-6">
-        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]" />
+    <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm">
+      {/* HEADER */}
+      <div className="relative border-b border-[#163F20]/10 bg-white px-5 py-5 sm:px-6">
+        <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span
                 className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getStatusBadge(
-                  selectedReview.status
+                  selectedReview.status,
                 )}`}
               >
                 {selectedReview.status} Review
               </span>
-              <span className="text-xs text-[#a89a7d]">
+
+              <span className="text-xs text-[#9AA29C]">
                 Submitted on {formatDate(selectedReview.created_at)}
               </span>
             </div>
 
-            <h3 className="truncate pr-2 font-serif text-xl font-bold text-[#2a2620] sm:text-2xl">
+            <h3 className="truncate pr-2 text-xl font-bold text-[#202721] sm:text-2xl">
               {getProductName()}
             </h3>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#faf8f3] text-[#b8902e]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA] text-[#163F20]">
                 <FiUser size={15} />
               </div>
-              <span className="text-sm font-semibold text-[#4a4436]">
+
+              <span className="text-sm font-semibold text-[#3F4A41]">
                 {getCustomerName()}
               </span>
-              <span className="text-[#c2b6a0]">•</span>
-              <span className="flex items-center gap-1.5 text-xs font-medium text-[#8f6d1d]">
+
+              <span className="text-[#C2B6A0]">•</span>
+
+              <span className="flex items-center gap-1.5 text-xs font-medium text-[#163F20]">
                 <FiCheckCircle size={13} />
                 Verified Buyer
               </span>
@@ -482,7 +518,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                 type="button"
                 onClick={() => onAction(selectedReview.id, "delete")}
                 disabled={actionLoading}
-                className="flex items-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 py-2.5 text-xs font-bold text-[#786f60] transition-all hover:border-[#b8902e]/35 hover:bg-[#faf8f3] hover:text-[#8f6d1d] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 py-2.5 text-xs font-bold text-[#59645C] transition-all hover:border-[#163F20]/35 hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiTrash2 size={15} />
                 Delete
@@ -492,7 +528,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                 type="button"
                 onClick={() => onAction(selectedReview.id, "rejected")}
                 disabled={actionLoading || selectedReview.status === "rejected"}
-                className="flex items-center gap-2 rounded-xl border border-[#c98d83]/25 bg-[#fff8f6] px-4 py-2.5 text-xs font-bold text-[#b46055] transition-all hover:border-[#b46055]/40 hover:bg-[#b46055]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiX size={15} />
                 Reject
@@ -502,7 +538,7 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                 type="button"
                 onClick={() => onAction(selectedReview.id, "approved")}
                 disabled={actionLoading || selectedReview.status === "approved"}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition-all hover:from-[#a8841c] hover:to-[#795b14] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-4 py-2.5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiCheck size={15} />
                 Approve
@@ -512,11 +548,14 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-[#faf8f3] p-5 sm:p-6">
+      {/* BODY */}
+      <div className="flex-1 overflow-y-auto bg-[#F5F7F5] p-5 sm:p-6">
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          {/* LEFT MAIN */}
           <div className="space-y-5 xl:col-span-2">
-            <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm sm:p-6">
-              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] to-[#b8902e]" />
+            {/* REVIEW */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm sm:p-6">
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] to-[#163F20]" />
 
               <div className="mb-5 flex flex-wrap items-center gap-2">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -525,39 +564,43 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                     size={22}
                     className={
                       i < selectedReview.rating
-                        ? "fill-[#d4af52] text-[#b8902e]"
-                        : "text-[#d8d0c0]"
+                        ? "fill-[#4C8A57] text-[#163F20]"
+                        : "text-[#D8E2D8]"
                     }
                   />
                 ))}
-                <span className="ml-2 text-lg font-bold text-[#2a2620]">
+
+                <span className="ml-2 text-lg font-bold text-[#202721]">
                   {getRatingDisplay()}
                 </span>
-                <span className="rounded-full bg-[#faf8f3] px-2.5 py-1 text-[10px] font-semibold text-[#8f6d1d]">
+
+                <span className="rounded-full bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-semibold text-[#163F20]">
                   Customer Rating
                 </span>
               </div>
 
-              <h4 className="text-xl font-bold text-[#2a2620]">
+              <h4 className="text-xl font-bold text-[#202721]">
                 Review by {getCustomerName()}
               </h4>
 
-              <div className="my-4 h-px bg-[#b8902e]/10" />
+              <div className="my-4 h-px bg-[#163F20]/10" />
 
-              <p className="text-sm leading-7 text-[#786f60] sm:text-base">
+              <p className="text-sm leading-7 text-[#59645C] sm:text-base">
                 {selectedReview.review_text || "No comment provided."}
               </p>
             </div>
 
+            {/* STATS */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
                   Review Status
                 </p>
+
                 <div className="mt-2">
                   <span
                     className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getStatusBadge(
-                      selectedReview.status
+                      selectedReview.status,
                     )}`}
                   >
                     {selectedReview.status}
@@ -565,38 +608,43 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
                   Rating Given
                 </p>
+
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xl font-bold text-[#2a2620]">
+                  <span className="text-xl font-bold text-[#202721]">
                     {getRatingDisplay()}/5
                   </span>
-                  <FiStar size={16} className="fill-[#d4af52] text-[#b8902e]" />
+
+                  <FiStar size={16} className="fill-[#4C8A57] text-[#163F20]" />
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
                   Submitted
                 </p>
-                <p className="mt-2 text-sm font-bold text-[#2a2620]">
+
+                <p className="mt-2 text-sm font-bold text-[#202721]">
                   {formatDate(selectedReview.created_at)}
                 </p>
               </div>
             </div>
 
+            {/* IMAGES */}
             {selectedReview.images && selectedReview.images.length > 0 && (
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-white p-4 shadow-sm">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm">
+                <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
                   Review Images
                 </p>
+
                 <div className="flex flex-wrap gap-3">
                   {selectedReview.images.map((image) => (
                     <div
                       key={image.id}
-                      className="h-20 w-20 overflow-hidden rounded-lg border border-[#b8902e]/15 bg-[#faf8f3]"
+                      className="h-20 w-20 overflow-hidden rounded-lg border border-[#163F20]/15 bg-[#F5F7F5]"
                     >
                       <img
                         src={image.image_path}
@@ -610,40 +658,39 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
             )}
           </div>
 
+          {/* RIGHT */}
           <div className="space-y-5">
-            {/* Customer Profile */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
-              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#d4af52] to-[#8a6c1f]" />
+            {/* CUSTOMER */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm">
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#0F3219]" />
 
-              <h5 className="mb-4 border-b border-[#b8902e]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a89a7d]">
+              <h5 className="mb-4 border-b border-[#163F20]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
                 Customer Profile
               </h5>
 
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]">
                   {getInitials(getCustomerName())}
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-[#2a2620]">
+                  <div className="text-sm font-bold text-[#202721]">
                     {getCustomerName()}
                   </div>
 
-                  <div className="mt-1 break-all text-xs text-[#a89a7d]">
+                  <div className="mt-1 break-all text-xs text-[#9AA29C]">
                     {getCustomerEmail()}
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1">
-           
-                {/* Account Status */}
                 <div className="flex items-center justify-between gap-4 py-2.5">
-                  <span className="shrink-0 text-xs text-[#a89a7d]">
+                  <span className="shrink-0 text-xs text-[#9AA29C]">
                     Account Status
                   </span>
 
-                  <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#806319]">
+                  <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#163F20]">
                     <FiCheckCircle size={13} />
                     Verified
                   </span>
@@ -651,16 +698,16 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
               </div>
             </div>
 
-            {/* Product Context */}
-            <div className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm">
-              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] to-[#b8902e]" />
+            {/* PRODUCT */}
+            <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm">
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] to-[#163F20]" />
 
-              <h5 className="mb-4 border-b border-[#b8902e]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a89a7d]">
+              <h5 className="mb-4 border-b border-[#163F20]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
                 Product Context
               </h5>
 
               <div className="mb-4 flex gap-3">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#b8902e]/15 bg-[#faf8f3]">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#163F20]/15 bg-[#F5F7F5]">
                   <img
                     alt={getProductName()}
                     className="h-full w-full object-cover"
@@ -669,22 +716,20 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="mb-2 line-clamp-2 text-sm font-bold text-[#2a2620]">
+                  <div className="mb-2 line-clamp-2 text-sm font-bold text-[#202721]">
                     {getProductName()}
                   </div>
 
-                  <div className="inline-flex rounded-lg bg-[#faf8f3] px-2 py-1 font-mono text-[10px] font-semibold text-[#8f6d1d]">
+                  <div className="inline-flex rounded-lg bg-[#EAF3EA] px-2 py-1 font-mono text-[10px] font-semibold text-[#163F20]">
                     SKU: {selectedReview.product?.product_code || "N/A"}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                <span className="text-xs text-[#a89a7d]">
-                  Product ID
-                </span>
+              <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                <span className="text-xs text-[#9AA29C]">Product ID</span>
 
-                <span className="text-sm font-bold text-[#2a2620]">
+                <span className="text-sm font-bold text-[#202721]">
                   #{selectedReview.product?.id || "N/A"}
                 </span>
               </div>
@@ -726,11 +771,18 @@ const ReviewsModeration = () => {
 
       const validatedReviews = reviews.map((review: ProductReview) => ({
         ...review,
-        rating: typeof review.rating === "number" ? review.rating : Number(review.rating) || 0,
+        rating:
+          typeof review.rating === "number"
+            ? review.rating
+            : Number(review.rating) || 0,
         status: review.status || "pending",
         review_text: review.review_text || "",
         images: Array.isArray(review.images) ? review.images : [],
-        user: review.user || { id: 0, name: "Unknown Customer", email: "" },
+        user: review.user || {
+          id: 0,
+          name: "Unknown Customer",
+          email: "",
+        },
         product: review.product || {
           id: 0,
           name: "Unknown Product",
@@ -743,15 +795,21 @@ const ReviewsModeration = () => {
       setReviewList(validatedReviews);
 
       setSelectedId((prev) => {
-        if (prev !== null && validatedReviews.some((review) => review.id === prev)) {
+        if (
+          prev !== null &&
+          validatedReviews.some((review) => review.id === prev)
+        ) {
           return prev;
         }
+
         return validatedReviews.length > 0 ? validatedReviews[0].id : null;
       });
     } catch (err: any) {
       console.error("Fetch reviews error:", err);
       setError(
-        err?.response?.data?.message || err?.message || "Failed to fetch product reviews."
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to fetch product reviews.",
       );
     }
   };
@@ -766,11 +824,12 @@ const ReviewsModeration = () => {
       await fetchReviews();
       setLoading(false);
     };
+
     load();
   }, []);
 
   // =====================================================
-  // SELECTED REVIEW
+  // SELECTED
   // =====================================================
 
   const selectedReview = useMemo(() => {
@@ -779,55 +838,50 @@ const ReviewsModeration = () => {
   }, [reviewList, selectedId]);
 
   // =====================================================
-  // HANDLE REVIEW ACTION - With fresh GET after action
+  // ACTION
   // =====================================================
 
   const handleReviewAction = async (reviewId: number, action: ReviewAction) => {
     try {
       setActionLoading(true);
 
-      // =================================================
-      // POST ACTION
-      // =================================================
-
       const response = await productReviewsApi.action(reviewId, { action });
 
       if (!response.data?.success) {
-        throw new Error(response.data?.message || `Failed to ${action} review.`);
-      }
-
-      // =================================================
-      // IMMEDIATE LOCAL UPDATE (Optimistic UI)
-      // =================================================
-
-      if (action === "delete") {
-        setReviewList((prev) => prev.filter((review) => review.id !== reviewId));
-
-        setSelectedId((prev) => {
-          if (prev !== reviewId) return prev;
-          const nextReview = reviewList.find((review) => review.id !== reviewId);
-          return nextReview?.id ?? null;
-        });
-      } else {
-        // Approve / Reject - Immediate status update
-        setReviewList((prev) =>
-          prev.map((review) =>
-            review.id === reviewId ? { ...review, status: action } : review
-          )
+        throw new Error(
+          response.data?.message || `Failed to ${action} review.`,
         );
       }
 
-      // =================================================
-      // FRESH GET AFTER ACTION (Latest data from server)
-      // =================================================
+      if (action === "delete") {
+        setReviewList((prev) =>
+          prev.filter((review) => review.id !== reviewId),
+        );
+
+        setSelectedId((prev) => {
+          if (prev !== reviewId) return prev;
+          const nextReview = reviewList.find(
+            (review) => review.id !== reviewId,
+          );
+          return nextReview?.id ?? null;
+        });
+      } else {
+        setReviewList((prev) =>
+          prev.map((review) =>
+            review.id === reviewId ? { ...review, status: action } : review,
+          ),
+        );
+      }
 
       await fetchReviews();
-
     } catch (err: any) {
       console.error(`Review ${action} error:`, err);
-      alert(err?.response?.data?.message || err?.message || `Failed to ${action} review.`);
+      alert(
+        err?.response?.data?.message ||
+          err?.message ||
+          `Failed to ${action} review.`,
+      );
 
-      // Re-fetch to ensure UI is in sync with server state
       await fetchReviews();
     } finally {
       setActionLoading(false);
@@ -844,9 +898,10 @@ const ReviewsModeration = () => {
 
   if (error && reviewList.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center bg-[#F5F7F5] p-6">
         <div className="text-center">
-          <p className="mb-3 text-sm text-red-500">{error}</p>
+          <p className="mb-3 text-sm text-[#C23B32]">{error}</p>
+
           <button
             type="button"
             onClick={async () => {
@@ -855,7 +910,7 @@ const ReviewsModeration = () => {
               await fetchReviews();
               setLoading(false);
             }}
-            className="rounded-lg bg-black px-4 py-2 text-sm text-white transition hover:bg-gray-800"
+            className="rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-sm font-bold text-white transition hover:-translate-y-0.5"
           >
             Retry
           </button>
@@ -865,26 +920,27 @@ const ReviewsModeration = () => {
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* Action Loading Overlay */}
+    <div className="flex flex-1 overflow-hidden bg-[#F5F7F5]">
+      {/* ACTION LOADING OVERLAY */}
       {actionLoading && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-          <div className="flex items-center gap-3 rounded-xl border border-[#b8902e]/20 bg-white px-5 py-4 shadow-xl">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-200 border-t-[#b8902e]" />
-            <span className="text-sm font-medium text-[#4a4436]">Updating review...</span>
+          <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/20 bg-white px-5 py-4 shadow-[0_18px_40px_-12px_rgba(22,63,32,0.35)]">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#EAF3EA] border-t-[#163F20]" />
+
+            <span className="text-sm font-medium text-[#3F4A41]">
+              Updating review...
+            </span>
           </div>
         </div>
       )}
 
       <div className="flex flex-1 gap-4 overflow-hidden p-4">
-        {/* LEFT - Sidebar */}
         <ReviewMasterSidebar
           reviewList={reviewList}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
         />
 
-        {/* RIGHT - Detail Pane */}
         {selectedReview ? (
           <ReviewDetailPane
             selectedReview={selectedReview}
@@ -892,8 +948,8 @@ const ReviewsModeration = () => {
             actionLoading={actionLoading}
           />
         ) : (
-          <div className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white">
-            <p className="text-sm text-gray-500">No reviews found.</p>
+          <div className="flex flex-1 items-center justify-center rounded-xl border border-[#E5EAE5] bg-white">
+            <p className="text-sm text-[#59645C]">No reviews found.</p>
           </div>
         )}
       </div>

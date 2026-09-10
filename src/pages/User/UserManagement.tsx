@@ -21,6 +21,7 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiChevronDown,
+  FiDownload,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -41,30 +42,19 @@ type UserFilter = "all" | "customer" | "distributor" | "active" | "inactive";
 // =====================================================
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 15,
-  },
+  hidden: { opacity: 0, y: 15 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 14,
-    },
+    transition: { type: "spring", stiffness: 100, damping: 14 },
   },
 };
 
@@ -74,12 +64,8 @@ const itemVariants = {
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
-
   const date = new Date(value.replace(" ", "T"));
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString("en-IN", {
     day: "2-digit",
@@ -92,12 +78,8 @@ const formatDate = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
-
   const date = new Date(value.replace(" ", "T"));
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -107,25 +89,16 @@ const formatDateOnly = (value?: string | null) => {
 };
 
 const getUserName = (user: RegisteredUser) => {
-  if (user.full_name?.trim()) {
-    return user.full_name;
-  }
-
-  if (user.email) {
-    return user.email.split("@")[0];
-  }
-
+  if (user.full_name?.trim()) return user.full_name;
+  if (user.email) return user.email.split("@")[0];
   return "Unknown User";
 };
 
 const getInitials = (user: RegisteredUser) => {
   const name = getUserName(user);
-
   const parts = name.trim().split(/\s+/).filter(Boolean);
 
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
 
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
@@ -137,13 +110,13 @@ const getAccountLabel = (accountType: string) => {
 };
 
 // =====================================================
-// STATUS BADGES
+// STATUS BADGES (green theme)
 // =====================================================
 
 const getActiveStatusClass = (active: boolean) => {
   return active
-    ? "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]"
-    : "border-[#d5cbc1] bg-[#f6f3ef] text-[#7b6f61]";
+    ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
+    : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
 };
 
 const getDistributorStatusClass = (status: string) => {
@@ -151,16 +124,18 @@ const getDistributorStatusClass = (status: string) => {
 
   switch (normalizedStatus) {
     case "active":
-      return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
+    case "verified":
+    case "approved":
+      return "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
 
     case "pending":
-      return "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]";
+      return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
 
     case "rejected":
-      return "border-[#c98d83]/25 bg-[#fff8f6] text-[#b46055]";
+      return "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
 
     default:
-      return "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]";
+      return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
   }
 };
 
@@ -171,16 +146,16 @@ const getKycStatusClass = (status: string) => {
     case "active":
     case "verified":
     case "approved":
-      return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
+      return "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
 
     case "pending":
-      return "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]";
+      return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
 
     case "rejected":
-      return "border-[#c98d83]/25 bg-[#fff8f6] text-[#b46055]";
+      return "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
 
     default:
-      return "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]";
+      return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
   }
 };
 
@@ -194,20 +169,14 @@ const getKycDisplayLabel = (status: string) => {
   ) {
     return "Verified";
   }
-
-  if (normalizedStatus === "pending") {
-    return "Pending";
-  }
-
-  if (normalizedStatus === "rejected") {
-    return "Rejected";
-  }
+  if (normalizedStatus === "pending") return "Pending";
+  if (normalizedStatus === "rejected") return "Rejected";
 
   return status || "N/A";
 };
 
 // =====================================================
-// USER STATUS DROPDOWN (Active/Inactive)
+// USER STATUS DROPDOWN (Active / Inactive)
 // =====================================================
 
 interface UserStatusDropdownProps {
@@ -227,8 +196,8 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const statusOptions = [
-    { value: true, label: "Active", color: "text-[#806319]" },
-    { value: false, label: "Inactive", color: "text-[#7b6f61]" },
+    { value: true, label: "Active", color: "text-[#163F20]" },
+    { value: false, label: "Inactive", color: "text-[#59645C]" },
   ];
 
   useEffect(() => {
@@ -245,15 +214,11 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
   }, []);
 
   const handleSelect = (value: boolean) => {
-    if (value !== isActive) {
-      onStatusChange(userId, value);
-    }
+    if (value !== isActive) onStatusChange(userId, value);
     setIsOpen(false);
   };
 
-  const getCurrentLabel = () => {
-    return isActive ? "Active" : "Inactive";
-  };
+  const getCurrentLabel = () => (isActive ? "Active" : "Inactive");
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -264,10 +229,10 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
           isLoading
             ? "opacity-50 cursor-not-allowed"
-            : "hover:border-[#b8902e]/40"
+            : "hover:border-[#163F20]/40"
         } ${getActiveStatusClass(isActive)}`}
       >
-        <span className={isActive ? "text-[#806319]" : "text-[#7b6f61]"}>
+        <span className={isActive ? "text-[#163F20]" : "text-[#59645C]"}>
           {getCurrentLabel()}
         </span>
         <FiChevronDown
@@ -277,14 +242,14 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-36 rounded-xl border border-[#b8902e]/15 bg-white py-1 shadow-lg z-50">
+        <div className="absolute right-0 mt-1 w-36 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg z-50">
           {statusOptions.map((option) => (
             <button
               key={String(option.value)}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#faf8f3] ${
-                option.value === isActive ? "bg-[#f8f3e5] cursor-default" : ""
+              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
+                option.value === isActive ? "bg-[#EAF3EA] cursor-default" : ""
               } ${option.color}`}
             >
               {option.label}
@@ -297,7 +262,7 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 };
 
 // =====================================================
-// DISTRIBUTOR STATUS DROPDOWN (Only when KYC is pending)
+// DISTRIBUTOR STATUS DROPDOWN
 // =====================================================
 
 interface DistributorStatusDropdownProps {
@@ -319,7 +284,6 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const normalizedKycStatus = kycStatus?.toLowerCase() || "";
-
   const isKycPending = normalizedKycStatus === "pending";
   const isKycVerified =
     normalizedKycStatus === "active" ||
@@ -346,13 +310,13 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
 
     if (isKycVerified) {
       label = "Verified";
-      statusClass = "border-[#b8902e]/25 bg-[#f8f3e5] text-[#806319]";
+      statusClass = "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
     } else if (isKycRejected) {
       label = "Rejected";
-      statusClass = "border-[#c98d83]/25 bg-[#fff8f6] text-[#b46055]";
+      statusClass = "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
     } else {
       label = kycStatus || "N/A";
-      statusClass = "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]";
+      statusClass = "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
     }
 
     return (
@@ -365,14 +329,12 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   }
 
   const statusOptions = [
-    { value: "active", label: "Verify & Activate", color: "text-[#806319]" },
-    { value: "rejected", label: "Reject", color: "text-[#b46055]" },
+    { value: "active", label: "Verify & Activate", color: "text-[#163F20]" },
+    { value: "rejected", label: "Reject", color: "text-[#C23B32]" },
   ];
 
   const handleSelect = (value: string) => {
-    if (value !== currentStatus) {
-      onStatusChange(userId, value);
-    }
+    if (value !== currentStatus) onStatusChange(userId, value);
     setIsOpen(false);
   };
 
@@ -383,7 +345,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
 
   const getCurrentColor = () => {
     const option = statusOptions.find((opt) => opt.value === currentStatus);
-    return option ? option.color : "text-[#a06f13]";
+    return option ? option.color : "text-[#8A6D16]";
   };
 
   return (
@@ -395,7 +357,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
           isLoading
             ? "opacity-50 cursor-not-allowed"
-            : "hover:border-[#b8902e]/40"
+            : "hover:border-[#163F20]/40"
         } ${getDistributorStatusClass(currentStatus)}`}
       >
         <span className={getCurrentColor()}>{getCurrentLabel()}</span>
@@ -406,9 +368,9 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-44 rounded-xl border border-[#b8902e]/15 bg-white py-1 shadow-lg z-50">
-          <div className="px-3 py-1.5 border-b border-[#b8902e]/10">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a06f13]">
+        <div className="absolute right-0 mt-1 w-44 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg z-50">
+          <div className="px-3 py-1.5 border-b border-[#163F20]/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A6D16]">
               KYC Pending
             </span>
           </div>
@@ -417,9 +379,9 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
               key={option.value}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#faf8f3] ${
+              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
                 option.value === currentStatus
-                  ? "bg-[#f8f3e5] cursor-default"
+                  ? "bg-[#EAF3EA] cursor-default"
                   : ""
               } ${option.color}`}
             >
@@ -456,30 +418,30 @@ const StatCard: React.FC<StatCardProps> = ({
       variants={itemVariants}
       whileHover={{
         y: -4,
-        boxShadow: "0 16px 30px -18px rgba(140,105,25,0.28)",
+        boxShadow: "0 16px 30px -18px rgba(22,63,32,0.28)",
       }}
-      className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm"
+      className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm"
     >
       <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
 
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#163F20]/10" />
 
-      <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#b8902e]/10" />
+      <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#163F20]/10" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#a89a7d]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#9AA29C]">
             {title}
           </p>
 
-          <p className="mt-2 text-3xl font-bold text-[#2a2620]">
+          <p className="mt-2 text-3xl font-bold text-[#202721]">
             {value.toLocaleString("en-IN")}
           </p>
 
-          <p className="mt-1 text-xs text-[#786f60]">{subtitle}</p>
+          <p className="mt-1 text-xs text-[#89918B]">{subtitle}</p>
         </div>
 
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
           {icon}
         </div>
       </div>
@@ -498,10 +460,10 @@ interface InfoRowProps {
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 py-3 last:border-b-0">
-      <span className="text-xs text-[#a89a7d]">{label}</span>
+    <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 py-3 last:border-b-0">
+      <span className="text-xs text-[#9AA29C]">{label}</span>
 
-      <span className="max-w-[62%] text-right text-sm font-semibold text-[#2a2620]">
+      <span className="max-w-[62%] text-right text-sm font-semibold text-[#202721]">
         {value}
       </span>
     </div>
@@ -539,28 +501,27 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         {/* HEADER */}
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-sm font-bold text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white">
               {user ? getInitials(user) : <FiUser size={19} />}
             </div>
 
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
                 User Management
               </p>
 
-              <h2 className="mt-0.5 text-xl font-bold text-[#2a2620]">
+              <h2 className="mt-0.5 text-xl font-bold text-[#202721]">
                 {user ? getUserName(user) : "User Details"}
               </h2>
 
               {user && (
-                <p className="mt-1 text-xs text-[#a89a7d]">
+                <p className="mt-1 text-xs text-[#9AA29C]">
                   User ID #{user.id}
                 </p>
               )}
@@ -570,56 +531,54 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e]/10"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* BODY */}
-
         <div className="max-h-[calc(95vh-150px)] overflow-y-auto p-5 sm:p-6">
           {loading ? (
             <div className="flex min-h-[360px] flex-col items-center justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                 <FiRefreshCw size={25} className="animate-spin" />
               </div>
 
-              <p className="mt-4 text-sm font-bold text-[#2a2620]">
+              <p className="mt-4 text-sm font-bold text-[#202721]">
                 Loading user details...
               </p>
 
-              <p className="mt-1 text-xs text-[#a89a7d]">
+              <p className="mt-1 text-xs text-[#9AA29C]">
                 Please wait while we fetch the complete profile.
               </p>
             </div>
           ) : !user ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#fff8f6] text-[#b46055]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
                 <FiAlertCircle size={25} />
               </div>
 
-              <p className="mt-4 text-sm font-bold text-[#b46055]">
+              <p className="mt-4 text-sm font-bold text-[#C23B32]">
                 User details not found.
               </p>
             </div>
           ) : (
             <>
               {/* TOP SUMMARY */}
-
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                     Account Type
                   </p>
 
-                  <p className="mt-2 text-lg font-bold text-[#2a2620]">
+                  <p className="mt-2 text-lg font-bold text-[#202721]">
                     {getAccountLabel(user.account_type)}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                     User Status
                   </p>
 
@@ -639,18 +598,17 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            user.is_active ? "bg-[#b8902e]" : "bg-[#82776a]"
+                            user.is_active ? "bg-[#163F20]" : "bg-[#89918B]"
                           }`}
                         />
-
                         {user.is_active ? "Active" : "Inactive"}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#b8902e]/20 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a06f13]">
+                <div className="rounded-2xl border border-[#163F20]/20 bg-gradient-to-br from-[#F5FAF5] to-[#EAF3EA] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
                     KYC Status
                   </p>
 
@@ -677,43 +635,34 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* PERSONAL */}
-
+              {/* PERSONAL + ACCOUNT */}
               <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-                <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+                <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiUser size={17} />
                     </div>
-
-                    <h3 className="text-sm font-bold text-[#2a2620]">
+                    <h3 className="text-sm font-bold text-[#202721]">
                       Personal Information
                     </h3>
                   </div>
 
                   <InfoRow label="Full Name" value={getUserName(user)} />
-
                   <InfoRow label="Email" value={user.email} />
-
                   <InfoRow label="Phone" value={user.phone || "N/A"} />
-
                   <InfoRow label="Country" value={user.country || "N/A"} />
-
                   <InfoRow
                     label="Date of Birth"
                     value={formatDateOnly(user.date_of_birth)}
                   />
                 </div>
 
-                {/* ACCOUNT */}
-
-                <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+                <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiShield size={17} />
                     </div>
-
-                    <h3 className="text-sm font-bold text-[#2a2620]">
+                    <h3 className="text-sm font-bold text-[#202721]">
                       Account Information
                     </h3>
                   </div>
@@ -722,22 +671,18 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     label="Registered"
                     value={user.is_registered ? "Yes" : "No"}
                   />
-
                   <InfoRow
                     label="Registration Step"
                     value={user.registration_step}
                   />
-
                   <InfoRow
                     label="Created At"
                     value={formatDate(user.created_at)}
                   />
-
                   <InfoRow
                     label="Updated At"
                     value={formatDate(user.updated_at)}
                   />
-
                   <InfoRow
                     label="Activation Date"
                     value={formatDate(user.activation_date)}
@@ -746,72 +691,65 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
 
               {/* VERIFICATION */}
-
-              <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+              <div className="mt-5 rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiCheckCircle size={17} />
                   </div>
-
-                  <h3 className="text-sm font-bold text-[#2a2620]">
+                  <h3 className="text-sm font-bold text-[#202721]">
                     Verification
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
+                  <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">Phone</span>
-
+                      <span className="text-xs text-[#9AA29C]">Phone</span>
                       <span
                         className={`text-[10px] font-bold ${
                           user.phone_verified
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.phone_verified ? "Verified" : "Not Verified"}
                       </span>
                     </div>
-
                     {user.phone_verified_at && (
-                      <p className="mt-2 text-[10px] text-[#a89a7d]">
+                      <p className="mt-2 text-[10px] text-[#9AA29C]">
                         {formatDate(user.phone_verified_at)}
                       </p>
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
+                  <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">Email</span>
-
+                      <span className="text-xs text-[#9AA29C]">Email</span>
                       <span
                         className={`text-[10px] font-bold ${
                           user.email_verified_at
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.email_verified_at ? "Verified" : "Not Verified"}
                       </span>
                     </div>
-
                     {user.email_verified_at && (
-                      <p className="mt-2 text-[10px] text-[#a89a7d]">
+                      <p className="mt-2 text-[10px] text-[#9AA29C]">
                         {formatDate(user.email_verified_at)}
                       </p>
                     )}
                   </div>
 
-                  <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
+                  <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#a89a7d]">Terms</span>
-
+                      <span className="text-xs text-[#9AA29C]">Terms</span>
                       <span
                         className={`text-[10px] font-bold ${
                           user.terms_condition
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.terms_condition ? "Accepted" : "Not Accepted"}
@@ -822,69 +760,62 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
 
               {/* DISTRIBUTOR */}
-
               {user.account_type === "distributor" && (
-                <div className="mt-5 rounded-2xl border border-[#b8902e]/15 bg-gradient-to-br from-[#fffdfa] to-[#faf8f3] p-5">
+                <div className="mt-5 rounded-2xl border border-[#163F20]/20 bg-gradient-to-br from-[#FBFDFB] to-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiBriefcase size={17} />
                     </div>
-
                     <div>
-                      <h3 className="text-sm font-bold text-[#2a2620]">
+                      <h3 className="text-sm font-bold text-[#202721]">
                         Distributor Information
                       </h3>
-
-                      <p className="mt-0.5 text-xs text-[#a89a7d]">
+                      <p className="mt-0.5 text-xs text-[#9AA29C]">
                         Distributor registration and KYC information.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Distributor ID
                       </p>
-
-                      <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.distributor_id || "Not Assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Sponsor ID
                       </p>
-
-                      <p className="mt-1 truncate text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 truncate text-sm font-bold text-[#202721]">
                         {user.sponsor_id || "Not Assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Placement
                       </p>
-
-                      <p className="mt-1 text-sm font-bold capitalize text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold capitalize text-[#202721]">
                         {user.placement_leg || "Not Assigned"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Registration
                       </p>
-
-                      <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
                         Step {user.registration_step}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                  <div className="mt-4 rounded-xl border border-[#E5EAE5] bg-white p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                       KYC Status
                     </p>
                     <div className="mt-2">
@@ -911,52 +842,46 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               )}
 
               {/* KYC */}
-
               {user.business_profile && (
-                <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+                <div className="mt-5 rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiCreditCard size={17} />
                     </div>
-
                     <div>
-                      <h3 className="text-sm font-bold text-[#2a2620]">
+                      <h3 className="text-sm font-bold text-[#202721]">
                         KYC & Banking
                       </h3>
-
-                      <p className="mt-0.5 text-xs text-[#a89a7d]">
+                      <p className="mt-0.5 text-xs text-[#9AA29C]">
                         Verification status and masked account information.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         KYC Status
                       </p>
-
-                      <p className="mt-1 text-sm font-bold capitalize text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold capitalize text-[#202721]">
                         {getKycDisplayLabel(user.business_profile.kyc_status)}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Aadhaar
                       </p>
-
-                      <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.aadhaar_last4
                           ? `XXXX XXXX ${user.aadhaar_last4}`
                           : "Not Available"}
                       </p>
-
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           user.business_profile.aadhaar_verified
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.business_profile.aadhaar_verified
@@ -965,22 +890,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         PAN
                       </p>
-
-                      <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.pan_last4
                           ? `XXXXXX${user.pan_last4}`
                           : "Not Available"}
                       </p>
-
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           user.business_profile.pan_verified
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.business_profile.pan_verified
@@ -989,22 +912,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Bank Account
                       </p>
-
-                      <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.account_last4
                           ? `XXXX${user.account_last4}`
                           : "Not Available"}
                       </p>
-
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           user.business_profile.bank_verified
-                            ? "text-[#806319]"
-                            : "text-[#b46055]"
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
                         {user.business_profile.bank_verified
@@ -1015,22 +936,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
 
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Bank Name
                       </p>
-
-                      <p className="mt-1 text-sm font-semibold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-semibold text-[#202721]">
                         {user.business_profile.bank_name || "N/A"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#b8902e]/10 bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                    <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Account Holder
                       </p>
-
-                      <p className="mt-1 text-sm font-semibold text-[#2a2620]">
+                      <p className="mt-1 text-sm font-semibold text-[#202721]">
                         {user.business_profile.bank_holder_name || "N/A"}
                       </p>
                     </div>
@@ -1039,28 +958,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               )}
 
               {/* CONSENTS */}
-
-              <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+              <div className="mt-5 rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiCheckCircle size={17} />
                   </div>
-
-                  <h3 className="text-sm font-bold text-[#2a2620]">
+                  <h3 className="text-sm font-bold text-[#202721]">
                     Registration Consents
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    {
-                      label: "Terms",
-                      value: user.accept_terms,
-                    },
-                    {
-                      label: "Agreement",
-                      value: user.accept_agreement,
-                    },
+                    { label: "Terms", value: user.accept_terms },
+                    { label: "Agreement", value: user.accept_agreement },
                     {
                       label: "Code of Conduct",
                       value: user.accept_code_of_conduct,
@@ -1072,15 +983,14 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="flex items-center justify-between rounded-xl border border-[#b8902e]/10 bg-white p-3"
+                      className="flex items-center justify-between rounded-xl border border-[#E5EAE5] bg-white p-3"
                     >
-                      <span className="text-xs text-[#786f60]">
+                      <span className="text-xs text-[#89918B]">
                         {item.label}
                       </span>
-
                       <span
                         className={`text-[10px] font-bold ${
-                          item.value ? "text-[#806319]" : "text-[#b46055]"
+                          item.value ? "text-[#1F7A3D]" : "text-[#C23B32]"
                         }`}
                       >
                         {item.value ? "Accepted" : "Not Accepted"}
@@ -1094,12 +1004,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </div>
 
         {/* FOOTER */}
-
-        <div className="flex justify-end border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4 sm:px-6">
+        <div className="flex justify-end border-t border-[#163F20]/10 bg-[#FBFDFB] px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#b8902e]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#786f60] transition hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+            className="rounded-xl border border-[#163F20]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
           >
             Close
           </button>
@@ -1116,10 +1025,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const UserManagement: React.FC = () => {
   const location = useLocation();
 
-  // ✅ Get KYC user name from dashboard navigation
   const kycUserName = location.state?.kycUserName as string | undefined;
-
-  // ✅ Also support direct user/admin from header
   const userFromHeader = location.state?.user as RegisteredUser | undefined;
   const adminFromHeader = location.state?.admin as RegisteredUser | undefined;
   const personFromHeader = userFromHeader || adminFromHeader;
@@ -1140,7 +1046,6 @@ const UserManagement: React.FC = () => {
   const [highlightedUserId, setHighlightedUserId] = useState<number | null>(
     null,
   );
-  // ✅ Add state for Create Distributor Modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
@@ -1159,9 +1064,8 @@ const UserManagement: React.FC = () => {
         const userData = response.data.data || [];
         setUsers(userData);
 
-        // ✅ PRIORITY 1: Handle KYC User Name from Dashboard
+        // PRIORITY 1: KYC user from dashboard
         if (kycUserName && isInitialLoad && userData.length > 0) {
-          // Search for user by name (case insensitive partial match)
           const searchTerm = kycUserName.trim().toLowerCase();
 
           const targetUser = userData.find((user: RegisteredUser) => {
@@ -1175,27 +1079,22 @@ const UserManagement: React.FC = () => {
           });
 
           if (targetUser) {
-            // Set search to the user's name or email to filter
-            const searchTerm =
+            const term =
               targetUser.full_name || targetUser.email || String(targetUser.id);
-            setSearch(searchTerm);
+            setSearch(term);
             setHighlightedUserId(targetUser.id);
-
-            // Also open the detail modal for the user
             await handleView(targetUser.id);
-
             toast.success(`Found KYC review for ${getUserName(targetUser)}`);
           } else {
-            // If user not found by name, search by the name itself
             setSearch(kycUserName);
             toast.info(`Searching for user: ${kycUserName}`);
           }
 
           setIsInitialLoad(false);
-          return; // ✅ Exit early so we don't process header user
+          return;
         }
 
-        // ✅ PRIORITY 2: Handle person from header (user or admin)
+        // PRIORITY 2: Header user/admin
         if (personFromHeader && isInitialLoad && userData.length > 0) {
           const targetUser = userData.find(
             (user: RegisteredUser) =>
@@ -1203,11 +1102,10 @@ const UserManagement: React.FC = () => {
           );
 
           if (targetUser) {
-            const searchTerm =
+            const term =
               targetUser.full_name || targetUser.email || String(targetUser.id);
-            setSearch(searchTerm);
+            setSearch(term);
             setHighlightedUserId(targetUser.id);
-
             await handleView(targetUser.id);
           } else {
             setSearch(String(personFromHeader.id));
@@ -1221,7 +1119,6 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Fetch users error:", error);
-
       toast.error(error?.response?.data?.message || "Unable to fetch users.");
     } finally {
       setLoading(false);
@@ -1244,13 +1141,9 @@ const UserManagement: React.FC = () => {
       (user) => user.account_type === "distributor",
     ).length;
 
-    return {
-      total,
-      active,
-      inactive,
-      distributors,
-    };
+    return { total, active, inactive, distributors };
   }, [users]);
+
   // =================================================
   // FILTER
   // =================================================
@@ -1275,23 +1168,17 @@ const UserManagement: React.FC = () => {
           .toLowerCase()
           .includes(query);
 
-      if (!searchMatch) {
-        return false;
-      }
+      if (!searchMatch) return false;
 
       switch (activeFilter) {
         case "customer":
           return user.account_type === "customer";
-
         case "distributor":
           return user.account_type === "distributor";
-
         case "active":
           return user.is_active;
-
         case "inactive":
           return !user.is_active;
-
         default:
           return true;
       }
@@ -1306,26 +1193,20 @@ const UserManagement: React.FC = () => {
     1,
     Math.ceil(filteredUsers.length / ITEMS_PER_PAGE),
   );
-
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
   const paginatedUsers = filteredUsers.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
-
   const startEntry = filteredUsers.length === 0 ? 0 : startIndex + 1;
-
   const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   // =================================================
-  // FILTER HANDLER
+  // HANDLERS
   // =================================================
 
   const handleFilter = (filter: UserFilter) => {
@@ -1333,19 +1214,11 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // =================================================
-  // SEARCH
-  // =================================================
-
   const handleSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
-    setHighlightedUserId(null); // ✅ Clear highlight on manual search
+    setHighlightedUserId(null);
   };
-
-  // =================================================
-  // VIEW USER
-  // =================================================
 
   const handleView = async (id: number) => {
     try {
@@ -1363,7 +1236,6 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("View user error:", error);
-
       toast.error(
         error?.response?.data?.message || "Unable to fetch user details.",
       );
@@ -1371,10 +1243,6 @@ const UserManagement: React.FC = () => {
       setDetailLoading(false);
     }
   };
-
-  // =================================================
-  // USER ACTIVE / INACTIVE - DROPDOWN
-  // =================================================
 
   const handleToggleUserStatus = async (
     userId: number,
@@ -1391,21 +1259,13 @@ const UserManagement: React.FC = () => {
       if (response.data.success) {
         setUsers((prev) =>
           prev.map((item) =>
-            item.id === userId
-              ? {
-                  ...item,
-                  is_active: nextStatus,
-                }
-              : item,
+            item.id === userId ? { ...item, is_active: nextStatus } : item,
           ),
         );
 
         setSelectedUser((current) =>
           current?.id === userId
-            ? {
-                ...current,
-                is_active: nextStatus,
-              }
+            ? { ...current, is_active: nextStatus }
             : current,
         );
 
@@ -1418,7 +1278,6 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("User status error:", error);
-
       toast.error(
         error?.response?.data?.message || "Unable to update user status.",
       );
@@ -1434,7 +1293,6 @@ const UserManagement: React.FC = () => {
     try {
       setDistributorLoadingId(userId);
 
-      // Map "active" to "verified" before sending the payload
       const payloadStatus = newStatus === "active" ? "verified" : newStatus;
 
       const response = await userManagementApi.updateDistributorStatus(
@@ -1450,10 +1308,7 @@ const UserManagement: React.FC = () => {
                   ...item,
                   distributor_status: newStatus,
                   business_profile: item.business_profile
-                    ? {
-                        ...item.business_profile,
-                        kyc_status: newStatus,
-                      }
+                    ? { ...item.business_profile, kyc_status: newStatus }
                     : null,
                 }
               : item,
@@ -1466,10 +1321,7 @@ const UserManagement: React.FC = () => {
                 ...current,
                 distributor_status: newStatus,
                 business_profile: current.business_profile
-                  ? {
-                      ...current.business_profile,
-                      kyc_status: newStatus,
-                    }
+                  ? { ...current.business_profile, kyc_status: newStatus }
                   : null,
               }
             : current,
@@ -1485,7 +1337,6 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Update KYC status error:", error);
-
       toast.error(
         error?.response?.data?.message || "Unable to update KYC status.",
       );
@@ -1494,20 +1345,12 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // =================================================
-  // PAGINATION PAGES
-  // =================================================
-
   const paginationPages = useMemo(() => {
-    if (totalPages <= 5) {
+    if (totalPages <= 5)
       return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
 
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
-    if (currentPage >= totalPages - 2) {
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage >= totalPages - 2)
       return [
         totalPages - 4,
         totalPages - 3,
@@ -1515,7 +1358,6 @@ const UserManagement: React.FC = () => {
         totalPages - 1,
         totalPages,
       ];
-    }
 
     return [
       currentPage - 2,
@@ -1533,42 +1375,39 @@ const UserManagement: React.FC = () => {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-[#faf8f3] p-4"
+        className="min-h-screen bg-[#F5F7F5] p-4"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
         {/* HEADER */}
-
         <motion.div
           variants={itemVariants}
           className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
         >
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#b8902e]" />
-
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#b8902e]">
+              <div className="h-2 w-2 rounded-full bg-[#163F20]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#163F20]">
                 User Management
               </span>
             </div>
 
-            <h1 className="font-serif text-[28px] font-bold tracking-tight text-[#2a2620] sm:text-[30px]">
+            <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">
               Registered Users
             </h1>
 
-            <p className="mt-1 text-sm text-[#786f60]">
+            <p className="mt-1 text-sm text-[#89918B]">
               Manage customers, distributors, account status, and registration
               details.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* ✅ NEW: Create Distributor Button */}
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:shadow-lg"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-5 text-sm font-bold text-white shadow-md shadow-[#163F20]/20 transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <FiBriefcase size={16} />
               Create Distributor
@@ -1578,7 +1417,7 @@ const UserManagement: React.FC = () => {
               type="button"
               onClick={fetchUsers}
               disabled={loading}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 text-sm font-bold text-[#8f6d1d] shadow-sm transition hover:border-[#b8902e]/35 hover:bg-[#faf8f3] disabled:opacity-50"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 text-sm font-bold text-[#163F20] shadow-sm transition hover:border-[#163F20]/35 hover:bg-[#F3F7F3] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={16}
@@ -1590,7 +1429,6 @@ const UserManagement: React.FC = () => {
         </motion.div>
 
         {/* STATS */}
-
         <motion.div
           variants={containerVariants}
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -1600,7 +1438,7 @@ const UserManagement: React.FC = () => {
             value={stats.total}
             subtitle="All registered users"
             icon={<FiUsers size={21} />}
-            accent="bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]"
+            accent="bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]"
           />
 
           <StatCard
@@ -1608,7 +1446,7 @@ const UserManagement: React.FC = () => {
             value={stats.active}
             subtitle="Currently active"
             icon={<FiUserCheck size={21} />}
-            accent="bg-gradient-to-r from-[#e8c97a] to-[#b8902e]"
+            accent="bg-gradient-to-r from-[#8FC199] to-[#163F20]"
           />
 
           <StatCard
@@ -1616,7 +1454,7 @@ const UserManagement: React.FC = () => {
             value={stats.inactive}
             subtitle="Currently inactive"
             icon={<FiUserX size={21} />}
-            accent="bg-gradient-to-r from-[#c9a84c] to-[#8a6c1f]"
+            accent="bg-gradient-to-r from-[#89918B] to-[#59645C]"
           />
 
           <StatCard
@@ -1624,28 +1462,24 @@ const UserManagement: React.FC = () => {
             value={stats.distributors}
             subtitle="Registered distributors"
             icon={<FiBriefcase size={21} />}
-            accent="bg-gradient-to-r from-[#d4af52] to-[#806319]"
+            accent="bg-gradient-to-r from-[#4C8A57] to-[#0F3219]"
           />
         </motion.div>
 
         {/* MAIN CARD */}
-
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm"
+          className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm"
         >
-          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
           {/* TOOLBAR */}
-
-          <div className="border-b border-[#b8902e]/10 p-4 sm:p-5">
+          <div className="border-b border-[#163F20]/10 p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              {/* SEARCH */}
-
               <div className="relative w-full xl:max-w-[520px]">
                 <FiSearch
                   size={19}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a8841c]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
                 />
 
                 <input
@@ -1653,44 +1487,27 @@ const UserManagement: React.FC = () => {
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search name, email, phone, ID..."
-                  className="h-12 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-11 pr-10 text-sm text-[#2a2620] outline-none transition placeholder:text-[#a89a7d] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+                  className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 />
 
                 {search && (
                   <button
                     type="button"
                     onClick={() => handleSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a89a7d] hover:text-[#8f6d1d]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] hover:text-[#163F20]"
                   >
                     <FiX size={16} />
                   </button>
                 )}
               </div>
 
-              {/* FILTERS */}
-
               <div className="flex flex-wrap gap-2">
                 {[
-                  {
-                    key: "all" as UserFilter,
-                    label: "All",
-                  },
-                  {
-                    key: "customer" as UserFilter,
-                    label: "Customers",
-                  },
-                  {
-                    key: "distributor" as UserFilter,
-                    label: "Distributors",
-                  },
-                  {
-                    key: "active" as UserFilter,
-                    label: "Active",
-                  },
-                  {
-                    key: "inactive" as UserFilter,
-                    label: "Inactive",
-                  },
+                  { key: "all" as UserFilter, label: "All" },
+                  { key: "customer" as UserFilter, label: "Customers" },
+                  { key: "distributor" as UserFilter, label: "Distributors" },
+                  { key: "active" as UserFilter, label: "Active" },
+                  { key: "inactive" as UserFilter, label: "Inactive" },
                 ].map((filter) => (
                   <button
                     key={filter.key}
@@ -1698,8 +1515,8 @@ const UserManagement: React.FC = () => {
                     onClick={() => handleFilter(filter.key)}
                     className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${
                       activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                        : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
+                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
+                        : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
                     }`}
                   >
                     {filter.label}
@@ -1710,40 +1527,32 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* DESKTOP TABLE */}
-
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1350px] border-collapse">
               <thead>
-                <tr className="bg-[#2f2a22]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                <tr className="bg-[#163F20]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     S.No.
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     User
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Contact
                   </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Account Type
                   </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     User Status
                   </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     KYC Status
                   </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Registered
                   </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Actions
                   </th>
                 </tr>
@@ -1754,11 +1563,10 @@ const UserManagement: React.FC = () => {
                   <tr>
                     <td colSpan={8} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                           <FiRefreshCw size={22} className="animate-spin" />
                         </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                        <p className="mt-4 text-sm font-bold text-[#202721]">
                           Loading users...
                         </p>
                       </div>
@@ -1768,15 +1576,13 @@ const UserManagement: React.FC = () => {
                   <tr>
                     <td colSpan={8} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#163F20]">
                           <FiUsers size={24} />
                         </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                        <p className="mt-4 text-sm font-bold text-[#202721]">
                           No users found
                         </p>
-
-                        <p className="mt-1 text-xs text-[#a89a7d]">
+                        <p className="mt-1 text-xs text-[#9AA29C]">
                           Try another search or filter.
                         </p>
                       </div>
@@ -1796,21 +1602,21 @@ const UserManagement: React.FC = () => {
                     return (
                       <tr
                         key={user.id}
-                        className={`border-b border-[#b8902e]/10 transition-all duration-300 ${
+                        className={`border-b border-[#163F20]/10 transition-all duration-300 ${
                           isHighlighted
-                            ? "bg-[#d4af52]/15 border-l-4 border-l-[#b8902e] shadow-inner"
-                            : "bg-white hover:bg-[#faf8f3]"
+                            ? "bg-[#EAF3EA]/70 border-l-4 border-l-[#163F20] shadow-inner"
+                            : "bg-white hover:bg-[#F5F7F5]"
                         }`}
                       >
                         <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
                             {startIndex + index + 1}
                           </span>
                         </td>
 
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-xs font-bold text-white">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
                               {user.profile_picture ? (
                                 <img
                                   src={user.profile_picture}
@@ -1823,7 +1629,7 @@ const UserManagement: React.FC = () => {
                             </div>
 
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#2a2620]">
+                              <p className="truncate text-sm font-bold text-[#202721]">
                                 {getUserName(user)}
                               </p>
                             </div>
@@ -1832,21 +1638,19 @@ const UserManagement: React.FC = () => {
 
                         <td className="px-5 py-4">
                           <div className="max-w-[220px]">
-                            <p className="truncate text-xs font-semibold text-[#4a4436]">
+                            <p className="truncate text-xs font-semibold text-[#3F4A41]">
                               {user.email}
                             </p>
-
                             <div className="mt-1 flex items-center gap-1.5">
-                              <span className="text-xs text-[#a89a7d]">
+                              <span className="text-xs text-[#9AA29C]">
                                 {user.phone || "No phone"}
                               </span>
-
-                              {user.phone_verified ? (
+                              {user.phone_verified && (
                                 <FiCheckCircle
                                   size={12}
-                                  className="text-[#b8902e]"
+                                  className="text-[#163F20]"
                                 />
-                              ) : null}
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1855,8 +1659,8 @@ const UserManagement: React.FC = () => {
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
                               isDistributor
-                                ? "border-[#b8902e]/25 bg-[#fffaf0] text-[#8f6d1d]"
-                                : "border-[#d8d1c4] bg-[#f6f4ef] text-[#786f60]"
+                                ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
+                                : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]"
                             }`}
                           >
                             {isDistributor ? (
@@ -1864,7 +1668,6 @@ const UserManagement: React.FC = () => {
                             ) : (
                               <FiUser size={12} />
                             )}
-
                             {getAccountLabel(user.account_type)}
                           </span>
                         </td>
@@ -1892,15 +1695,14 @@ const UserManagement: React.FC = () => {
                               />
                             </div>
                           ) : (
-                            <span className="text-xs text-[#b1a58e]">—</span>
+                            <span className="text-xs text-[#9AA29C]">—</span>
                           )}
                         </td>
 
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
-                            <FiCalendar size={13} className="text-[#b8902e]" />
-
-                            <span className="text-xs font-semibold text-[#4a4436]">
+                            <FiCalendar size={13} className="text-[#163F20]" />
+                            <span className="text-xs font-semibold text-[#3F4A41]">
                               {formatDateOnly(user.created_at)}
                             </span>
                           </div>
@@ -1912,7 +1714,7 @@ const UserManagement: React.FC = () => {
                               type="button"
                               onClick={() => handleView(user.id)}
                               title="View User Details"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
                             >
                               <FiEye size={15} />
                             </button>
@@ -1927,7 +1729,6 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* MOBILE */}
-
           <div className="block lg:hidden">
             {paginatedUsers.length > 0 ? (
               paginatedUsers.map((user, index) => {
@@ -1942,15 +1743,15 @@ const UserManagement: React.FC = () => {
                 return (
                   <div
                     key={user.id}
-                    className={`border-b border-[#b8902e]/10 p-4 transition-all duration-300 ${
+                    className={`border-b border-[#163F20]/10 p-4 transition-all duration-300 ${
                       isHighlighted
-                        ? "bg-[#d4af52]/15 border-l-4 border-l-[#b8902e]"
+                        ? "bg-[#EAF3EA]/70 border-l-4 border-l-[#163F20]"
                         : ""
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-xs font-bold text-white">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
                           {user.profile_picture ? (
                             <img
                               src={user.profile_picture}
@@ -1963,38 +1764,35 @@ const UserManagement: React.FC = () => {
                         </div>
 
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#2a2620]">
+                          <p className="truncate text-sm font-bold text-[#202721]">
                             {getUserName(user)}
                           </p>
-
-                          <p className="mt-1 truncate text-xs text-[#a89a7d]">
+                          <p className="mt-1 truncate text-xs text-[#9AA29C]">
                             {user.email}
                           </p>
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold text-[#a89a7d]">
+                      <span className="text-[10px] font-bold text-[#9AA29C]">
                         #{startIndex + index + 1}
                       </span>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                           Type
                         </p>
-
-                        <p className="mt-1 text-xs font-bold capitalize text-[#2a2620]">
+                        <p className="mt-1 text-xs font-bold capitalize text-[#202721]">
                           {user.account_type}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                           Phone
                         </p>
-
-                        <p className="mt-1 truncate text-xs font-bold text-[#2a2620]">
+                        <p className="mt-1 truncate text-xs font-bold text-[#202721]">
                           {user.phone || "N/A"}
                         </p>
                       </div>
@@ -2023,7 +1821,7 @@ const UserManagement: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleView(user.id)}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] px-4 py-2.5 text-xs font-bold text-[#8f6d1d]"
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] px-4 py-2.5 text-xs font-bold text-[#163F20]"
                       >
                         <FiEye size={14} />
                         View
@@ -2034,15 +1832,13 @@ const UserManagement: React.FC = () => {
               })
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#163F20]">
                   <FiUsers size={24} />
                 </div>
-
-                <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                <p className="mt-4 text-sm font-bold text-[#202721]">
                   No users found
                 </p>
-
-                <p className="mt-1 text-xs text-[#a89a7d]">
+                <p className="mt-1 text-xs text-[#9AA29C]">
                   Try another search or filter.
                 </p>
               </div>
@@ -2050,17 +1846,16 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-
           {filteredUsers.length > 0 && (
-            <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#163F20]/10 bg-[#FBFDFB] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8b8171]">
+                <p className="text-xs text-[#89918B]">
                   Showing{" "}
-                  <span className="font-bold text-[#4a4436]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#4a4436]">{endEntry}</span>{" "}
+                  <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#4a4436]">
+                  <span className="font-bold text-[#3F4A41]">
                     {filteredUsers.length}
                   </span>{" "}
                   entries
@@ -2071,7 +1866,7 @@ const UserManagement: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage((page) => page - 1)}
                     disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
@@ -2083,8 +1878,8 @@ const UserManagement: React.FC = () => {
                       onClick={() => setCurrentPage(page)}
                       className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
                         currentPage === page
-                          ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
-                          : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
+                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
                       }`}
                     >
                       {page}
@@ -2095,7 +1890,7 @@ const UserManagement: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage((page) => page + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>
@@ -2107,7 +1902,6 @@ const UserManagement: React.FC = () => {
       </motion.div>
 
       {/* DETAIL MODAL */}
-
       <UserDetailModal
         open={detailOpen}
         loading={detailLoading}
@@ -2122,7 +1916,7 @@ const UserManagement: React.FC = () => {
         isDistributorLoading={distributorLoadingId !== null}
       />
 
-      {/* ✅ CREATE DISTRIBUTOR MODAL */}
+      {/* CREATE DISTRIBUTOR MODAL */}
       <CreateDistributorModal
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}

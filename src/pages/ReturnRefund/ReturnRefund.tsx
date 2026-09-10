@@ -1,3 +1,4 @@
+
 import React, {
   useEffect,
   useMemo,
@@ -17,11 +18,9 @@ import {
   FiChevronRight,
   FiUser,
   FiCalendar,
-  FiFileText,
   FiAlertCircle,
   FiClock,
   FiCheckCircle,
-  FiCreditCard,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -32,6 +31,29 @@ import returnApi, {
   ReturnListItem,
   SingleReturnResponse,
 } from "../../api/endpoints/return";
+
+// =====================================================
+// THEME
+// =====================================================
+
+const COLORS = {
+  primary: "#163F20",
+  dark: "#0F3219",
+  light: "#EAF3EA",
+  page: "#F5F7F5",
+  text: "#202721",
+  secondary: "#59645C",
+  muted: "#9AA29C",
+  border: "#D8E2D8",
+  accent: "#4C8A57",
+  white: "#FFFFFF",
+  danger: "#C23B32",
+  dangerLight: "#FFF4F2",
+};
+
+// =====================================================
+// ANIMATIONS
+// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,7 +66,10 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
   visible: {
     opacity: 1,
     y: 0,
@@ -80,9 +105,7 @@ interface ActionLoading {
 // HELPERS
 // =====================================================
 
-const getStatusLabel = (
-  status: string
-) => {
+const getStatusLabel = (status: string) => {
   if (!status) return "N/A";
 
   return status
@@ -92,51 +115,47 @@ const getStatusLabel = (
     );
 };
 
-const getStatusClass = (
-  status: string
-) => {
+const getStatusClass = (status: string) => {
   switch (status) {
     case "pending":
-      return "border-[#d9a441]/30 bg-[#fff8e8] text-[#a06f13]";
+      return "border-amber-200 bg-amber-50 text-amber-700";
 
     case "approved":
-      return "border-[#b8902e]/25 bg-[#f8f3e5] text-[#8f6d1d]";
+      return "border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20]";
 
     case "received":
-      return "border-[#d4af52]/30 bg-[#fffaf0] text-[#9a741c]";
+      return "border-blue-200 bg-blue-50 text-blue-700";
 
     case "completed":
-      return "border-[#a8841c]/25 bg-[#f4f0df] text-[#806319]";
+      return "border-[#163F20]/20 bg-[#edf5ee] text-[#0F3219]";
 
     case "rejected":
-      return "border-[#c98d83]/25 bg-[#fff8f6] text-[#b46055]";
+      return "border-red-200 bg-red-50 text-[#C23B32]";
 
     default:
-      return "border-[#d8d1c4] bg-[#f6f4ef] text-[#857b6c]";
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
   }
 };
 
-const getStatusDot = (
-  status: string
-) => {
+const getStatusDot = (status: string) => {
   switch (status) {
     case "pending":
-      return "bg-[#d9a441]";
+      return "bg-amber-500";
 
     case "approved":
-      return "bg-[#b8902e]";
+      return "bg-[#4C8A57]";
 
     case "received":
-      return "bg-[#c49b3a]";
+      return "bg-blue-500";
 
     case "completed":
-      return "bg-[#806319]";
+      return "bg-[#163F20]";
 
     case "rejected":
-      return "bg-[#b46055]";
+      return "bg-[#C23B32]";
 
     default:
-      return "bg-[#a89a7d]";
+      return "bg-[#9AA29C]";
   }
 };
 
@@ -173,7 +192,8 @@ const formatCurrency = (
   ).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  })
+    } `;
 };
 
 const getCustomerName = (
@@ -227,36 +247,36 @@ const ReturnStatCard: React.FC<
         whileHover={{
           y: -4,
           boxShadow:
-            "0 16px 30px -18px rgba(140,105,25,0.30)",
+            "0 16px 30px -18px rgba(22,63,32,0.28)",
         }}
-        className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white p-5 shadow-sm"
+        className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white p-5 shadow-sm"
       >
         <div
-          className={`absolute left-0 top-0 h-1 w-full ${accent}`}
+          className={`absolute left - 0 top - 0 h - 1 w - full ${accent} `}
         />
 
-        <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#d4af52]/20" />
+        <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/15" />
 
-        <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#b8902e]/10" />
+        <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#163F20]/10" />
 
         <div className="relative z-10 flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a89a7d]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
               {title}
             </p>
 
-            <p className="mt-2 text-3xl font-bold text-[#2a2620]">
+            <p className="mt-2 text-3xl font-bold text-[#202721]">
               {value.toLocaleString(
                 "en-IN"
               )}
             </p>
 
-            <p className="mt-1 text-xs text-[#786f60]">
+            <p className="mt-1 text-xs text-[#59645C]">
               {subtitle}
             </p>
           </div>
 
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#faf8f3] text-[#b8902e]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
             {icon}
           </div>
         </div>
@@ -295,26 +315,24 @@ const MarkReceivedPopup: React.FC<
         onClose={onClose}
         closeOnOverlayClick={!loading}
       >
-        <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-          <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+        <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
-          {/* Header */}
-
-          <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#b8902e]" />
+                <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
                   Mark Received
                 </span>
               </div>
 
-              <h2 className="text-lg font-bold text-[#2a2620]">
+              <h2 className="text-lg font-bold text-[#202721]">
                 Confirm Received
               </h2>
 
-              <p className="mt-1 text-xs text-[#a89a7d]">
+              <p className="mt-1 text-xs text-[#9AA29C]">
                 Mark this return as received by the warehouse.
               </p>
             </div>
@@ -323,56 +341,48 @@ const MarkReceivedPopup: React.FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] transition hover:bg-[#b8902e]/10 disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20] disabled:opacity-50"
             >
               <FiX size={18} />
             </button>
           </div>
 
-          {/* Body */}
-
           <div className="space-y-4 p-5">
-            {/* Order */}
-
-            <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
+            <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
               <div className="flex justify-between gap-4">
-                <span className="text-xs text-[#a89a7d]">
+                <span className="text-xs text-[#9AA29C]">
                   Order
                 </span>
 
-                <span className="text-right text-sm font-bold text-[#2a2620]">
+                <span className="text-right text-sm font-bold text-[#202721]">
                   {orderReference}
                 </span>
               </div>
 
-              <div className="mt-3 flex justify-between gap-4 border-t border-[#b8902e]/10 pt-3">
-                <span className="text-xs text-[#a89a7d]">
+              <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
+                <span className="text-xs text-[#9AA29C]">
                   Customer
                 </span>
 
-                <span className="text-right text-sm font-semibold text-[#2a2620]">
+                <span className="text-right text-sm font-semibold text-[#202721]">
                   {customerName}
                 </span>
               </div>
             </div>
 
-            {/* Notice */}
-
-            <div className="rounded-xl border border-[#b8902e]/15 bg-[#fffaf0] p-3">
-              <p className="text-xs leading-5 text-[#786f60]">
+            <div className="rounded-xl border border-[#D8E2D8] bg-[#EAF3EA] p-3">
+              <p className="text-xs leading-5 text-[#59645C]">
                 ⚠️ By confirming, the return items will be marked as received by the warehouse. This action cannot be undone.
               </p>
             </div>
           </div>
 
-          {/* Footer */}
-
-          <div className="flex justify-end gap-3 border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4">
+          <div className="flex justify-end gap-3 border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#b8902e]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#786f60] transition hover:bg-[#faf8f3] hover:text-[#8f6d1d] disabled:opacity-50"
+              className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -381,7 +391,7 @@ const MarkReceivedPopup: React.FC<
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#b8902e]/20 transition hover:from-[#a8841c] hover:to-[#795b14] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw
@@ -389,9 +399,7 @@ const MarkReceivedPopup: React.FC<
                   className="animate-spin"
                 />
               ) : (
-                <FiTruck
-                  size={15}
-                />
+                <FiTruck size={15} />
               )}
 
               {loading
@@ -426,11 +434,15 @@ const RejectPopup: React.FC<
   onClose,
   onConfirm,
 }) => {
-    const [rejectionReason, setRejectionReason] =
-      useState("");
+    const [
+      rejectionReason,
+      setRejectionReason,
+    ] = useState("");
 
-    const [adminNotes, setAdminNotes] =
-      useState("");
+    const [
+      adminNotes,
+      setAdminNotes,
+    ] = useState("");
 
     useEffect(() => {
       if (open) {
@@ -447,26 +459,25 @@ const RejectPopup: React.FC<
         onClose={onClose}
         closeOnOverlayClick={!loading}
       >
-        <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-          <div className="h-1 w-full bg-gradient-to-r from-[#d4af52] to-[#b46055]" />
+        <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#163F20] to-[#C23B32]" />
 
-          <div className="flex items-start justify-between border-b border-[#b8902e]/10 px-5 py-4">
+          <div className="flex items-start justify-between border-b border-[#D8E2D8] px-5 py-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#b46055]" />
+                <div className="h-1.5 w-1.5 rounded-full bg-[#C23B32]" />
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b46055]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#C23B32]">
                   Return Review
                 </span>
               </div>
 
-              <h2 className="text-lg font-bold text-[#2a2620]">
+              <h2 className="text-lg font-bold text-[#202721]">
                 Reject Return
               </h2>
 
-              <p className="mt-1 text-xs text-[#a89a7d]">
-                Enter the reason for rejecting this
-                request.
+              <p className="mt-1 text-xs text-[#9AA29C]">
+                Enter the reason for rejecting this request.
               </p>
             </div>
 
@@ -474,7 +485,7 @@ const RejectPopup: React.FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] disabled:opacity-50"
             >
               <FiX size={18} />
             </button>
@@ -482,17 +493,15 @@ const RejectPopup: React.FC<
 
           <div className="space-y-5 p-5">
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#6b6152]">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
                 Rejection Reason{" "}
-                <span className="text-[#b46055]">
+                <span className="text-[#C23B32]">
                   *
                 </span>
               </label>
 
               <textarea
-                value={
-                  rejectionReason
-                }
+                value={rejectionReason}
                 onChange={(e) =>
                   setRejectionReason(
                     e.target.value
@@ -500,19 +509,17 @@ const RejectPopup: React.FC<
                 }
                 rows={4}
                 placeholder="Enter rejection reason..."
-                className="w-full resize-none rounded-xl border border-[#d8d0c0] bg-[#faf8f3] px-4 py-3 text-sm text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+                className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#6b6152]">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
                 Admin Notes
               </label>
 
               <textarea
-                value={
-                  adminNotes
-                }
+                value={adminNotes}
                 onChange={(e) =>
                   setAdminNotes(
                     e.target.value
@@ -520,17 +527,17 @@ const RejectPopup: React.FC<
                 }
                 rows={3}
                 placeholder="Optional internal notes..."
-                className="w-full resize-none rounded-xl border border-[#d8d0c0] bg-[#faf8f3] px-4 py-3 text-sm text-[#2a2620] outline-none transition focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+                className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4">
+          <div className="flex justify-end gap-3 border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#b8902e]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#786f60]"
+              className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -547,7 +554,7 @@ const RejectPopup: React.FC<
                   adminNotes.trim()
                 )
               }
-              className="flex items-center gap-2 rounded-xl bg-[#b46055] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#9e5048] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#a8322b] disabled:opacity-50"
             >
               {loading && (
                 <FiRefreshCw
@@ -600,22 +607,22 @@ const ReturnDetailModal: React.FC<
           onClose={onClose}
           closeOnOverlayClick={false}
         >
-          <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-            <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+          <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
             <div className="flex min-h-[320px] flex-col items-center justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                 <FiRefreshCw
                   size={27}
                   className="animate-spin"
                 />
               </div>
 
-              <p className="mt-4 text-sm font-bold text-[#2a2620]">
+              <p className="mt-4 text-sm font-bold text-[#202721]">
                 Loading return details...
               </p>
 
-              <p className="mt-1 text-xs text-[#a89a7d]">
+              <p className="mt-1 text-xs text-[#9AA29C]">
                 Please wait while we fetch the request.
               </p>
             </div>
@@ -631,22 +638,22 @@ const ReturnDetailModal: React.FC<
           onClose={onClose}
           closeOnOverlayClick={false}
         >
-          <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
-            <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+          <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
             <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#b46055]/10 text-[#b46055]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-[#C23B32]">
                 <FiAlertCircle size={28} />
               </div>
 
-              <p className="mt-4 text-sm font-bold text-[#b46055]">
+              <p className="mt-4 text-sm font-bold text-[#C23B32]">
                 Return details not found.
               </p>
 
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-5 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-6 py-2.5 text-sm font-bold text-white"
+                className="mt-5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white"
               >
                 Close
               </button>
@@ -662,28 +669,26 @@ const ReturnDetailModal: React.FC<
         onClose={onClose}
         closeOnOverlayClick={false}
       >
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-2xl">
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
           {/* TOP ACCENT */}
-
-          <div className="h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
+          <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
           {/* HEADER */}
-
-          <div className="flex items-start justify-between gap-4 border-b border-[#b8902e]/10 px-5 py-4 sm:px-6">
+          <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4 sm:px-6">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#b8902e]" />
+                <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#b8902e]">
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
                   Returns & Refunds
                 </span>
               </div>
 
-              <h2 className="text-xl font-bold text-[#2a2620]">
+              <h2 className="text-xl font-bold text-[#202721]">
                 Return Request
               </h2>
 
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#a89a7d]">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#9AA29C]">
                 <span>
                   Request #{detail.id}
                 </span>
@@ -710,33 +715,33 @@ const ReturnDetailModal: React.FC<
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#8f6d1d] hover:bg-[#b8902e]/10"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20]"
             >
               <FiX size={18} />
             </button>
           </div>
 
           {/* BODY */}
-
           <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
             {/* SUMMARY */}
-
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Status
                 </p>
 
                 <div className="mt-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${getStatusClass(
+                    className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - xs font - bold ${getStatusClass(
                       detail.status
-                    )}`}
+                    )
+                      } `}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                      className={`h - 1.5 w - 1.5 rounded - full ${getStatusDot(
                         detail.status
-                      )}`}
+                      )
+                        } `}
                     />
 
                     {getStatusLabel(
@@ -746,12 +751,12 @@ const ReturnDetailModal: React.FC<
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#b8902e]/20 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a06f13]">
+              <div className="rounded-2xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
                   Return Amount
                 </p>
 
-                <p className="mt-1 text-2xl font-bold text-[#8f6d1d]">
+                <p className="mt-1 text-2xl font-bold text-[#163F20]">
                   {formatCurrency(
                     detail.refund_details
                       ?.total
@@ -759,60 +764,59 @@ const ReturnDetailModal: React.FC<
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Items
                 </p>
 
-                <p className="mt-1 text-2xl font-bold text-[#2a2620]">
+                <p className="mt-1 text-2xl font-bold text-[#202721]">
                   {detail.items.length}
                 </p>
               </div>
             </div>
 
             {/* CUSTOMER + ORDER */}
-
             <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiUser size={17} />
                   </div>
 
-                  <h3 className="text-sm font-bold text-[#2a2620]">
+                  <h3 className="text-sm font-bold text-[#202721]">
                     Customer Information
                   </h3>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex justify-between gap-4 border-b border-[#b8902e]/10 pb-2.5">
-                    <span className="text-xs text-[#a89a7d]">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
                       Name
                     </span>
 
-                    <span className="text-right text-sm font-semibold text-[#2a2620]">
+                    <span className="text-right text-sm font-semibold text-[#202721]">
                       {getCustomerName(
                         detail.user
                       )}
                     </span>
                   </div>
 
-                  <div className="flex justify-between gap-4 border-b border-[#b8902e]/10 pb-2.5">
-                    <span className="text-xs text-[#a89a7d]">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
                       Email
                     </span>
 
-                    <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#2a2620]">
+                    <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#202721]">
                       {detail.user.email}
                     </span>
                   </div>
 
                   <div className="flex justify-between gap-4">
-                    <span className="text-xs text-[#a89a7d]">
+                    <span className="text-xs text-[#9AA29C]">
                       Phone
                     </span>
 
-                    <span className="text-sm font-semibold text-[#2a2620]">
+                    <span className="text-sm font-semibold text-[#202721]">
                       {detail.user.phone ||
                         "N/A"}
                     </span>
@@ -820,24 +824,24 @@ const ReturnDetailModal: React.FC<
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiPackage size={17} />
                   </div>
 
-                  <h3 className="text-sm font-bold text-[#2a2620]">
+                  <h3 className="text-sm font-bold text-[#202721]">
                     Order Information
                   </h3>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex justify-between gap-4 border-b border-[#b8902e]/10 pb-2.5">
-                    <span className="text-xs text-[#a89a7d]">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
                       Order Reference
                     </span>
 
-                    <span className="text-right text-sm font-bold text-[#8f6d1d]">
+                    <span className="text-right text-sm font-bold text-[#163F20]">
                       {
                         detail.order
                           .order_reference
@@ -845,12 +849,12 @@ const ReturnDetailModal: React.FC<
                     </span>
                   </div>
 
-                  <div className="flex justify-between gap-4 border-b border-[#b8902e]/10 pb-2.5">
-                    <span className="text-xs text-[#a89a7d]">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
                       Order Status
                     </span>
 
-                    <span className="text-sm font-semibold capitalize text-[#2a2620]">
+                    <span className="text-sm font-semibold capitalize text-[#202721]">
                       {getStatusLabel(
                         detail.order
                           .status
@@ -859,11 +863,11 @@ const ReturnDetailModal: React.FC<
                   </div>
 
                   <div className="flex justify-between gap-4">
-                    <span className="text-xs text-[#a89a7d]">
+                    <span className="text-xs text-[#9AA29C]">
                       Delivered At
                     </span>
 
-                    <span className="text-right text-xs font-semibold text-[#4a4436]">
+                    <span className="text-right text-xs font-semibold text-[#59645C]">
                       {formatDate(
                         detail.order
                           .delivered_at
@@ -874,24 +878,21 @@ const ReturnDetailModal: React.FC<
               </div>
             </div>
 
-      
-
             {/* ITEMS */}
-
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#b8902e]/15">
-              <div className="border-b border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4">
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2D8]">
+              <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiPackage size={17} />
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-[#2a2620]">
+                      <h3 className="text-sm font-bold text-[#202721]">
                         Returned Items
                       </h3>
 
-                      <p className="mt-0.5 text-xs text-[#a89a7d]">
+                      <p className="mt-0.5 text-xs text-[#9AA29C]">
                         {
                           detail.items
                             .length
@@ -903,7 +904,7 @@ const ReturnDetailModal: React.FC<
                 </div>
               </div>
 
-              <div className="divide-y divide-[#b8902e]/10">
+              <div className="divide-y divide-[#D8E2D8]">
                 {detail.items.map(
                   (item) => (
                     <div
@@ -915,7 +916,6 @@ const ReturnDetailModal: React.FC<
                       <div className="flex flex-col gap-4">
                         <div className="flex items-start gap-4">
                           {/* PRODUCT IMAGE */}
-
                           {item.product
                             .image ? (
                             <img
@@ -929,20 +929,18 @@ const ReturnDetailModal: React.FC<
                                   .product
                                   .name
                               }
-                              className="h-16 w-16 shrink-0 rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] object-cover"
+                              className="h-16 w-16 shrink-0 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] object-cover"
                             />
                           ) : (
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#b8902e]/15 bg-[#faf8f3] text-[#b8902e]">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#4C8A57]">
                               <FiPackage
-                                size={
-                                  22
-                                }
+                                size={22}
                               />
                             </div>
                           )}
 
                           <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-[#2a2620]">
+                            <h4 className="text-sm font-bold text-[#202721]">
                               {
                                 item
                                   .product
@@ -950,7 +948,7 @@ const ReturnDetailModal: React.FC<
                               }
                             </h4>
 
-                            <p className="mt-1 text-xs text-[#a89a7d]">
+                            <p className="mt-1 text-xs text-[#9AA29C]">
                               SKU:{" "}
                               {
                                 item
@@ -959,7 +957,7 @@ const ReturnDetailModal: React.FC<
                               }
                             </p>
 
-                            <p className="mt-2 text-sm font-semibold text-[#8f6d1d]">
+                            <p className="mt-2 text-sm font-semibold text-[#163F20]">
                               Qty:{" "}
                               {
                                 item.quantity
@@ -969,12 +967,11 @@ const ReturnDetailModal: React.FC<
                         </div>
 
                         {/* RETURN IMAGES */}
-
                         {item.image_urls &&
                           item.image_urls
                             .length > 0 && (
                             <div>
-                              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                              <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                                 Return Images
                               </p>
 
@@ -985,25 +982,23 @@ const ReturnDetailModal: React.FC<
                                     imageIndex
                                   ) => (
                                     <a
-                                      key={`${item.order_line_id}-${imageIndex}`}
+                                      key={`${item.order_line_id} -${imageIndex} `}
                                       href={
                                         imageUrl
                                       }
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="group relative overflow-hidden rounded-xl border border-[#b8902e]/15 bg-[#faf8f3]"
+                                      className="group relative overflow-hidden rounded-xl border border-[#D8E2D8] bg-[#F5F7F5]"
                                     >
                                       <img
                                         src={
                                           imageUrl
                                         }
-                                        alt={`Return evidence ${imageIndex +
-                                          1
-                                          }`}
+                                        alt={`Return evidence ${imageIndex + 1} `}
                                         className="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
                                       />
 
-                                      <div className="absolute inset-0 flex items-center justify-center bg-[#2f2a22]/0 transition group-hover:bg-[#2f2a22]/30">
+                                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
                                         <FiEye
                                           size={
                                             15
@@ -1019,50 +1014,49 @@ const ReturnDetailModal: React.FC<
                           )}
 
                         {/* ITEM INFO */}
-
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                          <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                               Unit Price
                             </p>
 
-                            <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                            <p className="mt-1 text-sm font-bold text-[#202721]">
                               {formatCurrency(
                                 item.unit_price
                               )}
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                          <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                               Subtotal
                             </p>
 
-                            <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                            <p className="mt-1 text-sm font-bold text-[#202721]">
                               {formatCurrency(
                                 item.subtotal
                               )}
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                          <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                               Tax
                             </p>
 
-                            <p className="mt-1 text-sm font-bold text-[#2a2620]">
+                            <p className="mt-1 text-sm font-bold text-[#202721]">
                               {formatCurrency(
                                 item.tax
                               )}
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-[#b8902e]/20 bg-[#fffaf0] p-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#a06f13]">
+                          <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
                               Reason
                             </p>
 
-                            <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#786f60]">
+                            <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#59645C]">
                               {item.reason ||
                                 "No reason"}
                             </p>
@@ -1075,26 +1069,25 @@ const ReturnDetailModal: React.FC<
               </div>
             </div>
 
-            {/* REFUND SUMMARY - SHIPPING REMOVED */}
-
-            <div className="mt-5 rounded-2xl border border-[#b8902e]/15 bg-[#faf8f3] p-5">
+            {/* REFUND SUMMARY */}
+            <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                   <FiDollarSign size={17} />
                 </div>
 
-                <h3 className="text-sm font-bold text-[#2a2620]">
+                <h3 className="text-sm font-bold text-[#202721]">
                   Refund Summary
                 </h3>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                     Subtotal
                   </p>
 
-                  <p className="mt-1 text-base font-bold text-[#2a2620]">
+                  <p className="mt-1 text-base font-bold text-[#202721]">
                     {formatCurrency(
                       detail.refund_details
                         ?.subtotal
@@ -1102,12 +1095,12 @@ const ReturnDetailModal: React.FC<
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#b8902e]/10 bg-white p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                     Tax
                   </p>
 
-                  <p className="mt-1 text-base font-bold text-[#2a2620]">
+                  <p className="mt-1 text-base font-bold text-[#202721]">
                     {formatCurrency(
                       detail.refund_details
                         ?.tax
@@ -1115,12 +1108,12 @@ const ReturnDetailModal: React.FC<
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#b8902e]/20 bg-gradient-to-br from-[#fffaf0] to-[#f8f1df] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#a06f13]">
+                <div className="rounded-xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
                     Return Amount
                   </p>
 
-                  <p className="mt-1 text-xl font-bold text-[#8f6d1d]">
+                  <p className="mt-1 text-xl font-bold text-[#163F20]">
                     {formatCurrency(
                       detail.refund_details
                         ?.total
@@ -1131,36 +1124,34 @@ const ReturnDetailModal: React.FC<
             </div>
 
             {/* TIMELINE */}
-
-            <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-5">
+            <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e]/10 text-[#a8841c]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                   <FiCalendar size={17} />
                 </div>
 
-                <h3 className="text-sm font-bold text-[#2a2620]">
+                <h3 className="text-sm font-bold text-[#202721]">
                   Return Timeline
                 </h3>
               </div>
 
               <div className="space-y-5">
                 {/* CREATED */}
-
                 <div className="flex gap-4">
                   <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#b8902e]/10">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#b8902e]" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
+                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
                     </div>
 
-                    <div className="h-10 w-px bg-[#d4af52]/30" />
+                    <div className="h-10 w-px bg-[#D8E2D8]" />
                   </div>
 
                   <div className="pt-1">
-                    <p className="text-sm font-bold text-[#2a2620]">
+                    <p className="text-sm font-bold text-[#202721]">
                       Return Requested
                     </p>
 
-                    <p className="mt-1 text-xs text-[#a89a7d]">
+                    <p className="mt-1 text-xs text-[#9AA29C]">
                       {formatDate(
                         detail.created_at
                       )}
@@ -1169,23 +1160,22 @@ const ReturnDetailModal: React.FC<
                 </div>
 
                 {/* APPROVED */}
-
                 {detail.approved_at && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#b8902e]/10">
-                        <div className="h-2.5 w-2.5 rounded-full bg-[#b8902e]" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
+                        <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
                       </div>
 
-                      <div className="h-10 w-px bg-[#d4af52]/30" />
+                      <div className="h-10 w-px bg-[#D8E2D8]" />
                     </div>
 
                     <div className="pt-1">
-                      <p className="text-sm font-bold text-[#2a2620]">
+                      <p className="text-sm font-bold text-[#202721]">
                         Return Approved
                       </p>
 
-                      <p className="mt-1 text-xs text-[#a89a7d]">
+                      <p className="mt-1 text-xs text-[#9AA29C]">
                         {formatDate(
                           detail.approved_at
                         )}
@@ -1195,23 +1185,22 @@ const ReturnDetailModal: React.FC<
                 )}
 
                 {/* RECEIVED */}
-
                 {detail.received_at && (
                   <div className="flex gap-4">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#d4af52]/15">
-                        <div className="h-2.5 w-2.5 rounded-full bg-[#c49b3a]" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50">
+                        <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
                       </div>
 
-                      <div className="h-10 w-px bg-[#d4af52]/30" />
+                      <div className="h-10 w-px bg-[#D8E2D8]" />
                     </div>
 
                     <div className="pt-1">
-                      <p className="text-sm font-bold text-[#2a2620]">
+                      <p className="text-sm font-bold text-[#202721]">
                         Return Received
                       </p>
 
-                      <p className="mt-1 text-xs text-[#a89a7d]">
+                      <p className="mt-1 text-xs text-[#9AA29C]">
                         {formatDate(
                           detail.received_at
                         )}
@@ -1221,16 +1210,15 @@ const ReturnDetailModal: React.FC<
                 )}
 
                 {/* REJECTED */}
-
                 {detail.status ===
                   "rejected" &&
                   detail.rejection_reason && (
-                    <div className="rounded-xl border border-[#c98d83]/20 bg-[#fff8f6] p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#b46055]">
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#C23B32]">
                         Rejection Reason
                       </p>
 
-                      <p className="mt-1 text-sm leading-6 text-[#8d544d]">
+                      <p className="mt-1 text-sm leading-6 text-[#8b3a34]">
                         {
                           detail.rejection_reason
                         }
@@ -1241,14 +1229,13 @@ const ReturnDetailModal: React.FC<
             </div>
 
             {/* ADMIN NOTES */}
-
             {detail.admin_notes && (
-              <div className="mt-5 rounded-2xl border border-[#b8902e]/10 bg-[#faf8f3] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+              <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Admin Notes
                 </p>
 
-                <p className="mt-2 text-sm leading-6 text-[#6b6152]">
+                <p className="mt-2 text-sm leading-6 text-[#59645C]">
                   {detail.admin_notes}
                 </p>
               </div>
@@ -1256,31 +1243,27 @@ const ReturnDetailModal: React.FC<
           </div>
 
           {/* FOOTER ACTIONS */}
-
-          <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-5 py-4 sm:px-6">
+          <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4 sm:px-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-xl border border-[#b8902e]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#786f60] transition hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
+                className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
               >
                 Close
               </button>
 
               <div className="flex flex-wrap justify-end gap-2">
                 {/* APPROVE */}
-
                 {detail.can_approve && (
                   <button
                     type="button"
-                    onClick={
-                      onApprove
-                    }
+                    onClick={onApprove}
                     disabled={
                       actionLoading.type ===
                       "approve"
                     }
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition hover:from-[#a8841c] hover:to-[#795b14] disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
                   >
                     {actionLoading.type ===
                       "approve" ? (
@@ -1297,52 +1280,46 @@ const ReturnDetailModal: React.FC<
                 )}
 
                 {/* REJECT */}
-
                 {detail.can_reject && (
                   <button
                     type="button"
-                    onClick={
-                      onReject
-                    }
+                    onClick={onReject}
                     disabled={
                       actionLoading.type ===
                       "reject"
                     }
-                    className="flex items-center gap-2 rounded-xl border border-[#c98d83]/25 bg-[#fff8f6] px-4 py-2.5 text-xs font-bold text-[#b46055] transition hover:bg-[#fcefeb] disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                   >
                     <FiX size={14} />
-
                     Reject Return
                   </button>
                 )}
 
-                {/* MARK RECEIVED - Only for approved status */}
+                {/* RECEIVED */}
+                {detail.status ===
+                  "approved" && (
+                    <button
+                      type="button"
+                      onClick={onReceived}
+                      disabled={
+                        actionLoading.type ===
+                        "received"
+                      }
+                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
+                    >
+                      {actionLoading.type ===
+                        "received" ? (
+                        <FiRefreshCw
+                          size={14}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <FiTruck size={14} />
+                      )}
 
-                {detail.status === "approved" && (
-                  <button
-                    type="button"
-                    onClick={
-                      onReceived
-                    }
-                    disabled={
-                      actionLoading.type ===
-                      "received"
-                    }
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#b8902e]/15 transition hover:from-[#a8841c] hover:to-[#795b14] disabled:opacity-50"
-                  >
-                    {actionLoading.type ===
-                      "received" ? (
-                      <FiRefreshCw
-                        size={14}
-                        className="animate-spin"
-                      />
-                    ) : (
-                      <FiTruck size={14} />
-                    )}
-
-                    Mark Received
-                  </button>
-                )}
+                      Mark Received
+                    </button>
+                  )}
               </div>
             </div>
           </div>
@@ -1363,9 +1340,7 @@ const ReturnRefund: React.FC = () => {
     activeFilter,
     setActiveFilter,
   ] =
-    useState<ReturnFilterTab>(
-      "All"
-    );
+    useState<ReturnFilterTab>("All");
 
   const [
     searchQuery,
@@ -1453,7 +1428,10 @@ const ReturnRefund: React.FC = () => {
               ?.data || [];
 
           setRequests(list);
-          toast.success("Return requests loaded successfully.");
+
+          toast.success(
+            "Return requests loaded successfully."
+          );
         } else {
           toast.error(
             "Unable to fetch return requests."
@@ -1480,7 +1458,7 @@ const ReturnRefund: React.FC = () => {
   }, []);
 
   // ===================================================
-  // STATS FROM API
+  // STATS
   // ===================================================
 
   const stats = useMemo(() => {
@@ -1527,17 +1505,14 @@ const ReturnRefund: React.FC = () => {
               "",
               request.reason ||
               "",
-              String(
-                request.id
-              ),
+              String(request.id),
             ]
               .join(" ")
               .toLowerCase()
               .includes(query);
 
           const matchesStatus =
-            activeFilter ===
-            "All" ||
+            activeFilter === "All" ||
             request.status ===
             activeFilter;
 
@@ -1577,8 +1552,7 @@ const ReturnRefund: React.FC = () => {
     );
 
   const startEntry =
-    filteredRequests.length ===
-      0
+    filteredRequests.length === 0
       ? 0
       : startIndex + 1;
 
@@ -1598,9 +1572,7 @@ const ReturnRefund: React.FC = () => {
         setDetailLoading(true);
 
         const response =
-          await returnApi.getById(
-            id
-          );
+          await returnApi.getById(id);
 
         if (
           response.data.success
@@ -1608,7 +1580,10 @@ const ReturnRefund: React.FC = () => {
           setSelectedDetail(
             response.data.data
           );
-          toast.success("Return details loaded successfully.");
+
+          toast.success(
+            "Return details loaded successfully."
+          );
         } else {
           toast.error(
             "Unable to fetch return details."
@@ -1656,9 +1631,7 @@ const ReturnRefund: React.FC = () => {
         });
 
         const response =
-          await returnApi.approve(
-            id
-          );
+          await returnApi.approve(id);
 
         if (
           response.data.success
@@ -1672,8 +1645,7 @@ const ReturnRefund: React.FC = () => {
           await fetchReturnRequests();
 
           if (
-            selectedDetail?.id ===
-            id
+            selectedDetail?.id === id
           ) {
             await fetchReturnDetail(
               id
@@ -1711,8 +1683,7 @@ const ReturnRefund: React.FC = () => {
 
   const handleApprove =
     async () => {
-      if (!selectedDetail)
-        return;
+      if (!selectedDetail) return;
 
       await handleDirectApprove(
         selectedDetail.id
@@ -1729,9 +1700,7 @@ const ReturnRefund: React.FC = () => {
     if (
       selectedDetail?.id !== id
     ) {
-      await fetchReturnDetail(
-        id
-      );
+      await fetchReturnDetail(id);
     }
 
     setRejectModalOpen(true);
@@ -1760,8 +1729,7 @@ const ReturnRefund: React.FC = () => {
         await returnApi.reject(
           id,
           rejectionReason,
-          adminNotes ||
-          undefined
+          adminNotes || undefined
         );
 
       if (
@@ -1773,14 +1741,11 @@ const ReturnRefund: React.FC = () => {
           "Return rejected successfully."
         );
 
-        setRejectModalOpen(
-          false
-        );
+        setRejectModalOpen(false);
 
         await fetchReturnRequests();
-        await fetchReturnDetail(
-          id
-        );
+
+        await fetchReturnDetail(id);
       } else {
         toast.error(
           response.data
@@ -1808,13 +1773,16 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // OPEN MARK RECEIVED CONFIRM
+  // OPEN MARK RECEIVED
   // ===================================================
 
   const handleOpenReceived = () => {
     if (!selectedDetail) return;
 
-    if (selectedDetail.status !== "approved") {
+    if (
+      selectedDetail.status !==
+      "approved"
+    ) {
       toast.error(
         "Return must be approved before marking as received."
       );
@@ -1833,6 +1801,11 @@ const ReturnRefund: React.FC = () => {
       if (!selectedDetail) return;
 
       setReceivedLoading(true);
+
+      setActionLoading({
+        type: "received",
+        id: selectedDetail.id,
+      });
 
       try {
         const response =
@@ -1854,6 +1827,7 @@ const ReturnRefund: React.FC = () => {
           );
 
           await fetchReturnRequests();
+
           await fetchReturnDetail(
             selectedDetail.id
           );
@@ -1877,6 +1851,7 @@ const ReturnRefund: React.FC = () => {
         );
       } finally {
         setReceivedLoading(false);
+
         setActionLoading({
           type: null,
           id: null,
@@ -1990,7 +1965,7 @@ const ReturnRefund: React.FC = () => {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-[#faf8f3] p-4"
+        className="min-h-screen bg-[#F5F7F5] p-4"
         initial="hidden"
         animate="visible"
         variants={{
@@ -2002,25 +1977,22 @@ const ReturnRefund: React.FC = () => {
           },
         }}
       >
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
+        {/* HEADER */}
         <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#b8902e]" />
+              <div className="h-2 w-2 rounded-full bg-[#4C8A57]" />
 
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#b8902e]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#163F20]">
                 Returns & Refunds
               </span>
             </div>
 
-            <h1 className="font-serif text-[28px] font-bold tracking-tight text-[#2a2620] sm:text-[30px]">
+            <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">
               Return Requests
             </h1>
 
-            <p className="mt-1 text-sm text-[#786f60]">
+            <p className="mt-1 text-sm text-[#59645C]">
               Review return requests, approve refunds,
               and manage the return lifecycle.
             </p>
@@ -2028,11 +2000,9 @@ const ReturnRefund: React.FC = () => {
 
           <button
             type="button"
-            onClick={
-              handleRefresh
-            }
+            onClick={handleRefresh}
             disabled={loading}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#b8902e]/20 bg-white px-4 text-sm font-semibold text-[#8f6d1d] shadow-sm transition hover:border-[#b8902e]/35 hover:bg-[#faf8f3] disabled:opacity-50"
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm font-semibold text-[#163F20] shadow-sm transition hover:border-[#4C8A57] hover:bg-[#EAF3EA] disabled:opacity-50"
           >
             <FiRefreshCw
               size={16}
@@ -2047,10 +2017,7 @@ const ReturnRefund: React.FC = () => {
           </button>
         </div>
 
-        {/* =================================================
-            STATS
-        ================================================= */}
-
+        {/* STATS */}
         <motion.div
           variants={containerVariants}
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -2062,7 +2029,7 @@ const ReturnRefund: React.FC = () => {
             icon={
               <FiPackage size={21} />
             }
-            accent="bg-gradient-to-r from-[#d4af52] via-[#b8902e] to-[#8a6c1f]"
+            accent="bg-gradient-to-r from-[#4C8A57] to-[#163F20]"
           />
 
           <ReturnStatCard
@@ -2072,7 +2039,7 @@ const ReturnRefund: React.FC = () => {
             icon={
               <FiClock size={21} />
             }
-            accent="bg-gradient-to-r from-[#e8c97a] to-[#b8902e]"
+            accent="bg-gradient-to-r from-[#86A98C] to-[#4C8A57]"
           />
 
           <ReturnStatCard
@@ -2080,11 +2047,9 @@ const ReturnRefund: React.FC = () => {
             value={stats.approved}
             subtitle="Approved requests"
             icon={
-              <FiCheckCircle
-                size={21}
-              />
+              <FiCheckCircle size={21} />
             }
-            accent="bg-gradient-to-r from-[#d4af52] to-[#8f6d1d]"
+            accent="bg-gradient-to-r from-[#5F9968] to-[#163F20]"
           />
 
           <ReturnStatCard
@@ -2094,34 +2059,26 @@ const ReturnRefund: React.FC = () => {
             icon={
               <FiCheck size={21} />
             }
-            accent="bg-gradient-to-r from-[#c49b3a] to-[#806319]"
+            accent="bg-gradient-to-r from-[#4C8A57] to-[#0F3219]"
           />
         </motion.div>
 
-        {/* =================================================
-            MAIN CARD
-        ================================================= */}
-
+        {/* MAIN CARD */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-2xl border border-[#b8902e]/15 bg-white shadow-sm"
+          className="relative overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-sm"
         >
           {/* ACCENT */}
+          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
-          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#e8c97a] via-[#b8902e] to-[#8a6c1f]" />
-
-          {/* =================================================
-              TOOLBAR
-          ================================================= */}
-
-          <div className="border-b border-[#b8902e]/10 p-4 sm:p-5">
+          {/* TOOLBAR */}
+          <div className="border-b border-[#D8E2D8] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               {/* SEARCH */}
-
               <div className="relative w-full xl:max-w-[540px]">
                 <FiSearch
                   size={19}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a8841c]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#4C8A57]"
                 />
 
                 <input
@@ -2133,7 +2090,7 @@ const ReturnRefund: React.FC = () => {
                     )
                   }
                   placeholder="Search order, customer, email..."
-                  className="h-12 w-full rounded-xl border border-[#d8d0c0] bg-[#faf8f3] pl-11 pr-10 text-sm text-[#2a2620] outline-none transition placeholder:text-[#a89a7d] focus:border-[#b8902e] focus:bg-white focus:ring-2 focus:ring-[#b8902e]/15"
+                  className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
                 />
 
                 {searchQuery && (
@@ -2142,7 +2099,7 @@ const ReturnRefund: React.FC = () => {
                     onClick={() =>
                       handleSearch("")
                     }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a89a7d] hover:text-[#8f6d1d]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] hover:text-[#163F20]"
                   >
                     <FiX size={16} />
                   </button>
@@ -2150,7 +2107,6 @@ const ReturnRefund: React.FC = () => {
               </div>
 
               {/* STATUS FILTERS */}
-
               <div className="flex flex-wrap gap-2">
                 {[
                   {
@@ -2180,20 +2136,18 @@ const ReturnRefund: React.FC = () => {
                 ].map(
                   (filter) => (
                     <button
-                      key={
-                        filter.key
-                      }
+                      key={filter.key}
                       type="button"
                       onClick={() =>
                         handleFilterChange(
                           filter.key
                         )
                       }
-                      className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${activeFilter ===
+                      className={`rounded - xl px - 3.5 py - 2.5 text - xs font - bold transition - all ${activeFilter ===
                           filter.key
-                          ? "bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] text-white shadow-md shadow-[#b8902e]/20"
-                          : "border border-[#b8902e]/15 bg-[#faf8f3] text-[#786f60] hover:border-[#b8902e]/30 hover:bg-[#b8902e]/10 hover:text-[#8f6d1d]"
-                        }`}
+                          ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                          : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        } `}
                     >
                       {filter.label}
                     </button>
@@ -2203,43 +2157,40 @@ const ReturnRefund: React.FC = () => {
             </div>
           </div>
 
-          {/* =================================================
-              DESKTOP TABLE
-          ================================================= */}
-
+          {/* DESKTOP TABLE */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1200px] border-collapse">
               <thead>
-                <tr className="bg-[#2f2a22]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                <tr className="bg-[#0F3219]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Order
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Customer
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Items
                   </th>
 
-                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Return Amount
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Reason
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Status
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#f3dfab]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Actions
                   </th>
                 </tr>
@@ -2248,199 +2199,263 @@ const ReturnRefund: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={8}
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#b8902e]/10 text-[#b8902e]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                           <FiRefreshCw
                             size={23}
                             className="animate-spin"
                           />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                        <p className="mt-4 text-sm font-bold text-[#202721]">
                           Loading return requests...
                         </p>
                       </div>
                     </td>
                   </tr>
-                ) : paginatedRequests.length === 0 ? (
+                ) : paginatedRequests.length ===
+                  0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={8}
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#4C8A57]">
                           <FiPackage size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                        <p className="mt-4 text-sm font-bold text-[#202721]">
                           No return requests found
                         </p>
 
-                        <p className="mt-1 text-xs text-[#a89a7d]">
+                        <p className="mt-1 text-xs text-[#9AA29C]">
                           Try changing the search or status filter.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedRequests.map((request, index) => {
-                    const canApprove = request.can_approve;
+                  paginatedRequests.map(
+                    (request, index) => {
+                      const canApprove =
+                        request.can_approve;
 
-                    const canReject = request.can_reject;
+                      const canReject =
+                        request.can_reject;
 
-                    const approveLoading =
-                      actionLoading.type === "approve" &&
-                      actionLoading.id === request.id;
+                      const approveLoading =
+                        actionLoading.type ===
+                        "approve" &&
+                        actionLoading.id ===
+                        request.id;
 
-                    // Show mark received button only for approved status
-                    const showMarkReceived =
-                      request.status === "approved";
+                      const showMarkReceived =
+                        request.status ===
+                        "approved";
 
-                    return (
-                      <tr
-                        key={request.id}
-                        className="group border-b border-[#b8902e]/10 bg-white transition hover:bg-[#faf8f3]"
-                      >
-                        {/* S.NO */}
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
+                      return (
+                        <tr
+                          key={request.id}
+                          className="group border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
+                        >
+                          {/* S.NO */}
+                          <td className="px-5 py-4">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
+                              {startIndex +
+                                index +
+                                1}
+                            </span>
+                          </td>
 
-                        {/* ORDER */}
-                        <td className="px-5 py-4">
-                          <span className="inline-flex rounded-lg bg-[#faf8f3] px-3 py-1.5 text-xs font-bold text-[#4a4436]">
-                            {request.order_reference}
-                          </span>
-                        </td>
+                          {/* ORDER */}
+                          <td className="px-5 py-4">
+                            <span className="inline-flex rounded-lg bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20]">
+                              {
+                                request.order_reference
+                              }
+                            </span>
+                          </td>
 
-                        {/* CUSTOMER */}
-                        <td className="px-5 py-4">
-                          <p className="text-sm font-bold text-[#2a2620]">
-                            {getCustomerName(request.user)}
-                          </p>
+                          {/* CUSTOMER */}
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-bold text-[#202721]">
+                              {getCustomerName(
+                                request.user
+                              )}
+                            </p>
 
-                          <p className="mt-1 max-w-[200px] truncate text-xs text-[#a89a7d]">
-                            {request.user.email}
-                          </p>
-                        </td>
+                            <p className="mt-1 max-w-[200px] truncate text-xs text-[#9AA29C]">
+                              {
+                                request.user
+                                  .email
+                              }
+                            </p>
+                          </td>
 
-                        {/* ITEMS */}
-                        <td className="px-5 py-4 text-center">
-                          <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#b8902e]/20 bg-[#faf8f3] px-3 py-1.5 text-xs font-bold text-[#8f6d1d]">
-                            {request.items_count}
-                          </span>
-                        </td>
+                          {/* ITEMS */}
+                          <td className="px-5 py-4 text-center">
+                            <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#D8E2D8] bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold text-[#163F20]">
+                              {
+                                request.items_count
+                              }
+                            </span>
+                          </td>
 
-                        {/* RETURN AMOUNT */}
-                        <td className="px-5 py-4 text-right">
-                          <span className="text-sm font-bold text-[#8f6d1d]">
-                            {formatCurrency(request.refund_amount)}
-                          </span>
-                        </td>
+                          {/* RETURN AMOUNT */}
+                          <td className="px-5 py-4 text-right">
+                            <span className="text-sm font-bold text-[#163F20]">
+                              {formatCurrency(
+                                request.refund_amount
+                              )}
+                            </span>
+                          </td>
 
-                        {/* REASON */}
-                        <td className="px-5 py-4">
-                          <p
-                            title={request.reason || ""}
-                            className="max-w-[210px] truncate text-xs text-[#786f60]"
-                          >
-                            {request.reason || "No reason provided"}
-                          </p>
-                        </td>
-
-                        {/* STATUS */}
-                        <td className="px-5 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                              request.status
-                            )}`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                                request.status
-                              )}`}
-                            />
-
-                            {getStatusLabel(request.status)}
-                          </span>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-5 py-4">
-                          <div className="flex flex-nowrap items-center justify-center gap-2">
-
-                            {/* VIEW / EYE */}
-                            <button
-                              type="button"
-                              onClick={() => handleView(request.id)}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d] transition hover:border-[#b8902e] hover:bg-[#b8902e] hover:text-white"
-                              title="View"
+                          {/* REASON */}
+                          <td className="px-5 py-4">
+                            <p
+                              title={
+                                request.reason ||
+                                ""
+                              }
+                              className="max-w-[210px] truncate text-xs text-[#59645C]"
                             >
-                              <FiEye size={15} />
-                            </button>
+                              {request.reason ||
+                                "No reason provided"}
+                            </p>
+                          </td>
 
-                            {/* ACCEPT */}
-                            {canApprove && (
+                          {/* STATUS */}
+                          <td className="px-5 py-4 text-center">
+                            <span
+                              className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - [10px] font - bold ${getStatusClass(
+                                request.status
+                              )
+                                } `}
+                            >
+                              <span
+                                className={`h - 1.5 w - 1.5 rounded - full ${getStatusDot(
+                                  request.status
+                                )
+                                  } `}
+                              />
+
+                              {getStatusLabel(
+                                request.status
+                              )}
+                            </span>
+                          </td>
+
+                          {/* ACTIONS */}
+                          <td className="px-5 py-4">
+                            <div className="flex flex-nowrap items-center justify-center gap-2">
+                              {/* VIEW */}
                               <button
                                 type="button"
-                                disabled={approveLoading}
-                                onClick={() => handleDirectApprove(request.id)}
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#a8841c] hover:to-[#795b14] disabled:opacity-50"
+                                onClick={() =>
+                                  handleView(
+                                    request.id
+                                  )
+                                }
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                                title="View"
                               >
-                                {approveLoading ? (
-                                  <FiRefreshCw size={13} className="animate-spin" />
-                                ) : (
-                                  <FiCheck size={13} />
-                                )}
-                                Accept
+                                <FiEye
+                                  size={15}
+                                />
                               </button>
-                            )}
 
-                            {/* REJECT */}
-                            {canReject && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReject(request.id)}
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#c98d83]/20 bg-[#fff8f6] px-3 text-[10px] font-bold text-[#b46055] transition hover:border-[#b46055] hover:bg-[#b46055] hover:text-white"
-                              >
-                                <FiX size={13} />
-                                Reject
-                              </button>
-                            )}
+                              {/* ACCEPT */}
+                              {canApprove && (
+                                <button
+                                  type="button"
+                                  disabled={
+                                    approveLoading
+                                  }
+                                  onClick={() =>
+                                    handleDirectApprove(
+                                      request.id
+                                    )
+                                  }
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
+                                >
+                                  {approveLoading ? (
+                                    <FiRefreshCw
+                                      size={
+                                        13
+                                      }
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <FiCheck
+                                      size={
+                                        13
+                                      }
+                                    />
+                                  )}
 
-                            {/* RECEIVED */}
-                            {showMarkReceived && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedDetail(request);
-                                  handleView(request.id);
-                                }}
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#a8841c] hover:to-[#795b14]"
-                              >
-                                <FiTruck size={13} />
-                                Received
-                              </button>
-                            )}
+                                  Accept
+                                </button>
+                              )}
 
-                          </div>
-                        </td>
+                              {/* REJECT */}
+                              {canReject && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenReject(
+                                      request.id
+                                    )
+                                  }
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                >
+                                  <FiX
+                                    size={
+                                      13
+                                    }
+                                  />
+                                  Reject
+                                </button>
+                              )}
 
-
-                      </tr>
-                    );
-                  })
+                              {/* RECEIVED */}
+                              {showMarkReceived && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedDetail(
+                                      request
+                                    );
+                                    handleView(
+                                      request.id
+                                    );
+                                  }}
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
+                                >
+                                  <FiTruck
+                                    size={
+                                      13
+                                    }
+                                  />
+                                  Received
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
                 )}
               </tbody>
             </table>
           </div>
 
-
-          {/* =================================================
-              MOBILE
-          ================================================= */}
-
+          {/* MOBILE */}
           <div className="block lg:hidden">
             {paginatedRequests.length >
               0 ? (
@@ -2456,27 +2471,24 @@ const ReturnRefund: React.FC = () => {
                     request.id;
 
                   const showMarkReceived =
-                    request.status === "approved";
+                    request.status ===
+                    "approved";
 
                   return (
                     <div
-                      key={
-                        request.id
-                      }
-                      className="border-b border-[#b8902e]/10 bg-white p-4"
+                      key={request.id}
+                      className="border-b border-[#D8E2D8] bg-white p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <span className="inline-flex rounded-lg bg-[#faf8f3] px-2.5 py-1 text-xs font-bold text-[#4a4436]">
+                          <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-xs font-bold text-[#163F20]">
                             {
                               request.order_reference
                             }
                           </span>
-
-
                         </div>
 
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#faf8f3] text-xs font-bold text-[#8f6d1d]">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
                           {startIndex +
                             index +
                             1}
@@ -2484,13 +2496,13 @@ const ReturnRefund: React.FC = () => {
                       </div>
 
                       <div className="mt-4">
-                        <p className="text-sm font-bold text-[#2a2620]">
+                        <p className="text-sm font-bold text-[#202721]">
                           {getCustomerName(
                             request.user
                           )}
                         </p>
 
-                        <p className="mt-1 truncate text-xs text-[#a89a7d]">
+                        <p className="mt-1 truncate text-xs text-[#9AA29C]">
                           {
                             request.user
                               .email
@@ -2499,24 +2511,24 @@ const ReturnRefund: React.FC = () => {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                             Return Amount
                           </p>
 
-                          <p className="mt-1 text-base font-bold text-[#8f6d1d]">
+                          <p className="mt-1 text-base font-bold text-[#163F20]">
                             {formatCurrency(
                               request.refund_amount
                             )}
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#a89a7d]">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                             Items
                           </p>
 
-                          <p className="mt-1 text-base font-bold text-[#2a2620]">
+                          <p className="mt-1 text-base font-bold text-[#202721]">
                             {
                               request.items_count
                             }
@@ -2526,14 +2538,16 @@ const ReturnRefund: React.FC = () => {
 
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                          className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - [10px] font - bold ${getStatusClass(
                             request.status
-                          )}`}
+                          )
+                            } `}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                            className={`h - 1.5 w - 1.5 rounded - full ${getStatusDot(
                               request.status
-                            )}`}
+                            )
+                              } `}
                           />
 
                           {getStatusLabel(
@@ -2543,7 +2557,6 @@ const ReturnRefund: React.FC = () => {
 
                         <div className="flex gap-2">
                           {/* VIEW */}
-
                           <button
                             type="button"
                             onClick={() =>
@@ -2551,17 +2564,14 @@ const ReturnRefund: React.FC = () => {
                                 request.id
                               )
                             }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#b8902e]/20 bg-[#faf8f3] text-[#8f6d1d]"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20]"
                           >
                             <FiEye
-                              size={
-                                15
-                              }
+                              size={15}
                             />
                           </button>
 
                           {/* ACCEPT */}
-
                           {request.can_approve && (
                             <button
                               type="button"
@@ -2573,7 +2583,7 @@ const ReturnRefund: React.FC = () => {
                                   request.id
                                 )
                               }
-                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#b8902e] text-white disabled:opacity-50"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#4C8A57] text-white disabled:opacity-50"
                             >
                               {approveLoading ? (
                                 <FiRefreshCw
@@ -2593,7 +2603,6 @@ const ReturnRefund: React.FC = () => {
                           )}
 
                           {/* REJECT */}
-
                           {request.can_reject && (
                             <button
                               type="button"
@@ -2602,29 +2611,30 @@ const ReturnRefund: React.FC = () => {
                                   request.id
                                 )
                               }
-                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0ed] text-[#b46055]"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-[#C23B32]"
                             >
                               <FiX
-                                size={
-                                  15
-                                }
+                                size={15}
                               />
                             </button>
                           )}
                         </div>
                       </div>
 
-                      {/* MARK RECEIVED - Only for approved status */}
-
+                      {/* MARK RECEIVED */}
                       {showMarkReceived && (
                         <div className="mt-3">
                           <button
                             type="button"
                             onClick={() => {
-                              setSelectedDetail(request);
-                              handleView(request.id);
+                              setSelectedDetail(
+                                request
+                              );
+                              handleView(
+                                request.id
+                              );
                             }}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#b8902e] to-[#8f6d1d] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#a8841c] hover:to-[#795b14]"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
                           >
                             <FiTruck size={14} />
                             Mark Received
@@ -2632,8 +2642,8 @@ const ReturnRefund: React.FC = () => {
                         </div>
                       )}
 
-                      <div className="mt-3 rounded-xl border border-[#b8902e]/10 bg-[#faf8f3] p-3">
-                        <p className="text-xs leading-5 text-[#786f60]">
+                      <div className="mt-3 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                        <p className="text-xs leading-5 text-[#59645C]">
                           {request.reason ||
                             "No reason provided."}
                         </p>
@@ -2644,40 +2654,37 @@ const ReturnRefund: React.FC = () => {
               )
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf8f3] text-[#b8902e]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#4C8A57]">
                   <FiPackage size={24} />
                 </div>
 
-                <p className="mt-4 text-sm font-bold text-[#2a2620]">
+                <p className="mt-4 text-sm font-bold text-[#202721]">
                   No return requests found
                 </p>
 
-                <p className="mt-1 text-xs text-[#a89a7d]">
+                <p className="mt-1 text-xs text-[#9AA29C]">
                   Try changing your search or status filter.
                 </p>
               </div>
             )}
           </div>
 
-          {/* =================================================
-              PAGINATION
-          ================================================= */}
-
+          {/* PAGINATION */}
           {filteredRequests.length >
             0 && (
-              <div className="border-t border-[#b8902e]/10 bg-[#fffdfa] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <p className="text-xs text-[#8b8171]">
+                  <p className="text-xs text-[#9AA29C]">
                     Showing{" "}
-                    <span className="font-bold text-[#4a4436]">
+                    <span className="font-bold text-[#202721]">
                       {startEntry}
                     </span>{" "}
                     to{" "}
-                    <span className="font-bold text-[#4a4436]">
+                    <span className="font-bold text-[#202721]">
                       {endEntry}
                     </span>{" "}
                     of{" "}
-                    <span className="font-bold text-[#4a4436]">
+                    <span className="font-bold text-[#202721]">
                       {
                         filteredRequests.length
                       }
@@ -2698,7 +2705,7 @@ const ReturnRefund: React.FC = () => {
                           1
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronLeft
                         size={17}
@@ -2715,11 +2722,11 @@ const ReturnRefund: React.FC = () => {
                               page
                             )
                           }
-                          className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage ===
+                          className={`flex h - 9 min - w - 9 items - center justify - center rounded - lg px - 3 text - xs font - bold transition ${currentPage ===
                               page
-                              ? "bg-gradient-to-br from-[#d4af52] to-[#a8841c] text-white shadow-md shadow-[#b8902e]/20"
-                              : "text-[#786f60] hover:bg-[#faf8f3] hover:text-[#8f6d1d]"
-                            }`}
+                              ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                              : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                            } `}
                         >
                           {page}
                         </button>
@@ -2738,7 +2745,7 @@ const ReturnRefund: React.FC = () => {
                           1
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#b8902e]/15 bg-white text-[#8f6d1d] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronRight
                         size={17}
@@ -2751,85 +2758,47 @@ const ReturnRefund: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* =================================================
-          DETAIL POPUP
-      ================================================= */}
-
+      {/* DETAIL POPUP */}
       <ReturnDetailModal
-        open={
-          detailModalOpen
-        }
-        loading={
-          detailLoading
-        }
-        detail={
-          selectedDetail
-        }
-        actionLoading={
-          actionLoading
-        }
+        open={detailModalOpen}
+        loading={detailLoading}
+        detail={selectedDetail}
+        actionLoading={actionLoading}
         onClose={() => {
-          setDetailModalOpen(
-            false
-          );
+          setDetailModalOpen(false);
         }}
-        onApprove={
-          handleApprove
-        }
+        onApprove={handleApprove}
         onReject={() =>
-          setRejectModalOpen(
-            true
-          )
+          setRejectModalOpen(true)
         }
-        onReceived={
-          handleOpenReceived
-        }
+        onReceived={handleOpenReceived}
       />
 
-      {/* =================================================
-          REJECT POPUP
-      ================================================= */}
-
+      {/* REJECT POPUP */}
       <RejectPopup
-        open={
-          rejectModalOpen
-        }
+        open={rejectModalOpen}
         loading={
           actionLoading.type ===
           "reject"
         }
         onClose={() =>
-          setRejectModalOpen(
-            false
-          )
+          setRejectModalOpen(false)
         }
-        onConfirm={
-          handleReject
-        }
+        onConfirm={handleReject}
       />
 
-      {/* =================================================
-          MARK RECEIVED CONFIRM POPUP
-      ================================================= */}
-
+      {/* MARK RECEIVED POPUP */}
       <MarkReceivedPopup
-        open={
-          receivedModalOpen
-        }
+        open={receivedModalOpen}
         orderReference={
-          selectedDetail
-            ?.order
+          selectedDetail?.order
             .order_reference ||
           "N/A"
         }
-        customerName={
-          getCustomerName(
-            selectedDetail?.user
-          )
-        }
-        loading={
-          receivedLoading
-        }
+        customerName={getCustomerName(
+          selectedDetail?.user
+        )}
+        loading={receivedLoading}
         onClose={() =>
           setReceivedModalOpen(
             false
