@@ -50,14 +50,13 @@ const SidebarContent = ({
   return (
     <>
       {/* =====================================================
-          AMBIENT BACKGROUND LAYER (3D depth)
+          AMBIENT BACKGROUND LAYER (very subtle)
       ===================================================== */}
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Top green glow */}
         <div
           className="
-            sidebar-ambient
             absolute
             -top-24
             left-1/2
@@ -65,6 +64,7 @@ const SidebarContent = ({
             h-72
             rounded-full
             bg-[#163F20]
+            opacity-[0.04]
             blur-3xl
           "
         />
@@ -80,25 +80,8 @@ const SidebarContent = ({
             h-64
             rounded-full
             bg-[#4C8A57]
-            opacity-[0.05]
+            opacity-[0.03]
             blur-3xl
-          "
-        />
-
-        {/* Vertical shimmer */}
-        <div
-          className="
-            sidebar-shimmer
-            absolute
-            top-0
-            bottom-0
-            w-24
-            bg-gradient-to-r
-            from-transparent
-            via-white/40
-            to-transparent
-            opacity-30
-            blur-2xl
           "
         />
       </div>
@@ -128,7 +111,7 @@ const SidebarContent = ({
             ${!isMobile && !isSidebarOpen ? "justify-center" : ""}
           `}
         >
-          {/* LOGO IMAGE with 3D ring */}
+          {/* LOGO IMAGE */}
           <div
             className="
               relative
@@ -139,28 +122,12 @@ const SidebarContent = ({
               items-center
               justify-center
               rounded-2xl
-              bg-gradient-to-br
-              from-white
-              to-[#F5F7F5]
+              bg-white
               border
-              border-[#163F20]/15
+              border-[#163F20]/10
               p-1.5
-              shadow-[0_6px_16px_-6px_rgba(22,63,32,0.28),inset_0_1px_0_rgba(255,255,255,0.9)]
             "
           >
-            {/* Inner highlight ring */}
-            <span
-              className="
-                pointer-events-none
-                absolute
-                inset-0
-                rounded-2xl
-                ring-1
-                ring-inset
-                ring-white/60
-              "
-            />
-
             <img
               src={`${import.meta.env.BASE_URL}assets/logo.png`}
               alt="IndieKonnect Logo"
@@ -177,12 +144,7 @@ const SidebarContent = ({
                   font-bold
                   leading-tight
                   tracking-tight
-                  bg-gradient-to-br
-                  from-[#163F20]
-                  via-[#0F3219]
-                  to-[#4C8A57]
-                  bg-clip-text
-                  text-transparent
+                  text-[#163F20]
                 "
               >
                 IndieKonnect
@@ -216,10 +178,7 @@ const SidebarContent = ({
           w-full
           mb-6
           flex-shrink-0
-          bg-gradient-to-r
-          from-transparent
-          via-[#163F20]/25
-          to-transparent
+          bg-[#163F20]/10
         "
       />
 
@@ -229,9 +188,6 @@ const SidebarContent = ({
 
       <div
         ref={navRef}
-        onScroll={() => {
-          // Scroll position is captured by MainLayout ref.
-        }}
         className={`
           relative
           flex-1
@@ -242,17 +198,13 @@ const SidebarContent = ({
           touch-pan-y
           px-1
           py-1
-          space-y-1.5
+          space-y-1
           ${isMobile ? "pb-8" : ""}
-          scrollbar-thin
-          scrollbar-thumb-[#163F20]/20
-          scrollbar-track-transparent
 
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb]:bg-[#163F20]/25
+          [&::-webkit-scrollbar-thumb]:bg-[#163F20]/20
           [&::-webkit-scrollbar-track]:bg-transparent
-          hover:[&::-webkit-scrollbar-thumb]:bg-[#163F20]/40
         `}
       >
         {navContent}
@@ -275,10 +227,7 @@ const SidebarContent = ({
             h-px
             w-full
             mb-5
-            bg-gradient-to-r
-            from-transparent
-            via-[#163F20]/20
-            to-transparent
+            bg-[#163F20]/10
           "
         />
 
@@ -300,26 +249,18 @@ const SidebarContent = ({
             rounded-xl
 
             border
-            border-[#163F20]/20
+            border-[#163F20]/15
 
-            bg-gradient-to-br
-            from-white
-            to-[#F5F7F5]
+            bg-white
 
             text-[#163F20]
 
-            shadow-[0_4px_12px_-4px_rgba(22,63,32,0.15),inset_0_1px_0_rgba(255,255,255,0.9)]
-
-            hover:border-[#163F20]/40
-            hover:from-[#4C8A57]
-            hover:to-[#163F20]
-            hover:text-white
-            hover:shadow-[0_10px_22px_-8px_rgba(22,63,32,0.55),inset_0_1px_0_rgba(255,255,255,0.25)]
-            hover:-translate-y-0.5
+            hover:border-[#163F20]/30
+            hover:bg-[#EAF3EA]
 
             transition-all
-            duration-300
-            active:scale-[0.97]
+            duration-200
+            active:scale-[0.98]
 
             disabled:opacity-60
             disabled:cursor-not-allowed
@@ -338,8 +279,6 @@ const SidebarContent = ({
                   border-t-transparent
                   rounded-full
                   animate-spin
-                  group-hover:border-white
-                  group-hover:border-t-transparent
                 "
               />
 
@@ -358,14 +297,7 @@ const SidebarContent = ({
             </>
           ) : (
             <>
-              <FiLogOut
-                className="
-                  text-lg
-                  transition-transform
-                  duration-300
-                  group-hover:translate-x-0.5
-                "
-              />
+              <FiLogOut className="text-lg" />
 
               {showLabels && (
                 <span
@@ -547,7 +479,7 @@ const MainLayout = () => {
 
     if (hasChildren) {
       return (
-        <div key={item.path} className="mb-1">
+        <div key={item.path} className="mb-0.5">
           <button
             type="button"
             onClick={() => toggleMenu(item.path)}
@@ -560,16 +492,15 @@ const MainLayout = () => {
               gap-3.5
               px-4
               py-2.5
-              rounded-xl
+              rounded-lg
 
               text-[#59645C]
 
               hover:text-[#163F20]
-              hover:bg-[#EAF3EA]/70
-              hover:shadow-[0_4px_10px_-4px_rgba(22,63,32,0.15)]
+              hover:bg-[#EAF3EA]
 
-              transition-all
-              duration-300
+              transition-colors
+              duration-200
 
               ${depth > 0 ? "ml-4" : ""}
 
@@ -582,9 +513,6 @@ const MainLayout = () => {
                 text-lg
                 text-[#163F20]
                 flex-shrink-0
-                transition-transform
-                duration-300
-                group-hover:scale-110
               "
             >
               {item.icon}
@@ -609,7 +537,7 @@ const MainLayout = () => {
                   className={`
                     material-symbols-outlined
                     text-sm
-                    text-[#163F20]/70
+                    text-[#163F20]/60
                     transition-transform
                     duration-300
                     ease-out
@@ -633,16 +561,16 @@ const MainLayout = () => {
 
                 ${
                   isExpanded
-                    ? "max-h-[500px] opacity-100 mt-1"
+                    ? "max-h-[500px] opacity-100 mt-0.5"
                     : "max-h-0 opacity-0"
                 }
               `}
             >
               <div
                 className="
-                  space-y-1
+                  space-y-0.5
                   border-l
-                  border-[#163F20]/20
+                  border-[#163F20]/15
                   pl-3
                   ml-6
                 "
@@ -679,28 +607,22 @@ const MainLayout = () => {
           gap-3.5
           px-4
           py-2.5
-          rounded-xl
+          rounded-lg
 
-          transition-all
-          duration-300
+          transition-colors
+          duration-200
 
           ${
             isActive
               ? `
-                nav-glow
-                bg-gradient-to-r
-                from-[#163F20]
-                via-[#0F3219]
-                to-[#4C8A57]
+                bg-[#163F20]
                 text-white
-                font-bold
-                scale-[1.02]
+                font-semibold
               `
               : `
                 text-[#59645C]
                 hover:text-[#163F20]
-                hover:bg-[#EAF3EA]/70
-                hover:shadow-[0_4px_10px_-4px_rgba(22,63,32,0.12)]
+                hover:bg-[#EAF3EA]
               `
           }
 
@@ -711,46 +633,21 @@ const MainLayout = () => {
       >
         {({ isActive }) => (
           <>
-            {/* ACTIVE INDICATOR */}
-            {isActive && (
-              <span
-                className="
-                  absolute
-                  left-0
-                  top-1/2
-                  -translate-y-1/2
-                  w-[3px]
-                  h-7
-                  rounded-r-full
-                  bg-gradient-to-b
-                  from-[#8FC199]
-                  to-white
-                "
-              />
-            )}
-
             {/* SUB ITEM DOT / MAIN ICON */}
             {depth > 0 ? (
               <span
                 className={`
                   flex-shrink-0
-                  w-2
-                  h-2
+                  w-1.5
+                  h-1.5
                   rounded-full
-                  transition-all
-                  duration-300
+                  transition-colors
+                  duration-200
 
                   ${
                     isActive
-                      ? `
-                        bg-white
-                        scale-110
-                        shadow-[0_0_0_3px_rgba(255,255,255,0.25)]
-                      `
-                      : `
-                        bg-[#89918B]/50
-                        group-hover:bg-[#163F20]/70
-                      `
+                      ? `bg-white`
+                      : `bg-[#89918B]/50 group-hover:bg-[#163F20]/70`
                   }
                 `}
               />
@@ -759,9 +656,6 @@ const MainLayout = () => {
                 className={`
                   material-symbols-outlined
                   text-lg
-                  transition-transform
-                  duration-300
-                  group-hover:scale-110
                   flex-shrink-0
 
                   ${
@@ -818,7 +712,7 @@ const MainLayout = () => {
       "
     >
       {/* =====================================================
-          DESKTOP SIDEBAR (3D)
+          DESKTOP SIDEBAR
       ===================================================== */}
 
       <nav
@@ -831,10 +725,7 @@ const MainLayout = () => {
           bottom-0
           h-screen
 
-          bg-gradient-to-b
-          from-white
-          via-white
-          to-[#F5FAF5]
+          bg-white
 
           border-r
           border-[#163F20]/10
@@ -846,8 +737,6 @@ const MainLayout = () => {
           px-5
 
           z-[9999]
-
-          shadow-[8px_0_28px_-12px_rgba(22,63,32,0.22),inset_-1px_0_0_rgba(255,255,255,0.9)]
 
           overflow-hidden
           overscroll-contain
@@ -878,8 +767,7 @@ const MainLayout = () => {
             fixed
             inset-0
             z-[99999]
-            bg-black/50
-            backdrop-blur-sm
+            bg-black/40
             md:hidden
             touch-none
           "
@@ -888,7 +776,7 @@ const MainLayout = () => {
       )}
 
       {/* =====================================================
-          MOBILE SIDEBAR (3D)
+          MOBILE SIDEBAR
       ===================================================== */}
 
       <nav
@@ -903,10 +791,7 @@ const MainLayout = () => {
           w-[280px]
           h-screen
 
-          bg-gradient-to-b
-          from-white
-          via-white
-          to-[#F5FAF5]
+          bg-white
 
           border-r
           border-[#163F20]/10
@@ -919,8 +804,6 @@ const MainLayout = () => {
           px-5
 
           z-[99999]
-
-          shadow-[16px_0_40px_-12px_rgba(22,63,32,0.35)]
 
           overflow-hidden
           overscroll-contain
@@ -999,20 +882,14 @@ const MainLayout = () => {
         />
 
         <main className="flex-1 pt-[72px]">
-          <div
-            className="
-              max-w-full
-              mx-auto
-              animate-fade-in
-            "
-          >
+          <div className="max-w-full mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
 
       {/* =====================================================
-          LOGOUT MODAL (3D)
+          LOGOUT MODAL
       ===================================================== */}
 
       {isLogoutModalOpen && (
@@ -1033,8 +910,7 @@ const MainLayout = () => {
             className="
               absolute
               inset-0
-              bg-black/45
-              backdrop-blur-[3px]
+              bg-black/40
             "
             onClick={closeLogoutModal}
           />
@@ -1048,11 +924,10 @@ const MainLayout = () => {
               max-w-[400px]
               bg-white
               rounded-2xl
-              shadow-[0_30px_80px_-20px_rgba(22,63,32,0.45)]
+              shadow-lg
               border
-              border-[#163F20]/15
+              border-[#163F20]/10
               overflow-hidden
-              animate-scale-in
             "
           >
             {/* TOP ACCENT */}
@@ -1060,10 +935,7 @@ const MainLayout = () => {
               className="
                 h-1
                 w-full
-                bg-gradient-to-r
-                from-[#4C8A57]
-                via-[#163F20]
-                to-[#0F3219]
+                bg-[#163F20]
               "
             />
 
@@ -1092,7 +964,7 @@ const MainLayout = () => {
                 hover:text-[#163F20]
                 hover:bg-[#EAF3EA]
 
-                transition-all
+                transition-colors
 
                 disabled:opacity-50
                 disabled:cursor-not-allowed
@@ -1105,7 +977,7 @@ const MainLayout = () => {
             {/* CONTENT */}
 
             <div className="px-6 pt-7 pb-6">
-              {/* LOGOUT ICON with 3D ring */}
+              {/* LOGOUT ICON */}
               <div
                 className="
                   relative
@@ -1116,12 +988,7 @@ const MainLayout = () => {
                   flex
                   items-center
                   justify-center
-                  bg-gradient-to-br
-                  from-[#EAF3EA]
-                  to-[#D5E5D6]
-                  border
-                  border-[#163F20]/15
-                  shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),0_6px_14px_-6px_rgba(22,63,32,0.25)]
+                  bg-[#EAF3EA]
                   mb-5
                 "
               >
@@ -1183,14 +1050,14 @@ const MainLayout = () => {
                     py-3
                     rounded-xl
                     border
-                    border-[#163F20]/20
+                    border-[#163F20]/15
                     bg-white
                     text-[#59645C]
                     text-sm
                     font-bold
                     hover:bg-[#F5F7F5]
                     hover:text-[#163F20]
-                    transition-all
+                    transition-colors
                     duration-200
                     disabled:opacity-50
                     disabled:cursor-not-allowed
@@ -1199,7 +1066,7 @@ const MainLayout = () => {
                   Cancel
                 </button>
 
-                {/* CONFIRM — 3D green */}
+                {/* CONFIRM */}
 
                 <button
                   type="button"
@@ -1211,21 +1078,14 @@ const MainLayout = () => {
                     py-3
                     rounded-xl
 
-                    bg-gradient-to-br
-                    from-[#4C8A57]
-                    via-[#163F20]
-                    to-[#0F3219]
+                    bg-[#163F20]
+                    hover:bg-[#0F3219]
 
                     text-white
                     text-sm
                     font-bold
 
-                    shadow-[0_10px_22px_-8px_rgba(22,63,32,0.6),inset_0_1px_0_rgba(255,255,255,0.25)]
-
-                    hover:shadow-[0_14px_28px_-8px_rgba(22,63,32,0.7),inset_0_1px_0_rgba(255,255,255,0.35)]
-                    hover:-translate-y-0.5
-
-                    transition-all
+                    transition-colors
                     duration-200
 
                     active:scale-[0.98]
