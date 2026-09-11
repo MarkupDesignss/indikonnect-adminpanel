@@ -9,6 +9,13 @@ export const menuItems = [
     label: 'User Management', 
     icon: 'people' 
   },
+
+  { 
+    path: '/orders', 
+    label: 'Orders', 
+    icon: 'shopping_cart' 
+  },
+
   { 
     path: '/inventory', 
     label: 'Inventory', 
@@ -21,33 +28,38 @@ export const menuItems = [
       { path: '/inventory/AttributesManagement', label: 'Attributes Management', icon: 'tune' },
       { path: '/inventory/products', label: 'Products', icon: 'shopping_bag' },
       { path: '/inventory/stock', label: 'Stock', icon: 'warehouse' },
+      { path: '/coupons', label:'Promo Codes', icon: 'local_offer' },
     ]
   },
+
   { 
-    path: '/orders', 
-    label: 'Orders', 
-    icon: 'shopping_cart' 
+    path: '/finance', 
+    label: 'Finance', 
+    icon: 'account_balance',
+    children: [
+      { 
+        path: '/return-refund', 
+        label: 'Returns & Refunds', 
+        icon: 'assignment_return' 
+      },
+      { 
+        path: '/Fiance/CancelRefund', 
+        label: 'Cancel & Refunds', 
+        icon: 'currency_exchange' 
+      },
+      { 
+        path: '/CreditNotes', 
+        label: 'Credit Notes', 
+        icon: 'receipt_long' 
+      },
+      { 
+        path: '/Payment', 
+        label: 'Payment Summary', 
+        icon: 'payments'
+      },
+    ]
   },
-  { 
-    path: '/return-refund', 
-    label: 'Returns & Refunds', 
-    icon: 'assignment_return' 
-  },
-  { 
-    path: '/CreditNotes', 
-    label: 'Credit Notes', 
-    icon: 'assignment_return' 
-  },
-  { 
-    path: '/coupons', 
-    label: 'Promo Codes', 
-    icon: 'local_offer' 
-  },
-  { 
-    path: '/Payment', 
-    label: 'Payment Summary', 
-    icon: 'payments'
-  },
+
   { 
     path: '/RoleManagement', 
     label: 'Role Management', 
@@ -118,5 +130,4 @@ export const menuItems = [
     label: 'Update Profile',   
     icon: 'person'             
   },
- 
 ];

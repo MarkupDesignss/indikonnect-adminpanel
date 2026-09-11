@@ -1,4 +1,3 @@
-
 import React, {
   useEffect,
   useMemo,
@@ -19,9 +18,7 @@ import { useLocation } from "react-router-dom";
 import GlobalModal from "@/components/common/GlobalModal";
 
 import ProductTable from "./components/ProductTable";
-
 import AddProductModal from "./components/AddProductModal";
-
 import ViewProductModal from "./components/ViewProductModal";
 
 import { productApi } from "../../../api/endpoints/product";
@@ -32,24 +29,6 @@ import {
   Product,
   SelectOption,
 } from "@/types/product";
-
-// =====================================================
-// THEME
-// =====================================================
-
-const GREEN = "#163F20";
-const DARK_GREEN = "#0F3219";
-const LIGHT_GREEN = "#EAF3EA";
-const PAGE_BG = "#F5F7F5";
-const TEXT_PRIMARY = "#202721";
-const TEXT_SECONDARY = "#59645C";
-const MUTED = "#9AA29C";
-const BORDER = "#D8E2D8";
-const RED = "#C23B32";
-
-// =====================================================
-// ANIMATION
-// =====================================================
 
 const containerVariants = {
   hidden: {
@@ -128,8 +107,10 @@ const Products: React.FC = () => {
   const [currentPage, setCurrentPage] =
     useState(1);
 
-  const [highlightedProductId, setHighlightedProductId] =
-    useState<number | null>(null);
+  const [
+    highlightedProductId,
+    setHighlightedProductId,
+  ] = useState<number | null>(null);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -146,8 +127,10 @@ const Products: React.FC = () => {
   const [viewModalOpen, setViewModalOpen] =
     useState(false);
 
-  const [selectedProduct, setSelectedProduct] =
-    useState<Product | null>(null);
+  const [
+    selectedProduct,
+    setSelectedProduct,
+  ] = useState<Product | null>(null);
 
   // ===================================================
   // GET PRODUCT FROM HEADER NAVIGATION STATE
@@ -160,8 +143,6 @@ const Products: React.FC = () => {
 
   // ===================================================
   // FETCH PRODUCTS
-  // IMPORTANT:
-  // ADMIN SHOWS BOTH PUBLISHED + UNPUBLISHED
   // ===================================================
 
   const fetchProducts = async () => {
@@ -173,17 +154,6 @@ const Products: React.FC = () => {
 
       const productData =
         response.data?.data ?? [];
-
-      /**
-       * Do NOT filter by is_published here.
-       *
-       * Admin must see:
-       * - Published products
-       * - Unpublished products
-       *
-       * This allows unpublished products
-       * to be published again.
-       */
 
       setProducts(productData);
     } catch (error: any) {
@@ -218,7 +188,42 @@ const Products: React.FC = () => {
             productId
           );
 
-        return response.data?.data;
+        console.log(
+          "EDIT PRODUCT API RESPONSE:",
+          response.data
+        );
+
+        /*
+         * Supports:
+         *
+         * response.data.data
+         * response.data.data.data
+         * response.data.product
+         * response.data
+         */
+
+        const product =
+          response?.data?.data?.data ??
+          response?.data?.data ??
+          response?.data?.product ??
+          response?.data;
+
+        console.log(
+          "NORMALIZED EDIT PRODUCT:",
+          product
+        );
+
+        console.log(
+          "RETAIL DISCOUNT:",
+          product?.retail_discount_value
+        );
+
+        console.log(
+          "DISTRIBUTOR DISCOUNT:",
+          product?.distributor_discount_value
+        );
+
+        return product;
       } catch (error: any) {
         console.error(
           "Fetch product details error:",
@@ -372,7 +377,6 @@ const Products: React.FC = () => {
 
   // ===================================================
   // SEARCH
-  // BOTH PUBLISHED + UNPUBLISHED INCLUDED
   // ===================================================
 
   const filteredProducts =
@@ -392,7 +396,8 @@ const Products: React.FC = () => {
 
           if (
             !isNaN(Number(query)) &&
-            product.id === Number(query)
+            product.id ===
+              Number(query)
           ) {
             return true;
           }
@@ -477,7 +482,7 @@ const Products: React.FC = () => {
             return true;
           }
 
-          // EXISTING STATUS
+          // STATUS
 
           if (
             product.status
@@ -487,42 +492,45 @@ const Products: React.FC = () => {
             return true;
           }
 
-          // =================================================
           // PUBLISHED STATUS SEARCH
-          // =================================================
 
           const isPublished =
             product.is_published ===
               true ||
-            product.is_published === 1 ||
+            product.is_published ===
+              1 ||
             product.is_published ===
               "1" ||
             product.is_published ===
               "true";
 
           if (
-            query === "published" &&
+            query ===
+              "published" &&
             isPublished
           ) {
             return true;
           }
 
           if (
-            query === "unpublished" &&
+            query ===
+              "unpublished" &&
             !isPublished
           ) {
             return true;
           }
 
           if (
-            query === "active" &&
+            query ===
+              "active" &&
             isPublished
           ) {
             return true;
           }
 
           if (
-            query === "inactive" &&
+            query ===
+              "inactive" &&
             !isPublished
           ) {
             return true;
@@ -549,24 +557,21 @@ const Products: React.FC = () => {
     ]);
 
   // ===================================================
-  // PUBLISHED / UNPUBLISHED COUNTS
+  // COUNTS
   // ===================================================
 
   const publishedCount =
     useMemo(() => {
       return products.filter(
-        (product: any) => {
-          return (
-            product.is_published ===
-              true ||
-            product.is_published ===
-              1 ||
-            product.is_published ===
-              "1" ||
-            product.is_published ===
-              "true"
-          );
-        }
+        (product: any) =>
+          product.is_published ===
+            true ||
+          product.is_published ===
+            1 ||
+          product.is_published ===
+            "1" ||
+          product.is_published ===
+            "true"
       ).length;
     }, [products]);
 
@@ -655,7 +660,6 @@ const Products: React.FC = () => {
         await fetchProducts();
 
         setAddModalOpen(false);
-
         setCurrentPage(1);
 
         toast.success(
@@ -721,7 +725,6 @@ const Products: React.FC = () => {
         await fetchProducts();
 
         setEditModalOpen(false);
-
         setSelectedProduct(null);
 
         toast.success(
@@ -876,19 +879,19 @@ const Products: React.FC = () => {
           product.id
         );
 
-      if (fullProduct) {
-        setSelectedProduct(
-          fullProduct
-        );
+      const productToEdit =
+        fullProduct || product;
 
-        setEditModalOpen(true);
-      } else {
-        setSelectedProduct(
-          product
-        );
+      console.log(
+        "PRODUCT PASSED TO EDIT MODAL:",
+        productToEdit
+      );
 
-        setEditModalOpen(true);
-      }
+      setSelectedProduct(
+        productToEdit
+      );
+
+      setEditModalOpen(true);
     } catch (error) {
       console.error(
         "Error fetching product details:",
@@ -938,16 +941,17 @@ const Products: React.FC = () => {
   // REFRESH
   // ===================================================
 
-  const handleRefresh = async () => {
-    await Promise.all([
-      fetchProducts(),
-      fetchCategories(),
-      fetchTaxCategories(),
-      fetchBrands(),
-    ]);
+  const handleRefresh =
+    async () => {
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchTaxCategories(),
+        fetchBrands(),
+      ]);
 
-    setCurrentPage(1);
-  };
+      setCurrentPage(1);
+    };
 
   // ===================================================
   // RENDER
@@ -1041,11 +1045,7 @@ const Products: React.FC = () => {
         variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
       >
-        {/* TOP ACCENT */}
-
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
-
-        {/* DECORATIVE CIRCLES */}
 
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
 
@@ -1080,8 +1080,6 @@ const Products: React.FC = () => {
               className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
             />
 
-            {/* RESULT COUNT */}
-
             {search && (
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-[#EAF3EA] px-2 py-1 text-[9px] font-bold text-[#163F20]">
                 {
@@ -1114,7 +1112,6 @@ const Products: React.FC = () => {
             className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
           >
             <FiPlus size={15} />
-
             Add Product
           </motion.button>
         </div>
@@ -1128,22 +1125,10 @@ const Products: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
       >
-        {/* ACCENT */}
-
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
         <div className="pt-[3px]">
           <ProductTable
-            /*
-             * IMPORTANT:
-             * paginatedProducts contains BOTH:
-             *
-             * is_published = true
-             * is_published = false
-             *
-             * Nothing is removed here.
-             */
-
             products={
               paginatedProducts
             }
@@ -1166,12 +1151,8 @@ const Products: React.FC = () => {
             onPageChange={
               handlePageChange
             }
-            onEdit={
-              handleEdit
-            }
-            onView={
-              handleView
-            }
+            onEdit={handleEdit}
+            onView={handleView}
             onTrendingToggle={
               handleTrendingToggle
             }
@@ -1255,6 +1236,7 @@ const Products: React.FC = () => {
         }
       >
         <AddProductModal
+          key={`edit-product-${selectedProduct?.id ?? "new"}`}
           open={
             editModalOpen
           }
@@ -1339,4 +1321,3 @@ const Products: React.FC = () => {
 };
 
 export default Products;
-

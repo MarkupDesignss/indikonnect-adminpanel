@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   FiPlus,
   FiUploadCloud,
@@ -13,43 +17,33 @@ import {
   FiLayers,
   FiAward,
 } from "react-icons/fi";
+
 import { FaRupeeSign } from "react-icons/fa";
 
 import { categoryApi } from "../../../../api/endpoints/category";
+
 import { taxApi } from "../../../../api/endpoints/taxApi";
+
 import attributesApi, {
   AttributeMaster,
 } from "../../../../api/endpoints/attributes";
-import brandsApi, {
-  Brand,
-} from "../../../../api/endpoints/brands";
-import {
-  subcategoryApi,
-  Subcategory,
-} from "../../../../api/endpoints/subcategory";
+
+import brandsApi from "../../../../api/endpoints/brands";
+
+import { subcategoryApi } from "../../../../api/endpoints/subcategory";
 
 interface SelectOption {
   id: number;
   name: string;
 }
 
-interface ProductImagePayload {
-  file: File;
-  sort_order: number;
-  is_primary: number;
-}
-
-interface VariantImagePayload {
-  file: File;
-  sort_order: number;
-  is_primary: number;
-}
-
 interface AddProductModalProps {
   open: boolean;
   loading: boolean;
   onClose: () => void;
-  onSubmit: (formData: FormData) => void;
+  onSubmit: (
+    formData: FormData
+  ) => void;
   editData?: any;
   isEdit?: boolean;
 }
@@ -83,17 +77,23 @@ interface VariantFormData {
   id: string;
   sku: string;
   attributes: AttributeItem[];
+
   retail_mrp: string;
   retail_discount_type: string;
   retail_discount_value: string;
+
   distributor_mrp: string;
   distributor_discount_type: string;
   distributor_discount_value: string;
+
   stock_quantity: string;
   low_stock_threshold: string;
+
   sort_order: number;
   is_active: number;
+
   images: VariantImageItem[];
+
   existing_id?: number;
   is_existing?: boolean;
 }
@@ -116,59 +116,195 @@ interface SpecItem {
 }
 
 // ============================================================
-// HELPER FUNCTIONS
+// NUMERIC INPUT HELPERS
+// (used instead of type="number" so the mouse-wheel / spinner
+//  arrows can never change the value, while still keeping the
+//  field numeric-only)
+// ============================================================
+
+// Allows digits and a single decimal point (for prices / %)
+const isValidDecimalInput = (
+  value: string
+): boolean => {
+  return /^\d*\.?\d*$/.test(
+    value
+  );
+};
+
+// Allows digits only (for quantities / thresholds)
+const isValidIntegerInput = (
+  value: string
+): boolean => {
+  return /^\d*$/.test(
+    value
+  );
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+const getProductObject = (
+  editData: any
+) => {
+  if (!editData) {
+    return null;
+  }
+
+  /*
+   * Supports:
+   *
+   * editData
+   * editData.data
+   * editData.data.data
+   * editData.product
+   */
+
+  return (
+    editData?.data?.data ??
+    editData?.data ??
+    editData?.product ??
+    editData
+  );
+};
+
+const getValue = (
+  obj: any,
+  ...keys: string[]
+) => {
+  if (!obj) {
+    return "";
+  }
+
+  for (const key of keys) {
+    if (
+      obj[key] !== undefined &&
+      obj[key] !== null
+    ) {
+      return obj[key];
+    }
+  }
+
+  return "";
+};
+
+// ============================================================
+// SPECIFICATION
 // ============================================================
 
 const parseSpecification = (
-  spec: string
+  spec:
+    | string
+    | Record<string, any>
 ): SpecItem[] => {
   try {
-    const parsed = JSON.parse(spec);
+    const parsed =
+      typeof spec === "string"
+        ? JSON.parse(spec)
+        : spec;
 
-    return Object.entries(parsed).map(
-      ([key, value]) => ({
-        key,
-        value: String(value),
-      })
-    );
+    if (
+      !parsed ||
+      typeof parsed !== "object"
+    ) {
+      return [
+        {
+          key: "",
+          value: "",
+        },
+      ];
+    }
+
+    const result =
+      Object.entries(parsed).map(
+        ([key, value]) => ({
+          key,
+          value: String(
+            value ?? ""
+          ),
+        })
+      );
+
+    return result.length > 0
+      ? result
+      : [
+          {
+            key: "",
+            value: "",
+          },
+        ];
   } catch {
-    return [{ key: "", value: "" }];
+    return [
+      {
+        key: "",
+        value: "",
+      },
+    ];
   }
 };
 
+// ============================================================
+// VARIANT ATTRIBUTES
+// ============================================================
+
 const parseVariantAttributes = (
   attributes:
-    | Record<string, string>
+    | Record<
+        string,
+        string | string[]
+      >
     | string
 ): AttributeItem[] => {
   try {
-    if (typeof attributes === "string") {
-      const parsed = JSON.parse(attributes);
+    if (
+      typeof attributes ===
+      "string"
+    ) {
+      const parsed =
+        JSON.parse(attributes);
 
-      const result: AttributeItem[] = [];
+      const result: AttributeItem[] =
+        [];
 
-      Object.entries(parsed).forEach(
+      Object.entries(
+        parsed
+      ).forEach(
         ([key, value]) => {
-          let values: string[] = [];
+          let values: string[] =
+            [];
 
-          if (Array.isArray(value)) {
-            values = value.map((v) =>
-              String(v).trim()
-            );
+          if (
+            Array.isArray(value)
+          ) {
+            values =
+              value.map(
+                (v) =>
+                  String(
+                    v
+                  ).trim()
+              );
           } else {
-            values = String(value)
-              .split(",")
-              .map((v) => v.trim());
+            values =
+              String(
+                value
+              )
+                .split(",")
+                .map(
+                  (v) =>
+                    v.trim()
+                );
           }
 
-          values.forEach((val) => {
-            if (val) {
-              result.push({
-                key,
-                value: val,
-              });
+          values.forEach(
+            (val) => {
+              if (val) {
+                result.push({
+                  key,
+                  value: val,
+                });
+              }
             }
-          });
+          );
         }
       );
 
@@ -176,33 +312,52 @@ const parseVariantAttributes = (
     }
 
     if (
-      typeof attributes === "object" &&
+      typeof attributes ===
+        "object" &&
       attributes !== null
     ) {
-      const result: AttributeItem[] = [];
+      const result: AttributeItem[] =
+        [];
 
-      Object.entries(attributes).forEach(
+      Object.entries(
+        attributes
+      ).forEach(
         ([key, value]) => {
-          let values: string[] = [];
+          let values: string[] =
+            [];
 
-          if (Array.isArray(value)) {
-            values = value.map((v) =>
-              String(v).trim()
-            );
+          if (
+            Array.isArray(value)
+          ) {
+            values =
+              value.map(
+                (v) =>
+                  String(
+                    v
+                  ).trim()
+              );
           } else {
-            values = String(value)
-              .split(",")
-              .map((v) => v.trim());
+            values =
+              String(
+                value
+              )
+                .split(",")
+                .map(
+                  (v) =>
+                    v.trim()
+                );
           }
 
-          values.forEach((val) => {
-            if (val) {
-              result.push({
-                key,
-                value: val,
-              });
+          values.forEach(
+            (val) => {
+              if (val) {
+                result.push({
+                  key,
+                  value: val,
+                });
+              }
             }
-          });
+          );
         }
       );
 
@@ -223,55 +378,81 @@ const parseVariantAttributes = (
 // ============================================================
 
 const getAttributeCombinations = (
-  attributes: Record<string, any[]>
+  attributes: Record<
+    string,
+    any[]
+  >
 ): Array<Record<string, any>> => {
-  const keys = Object.keys(attributes);
+  const keys =
+    Object.keys(
+      attributes
+    );
 
   if (keys.length === 0) {
     return [{}];
   }
 
-  const result: Array<Record<string, any>> =
-    [];
+  const result: Array<
+    Record<string, any>
+  > = [];
 
-  const generateCombinations = (
-    index: number,
-    current: Record<string, any>
-  ) => {
-    if (index === keys.length) {
-      result.push({
-        ...current,
-      });
-
-      return;
-    }
-
-    const key = keys[index];
-    const values =
-      attributes[key] || [];
-
-    if (values.length === 0) {
-      generateCombinations(
-        index + 1,
-        {
+  const generateCombinations =
+    (
+      index: number,
+      current: Record<
+        string,
+        any
+      >
+    ) => {
+      if (
+        index ===
+        keys.length
+      ) {
+        result.push({
           ...current,
-          [key]: "",
-        }
-      );
-    } else {
-      values.forEach((value: any) => {
+        });
+
+        return;
+      }
+
+      const key =
+        keys[index];
+
+      const values =
+        attributes[key] ||
+        [];
+
+      if (
+        values.length === 0
+      ) {
         generateCombinations(
           index + 1,
           {
             ...current,
-            [key]: value,
+            [key]: "",
           }
         );
-      });
-    }
-  };
+      } else {
+        values.forEach(
+          (
+            value: any
+          ) => {
+            generateCombinations(
+              index + 1,
+              {
+                ...current,
+                [key]: value,
+              }
+            );
+          }
+        );
+      }
+    };
 
-  generateCombinations(0, {});
+  generateCombinations(
+    0,
+    {}
+  );
 
   return result;
 };
@@ -281,15 +462,31 @@ const getAttributeCombinations = (
 // ============================================================
 
 const generateVariantsFromProduct = (
-  product: any
+  rawProduct: any
 ): VariantFormData[] => {
+  const product =
+    getProductObject(
+      rawProduct
+    );
+
+  if (!product) {
+    return [];
+  }
+
   const variants: VariantFormData[] =
     [];
 
+  // ==========================================================
+  // EXISTING VARIANTS
+  // ==========================================================
+
   if (
     product.variants &&
-    Array.isArray(product.variants) &&
-    product.variants.length > 0
+    Array.isArray(
+      product.variants
+    ) &&
+    product.variants
+      .length > 0
   ) {
     return product.variants.map(
       (
@@ -297,49 +494,95 @@ const generateVariantsFromProduct = (
         index: number
       ) => ({
         id: `variant-${Date.now()}-${index}`,
-        sku: variant.sku || "",
+
+        sku:
+          variant.sku ||
+          "",
+
         attributes:
           parseVariantAttributes(
-            variant.attributes || {}
+            variant.attributes ||
+              {}
           ),
+
         retail_mrp: String(
-          variant.retail_mrp || ""
+          getValue(
+            variant,
+            "retail_mrp",
+            "retail_price"
+          ) ?? ""
         ),
+
         retail_discount_type:
-          variant.retail_discount_type ||
+          getValue(
+            variant,
+            "retail_discount_type"
+          ) ||
           "percentage",
+
         retail_discount_value:
           String(
-            variant.retail_discount_value ||
-              ""
+            getValue(
+              variant,
+              "retail_discount_value",
+              "retail_discount_percentage"
+            ) ?? ""
           ),
-        distributor_mrp: String(
-          variant.distributor_mrp || ""
-        ),
+
+        distributor_mrp:
+          String(
+            getValue(
+              variant,
+              "distributor_mrp",
+              "distributor_price"
+            ) ?? ""
+          ),
+
         distributor_discount_type:
-          variant.distributor_discount_type ||
+          getValue(
+            variant,
+            "distributor_discount_type"
+          ) ||
           "percentage",
+
         distributor_discount_value:
           String(
-            variant.distributor_discount_value ||
+            getValue(
+              variant,
+              "distributor_discount_value",
+              "distributor_discount_percentage"
+            ) ?? ""
+          ),
+
+        stock_quantity:
+          String(
+            variant.stock_quantity ??
               ""
           ),
-        stock_quantity: String(
-          variant.stock_quantity || ""
-        ),
+
         low_stock_threshold:
           String(
-            variant.low_stock_threshold ||
+            variant.low_stock_threshold ??
               ""
           ),
+
         sort_order:
-          variant.sort_order ||
+          variant.sort_order ??
           index + 1,
-        is_active: variant.is_active
-          ? 1
-          : 0,
+
+        is_active:
+          variant.is_active ===
+            true ||
+          variant.is_active ===
+            1 ||
+          variant.is_active ===
+            "1"
+            ? 1
+            : 0,
+
         images: (
-          variant.images || []
+          variant.images ||
+          []
         ).map(
           (
             img: any,
@@ -349,149 +592,233 @@ const generateVariantsFromProduct = (
               Date.now() +
               imgIndex +
               1000,
+
             preview:
               img.image_url ||
-              img.image,
+              img.image ||
+              "",
+
             sort_order:
-              img.sort_order ||
+              img.sort_order ??
               imgIndex + 1,
+
             is_primary:
-              img.is_primary
+              img.is_primary ===
+                true ||
+              img.is_primary ===
+                1 ||
+              img.is_primary ===
+                "1"
                 ? 1
                 : 0,
+
             existing_id:
               img.id,
+
             is_existing: true,
           })
         ),
+
         existing_id:
           variant.id,
+
         is_existing: true,
       })
     );
   }
 
+  // ==========================================================
+  // VARIANTS SUMMARY
+  // ==========================================================
+
   if (
     product.variants_summary &&
-    product.variants_summary.attributes
+    product
+      .variants_summary
+      .attributes
   ) {
     const attributes =
-      product.variants_summary
+      product
+        .variants_summary
         .attributes;
 
     const attributeKeys =
-      Object.keys(attributes);
+      Object.keys(
+        attributes
+      );
 
-    if (attributeKeys.length > 0) {
+    if (
+      attributeKeys.length >
+      0
+    ) {
       const combinations =
         getAttributeCombinations(
           attributes
         );
 
       combinations.forEach(
-        (combo, index) => {
+        (
+          combo,
+          index
+        ) => {
           const attributeItems: AttributeItem[] =
             [];
 
-          Object.entries(combo).forEach(
-            ([key, value]) => {
+          Object.entries(
+            combo
+          ).forEach(
+            ([
+              key,
+              value,
+            ]) => {
               if (
                 value &&
-                String(value).trim()
+                String(
+                  value
+                ).trim()
               ) {
-                attributeItems.push({
-                  key,
-                  value: String(
-                    value
-                  ),
-                });
+                attributeItems.push(
+                  {
+                    key,
+                    value:
+                      String(
+                        value
+                      ),
+                  }
+                );
               }
             }
           );
 
           const skuSuffix =
             attributeItems
-              .map((attr) =>
-                String(
-                  attr.value
-                )
-                  .replace(
-                    /\s+/g,
-                    "-"
+              .map(
+                (attr) =>
+                  String(
+                    attr.value
                   )
-                  .substring(
-                    0,
-                    10
-                  )
+                    .replace(
+                      /\s+/g,
+                      "-"
+                    )
+                    .substring(
+                      0,
+                      10
+                    )
               )
               .join("-");
 
           const retailMrp =
-            product.retail_mrp ||
+            getValue(
+              product,
+              "retail_mrp"
+            ) ||
             product
               .variants_summary
               ?.min_retail_mrp ||
             0;
 
           const retailDiscount =
-            product.retail_discount_value ||
-            0;
+            getValue(
+              product,
+              "retail_discount_value",
+              "retail_discount_percentage"
+            );
 
           const distributorMrp =
-            product.distributor_mrp ||
+            getValue(
+              product,
+              "distributor_mrp"
+            ) ||
             product
               .variants_summary
               ?.min_distributor_mrp ||
             0;
 
           const distributorDiscount =
-            product.distributor_discount_value ||
-            0;
+            getValue(
+              product,
+              "distributor_discount_value",
+              "distributor_discount_percentage"
+            );
 
           const stockQty =
-            product.stock_quantity ||
+            product.stock_quantity ??
             0;
 
           variants.push({
             id: `variant-${Date.now()}-${index}`,
+
             sku: `${
               product.product_code ||
               "PROD"
             }-${skuSuffix}`,
+
             attributes:
               attributeItems,
-            retail_mrp: String(
-              retailMrp
-            ),
-            retail_discount_type:
-              "percentage",
-            retail_discount_value:
+
+            retail_mrp:
               String(
-                retailDiscount
+                retailMrp
               ),
+
+            retail_discount_type:
+              getValue(
+                product,
+                "retail_discount_type"
+              ) ||
+              "percentage",
+
+            retail_discount_value:
+              retailDiscount !==
+                null &&
+              retailDiscount !==
+                undefined
+                ? String(
+                    retailDiscount
+                  )
+                : "0",
+
             distributor_mrp:
               String(
                 distributorMrp
               ),
+
             distributor_discount_type:
+              getValue(
+                product,
+                "distributor_discount_type"
+              ) ||
               "percentage",
+
             distributor_discount_value:
-              String(
-                distributorDiscount
-              ),
+              distributorDiscount !==
+                null &&
+              distributorDiscount !==
+                undefined
+                ? String(
+                    distributorDiscount
+                  )
+                : "0",
+
             stock_quantity:
               String(
                 stockQty
               ),
+
             low_stock_threshold:
               String(
                 product.low_stock_threshold ||
                   "10"
               ),
+
             sort_order:
               index + 1,
+
             is_active: 1,
+
             images: [],
+
             is_existing: false,
           });
         }
@@ -510,11 +837,13 @@ const AttributeSelector: React.FC<{
   variantId: string;
   selectedAttributes: AttributeItem[];
   availableAttributes: AttributeMaster[];
+
   onAddAttribute: (
     variantId: string,
     key: string,
     value: string
   ) => void;
+
   onRemoveAttribute: (
     variantId: string,
     key: string,
@@ -537,8 +866,10 @@ const AttributeSelector: React.FC<{
     setSelectedValue,
   ] = useState("");
 
-  const [isOpen, setIsOpen] =
-    useState(false);
+  const [
+    isOpen,
+    setIsOpen,
+  ] = useState(false);
 
   const handleAdd = () => {
     if (
@@ -557,36 +888,36 @@ const AttributeSelector: React.FC<{
     }
   };
 
-  const getValuesForAttribute = (
-    key: string
-  ) => {
-    const attribute =
-      availableAttributes.find(
-        (attr) =>
-          attr.attribute_key ===
-          key
+  const getValuesForAttribute =
+    (key: string) => {
+      const attribute =
+        availableAttributes.find(
+          (attr) =>
+            attr.attribute_key ===
+            key
+        );
+
+      return (
+        attribute?.values ||
+        []
       );
+    };
 
-    return (
-      attribute?.values || []
-    );
-  };
-
-  const isAttributeValueSelected = (
-    key: string,
-    value: string
-  ) => {
-    return selectedAttributes.some(
-      (attr) =>
-        attr.key === key &&
-        attr.value === value
-    );
-  };
+  const isAttributeValueSelected =
+    (
+      key: string,
+      value: string
+    ) => {
+      return selectedAttributes.some(
+        (attr) =>
+          attr.key === key &&
+          attr.value ===
+            value
+      );
+    };
 
   const getAvailableValuesForAttribute =
-    (
-      key: string
-    ) => {
+    (key: string) => {
       const allValues =
         getValuesForAttribute(
           key
@@ -605,17 +936,24 @@ const AttributeSelector: React.FC<{
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1.5">
         {selectedAttributes.map(
-          (attr, index) => (
+          (
+            attr,
+            index
+          ) => (
             <span
               key={`${attr.key}-${attr.value}-${index}`}
               className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium"
             >
               <span className="font-semibold text-blue-700">
-                {attr.key}:
+                {
+                  attr.key
+                }:
               </span>
 
               <span className="text-blue-600">
-                {attr.value}
+                {
+                  attr.value
+                }
               </span>
 
               <button
@@ -627,7 +965,7 @@ const AttributeSelector: React.FC<{
                     attr.value
                   )
                 }
-                className="ml-0.5 text-red-500 hover:text-red-700 transition-colors"
+                className="ml-0.5 text-red-500 transition-colors hover:text-red-700"
               >
                 <FiX size={12} />
               </button>
@@ -647,7 +985,9 @@ const AttributeSelector: React.FC<{
         <button
           type="button"
           onClick={() =>
-            setIsOpen(!isOpen)
+            setIsOpen(
+              !isOpen
+            )
           }
           className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
         >
@@ -658,16 +998,22 @@ const AttributeSelector: React.FC<{
         {isOpen && (
           <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
             <div className="space-y-3">
+
               <div>
                 <label className="mb-1 block text-xs font-semibold text-gray-700">
                   Select Attribute
                 </label>
 
                 <select
-                  value={selectedKey}
-                  onChange={(e) => {
+                  value={
+                    selectedKey
+                  }
+                  onChange={(
+                    e
+                  ) => {
                     setSelectedKey(
-                      e.target.value
+                      e.target
+                        .value
                     );
 
                     setSelectedValue(
@@ -709,7 +1055,9 @@ const AttributeSelector: React.FC<{
                     value={
                       selectedValue
                     }
-                    onChange={(e) =>
+                    onChange={(
+                      e
+                    ) =>
                       setSelectedValue(
                         e.target.value
                       )
@@ -723,7 +1071,9 @@ const AttributeSelector: React.FC<{
                     {getAvailableValuesForAttribute(
                       selectedKey
                     ).map(
-                      (val) => (
+                      (
+                        val
+                      ) => (
                         <option
                           key={
                             val.id
@@ -732,7 +1082,9 @@ const AttributeSelector: React.FC<{
                             val.value
                           }
                         >
-                          {val.value}
+                          {
+                            val.value
+                          }
                         </option>
                       )
                     )}
@@ -798,24 +1150,28 @@ const AddProductModal: React.FC<
   isEdit = false,
 }) => {
   const [categories, setCategories] =
-    useState<SelectOption[]>([]);
+    useState<SelectOption[]>(
+      []
+    );
 
   const [
     subcategories,
     setSubcategories,
-  ] = useState<SelectOption[]>(
-    []
-  );
+  ] = useState<
+    SelectOption[]
+  >([]);
 
   const [brands, setBrands] =
-    useState<SelectOption[]>([]);
+    useState<SelectOption[]>(
+      []
+    );
 
   const [
     taxCategories,
     setTaxCategories,
-  ] = useState<SelectOption[]>(
-    []
-  );
+  ] = useState<
+    SelectOption[]
+  >([]);
 
   const [
     attributeMasters,
@@ -848,12 +1204,14 @@ const AddProductModal: React.FC<
   const [
     specification,
     setSpecification,
-  ] = useState<SpecItem[]>([
-    {
-      key: "",
-      value: "",
-    },
-  ]);
+  ] = useState<SpecItem[]>(
+    [
+      {
+        key: "",
+        value: "",
+      },
+    ]
+  );
 
   const [
     categoryId,
@@ -909,15 +1267,23 @@ const AddProductModal: React.FC<
   ] = useState(true);
 
   const [images, setImages] =
-    useState<ImageItem[]>([]);
-
-  const [variants, setVariants] =
-    useState<VariantFormData[]>(
+    useState<ImageItem[]>(
       []
     );
 
-  const [errors, setErrors] =
-    useState<FormErrors>({});
+  const [
+    variants,
+    setVariants,
+  ] = useState<
+    VariantFormData[]
+  >([]);
+
+  const [
+    errors,
+    setErrors,
+  ] = useState<FormErrors>(
+    {}
+  );
 
   // ============================================================
   // FETCH OPTIONS
@@ -927,7 +1293,7 @@ const AddProductModal: React.FC<
     try {
       setFetchingOptions(true);
 
-      // ---------------- CATEGORY ----------------
+      // CATEGORY
 
       const categoriesRes =
         await categoryApi.getAll();
@@ -946,15 +1312,10 @@ const AddProductModal: React.FC<
         formattedCategories
       );
 
-      // ---------------- SUBCATEGORY ----------------
+      // SUBCATEGORY
 
       const subcategoriesRes =
         await subcategoryApi.getAll();
-
-      console.log(
-        "Subcategory API Response:",
-        subcategoriesRes
-      );
 
       let subcategoriesData: any[] =
         [];
@@ -981,15 +1342,12 @@ const AddProductModal: React.FC<
           subcategoriesRes.data;
       }
 
-      console.log(
-        "Subcategories Data:",
-        subcategoriesData
-      );
-
       const formattedSubcategories =
         subcategoriesData.map(
           (sub: any) => ({
-            id: Number(sub.id),
+            id: Number(
+              sub.id
+            ),
             name: sub.name,
           })
         );
@@ -998,13 +1356,14 @@ const AddProductModal: React.FC<
         formattedSubcategories
       );
 
-      // ---------------- BRANDS ----------------
+      // BRANDS
 
       const brandsRes =
         await brandsApi.getAll();
 
       const brandsData =
-        brandsRes.data?.data || [];
+        brandsRes.data?.data ||
+        [];
 
       const formattedBrands =
         brandsData.map(
@@ -1020,7 +1379,7 @@ const AddProductModal: React.FC<
         formattedBrands
       );
 
-      // ---------------- TAX ----------------
+      // TAX
 
       const taxRes =
         await taxApi.getAll();
@@ -1037,7 +1396,7 @@ const AddProductModal: React.FC<
         formattedTaxCategories
       );
 
-      // ---------------- ATTRIBUTES ----------------
+      // ATTRIBUTES
 
       const attributesRes =
         await attributesApi.getAll();
@@ -1089,52 +1448,67 @@ const AddProductModal: React.FC<
       return;
     }
 
+    /*
+     * Normalize product.
+     */
+
+    const product =
+      getProductObject(
+        editData
+      );
+
+    if (!product) {
+      return;
+    }
+
     console.log(
-      "Loading edit data:",
-      editData
+      "EDIT MODAL PRODUCT:",
+      product
     );
 
-    // ----------------------------------------------------------
-    // BASIC INFO
-    // ----------------------------------------------------------
+    // ==========================================================
+    // BASIC INFORMATION
+    // ==========================================================
 
     setProductCode(
       String(
-        editData.product_code ??
-          editData.sku ??
+        product?.product_code ??
+          product?.sku ??
           ""
       )
     );
 
     setName(
       String(
-        editData.name ?? ""
+        product?.name ??
+          ""
       )
     );
 
     setSlug(
       String(
-        editData.slug ?? ""
+        product?.slug ??
+          ""
       )
     );
 
     setDescription(
       String(
-        editData.description ??
+        product?.description ??
           ""
       )
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // SPECIFICATION
-    // ----------------------------------------------------------
+    // ==========================================================
 
     if (
-      editData.specification
+      product?.specification
     ) {
       setSpecification(
         parseSpecification(
-          editData.specification
+          product.specification
         )
       );
     } else {
@@ -1146,194 +1520,234 @@ const AddProductModal: React.FC<
       ]);
     }
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // CATEGORY
-    // ----------------------------------------------------------
+    // ==========================================================
 
     const editCategoryId =
-      editData.category_id ??
-      editData.category?.id ??
+      product?.category_id ??
+      product?.category?.id ??
       "";
 
     setCategoryId(
       editCategoryId !==
-        undefined &&
-      editCategoryId !== null
+        null &&
+        editCategoryId !==
+          undefined
         ? String(
             editCategoryId
           )
         : ""
     );
 
-    // ----------------------------------------------------------
-    // IMPORTANT:
-    // API RESPONSE HAS:
-    // "subcategory_id ": 2
-    //
-    // ALSO SUPPORT:
-    // "subcategory_id": 2
-    // ----------------------------------------------------------
+    // ==========================================================
+    // SUBCATEGORY
+    // ==========================================================
 
     const editSubcategoryId =
-      editData.subcategory_id ??
-      editData[
+      product?.subcategory_id ??
+      product?.[
         "subcategory_id "
       ] ??
-      editData.subcategory?.id ??
+      product?.subcategory
+        ?.id ??
       "";
-
-    console.log(
-      "Edit Subcategory ID:",
-      editSubcategoryId
-    );
 
     setSubcategoryId(
       editSubcategoryId !==
-        undefined &&
-      editSubcategoryId !== null
+        null &&
+        editSubcategoryId !==
+          undefined
         ? String(
             editSubcategoryId
           )
         : ""
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // BRAND
-    // ----------------------------------------------------------
+    // ==========================================================
 
     const editBrandId =
-      editData.brand_id ??
-      editData.brand?.id ??
+      product?.brand_id ??
+      product?.brand?.id ??
       "";
 
     setBrandId(
-      editBrandId !==
-        undefined &&
-      editBrandId !== null
+      editBrandId !== null &&
+        editBrandId !==
+          undefined
         ? String(
             editBrandId
           )
         : ""
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // TAX
-    // ----------------------------------------------------------
+    // ==========================================================
 
     const editTaxCategoryId =
-      editData.tax_category_id ??
-      editData.tax_category?.id ??
+      product?.tax_category_id ??
+      product?.tax_category
+        ?.id ??
       "";
 
     setTaxCategoryId(
       editTaxCategoryId !==
-        undefined &&
-      editTaxCategoryId !==
-        null
+        null &&
+        editTaxCategoryId !==
+          undefined
         ? String(
             editTaxCategoryId
           )
         : ""
     );
 
-    // ----------------------------------------------------------
-    // PRICING
-    // ----------------------------------------------------------
+    // ==========================================================
+    // PRICING - IMPORTANT
+    // ==========================================================
+
+    const editRetailMrp =
+      product?.retail_mrp;
+
+    const editRetailDiscount =
+      product?.retail_discount_value ??
+      product?.retail_discount_percentage ??
+      "";
+
+    const editDistributorMrp =
+      product?.distributor_mrp;
+
+    const editDistributorDiscount =
+      product?.distributor_discount_value ??
+      product?.distributor_discount_percentage ??
+      "";
+
+    console.log(
+      "EDIT RETAIL MRP:",
+      editRetailMrp
+    );
+
+    console.log(
+      "EDIT RETAIL DISCOUNT:",
+      editRetailDiscount
+    );
+
+    console.log(
+      "EDIT DISTRIBUTOR MRP:",
+      editDistributorMrp
+    );
+
+    console.log(
+      "EDIT DISTRIBUTOR DISCOUNT:",
+      editDistributorDiscount
+    );
+
+    /*
+     * Do NOT use:
+     *
+     * value || ""
+     *
+     * because 0 can be lost.
+     */
 
     setRetailMrp(
-      editData.retail_mrp !==
-        undefined &&
-        editData.retail_mrp !==
-          null
+      editRetailMrp !==
+        null &&
+        editRetailMrp !==
+          undefined
         ? String(
-            editData.retail_mrp
+            editRetailMrp
           )
         : ""
     );
 
     setRetailDiscountValue(
-      editData.retail_discount_value !==
-        undefined &&
-        editData.retail_discount_value !==
-          null
+      editRetailDiscount !==
+        null &&
+        editRetailDiscount !==
+          undefined
         ? String(
-            editData.retail_discount_value
+            editRetailDiscount
           )
         : ""
     );
 
     setDistributorMrp(
-      editData.distributor_mrp !==
-        undefined &&
-        editData.distributor_mrp !==
-          null
+      editDistributorMrp !==
+        null &&
+        editDistributorMrp !==
+          undefined
         ? String(
-            editData.distributor_mrp
+            editDistributorMrp
           )
         : ""
     );
 
     setDistributorDiscountValue(
-      editData.distributor_discount_value !==
-        undefined &&
-        editData.distributor_discount_value !==
-          null
+      editDistributorDiscount !==
+        null &&
+        editDistributorDiscount !==
+          undefined
         ? String(
-            editData.distributor_discount_value
+            editDistributorDiscount
           )
         : ""
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // INVENTORY
-    // ----------------------------------------------------------
+    // ==========================================================
 
     setStockQuantity(
-      editData.stock_quantity !==
-        undefined &&
-        editData.stock_quantity !==
-          null
+      product?.stock_quantity !==
+        null &&
+        product?.stock_quantity !==
+          undefined
         ? String(
-            editData.stock_quantity
+            product.stock_quantity
           )
         : ""
     );
 
     setLowStockThreshold(
-      editData.low_stock_threshold !==
-        undefined &&
-        editData.low_stock_threshold !==
-          null
+      product?.low_stock_threshold !==
+        null &&
+        product?.low_stock_threshold !==
+          undefined
         ? String(
-            editData.low_stock_threshold
+            product.low_stock_threshold
           )
         : "10"
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // PUBLISHED
-    // ----------------------------------------------------------
+    // ==========================================================
 
     setIsPublished(
-      editData.is_published ===
+      product?.is_published ===
         true ||
-        editData.is_published ===
+        product?.is_published ===
           1 ||
-        editData.is_published ===
-          "1"
+        product?.is_published ===
+          "1" ||
+        product?.is_published ===
+          "true"
     );
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // PRODUCT IMAGES
-    // ----------------------------------------------------------
+    // ==========================================================
 
     if (
       Array.isArray(
-        editData.images
+        product?.images
       )
     ) {
       const existingImages: ImageItem[] =
-        editData.images.map(
+        product.images.map(
           (
             img: any,
             index: number
@@ -1343,21 +1757,26 @@ const AddProductModal: React.FC<
               index,
 
             preview:
-              img.image_url ||
-              img.image ||
+              img?.image_url ||
+              img?.image ||
               "",
 
             sort_order:
-              img.sort_order ||
+              img?.sort_order ??
               index + 1,
 
             is_primary:
-              img.is_primary
+              img?.is_primary ===
+                true ||
+              img?.is_primary ===
+                1 ||
+              img?.is_primary ===
+                "1"
                 ? 1
                 : 0,
 
             existing_id:
-              img.id,
+              img?.id,
 
             is_existing:
               true,
@@ -1371,17 +1790,14 @@ const AddProductModal: React.FC<
       setImages([]);
     }
 
-    // ----------------------------------------------------------
+    // ==========================================================
     // VARIANTS
-    // ----------------------------------------------------------
-
-    const generatedVariants =
-      generateVariantsFromProduct(
-        editData
-      );
+    // ==========================================================
 
     setVariants(
-      generatedVariants
+      generateVariantsFromProduct(
+        product
+      )
     );
   }, [
     open,
@@ -1421,7 +1837,9 @@ const AddProductModal: React.FC<
     setDistributorDiscountValue("");
 
     setStockQuantity("");
-    setLowStockThreshold("10");
+    setLowStockThreshold(
+      "10"
+    );
 
     setIsPublished(true);
 
@@ -1457,57 +1875,61 @@ const AddProductModal: React.FC<
         )
     );
 
-    setErrors((prev) => ({
-      ...prev,
-      name: undefined,
-    }));
+    setErrors(
+      (prev) => ({
+        ...prev,
+        name: undefined,
+      })
+    );
   };
 
   // ============================================================
-  // CATEGORY CHANGE
+  // CATEGORY
   // ============================================================
 
-  const handleCategoryChange = (
-    value: string
-  ) => {
-    setCategoryId(value);
+  const handleCategoryChange =
+    (
+      value: string
+    ) => {
+      setCategoryId(
+        value
+      );
 
-    setErrors((prev) => ({
-      ...prev,
-      category_id:
-        undefined,
-    }));
+      setErrors(
+        (prev) => ({
+          ...prev,
+          category_id:
+            undefined,
+        })
+      );
 
-    /*
-      Subcategory ko clear nahi kar rahe
-      because edit API mein category_id aur
-      subcategory_id mismatch ho sakta hai.
-
-      Example:
-      category_id = 3
-      subcategory_id = 2
-    */
-
-    if (!value) {
-      setSubcategoryId("");
-    }
-  };
+      if (!value) {
+        setSubcategoryId(
+          ""
+        );
+      }
+    };
 
   // ============================================================
-  // SUBCATEGORY CHANGE
+  // SUBCATEGORY
   // ============================================================
 
-  const handleSubcategoryChange = (
-    value: string
-  ) => {
-    setSubcategoryId(value);
+  const handleSubcategoryChange =
+    (
+      value: string
+    ) => {
+      setSubcategoryId(
+        value
+      );
 
-    setErrors((prev) => ({
-      ...prev,
-      subcategory_id:
-        undefined,
-    }));
-  };
+      setErrors(
+        (prev) => ({
+          ...prev,
+          subcategory_id:
+            undefined,
+        })
+      );
+    };
 
   // ============================================================
   // SPECIFICATION
@@ -1525,7 +1947,9 @@ const AddProductModal: React.FC<
     };
 
   const removeSpecificationField =
-    (index: number) => {
+    (
+      index: number
+    ) => {
       if (
         specification.length <=
         1
@@ -1541,24 +1965,25 @@ const AddProductModal: React.FC<
       );
     };
 
-  const updateSpecification = (
-    index: number,
-    field:
-      | "key"
-      | "value",
-    value: string
-  ) => {
-    const newSpec = [
-      ...specification,
-    ];
+  const updateSpecification =
+    (
+      index: number,
+      field:
+        | "key"
+        | "value",
+      value: string
+    ) => {
+      const newSpec = [
+        ...specification,
+      ];
 
-    newSpec[index][field] =
-      value;
+      newSpec[index][field] =
+        value;
 
-    setSpecification(
-      newSpec
-    );
-  };
+      setSpecification(
+        newSpec
+      );
+    };
 
   // ============================================================
   // PRODUCT IMAGES
@@ -1576,7 +2001,10 @@ const AddProductModal: React.FC<
 
     const newImages: ImageItem[] =
       Array.from(files).map(
-        (file, index) => ({
+        (
+          file,
+          index
+        ) => ({
           id:
             Date.now() +
             index,
@@ -1604,15 +2032,20 @@ const AddProductModal: React.FC<
         })
       );
 
-    setImages((prev) => [
-      ...prev,
-      ...newImages,
-    ]);
+    setImages(
+      (prev) => [
+        ...prev,
+        ...newImages,
+      ]
+    );
 
-    setErrors((prev) => ({
-      ...prev,
-      images: undefined,
-    }));
+    setErrors(
+      (prev) => ({
+        ...prev,
+        images:
+          undefined,
+      })
+    );
 
     e.target.value = "";
   };
@@ -1620,49 +2053,62 @@ const AddProductModal: React.FC<
   const removeImage = (
     id: number
   ) => {
-    setImages((prev) => {
-      const filtered =
-        prev.filter(
-          (item) =>
-            item.id !== id
+    setImages(
+      (prev) => {
+        const filtered =
+          prev.filter(
+            (item) =>
+              item.id !== id
+          );
+
+        if (
+          filtered.length >
+            0 &&
+          !filtered.some(
+            (item) =>
+              item.is_primary ===
+              1
+          )
+        ) {
+          filtered[0].is_primary =
+            1;
+        }
+
+        return filtered.map(
+          (
+            item,
+            index
+          ) => ({
+            ...item,
+            sort_order:
+              index + 1,
+          })
         );
-
-      if (
-        filtered.length >
-          0 &&
-        !filtered.some(
-          (item) =>
-            item.is_primary ===
-            1
-        )
-      ) {
-        filtered[0].is_primary =
-          1;
       }
-
-      return filtered.map(
-        (item, index) => ({
-          ...item,
-          sort_order:
-            index + 1,
-        })
-      );
-    });
-  };
-
-  const setPrimaryImage = (
-    id: number
-  ) => {
-    setImages((prev) =>
-      prev.map((item) => ({
-        ...item,
-        is_primary:
-          item.id === id
-            ? 1
-            : 0,
-      }))
     );
   };
+
+  const setPrimaryImage =
+    (
+      id: number
+    ) => {
+      setImages(
+        (prev) =>
+          prev.map(
+            (
+              item
+            ) => ({
+              ...item,
+
+              is_primary:
+                item.id ===
+                id
+                  ? 1
+                  : 0,
+            })
+          )
+      );
+    };
 
   // ============================================================
   // VARIANTS
@@ -1672,26 +2118,43 @@ const AddProductModal: React.FC<
     const newVariant: VariantFormData =
       {
         id: `variant-${Date.now()}`,
+
         sku: "",
+
         attributes: [],
+
         retail_mrp: "",
+
         retail_discount_type:
           "percentage",
+
         retail_discount_value:
           "",
-        distributor_mrp: "",
+
+        distributor_mrp:
+          "",
+
         distributor_discount_type:
           "percentage",
+
         distributor_discount_value:
           "",
-        stock_quantity: "",
+
+        stock_quantity:
+          "",
+
         low_stock_threshold:
           "",
+
         sort_order:
           variants.length + 1,
+
         is_active: 1,
+
         images: [],
-        is_existing: false,
+
+        is_existing:
+          false,
       };
 
     setVariants([
@@ -1713,21 +2176,26 @@ const AddProductModal: React.FC<
 
   const updateVariant = (
     id: string,
-    field: keyof VariantFormData,
+    field:
+      | keyof VariantFormData,
     value: any
   ) => {
     setVariants(
-      variants.map((v) => {
-        if (v.id === id) {
-          return {
-            ...v,
-            [field]:
-              value,
-          };
-        }
+      variants.map(
+        (v) => {
+          if (
+            v.id === id
+          ) {
+            return {
+              ...v,
+              [field]:
+                value,
+            };
+          }
 
-        return v;
-      })
+          return v;
+        }
+      )
     );
   };
 
@@ -1738,35 +2206,46 @@ const AddProductModal: React.FC<
       value: string
     ) => {
       setVariants(
-        variants.map((v) => {
-          if (v.id === id) {
-            const exists =
-              v.attributes.some(
-                (attr) =>
-                  attr.key ===
-                    key &&
-                  attr.value ===
-                    value
-              );
+        variants.map(
+          (v) => {
+            if (
+              v.id ===
+              id
+            ) {
+              const exists =
+                v.attributes.some(
+                  (
+                    attr
+                  ) =>
+                    attr.key ===
+                      key &&
+                    attr.value ===
+                      value
+                );
 
-            if (exists) {
-              return v;
+              if (
+                exists
+              ) {
+                return v;
+              }
+
+              return {
+                ...v,
+
+                attributes:
+                  [
+                    ...v.attributes,
+                    {
+                      key,
+                      value,
+                    },
+                  ],
+              };
             }
 
-            return {
-              ...v,
-              attributes: [
-                ...v.attributes,
-                {
-                  key,
-                  value,
-                },
-              ],
-            };
+            return v;
           }
-
-          return v;
-        })
+        )
       );
     };
 
@@ -1777,92 +2256,111 @@ const AddProductModal: React.FC<
       value: string
     ) => {
       setVariants(
-        variants.map((v) => {
-          if (v.id === id) {
-            return {
-              ...v,
-              attributes:
-                v.attributes.filter(
-                  (attr) =>
-                    !(
-                      attr.key ===
-                        key &&
-                      attr.value ===
-                        value
-                    )
-                ),
-            };
-          }
+        variants.map(
+          (v) => {
+            if (
+              v.id ===
+              id
+            ) {
+              return {
+                ...v,
 
-          return v;
-        })
+                attributes:
+                  v.attributes.filter(
+                    (
+                      attr
+                    ) =>
+                      !(
+                        attr.key ===
+                          key &&
+                        attr.value ===
+                          value
+                      )
+                  ),
+              };
+            }
+
+            return v;
+          }
+        )
       );
     };
 
-  const handleVariantImages = (
-    variantId: string,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files =
-      e.target.files;
+  const handleVariantImages =
+    (
+      variantId: string,
+      e: React.ChangeEvent<HTMLInputElement>
+    ) => {
+      const files =
+        e.target.files;
 
-    if (!files) {
-      return;
-    }
+      if (!files) {
+        return;
+      }
 
-    const variant =
-      variants.find(
-        (v) =>
-          v.id === variantId
-      );
+      const variant =
+        variants.find(
+          (v) =>
+            v.id ===
+            variantId
+        );
 
-    if (!variant) {
-      return;
-    }
+      if (!variant) {
+        return;
+      }
 
-    const newImages: VariantImageItem[] =
-      Array.from(files).map(
-        (file, index) => ({
-          id:
-            Date.now() +
-            index,
+      const newImages: VariantImageItem[] =
+        Array.from(
+          files
+        ).map(
+          (
+            file,
+            index
+          ) => ({
+            id:
+              Date.now() +
+              index,
 
-          file,
+            file,
 
-          preview:
-            URL.createObjectURL(
-              file
-            ),
+            preview:
+              URL.createObjectURL(
+                file
+              ),
 
-          sort_order:
-            variant.images
-              .length +
-            index +
-            1,
+            sort_order:
+              variant
+                .images
+                .length +
+              index +
+              1,
 
-          is_primary:
-            variant.images
-                .length ===
+            is_primary:
+              variant
+                  .images
+                  .length ===
                 0 &&
-            index === 0
-              ? 1
-              : 0,
+              index ===
+                0
+                ? 1
+                : 0,
 
-          is_existing: false,
-        })
+            is_existing:
+              false,
+          })
+        );
+
+      updateVariant(
+        variantId,
+        "images",
+        [
+          ...variant.images,
+          ...newImages,
+        ]
       );
 
-    updateVariant(
-      variantId,
-      "images",
-      [
-        ...variant.images,
-        ...newImages,
-      ]
-    );
-
-    e.target.value = "";
-  };
+      e.target.value = "";
+    };
 
   const removeVariantImage =
     (
@@ -1904,7 +2402,10 @@ const AddProductModal: React.FC<
         variantId,
         "images",
         filtered.map(
-          (img, index) => ({
+          (
+            img,
+            index
+          ) => ({
             ...img,
             sort_order:
               index + 1,
@@ -1933,8 +2434,11 @@ const AddProductModal: React.FC<
         variantId,
         "images",
         variant.images.map(
-          (img) => ({
+          (
+            img
+          ) => ({
             ...img,
+
             is_primary:
               img.id ===
               imageId
@@ -1988,8 +2492,9 @@ const AddProductModal: React.FC<
 
       if (
         !retailMrp ||
-        Number(retailMrp) <=
-          0
+        Number(
+          retailMrp
+        ) <= 0
       ) {
         newErrors.retail_mrp =
           "Please enter a valid retail MRP";
@@ -1997,8 +2502,9 @@ const AddProductModal: React.FC<
 
       if (
         !stockQuantity ||
-        Number(stockQuantity) <
-          0
+        Number(
+          stockQuantity
+        ) < 0
       ) {
         newErrors.stock_quantity =
           "Please enter a valid stock quantity";
@@ -2094,7 +2600,9 @@ const AddProductModal: React.FC<
 
       formData.append(
         "brand_id",
-        String(brandId)
+        String(
+          brandId
+        )
       );
 
       formData.append(
@@ -2107,7 +2615,8 @@ const AddProductModal: React.FC<
       formData.append(
         "stock_quantity",
         String(
-          stockQuantity || 0
+          stockQuantity ||
+            0
         )
       );
 
@@ -2143,10 +2652,15 @@ const AddProductModal: React.FC<
         "today_best"
       );
 
+      // ======================================================
+      // RETAIL PRICING
+      // ======================================================
+
       formData.append(
         "retail_mrp",
         String(
-          retailMrp || 0
+          retailMrp ||
+            0
         )
       );
 
@@ -2163,10 +2677,15 @@ const AddProductModal: React.FC<
         )
       );
 
+      // ======================================================
+      // DISTRIBUTOR PRICING
+      // ======================================================
+
       formData.append(
         "distributor_mrp",
         String(
-          distributorMrp || 0
+          distributorMrp ||
+            0
         )
       );
 
@@ -2183,9 +2702,9 @@ const AddProductModal: React.FC<
         )
       );
 
-      // --------------------------------------------------------
+      // ======================================================
       // EXISTING PRODUCT IMAGES
-      // --------------------------------------------------------
+      // ======================================================
 
       if (
         isEdit &&
@@ -2216,9 +2735,9 @@ const AddProductModal: React.FC<
         }
       }
 
-      // --------------------------------------------------------
+      // ======================================================
       // NEW PRODUCT IMAGES
-      // --------------------------------------------------------
+      // ======================================================
 
       const newImages =
         images.filter(
@@ -2254,9 +2773,9 @@ const AddProductModal: React.FC<
         }
       );
 
-      // --------------------------------------------------------
+      // ======================================================
       // VARIANTS
-      // --------------------------------------------------------
+      // ======================================================
 
       variants.forEach(
         (
@@ -2391,9 +2910,7 @@ const AddProductModal: React.FC<
             )
           );
 
-          // ------------------------------------------------------
           // VARIANT IMAGES
-          // ------------------------------------------------------
 
           const newVariantImages =
             variant.images.filter(
@@ -2431,7 +2948,9 @@ const AddProductModal: React.FC<
             }
           );
 
-          if (isEdit) {
+          if (
+            isEdit
+          ) {
             const existingVariantImageIds =
               variant.images
                 .filter(
@@ -2493,6 +3012,24 @@ const AddProductModal: React.FC<
     const formData =
       buildFormData();
 
+    /*
+     * Debug FormData
+     */
+
+    console.log(
+      "SUBMIT FORM DATA:"
+    );
+
+    for (const [
+      key,
+      value,
+    ] of formData.entries()) {
+      console.log(
+        key,
+        value
+      );
+    }
+
     onSubmit(formData);
   };
 
@@ -2514,9 +3051,7 @@ const AddProductModal: React.FC<
             e.stopPropagation()
           }
         >
-          {/* =================================================
-              HEADER
-          ================================================= */}
+          {/* HEADER */}
 
           <div className="flex flex-shrink-0 items-center justify-between rounded-t-2xl border-b border-gray-200 bg-white px-6 py-5">
             <div>
@@ -2541,7 +3076,9 @@ const AddProductModal: React.FC<
               <p className="mt-0.5 text-sm text-gray-500">
                 {isEdit
                   ? `Editing: ${
-                      editData?.name ||
+                      getProductObject(
+                        editData
+                      )?.name ||
                       "Product"
                     }`
                   : "Fill in the product details, pricing, variants and images"}
@@ -2550,16 +3087,16 @@ const AddProductModal: React.FC<
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={
+                onClose
+              }
               className="flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
             >
               <FiX size={21} />
             </button>
           </div>
 
-          {/* =================================================
-              BODY
-          ================================================= */}
+          {/* BODY */}
 
           <div className="flex-1 overflow-y-auto p-6">
             <form
@@ -2569,11 +3106,13 @@ const AddProductModal: React.FC<
               id="product-form"
             >
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
+
                 {/* =================================================
                     LEFT
                 ================================================= */}
 
                 <div className="space-y-6">
+
                   {/* BASIC INFORMATION */}
 
                   <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -2589,6 +3128,7 @@ const AddProductModal: React.FC<
                     </div>
 
                     <div className="space-y-4">
+
                       {/* PRODUCT NAME */}
 
                       <div>
@@ -2622,12 +3162,7 @@ const AddProductModal: React.FC<
 
                         {errors.name && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                            <FiInfo
-                              size={
-                                14
-                              }
-                            />
-
+                            <FiInfo size={14} />
                             {
                               errors.name
                             }
@@ -2668,12 +3203,7 @@ const AddProductModal: React.FC<
 
                         {errors.product_code && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                            <FiInfo
-                              size={
-                                14
-                              }
-                            />
-
+                            <FiInfo size={14} />
                             {
                               errors.product_code
                             }
@@ -2698,10 +3228,7 @@ const AddProductModal: React.FC<
                         />
 
                         <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                          <FiInfo
-                            size={12}
-                          />
-
+                          <FiInfo size={12} />
                           Auto-generated from product name
                         </p>
                       </div>
@@ -2709,6 +3236,7 @@ const AddProductModal: React.FC<
                       {/* CATEGORY / SUBCATEGORY / BRAND / TAX */}
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
                         {/* CATEGORY */}
 
                         <div>
@@ -2728,9 +3256,7 @@ const AddProductModal: React.FC<
                                 e
                               ) =>
                                 handleCategoryChange(
-                                  e
-                                    .target
-                                    .value
+                                  e.target.value
                                 )
                               }
                               className={`h-12 w-full appearance-none rounded-lg border ${
@@ -2751,11 +3277,9 @@ const AddProductModal: React.FC<
                                     key={
                                       category.id
                                     }
-                                    value={
-                                      String(
-                                        category.id
-                                      )
-                                    }
+                                    value={String(
+                                      category.id
+                                    )}
                                   >
                                     {
                                       category.name
@@ -2767,20 +3291,13 @@ const AddProductModal: React.FC<
 
                             <FiTag
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                              size={
-                                18
-                              }
+                              size={18}
                             />
                           </div>
 
                           {errors.category_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                              <FiInfo
-                                size={
-                                  14
-                                }
-                              />
-
+                              <FiInfo size={14} />
                               {
                                 errors.category_id
                               }
@@ -2807,9 +3324,7 @@ const AddProductModal: React.FC<
                                 e
                               ) =>
                                 handleSubcategoryChange(
-                                  e
-                                    .target
-                                    .value
+                                  e.target.value
                                 )
                               }
                               className={`h-12 w-full appearance-none rounded-lg border ${
@@ -2830,11 +3345,9 @@ const AddProductModal: React.FC<
                                     key={
                                       subcategory.id
                                     }
-                                    value={
-                                      String(
-                                        subcategory.id
-                                      )
-                                    }
+                                    value={String(
+                                      subcategory.id
+                                    )}
                                   >
                                     {
                                       subcategory.name
@@ -2846,20 +3359,13 @@ const AddProductModal: React.FC<
 
                             <FiLayers
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                              size={
-                                18
-                              }
+                              size={18}
                             />
                           </div>
 
                           {errors.subcategory_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                              <FiInfo
-                                size={
-                                  14
-                                }
-                              />
-
+                              <FiInfo size={14} />
                               {
                                 errors.subcategory_id
                               }
@@ -2886,8 +3392,7 @@ const AddProductModal: React.FC<
                                 e
                               ) => {
                                 setBrandId(
-                                  e
-                                    .target
+                                  e.target
                                     .value
                                 );
 
@@ -2919,11 +3424,9 @@ const AddProductModal: React.FC<
                                     key={
                                       brand.id
                                     }
-                                    value={
-                                      String(
-                                        brand.id
-                                      )
-                                    }
+                                    value={String(
+                                      brand.id
+                                    )}
                                   >
                                     {
                                       brand.name
@@ -2935,20 +3438,13 @@ const AddProductModal: React.FC<
 
                             <FiAward
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                              size={
-                                18
-                              }
+                              size={18}
                             />
                           </div>
 
                           {errors.brand_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                              <FiInfo
-                                size={
-                                  14
-                                }
-                              />
-
+                              <FiInfo size={14} />
                               {
                                 errors.brand_id
                               }
@@ -2975,8 +3471,7 @@ const AddProductModal: React.FC<
                                 e
                               ) => {
                                 setTaxCategoryId(
-                                  e
-                                    .target
+                                  e.target
                                     .value
                                 );
 
@@ -3008,11 +3503,9 @@ const AddProductModal: React.FC<
                                     key={
                                       tax.id
                                     }
-                                    value={
-                                      String(
-                                        tax.id
-                                      )
-                                    }
+                                    value={String(
+                                      tax.id
+                                    )}
                                   >
                                     {
                                       tax.name
@@ -3024,20 +3517,13 @@ const AddProductModal: React.FC<
 
                             <FiTag
                               className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                              size={
-                                18
-                              }
+                              size={18}
                             />
                           </div>
 
                           {errors.tax_category_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                              <FiInfo
-                                size={
-                                  14
-                                }
-                              />
-
+                              <FiInfo size={14} />
                               {
                                 errors.tax_category_id
                               }
@@ -3051,6 +3537,7 @@ const AddProductModal: React.FC<
                   {/* DESCRIPTION / SPECIFICATION */}
 
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
                     {/* DESCRIPTION */}
 
                     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -3074,8 +3561,7 @@ const AddProductModal: React.FC<
                           e
                         ) =>
                           setDescription(
-                            e
-                              .target
+                            e.target
                               .value
                           )
                         }
@@ -3106,12 +3592,7 @@ const AddProductModal: React.FC<
                           }
                           className="flex items-center gap-1 rounded-lg bg-black px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
                         >
-                          <FiPlus
-                            size={
-                              14
-                            }
-                          />
-
+                          <FiPlus size={14} />
                           Add Field
                         </button>
                       </div>
@@ -3140,9 +3621,7 @@ const AddProductModal: React.FC<
                                     updateSpecification(
                                       index,
                                       "key",
-                                      e
-                                        .target
-                                        .value
+                                      e.target.value
                                     )
                                   }
                                   placeholder="Key (e.g., Display)"
@@ -3162,9 +3641,7 @@ const AddProductModal: React.FC<
                                     updateSpecification(
                                       index,
                                       "value",
-                                      e
-                                        .target
-                                        .value
+                                      e.target.value
                                     )
                                   }
                                   placeholder="Value (e.g., 6.7-inch AMOLED)"
@@ -3190,11 +3667,7 @@ const AddProductModal: React.FC<
                                     : "border-red-200 text-red-500 hover:border-red-300 hover:bg-red-50"
                                 } transition-colors`}
                               >
-                                <FiTrash2
-                                  size={
-                                    16
-                                  }
-                                />
+                                <FiTrash2 size={16} />
                               </button>
                             </div>
                           )
@@ -3223,11 +3696,7 @@ const AddProductModal: React.FC<
                       </div>
 
                       <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-black px-4 text-sm font-semibold text-white transition-colors hover:bg-gray-800">
-                        <FiPlus
-                          size={
-                            16
-                          }
-                        />
+                        <FiPlus size={16} />
 
                         Add Images
 
@@ -3245,12 +3714,7 @@ const AddProductModal: React.FC<
 
                     {errors.images && (
                       <p className="error-message mb-3 flex items-center gap-1 text-sm text-red-500">
-                        <FiInfo
-                          size={
-                            14
-                          }
-                        />
-
+                        <FiInfo size={14} />
                         {
                           errors.images
                         }
@@ -3330,11 +3794,7 @@ const AddProductModal: React.FC<
                                 }
                                 className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-red-500 shadow transition-colors hover:bg-red-500 hover:text-white"
                               >
-                                <FiX
-                                  size={
-                                    14
-                                  }
-                                />
+                                <FiX size={14} />
                               </button>
 
                               <div className="flex items-center justify-between border-t border-gray-100 px-3 py-1.5 text-xs text-gray-500">
@@ -3399,12 +3859,7 @@ const AddProductModal: React.FC<
                         }
                         className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-black px-4 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
                       >
-                        <FiPlus
-                          size={
-                            16
-                          }
-                        />
-
+                        <FiPlus size={16} />
                         Add Variant
                       </button>
                     </div>
@@ -3431,14 +3886,14 @@ const AddProductModal: React.FC<
                                 <h4 className="flex items-center gap-2 font-bold text-gray-900">
                                   <FiPackage
                                     className="text-yellow-500"
-                                    size={
-                                      16
-                                    }
+                                    size={16}
                                   />
 
                                   Variant #
-                                  {index +
-                                    1}
+                                  {
+                                    index +
+                                      1
+                                  }
 
                                   {variant.is_existing && (
                                     <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-500">
@@ -3456,15 +3911,12 @@ const AddProductModal: React.FC<
                                   }
                                   className="rounded-lg p-1 text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                                 >
-                                  <FiTrash2
-                                    size={
-                                      18
-                                    }
-                                  />
+                                  <FiTrash2 size={18} />
                                 </button>
                               </div>
 
                               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+
                                 {/* SKU */}
 
                                 <div>
@@ -3483,8 +3935,7 @@ const AddProductModal: React.FC<
                                       updateVariant(
                                         variant.id,
                                         "sku",
-                                        e
-                                          .target
+                                        e.target
                                           .value
                                       )
                                     }
@@ -3532,21 +3983,30 @@ const AddProductModal: React.FC<
                                     </span>
 
                                     <input
-                                      type="number"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={
                                         variant.retail_mrp
                                       }
                                       onChange={(
                                         e
-                                      ) =>
-                                        updateVariant(
-                                          variant.id,
-                                          "retail_mrp",
-                                          e
-                                            .target
-                                            .value
-                                        )
-                                      }
+                                      ) => {
+                                        const val =
+                                          e.target
+                                            .value;
+
+                                        if (
+                                          isValidDecimalInput(
+                                            val
+                                          )
+                                        ) {
+                                          updateVariant(
+                                            variant.id,
+                                            "retail_mrp",
+                                            val
+                                          );
+                                        }
+                                      }}
                                       placeholder="100000"
                                       className="h-10 w-full rounded-lg border border-gray-300 pl-7 pr-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                     />
@@ -3561,21 +4021,30 @@ const AddProductModal: React.FC<
                                   </label>
 
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={
                                       variant.retail_discount_value
                                     }
                                     onChange={(
                                       e
-                                    ) =>
-                                      updateVariant(
-                                        variant.id,
-                                        "retail_discount_value",
-                                        e
-                                          .target
-                                          .value
-                                      )
-                                    }
+                                    ) => {
+                                      const val =
+                                        e.target
+                                          .value;
+
+                                      if (
+                                        isValidDecimalInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "retail_discount_value",
+                                          val
+                                        );
+                                      }
+                                    }}
                                     placeholder="40"
                                     className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                   />
@@ -3594,21 +4063,30 @@ const AddProductModal: React.FC<
                                     </span>
 
                                     <input
-                                      type="number"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={
                                         variant.distributor_mrp
                                       }
                                       onChange={(
                                         e
-                                      ) =>
-                                        updateVariant(
-                                          variant.id,
-                                          "distributor_mrp",
-                                          e
-                                            .target
-                                            .value
-                                        )
-                                      }
+                                      ) => {
+                                        const val =
+                                          e.target
+                                            .value;
+
+                                        if (
+                                          isValidDecimalInput(
+                                            val
+                                          )
+                                        ) {
+                                          updateVariant(
+                                            variant.id,
+                                            "distributor_mrp",
+                                            val
+                                          );
+                                        }
+                                      }}
                                       placeholder="90000"
                                       className="h-10 w-full rounded-lg border border-gray-300 pl-7 pr-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                     />
@@ -3623,21 +4101,30 @@ const AddProductModal: React.FC<
                                   </label>
 
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     value={
                                       variant.distributor_discount_value
                                     }
                                     onChange={(
                                       e
-                                    ) =>
-                                      updateVariant(
-                                        variant.id,
-                                        "distributor_discount_value",
-                                        e
-                                          .target
-                                          .value
-                                      )
-                                    }
+                                    ) => {
+                                      const val =
+                                        e.target
+                                          .value;
+
+                                      if (
+                                        isValidDecimalInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "distributor_discount_value",
+                                          val
+                                        );
+                                      }
+                                    }}
                                     placeholder="35"
                                     className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                   />
@@ -3651,21 +4138,30 @@ const AddProductModal: React.FC<
                                   </label>
 
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={
                                       variant.stock_quantity
                                     }
                                     onChange={(
                                       e
-                                    ) =>
-                                      updateVariant(
-                                        variant.id,
-                                        "stock_quantity",
-                                        e
-                                          .target
-                                          .value
-                                      )
-                                    }
+                                    ) => {
+                                      const val =
+                                        e.target
+                                          .value;
+
+                                      if (
+                                        isValidIntegerInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "stock_quantity",
+                                          val
+                                        );
+                                      }
+                                    }}
                                     placeholder="20"
                                     className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                   />
@@ -3679,21 +4175,30 @@ const AddProductModal: React.FC<
                                   </label>
 
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={
                                       variant.low_stock_threshold
                                     }
                                     onChange={(
                                       e
-                                    ) =>
-                                      updateVariant(
-                                        variant.id,
-                                        "low_stock_threshold",
-                                        e
-                                          .target
-                                          .value
-                                      )
-                                    }
+                                    ) => {
+                                      const val =
+                                        e.target
+                                          .value;
+
+                                      if (
+                                        isValidIntegerInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "low_stock_threshold",
+                                          val
+                                        );
+                                      }
+                                    }}
                                     placeholder="5"
                                     className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                                   />
@@ -3717,9 +4222,7 @@ const AddProductModal: React.FC<
                                         variant.id,
                                         "is_active",
                                         Number(
-                                          e
-                                            .target
-                                            .value
+                                          e.target.value
                                         )
                                       )
                                     }
@@ -3741,22 +4244,12 @@ const AddProductModal: React.FC<
                               <div className="mt-3 border-t border-gray-200 pt-3">
                                 <div className="mb-2 flex items-center justify-between">
                                   <label className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                                    <FiUploadCloud
-                                      size={
-                                        14
-                                      }
-                                    />
-
+                                    <FiUploadCloud size={14} />
                                     Variant Images
                                   </label>
 
                                   <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-300">
-                                    <FiPlus
-                                      size={
-                                        12
-                                      }
-                                    />
-
+                                    <FiPlus size={12} />
                                     Add Images
 
                                     <input
@@ -3827,11 +4320,7 @@ const AddProductModal: React.FC<
                                             }
                                             className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
                                           >
-                                            <FiX
-                                              size={
-                                                10
-                                              }
-                                            />
+                                            <FiX size={10} />
                                           </button>
 
                                           {img.is_existing && (
@@ -3858,6 +4347,7 @@ const AddProductModal: React.FC<
                 ================================================= */}
 
                 <div className="space-y-6">
+
                   {/* PRICING */}
 
                   <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -3873,7 +4363,8 @@ const AddProductModal: React.FC<
                     </div>
 
                     <div className="space-y-4">
-                      {/* RETAIL */}
+
+                      {/* RETAIL MRP */}
 
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-gray-700">
@@ -3889,29 +4380,37 @@ const AddProductModal: React.FC<
                           </span>
 
                           <input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={
                               retailMrp
                             }
                             onChange={(
                               e
                             ) => {
-                              setRetailMrp(
-                                e
-                                  .target
-                                  .value
-                              );
+                              const val =
+                                e.target
+                                  .value;
 
-                              setErrors(
-                                (
-                                  prev
-                                ) => ({
-                                  ...prev,
-                                  retail_mrp:
-                                    undefined,
-                                })
-                              );
+                              if (
+                                isValidDecimalInput(
+                                  val
+                                )
+                              ) {
+                                setRetailMrp(
+                                  val
+                                );
+
+                                setErrors(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    retail_mrp:
+                                      undefined,
+                                  })
+                                );
+                              }
                             }}
                             placeholder="100000"
                             className={`h-12 w-full rounded-lg border ${
@@ -3924,12 +4423,7 @@ const AddProductModal: React.FC<
 
                         {errors.retail_mrp && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                            <FiInfo
-                              size={
-                                14
-                              }
-                            />
-
+                            <FiInfo size={14} />
                             {
                               errors.retail_mrp
                             }
@@ -3946,21 +4440,28 @@ const AddProductModal: React.FC<
 
                         <div className="relative">
                           <input
-                            type="number"
-                            min="0"
-                            max="100"
+                            type="text"
+                            inputMode="decimal"
                             value={
                               retailDiscountValue
                             }
                             onChange={(
                               e
-                            ) =>
-                              setRetailDiscountValue(
-                                e
-                                  .target
-                                  .value
-                              )
-                            }
+                            ) => {
+                              const val =
+                                e.target
+                                  .value;
+
+                              if (
+                                isValidDecimalInput(
+                                  val
+                                )
+                              ) {
+                                setRetailDiscountValue(
+                                  val
+                                );
+                              }
+                            }}
                             placeholder="40"
                             className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                           />
@@ -3984,20 +4485,28 @@ const AddProductModal: React.FC<
                           </span>
 
                           <input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
                             value={
                               distributorMrp
                             }
                             onChange={(
                               e
-                            ) =>
-                              setDistributorMrp(
-                                e
-                                  .target
-                                  .value
-                              )
-                            }
+                            ) => {
+                              const val =
+                                e.target
+                                  .value;
+
+                              if (
+                                isValidDecimalInput(
+                                  val
+                                )
+                              ) {
+                                setDistributorMrp(
+                                  val
+                                );
+                              }
+                            }}
                             placeholder="90000"
                             className="h-12 w-full rounded-lg border border-gray-300 pl-8 pr-4 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                           />
@@ -4013,21 +4522,28 @@ const AddProductModal: React.FC<
 
                         <div className="relative">
                           <input
-                            type="number"
-                            min="0"
-                            max="100"
+                            type="text"
+                            inputMode="decimal"
                             value={
                               distributorDiscountValue
                             }
                             onChange={(
                               e
-                            ) =>
-                              setDistributorDiscountValue(
-                                e
-                                  .target
-                                  .value
-                              )
-                            }
+                            ) => {
+                              const val =
+                                e.target
+                                  .value;
+
+                              if (
+                                isValidDecimalInput(
+                                  val
+                                )
+                              ) {
+                                setDistributorDiscountValue(
+                                  val
+                                );
+                              }
+                            }}
                             placeholder="35"
                             className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                           />
@@ -4055,6 +4571,7 @@ const AddProductModal: React.FC<
                     </div>
 
                     <div className="space-y-4">
+
                       {/* STOCK */}
 
                       <div>
@@ -4066,29 +4583,37 @@ const AddProductModal: React.FC<
                         </label>
 
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
                           value={
                             stockQuantity
                           }
                           onChange={(
                             e
                           ) => {
-                            setStockQuantity(
-                              e
-                                .target
-                                .value
-                            );
+                            const val =
+                              e.target
+                                .value;
 
-                            setErrors(
-                              (
-                                prev
-                              ) => ({
-                                ...prev,
-                                stock_quantity:
-                                  undefined,
-                              })
-                            );
+                            if (
+                              isValidIntegerInput(
+                                val
+                              )
+                            ) {
+                              setStockQuantity(
+                                val
+                              );
+
+                              setErrors(
+                                (
+                                  prev
+                                ) => ({
+                                  ...prev,
+                                  stock_quantity:
+                                    undefined,
+                                })
+                              );
+                            }
                           }}
                           placeholder="100"
                           className={`h-12 w-full rounded-lg border ${
@@ -4100,12 +4625,7 @@ const AddProductModal: React.FC<
 
                         {errors.stock_quantity && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-red-500">
-                            <FiInfo
-                              size={
-                                14
-                              }
-                            />
-
+                            <FiInfo size={14} />
                             {
                               errors.stock_quantity
                             }
@@ -4121,29 +4641,34 @@ const AddProductModal: React.FC<
                         </label>
 
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
                           value={
                             lowStockThreshold
                           }
                           onChange={(
                             e
-                          ) =>
-                            setLowStockThreshold(
-                              e
-                                .target
-                                .value
-                            )
-                          }
+                          ) => {
+                            const val =
+                              e.target
+                                .value;
+
+                            if (
+                              isValidIntegerInput(
+                                val
+                              )
+                            ) {
+                              setLowStockThreshold(
+                                val
+                              );
+                            }
+                          }}
                           placeholder="10"
                           className="h-12 w-full rounded-lg border border-gray-300 px-4 text-sm outline-none transition-all focus:border-black focus:ring-2 focus:ring-black/10"
                         />
 
                         <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                          <FiInfo
-                            size={12}
-                          />
-
+                          <FiInfo size={12} />
                           You'll be notified when stock falls below this number
                         </p>
                       </div>
@@ -4184,8 +4709,7 @@ const AddProductModal: React.FC<
                           e
                         ) =>
                           setIsPublished(
-                            e
-                              .target
+                            e.target
                               .checked
                           )
                         }
@@ -4198,9 +4722,7 @@ const AddProductModal: React.FC<
             </form>
           </div>
 
-          {/* =================================================
-              FOOTER
-          ================================================= */}
+          {/* FOOTER */}
 
           <div className="flex flex-shrink-0 justify-end gap-3 rounded-b-2xl border-t border-gray-200 bg-white px-6 py-4">
             <button

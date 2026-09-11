@@ -36,6 +36,7 @@ import SubCategories from "@/pages/Inventory/SubCategories";
 
 import ScrollToTop from "../ScrollToTop";
 import TestimonialsManagement from "@/pages/Cms/TestimonialsManagement";
+import CancelRefund from "@/pages/Fiance/CancelRefund";
 
 const ScrollLayout = () => {
   return (
@@ -198,6 +199,12 @@ export const router = createBrowserRouter(
             {
               path: "cms/TestimonialsManagement",
               element: <TestimonialsManagement />,
+            },
+
+            
+            {
+              path: "Fiance/CancelRefund",
+              element: <CancelRefund />,
             },
 
 
