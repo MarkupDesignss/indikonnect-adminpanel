@@ -141,6 +141,10 @@ export interface Product {
   // Reviews
   reviews_summary: ReviewsSummary;
 
+  // Commission & Waiting
+  commission_value: number;
+  waiting_value: number;
+
   created_at: string;
   updated_at: string;
 }
@@ -205,6 +209,10 @@ export interface ProductPayload {
   distributor_mrp: number;
   distributor_discount_type: DiscountType;
   distributor_discount_value: number;
+
+  // Commission & Waiting
+  commission_value: number;
+  waiting_value: number;
 
   product_images?: ProductImagePayload[];
   variants?: ProductVariantPayload[];

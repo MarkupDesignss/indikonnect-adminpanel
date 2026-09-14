@@ -1,3 +1,4 @@
+
 import React, {
   useEffect,
   useMemo,
@@ -132,10 +133,6 @@ const Products: React.FC = () => {
     setSelectedProduct,
   ] = useState<Product | null>(null);
 
-  // ===================================================
-  // GET PRODUCT FROM HEADER NAVIGATION STATE
-  // ===================================================
-
   const productFromHeader =
     location.state?.product as
       | Product
@@ -153,9 +150,13 @@ const Products: React.FC = () => {
         await productApi.getProducts();
 
       const productData =
-        response.data?.data ?? [];
+        response?.data?.data ?? [];
 
-      setProducts(productData);
+      setProducts(
+        Array.isArray(productData)
+          ? productData
+          : []
+      );
     } catch (error: any) {
       console.error(
         "Fetch products error:",
@@ -176,158 +177,118 @@ const Products: React.FC = () => {
   // FETCH PRODUCT DETAILS
   // ===================================================
 
-  const fetchProductDetails =
-    async (
-      productId: number
-    ) => {
-      try {
-        setFetchingProduct(true);
+  const fetchProductDetails = async (
+    productId: number
+  ) => {
+    try {
+      setFetchingProduct(true);
 
-        const response =
-          await productApi.getProductById(
-            productId
+      const response =
+        await productApi.getProductById(
+          productId
+        );
+
+      console.log(
+        "EDIT PRODUCT API RESPONSE:",
+        response?.data
+      );
+
+      /*
+       * Supports:
+       *
+       * response.data.data.data
+       * response.data.data
+       * response.data.product
+       * response.data
+       */
+
+      const rawProduct =
+        response?.data?.data?.data ??
+        response?.data?.data ??
+        response?.data?.product ??
+        response?.data;
+
+      if (
+        !rawProduct ||
+        typeof rawProduct !== "object"
+      ) {
+        return null;
+      }
+
+      // =================================================
+      // NORMALIZE SUBCATEGORY ID
+      // =================================================
+
+      /*
+       * API can return subcategory in different formats:
+       *
+       * subcategory_id
+       * sub_category_id
+       * subcategory.id
+       * sub_category.id
+       */
+
+      let normalizedSubcategoryId:
+        | number
+        | null = null;
+
+      const possibleSubcategoryId =
+        rawProduct?.subcategory_id ??
+        rawProduct?.sub_category_id ??
+        rawProduct?.subcategory?.id ??
+        rawProduct?.sub_category?.id;
+
+      if (
+        possibleSubcategoryId !==
+          undefined &&
+        possibleSubcategoryId !== null &&
+        possibleSubcategoryId !== ""
+      ) {
+        const parsedId =
+          Number(
+            possibleSubcategoryId
           );
 
-        console.log(
-          "EDIT PRODUCT API RESPONSE:",
-          response.data
-        );
-
-        /*
-         * Supports:
-         *
-         * response.data.data
-         * response.data.data.data
-         * response.data.product
-         * response.data
-         */
-
-        const product =
-          response?.data?.data?.data ??
-          response?.data?.data ??
-          response?.data?.product ??
-          response?.data;
-
-        console.log(
-          "NORMALIZED EDIT PRODUCT:",
-          product
-        );
-
-        console.log(
-          "RETAIL DISCOUNT:",
-          product?.retail_discount_value
-        );
-
-        console.log(
-          "DISTRIBUTOR DISCOUNT:",
-          product?.distributor_discount_value
-        );
-
-        return product;
-      } catch (error: any) {
-        console.error(
-          "Fetch product details error:",
-          error
-        );
-
-        toast.error(
-          error?.response?.data?.message ||
-            error?.message ||
-            "Unable to fetch product details."
-        );
-
-        return null;
-      } finally {
-        setFetchingProduct(false);
+        if (!Number.isNaN(parsedId)) {
+          normalizedSubcategoryId =
+            parsedId;
+        }
       }
-    };
 
-  // ===================================================
-  // FETCH CATEGORIES
-  // ===================================================
+      // =================================================
+      // NORMALIZE PRODUCT
+      // =================================================
 
-  const fetchCategories =
-    async () => {
-      try {
-        const response =
-          await productApi.getCategories();
+      const product = {
+        ...rawProduct,
 
-        const data =
-          response.data?.data || [];
+        subcategory_id:
+          normalizedSubcategoryId,
+      };
 
-        setCategories(
-          data.map(
-            (item: any) => ({
-              value: item.id,
-              label: item.name,
-            })
-          )
-        );
-      } catch (error) {
-        console.error(
-          "Fetch categories error:",
-          error
-        );
-      }
-    };
+      console.log(
+        "NORMALIZED PRODUCT:",
+        product
+      );
 
-  // ===================================================
-  // FETCH TAX CATEGORIES
-  // ===================================================
+      return product as Product;
+    } catch (error: any) {
+      console.error(
+        "Fetch product details error:",
+        error
+      );
 
-  const fetchTaxCategories =
-    async () => {
-      try {
-        const response =
-          await productApi.getTaxCategories();
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to fetch product details."
+      );
 
-        const data =
-          response.data?.data || [];
-
-        setTaxCategories(
-          data.map(
-            (item: any) => ({
-              value: item.id,
-              label: item.name,
-            })
-          )
-        );
-      } catch (error) {
-        console.error(
-          "Fetch tax categories error:",
-          error
-        );
-      }
-    };
-
-  // ===================================================
-  // FETCH BRANDS
-  // ===================================================
-
-  const fetchBrands =
-    async () => {
-      try {
-        const response =
-          await productApi.getBrands();
-
-        const data =
-          response.data?.data || [];
-
-        setBrands(
-          data.map(
-            (item: any) => ({
-              value: item.id,
-              label: item.name,
-            })
-          )
-        );
-      } catch (error) {
-        console.error(
-          "Fetch brands error:",
-          error
-        );
-      }
-    };
+      return null;
+    } finally {
+      setFetchingProduct(false);
+    }
+  };
 
   // ===================================================
   // INITIAL FETCH
@@ -335,13 +296,10 @@ const Products: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-    fetchCategories();
-    fetchTaxCategories();
-    fetchBrands();
   }, []);
 
   // ===================================================
-  // HANDLE PRODUCT FROM HEADER
+  // HEADER PRODUCT
   // ===================================================
 
   useEffect(() => {
@@ -393,7 +351,6 @@ const Products: React.FC = () => {
       return products.filter(
         (product: any) => {
           // PRODUCT ID
-
           if (
             !isNaN(Number(query)) &&
             product.id ===
@@ -403,7 +360,6 @@ const Products: React.FC = () => {
           }
 
           // NAME
-
           if (
             product.name
               ?.toLowerCase()
@@ -413,7 +369,6 @@ const Products: React.FC = () => {
           }
 
           // PRODUCT CODE
-
           if (
             product.product_code
               ?.toLowerCase()
@@ -423,7 +378,6 @@ const Products: React.FC = () => {
           }
 
           // SLUG
-
           if (
             product.slug
               ?.toLowerCase()
@@ -433,7 +387,6 @@ const Products: React.FC = () => {
           }
 
           // DESCRIPTION
-
           if (
             product.description
               ?.toLowerCase()
@@ -443,7 +396,6 @@ const Products: React.FC = () => {
           }
 
           // SKU
-
           if (
             product.sku
               ?.toLowerCase()
@@ -453,7 +405,6 @@ const Products: React.FC = () => {
           }
 
           // CATEGORY
-
           if (
             product.category?.name
               ?.toLowerCase()
@@ -462,8 +413,16 @@ const Products: React.FC = () => {
             return true;
           }
 
-          // BRAND
+          // SUBCATEGORY
+          if (
+            product.subcategory?.name
+              ?.toLowerCase()
+              .includes(query)
+          ) {
+            return true;
+          }
 
+          // BRAND
           if (
             product.brand?.name
               ?.toLowerCase()
@@ -473,7 +432,6 @@ const Products: React.FC = () => {
           }
 
           // PRICE
-
           if (
             product.price
               ?.toString()
@@ -483,7 +441,6 @@ const Products: React.FC = () => {
           }
 
           // STATUS
-
           if (
             product.status
               ?.toLowerCase()
@@ -492,7 +449,9 @@ const Products: React.FC = () => {
             return true;
           }
 
-          // PUBLISHED STATUS SEARCH
+          // =================================================
+          // PUBLISHED STATUS
+          // =================================================
 
           const isPublished =
             product.is_published ===
@@ -521,23 +480,20 @@ const Products: React.FC = () => {
           }
 
           if (
-            query ===
-              "active" &&
+            query === "active" &&
             isPublished
           ) {
             return true;
           }
 
           if (
-            query ===
-              "inactive" &&
+            query === "inactive" &&
             !isPublished
           ) {
             return true;
           }
 
           // RAW PUBLISH VALUE
-
           if (
             String(
               product.is_published
@@ -595,10 +551,11 @@ const Products: React.FC = () => {
       ITEMS_PER_PAGE
   );
 
-  const safeTotalPages = Math.max(
-    totalPages,
-    1
-  );
+  const safeTotalPages =
+    Math.max(
+      totalPages,
+      1
+    );
 
   const startIndex =
     (currentPage - 1) *
@@ -617,14 +574,15 @@ const Products: React.FC = () => {
       ? 0
       : startIndex + 1;
 
-  const endEntry = Math.min(
-    startIndex +
-      ITEMS_PER_PAGE,
-    filteredProducts.length
-  );
+  const endEntry =
+    Math.min(
+      startIndex +
+        ITEMS_PER_PAGE,
+      filteredProducts.length
+    );
 
   // ===================================================
-  // KEEP CURRENT PAGE VALID
+  // KEEP PAGE VALID
   // ===================================================
 
   useEffect(() => {
@@ -929,29 +887,13 @@ const Products: React.FC = () => {
   ) => {
     if (
       page < 1 ||
-      page > totalPages
+      page > safeTotalPages
     ) {
       return;
     }
 
     setCurrentPage(page);
   };
-
-  // ===================================================
-  // REFRESH
-  // ===================================================
-
-  const handleRefresh =
-    async () => {
-      await Promise.all([
-        fetchProducts(),
-        fetchCategories(),
-        fetchTaxCategories(),
-        fetchBrands(),
-      ]);
-
-      setCurrentPage(1);
-    };
 
   // ===================================================
   // RENDER
@@ -971,11 +913,11 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={itemVariants}
+        variants={
+          itemVariants
+        }
         className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
       >
-        {/* LEFT */}
-
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
@@ -990,9 +932,10 @@ const Products: React.FC = () => {
           </h1>
 
           <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
-            Manage your products, pricing,
-            inventory, and product
-            information from one place.
+            Manage your products,
+            pricing, inventory, and
+            product information from
+            one place.
           </p>
         </div>
 
@@ -1042,7 +985,9 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={itemVariants}
+        variants={
+          itemVariants
+        }
         className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
       >
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
@@ -1122,7 +1067,9 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={itemVariants}
+        variants={
+          itemVariants
+        }
         className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
       >
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
@@ -1236,7 +1183,10 @@ const Products: React.FC = () => {
         }
       >
         <AddProductModal
-          key={`edit-product-${selectedProduct?.id ?? "new"}`}
+          key={`edit-product-${
+            selectedProduct?.id ??
+            "new"
+          }`}
           open={
             editModalOpen
           }

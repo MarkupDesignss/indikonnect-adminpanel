@@ -207,7 +207,6 @@ export interface AllCancellationResponse {
     to: number | null;
     total: number;
 
-    // Optional summary fields (if backend adds them)
     pending?: number;
     approved?: number;
     rejected?: number;
@@ -238,8 +237,6 @@ export interface CancellationActionResponse {
 export const cancellationApi = {
   /**
    * GET /admin/cancellation-requests
-   *
-   * Get all cancellation requests
    */
   getAll: (
     page?: number,
@@ -273,8 +270,6 @@ export const cancellationApi = {
 
   /**
    * GET /admin/cancellation-requests/:orderLineId
-   *
-   * Get single cancellation request
    */
   getById: (orderLineId: number) =>
     apiClient.get<SingleCancellationResponse>(
@@ -284,26 +279,33 @@ export const cancellationApi = {
   /**
    * POST /admin/cancellation-requests/:orderLineId/approve
    *
-   * Approve cancellation request
+   * Payload:
+   * {
+   *   refund_amount: number,   // required
+   *   amount?: number,         // optional (defaults to refund_amount)
+   *   user_id?: number,        // optional (customer id)
+   *   admin_notes?: string     // optional
+   * }
    */
-  approve: (orderLineId: number, admin_notes?: string) =>
+  approve: (
+    orderLineId: number,
+    payload: {
+      refund_amount: number;
+      admin_notes?: string;
+    }
+  ) =>
     apiClient.post<CancellationActionResponse>(
       `/admin/cancellation-requests/${orderLineId}/approve`,
-      admin_notes?.trim()
-        ? { admin_notes: admin_notes.trim() }
-        : {}
+      {
+        refund_amount: payload.refund_amount,
+        ...(payload.admin_notes?.trim() && {
+          admin_notes: payload.admin_notes.trim(),
+        }),
+      }
     ),
 
   /**
    * POST /admin/cancellation-requests/:orderLineId/reject
-   *
-   * Reject cancellation request
-   *
-   * Payload:
-   * {
-   *   rejection_reason: string,   // required, from popup
-   *   admin_notes?: string        // optional
-   * }
    */
   reject: (
     orderLineId: number,
@@ -322,8 +324,6 @@ export const cancellationApi = {
 
   /**
    * POST /admin/cancellation-requests/:orderLineId/pay
-   *
-   * Pay / refund cancellation amount
    */
   pay: (orderLineId: number, amount: number) =>
     apiClient.post<CancellationActionResponse>(

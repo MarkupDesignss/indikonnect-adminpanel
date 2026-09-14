@@ -394,7 +394,7 @@ interface PayPopupProps {
   defaultAmount: number;
   loading: boolean;
   onClose: () => void;
-  onConfirm: (amount: number) => void;
+  onConfirm: (amount: number, adminNotes: string) => void;
 }
 
 const PayPopup: React.FC<PayPopupProps> = ({
@@ -408,6 +408,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
   onConfirm,
 }) => {
   const [amount, setAmount] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -416,6 +417,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
           ? defaultAmount.toFixed(2)
           : ""
       );
+      setAdminNotes("");
     }
   }, [open, defaultAmount]);
 
@@ -484,15 +486,6 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 {customerName}
               </span>
             </div>
-
-            <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
-              <span className="text-xs text-[#9AA29C]">
-                Order Line ID
-              </span>
-              <span className="text-right text-sm font-semibold text-[#202721]">
-                {orderLineId || "—"}
-              </span>
-            </div>
           </div>
 
           <div>
@@ -518,6 +511,24 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 className="w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] py-3 pl-9 pr-4 text-base font-bold text-[#202721] outline-none transition focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15 disabled:opacity-60"
               />
             </div>
+          </div>
+
+          {/* Admin Notes Field */}
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Admin Notes (Optional)
+            </label>
+
+            <textarea
+              value={adminNotes}
+              onChange={(e) =>
+                setAdminNotes(e.target.value)
+              }
+              rows={3}
+              placeholder="Add any internal notes..."
+              disabled={loading}
+              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15 disabled:opacity-60"
+            />
           </div>
 
           <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-4">
@@ -551,7 +562,9 @@ const PayPopup: React.FC<PayPopupProps> = ({
           <button
             type="button"
             disabled={loading || !isValid}
-            onClick={() => onConfirm(numericAmount)}
+            onClick={() =>
+              onConfirm(numericAmount, adminNotes.trim())
+            }
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
@@ -686,7 +699,6 @@ const CancellationDetailModal: React.FC<
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
-        {/* HEADER */}
         <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4 sm:px-6">
           <div>
             <div className="mb-1 flex items-center gap-2">
@@ -728,9 +740,7 @@ const CancellationDetailModal: React.FC<
           </button>
         </div>
 
-        {/* BODY */}
         <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          {/* SUMMARY */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
@@ -771,7 +781,6 @@ const CancellationDetailModal: React.FC<
             </div>
           </div>
 
-          {/* CUSTOMER + ORDER */}
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
               <div className="mb-4 flex items-center gap-3">
@@ -856,7 +865,6 @@ const CancellationDetailModal: React.FC<
             </div>
           </div>
 
-          {/* ITEM */}
           <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2D8]">
             <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
               <div className="flex items-center gap-3">
@@ -944,7 +952,6 @@ const CancellationDetailModal: React.FC<
             </div>
           </div>
 
-          {/* AMOUNT SUMMARY */}
           <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
@@ -996,7 +1003,7 @@ const CancellationDetailModal: React.FC<
             </div>
           </div>
 
-          {/* TIMELINE */}
+          {/* ================= CANCELLATION TIMELINE (ONLY REQUESTED) ================= */}
           <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
@@ -1013,7 +1020,6 @@ const CancellationDetailModal: React.FC<
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
                     <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
                   </div>
-                  <div className="h-10 w-px bg-[#D8E2D8]" />
                 </div>
                 <div className="pt-1">
                   <p className="text-sm font-bold text-[#202721]">
@@ -1021,81 +1027,15 @@ const CancellationDetailModal: React.FC<
                   </p>
                   <p className="mt-1 text-xs text-[#9AA29C]">
                     {formatDate(
-                      raw.created_at ||
-                        raw.cancellation_requested_at
+                      raw.cancellation_requested_at ||
+                        raw.created_at
                     )}
                   </p>
                 </div>
               </div>
-
-              {raw.approved_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    </div>
-                    <div className="h-10 w-px bg-[#D8E2D8]" />
-                  </div>
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#202721]">
-                      Cancellation Approved
-                    </p>
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(raw.approved_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {raw.rejected_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-50">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#C23B32]" />
-                    </div>
-                  </div>
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#C23B32]">
-                      Cancellation Rejected
-                    </p>
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(raw.rejected_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {raw.paid_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                    </div>
-                  </div>
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#163F20]">
-                      Payment Completed
-                    </p>
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(raw.paid_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {status === "rejected" &&
-                raw.rejection_reason && (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#C23B32]">
-                      Rejection Reason
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-[#8b3a34]">
-                      {raw.rejection_reason}
-                    </p>
-                  </div>
-                )}
             </div>
           </div>
+          {/* ================= END TIMELINE ================= */}
 
           {raw.admin_notes && (
             <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
@@ -1109,7 +1049,6 @@ const CancellationDetailModal: React.FC<
           )}
         </div>
 
-        {/* FOOTER */}
         <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
@@ -1413,7 +1352,8 @@ const CancelRefund: React.FC = () => {
   };
 
   const handleApproveWithPay = async (
-    amount: number
+    amount: number,
+    adminNotes: string
   ) => {
     const orderLineId =
       selectedPayRequest?.order_line_id;
@@ -1437,7 +1377,13 @@ const CancelRefund: React.FC = () => {
       });
 
       const response =
-        await cancellationApi.approve(orderLineId);
+        await cancellationApi.approve(
+          orderLineId,
+          {
+            refund_amount: amount,
+            admin_notes: adminNotes || undefined,
+          }
+        );
 
       if (response.data.success) {
         toast.success(
@@ -1577,7 +1523,6 @@ const CancelRefund: React.FC = () => {
         animate="visible"
         className="w-full p-4"
       >
-        {/* HEADER */}
         <motion.div
           variants={itemVariants}
           className="mb-6"
@@ -1616,7 +1561,6 @@ const CancelRefund: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* STATS */}
         <motion.div
           variants={itemVariants}
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
@@ -1647,7 +1591,6 @@ const CancelRefund: React.FC = () => {
           />
         </motion.div>
 
-        {/* SEARCH + FILTER */}
         <motion.div
           variants={itemVariants}
           className="mb-5 overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-sm"
@@ -1712,12 +1655,10 @@ const CancelRefund: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* TABLE */}
         <motion.div
           variants={itemVariants}
           className="overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-sm"
         >
-          {/* DESKTOP */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1050px]">
               <thead>
@@ -1922,7 +1863,6 @@ const CancelRefund: React.FC = () => {
             </table>
           </div>
 
-          {/* MOBILE */}
           <div className="block lg:hidden">
             {paginatedRequests.length > 0 ? (
               paginatedRequests.map((request, index) => {
@@ -2071,7 +2011,6 @@ const CancelRefund: React.FC = () => {
             )}
           </div>
 
-          {/* PAGINATION */}
           {filteredRequests.length > 0 && (
             <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
@@ -2137,7 +2076,6 @@ const CancelRefund: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* DETAIL MODAL */}
       <CancellationDetailModal
         open={detailModalOpen}
         detail={selectedDetail}
@@ -2155,7 +2093,6 @@ const CancelRefund: React.FC = () => {
         }}
       />
 
-      {/* REJECT MODAL */}
       <RejectPopup
         open={rejectModalOpen}
         loading={actionLoading.type === "reject"}
@@ -2163,7 +2100,6 @@ const CancelRefund: React.FC = () => {
         onConfirm={handleReject}
       />
 
-      {/* PAY MODAL (on Approve) */}
       <PayPopup
         open={payModalOpen}
         orderLineId={
