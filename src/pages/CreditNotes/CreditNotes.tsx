@@ -1,11 +1,6 @@
-
 "use client";
 
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   FiCalendar,
@@ -50,30 +45,19 @@ const DANGER = "#C23B32";
 // =====================================================
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-    },
+    transition: { staggerChildren: 0.04 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 12,
-  },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 16,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 16 },
   },
 };
 
@@ -83,36 +67,30 @@ const itemVariants = {
 
 // Used for on-screen UI.
 const formatAmount = (
-  value: string | number | null | undefined
+  value: string | number | null | undefined,
 ) => {
   const amount = Number(value ?? 0);
 
-  return `₹${
-  amount.toLocaleString("en-IN", {
+  return `₹${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
-} `;
+  })}`;
 };
 
 // Used only inside the PDF.
 // jsPDF built-in Helvetica does not support ₹ reliably.
 const formatAmountPdf = (
-  value: string | number | null | undefined
+  value: string | number | null | undefined,
 ) => {
   const amount = Number(value ?? 0);
 
-  return `Rs.${
-  amount.toLocaleString("en-IN", {
+  return `Rs.${amount.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
-} `;
+  })}`;
 };
 
-const formatDate = (
-  value?: string | null
-) => {
+const formatDate = (value?: string | null) => {
   if (!value) {
     return "—";
   }
@@ -123,19 +101,14 @@ const formatDate = (
     return value;
   }
 
-  return date.toLocaleDateString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  );
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 };
 
-const formatDateTime = (
-  value?: string | null
-) => {
+const formatDateTime = (value?: string | null) => {
   if (!value) {
     return "—";
   }
@@ -146,35 +119,26 @@ const formatDateTime = (
     return value;
   }
 
-  return date.toLocaleString(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
-const capitalize = (
-  value?: string | null
-) => {
+const capitalize = (value?: string | null) => {
   if (!value) {
     return "—";
   }
 
   return value
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) =>
-      char.toUpperCase()
-    );
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const getReasonClass = (
-  reason?: string
-) => {
+const getReasonClass = (reason?: string) => {
   switch (reason?.toLowerCase()) {
     case "return":
       return "border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20]";
@@ -188,27 +152,18 @@ const getReasonClass = (
   }
 };
 
-const getBuyerInitials = (
-  name?: string
-) => {
+const getBuyerInitials = (name?: string) => {
   if (!name || name === "Unknown") {
     return "CN";
   }
 
-  const parts = name
-    .trim()
-    .split(/\s+/);
+  const parts = name.trim().split(/\s+/);
 
   if (parts.length === 1) {
-    return parts[0]
-      .slice(0, 2)
-      .toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
   }
 
-  return (
-    parts[0][0] +
-    parts[1][0]
-  ).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 };
 
 // =====================================================
@@ -222,9 +177,7 @@ interface CreditNoteViewModalProps {
   onDownload: (note: CreditNote) => void;
 }
 
-const CreditNoteViewModal: React.FC<
-  CreditNoteViewModalProps
-> = ({
+const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   open,
   note,
   onClose,
@@ -258,9 +211,7 @@ const CreditNoteViewModal: React.FC<
               </p>
 
               <h2 className="mt-0.5 text-lg font-semibold text-[#202721]">
-                {
-                  note.credit_note_number
-                }
+                {note.credit_note_number}
               </h2>
             </div>
           </div>
@@ -284,9 +235,7 @@ const CreditNoteViewModal: React.FC<
               </p>
 
               <p className="mt-1 text-sm font-bold text-[#202721]">
-                {
-                  note.original_invoice_number
-                }
+                {note.original_invoice_number}
               </p>
             </div>
 
@@ -296,15 +245,11 @@ const CreditNoteViewModal: React.FC<
               </p>
 
               <span
-                className={`mt - 1.5 inline - flex rounded - full border px - 2.5 py - 1 text - [9px] font - bold ${
-  getReasonClass(
-    note.reason
-  )
-} `}
+                className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getReasonClass(
+                  note.reason,
+                )}`}
               >
-                {capitalize(
-                  note.reason
-                )}
+                {capitalize(note.reason)}
               </span>
             </div>
 
@@ -314,9 +259,7 @@ const CreditNoteViewModal: React.FC<
               </p>
 
               <p className="mt-1 text-lg font-bold text-[#163F20]">
-                {formatAmount(
-                  note.amount
-                )}
+                {formatAmount(note.amount)}
               </p>
             </div>
           </div>
@@ -325,9 +268,7 @@ const CreditNoteViewModal: React.FC<
           <div className="mt-4 rounded-xl border border-[#D8E2D8] bg-white p-4">
             <div className="mb-4 flex items-center gap-3 border-b border-[#D8E2D8] pb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
-                {getBuyerInitials(
-                  note.buyer_name
-                )}
+                {getBuyerInitials(note.buyer_name)}
               </div>
 
               <div>
@@ -348,8 +289,7 @@ const CreditNoteViewModal: React.FC<
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-[#202721]">
-                  {note.buyer_name ||
-                    "Unknown"}
+                  {note.buyer_name || "Unknown"}
                 </p>
               </div>
 
@@ -359,8 +299,7 @@ const CreditNoteViewModal: React.FC<
                 </p>
 
                 <p className="mt-1 break-all text-sm font-semibold text-[#202721]">
-                  {note.buyer_email ||
-                    "—"}
+                  {note.buyer_email || "—"}
                 </p>
               </div>
 
@@ -370,8 +309,7 @@ const CreditNoteViewModal: React.FC<
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-[#202721]">
-                  {note.buyer_state ||
-                    "—"}
+                  {note.buyer_state || "—"}
                 </p>
               </div>
 
@@ -381,8 +319,7 @@ const CreditNoteViewModal: React.FC<
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-[#202721]">
-                  {note.buyer_gstin ||
-                    "—"}
+                  {note.buyer_gstin || "—"}
                 </p>
               </div>
             </div>
@@ -396,13 +333,8 @@ const CreditNoteViewModal: React.FC<
               </h3>
 
               <p className="mt-0.5 text-[10px] text-[#9AA29C]">
-                {note.items?.length ||
-                  0}{" "}
-                item
-                {note.items?.length ===
-                1
-                  ? ""
-                  : "s"}
+                {note.items?.length || 0} item
+                {note.items?.length === 1 ? "" : "s"}
               </p>
             </div>
 
@@ -433,53 +365,38 @@ const CreditNoteViewModal: React.FC<
                 </thead>
 
                 <tbody>
-                  {(note.items || []).map(
-                    (item) => (
-                      <tr
-                        key={`${ item.order_line_id } -${ item.product_id } `}
-                        className="border-t border-[#D8E2D8]"
-                      >
-                        <td className="px-4 py-3">
-                          <p className="text-xs font-semibold text-[#202721]">
-                            {
-                              item.product_name
-                            }
-                          </p>
+                  {(note.items || []).map((item) => (
+                    <tr
+                      key={`${item.order_line_id}-${item.product_id}`}
+                      className="border-t border-[#D8E2D8]"
+                    >
+                      <td className="px-4 py-3">
+                        <p className="text-xs font-semibold text-[#202721]">
+                          {item.product_name}
+                        </p>
 
-                          <p className="mt-0.5 font-mono text-[9px] text-[#9AA29C]">
-                            Code:{" "}
-                            {item.product_code ||
-                              "—"}
-                          </p>
-                        </td>
+                        <p className="mt-0.5 font-mono text-[9px] text-[#9AA29C]">
+                          Code: {item.product_code || "—"}
+                        </p>
+                      </td>
 
-                        <td className="px-4 py-3 text-center text-xs font-semibold text-[#59645C]">
-                          {
-                            item.quantity
-                          }
-                        </td>
+                      <td className="px-4 py-3 text-center text-xs font-semibold text-[#59645C]">
+                        {item.quantity}
+                      </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
-                          {formatAmount(
-                            item.taxable_value
-                          )}
-                        </td>
+                      <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
+                        {formatAmount(item.taxable_value)}
+                      </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
-                          {
-                            item.gst_rate
-                          }
-                          %
-                        </td>
+                      <td className="px-4 py-3 text-right text-xs font-semibold text-[#59645C]">
+                        {item.gst_rate}%
+                      </td>
 
-                        <td className="px-4 py-3 text-right text-xs font-bold text-[#163F20]">
-                          {formatAmount(
-                            item.line_total
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  )}
+                      <td className="px-4 py-3 text-right text-xs font-bold text-[#163F20]">
+                        {formatAmount(item.line_total)}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -494,50 +411,34 @@ const CreditNoteViewModal: React.FC<
 
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#59645C]">
-                    Taxable Value
-                  </span>
+                  <span className="text-[#59645C]">Taxable Value</span>
 
                   <span className="font-semibold text-[#202721]">
-                    {formatAmount(
-                      note.taxable_value
-                    )}
+                    {formatAmount(note.taxable_value)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#59645C]">
-                    CGST
-                  </span>
+                  <span className="text-[#59645C]">CGST</span>
 
                   <span className="font-semibold text-[#202721]">
-                    {formatAmount(
-                      note.cgst_amount
-                    )}
+                    {formatAmount(note.cgst_amount)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#59645C]">
-                    SGST
-                  </span>
+                  <span className="text-[#59645C]">SGST</span>
 
                   <span className="font-semibold text-[#202721]">
-                    {formatAmount(
-                      note.sgst_amount
-                    )}
+                    {formatAmount(note.sgst_amount)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#59645C]">
-                    IGST
-                  </span>
+                  <span className="text-[#59645C]">IGST</span>
 
                   <span className="font-semibold text-[#202721]">
-                    {formatAmount(
-                      note.igst_amount
-                    )}
+                    {formatAmount(note.igst_amount)}
                   </span>
                 </div>
 
@@ -548,9 +449,7 @@ const CreditNoteViewModal: React.FC<
                     </span>
 
                     <span className="font-bold text-[#163F20]">
-                      {formatAmount(
-                        note.total_gst
-                      )}
+                      {formatAmount(note.total_gst)}
                     </span>
                   </div>
                 </div>
@@ -563,23 +462,15 @@ const CreditNoteViewModal: React.FC<
               </p>
 
               <p className="mt-2 text-[28px] font-bold tracking-tight text-[#163F20]">
-                {formatAmount(
-                  note.amount
-                )}
+                {formatAmount(note.amount)}
               </p>
 
               <div className="mt-4 border-t border-[#4C8A57]/15 pt-3">
                 <div className="flex items-center gap-2">
-                  <FiCalendar
-                    size={13}
-                    className="text-[#4C8A57]"
-                  />
+                  <FiCalendar size={13} className="text-[#4C8A57]" />
 
                   <span className="text-[10px] font-semibold text-[#59645C]">
-                    Issued{" "}
-                    {formatDate(
-                      note.issued_at
-                    )}
+                    Issued {formatDate(note.issued_at)}
                   </span>
                 </div>
               </div>
@@ -599,9 +490,7 @@ const CreditNoteViewModal: React.FC<
 
           <button
             type="button"
-            onClick={() =>
-              onDownload(note)
-            }
+            onClick={() => onDownload(note)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
           >
             <FiDownload size={15} />
@@ -618,50 +507,25 @@ const CreditNoteViewModal: React.FC<
 // =====================================================
 
 const CreditNotes: React.FC = () => {
-  const [
-    creditNotes,
-    setCreditNotes,
-  ] = useState<CreditNote[]>([]);
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [
-    reasonFilter,
-    setReasonFilter,
-  ] = useState<
+  const [reasonFilter, setReasonFilter] = useState<
     "all" | "return" | "other"
   >("all");
 
-  const [
-    currentPage,
-    setCurrentPage,
-  ] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [
-    lastPage,
-    setLastPage,
-  ] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
-  const [
-    totalRecords,
-    setTotalRecords,
-  ] = useState(0);
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  const [
-    selectedNote,
-    setSelectedNote,
-  ] = useState<CreditNote | null>(
-    null
-  );
+  const [selectedNote, setSelectedNote] = useState<CreditNote | null>(null);
 
-  const [
-    viewOpen,
-    setViewOpen,
-  ] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
 
   const ITEMS_PER_PAGE = 20;
 
@@ -669,56 +533,33 @@ const CreditNotes: React.FC = () => {
   // FETCH
   // ===================================================
 
-  const fetchCreditNotes = async (
-    page = currentPage
-  ) => {
+  const fetchCreditNotes = async (page = currentPage) => {
     try {
       setLoading(true);
 
-      const response =
-        await creditNotesApi.getAll(
-          page
-        );
+      const response = await creditNotesApi.getAll(page);
 
-      if (
-        response.data.success
-      ) {
-        const pagination =
-          response.data.data;
+      if (response.data.success) {
+        const pagination = response.data.data;
 
-        setCreditNotes(
-          pagination?.data || []
-        );
+        setCreditNotes(pagination?.data || []);
 
-        setCurrentPage(
-          pagination?.current_page ||
-            page
-        );
+        setCurrentPage(pagination?.current_page || page);
 
-        setLastPage(
-          pagination?.last_page ||
-            1
-        );
+        setLastPage(pagination?.last_page || 1);
 
-        setTotalRecords(
-          pagination?.total || 0
-        );
+        setTotalRecords(pagination?.total || 0);
       } else {
         toast.error(
-          response.data.message ||
-            "Unable to fetch credit notes."
+          response.data.message || "Unable to fetch credit notes.",
         );
       }
     } catch (error: any) {
-      console.error(
-        "Fetch credit notes error:",
-        error
-      );
+      console.error("Fetch credit notes error:", error);
 
       toast.error(
-        error?.response?.data
-          ?.message ||
-          "Unable to fetch credit notes."
+        error?.response?.data?.message ||
+          "Unable to fetch credit notes.",
       );
     } finally {
       setLoading(false);
@@ -739,61 +580,38 @@ const CreditNotes: React.FC = () => {
   // FILTER
   // ===================================================
 
-  const filteredCreditNotes =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredCreditNotes = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      return creditNotes.filter(
-        (note) => {
-          const matchesSearch =
-            !query ||
-            [
-              note.credit_note_number,
-              note.original_invoice_number,
-              note.buyer_name,
-              note.buyer_email,
-              String(note.id),
-              String(note.order_id),
-              note.reason,
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(query);
+    return creditNotes.filter((note) => {
+      const matchesSearch =
+        !query ||
+        [
+          note.credit_note_number,
+          note.original_invoice_number,
+          note.buyer_name,
+          note.buyer_email,
+          String(note.id),
+          String(note.order_id),
+          note.reason,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
 
-          let matchesReason = true;
+      let matchesReason = true;
 
-          if (
-            reasonFilter ===
-            "return"
-          ) {
-            matchesReason =
-              note.reason?.toLowerCase() ===
-              "return";
-          }
+      if (reasonFilter === "return") {
+        matchesReason = note.reason?.toLowerCase() === "return";
+      }
 
-          if (
-            reasonFilter ===
-            "other"
-          ) {
-            matchesReason =
-              note.reason?.toLowerCase() !==
-              "return";
-          }
+      if (reasonFilter === "other") {
+        matchesReason = note.reason?.toLowerCase() !== "return";
+      }
 
-          return (
-            matchesSearch &&
-            matchesReason
-          );
-        }
-      );
-    }, [
-      creditNotes,
-      search,
-      reasonFilter,
-    ]);
+      return matchesSearch && matchesReason;
+    });
+  }, [creditNotes, search, reasonFilter]);
 
   // ===================================================
   // DISPLAY PAGINATION
@@ -802,29 +620,19 @@ const CreditNotes: React.FC = () => {
   const startEntry =
     totalRecords === 0
       ? 0
-      : (currentPage - 1) *
-          ITEMS_PER_PAGE +
-        1;
+      : (currentPage - 1) * ITEMS_PER_PAGE + 1;
 
   const endEntry = Math.min(
-    startEntry +
-      filteredCreditNotes.length -
-      1,
-    totalRecords
+    startEntry + filteredCreditNotes.length - 1,
+    totalRecords,
   );
 
   // ===================================================
   // PAGE CHANGE
   // ===================================================
 
-  const goToPage = (
-    page: number
-  ) => {
-    if (
-      page < 1 ||
-      page > lastPage ||
-      page === currentPage
-    ) {
+  const goToPage = (page: number) => {
+    if (page < 1 || page > lastPage || page === currentPage) {
       return;
     }
 
@@ -835,9 +643,7 @@ const CreditNotes: React.FC = () => {
   // VIEW
   // ===================================================
 
-  const handleView = (
-    note: CreditNote
-  ) => {
+  const handleView = (note: CreditNote) => {
     setSelectedNote(note);
     setViewOpen(true);
   };
@@ -846,17 +652,14 @@ const CreditNotes: React.FC = () => {
   // PDF
   // ===================================================
 
-  const generateCreditNotePdf = (
-    note: CreditNote
-  ) => {
+  const generateCreditNotePdf = (note: CreditNote) => {
     try {
       const doc = new jsPDF({
         unit: "mm",
         format: "a4",
       });
 
-      const pageWidth =
-        doc.internal.pageSize.getWidth();
+      const pageWidth = doc.internal.pageSize.getWidth();
 
       let y = 18;
 
@@ -864,74 +667,37 @@ const CreditNotes: React.FC = () => {
       // HEADER
       // =================================================
 
-      doc.setFillColor(
-        15,
-        50,
-        25
-      );
+      doc.setFillColor(15, 50, 25);
 
-      doc.rect(
-        0,
-        0,
-        pageWidth,
-        31,
-        "F"
-      );
+      doc.rect(0, 0, pageWidth, 31, "F");
 
-      doc.setTextColor(
-        255,
-        255,
-        255
-      );
+      doc.setTextColor(255, 255, 255);
 
       doc.setFontSize(20);
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
+      doc.setFont("helvetica", "bold");
 
-      doc.text(
-        "CREDIT NOTE",
-        15,
-        14
-      );
+      doc.text("CREDIT NOTE", 15, 14);
 
       doc.setFontSize(9);
 
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
+      doc.setFont("helvetica", "normal");
 
-      doc.text(
-        "IndieKonnect",
-        15,
-        22
-      );
+      doc.text("IndieKonnect", 15, 22);
 
       doc.setFontSize(9);
 
-      doc.text(
-        note.credit_note_number,
-        pageWidth - 15,
-        13,
-        {
-          align: "right",
-        }
-      );
+      doc.text(note.credit_note_number, pageWidth - 15, 13, {
+        align: "right",
+      });
 
       doc.text(
-        `Issued: ${
-  formatDate(
-    note.issued_at
-  )
-} `,
+        `Issued: ${formatDate(note.issued_at)}`,
         pageWidth - 15,
         20,
         {
           align: "right",
-        }
+        },
       );
 
       y = 41;
@@ -940,115 +706,51 @@ const CreditNotes: React.FC = () => {
       // BUYER / DOCUMENT
       // =================================================
 
-      doc.setTextColor(
-        32,
-        39,
-        33
-      );
+      doc.setTextColor(32, 39, 33);
 
       doc.setFontSize(11);
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
+      doc.setFont("helvetica", "bold");
 
-      doc.text(
-        "Buyer Details",
-        15,
-        y
-      );
+      doc.text("Buyer Details", 15, y);
 
-      doc.text(
-        "Document Details",
-        112,
-        y
-      );
+      doc.text("Document Details", 112, y);
 
       y += 7;
 
       doc.setFontSize(9);
 
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
+      doc.setFont("helvetica", "normal");
+
+      doc.text(`Name: ${note.buyer_name || "Unknown"}`, 15, y);
 
       doc.text(
-        `Name: ${
-  note.buyer_name ||
-    "Unknown"
-} `,
-        15,
-        y
-      );
-
-      doc.text(
-        `Credit Note: ${
-  note.credit_note_number
-} `,
+        `Credit Note: ${note.credit_note_number}`,
         112,
-        y
+        y,
       );
 
       y += 5;
 
-      doc.text(
-        `Email: ${
-  note.buyer_email ||
-    "—"
-} `,
-        15,
-        y
-      );
+      doc.text(`Email: ${note.buyer_email || "—"}`, 15, y);
 
       doc.text(
-        `Original Invoice: ${
-  note.original_invoice_number
-} `,
+        `Original Invoice: ${note.original_invoice_number}`,
         112,
-        y
+        y,
       );
 
       y += 5;
 
-      doc.text(
-        `State: ${
-  note.buyer_state ||
-    "—"
-} `,
-        15,
-        y
-      );
+      doc.text(`State: ${note.buyer_state || "—"}`, 15, y);
 
-      doc.text(
-        `Order ID: ${
-  note.order_id
-} `,
-        112,
-        y
-      );
+      doc.text(`Order ID: ${note.order_id}`, 112, y);
 
       y += 5;
 
-      doc.text(
-        `GSTIN: ${
-  note.buyer_gstin ||
-    "—"
-} `,
-        15,
-        y
-      );
+      doc.text(`GSTIN: ${note.buyer_gstin || "—"}`, 15, y);
 
-      doc.text(
-        `Reason: ${
-  capitalize(
-    note.reason
-  )
-} `,
-        112,
-        y
-      );
+      doc.text(`Reason: ${capitalize(note.reason)}`, 112, y);
 
       // =================================================
       // DIVIDER
@@ -1056,18 +758,9 @@ const CreditNotes: React.FC = () => {
 
       y += 10;
 
-      doc.setDrawColor(
-        216,
-        226,
-        216
-      );
+      doc.setDrawColor(216, 226, 216);
 
-      doc.line(
-        15,
-        y,
-        pageWidth - 15,
-        y
-      );
+      doc.line(15, y, pageWidth - 15, y);
 
       y += 9;
 
@@ -1077,16 +770,9 @@ const CreditNotes: React.FC = () => {
 
       doc.setFontSize(11);
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
+      doc.setFont("helvetica", "bold");
 
-      doc.text(
-        "Credit Note Items",
-        15,
-        y
-      );
+      doc.text("Credit Note Items", 15, y);
 
       y += 7;
 
@@ -1094,214 +780,86 @@ const CreditNotes: React.FC = () => {
       // TABLE HEADER
       // =================================================
 
-      doc.setFillColor(
-        234,
-        243,
-        234
-      );
+      doc.setFillColor(234, 243, 234);
 
-      doc.rect(
-        15,
-        y - 5,
-        pageWidth - 30,
-        8,
-        "F"
-      );
+      doc.rect(15, y - 5, pageWidth - 30, 8, "F");
 
       doc.setFontSize(8);
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
+      doc.setFont("helvetica", "bold");
 
-      doc.setTextColor(
-        22,
-        63,
-        32
-      );
+      doc.setTextColor(22, 63, 32);
 
-      doc.text(
-        "Product",
-        17,
-        y
-      );
+      doc.text("Product", 17, y);
 
-      doc.text(
-        "Qty",
-        104,
-        y,
-        {
-          align: "center",
-        }
-      );
+      doc.text("Qty", 104, y, { align: "center" });
 
-      doc.text(
-        "Taxable",
-        145,
-        y,
-        {
-          align: "right",
-        }
-      );
+      doc.text("Taxable", 145, y, { align: "right" });
 
-      doc.text(
-        "GST",
-        170,
-        y,
-        {
-          align: "right",
-        }
-      );
+      doc.text("GST", 170, y, { align: "right" });
 
-      doc.text(
-        "Total",
-        pageWidth - 17,
-        y,
-        {
-          align: "right",
-        }
-      );
+      doc.text("Total", pageWidth - 17, y, { align: "right" });
 
       y += 7;
 
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
+      doc.setFont("helvetica", "normal");
 
       // =================================================
       // ITEMS
       // =================================================
 
-      (
-        note.items || []
-      ).forEach((item) => {
-        const productName =
-          item.product_name ||
-          "Product";
+      (note.items || []).forEach((item) => {
+        const productName = item.product_name || "Product";
 
-        const wrapped =
-          doc.splitTextToSize(
-            productName,
-            75
-          );
+        const wrapped = doc.splitTextToSize(productName, 75);
 
-        const rowHeight =
-          Math.max(
-            7,
-            wrapped.length * 4
-          );
+        const rowHeight = Math.max(7, wrapped.length * 4);
 
         // Add new page if needed
-        if (
-          y + rowHeight >
-          275
-        ) {
+        if (y + rowHeight > 275) {
           doc.addPage();
 
           y = 18;
 
-          doc.setFontSize(
-            11
-          );
+          doc.setFontSize(11);
 
-          doc.setFont(
-            "helvetica",
-            "bold"
-          );
+          doc.setFont("helvetica", "bold");
 
-          doc.setTextColor(
-            32,
-            39,
-            33
-          );
+          doc.setTextColor(32, 39, 33);
 
-          doc.text(
-            "Credit Note Items - Continued",
-            15,
-            y
-          );
+          doc.text("Credit Note Items - Continued", 15, y);
 
           y += 9;
         }
 
-        doc.setDrawColor(
-          230,
-          235,
-          230
-        );
+        doc.setDrawColor(230, 235, 230);
 
-        doc.line(
-          15,
-          y +
-            rowHeight -
-            2,
-          pageWidth - 15,
-          y +
-            rowHeight -
-            2
-        );
+        doc.line(15, y + rowHeight - 2, pageWidth - 15, y + rowHeight - 2);
 
         doc.setFontSize(8);
 
-        doc.setFont(
-          "helvetica",
-          "normal"
-        );
+        doc.setFont("helvetica", "normal");
 
-        doc.setTextColor(
-          55,
-          65,
-          57
-        );
+        doc.setTextColor(55, 65, 57);
+
+        doc.text(wrapped, 17, y);
+
+        doc.text(String(item.quantity), 104, y, { align: "center" });
 
         doc.text(
-          wrapped,
-          17,
-          y
-        );
-
-        doc.text(
-          String(
-            item.quantity
-          ),
-          104,
-          y,
-          {
-            align: "center",
-          }
-        );
-
-        doc.text(
-          formatAmountPdf(
-            item.taxable_value
-          ),
+          formatAmountPdf(item.taxable_value),
           145,
           y,
-          {
-            align: "right",
-          }
+          { align: "right" },
         );
 
-        doc.text(
-          `${ item.gst_rate }% `,
-          170,
-          y,
-          {
-            align: "right",
-          }
-        );
+        doc.text(`${item.gst_rate}%`, 170, y, { align: "right" });
 
         doc.text(
-          formatAmountPdf(
-            item.line_total
-          ),
+          formatAmountPdf(item.line_total),
           pageWidth - 17,
           y,
-          {
-            align: "right",
-          }
+          { align: "right" },
         );
 
         y += rowHeight;
@@ -1318,98 +876,37 @@ const CreditNotes: React.FC = () => {
         y = 20;
       }
 
-      doc.setDrawColor(
-        76,
-        138,
-        87
-      );
+      doc.setDrawColor(76, 138, 87);
 
-      doc.line(
-        110,
-        y,
-        pageWidth - 15,
-        y
-      );
+      doc.line(110, y, pageWidth - 15, y);
 
       y += 7;
 
-      const totals = [
-        [
-          "Taxable Value",
-          formatAmountPdf(
-            note.taxable_value
-          ),
-        ],
-        [
-          "CGST",
-          formatAmountPdf(
-            note.cgst_amount
-          ),
-        ],
-        [
-          "SGST",
-          formatAmountPdf(
-            note.sgst_amount
-          ),
-        ],
-        [
-          "IGST",
-          formatAmountPdf(
-            note.igst_amount
-          ),
-        ],
-        [
-          "Total GST",
-          formatAmountPdf(
-            note.total_gst
-          ),
-        ],
+      const totals: Array<[string, string]> = [
+        ["Taxable Value", formatAmountPdf(note.taxable_value)],
+        ["CGST", formatAmountPdf(note.cgst_amount)],
+        ["SGST", formatAmountPdf(note.sgst_amount)],
+        ["IGST", formatAmountPdf(note.igst_amount)],
+        ["Total GST", formatAmountPdf(note.total_gst)],
       ];
 
       doc.setFontSize(9);
 
-      totals.forEach(
-        ([label, value]) => {
-          doc.setFont(
-            "helvetica",
-            "normal"
-          );
+      totals.forEach(([label, value]) => {
+        doc.setFont("helvetica", "normal");
 
-          doc.setTextColor(
-            89,
-            100,
-            92
-          );
+        doc.setTextColor(89, 100, 92);
 
-          doc.text(
-            label,
-            112,
-            y
-          );
+        doc.text(label, 112, y);
 
-          doc.setFont(
-            "helvetica",
-            "bold"
-          );
+        doc.setFont("helvetica", "bold");
 
-          doc.setTextColor(
-            32,
-            39,
-            33
-          );
+        doc.setTextColor(32, 39, 33);
 
-          doc.text(
-            value,
-            pageWidth - 17,
-            y,
-            {
-              align: "right",
-            }
-          );
+        doc.text(value, pageWidth - 17, y, { align: "right" });
 
-          y += 6;
-        }
-      );
+        y += 6;
+      });
 
       y += 3;
 
@@ -1417,129 +914,67 @@ const CreditNotes: React.FC = () => {
       // FINAL AMOUNT
       // =================================================
 
-      doc.setFillColor(
-        234,
-        243,
-        234
-      );
+      doc.setFillColor(234, 243, 234);
 
-      doc.roundedRect(
-        107,
-        y,
-        pageWidth - 122,
-        18,
-        3,
-        3,
-        "F"
-      );
+      doc.roundedRect(107, y, pageWidth - 122, 18, 3, 3, "F");
 
-      doc.setTextColor(
-        22,
-        63,
-        32
-      );
+      doc.setTextColor(22, 63, 32);
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
+      doc.setFont("helvetica", "bold");
 
       doc.setFontSize(9);
 
-      doc.text(
-        "CREDIT NOTE AMOUNT",
-        112,
-        y + 7
-      );
+      doc.text("CREDIT NOTE AMOUNT", 112, y + 7);
 
-      doc.setFontSize(
-        15
-      );
+      doc.setFontSize(15);
 
       doc.text(
-        formatAmountPdf(
-          note.amount
-        ),
+        formatAmountPdf(note.amount),
         pageWidth - 17,
         y + 12,
-        {
-          align: "right",
-        }
+        { align: "right" },
       );
 
       // =================================================
       // FOOTER
       // =================================================
 
-      const footerY =
-        286;
+      const footerY = 286;
 
-      doc.setDrawColor(
-        220,
-        228,
-        220
-      );
+      doc.setDrawColor(220, 228, 220);
 
-      doc.line(
-        15,
-        footerY - 5,
-        pageWidth - 15,
-        footerY - 5
-      );
+      doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
 
-      doc.setFontSize(
-        7.5
-      );
+      doc.setFontSize(7.5);
 
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
+      doc.setFont("helvetica", "normal");
 
-      doc.setTextColor(
-        120,
-        130,
-        122
-      );
+      doc.setTextColor(120, 130, 122);
 
       doc.text(
         "This credit note is generated electronically.",
         15,
-        footerY
+        footerY,
       );
 
       doc.text(
-        `Refund ID: ${
-  note.refund_id ??
-    "—"
-} `,
+        `Refund ID: ${note.refund_id ?? "—"}`,
         pageWidth - 15,
         footerY,
-        {
-          align: "right",
-        }
+        { align: "right" },
       );
 
       // =================================================
       // DOWNLOAD
       // =================================================
 
-      doc.save(
-        `${ note.credit_note_number }.pdf`
-      );
+      doc.save(`${note.credit_note_number}.pdf`);
 
-      toast.success(
-        "Credit note PDF downloaded successfully."
-      );
+      toast.success("Credit note PDF downloaded successfully.");
     } catch (error) {
-      console.error(
-        "Generate credit note PDF error:",
-        error
-      );
+      console.error("Generate credit note PDF error:", error);
 
-      toast.error(
-        "Unable to generate PDF."
-      );
+      toast.error("Unable to generate PDF.");
     }
   };
 
@@ -1547,70 +982,43 @@ const CreditNotes: React.FC = () => {
   // PAGE NUMBERS
   // ===================================================
 
-  const visiblePages =
-    useMemo(() => {
-      if (lastPage <= 5) {
-        return Array.from(
-          {
-            length: lastPage,
-          },
-          (_, index) =>
-            index + 1
-        );
-      }
+  const visiblePages = useMemo(() => {
+    if (lastPage <= 5) {
+      return Array.from({ length: lastPage }, (_, index) => index + 1);
+    }
 
-      if (
-        currentPage <= 3
-      ) {
-        return [
-          1,
-          2,
-          3,
-          4,
-          5,
-        ];
-      }
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
 
-      if (
-        currentPage >=
-        lastPage - 2
-      ) {
-        return [
-          lastPage - 4,
-          lastPage - 3,
-          lastPage - 2,
-          lastPage - 1,
-          lastPage,
-        ];
-      }
-
+    if (currentPage >= lastPage - 2) {
       return [
-        currentPage - 2,
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        currentPage + 2,
+        lastPage - 4,
+        lastPage - 3,
+        lastPage - 2,
+        lastPage - 1,
+        lastPage,
       ];
-    }, [
+    }
+
+    return [
+      currentPage - 2,
+      currentPage - 1,
       currentPage,
-      lastPage,
-    ]);
+      currentPage + 1,
+      currentPage + 2,
+    ];
+  }, [currentPage, lastPage]);
 
   // ===================================================
   // INITIAL LOADING
   // ===================================================
 
-  if (
-    loading &&
-    creditNotes.length === 0
-  ) {
+  if (loading && creditNotes.length === 0) {
     return (
       <div
         className="flex min-h-screen items-center justify-center"
-        style={{
-          backgroundColor:
-            PAGE_BG,
-        }}
+        style={{ backgroundColor: PAGE_BG }}
       >
         <div className="text-center">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#D8E2D8] border-t-[#163F20]" />
@@ -1632,21 +1040,14 @@ const CreditNotes: React.FC = () => {
       <motion.div
         initial="hidden"
         animate="visible"
-        variants={
-          containerVariants
-        }
+        variants={containerVariants}
         className="min-h-screen px-4 py-5 sm:px-6 lg:px-8"
-        style={{
-          backgroundColor:
-            PAGE_BG,
-        }}
+        style={{ backgroundColor: PAGE_BG }}
       >
         <div className="mx-auto max-w-[1500px]">
           {/* PAGE HEADER */}
           <motion.div
-            variants={
-              itemVariants
-            }
+            variants={itemVariants}
             className="mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-center"
           >
             <div>
@@ -1663,41 +1064,29 @@ const CreditNotes: React.FC = () => {
               </h1>
 
               <p className="mt-1.5 text-sm text-[#59645C]">
-                Manage issued credit notes and
-                download customer credit records.
+                Manage issued credit notes and download customer credit
+                records.
               </p>
             </div>
 
             <button
               type="button"
-              onClick={() =>
-                fetchCreditNotes(
-                  currentPage
-                )
-              }
+              onClick={() => fetchCreditNotes(currentPage)}
               disabled={loading}
               className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm font-semibold text-[#163F20] shadow-sm transition hover:border-[#4C8A57] hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={16}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+                className={loading ? "animate-spin" : ""}
               />
 
-              <span className="hidden sm:inline">
-                Refresh
-              </span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </motion.div>
 
           {/* MAIN CARD */}
           <motion.div
-            variants={
-              itemVariants
-            }
+            variants={itemVariants}
             className="overflow-hidden rounded-[22px] border border-[#D8E2D8] bg-white shadow-sm"
           >
             {/* TOP ACCENT */}
@@ -1711,15 +1100,8 @@ const CreditNotes: React.FC = () => {
                 </h2>
 
                 <p className="mt-1 text-xs text-[#9AA29C]">
-                  {totalRecords.toLocaleString(
-                    "en-IN"
-                  )}{" "}
-                  credit note
-                  {totalRecords ===
-                  1
-                    ? ""
-                    : "s"}{" "}
-                  found
+                  {totalRecords.toLocaleString("en-IN")} credit note
+                  {totalRecords === 1 ? "" : "s"} found
                 </p>
               </div>
 
@@ -1734,14 +1116,7 @@ const CreditNotes: React.FC = () => {
                   <input
                     type="text"
                     value={search}
-                    onChange={(
-                      e
-                    ) =>
-                      setSearch(
-                        e.target
-                          .value
-                      )
-                    }
+                    onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search credit note, invoice or buyer..."
                     className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/10"
                   />
@@ -1749,18 +1124,10 @@ const CreditNotes: React.FC = () => {
                   {search && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setSearch(
-                          ""
-                        )
-                      }
+                      onClick={() => setSearch("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] transition hover:text-[#163F20]"
                     >
-                      <FiX
-                        size={
-                          16
-                        }
-                      />
+                      <FiX size={16} />
                     </button>
                   )}
                 </div>
@@ -1768,43 +1135,23 @@ const CreditNotes: React.FC = () => {
                 {/* FILTER */}
                 <div className="flex gap-2">
                   {[
-                    {
-                      key: "all" as const,
-                      label: "All",
-                    },
-                    {
-                      key: "return" as const,
-                      label: "Returns",
-                    },
-                    {
-                      key: "other" as const,
-                      label: "Other",
-                    },
-                  ].map(
-                    (filter) => (
-                      <button
-                        key={
-                          filter.key
-                        }
-                        type="button"
-                        onClick={() =>
-                          setReasonFilter(
-                            filter.key
-                          )
-                        }
-                        className={`rounded - xl px - 4 py - 2.5 text - xs font - bold transition ${
-  reasonFilter ===
-    filter.key
-    ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-sm"
-    : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-} `}
-                      >
-                        {
-                          filter.label
-                        }
-                      </button>
-                    )
-                  )}
+                    { key: "all" as const, label: "All" },
+                    { key: "return" as const, label: "Returns" },
+                    { key: "other" as const, label: "Other" },
+                  ].map((filter) => (
+                    <button
+                      key={filter.key}
+                      type="button"
+                      onClick={() => setReasonFilter(filter.key)}
+                      className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+                        reasonFilter === filter.key
+                          ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-sm"
+                          : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1813,9 +1160,7 @@ const CreditNotes: React.FC = () => {
             <div className="flex flex-col justify-between gap-3 border-b border-[#D8E2D8] px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:px-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                  <FiFileText
-                    size={18}
-                  />
+                  <FiFileText size={18} />
                 </div>
 
                 <div>
@@ -1824,20 +1169,17 @@ const CreditNotes: React.FC = () => {
                   </h3>
 
                   <p className="mt-0.5 text-[11px] text-[#9AA29C]">
-                    Customer refund and return
-                    credit records
+                    Customer refund and return credit records
                   </p>
                 </div>
               </div>
 
               <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
-                {reasonFilter ===
-                "all"
+                {reasonFilter === "all"
                   ? "All Credit Notes"
-                  : reasonFilter ===
-                    "return"
-                  ? "Return Credit Notes"
-                  : "Other Credit Notes"}
+                  : reasonFilter === "return"
+                    ? "Return Credit Notes"
+                    : "Other Credit Notes"}
               </span>
             </div>
 
@@ -1883,16 +1225,11 @@ const CreditNotes: React.FC = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td
-                        colSpan={8}
-                        className="px-5 py-16 text-center"
-                      >
+                      <td colSpan={8} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                             <FiRefreshCw
-                              size={
-                                22
-                              }
+                              size={22}
                               className="animate-spin"
                             />
                           </div>
@@ -1903,20 +1240,12 @@ const CreditNotes: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredCreditNotes.length ===
-                    0 ? (
+                  ) : filteredCreditNotes.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={8}
-                        className="px-5 py-16 text-center"
-                      >
+                      <td colSpan={8} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#4C8A57]">
-                            <FiFileText
-                              size={
-                                24
-                              }
-                            />
+                            <FiFileText size={24} />
                           </div>
 
                           <p className="mt-4 text-sm font-bold text-[#202721]">
@@ -1924,209 +1253,140 @@ const CreditNotes: React.FC = () => {
                           </p>
 
                           <p className="mt-1 text-xs text-[#9AA29C]">
-                            Try changing your
-                            search or filter.
+                            Try changing your search or filter.
                           </p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                    filteredCreditNotes.map(
-                      (
-                        note,
-                        index
-                      ) => (
-                        <motion.tr
-                          key={
-                            note.id
-                          }
-                          initial={{
-                            opacity: 0,
-                            y: 5,
-                          }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                          }}
-                          transition={{
-                            delay:
-                              index *
-                              0.025,
-                          }}
-                          className="border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
-                        >
-                          {/* S.NO */}
-                          <td className="px-5 py-4">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
-                              {startEntry +
-                                index}
-                            </span>
-                          </td>
+                    filteredCreditNotes.map((note, index) => (
+                      <motion.tr
+                        key={note.id}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.025 }}
+                        className="border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
+                      >
+                        {/* S.NO */}
+                        <td className="px-5 py-4">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
+                            {startEntry + index}
+                          </span>
+                        </td>
 
-                          {/* CREDIT NOTE */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                                <FiFileText
-                                  size={
-                                    16
-                                  }
-                                />
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-[#202721]">
-                                  {
-                                    note.credit_note_number
-                                  }
-                                </p>
-                              </div>
+                        {/* CREDIT NOTE */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                              <FiFileText size={16} />
                             </div>
-                          </td>
 
-                          {/* BUYER */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2.5">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-bold text-[#163F20]">
-                                {getBuyerInitials(
-                                  note.buyer_name
-                                )}
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="max-w-[190px] truncate text-xs font-semibold text-[#202721]">
-                                  {
-                                    note.buyer_name
-                                  }
-                                </p>
-
-                                <p className="mt-1 max-w-[190px] truncate text-[10px] text-[#9AA29C]">
-                                  {
-                                    note.buyer_email
-                                  }
-                                </p>
-                              </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-[#202721]">
+                                {note.credit_note_number}
+                              </p>
                             </div>
-                          </td>
+                          </div>
+                        </td>
 
-                          {/* INVOICE */}
-                          <td className="px-5 py-4">
-                            <p className="text-xs font-semibold text-[#59645C]">
-                              {
-                                note.original_invoice_number
-                              }
-                            </p>
-
-                            <p className="mt-1 text-[10px] text-[#9AA29C]">
-                              Order #
-                              {
-                                note.order_id
-                              }
-                            </p>
-                          </td>
-
-                          {/* DATE */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <FiCalendar
-                                size={
-                                  14
-                                }
-                                className="text-[#4C8A57]"
-                              />
-
-                              <div>
-                                <p className="text-xs font-semibold text-[#59645C]">
-                                  {formatDate(
-                                    note.issued_at
-                                  )}
-                                </p>
-
-                                <p className="mt-1 text-[10px] text-[#9AA29C]">
-                                  {formatDateTime(
-                                    note.issued_at
-                                  )
-                                    .split(
-                                      ", "
-                                    )
-                                    .pop()}
-                                </p>
-                              </div>
+                        {/* BUYER */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-bold text-[#163F20]">
+                              {getBuyerInitials(note.buyer_name)}
                             </div>
-                          </td>
 
-                          {/* REASON */}
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline - flex rounded - full border px - 3 py - 1.5 text - [9px] font - bold ${
-  getReasonClass(
-    note.reason
-  )
-} `}
+                            <div className="min-w-0">
+                              <p className="max-w-[190px] truncate text-xs font-semibold text-[#202721]">
+                                {note.buyer_name}
+                              </p>
+
+                              <p className="mt-1 max-w-[190px] truncate text-[10px] text-[#9AA29C]">
+                                {note.buyer_email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* INVOICE */}
+                        <td className="px-5 py-4">
+                          <p className="text-xs font-semibold text-[#59645C]">
+                            {note.original_invoice_number}
+                          </p>
+
+                          <p className="mt-1 text-[10px] text-[#9AA29C]">
+                            Order #{note.order_id}
+                          </p>
+                        </td>
+
+                        {/* DATE */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-2">
+                            <FiCalendar
+                              size={14}
+                              className="text-[#4C8A57]"
+                            />
+
+                            <div>
+                              <p className="text-xs font-semibold text-[#59645C]">
+                                {formatDate(note.issued_at)}
+                              </p>
+
+                              <p className="mt-1 text-[10px] text-[#9AA29C]">
+                                {formatDateTime(note.issued_at)
+                                  .split(", ")
+                                  .pop()}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* REASON */}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getReasonClass(
+                              note.reason,
+                            )}`}
+                          >
+                            {capitalize(note.reason)}
+                          </span>
+                        </td>
+
+                        {/* AMOUNT */}
+                        <td className="px-5 py-4 text-right">
+                          <p className="text-sm font-bold text-[#163F20]">
+                            {formatAmount(note.amount)}
+                          </p>
+
+                          <p className="mt-1 text-[10px] text-[#9AA29C]">
+                            GST {formatAmount(note.total_gst)}
+                          </p>
+                        </td>
+
+                        {/* ACTIONS */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleView(note)}
+                              title="View credit note"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
                             >
-                              {capitalize(
-                                note.reason
-                              )}
-                            </span>
-                          </td>
+                              <FiEye size={15} />
+                            </button>
 
-                          {/* AMOUNT */}
-                          <td className="px-5 py-4 text-right">
-                            <p className="text-sm font-bold text-[#163F20]">
-                              {formatAmount(
-                                note.amount
-                              )}
-                            </p>
-
-                            <p className="mt-1 text-[10px] text-[#9AA29C]">
-                              GST{" "}
-                              {formatAmount(
-                                note.total_gst
-                              )}
-                            </p>
-                          </td>
-
-                          {/* ACTIONS */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleView(
-                                    note
-                                  )
-                                }
-                                title="View credit note"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                              >
-                                <FiEye
-                                  size={
-                                    15
-                                  }
-                                />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  generateCreditNotePdf(
-                                    note
-                                  )
-                                }
-                                title="Download PDF"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#4C8A57] hover:text-white"
-                              >
-                                <FiDownload
-                                  size={
-                                    15
-                                  }
-                                />
-                              </button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      )
-                    )
+                            <button
+                              type="button"
+                              onClick={() => generateCreditNotePdf(note)}
+                              title="Download PDF"
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#4C8A57] hover:text-white"
+                            >
+                              <FiDownload size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -2134,160 +1394,110 @@ const CreditNotes: React.FC = () => {
 
             {/* MOBILE */}
             <div className="block lg:hidden">
-              {filteredCreditNotes.length >
-              0 ? (
-                filteredCreditNotes.map(
-                  (
-                    note,
-                    index
-                  ) => (
-                    <motion.div
-                      key={
-                        note.id
-                      }
-                      variants={
-                        itemVariants
-                      }
-                      className="border-b border-[#D8E2D8] p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                            <FiFileText
-                              size={
-                                17
-                              }
-                            />
-                          </div>
-
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-[#202721]">
-                              {
-                                note.credit_note_number
-                              }
-                            </p>
-
-                            <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
-                              {
-                                note.original_invoice_number
-                              }
-                            </p>
-                          </div>
+              {filteredCreditNotes.length > 0 ? (
+                filteredCreditNotes.map((note, index) => (
+                  <motion.div
+                    key={note.id}
+                    variants={itemVariants}
+                    className="border-b border-[#D8E2D8] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                          <FiFileText size={17} />
                         </div>
 
-                        <span className="text-[10px] font-bold text-[#9AA29C]">
-                          #
-                          {startEntry +
-                            index}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[#202721]">
+                            {note.credit_note_number}
+                          </p>
+
+                          <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
+                            {note.original_invoice_number}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-bold text-[#9AA29C]">
+                        #{startEntry + index}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          Buyer
+                        </p>
+
+                        <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
+                          {note.buyer_name}
+                        </p>
+
+                        <p className="mt-0.5 truncate text-[10px] text-[#9AA29C]">
+                          {note.buyer_email}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
+                          Amount
+                        </p>
+
+                        <p className="mt-1 text-sm font-bold text-[#163F20]">
+                          {formatAmount(note.amount)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          Issued
+                        </p>
+
+                        <p className="mt-1 text-xs font-semibold text-[#202721]">
+                          {formatDate(note.issued_at)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          Reason
+                        </p>
+
+                        <span
+                          className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getReasonClass(
+                            note.reason,
+                          )}`}
+                        >
+                          {capitalize(note.reason)}
                         </span>
                       </div>
+                    </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                            Buyer
-                          </p>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleView(note)}
+                        className="flex h-9 items-center gap-2 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
+                      >
+                        <FiEye size={14} />
+                        View
+                      </button>
 
-                          <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
-                            {
-                              note.buyer_name
-                            }
-                          </p>
-
-                          <p className="mt-0.5 truncate text-[10px] text-[#9AA29C]">
-                            {
-                              note.buyer_email
-                            }
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                            Amount
-                          </p>
-
-                          <p className="mt-1 text-sm font-bold text-[#163F20]">
-                            {formatAmount(
-                              note.amount
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                            Issued
-                          </p>
-
-                          <p className="mt-1 text-xs font-semibold text-[#202721]">
-                            {formatDate(
-                              note.issued_at
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                            Reason
-                          </p>
-
-                          <span
-                            className={`mt - 1.5 inline - flex rounded - full border px - 2.5 py - 1 text - [9px] font - bold ${
-  getReasonClass(
-    note.reason
-  )
-} `}
-                          >
-                            {capitalize(
-                              note.reason
-                            )}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleView(
-                              note
-                            )
-                          }
-                          className="flex h-9 items-center gap-2 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
-                        >
-                          <FiEye
-                            size={
-                              14
-                            }
-                          />
-                          View
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            generateCreditNotePdf(
-                              note
-                            )
-                          }
-                          className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-xs font-bold text-white"
-                        >
-                          <FiDownload
-                            size={
-                              14
-                            }
-                          />
-                          PDF
-                        </button>
-                      </div>
-                    </motion.div>
-                  )
-                )
+                      <button
+                        type="button"
+                        onClick={() => generateCreditNotePdf(note)}
+                        className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-xs font-bold text-white"
+                      >
+                        <FiDownload size={14} />
+                        PDF
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
               ) : (
                 <div className="flex flex-col items-center px-5 py-16 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#4C8A57]">
-                    <FiFileText
-                      size={24}
-                    />
+                    <FiFileText size={24} />
                   </div>
 
                   <p className="mt-4 text-sm font-bold text-[#202721]">
@@ -2295,8 +1505,7 @@ const CreditNotes: React.FC = () => {
                   </p>
 
                   <p className="mt-1 text-xs text-[#9AA29C]">
-                    Try another search or
-                    filter.
+                    Try another search or filter.
                   </p>
                 </div>
               )}
@@ -2313,16 +1522,11 @@ const CreditNotes: React.FC = () => {
                     </span>{" "}
                     to{" "}
                     <span className="font-bold text-[#202721]">
-                      {Math.max(
-                        startEntry,
-                        endEntry
-                      )}
+                      {Math.max(startEntry, endEntry)}
                     </span>{" "}
                     of{" "}
                     <span className="font-bold text-[#202721]">
-                      {
-                        totalRecords
-                      }
+                      {totalRecords}
                     </span>{" "}
                     entries
                   </p>
@@ -2330,72 +1534,35 @@ const CreditNotes: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() =>
-                        goToPage(
-                          currentPage -
-                            1
-                        )
-                      }
-                      disabled={
-                        currentPage ===
-                        1
-                      }
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage === 1}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
-                      <FiChevronLeft
-                        size={
-                          17
-                        }
-                      />
+                      <FiChevronLeft size={17} />
                     </button>
 
-                    {visiblePages.map(
-                      (
-                        page
-                      ) => (
-                        <button
-                          key={
-                            page
-                          }
-                          type="button"
-                          onClick={() =>
-                            goToPage(
-                              page
-                            )
-                          }
-                          className={`flex h - 9 min - w - 9 items - center justify - center rounded - lg px - 3 text - xs font - bold transition ${
-  currentPage ===
-    page
-    ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-    : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-} `}
-                        >
-                          {
-                            page
-                          }
-                        </button>
-                      )
-                    )}
+                    {visiblePages.map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => goToPage(page)}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+                          currentPage === page
+                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                            : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
 
                     <button
                       type="button"
-                      onClick={() =>
-                        goToPage(
-                          currentPage +
-                            1
-                        )
-                      }
-                      disabled={
-                        currentPage ===
-                        lastPage
-                      }
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === lastPage}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
                     >
-                      <FiChevronRight
-                        size={
-                          17
-                        }
-                      />
+                      <FiChevronRight size={17} />
                     </button>
                   </div>
                 </div>
@@ -2413,13 +1580,10 @@ const CreditNotes: React.FC = () => {
           setViewOpen(false);
           setSelectedNote(null);
         }}
-        onDownload={
-          generateCreditNotePdf
-        }
+        onDownload={generateCreditNotePdf}
       />
     </>
   );
 };
 
 export default CreditNotes;
-

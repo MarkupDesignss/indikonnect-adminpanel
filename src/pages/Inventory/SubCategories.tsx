@@ -54,32 +54,19 @@ interface SubcategoryPayload {
 // =====================================================
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 12,
-  },
-
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 15,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 15 },
   },
 };
 
@@ -136,28 +123,6 @@ const formatDate = (value?: string | null) => {
 };
 
 // =====================================================
-// STATUS BADGE
-// =====================================================
-
-const StatusBadge: React.FC<{
-  active: boolean;
-}> = ({ active }) => {
-  return (
-    <span
-      className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - [9px] font - bold uppercase tracking - wide ${
-        active
-          ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
-          : "border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
-      } `}
-    >
-      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-
-      {active ? "Active" : "Inactive"}
-    </span>
-  );
-};
-
-// =====================================================
 // ADD / EDIT MODAL
 // =====================================================
 
@@ -199,15 +164,11 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
     if (mode === "edit" && subcategory) {
       setName(subcategory.name || "");
-
       setSlug(subcategory.slug || "");
-
       setCategoryId(
         subcategory.category_id ? String(subcategory.category_id) : "",
       );
-
       setStatus(Boolean(subcategory.status));
-
       setPreview(getSubcategoryImage(subcategory));
     } else {
       setName("");
@@ -218,7 +179,6 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
     }
 
     setImage(null);
-
     setImageKey((prev) => prev + 1);
   }, [open, mode, subcategory]);
 
@@ -258,7 +218,6 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
     setImage(file);
 
     const url = URL.createObjectURL(file);
-
     setPreview(url);
   };
 
@@ -315,15 +274,11 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
   return (
     <div className="w-full max-w-[590px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-      {/* =================================================
-          TOP ACCENT
-      ================================================= */}
+      {/* TOP ACCENT */}
 
       <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 bg-white px-5 py-5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
@@ -358,9 +313,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
         </button>
       </div>
 
-      {/* =================================================
-          BODY
-      ================================================= */}
+      {/* BODY */}
 
       <div className="max-h-[72vh] overflow-y-auto bg-[#FAFBFA] px-5 py-5 sm:px-6">
         <div className="space-y-4">
@@ -462,11 +415,11 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={() => setStatus(true)}
-                className={`h - 11 rounded - xl border text - sm font - bold transition ${
+                className={`h-11 rounded-xl border text-sm font-bold transition ${
                   status
                     ? "border-[#163F20]/30 bg-[#EAF3EA] text-[#163F20]"
                     : "border-[#D8E2D8] bg-white text-[#59645C] hover:border-[#163F20]/20 hover:bg-[#F5F7F5]"
-                } `}
+                }`}
               >
                 <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
                 Active
@@ -478,11 +431,11 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={() => setStatus(false)}
-                className={`h - 11 rounded - xl border text - sm font - bold transition ${
+                className={`h-11 rounded-xl border text-sm font-bold transition ${
                   !status
                     ? "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
                     : "border-[#D8E2D8] bg-white text-[#59645C] hover:border-[#163F20]/20 hover:bg-[#F5F7F5]"
-                } `}
+                }`}
               >
                 <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
                 Inactive
@@ -575,9 +528,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
         </div>
       </div>
 
-      {/* =================================================
-          FOOTER
-      ================================================= */}
+      {/* FOOTER */}
 
       <div className="flex flex-col-reverse gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
         <button
@@ -616,19 +567,12 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
 const SubCategories: React.FC = () => {
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-
   const [categories, setCategories] = useState<Category[]>([]);
-
   const [loading, setLoading] = useState(false);
-
   const [categoryLoading, setCategoryLoading] = useState(false);
-
   const [saveLoading, setSaveLoading] = useState(false);
-
   const [search, setSearch] = useState("");
-
   const [parentFilter, setParentFilter] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
@@ -638,11 +582,15 @@ const SubCategories: React.FC = () => {
   // ===================================================
 
   const [addOpen, setAddOpen] = useState(false);
-
   const [editOpen, setEditOpen] = useState(false);
-
   const [selectedSubcategory, setSelectedSubcategory] =
     useState<Subcategory | null>(null);
+
+  // ===================================================
+  // STATUS LOADING (inline dropdown)
+  // ===================================================
+
+  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
 
   // ===================================================
   // FETCH SUBCATEGORIES
@@ -737,9 +685,7 @@ const SubCategories: React.FC = () => {
   // ===================================================
 
   const totalPages = Math.ceil(filteredSubCategories.length / ITEMS_PER_PAGE);
-
   const safeTotalPages = Math.max(totalPages, 1);
-
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const visibleSubcategories = filteredSubCategories.slice(
@@ -748,7 +694,6 @@ const SubCategories: React.FC = () => {
   );
 
   const startEntry = filteredSubCategories.length === 0 ? 0 : startIndex + 1;
-
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredSubCategories.length,
@@ -770,12 +715,7 @@ const SubCategories: React.FC = () => {
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
-      return Array.from(
-        {
-          length: totalPages,
-        },
-        (_, index) => index + 1,
-      );
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
 
     if (currentPage <= 3) {
@@ -812,11 +752,8 @@ const SubCategories: React.FC = () => {
       const formData = new FormData();
 
       formData.append("category_id", String(payload.category_id));
-
       formData.append("name", payload.name);
-
       formData.append("slug", payload.slug);
-
       formData.append("status", payload.status ? "1" : "0");
 
       if (payload.image instanceof File) {
@@ -828,7 +765,6 @@ const SubCategories: React.FC = () => {
       await fetchSubcategories();
 
       setCurrentPage(1);
-
       setAddOpen(false);
 
       toast.success(
@@ -851,7 +787,6 @@ const SubCategories: React.FC = () => {
 
   const openEdit = (subcategory: Subcategory) => {
     setSelectedSubcategory(subcategory);
-
     setEditOpen(true);
   };
 
@@ -870,11 +805,8 @@ const SubCategories: React.FC = () => {
       const formData = new FormData();
 
       formData.append("category_id", String(payload.category_id));
-
       formData.append("name", payload.name);
-
       formData.append("slug", payload.slug);
-
       formData.append("status", payload.status ? "1" : "0");
 
       if (payload.image instanceof File) {
@@ -889,7 +821,6 @@ const SubCategories: React.FC = () => {
       await fetchSubcategories();
 
       setEditOpen(false);
-
       setSelectedSubcategory(null);
 
       toast.success(
@@ -907,12 +838,60 @@ const SubCategories: React.FC = () => {
   };
 
   // ===================================================
+  // STATUS TOGGLE (INLINE DROPDOWN)
+  // Uses the same Edit API (subcategoryApi.update)
+  // ===================================================
+
+  const handleStatusToggle = async (
+    subcategory: Subcategory,
+    nextStatus: "active" | "inactive",
+  ) => {
+    const currentStatus = subcategory.status ? "active" : "inactive";
+
+    // Prevent unnecessary API call
+    if (currentStatus === nextStatus) {
+      return;
+    }
+
+    try {
+      setStatusLoadingId(subcategory.id);
+
+      const formData = new FormData();
+
+      // Send the same fields as the Edit API expects
+      formData.append("category_id", String(subcategory.category_id));
+      formData.append("name", subcategory.name);
+      formData.append("slug", subcategory.slug);
+      formData.append("status", nextStatus === "active" ? "1" : "0");
+
+      const response = await subcategoryApi.update(subcategory.id, formData);
+
+      await fetchSubcategories();
+
+      toast.success(
+        response.data?.message ||
+          (nextStatus === "active"
+            ? "Sub category activated successfully."
+            : "Sub category deactivated successfully."),
+      );
+    } catch (error: any) {
+      console.error("Sub category status update error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to update sub category status.",
+      );
+    } finally {
+      setStatusLoadingId(null);
+    }
+  };
+
+  // ===================================================
   // REFRESH
   // ===================================================
 
   const handleRefresh = async () => {
     await Promise.all([fetchSubcategories(), fetchCategories()]);
-
     setCurrentPage(1);
   };
 
@@ -952,9 +931,7 @@ const SubCategories: React.FC = () => {
         animate="visible"
         className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
       >
-        {/* =================================================
-            HEADER
-        ================================================= */}
+        {/* HEADER */}
 
         <motion.div
           variants={itemVariants}
@@ -982,8 +959,6 @@ const SubCategories: React.FC = () => {
           {/* HEADER ACTIONS */}
 
           <div className="flex items-center gap-2">
-            {/* REFRESH */}
-
             <button
               type="button"
               onClick={handleRefresh}
@@ -998,17 +973,11 @@ const SubCategories: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            {/* ADD */}
-
             <motion.button
               type="button"
               onClick={() => setAddOpen(true)}
-              whileHover={{
-                y: -2,
-              }}
-              whileTap={{
-                scale: 0.97,
-              }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
               className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
             >
               <FiPlus size={15} />
@@ -1017,24 +986,16 @@ const SubCategories: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* =================================================
-            FILTER CARD
-        ================================================= */}
+        {/* FILTER CARD */}
 
         <motion.div
           variants={itemVariants}
           className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
         >
-          {/* ACCENT */}
-
           <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-          {/* DECORATIVE SHAPES */}
-
           <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
-
           <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#163F20]/10" />
-
           <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#163F20]/10" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1092,24 +1053,16 @@ const SubCategories: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* =================================================
-            MAIN TABLE CARD
-        ================================================= */}
+        {/* MAIN TABLE CARD */}
 
         <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
         >
-          {/* ACCENT */}
-
           <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
           <div className="overflow-x-auto pt-[3px]">
             <table className="w-full min-w-[950px] border-collapse">
-              {/* =================================================
-                  HEADER
-              ================================================= */}
-
               <thead>
                 <tr className="bg-[#163F20]">
                   <th className="w-[80px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
@@ -1137,10 +1090,6 @@ const SubCategories: React.FC = () => {
                   </th>
                 </tr>
               </thead>
-
-              {/* =================================================
-                  BODY
-              ================================================= */}
 
               <tbody>
                 {loading ? (
@@ -1187,23 +1136,17 @@ const SubCategories: React.FC = () => {
                     );
 
                     const image = getSubcategoryImage(subcategory);
-
                     const serialNumber = startIndex + index + 1;
+
+                    const isActive = Boolean(subcategory.status);
+                    const isStatusLoading = statusLoadingId === subcategory.id;
 
                     return (
                       <motion.tr
                         key={subcategory.id}
-                        initial={{
-                          opacity: 0,
-                          y: 5,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          delay: index * 0.03,
-                        }}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
                         className="group border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
                       >
                         {/* S.NO */}
@@ -1267,10 +1210,50 @@ const SubCategories: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* STATUS */}
+                        {/* STATUS DROPDOWN */}
 
                         <td className="px-5 py-4">
-                          <StatusBadge active={Boolean(subcategory.status)} />
+                          <div className="relative inline-block">
+                            <select
+                              value={isActive ? "active" : "inactive"}
+                              disabled={isStatusLoading}
+                              onChange={(e) =>
+                                handleStatusToggle(
+                                  subcategory,
+                                  e.target.value as "active" | "inactive",
+                                )
+                              }
+                              className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                isActive
+                                  ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
+                                  : "border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                              }`}
+                            >
+                              <option value="active">Active</option>
+                              <option value="inactive">Inactive</option>
+                            </select>
+
+                            {/* DROPDOWN ARROW / SPINNER */}
+
+                            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                              {isStatusLoading ? (
+                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              ) : (
+                                <svg
+                                  width="10"
+                                  height="10"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="3"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
                         </td>
 
                         {/* ACTIONS */}
@@ -1298,15 +1281,11 @@ const SubCategories: React.FC = () => {
             </table>
           </div>
 
-          {/* =================================================
-              PAGINATION
-          ================================================= */}
+          {/* PAGINATION */}
 
           {filteredSubCategories.length > 0 && (
             <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                {/* ENTRY INFO */}
-
                 <p className="text-xs text-[#89918B]">
                   Showing{" "}
                   <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
@@ -1318,8 +1297,6 @@ const SubCategories: React.FC = () => {
                   </span>{" "}
                   sub categories
                 </p>
-
-                {/* PAGINATION */}
 
                 <div className="flex items-center gap-1.5">
                   {/* PREVIOUS */}
@@ -1341,11 +1318,11 @@ const SubCategories: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
-                      className={`flex h - 9 min - w - 9 items - center justify - center rounded - lg px - 3 text - xs font - bold transition ${
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
                         currentPage === page
                           ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
                           : "border border-transparent text-[#59645C] hover:border-[#163F20]/15 hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                      } `}
+                      }`}
                     >
                       {page}
                     </button>
@@ -1368,14 +1345,10 @@ const SubCategories: React.FC = () => {
           )}
         </motion.div>
 
-        {/* BOTTOM SPACE */}
-
         <div className="h-5" />
       </motion.div>
 
-      {/* =================================================
-          ADD MODAL
-      ================================================= */}
+      {/* ADD MODAL */}
 
       <GlobalModal
         isOpen={addOpen}
@@ -1401,9 +1374,7 @@ const SubCategories: React.FC = () => {
         />
       </GlobalModal>
 
-      {/* =================================================
-          EDIT MODAL
-      ================================================= */}
+      {/* EDIT MODAL */}
 
       <GlobalModal
         isOpen={editOpen}

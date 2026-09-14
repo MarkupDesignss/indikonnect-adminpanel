@@ -45,13 +45,17 @@ interface CategoryTableProps {
 
   onPageChange: (page: number) => void;
 
-  /**
-   * Optional because the parent page may not pass onView.
-   */
   onView?: (category: Category) => void;
 
   onEdit: (category: Category) => void;
   onDelete: (category: Category) => void;
+
+  onStatusToggle: (
+    category: Category,
+    nextStatus: "active" | "inactive"
+  ) => void;
+
+  statusLoadingId: number | null;
 }
 
 // =====================================================
@@ -152,6 +156,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   onView,
   onEdit,
   onDelete,
+  onStatusToggle,
+  statusLoadingId,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
@@ -187,12 +193,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
 
   const getPaginationPages = () => {
     if (totalPages <= 5) {
-      return Array.from(
-        {
-          length: totalPages,
-        },
-        (_, index) => index + 1,
-      );
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
 
     if (currentPage <= 3) {
@@ -333,14 +334,16 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
 
                   const description = getShortDescription(item.description);
 
+                  const normalizedStatus = String(item.status).toLowerCase();
+                  const isActive = normalizedStatus === "active";
+                  const isStatusLoading = statusLoadingId === item.id;
+
                   return (
                     <tr
                       key={item.id}
                       className="group border-b border-[#163F20]/10 bg-white transition-all duration-200 hover:bg-[#FAFBFA]"
                     >
-                      {/* =================================================
-                            S.NO
-                        ================================================= */}
+                      {/* S.NO */}
 
                       <td className="px-5 py-4">
                         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
@@ -348,9 +351,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </span>
                       </td>
 
-                      {/* =================================================
-                            IMAGE
-                        ================================================= */}
+                      {/* IMAGE */}
 
                       <td className="px-5 py-4">
                         {item.image ? (
@@ -368,9 +369,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         )}
                       </td>
 
-                      {/* =================================================
-                            CATEGORY NAME
-                        ================================================= */}
+                      {/* CATEGORY NAME */}
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
@@ -382,9 +381,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </div>
                       </td>
 
-                      {/* =================================================
-                            DESCRIPTION
-                        ================================================= */}
+                      {/* DESCRIPTION */}
 
                       <td className="px-5 py-4">
                         <p
@@ -395,9 +392,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </p>
                       </td>
 
-                      {/* =================================================
-                            PRODUCTS
-                        ================================================= */}
+                      {/* PRODUCTS */}
 
                       <td className="px-5 py-4">
                         <span className="inline-flex min-w-[42px] items-center justify-center rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold text-[#163F20]">
@@ -405,29 +400,51 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </span>
                       </td>
 
-                      {/* =================================================
-                            STATUS
-                        ================================================= */}
+                      {/* STATUS DROPDOWN */}
 
                       <td className="px-5 py-4">
-                        <span
-                          className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - [9px] font - bold uppercase tracking - wide ${getStatusClass(
-                            item.status,
-                          )} `}
-                        >
-                          <span
-                            className={`h - 1.5 w - 1.5 rounded - full ${getStatusDotClass(
-                              item.status,
-                            )} `}
-                          />
+                        <div className="relative inline-block">
+                          <select
+                            value={isActive ? "active" : "inactive"}
+                            disabled={isStatusLoading}
+                            onChange={(e) =>
+                              onStatusToggle(
+                                item,
+                                e.target.value as "active" | "inactive",
+                              )
+                            }
+                            className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              isActive
+                                ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
+                                : "border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                            }`}
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
 
-                          {item.status}
-                        </span>
+                          <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                            {isStatusLoading ? (
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            ) : (
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="6 9 12 15 18 9" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
-                      {/* =================================================
-                            ACTIONS
-                        ================================================= */}
+                      {/* ACTIONS */}
 
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-1.5">
@@ -488,8 +505,6 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
 
         <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4 sm:px-5">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            {/* ENTRY INFORMATION */}
-
             <p className="text-xs text-[#89918B]">
               Showing{" "}
               <span className="font-bold text-[#3F4A41]">{startEntry}</span> to{" "}
@@ -497,8 +512,6 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
               <span className="font-bold text-[#3F4A41]">{totalEntries}</span>{" "}
               entries
             </p>
-
-            {/* PAGINATION */}
 
             <div className="flex items-center gap-1.5">
               {/* PREVIOUS */}
@@ -520,11 +533,11 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                   key={page}
                   type="button"
                   onClick={() => onPageChange(page)}
-                  className={`flex h - 9 min - w - 9 items - center justify - center rounded - lg px - 3 text - xs font - bold transition - all ${
+                  className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
                     currentPage === page
                       ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
                       : "border border-transparent text-[#59645C] hover:border-[#163F20]/15 hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                  } `}
+                  }`}
                 >
                   {page}
                 </button>
@@ -547,7 +560,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
       </div>
 
       {/* =================================================
-          CATEGORY DETAIL MODAL
+          CATEGORY DETAIL MODAL (CENTERED POPUP)
       ================================================= */}
 
       <GlobalModal
@@ -556,182 +569,177 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
         closeOnOverlayClick
       >
         {selectedCategory && (
-          <div className="relative w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-            {/* =================================================
-                MODAL ACCENT
-            ================================================= */}
+          <div className="flex min-h-full w-full items-center justify-center p-4">
+            <div className="relative w-full max-w-[480px] overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-2xl">
+              {/* MODAL ACCENT */}
 
-            <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+              <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-            {/* =================================================
-                MODAL HEADER
-            ================================================= */}
+              {/* MODAL HEADER */}
 
-            <div className="flex items-center justify-between border-b border-[#163F20]/10 px-5 py-5">
-              <div>
-                <div className="mb-1.5 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+              <div className="flex items-center justify-between border-b border-[#163F20]/10 px-4 py-3">
+                <div>
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
 
-                  <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
-                    Category
-                  </span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+                      Category
+                    </span>
+                  </div>
+
+                  <h2 className="text-[16px] font-bold text-[#202721]">
+                    Category Details
+                  </h2>
+
+                  <p className="mt-0.5 text-[11px] text-[#9AA29C]">
+                    View category information
+                  </p>
                 </div>
 
-                <h2 className="text-[20px] font-bold text-[#202721]">
-                  Category Details
-                </h2>
-
-                <p className="mt-1 text-xs text-[#9AA29C]">
-                  View category information
-                </p>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
+                >
+                  <FiX size={16} />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={closeModal}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
-              >
-                <FiX size={18} />
-              </button>
-            </div>
+              {/* MODAL CONTENT */}
 
-            {/* =================================================
-                MODAL CONTENT
-            ================================================= */}
+              <div className="max-h-[62vh] overflow-y-auto bg-white p-4">
+                {/* IMAGE */}
 
-            <div className="max-h-[75vh] overflow-y-auto bg-white p-5">
-              {/* IMAGE */}
+                <div className="mb-3">
+                  <label className="mb-1.5 block text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                    Category Image
+                  </label>
 
-              <div className="mb-5">
-                <label className="mb-2 block text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
-                  Category Image
-                </label>
-
-                {selectedCategory.image ? (
-                  <div className="h-[180px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-1">
-                    <img
-                      src={selectedCategory.image}
-                      alt={selectedCategory.title}
-                      className="h-full w-full rounded-xl object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-[180px] items-center justify-center rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] text-[#163F20]">
-                    <FiImage size={38} />
-                  </div>
-                )}
-              </div>
-
-              {/* INFO GRID */}
-
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {/* NAME */}
-
-                <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                    Category Name
-                  </p>
-
-                  <p className="text-sm font-bold text-[#202721]">
-                    {selectedCategory.title}
-                  </p>
+                  {selectedCategory.image ? (
+                    <div className="h-[110px] overflow-hidden rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-1">
+                      <img
+                        src={selectedCategory.image}
+                        alt={selectedCategory.title}
+                        className="h-full w-full rounded-lg object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-[110px] items-center justify-center rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] text-[#163F20]">
+                      <FiImage size={28} />
+                    </div>
+                  )}
                 </div>
 
-                {/* PRODUCTS */}
+                {/* INFO GRID */}
 
-                <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                    Products
-                  </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {/* NAME */}
 
-                  <span className="inline-flex rounded-lg border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20]">
-                    {selectedCategory.products_count ?? 0} Products
-                  </span>
-                </div>
+                  <div className="rounded-lg border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+                      Category Name
+                    </p>
 
-                {/* STATUS */}
+                    <p className="text-[13px] font-bold text-[#202721]">
+                      {selectedCategory.title}
+                    </p>
+                  </div>
 
-                <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
-                  <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                    Status
-                  </p>
+                  {/* PRODUCTS */}
 
-                  <span
-                    className={`inline - flex items - center gap - 1.5 rounded - full border px - 3 py - 1.5 text - [9px] font - bold uppercase tracking - wide ${getStatusClass(
-                      selectedCategory.status,
-                    )} `}
-                  >
+                  <div className="rounded-lg border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+                      Products
+                    </p>
+
+                    <span className="inline-flex rounded-md border border-[#163F20]/15 bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                      {selectedCategory.products_count ?? 0} Products
+                    </span>
+                  </div>
+
+                  {/* STATUS */}
+
+                  <div className="rounded-lg border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+                      Status
+                    </p>
+
                     <span
-                      className={`h - 1.5 w - 1.5 rounded - full ${getStatusDotClass(
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide ${getStatusClass(
                         selectedCategory.status,
-                      )} `}
-                    />
+                      )}`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${getStatusDotClass(
+                          selectedCategory.status,
+                        )}`}
+                      />
 
-                    {selectedCategory.status}
-                  </span>
+                      {selectedCategory.status}
+                    </span>
+                  </div>
+
+                  {/* CREATED */}
+
+                  <div className="rounded-lg border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+                      Created At
+                    </p>
+
+                    <p className="text-[11px] font-semibold text-[#59645C]">
+                      {formatDate(selectedCategory.created_at)}
+                    </p>
+                  </div>
                 </div>
 
-                {/* CREATED */}
+                {/* DESCRIPTION */}
 
-                <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
+                <div className="mt-2 rounded-lg border border-[#163F20]/10 bg-[#FAFBFA] p-3">
                   <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                    Created At
+                    Description
                   </p>
 
-                  <p className="text-xs font-semibold text-[#59645C]">
-                    {formatDate(selectedCategory.created_at)}
+                  <p className="max-h-[70px] overflow-y-auto text-[12px] leading-5 text-[#59645C]">
+                    {selectedCategory.description ||
+                      "No description provided."}
+                  </p>
+                </div>
+
+                {/* UPDATED */}
+
+                <div className="mt-3 border-t border-[#163F20]/10 pt-3">
+                  <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+                    Updated At
+                  </p>
+
+                  <p className="text-[11px] font-semibold text-[#59645C]">
+                    {formatDate(selectedCategory.updated_at)}
                   </p>
                 </div>
               </div>
 
-              {/* DESCRIPTION */}
+              {/* MODAL FOOTER */}
 
-              <div className="mt-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
-                <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                  Description
-                </p>
+              <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="rounded-lg border border-[#163F20]/15 bg-white px-4 py-2 text-[12px] font-bold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                >
+                  Close
+                </button>
 
-                <p className="max-h-[120px] overflow-y-auto text-sm leading-6 text-[#59645C]">
-                  {selectedCategory.description || "No description provided."}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeModal();
+                    onEdit(selectedCategory);
+                  }}
+                  className="rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-[12px] font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_18px_-8px_rgba(22,63,32,0.7)]"
+                >
+                  Edit Category
+                </button>
               </div>
-
-              {/* UPDATED */}
-
-              <div className="mt-4 border-t border-[#163F20]/10 pt-4">
-                <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
-                  Updated At
-                </p>
-
-                <p className="text-xs font-semibold text-[#59645C]">
-                  {formatDate(selectedCategory.updated_at)}
-                </p>
-              </div>
-            </div>
-
-            {/* =================================================
-                MODAL FOOTER
-            ================================================= */}
-
-            <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
-              >
-                Close
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  closeModal();
-                  onEdit(selectedCategory);
-                }}
-                className="rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-              >
-                Edit Category
-              </button>
             </div>
           </div>
         )}

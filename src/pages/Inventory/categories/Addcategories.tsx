@@ -49,32 +49,19 @@ const BORDER = "#D8E2D8";
 // =====================================================
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
+    transition: { staggerChildren: 0.06 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    y: 12,
-    opacity: 0,
-  },
-
+  hidden: { y: 12, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 16,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 16 },
   },
 };
 
@@ -88,13 +75,9 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const [categories, setCategories] = useState<Category[]>([]);
-
   const [loading, setLoading] = useState(false);
-
   const [search, setSearch] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
-
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
@@ -102,7 +85,6 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const [addModalOpen, setAddModalOpen] = useState(false);
-
   const [addLoading, setAddLoading] = useState(false);
 
   // ===================================================
@@ -110,26 +92,21 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const [editModalOpen, setEditModalOpen] = useState(false);
-
   const [editLoading, setEditLoading] = useState(false);
-
-  const [selectedCategory, setSelectedCategory] =
-    useState<Category | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   // ===================================================
   // DELETE MODAL
   // ===================================================
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ===================================================
-  // STATUS LOADING
+  // STATUS LOADING (for inline dropdown)
   // ===================================================
 
-  const [statusLoadingId, setStatusLoadingId] =
-    useState<number | null>(null);
+  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
 
   // ===================================================
   // GET CATEGORIES
@@ -138,20 +115,12 @@ const Addcategories: React.FC = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-
       const response = await categoryApi.getAll();
-
-      /**
-       * Keep both active and inactive categories
-       * visible in the admin panel.
-       */
       setCategories(response.data?.data || []);
     } catch (error: any) {
       console.error("Get categories error:", error);
-
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to fetch categories."
+        error?.response?.data?.message || "Unable to fetch categories."
       );
     } finally {
       setLoading(false);
@@ -172,15 +141,13 @@ const Addcategories: React.FC = () => {
 
   const activeCount = useMemo(() => {
     return categories.filter(
-      (item: any) =>
-        String(item.status).toLowerCase() === "active"
+      (item: any) => String(item.status).toLowerCase() === "active"
     ).length;
   }, [categories]);
 
   const inactiveCount = useMemo(() => {
     return categories.filter(
-      (item: any) =>
-        String(item.status).toLowerCase() === "inactive"
+      (item: any) => String(item.status).toLowerCase() === "inactive"
     ).length;
   }, [categories]);
 
@@ -190,18 +157,10 @@ const Addcategories: React.FC = () => {
 
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return categories;
-    }
+    if (!query) return categories;
 
     return categories.filter((item: any) =>
-      [
-        item.title,
-        item.description,
-        item.status,
-        item.parentCategory || "",
-      ]
+      [item.title, item.description, item.status, item.parentCategory || ""]
         .join(" ")
         .toLowerCase()
         .includes(query)
@@ -212,25 +171,16 @@ const Addcategories: React.FC = () => {
   // PAGINATION
   // ===================================================
 
-  const totalPages = Math.ceil(
-    filteredCategories.length / ITEMS_PER_PAGE
-  );
-
+  const totalPages = Math.ceil(filteredCategories.length / ITEMS_PER_PAGE);
   const safeTotalPages = Math.max(totalPages, 1);
-
-  const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const paginatedCategories = filteredCategories.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE
   );
 
-  const startEntry =
-    filteredCategories.length === 0
-      ? 0
-      : startIndex + 1;
-
+  const startEntry = filteredCategories.length === 0 ? 0 : startIndex + 1;
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredCategories.length
@@ -259,20 +209,12 @@ const Addcategories: React.FC = () => {
   // FORM DATA BUILDER
   // ===================================================
 
-  const buildFormData = (
-    payload: CategoryPayload
-  ) => {
+  const buildFormData = (payload: Partial<CategoryPayload>) => {
     const formData = new FormData();
 
     Object.entries(payload).forEach(([key, value]) => {
-      if (
-        value !== undefined &&
-        value !== null
-      ) {
-        if (
-          key === "image" &&
-          value instanceof File
-        ) {
+      if (value !== undefined && value !== null) {
+        if (key === "image" && value instanceof File) {
           formData.append("image", value);
         } else if (
           typeof value === "string" ||
@@ -291,35 +233,20 @@ const Addcategories: React.FC = () => {
   // ADD CATEGORY
   // ===================================================
 
-  const handleAddCategory = async (
-    payload: CategoryPayload
-  ) => {
+  const handleAddCategory = async (payload: CategoryPayload) => {
     try {
       setAddLoading(true);
-
       const formData = buildFormData(payload);
-
-      const response = await categoryApi.add(
-        formData
-      );
-
+      const response = await categoryApi.add(formData);
       await fetchCategories();
-
       setAddModalOpen(false);
-
       toast.success(
-        response?.data?.message ||
-        "Category added successfully."
+        response?.data?.message || "Category added successfully."
       );
     } catch (error: any) {
-      console.error(
-        "Add category error:",
-        error
-      );
-
+      console.error("Add category error:", error);
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to add category."
+        error?.response?.data?.message || "Unable to add category."
       );
     } finally {
       setAddLoading(false);
@@ -330,53 +257,32 @@ const Addcategories: React.FC = () => {
   // EDIT OPEN
   // ===================================================
 
-  const handleEdit = (
-    category: Category
-  ) => {
+  const handleEdit = (category: Category) => {
     setSelectedCategory(category);
     setEditModalOpen(true);
   };
 
   // ===================================================
-  // UPDATE CATEGORY
+  // UPDATE CATEGORY (Edit Modal)
   // ===================================================
 
-  const handleUpdateCategory = async (
-    payload: CategoryPayload
-  ) => {
-    if (!selectedCategory) {
-      return;
-    }
+  const handleUpdateCategory = async (payload: CategoryPayload) => {
+    if (!selectedCategory) return;
 
     try {
       setEditLoading(true);
-
       const formData = buildFormData(payload);
-
-      const response = await categoryApi.update(
-        selectedCategory.id,
-        formData
-      );
-
+      const response = await categoryApi.update(selectedCategory.id, formData);
       await fetchCategories();
-
       setEditModalOpen(false);
-
       setSelectedCategory(null);
-
       toast.success(
-        response?.data?.message ||
-        "Category updated successfully."
+        response?.data?.message || "Category updated successfully."
       );
     } catch (error: any) {
-      console.error(
-        "Update category error:",
-        error
-      );
-
+      console.error("Update category error:", error);
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to update category."
+        error?.response?.data?.message || "Unable to update category."
       );
     } finally {
       setEditLoading(false);
@@ -384,45 +290,36 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
-  // STATUS TOGGLE
+  // STATUS CHANGE (Inline Dropdown -> uses same Edit API)
   // ===================================================
 
   const handleStatusToggle = async (
     category: Category,
     nextStatus: "active" | "inactive"
   ) => {
+    // Prevent unnecessary API call if status is same
+    if (String(category.status).toLowerCase() === nextStatus) return;
+
     try {
       setStatusLoadingId(category.id);
 
       const formData = new FormData();
+      formData.append("status", nextStatus);
 
-      formData.append(
-        "status",
-        nextStatus
-      );
-
-      const response = await categoryApi.update(
-        category.id,
-        formData
-      );
+      const response = await categoryApi.update(category.id, formData);
 
       await fetchCategories();
 
       toast.success(
         response?.data?.message ||
-        (nextStatus === "active"
-          ? "Category activated successfully."
-          : "Category deactivated successfully.")
+          (nextStatus === "active"
+            ? "Category activated successfully."
+            : "Category deactivated successfully.")
       );
     } catch (error: any) {
-      console.error(
-        "Category status update error:",
-        error
-      );
-
+      console.error("Category status update error:", error);
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to update category status."
+        error?.response?.data?.message || "Unable to update category status."
       );
     } finally {
       setStatusLoadingId(null);
@@ -433,9 +330,7 @@ const Addcategories: React.FC = () => {
   // DELETE OPEN
   // ===================================================
 
-  const handleDelete = (
-    category: Category
-  ) => {
+  const handleDelete = (category: Category) => {
     setSelectedCategory(category);
     setDeleteModalOpen(true);
   };
@@ -445,36 +340,21 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const handleConfirmDelete = async () => {
-    if (!selectedCategory) {
-      return;
-    }
+    if (!selectedCategory) return;
 
     try {
       setDeleteLoading(true);
-
-      const response = await categoryApi.delete(
-        selectedCategory.id
-      );
-
+      const response = await categoryApi.delete(selectedCategory.id);
       await fetchCategories();
-
       setDeleteModalOpen(false);
-
       setSelectedCategory(null);
-
       toast.success(
-        response?.data?.message ||
-        "Category deleted successfully."
+        response?.data?.message || "Category deleted successfully."
       );
     } catch (error: any) {
-      console.error(
-        "Delete category error:",
-        error
-      );
-
+      console.error("Delete category error:", error);
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to delete category."
+        error?.response?.data?.message || "Unable to delete category."
       );
     } finally {
       setDeleteLoading(false);
@@ -485,20 +365,9 @@ const Addcategories: React.FC = () => {
   // PAGE CHANGE
   // ===================================================
 
-  const handlePageChange = (
-    page: number
-  ) => {
-    if (page < 1) {
-      return;
-    }
-
-    if (
-      totalPages > 0 &&
-      page > totalPages
-    ) {
-      return;
-    }
-
+  const handlePageChange = (page: number) => {
+    if (page < 1) return;
+    if (totalPages > 0 && page > totalPages) return;
     setCurrentPage(page);
   };
 
@@ -521,12 +390,9 @@ const Addcategories: React.FC = () => {
         variants={itemVariants}
         className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
       >
-        {/* LEFT */}
-
         <div>
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-
             <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
               Catalog Management
             </span>
@@ -537,8 +403,7 @@ const Addcategories: React.FC = () => {
           </h1>
 
           <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
-            Manage your product categories,
-            hierarchy, and classification from
+            Manage your product categories, hierarchy, and classification from
             one place.
           </p>
         </div>
@@ -546,37 +411,28 @@ const Addcategories: React.FC = () => {
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* TOTAL */}
-
           <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
               Total Categories
             </div>
-
             <div className="mt-0.5 text-lg font-bold text-[#202721]">
               {categories.length}
             </div>
           </div>
 
-          {/* ACTIVE */}
-
           <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4C8A57]">
               Active
             </div>
-
             <div className="mt-0.5 text-lg font-bold text-[#163F20]">
               {activeCount}
             </div>
           </div>
 
-          {/* INACTIVE */}
-
           <div className="rounded-xl border border-[#C23B32]/15 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C23B32]">
               Inactive
             </div>
-
             <div className="mt-0.5 text-lg font-bold text-[#C23B32]">
               {inactiveCount}
             </div>
@@ -592,16 +448,10 @@ const Addcategories: React.FC = () => {
         variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
       >
-        {/* TOP ACCENT */}
-
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-        {/* DECORATIVE SHAPES */}
-
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
-
         <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#163F20]/10" />
-
         <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#163F20]/10" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -616,9 +466,7 @@ const Addcategories: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) =>
-                handleSearch(e.target.value)
-              }
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search categories..."
               className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
             />
@@ -627,8 +475,6 @@ const Addcategories: React.FC = () => {
           {/* ACTIONS */}
 
           <div className="flex items-center gap-2">
-            {/* REFRESH */}
-
             <motion.button
               type="button"
               onClick={fetchCategories}
@@ -637,40 +483,22 @@ const Addcategories: React.FC = () => {
               whileTap={{ scale: 0.97 }}
               className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] px-4 text-xs font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <FiRefreshCw
-                size={14}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
+              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Refresh
             </motion.button>
 
-            {/* ADD CATEGORY */}
-
             <motion.button
               type="button"
-              onClick={() =>
-                setAddModalOpen(true)
-              }
+              onClick={() => setAddModalOpen(true)}
               whileHover={{
                 y: -2,
-                boxShadow:
-                  "0 10px 22px rgba(22,63,32,0.18)",
+                boxShadow: "0 10px 22px rgba(22,63,32,0.18)",
               }}
-              whileTap={{
-                scale: 0.97,
-              }}
+              whileTap={{ scale: 0.97 }}
               className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition"
             >
               <FiPlus size={15} />
-
-              <span>
-                Add Category
-              </span>
+              <span>Add Category</span>
             </motion.button>
           </div>
         </div>
@@ -684,8 +512,6 @@ const Addcategories: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
       >
-        {/* ACCENT */}
-
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
         <div className="pt-[3px]">
@@ -700,12 +526,8 @@ const Addcategories: React.FC = () => {
             onPageChange={handlePageChange}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            onStatusToggle={
-              handleStatusToggle
-            }
-            statusLoadingId={
-              statusLoadingId
-            }
+            onStatusToggle={handleStatusToggle}
+            statusLoadingId={statusLoadingId}
           />
         </div>
       </motion.div>
@@ -716,19 +538,14 @@ const Addcategories: React.FC = () => {
 
       <GlobalModal
         isOpen={addModalOpen}
-        onClose={() =>
-          !addLoading &&
-          setAddModalOpen(false)
-        }
+        onClose={() => !addLoading && setAddModalOpen(false)}
         closeOnOverlayClick={!addLoading}
       >
         <AddCategoryModal
           open={addModalOpen}
           loading={addLoading}
           onClose={() => {
-            if (!addLoading) {
-              setAddModalOpen(false);
-            }
+            if (!addLoading) setAddModalOpen(false);
           }}
           onSubmit={handleAddCategory}
         />
@@ -779,9 +596,7 @@ const Addcategories: React.FC = () => {
         <DeleteCategoryModal
           open={deleteModalOpen}
           loading={deleteLoading}
-          categoryName={
-            selectedCategory?.title || ""
-          }
+          categoryName={selectedCategory?.title || ""}
           onClose={() => {
             if (!deleteLoading) {
               setDeleteModalOpen(false);
@@ -791,8 +606,6 @@ const Addcategories: React.FC = () => {
           onConfirm={handleConfirmDelete}
         />
       </GlobalModal>
-
-      {/* BOTTOM SPACE */}
 
       <div className="h-5" />
     </motion.div>
