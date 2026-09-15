@@ -1,3 +1,4 @@
+// ReturnRefund.tsx
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
@@ -29,26 +30,7 @@ import returnApi, {
 } from "../../../api/endpoints/return";
 
 // =====================================================
-// THEME
-// =====================================================
-
-const COLORS = {
-  primary: "#163F20",
-  dark: "#0F3219",
-  light: "#EAF3EA",
-  page: "#F5F7F5",
-  text: "#202721",
-  secondary: "#59645C",
-  muted: "#9AA29C",
-  border: "#D8E2D8",
-  accent: "#4C8A57",
-  white: "#FFFFFF",
-  danger: "#C23B32",
-  dangerLight: "#FFF4F2",
-};
-
-// =====================================================
-// ANIMATIONS
+// ANIMATION VARIANTS
 // =====================================================
 
 const containerVariants = {
@@ -238,6 +220,309 @@ const ReturnStatCard: React.FC<ReturnStatCardProps> = ({
 };
 
 // =====================================================
+// APPROVE POPUP (with manual refund amount + admin notes)
+// =====================================================
+
+interface ApprovePopupProps {
+  open: boolean;
+  loading: boolean;
+  orderReference: string;
+  customerName: string;
+  suggestedAmount: number;
+  onClose: () => void;
+  onConfirm: (refundAmount: number, adminNotes: string) => void;
+}
+
+const ApprovePopup: React.FC<ApprovePopupProps> = ({
+  open,
+  loading,
+  orderReference,
+  customerName,
+  suggestedAmount,
+  onClose,
+  onConfirm,
+}) => {
+  const [refundAmount, setRefundAmount] = useState<string>("");
+  const [adminNotes, setAdminNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setRefundAmount(
+        suggestedAmount ? String(Number(suggestedAmount).toFixed(2)) : ""
+      );
+      setAdminNotes("");
+    }
+  }, [open, suggestedAmount]);
+
+  if (!open) return null;
+
+  const parsedAmount = parseFloat(refundAmount);
+  const isValidAmount =
+    !Number.isNaN(parsedAmount) && parsedAmount > 0;
+
+  return (
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
+      <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
+
+        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
+
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
+                Approve Return
+              </span>
+            </div>
+
+            <h2 className="text-lg font-bold text-[#202721]">
+              Approve & Refund
+            </h2>
+
+            <p className="mt-1 text-xs text-[#9AA29C]">
+              Enter the refund amount to return to the customer.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20] disabled:opacity-50"
+          >
+            <FiX size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
+            <div className="flex justify-between gap-4">
+              <span className="text-xs text-[#9AA29C]">Order</span>
+
+              <span className="text-right text-sm font-bold text-[#202721]">
+                {orderReference}
+              </span>
+            </div>
+
+            <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
+              <span className="text-xs text-[#9AA29C]">Customer</span>
+
+              <span className="text-right text-sm font-semibold text-[#202721]">
+                {customerName}
+              </span>
+            </div>
+
+            <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
+              <span className="text-xs text-[#9AA29C]">Full Amount</span>
+
+              <span className="text-right text-sm font-bold text-[#163F20]">
+                {formatCurrency(suggestedAmount)}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Refund Amount <span className="text-[#C23B32]">*</span>
+            </label>
+
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#163F20]">
+                ₹
+              </span>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                placeholder="Enter refund amount"
+                className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-9 pr-4 text-sm font-semibold text-[#202721] outline-none transition placeholder:font-normal placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+                disabled={loading}
+              />
+            </div>
+
+            <p className="mt-2 text-[11px] text-[#9AA29C]">
+              Full amount is pre-filled. You can change it before confirming.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Admin Notes
+            </label>
+
+            <textarea
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              rows={3}
+              placeholder="Optional internal notes..."
+              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+            <p className="text-xs leading-5 text-[#59645C]">
+              ⚠️ By approving, the entered refund amount will be sent back to
+              the customer's original payment method.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            disabled={loading || !isValidAmount}
+            onClick={() =>
+              onConfirm(parsedAmount, adminNotes.trim())
+            }
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? (
+              <FiRefreshCw size={15} className="animate-spin" />
+            ) : (
+              <FiCheck size={15} />
+            )}
+
+            {loading ? "Processing..." : "Approve & Refund"}
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
+
+// =====================================================
+// REJECT POPUP (admin notes only)
+// =====================================================
+
+interface RejectPopupProps {
+  open: boolean;
+  loading: boolean;
+  onClose: () => void;
+  onConfirm: (adminNotes: string) => void;
+}
+
+const RejectPopup: React.FC<RejectPopupProps> = ({
+  open,
+  loading,
+  onClose,
+  onConfirm,
+}) => {
+  const [adminNotes, setAdminNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setAdminNotes("");
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
+      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#163F20] to-[#C23B32]" />
+
+        <div className="flex items-start justify-between border-b border-[#D8E2D8] px-5 py-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-[#C23B32]" />
+
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#C23B32]">
+                Return Review
+              </span>
+            </div>
+
+            <h2 className="text-lg font-bold text-[#202721]">
+              Reject Return
+            </h2>
+
+            <p className="mt-1 text-xs text-[#9AA29C]">
+              Add an optional note before rejecting this request.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] disabled:opacity-50"
+          >
+            <FiX size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Admin Notes
+            </label>
+
+            <textarea
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              rows={4}
+              placeholder="Optional internal notes..."
+              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+            <p className="text-xs leading-5 text-[#8b3a34]">
+              ⚠️ Rejecting will mark this return request as rejected. The
+              customer will be notified.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => onConfirm(adminNotes.trim())}
+            className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#a8322b] disabled:opacity-50"
+          >
+            {loading && <FiRefreshCw size={14} className="animate-spin" />}
+
+            Reject Return
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
+
+// =====================================================
 // MARK RECEIVED CONFIRM POPUP
 // =====================================================
 
@@ -348,129 +633,6 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
             )}
 
             {loading ? "Processing..." : "Confirm Received"}
-          </button>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
-
-// =====================================================
-// REJECT POPUP
-// =====================================================
-
-interface RejectPopupProps {
-  open: boolean;
-  loading: boolean;
-  onClose: () => void;
-  onConfirm: (rejectionReason: string, adminNotes: string) => void;
-}
-
-const RejectPopup: React.FC<RejectPopupProps> = ({
-  open,
-  loading,
-  onClose,
-  onConfirm,
-}) => {
-  const [rejectionReason, setRejectionReason] = useState("");
-  const [adminNotes, setAdminNotes] = useState("");
-
-  useEffect(() => {
-    if (open) {
-      setRejectionReason("");
-      setAdminNotes("");
-    }
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
-      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#163F20] to-[#C23B32]" />
-
-        <div className="flex items-start justify-between border-b border-[#D8E2D8] px-5 py-4">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#C23B32]" />
-
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#C23B32]">
-                Return Review
-              </span>
-            </div>
-
-            <h2 className="text-lg font-bold text-[#202721]">Reject Return</h2>
-
-            <p className="mt-1 text-xs text-[#9AA29C]">
-              Enter the reason for rejecting this request.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] disabled:opacity-50"
-          >
-            <FiX size={18} />
-          </button>
-        </div>
-
-        <div className="space-y-5 p-5">
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
-              Rejection Reason <span className="text-[#C23B32]">*</span>
-            </label>
-
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={4}
-              placeholder="Enter rejection reason..."
-              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
-              Admin Notes
-            </label>
-
-            <textarea
-              value={adminNotes}
-              onChange={(e) => setAdminNotes(e.target.value)}
-              rows={3}
-              placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            disabled={loading || !rejectionReason.trim()}
-            onClick={() =>
-              onConfirm(rejectionReason.trim(), adminNotes.trim())
-            }
-            className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#a8322b] disabled:opacity-50"
-          >
-            {loading && <FiRefreshCw size={14} className="animate-spin" />}
-
-            Reject Return
           </button>
         </div>
       </div>
@@ -660,7 +822,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ REFUND DETAILS (shown when completed) */}
+          {/* REFUND DETAILS (shown when completed) */}
           {isCompleted && (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#4C8A57]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#4C8A57]/20 bg-gradient-to-r from-[#EAF3EA] to-[#f4f8f4] px-5 py-4">
@@ -704,7 +866,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     </p>
 
                     <p className="mt-1 text-sm font-bold capitalize text-[#202721]">
-                      {detail.refund_details?.method || "Original Payment"}
+                      Original Payment
                     </p>
                   </div>
 
@@ -1110,18 +1272,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
                 </div>
               )}
-
-              {detail.status === "rejected" && detail.rejection_reason && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#C23B32]">
-                    Rejection Reason
-                  </p>
-
-                  <p className="mt-1 text-sm leading-6 text-[#8b3a34]">
-                    {detail.rejection_reason}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -1225,6 +1375,8 @@ const ReturnRefund: React.FC = () => {
     useState<SingleReturnResponse["data"] | null>(null);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+
+  const [approveModalOpen, setApproveModalOpen] = useState(false);
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
 
@@ -1356,8 +1508,6 @@ const ReturnRefund: React.FC = () => {
 
       if (response.data.success) {
         setSelectedDetail(response.data.data);
-
-        toast.success("Return details loaded successfully.");
       } else {
         toast.error("Unable to fetch return details.");
       }
@@ -1385,25 +1535,56 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // DIRECT ACCEPT
+  // OPEN APPROVE POPUP (from table row)
   // ===================================================
 
-  const handleDirectApprove = async (id: number) => {
+  const handleOpenApproveFromTable = async (id: number) => {
+    setApproveModalOpen(true);
+    setSelectedDetail(null);
+
+    await fetchReturnDetail(id);
+  };
+
+  // ===================================================
+  // OPEN APPROVE POPUP (from detail modal)
+  // ===================================================
+
+  const handleOpenApprove = () => {
+    if (!selectedDetail) return;
+
+    setApproveModalOpen(true);
+  };
+
+  // ===================================================
+  // SUBMIT APPROVE
+  // ===================================================
+
+  const handleApprove = async (
+    refundAmount: number,
+    adminNotes: string,
+  ) => {
+    const id = selectedDetail?.id;
+
+    if (!id) return;
+
     try {
       setActionLoading({ type: "approve", id });
 
-      const response = await returnApi.approve(id);
+      const response = await returnApi.approve(id, {
+        refund_amount: refundAmount,
+        admin_notes: adminNotes || undefined,
+      });
 
       if (response.data.success) {
         toast.success(
           response.data.message || "Return approved successfully.",
         );
 
+        setApproveModalOpen(false);
+
         await fetchReturnRequests();
 
-        if (selectedDetail?.id === id) {
-          await fetchReturnDetail(id);
-        }
+        await fetchReturnDetail(id);
       } else {
         toast.error(
           response.data.message || "Unable to approve return.",
@@ -1421,16 +1602,6 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // APPROVE FROM MODAL
-  // ===================================================
-
-  const handleApprove = async () => {
-    if (!selectedDetail) return;
-
-    await handleDirectApprove(selectedDetail.id);
-  };
-
-  // ===================================================
   // OPEN REJECT
   // ===================================================
 
@@ -1442,14 +1613,17 @@ const ReturnRefund: React.FC = () => {
     setRejectModalOpen(true);
   };
 
+  const handleOpenRejectFromModal = () => {
+    if (!selectedDetail) return;
+
+    setRejectModalOpen(true);
+  };
+
   // ===================================================
-  // REJECT
+  // SUBMIT REJECT (admin notes only)
   // ===================================================
 
-  const handleReject = async (
-    rejectionReason: string,
-    adminNotes: string,
-  ) => {
+  const handleReject = async (adminNotes: string) => {
     const id = selectedDetail?.id;
 
     if (!id) return;
@@ -1459,7 +1633,6 @@ const ReturnRefund: React.FC = () => {
 
       const response = await returnApi.reject(
         id,
-        rejectionReason,
         adminNotes || undefined,
       );
 
@@ -1940,7 +2113,7 @@ const ReturnRefund: React.FC = () => {
                                 type="button"
                                 disabled={approveLoading}
                                 onClick={() =>
-                                  handleDirectApprove(request.id)
+                                  handleOpenApproveFromTable(request.id)
                                 }
                                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
                               >
@@ -1973,10 +2146,7 @@ const ReturnRefund: React.FC = () => {
                             {showMarkReceived && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setSelectedDetail(request as any);
-                                  handleView(request.id);
-                                }}
+                                onClick={() => handleView(request.id)}
                                 className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
                               >
                                 <FiTruck size={13} />
@@ -2081,7 +2251,7 @@ const ReturnRefund: React.FC = () => {
                             type="button"
                             disabled={approveLoading}
                             onClick={() =>
-                              handleDirectApprove(request.id)
+                              handleOpenApproveFromTable(request.id)
                             }
                             className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#4C8A57] text-white disabled:opacity-50"
                           >
@@ -2114,10 +2284,7 @@ const ReturnRefund: React.FC = () => {
                       <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedDetail(request as any);
-                            handleView(request.id);
-                          }}
+                          onClick={() => handleView(request.id)}
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
                         >
                           <FiTruck size={14} />
@@ -2220,9 +2387,22 @@ const ReturnRefund: React.FC = () => {
         onClose={() => {
           setDetailModalOpen(false);
         }}
-        onApprove={handleApprove}
-        onReject={() => setRejectModalOpen(true)}
+        onApprove={handleOpenApprove}
+        onReject={handleOpenRejectFromModal}
         onReceived={handleOpenReceived}
+      />
+
+      {/* APPROVE POPUP */}
+      <ApprovePopup
+        open={approveModalOpen}
+        loading={actionLoading.type === "approve"}
+        orderReference={
+          selectedDetail?.order?.order_reference || "N/A"
+        }
+        customerName={getCustomerName(selectedDetail?.user)}
+        suggestedAmount={selectedDetail?.refund_details?.total || 0}
+        onClose={() => setApproveModalOpen(false)}
+        onConfirm={handleApprove}
       />
 
       {/* REJECT POPUP */}

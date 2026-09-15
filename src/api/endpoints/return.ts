@@ -1,3 +1,4 @@
+// api/endpoints/return.ts
 import apiClient from "../client";
 
 // ===================== TYPES =====================
@@ -13,7 +14,13 @@ export interface ReturnOrder {
   id: number;
   order_reference: string;
   status: "pending" | "approved" | "rejected" | "received" | "completed";
-  return_status: "none" | "pending" | "approved" | "rejected" | "received" | "completed";
+  return_status:
+    | "none"
+    | "pending"
+    | "approved"
+    | "rejected"
+    | "received"
+    | "completed";
   delivered_at?: string;
 }
 
@@ -43,7 +50,12 @@ export interface RefundDetails {
   total: number;
 }
 
-export type ReturnStatus = "pending" | "approved" | "rejected" | "received" | "completed";
+export type ReturnStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "received"
+  | "completed";
 
 // ===================== RESPONSE TYPES =====================
 
@@ -63,6 +75,8 @@ export interface SingleReturnResponse {
     approved_at: string | null;
     received_at: string | null;
     completed_at: string | null;
+    refunded_at?: string | null;
+    updated_at?: string | null;
     can_approve: boolean;
     can_reject: boolean;
     can_mark_received: boolean;
@@ -107,9 +121,11 @@ export interface ReturnActionResponse {
     status: string;
     admin_notes?: string | null;
     rejection_reason?: string | null;
+    refund_amount?: number;
     approved_at?: string | null;
     received_at?: string | null;
     completed_at?: string | null;
+    refunded_at?: string | null;
   };
 }
 
@@ -118,7 +134,6 @@ export interface ReturnActionResponse {
 export const returnApi = {
   /**
    * GET /admin/returns
-   * Get all returns
    */
   getAll: (
     page?: number,
@@ -145,34 +160,47 @@ export const returnApi = {
 
   /**
    * GET /admin/returns/:id
-   * Get single return details by ID
    */
   getById: (id: number) =>
     apiClient.get<SingleReturnResponse>(`/admin/returns/${id}`),
 
   /**
    * POST /admin/returns/:id/approve
-   * Approve a return request
+   * Payload:
+   * {
+   *   refund_amount: number,   // required — manually entered by admin
+   *   admin_notes?: string     // optional
+   * }
    */
-  approve: (id: number, admin_notes?: string) =>
-    apiClient.post<ReturnActionResponse>(
-      `/admin/returns/${id}/approve`,
-      admin_notes ? { admin_notes } : {}
-    ),
-
-  /**
-   * POST /admin/returns/:id/reject
-   * Reject a return request
-   */
-  reject: (id: number, rejection_reason: string, admin_notes?: string) =>
-    apiClient.post<ReturnActionResponse>(`/admin/returns/${id}/reject`, {
-      rejection_reason,
-      ...(admin_notes && { admin_notes }),
+  approve: (
+    id: number,
+    payload: {
+      refund_amount: number;
+      admin_notes?: string;
+    }
+  ) =>
+    apiClient.post<ReturnActionResponse>(`/admin/returns/${id}/approve`, {
+      refund_amount: payload.refund_amount,
+      ...(payload.admin_notes?.trim() && {
+        admin_notes: payload.admin_notes.trim(),
+      }),
     }),
 
   /**
+   * POST /admin/returns/:id/reject
+   * Payload:
+   * {
+   *   admin_notes?: string   // optional
+   * }
+   */
+  reject: (id: number, rejection_reason?: string) =>
+    apiClient.post<ReturnActionResponse>(
+      `/admin/returns/${id}/reject`,
+      rejection_reason?.trim() ? { rejection_reason: rejection_reason.trim() } : {}
+    ),
+
+  /**
    * POST /admin/returns/:id/received
-   * Mark return as received
    */
   markReceived: (id: number, admin_notes?: string) =>
     apiClient.post<ReturnActionResponse>(
@@ -182,7 +210,6 @@ export const returnApi = {
 
   /**
    * POST /admin/returns/:id/complete
-   * Complete the return process
    */
   complete: (id: number, admin_notes?: string) =>
     apiClient.post<ReturnActionResponse>(

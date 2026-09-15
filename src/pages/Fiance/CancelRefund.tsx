@@ -211,6 +211,7 @@ interface StatCardProps {
   value: number;
   subtitle: string;
   icon: React.ReactNode;
+  loading?: boolean;
 }
 
 const CancellationStatCard: React.FC<StatCardProps> = ({
@@ -218,6 +219,7 @@ const CancellationStatCard: React.FC<StatCardProps> = ({
   value,
   subtitle,
   icon,
+  loading = false,
 }) => {
   return (
     <motion.div
@@ -239,9 +241,13 @@ const CancellationStatCard: React.FC<StatCardProps> = ({
             {title}
           </p>
 
-          <p className="mt-3 text-4xl font-bold leading-none text-[#202721]">
-            {value.toLocaleString("en-IN")}
-          </p>
+          {loading ? (
+            <div className="mt-3 h-9 w-16 animate-pulse rounded-lg bg-[#EAF3EA]" />
+          ) : (
+            <p className="mt-3 text-4xl font-bold leading-none text-[#202721]">
+              {value.toLocaleString("en-IN")}
+            </p>
+          )}
 
           <p className="mt-2 text-xs text-[#9AA29C]">
             {subtitle}
@@ -1003,7 +1009,7 @@ const CancellationDetailModal: React.FC<
             </div>
           </div>
 
-          {/* ================= CANCELLATION TIMELINE (ONLY REQUESTED) ================= */}
+          {/* CANCELLATION TIMELINE */}
           <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
@@ -1035,7 +1041,6 @@ const CancellationDetailModal: React.FC<
               </div>
             </div>
           </div>
-          {/* ================= END TIMELINE ================= */}
 
           {raw.admin_notes && (
             <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
@@ -1570,24 +1575,28 @@ const CancelRefund: React.FC = () => {
             value={stats.total}
             subtitle="All cancellation requests"
             icon={<FiPackage size={19} />}
+            loading={loading}
           />
           <CancellationStatCard
             title="Pending"
             value={stats.pending}
             subtitle="Waiting for review"
             icon={<FiCalendar size={19} />}
+            loading={loading}
           />
           <CancellationStatCard
             title="Approved"
             value={stats.approved}
             subtitle="Approved requests"
             icon={<FiCheckCircle size={19} />}
+            loading={loading}
           />
           <CancellationStatCard
             title="Rejected"
             value={stats.rejected}
             subtitle="Rejected requests"
             icon={<FiX size={19} />}
+            loading={loading}
           />
         </motion.div>
 
@@ -1609,7 +1618,8 @@ const CancelRefund: React.FC = () => {
                     handleSearchChange(e.target.value)
                   }
                   placeholder="Search order, customer, email..."
-                  className="w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] py-3 pl-11 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+                  disabled={loading}
+                  className="w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] py-3 pl-11 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15 disabled:opacity-60"
                 />
               </div>
 
@@ -1634,10 +1644,11 @@ const CancelRefund: React.FC = () => {
                     <button
                       key={filter}
                       type="button"
+                      disabled={loading}
                       onClick={() =>
                         handleFilterChange(filter)
                       }
-                      className={`rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${
+                      className={`rounded-xl px-3.5 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
                         activeFilter === filter
                           ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
                           : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
@@ -1691,7 +1702,43 @@ const CancelRefund: React.FC = () => {
               </thead>
 
               <tbody className="divide-y divide-[#D8E2D8]">
-                {paginatedRequests.length > 0 ? (
+                {loading ? (
+                  // ================= SKELETON LOADING =================
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={`skeleton-${i}`} className="animate-pulse">
+                      <td className="px-5 py-4">
+                        <div className="h-8 w-8 rounded-lg bg-[#EAF3EA]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-6 w-32 rounded-lg bg-[#EAF3EA]" />
+                        <div className="mt-2 h-3 w-24 rounded bg-[#F5F7F5]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-4 w-32 rounded bg-[#EAF3EA]" />
+                        <div className="mt-2 h-3 w-40 rounded bg-[#F5F7F5]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-4 w-8 rounded bg-[#EAF3EA]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-4 w-20 rounded bg-[#EAF3EA]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-3 w-40 rounded bg-[#F5F7F5]" />
+                        <div className="mt-2 h-3 w-32 rounded bg-[#F5F7F5]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="h-6 w-24 rounded-full bg-[#EAF3EA]" />
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-center gap-2">
+                          <div className="h-9 w-9 rounded-xl bg-[#EAF3EA]" />
+                          <div className="h-9 w-20 rounded-xl bg-[#EAF3EA]" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : paginatedRequests.length > 0 ? (
                   paginatedRequests.map(
                     (request, index) => {
                       const requestId =
@@ -1864,7 +1911,32 @@ const CancelRefund: React.FC = () => {
           </div>
 
           <div className="block lg:hidden">
-            {paginatedRequests.length > 0 ? (
+            {loading ? (
+              // ================= MOBILE SKELETON =================
+              Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={`mob-skeleton-${i}`}
+                  className="animate-pulse border-b border-[#D8E2D8] bg-white p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="h-6 w-32 rounded-lg bg-[#EAF3EA]" />
+                    <div className="h-8 w-8 rounded-lg bg-[#EAF3EA]" />
+                  </div>
+                  <div className="mt-4">
+                    <div className="h-4 w-28 rounded bg-[#EAF3EA]" />
+                    <div className="mt-2 h-3 w-40 rounded bg-[#F5F7F5]" />
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="h-16 rounded-xl bg-[#EAF3EA]" />
+                    <div className="h-16 rounded-xl bg-[#EAF3EA]" />
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <div className="h-9 w-9 rounded-xl bg-[#EAF3EA]" />
+                    <div className="h-9 w-9 rounded-xl bg-[#EAF3EA]" />
+                  </div>
+                </div>
+              ))
+            ) : paginatedRequests.length > 0 ? (
               paginatedRequests.map((request, index) => {
                 const requestId =
                   request.order_line_id;
@@ -2011,7 +2083,7 @@ const CancelRefund: React.FC = () => {
             )}
           </div>
 
-          {filteredRequests.length > 0 && (
+          {!loading && filteredRequests.length > 0 && (
             <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#9AA29C]">
