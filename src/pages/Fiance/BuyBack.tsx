@@ -1,4 +1,4 @@
-// ReturnRefund.tsx
+// BuyBack.tsx
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
@@ -28,11 +28,7 @@ import GlobalModal from "@/components/common/GlobalModal";
 import returnApi, {
   ReturnListItem,
   SingleReturnResponse,
-} from "../../../api/endpoints/return";
-
-// =====================================================
-// ANIMATION VARIANTS
-// =====================================================
+} from "../../api/endpoints/return";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -303,7 +299,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
               <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
-                Approve Return
+                Approve Buyback
               </span>
             </div>
 
@@ -477,12 +473,12 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
               <div className="h-1.5 w-1.5 rounded-full bg-[#C23B32]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#C23B32]">
-                Return Review
+                Buyback Review
               </span>
             </div>
 
             <h2 className="text-lg font-bold text-[#202721]">
-              Reject Return
+              Reject Buyback
             </h2>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
@@ -518,7 +514,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 
           <div className="rounded-xl border border-red-200 bg-red-50 p-3">
             <p className="text-xs leading-5 text-[#8b3a34]">
-              ⚠️ Rejecting will mark this return request as rejected. The
+              ⚠️ Rejecting will mark this buyback request as rejected. The
               customer will be notified.
             </p>
           </div>
@@ -542,7 +538,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
           >
             {loading && <FiRefreshCw size={14} className="animate-spin" />}
 
-            Reject Return
+            Reject Buyback
           </button>
         </div>
       </div>
@@ -597,7 +593,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
             </h2>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
-              Mark this return as received by the warehouse.
+              Mark this buyback as received by the warehouse.
             </p>
           </div>
 
@@ -632,7 +628,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
 
           <div className="rounded-xl border border-[#D8E2D8] bg-[#EAF3EA] p-3">
             <p className="text-xs leading-5 text-[#59645C]">
-              ⚠️ By confirming, the return items will be marked as received by
+              ⚠️ By confirming, the buyback items will be marked as received by
               the warehouse. This action cannot be undone.
             </p>
           </div>
@@ -711,7 +707,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
 
             <p className="mt-4 text-sm font-bold text-[#202721]">
-              Loading return details...
+              Loading buyback details...
             </p>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
@@ -739,7 +735,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
 
             <p className="mt-4 text-sm font-bold text-[#C23B32]">
-              Return details not found.
+              Buyback details not found.
             </p>
 
             <button
@@ -773,12 +769,12 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
-                Returns & Refunds
+                Buyback & Refunds
               </span>
             </div>
 
             <h2 className="text-xl font-bold text-[#202721]">
-              Return Request
+              Buyback Request
             </h2>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#9AA29C]">
@@ -831,7 +827,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
             <div className="rounded-2xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                Return Amount
+                Buyback Amount
               </p>
 
               <p className="mt-1 text-2xl font-bold text-[#163F20]">
@@ -1047,7 +1043,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                   <div>
                     <h3 className="text-sm font-bold text-[#202721]">
-                      Returned Items
+                      Buyback Items
                     </h3>
 
                     <p className="mt-0.5 text-xs text-[#9AA29C]">
@@ -1093,7 +1089,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     {item.image_urls && item.image_urls.length > 0 && (
                       <div>
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Return Images
+                          Buyback Images
                         </p>
 
                         <div className="flex flex-wrap gap-3">
@@ -1107,7 +1103,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                             >
                               <img
                                 src={imageUrl}
-                                alt={`Return evidence ${imageIndex + 1}`}
+                                alt={`Buyback evidence ${imageIndex + 1}`}
                                 className="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
                               />
 
@@ -1205,7 +1201,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
               <div className="rounded-xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-3">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                  Return Amount
+                  Buyback Amount
                 </p>
 
                 <p className="mt-1 text-xl font-bold text-[#163F20]">
@@ -1223,7 +1219,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </div>
 
               <h3 className="text-sm font-bold text-[#202721]">
-                Return Timeline
+                Buyback Timeline
               </h3>
             </div>
 
@@ -1239,7 +1235,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                 <div className="pt-1">
                   <p className="text-sm font-bold text-[#202721]">
-                    Return Requested
+                    Buyback Requested
                   </p>
 
                   <p className="mt-1 text-xs text-[#9AA29C]">
@@ -1260,7 +1256,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                   <div className="pt-1">
                     <p className="text-sm font-bold text-[#202721]">
-                      Return Approved
+                      Buyback Approved
                     </p>
 
                     <p className="mt-1 text-xs text-[#9AA29C]">
@@ -1282,7 +1278,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                   <div className="pt-1">
                     <p className="text-sm font-bold text-[#202721]">
-                      Return Received
+                      Buyback Received
                     </p>
 
                     <p className="mt-1 text-xs text-[#9AA29C]">
@@ -1354,7 +1350,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <FiCheck size={14} />
                   )}
 
-                  Accept Return
+                  Accept Buyback
                 </button>
               )}
 
@@ -1366,7 +1362,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                 >
                   <FiX size={14} />
-                  Reject Return
+                  Reject Buyback
                 </button>
               )}
 
@@ -1398,7 +1394,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 // MAIN
 // =====================================================
 
-const ReturnRefund: React.FC = () => {
+const BuyBack: React.FC = () => {
   const [requests, setRequests] = useState<ReturnListItem[]>([]);
 
   const [activeFilter, setActiveFilter] =
@@ -1452,22 +1448,22 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         const list = response.data.data?.data || [];
 
-        // Show only Return requests in this list.
-        // Buyback requests (type === "buyback") are excluded.
-        const returnRequests = list.filter(
-          (item) => item.type === "return",
+        // Show only Buyback requests in this list.
+        // Return requests (type === "return") are excluded.
+        const buybackRequests = list.filter(
+          (item) => item.type === "buyback",
         );
 
-        setRequests(returnRequests);
+        setRequests(buybackRequests);
       } else {
-        toast.error("Unable to fetch return requests.");
+        toast.error("Unable to fetch buyback requests.");
       }
     } catch (error: any) {
-      console.error("Get return requests error:", error);
+      console.error("Get buyback requests error:", error);
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to fetch return requests.",
+        "Unable to fetch buyback requests.",
       );
     } finally {
       setLoading(false);
@@ -1557,14 +1553,14 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         setSelectedDetail(response.data.data);
       } else {
-        toast.error("Unable to fetch return details.");
+        toast.error("Unable to fetch buyback details.");
       }
     } catch (error: any) {
-      console.error("Return detail error:", error);
+      console.error("Buyback detail error:", error);
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to fetch return details.",
+        "Unable to fetch buyback details.",
       );
     } finally {
       setDetailLoading(false);
@@ -1625,7 +1621,7 @@ const ReturnRefund: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Return approved successfully.",
+          response.data.message || "Buyback approved successfully.",
         );
 
         setApproveModalOpen(false);
@@ -1635,14 +1631,14 @@ const ReturnRefund: React.FC = () => {
         await fetchReturnDetail(id);
       } else {
         toast.error(
-          response.data.message || "Unable to approve return.",
+          response.data.message || "Unable to approve buyback.",
         );
       }
     } catch (error: any) {
-      console.error("Approve return error:", error);
+      console.error("Approve buyback error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to approve return.",
+        error?.response?.data?.message || "Unable to approve buyback.",
       );
     } finally {
       setActionLoading({ type: null, id: null });
@@ -1686,7 +1682,7 @@ const ReturnRefund: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Return rejected successfully.",
+          response.data.message || "Buyback rejected successfully.",
         );
 
         setRejectModalOpen(false);
@@ -1696,14 +1692,14 @@ const ReturnRefund: React.FC = () => {
         await fetchReturnDetail(id);
       } else {
         toast.error(
-          response.data.message || "Unable to reject return.",
+          response.data.message || "Unable to reject buyback.",
         );
       }
     } catch (error: any) {
-      console.error("Reject return error:", error);
+      console.error("Reject buyback error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to reject return.",
+        error?.response?.data?.message || "Unable to reject buyback.",
       );
     } finally {
       setActionLoading({ type: null, id: null });
@@ -1719,7 +1715,7 @@ const ReturnRefund: React.FC = () => {
 
     if (selectedDetail.status !== "approved") {
       toast.error(
-        "Return must be approved before marking as received.",
+        "Buyback must be approved before marking as received.",
       );
       return;
     }
@@ -1744,7 +1740,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-          "Return marked as received successfully.",
+          "Buyback marked as received successfully.",
         );
 
         setReceivedModalOpen(false);
@@ -1755,7 +1751,7 @@ const ReturnRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-          "Unable to mark return as received.",
+          "Unable to mark buyback as received.",
         );
       }
     } catch (error: any) {
@@ -1763,7 +1759,7 @@ const ReturnRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to mark return as received.",
+        "Unable to mark buyback as received.",
       );
     } finally {
       setReceivedLoading(false);
@@ -1783,7 +1779,7 @@ const ReturnRefund: React.FC = () => {
       await fetchReturnDetail(selectedDetail.id);
     }
 
-    toast.success("Return requests refreshed.");
+    toast.success("Buyback requests refreshed.");
   };
 
   // ===================================================
@@ -1866,16 +1862,16 @@ const ReturnRefund: React.FC = () => {
               <div className="h-2 w-2 rounded-full bg-[#4C8A57]" />
 
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#163F20]">
-                Returns & Refunds
+                Buyback & Refunds
               </span>
             </div>
 
             <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">
-              Return Requests
+              Buyback Requests
             </h1>
 
             <p className="mt-1 text-sm text-[#59645C]">
-              Review return requests, approve refunds, and manage the return
+              Review buyback requests, approve refunds, and manage the buyback
               lifecycle.
             </p>
           </div>
@@ -1901,9 +1897,9 @@ const ReturnRefund: React.FC = () => {
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <ReturnStatCard
-            title="Total Returns"
+            title="Total Buybacks"
             value={stats.total}
-            subtitle="All return requests"
+            subtitle="All buyback requests"
             icon={<FiPackage size={21} />}
             accent="bg-gradient-to-r from-[#4C8A57] to-[#163F20]"
           />
@@ -1927,7 +1923,7 @@ const ReturnRefund: React.FC = () => {
           <ReturnStatCard
             title="Completed"
             value={stats.completed}
-            subtitle="Finished returns"
+            subtitle="Finished buybacks"
             icon={<FiCheck size={21} />}
             accent="bg-gradient-to-r from-[#4C8A57] to-[#0F3219]"
           />
@@ -2017,7 +2013,7 @@ const ReturnRefund: React.FC = () => {
                   </th>
 
                   <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Return Amount
+                    Buyback Amount
                   </th>
 
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
@@ -2044,7 +2040,7 @@ const ReturnRefund: React.FC = () => {
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-[#202721]">
-                          Loading return requests...
+                          Loading buyback requests...
                         </p>
                       </div>
                     </td>
@@ -2058,7 +2054,7 @@ const ReturnRefund: React.FC = () => {
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-[#202721]">
-                          No return requests found
+                          No buyback requests found
                         </p>
 
                         <p className="mt-1 text-xs text-[#9AA29C]">
@@ -2264,7 +2260,7 @@ const ReturnRefund: React.FC = () => {
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Return Amount
+                          Buyback Amount
                         </p>
 
                         <p className="mt-1 text-base font-bold text-[#163F20]">
@@ -2369,7 +2365,7 @@ const ReturnRefund: React.FC = () => {
                 </div>
 
                 <p className="mt-4 text-sm font-bold text-[#202721]">
-                  No return requests found
+                  No buyback requests found
                 </p>
 
                 <p className="mt-1 text-xs text-[#9AA29C]">
@@ -2488,4 +2484,4 @@ const ReturnRefund: React.FC = () => {
   );
 };
 
-export default ReturnRefund;
+export default BuyBack;

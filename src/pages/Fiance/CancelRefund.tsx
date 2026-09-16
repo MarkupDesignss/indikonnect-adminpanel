@@ -20,6 +20,7 @@ import {
   FiAlertCircle,
   FiCheckCircle,
   FiCreditCard,
+  FiBriefcase,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -199,6 +200,53 @@ const getCancellationAmount = (row: any) => {
         ? Number(row.unit_price) * Number(row.quantity)
         : 0) ??
       0
+  );
+};
+
+// =====================================================
+// ACCOUNT TYPE HELPERS
+// =====================================================
+
+const getAccountTypeLabel = (
+  accountType?: string | null
+) => {
+  if (!accountType) return "Customer";
+
+  return accountType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getAccountTypeClass = (
+  accountType?: string | null
+) => {
+  switch (accountType) {
+    case "distributor":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+
+    case "retailer":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "wholesaler":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700";
+
+    case "customer":
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
+
+    default:
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
+  }
+};
+
+
+const getRowAccountType = (row: any): string => {
+  if (!row) return "customer";
+
+  return (
+    row.user?.account_type ||
+    row.order?.user?.account_type ||
+    row.order?.order_type ||
+    "customer"
   );
 };
 
@@ -647,9 +695,7 @@ const CancellationDetailModal: React.FC<
   const amount = getCancellationAmount(raw);
   const status =
     detail.status || deriveStatus(raw);
-  const orderLineId =
-    raw.order_line_id ?? raw.id;
-
+ 
   const orderReference =
     raw.order_reference ||
     raw.order?.order_reference ||
@@ -674,6 +720,8 @@ const CancellationDetailModal: React.FC<
       raw.order?.user?.phone ||
       "",
   };
+
+  const accountType = getRowAccountType(raw);
 
   const quantity = Number(
     raw.quantity ?? 1
@@ -808,13 +856,23 @@ const CancellationDetailModal: React.FC<
                   </span>
                 </div>
 
-                <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
-                  <span className="text-xs text-[#9AA29C]">
+                <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#9AA29C]">
                     Email
                   </span>
-                  <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#202721]">
-                    {customer.email || "N/A"}
-                  </span>
+                  <div className="min-w-0 text-right">
+                    <p className="truncate text-sm font-semibold text-[#202721]">
+                      {customer.email || "N/A"}
+                    </p>
+                    <span
+                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                        accountType
+                      )}`}
+                    >
+                      <FiBriefcase size={10} />
+                      {getAccountTypeLabel(accountType)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="flex justify-between gap-4">
@@ -1196,6 +1254,10 @@ const CancelRefund: React.FC = () => {
                       row.order.user.email || "",
                     phone:
                       row.order.user.phone || null,
+                    account_type:
+                      row.order.user.account_type ||
+                      row.order?.order_type ||
+                      null,
                   }
                 : undefined,
               status,
@@ -1288,6 +1350,7 @@ const CancelRefund: React.FC = () => {
             "",
           request.user?.name || "",
           request.user?.email || "",
+          request.user?.account_type || "",
           request.reason || "",
           String(request.order_line_id),
         ]
@@ -1678,13 +1741,13 @@ const CancelRefund: React.FC = () => {
                     S.No.
                   </th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Order
+                    Order Reference
                   </th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Customer
+                    Buyer
                   </th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Items
+                    Quantity
                   </th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Cancellation Amount
@@ -1716,6 +1779,7 @@ const CancelRefund: React.FC = () => {
                       <td className="px-5 py-4">
                         <div className="h-4 w-32 rounded bg-[#EAF3EA]" />
                         <div className="mt-2 h-3 w-40 rounded bg-[#F5F7F5]" />
+                        <div className="mt-2 h-4 w-20 rounded-full bg-[#F5F7F5]" />
                       </td>
                       <td className="px-5 py-4">
                         <div className="h-4 w-8 rounded bg-[#EAF3EA]" />
@@ -1753,6 +1817,9 @@ const CancelRefund: React.FC = () => {
                       const amount =
                         getRowAmount(request);
 
+                      const accountType =
+                        getRowAccountType(raw);
+
                       return (
                         <tr
                           key={`${requestId}-${index}`}
@@ -1783,14 +1850,16 @@ const CancelRefund: React.FC = () => {
                                 request.user
                               )}
                             </p>
-                            <p className="mt-1 max-w-[220px] truncate text-xs text-[#9AA29C]">
-                              {request.user?.email}
-                            </p>
-                            {request.user?.phone && (
-                              <p className="mt-0.5 text-[11px] text-[#9AA29C]">
-                                {request.user.phone}
-                              </p>
-                            )}
+                            <span
+                              className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                                accountType
+                              )}`}
+                            >
+                              <FiBriefcase size={9} />
+                              {getAccountTypeLabel(
+                                accountType
+                              )}
+                            </span>
                           </td>
 
                           <td className="px-5 py-4">
@@ -1925,6 +1994,7 @@ const CancelRefund: React.FC = () => {
                   <div className="mt-4">
                     <div className="h-4 w-28 rounded bg-[#EAF3EA]" />
                     <div className="mt-2 h-3 w-40 rounded bg-[#F5F7F5]" />
+                    <div className="mt-2 h-4 w-20 rounded-full bg-[#F5F7F5]" />
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="h-16 rounded-xl bg-[#EAF3EA]" />
@@ -1945,6 +2015,9 @@ const CancelRefund: React.FC = () => {
                 const isApproveLoading =
                   actionLoading.type === "approve" &&
                   actionLoading.id === requestId;
+
+                const accountType =
+                  getRowAccountType(raw);
 
                 return (
                   <div
@@ -1974,6 +2047,14 @@ const CancelRefund: React.FC = () => {
                       <p className="mt-1 truncate text-xs text-[#9AA29C]">
                         {request.user?.email}
                       </p>
+                      <span
+                        className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                          accountType
+                        )}`}
+                      >
+                        <FiBriefcase size={10} />
+                        {getAccountTypeLabel(accountType)}
+                      </span>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">

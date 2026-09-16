@@ -12,6 +12,7 @@ import {
   FiRefreshCw,
   FiSearch,
   FiX,
+  FiBriefcase,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -167,6 +168,58 @@ const getBuyerInitials = (name?: string) => {
 };
 
 // =====================================================
+// ACCOUNT TYPE HELPERS
+// =====================================================
+
+const getAccountTypeLabel = (
+  accountType?: string | null,
+) => {
+  if (!accountType) return "Customer";
+
+  return accountType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getAccountTypeClass = (
+  accountType?: string | null,
+) => {
+  switch (accountType) {
+    case "distributor":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+
+    case "retailer":
+      return "border-blue-200 bg-blue-50 text-blue-700";
+
+    case "wholesaler":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700";
+
+    case "customer":
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
+
+    default:
+      return "border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C]";
+  }
+};
+
+/**
+ * Resolve the account type for a credit note row.
+ * Priority:
+ *  1. note.buyer_type
+ *  2. note.order.order_type
+ *  3. fallback "customer"
+ */
+const getCreditNoteAccountType = (note: any): string => {
+  if (!note) return "customer";
+
+  return (
+    note.buyer_type ||
+    note.order?.order_type ||
+    "customer"
+  );
+};
+
+// =====================================================
 // VIEW MODAL
 // =====================================================
 
@@ -186,6 +239,8 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   if (!open || !note) {
     return null;
   }
+
+  const accountType = getCreditNoteAccountType(note);
 
   return (
     <GlobalModal
@@ -276,9 +331,14 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   Buyer Details
                 </h3>
 
-                <p className="text-[10px] text-[#9AA29C]">
-                  Credit note customer information
-                </p>
+                <span
+                  className={`mt-0.5 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                    accountType,
+                  )}`}
+                >
+                  <FiBriefcase size={9} />
+                  {getAccountTypeLabel(accountType)}
+                </span>
               </div>
             </div>
 
@@ -594,6 +654,7 @@ const CreditNotes: React.FC = () => {
           String(note.id),
           String(note.order_id),
           note.reason,
+          getCreditNoteAccountType(note),
         ]
           .join(" ")
           .toLowerCase()
@@ -660,6 +721,8 @@ const CreditNotes: React.FC = () => {
       });
 
       const pageWidth = doc.internal.pageSize.getWidth();
+
+      const accountType = getCreditNoteAccountType(note);
 
       let y = 18;
 
@@ -742,15 +805,23 @@ const CreditNotes: React.FC = () => {
 
       y += 5;
 
-      doc.text(`State: ${note.buyer_state || "—"}`, 15, y);
+      doc.text(
+        `Account Type: ${getAccountTypeLabel(accountType)}`,
+        15,
+        y,
+      );
 
       doc.text(`Order ID: ${note.order_id}`, 112, y);
 
       y += 5;
 
-      doc.text(`GSTIN: ${note.buyer_gstin || "—"}`, 15, y);
+      doc.text(`State: ${note.buyer_state || "—"}`, 15, y);
 
       doc.text(`Reason: ${capitalize(note.reason)}`, 112, y);
+
+      y += 5;
+
+      doc.text(`GSTIN: ${note.buyer_gstin || "—"}`, 15, y);
 
       // =================================================
       // DIVIDER
@@ -1156,33 +1227,6 @@ const CreditNotes: React.FC = () => {
               </div>
             </div>
 
-            {/* TABLE INFO */}
-            <div className="flex flex-col justify-between gap-3 border-b border-[#D8E2D8] px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:px-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                  <FiFileText size={18} />
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-[#202721]">
-                    Issued Credit Notes
-                  </h3>
-
-                  <p className="mt-0.5 text-[11px] text-[#9AA29C]">
-                    Customer refund and return credit records
-                  </p>
-                </div>
-              </div>
-
-              <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
-                {reasonFilter === "all"
-                  ? "All Credit Notes"
-                  : reasonFilter === "return"
-                    ? "Return Credit Notes"
-                    : "Other Credit Notes"}
-              </span>
-            </div>
-
             {/* DESKTOP TABLE */}
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[1120px] border-collapse">
@@ -1259,134 +1303,142 @@ const CreditNotes: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredCreditNotes.map((note, index) => (
-                      <motion.tr
-                        key={note.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.025 }}
-                        className="border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
-                      >
-                        {/* S.NO */}
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
-                            {startEntry + index}
-                          </span>
-                        </td>
+                    filteredCreditNotes.map((note, index) => {
+                      const accountType =
+                        getCreditNoteAccountType(note);
 
-                        {/* CREDIT NOTE */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                              <FiFileText size={16} />
+                      return (
+                        <motion.tr
+                          key={note.id}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.025 }}
+                          className="border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
+                        >
+                          {/* S.NO */}
+                          <td className="px-5 py-4">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
+                              {startEntry + index}
+                            </span>
+                          </td>
+
+                          {/* CREDIT NOTE */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                                <FiFileText size={16} />
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-[#202721]">
+                                  {note.credit_note_number}
+                                </p>
+                              </div>
                             </div>
+                          </td>
 
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-[#202721]">
-                                {note.credit_note_number}
-                              </p>
+                          {/* BUYER */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-bold text-[#163F20]">
+                                {getBuyerInitials(note.buyer_name)}
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="max-w-[190px] truncate text-xs font-semibold text-[#202721]">
+                                  {note.buyer_name}
+                                </p>
+
+                                <span
+                                  className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                                    accountType,
+                                  )}`}
+                                >
+                                  <FiBriefcase size={9} />
+                                  {getAccountTypeLabel(accountType)}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* BUYER */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-bold text-[#163F20]">
-                              {getBuyerInitials(note.buyer_name)}
+                          {/* INVOICE */}
+                          <td className="px-5 py-4">
+                            <p className="text-xs font-semibold text-[#59645C]">
+                              {note.original_invoice_number}
+                            </p>
+
+                           
+                          </td>
+
+                          {/* DATE */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <FiCalendar
+                                size={14}
+                                className="text-[#4C8A57]"
+                              />
+
+                              <div>
+                                <p className="text-xs font-semibold text-[#59645C]">
+                                  {formatDate(note.issued_at)}
+                                </p>
+
+                                <p className="mt-1 text-[10px] text-[#9AA29C]">
+                                  {formatDateTime(note.issued_at)
+                                    .split(", ")
+                                    .pop()}
+                                </p>
+                              </div>
                             </div>
+                          </td>
 
-                            <div className="min-w-0">
-                              <p className="max-w-[190px] truncate text-xs font-semibold text-[#202721]">
-                                {note.buyer_name}
-                              </p>
-
-                              <p className="mt-1 max-w-[190px] truncate text-[10px] text-[#9AA29C]">
-                                {note.buyer_email}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* INVOICE */}
-                        <td className="px-5 py-4">
-                          <p className="text-xs font-semibold text-[#59645C]">
-                            {note.original_invoice_number}
-                          </p>
-
-                          <p className="mt-1 text-[10px] text-[#9AA29C]">
-                            Order #{note.order_id}
-                          </p>
-                        </td>
-
-                        {/* DATE */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <FiCalendar
-                              size={14}
-                              className="text-[#4C8A57]"
-                            />
-
-                            <div>
-                              <p className="text-xs font-semibold text-[#59645C]">
-                                {formatDate(note.issued_at)}
-                              </p>
-
-                              <p className="mt-1 text-[10px] text-[#9AA29C]">
-                                {formatDateTime(note.issued_at)
-                                  .split(", ")
-                                  .pop()}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* REASON */}
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getReasonClass(
-                              note.reason,
-                            )}`}
-                          >
-                            {capitalize(note.reason)}
-                          </span>
-                        </td>
-
-                        {/* AMOUNT */}
-                        <td className="px-5 py-4 text-right">
-                          <p className="text-sm font-bold text-[#163F20]">
-                            {formatAmount(note.amount)}
-                          </p>
-
-                          <p className="mt-1 text-[10px] text-[#9AA29C]">
-                            GST {formatAmount(note.total_gst)}
-                          </p>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleView(note)}
-                              title="View credit note"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                          {/* REASON */}
+                          <td className="px-5 py-4">
+                            <span
+                              className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getReasonClass(
+                                note.reason,
+                              )}`}
                             >
-                              <FiEye size={15} />
-                            </button>
+                              {capitalize(note.reason)}
+                            </span>
+                          </td>
 
-                            <button
-                              type="button"
-                              onClick={() => generateCreditNotePdf(note)}
-                              title="Download PDF"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#4C8A57] hover:text-white"
-                            >
-                              <FiDownload size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))
+                          {/* AMOUNT */}
+                          <td className="px-5 py-4 text-right">
+                            <p className="text-sm font-bold text-[#163F20]">
+                              {formatAmount(note.amount)}
+                            </p>
+
+                            <p className="mt-1 text-[10px] text-[#9AA29C]">
+                              GST {formatAmount(note.total_gst)}
+                            </p>
+                          </td>
+
+                          {/* ACTIONS */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleView(note)}
+                                title="View credit note"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                              >
+                                <FiEye size={15} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => generateCreditNotePdf(note)}
+                                title="Download PDF"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#4C8A57] hover:text-white"
+                              >
+                                <FiDownload size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1395,105 +1447,119 @@ const CreditNotes: React.FC = () => {
             {/* MOBILE */}
             <div className="block lg:hidden">
               {filteredCreditNotes.length > 0 ? (
-                filteredCreditNotes.map((note, index) => (
-                  <motion.div
-                    key={note.id}
-                    variants={itemVariants}
-                    className="border-b border-[#D8E2D8] p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                          <FiFileText size={17} />
+                filteredCreditNotes.map((note, index) => {
+                  const accountType =
+                    getCreditNoteAccountType(note);
+
+                  return (
+                    <motion.div
+                      key={note.id}
+                      variants={itemVariants}
+                      className="border-b border-[#D8E2D8] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                            <FiFileText size={17} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-[#202721]">
+                              {note.credit_note_number}
+                            </p>
+
+                            <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
+                              {note.original_invoice_number}
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202721]">
-                            {note.credit_note_number}
-                          </p>
-
-                          <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
-                            {note.original_invoice_number}
-                          </p>
-                        </div>
-                      </div>
-
-                      <span className="text-[10px] font-bold text-[#9AA29C]">
-                        #{startEntry + index}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Buyer
-                        </p>
-
-                        <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
-                          {note.buyer_name}
-                        </p>
-
-                        <p className="mt-0.5 truncate text-[10px] text-[#9AA29C]">
-                          {note.buyer_email}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                          Amount
-                        </p>
-
-                        <p className="mt-1 text-sm font-bold text-[#163F20]">
-                          {formatAmount(note.amount)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Issued
-                        </p>
-
-                        <p className="mt-1 text-xs font-semibold text-[#202721]">
-                          {formatDate(note.issued_at)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Reason
-                        </p>
-
-                        <span
-                          className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getReasonClass(
-                            note.reason,
-                          )}`}
-                        >
-                          {capitalize(note.reason)}
+                        <span className="text-[10px] font-bold text-[#9AA29C]">
+                          #{startEntry + index}
                         </span>
                       </div>
-                    </div>
 
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleView(note)}
-                        className="flex h-9 items-center gap-2 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
-                      >
-                        <FiEye size={14} />
-                        View
-                      </button>
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            Buyer
+                          </p>
 
-                      <button
-                        type="button"
-                        onClick={() => generateCreditNotePdf(note)}
-                        className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-xs font-bold text-white"
-                      >
-                        <FiDownload size={14} />
-                        PDF
-                      </button>
-                    </div>
-                  </motion.div>
-                ))
+                          <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
+                            {note.buyer_name}
+                          </p>
+
+                          <p className="mt-0.5 truncate text-[10px] text-[#9AA29C]">
+                            {note.buyer_email}
+                          </p>
+
+                          <span
+                            className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                              accountType,
+                            )}`}
+                          >
+                            <FiBriefcase size={9} />
+                            {getAccountTypeLabel(accountType)}
+                          </span>
+                        </div>
+
+                        <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#4C8A57]">
+                            Amount
+                          </p>
+
+                          <p className="mt-1 text-sm font-bold text-[#163F20]">
+                            {formatAmount(note.amount)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            Issued
+                          </p>
+
+                          <p className="mt-1 text-xs font-semibold text-[#202721]">
+                            {formatDate(note.issued_at)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            Reason
+                          </p>
+
+                          <span
+                            className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getReasonClass(
+                              note.reason,
+                            )}`}
+                          >
+                            {capitalize(note.reason)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleView(note)}
+                          className="flex h-9 items-center gap-2 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-xs font-bold text-[#163F20]"
+                        >
+                          <FiEye size={14} />
+                          View
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => generateCreditNotePdf(note)}
+                          className="flex h-9 items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-xs font-bold text-white"
+                        >
+                          <FiDownload size={14} />
+                          PDF
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })
               ) : (
                 <div className="flex flex-col items-center px-5 py-16 text-center">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#4C8A57]">

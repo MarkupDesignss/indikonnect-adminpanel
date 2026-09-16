@@ -662,8 +662,8 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
               <div className="ml-auto">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${order.status === "delivered"
-                      ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
-                      : "border-[#4C8A57]/30 bg-[#F0F6F0] text-[#4C8A57]"
+                    ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
+                    : "border-[#4C8A57]/30 bg-[#F0F6F0] text-[#4C8A57]"
                     }`}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -921,8 +921,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("items")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
                 }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
@@ -932,8 +932,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("details")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
                 }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
@@ -946,8 +946,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("tracking")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
                 }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
@@ -1157,7 +1157,9 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <FiUser size={17} />
                     </div>
                     <h4 className="font-bold text-[#202721]">
-                      Customer Information
+                      {orderDetails?.order_type === "retail"
+                        ? "Customer Information"
+                        : "Distributor Information"}
                     </h4>
                   </div>
 
@@ -3186,8 +3188,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 type="button"
                 onClick={clearFilters}
                 className={`h-12 rounded-xl px-4 text-sm font-semibold transition-all ${hasActiveFilters
-                    ? "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
-                    : "text-[#9AA29C] hover:text-[#163F20]"
+                  ? "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
+                  : "text-[#9AA29C] hover:text-[#163F20]"
                   }`}
               >
                 <FiFilter size={15} className="mr-1.5 inline" />
@@ -3330,7 +3332,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     Date
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Customer
+                    Buyer
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Total
@@ -3351,8 +3353,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <tr
                         onClick={() => toggleRow(order.id)}
                         className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${selectedOrderId === order.id
-                            ? "bg-[#EAF3EA]"
-                            : "bg-white hover:bg-[#FAFBFA]"
+                          ? "bg-[#EAF3EA]"
+                          : "bg-white hover:bg-[#FAFBFA]"
                           }`}
                       >
                         <td className="px-4 py-4 text-center">
@@ -3687,8 +3689,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                               <tr
                                                 key={item.id}
                                                 className={`border-b border-[#163F20]/10 last:border-0 ${isSelected
-                                                    ? "bg-[#EAF3EA]"
-                                                    : "hover:bg-[#FAFBFA]"
+                                                  ? "bg-[#EAF3EA]"
+                                                  : "hover:bg-[#FAFBFA]"
                                                   } ${!isSelectable ? "opacity-60" : ""}`}
                                               >
                                                 <td className="px-4 py-3 text-center">
@@ -3704,8 +3706,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       }
                                                     }}
                                                     className={`text-[#163F20] hover:text-[#4C8A57] ${!isSelectable
-                                                        ? "cursor-not-allowed opacity-40"
-                                                        : ""
+                                                      ? "cursor-not-allowed opacity-40"
+                                                      : ""
                                                       }`}
                                                     disabled={!isSelectable}
                                                   >
@@ -4023,8 +4025,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   key={order.id}
                   onClick={() => toggleRow(order.id)}
                   className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${selectedOrderId === order.id
-                      ? "bg-[#EAF3EA]"
-                      : "bg-white hover:bg-[#FAFBFA]"
+                    ? "bg-[#EAF3EA]"
+                    : "bg-white hover:bg-[#FAFBFA]"
                     }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -4268,8 +4270,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         type="button"
                         onClick={() => changePage(page)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
                           }`}
                       >
                         {page}
@@ -4284,8 +4286,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         type="button"
                         onClick={() => changePage(totalPages)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white"
-                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white"
+                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
                           }`}
                       >
                         {totalPages}

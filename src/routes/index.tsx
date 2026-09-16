@@ -24,7 +24,6 @@ import FooterManagement from "@/pages/Cms/FooterManagement";
 import GrowthSteps from "@/pages/Cms/GrowthSteps";
 import ContentsManagement from "@/pages/Cms/ContentsManagement";
 import AttributesManagement from "@/pages/AttributesManagement/AttributesManagement";
-import BuyBack from "@/pages/BuyBack";
 import Payout from "@/pages/PaymentManagement/Payout";
 import Payment from "@/pages/PaymentManagement/Payment";
 import UpdateProfile from "@/pages/User/UpdateProfile";
@@ -37,6 +36,9 @@ import SubCategories from "@/pages/Inventory/SubCategories";
 import ScrollToTop from "../ScrollToTop";
 import TestimonialsManagement from "@/pages/Cms/TestimonialsManagement";
 import CancelRefund from "@/pages/Fiance/CancelRefund";
+import BuyBack from "@/pages/Fiance/BuyBack";
+import CoolOff from "@/pages/Fiance/CoolOff";
+import FAQManagement from "@/pages/Cms/FAQManagement";
 
 const ScrollLayout = () => {
   return (
@@ -131,10 +133,7 @@ export const router = createBrowserRouter(
               element: <Coupons />,
             },
 
-            {
-              path: "BuyBack",
-              element: <BuyBack />,
-            },
+          
 
             {
               path: "RoleManagement/role",
@@ -197,10 +196,25 @@ export const router = createBrowserRouter(
             },
 
             {
+              path: "cms/FAQManagement",
+              element: <FAQManagement />,
+            },
+
+            {
+              path: "Fiance/CoolOff",
+              element: <CoolOff />,
+            },
+          
+
+            {
               path: "cms/TestimonialsManagement",
               element: <TestimonialsManagement />,
             },
-
+            {
+              path: "Fiance/BuyBack",
+              element: <BuyBack />,
+            },
+          
             
             {
               path: "Fiance/CancelRefund",

@@ -468,6 +468,14 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
   const getCustomerEmail = () => selectedReview.user?.email || "";
   const getRatingDisplay = () => `${selectedReview.rating}.0`;
 
+  // ✅ NEW: Account type label
+  const getAccountTypeLabel = () => {
+    const type = selectedReview.user?.account_type?.toLowerCase();
+    if (type === "distributor") return "Distributor";
+    if (type === "customer") return "Customer";
+    return "Customer"; // default fallback
+  };
+
   return (
     <section className="flex h-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm">
       {/* HEADER */}
@@ -662,41 +670,41 @@ const ReviewDetailPane: React.FC<ReviewDetailPaneProps> = ({
           <div className="space-y-5">
             {/* CUSTOMER */}
             <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm">
-              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#0F3219]" />
+  <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#0F3219]" />
 
-              <h5 className="mb-4 border-b border-[#163F20]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
-                Customer Profile
-              </h5>
+  <h5 className="mb-4 border-b border-[#163F20]/10 pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+    {selectedReview.user?.account_type?.toLowerCase() === "distributor"
+      ? "Distributor Profile"
+      : "Customer Profile"}
+  </h5>
 
-              <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]">
-                  {getInitials(getCustomerName())}
-                </div>
+  <div className="mb-5 flex items-center gap-3">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]">
+      {getInitials(getCustomerName())}
+    </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-bold text-[#202721]">
-                    {getCustomerName()}
-                  </div>
+    <div className="min-w-0 flex-1">
+      <div className="text-sm font-bold text-[#202721]">
+        {getCustomerName()}
+      </div>
 
-                  <div className="mt-1 break-all text-xs text-[#9AA29C]">
-                    {getCustomerEmail()}
-                  </div>
-                </div>
-              </div>
+      <div className="mt-1 break-all text-xs text-[#9AA29C]">
+        {getCustomerEmail()}
+      </div>
+    </div>
+  </div>
 
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-4 py-2.5">
-                  <span className="shrink-0 text-xs text-[#9AA29C]">
-                    Account Status
-                  </span>
+  <div className="space-y-1">
+    {/* Account Type Row */}
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <span className="shrink-0 text-xs text-[#9AA29C]">Account Type</span>
 
-                  <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-[#163F20]">
-                    <FiCheckCircle size={13} />
-                    Verified
-                  </span>
-                </div>
-              </div>
-            </div>
+      <span className="shrink-0 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-xs font-bold capitalize text-[#163F20]">
+        {getAccountTypeLabel()}
+      </span>
+    </div>
+  </div>
+</div>
 
             {/* PRODUCT */}
             <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm">
@@ -782,6 +790,7 @@ const ReviewsModeration = () => {
           id: 0,
           name: "Unknown Customer",
           email: "",
+          account_type: "customer",
         },
         product: review.product || {
           id: 0,
