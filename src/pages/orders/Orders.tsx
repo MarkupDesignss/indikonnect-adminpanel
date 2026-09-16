@@ -2615,48 +2615,83 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return orders.map((order, index) => convertToOrder(order, index));
   }, [orders]);
 
+  // ==================== FILTER ORDERS & ITEMS ====================
+  const getFilterStatusValue = (filter: string) => {
+    if (filter === "Status: All") return null;
+    return filter.replace("Status: ", "").trim().toLowerCase();
+  };
+
+  const getItemStatus = (item: OrderItem) => {
+    const rawStatus = item.delivery_status || item.status || "pending";
+    return String(rawStatus)
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_");
+  };
+
   const filteredOrders = useMemo(() => {
-    return uiOrders.filter((order) => {
-      const searchText = search.toLowerCase().trim();
+    return uiOrders
+      .map((order) => {
+        const searchText = search.toLowerCase().trim();
 
-      const searchMatch =
-        !searchText ||
-        order.id.toLowerCase().includes(searchText) ||
-        order.customer.toLowerCase().includes(searchText) ||
-        order.customerName.toLowerCase().includes(searchText);
+        const searchMatch =
+          !searchText ||
+          order.id.toLowerCase().includes(searchText) ||
+          order.customer.toLowerCase().includes(searchText) ||
+          order.customerName.toLowerCase().includes(searchText);
 
-      const statusMatch =
-        statusFilter === "Status: All" ||
-        order.orderStatus === statusFilter.replace("Status: ", "");
+        const categoryMatch =
+          categoryFilter === "Category: All" ||
+          (order.items || []).some(
+            (item) =>
+              String(item.categoryId ?? "") ===
+              categoryFilter.replace("Category: ", "")
+          );
 
-      const categoryMatch =
-        categoryFilter === "Category: All" ||
-        (order.items || []).some(
-          (item) =>
-            String(item.categoryId ?? "") ===
-            categoryFilter.replace("Category: ", "")
-        );
+        const brandMatch =
+          brandFilter === "Brand: All" ||
+          (order.items || []).some(
+            (item) =>
+              String(item.brandId ?? "") ===
+              brandFilter.replace("Brand: ", "")
+          );
 
-      const brandMatch =
-        brandFilter === "Brand: All" ||
-        (order.items || []).some(
-          (item) =>
-            String(item.brandId ?? "") ===
-            brandFilter.replace("Brand: ", "")
-        );
+        const orderTypeMatch =
+          orderTypeFilter === "Order Type: All" ||
+          order.orderType === orderTypeFilter.replace("Order Type: ", "");
 
-      const orderTypeMatch =
-        orderTypeFilter === "Order Type: All" ||
-        order.orderType === orderTypeFilter.replace("Order Type: ", "");
+        if (!searchMatch || !categoryMatch || !brandMatch || !orderTypeMatch) {
+          return null;
+        }
 
-      return (
-        searchMatch &&
-        statusMatch &&
-        categoryMatch &&
-        brandMatch &&
-        orderTypeMatch
-      );
-    });
+        const filterStatusValue = getFilterStatusValue(statusFilter);
+
+        if (!filterStatusValue) {
+          return order;
+        }
+
+        const filteredItems = (order.items || []).filter((item) => {
+          const itemStatus = getItemStatus(item);
+          return itemStatus === filterStatusValue;
+        });
+
+        if (filteredItems.length === 0) {
+          return null;
+        }
+
+        const orderStatusMatch =
+          order.orderStatus?.toLowerCase() === filterStatusValue;
+
+        if (orderStatusMatch) {
+          return order;
+        }
+
+        return {
+          ...order,
+          items: filteredItems,
+        };
+      })
+      .filter((order): order is Order => order !== null);
   }, [uiOrders, search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
 
   const totalPages = Math.max(
@@ -2729,10 +2764,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     else handleViewInvoice(orderId);
   };
 
-  // -----------------------------------------------------
-  // ITEM-LEVEL SELECTION (works for dispatch, ship, deliver)
-  // -----------------------------------------------------
-
   const isItemSelectable = (item: OrderItem) => {
     return (
       canItemDispatch(item) ||
@@ -2782,15 +2813,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return selectable.every((item) =>
       selectedItemsMap.get(`${orderId}-${item.id}`),
     );
-  };
-
-  const getItemStatus = (item: OrderItem) => {
-    const rawStatus = item.delivery_status || item.status || "pending";
-
-    return String(rawStatus)
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_");
   };
 
   const canDeliver = (orderStatus: string) => {
@@ -3118,7 +3140,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* Desktop Order Type */}
               <div className="relative">
                 <select
                   value={orderTypeFilter}
@@ -3138,7 +3159,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* Desktop Category */}
               <div className="relative">
                 <select
                   value={categoryFilter}
@@ -3161,7 +3181,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* Desktop Brand */}
               <div className="relative">
                 <select
                   value={brandFilter}
@@ -3236,7 +3255,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* MOBILE ORDER TYPE */}
               <div className="relative">
                 <select
                   value={orderTypeFilter}
@@ -3256,7 +3274,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* MOBILE CATEGORY */}
               <div className="relative">
                 <select
                   value={categoryFilter}
@@ -3279,7 +3296,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* MOBILE BRAND */}
               <div className="relative">
                 <select
                   value={brandFilter}
@@ -3587,7 +3603,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         </button>
                                       )}
 
-                                      {/* Select All */}
                                       <button
                                         type="button"
                                         onClick={(e) => {

@@ -109,11 +109,6 @@ export const menuItems = [
     icon: 'account_balance_wallet'
   },
   {
-    path: '/BuyBack',
-    label: 'Buy Back',
-    icon: 'sync_alt'
-  },
-  {
     path: '/reviews',
     label: 'Reviews Moderation',
     icon: 'rate_review'
