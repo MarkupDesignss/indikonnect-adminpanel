@@ -56,11 +56,6 @@ export const menuItems = [
         icon: 'buy_back'
       },
       {
-        path: '/Fiance/CoolOff',
-        label: 'Colling off',
-        icon: 'cooling'
-      },
-      {
         path: '/CreditNotes',
         label: 'Credit Notes',
         icon: 'receipt_long'
@@ -103,11 +98,11 @@ export const menuItems = [
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
     ]
   },
-  {
-    path: '/Payout',
-    label: 'Payout Management',
-    icon: 'account_balance_wallet'
-  },
+  // {
+  //   path: '/Payout',
+  //   label: 'Payout Management',
+  //   icon: 'account_balance_wallet'
+  // },
   {
     path: '/reviews',
     label: 'Reviews Moderation',
@@ -137,5 +132,10 @@ export const menuItems = [
     path: '/UpdateProfile',
     label: 'Update Profile',
     icon: 'person'
+  },
+  {
+    path: '/SettingsManagement',
+    label: 'Admin Settings',
+    icon: 'settings'
   },
 ];

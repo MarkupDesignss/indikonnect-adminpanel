@@ -1472,7 +1472,7 @@ const Header = ({
         {/* SETTINGS */}
 
         <Link
-          to="/ChangePassword"
+          to="/SettingsManagement"
           className="hidden md:block"
         >
           <button
@@ -1904,7 +1904,7 @@ const Header = ({
 
                 {/* SETTINGS */}
 
-                <Link to="/ChangePassword">
+                <Link to="/SettingsManagement">
                   <button
                     type="button"
                     onClick={() =>

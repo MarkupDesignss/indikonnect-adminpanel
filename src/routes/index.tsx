@@ -39,6 +39,7 @@ import CancelRefund from "@/pages/Fiance/CancelRefund";
 import BuyBack from "@/pages/Fiance/BuyBack";
 import CoolOff from "@/pages/Fiance/CoolOff";
 import FAQManagement from "@/pages/Cms/FAQManagement";
+import SettingsManagement from "@/pages/SettingsManagement";
 
 const ScrollLayout = () => {
   return (
@@ -204,8 +205,10 @@ export const router = createBrowserRouter(
               path: "Fiance/CoolOff",
               element: <CoolOff />,
             },
-          
-
+            {
+              path: "/SettingsManagement",
+              element: <SettingsManagement />,
+            },
             {
               path: "cms/TestimonialsManagement",
               element: <TestimonialsManagement />,
