@@ -194,12 +194,12 @@ const getCancellationAmount = (row: any) => {
   if (!row) return 0;
   return Number(
     row.refund_amount ??
-      row.amount ??
-      row.line_total ??
-      (row.unit_price && row.quantity
-        ? Number(row.unit_price) * Number(row.quantity)
-        : 0) ??
-      0
+    row.amount ??
+    row.line_total ??
+    (row.unit_price && row.quantity
+      ? Number(row.unit_price) * Number(row.quantity)
+      : 0) ??
+    0
   );
 };
 
@@ -660,9 +660,90 @@ const CancellationDetailModal: React.FC<
   onApprove,
   onReject,
 }) => {
-  if (!open) return null;
+    if (!open) return null;
 
-  if (!detail) {
+    if (!detail) {
+      return (
+        <GlobalModal
+          isOpen={open}
+          onClose={onClose}
+          closeOnOverlayClick={false}
+        >
+          <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
+            <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-[#C23B32]">
+                <FiAlertCircle size={28} />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#C23B32]">
+                Cancellation details not found.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </GlobalModal>
+      );
+    }
+
+    const raw: any = detail;
+    const amount = getCancellationAmount(raw);
+    const status =
+      detail.status || deriveStatus(raw);
+
+    const orderReference =
+      raw.order_reference ||
+      raw.order?.order_reference ||
+      "N/A";
+
+    const customer = {
+      full_name:
+        raw.user?.full_name ||
+        raw.order?.user?.full_name ||
+        raw.order?.user?.name ||
+        null,
+      name:
+        raw.user?.name ||
+        raw.order?.user?.name ||
+        null,
+      email:
+        raw.user?.email ||
+        raw.order?.user?.email ||
+        "",
+      phone:
+        raw.user?.phone ||
+        raw.order?.user?.phone ||
+        "",
+    };
+
+    const accountType = getRowAccountType(raw);
+
+    const quantity = Number(
+      raw.quantity ?? 1
+    );
+    const unitPrice = Number(
+      raw.unit_price ?? 0
+    );
+    const subtotal =
+      raw.refund_amount ??
+      unitPrice * quantity;
+    const tax =
+      raw.tax ??
+      raw.gst_amount ??
+      raw.igst_amount ??
+      0;
+    const reason =
+      raw.reason ??
+      raw.cancellation_reason ??
+      "No reason provided.";
+    const itemReference =
+      raw.item_reference_id || "N/A";
+
     return (
       <GlobalModal
         isOpen={open}
@@ -671,502 +752,335 @@ const CancellationDetailModal: React.FC<
       >
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
-          <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-[#C23B32]">
-              <FiAlertCircle size={28} />
+
+          <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4 sm:px-6">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
+                  Cancellation Requests
+                </span>
+              </div>
+
+              <h2 className="text-xl font-bold text-[#202721]">
+                Cancellation Request
+              </h2>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#9AA29C]">
+                <span>Item Ref: {itemReference}</span>
+                {orderReference !== "N/A" && (
+                  <>
+                    <span>•</span>
+                    <span>{orderReference}</span>
+                  </>
+                )}
+                {raw.created_at && (
+                  <>
+                    <span>•</span>
+                    <span>
+                      {formatDate(raw.created_at)}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
-            <p className="mt-4 text-sm font-bold text-[#C23B32]">
-              Cancellation details not found.
-            </p>
+
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20]"
             >
-              Close
+              <FiX size={18} />
             </button>
+          </div>
+
+          <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
+
+            <div className=" overflow-hidden rounded-2xl border border-[#D8E2D8]">
+              <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <FiPackage size={17} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#202721]">
+                      Cancellation Item
+                    </h3>
+                    <p className="mt-0.5 text-xs text-[#9AA29C]">
+                      {quantity} item(s)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="flex items-start gap-4">
+                  {raw.product?.image ? (
+                    <img
+                      src={raw.product.image}
+                      alt={raw.product.name}
+                      className="h-16 w-16 shrink-0 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#4C8A57]">
+                      <FiPackage size={22} />
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-sm font-bold text-[#202721]">
+                      {raw.product?.name ||
+                        "Cancellation Item"}
+                    </h4>
+                    <p className="mt-1 text-xs text-[#9AA29C]">
+                      SKU:{" "}
+                      {raw.product?.product_code ||
+                        "N/A"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#163F20]">
+                      Qty: {quantity}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                      Price
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#202721]">
+                      {formatCurrency(unitPrice)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                      Tax
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#202721]">
+                      {formatCurrency(tax)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                      Total
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#202721]">
+                      {formatCurrency(subtotal)}
+                    </p>
+                  </div>
+
+
+
+                  <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
+                      Reason
+                    </p>
+                    <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#59645C]">
+                      {reason}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <FiUser size={17} />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#202721]">
+                    {detail.user?.account_type?.toLowerCase() === "distributor"
+                      ? "Distributor Information"
+                      : "Customer Information"}
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
+                      Name
+                    </span>
+                    <span className="text-right text-sm font-semibold text-[#202721]">
+                      {getCustomerName(customer)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="shrink-0 text-xs text-[#9AA29C]">
+                      Email
+                    </span>
+                    <div className="min-w-0 text-right">
+                      <p className="truncate text-sm font-semibold text-[#202721]">
+                        {customer.email || "N/A"}
+                      </p>
+                      <span
+                        className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                          accountType
+                        )}`}
+                      >
+                        <FiBriefcase size={10} />
+                        {getAccountTypeLabel(accountType)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span className="text-xs text-[#9AA29C]">
+                      Phone
+                    </span>
+                    <span className="text-sm font-semibold text-[#202721]">
+                      {customer.phone || "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <FiPackage size={17} />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#202721]">
+                    Order Information
+                  </h3>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
+                      Order Reference
+                    </span>
+                    <span className="text-right text-sm font-bold text-[#163F20]">
+                      {orderReference}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
+                    <span className="text-xs text-[#9AA29C]">
+                      Item Reference
+                    </span>
+                    <span className="text-sm font-semibold text-[#202721]">
+                      {itemReference}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span className="text-xs text-[#9AA29C]">
+                      Delivery Status
+                    </span>
+                    <span className="text-sm font-semibold capitalize text-[#202721]">
+                      {getStatusLabel(
+                        raw.delivery_status || "N/A"
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CANCELLATION TIMELINE */}
+            <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                  <FiCalendar size={17} />
+                </div>
+                <h3 className="text-sm font-bold text-[#202721]">
+                  Cancellation Timeline
+                </h3>
+              </div>
+
+              <div className="space-y-5">
+                <div className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
+                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <p className="text-sm font-bold text-[#202721]">
+                      Cancellation Requested
+                    </p>
+                    <p className="mt-1 text-xs text-[#9AA29C]">
+                      {formatDate(
+                        raw.cancellation_requested_at ||
+                        raw.created_at
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {raw.admin_notes && (
+              <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                  Admin Notes
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#59645C]">
+                  {raw.admin_notes}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
+              >
+                Close
+              </button>
+
+              <div className="flex flex-wrap justify-end gap-2">
+                {(detail.can_approve ??
+                  status === "pending") && (
+                    <button
+                      type="button"
+                      onClick={onApprove}
+                      disabled={
+                        actionLoading.type === "approve"
+                      }
+                      className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
+                    >
+                      {actionLoading.type ===
+                        "approve" ? (
+                        <FiRefreshCw
+                          size={14}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <FiCheck size={14} />
+                      )}
+                      Approve
+                    </button>
+                  )}
+
+                {(detail.can_reject ??
+                  status === "pending") && (
+                    <button
+                      type="button"
+                      onClick={onReject}
+                      disabled={
+                        actionLoading.type === "reject"
+                      }
+                      className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                    >
+                      <FiX size={14} />
+                      Reject
+                    </button>
+                  )}
+              </div>
+            </div>
           </div>
         </div>
       </GlobalModal>
     );
-  }
-
-  const raw: any = detail;
-  const amount = getCancellationAmount(raw);
-  const status =
-    detail.status || deriveStatus(raw);
- 
-  const orderReference =
-    raw.order_reference ||
-    raw.order?.order_reference ||
-    "N/A";
-
-  const customer = {
-    full_name:
-      raw.user?.full_name ||
-      raw.order?.user?.full_name ||
-      raw.order?.user?.name ||
-      null,
-    name:
-      raw.user?.name ||
-      raw.order?.user?.name ||
-      null,
-    email:
-      raw.user?.email ||
-      raw.order?.user?.email ||
-      "",
-    phone:
-      raw.user?.phone ||
-      raw.order?.user?.phone ||
-      "",
   };
-
-  const accountType = getRowAccountType(raw);
-
-  const quantity = Number(
-    raw.quantity ?? 1
-  );
-  const unitPrice = Number(
-    raw.unit_price ?? 0
-  );
-  const subtotal =
-    raw.subtotal ??
-    unitPrice * quantity;
-  const tax =
-    raw.tax ??
-    raw.gst_amount ??
-    raw.igst_amount ??
-    0;
-  const reason =
-    raw.reason ??
-    raw.cancellation_reason ??
-    "No reason provided.";
-  const itemReference =
-    raw.item_reference_id || "N/A";
-
-  return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={false}
-    >
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4 sm:px-6">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
-                Cancellation Requests
-              </span>
-            </div>
-
-            <h2 className="text-xl font-bold text-[#202721]">
-              Cancellation Request
-            </h2>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#9AA29C]">
-              <span>Item Ref: {itemReference}</span>
-              {orderReference !== "N/A" && (
-                <>
-                  <span>•</span>
-                  <span>{orderReference}</span>
-                </>
-              )}
-              {raw.created_at && (
-                <>
-                  <span>•</span>
-                  <span>
-                    {formatDate(raw.created_at)}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20]"
-          >
-            <FiX size={18} />
-          </button>
-        </div>
-
-        <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                Status
-              </p>
-              <div className="mt-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${getStatusClass(
-                    status
-                  )}`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                      status
-                    )}`}
-                  />
-                  {getStatusLabel(status)}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                Cancellation Amount
-              </p>
-              <p className="mt-1 text-2xl font-bold text-[#163F20]">
-                {formatCurrency(amount)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                Quantity
-              </p>
-              <p className="mt-1 text-2xl font-bold text-[#202721]">
-                {quantity}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                  <FiUser size={17} />
-                </div>
-                <h3 className="text-sm font-bold text-[#202721]">
-                  Customer Information
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
-                  <span className="text-xs text-[#9AA29C]">
-                    Name
-                  </span>
-                  <span className="text-right text-sm font-semibold text-[#202721]">
-                    {getCustomerName(customer)}
-                  </span>
-                </div>
-
-                <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
-                  <span className="shrink-0 text-xs text-[#9AA29C]">
-                    Email
-                  </span>
-                  <div className="min-w-0 text-right">
-                    <p className="truncate text-sm font-semibold text-[#202721]">
-                      {customer.email || "N/A"}
-                    </p>
-                    <span
-                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                        accountType
-                      )}`}
-                    >
-                      <FiBriefcase size={10} />
-                      {getAccountTypeLabel(accountType)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#9AA29C]">
-                    Phone
-                  </span>
-                  <span className="text-sm font-semibold text-[#202721]">
-                    {customer.phone || "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                  <FiPackage size={17} />
-                </div>
-                <h3 className="text-sm font-bold text-[#202721]">
-                  Order Information
-                </h3>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
-                  <span className="text-xs text-[#9AA29C]">
-                    Order Reference
-                  </span>
-                  <span className="text-right text-sm font-bold text-[#163F20]">
-                    {orderReference}
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#D8E2D8] pb-2.5">
-                  <span className="text-xs text-[#9AA29C]">
-                    Item Reference
-                  </span>
-                  <span className="text-sm font-semibold text-[#202721]">
-                    {itemReference}
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#9AA29C]">
-                    Delivery Status
-                  </span>
-                  <span className="text-sm font-semibold capitalize text-[#202721]">
-                    {getStatusLabel(
-                      raw.delivery_status || "N/A"
-                    )}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2D8]">
-            <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                  <FiPackage size={17} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#202721]">
-                    Cancellation Item
-                  </h3>
-                  <p className="mt-0.5 text-xs text-[#9AA29C]">
-                    {quantity} item(s)
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5">
-              <div className="flex items-start gap-4">
-                {raw.product?.image ? (
-                  <img
-                    src={raw.product.image}
-                    alt={raw.product.name}
-                    className="h-16 w-16 shrink-0 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] object-cover"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#4C8A57]">
-                    <FiPackage size={22} />
-                  </div>
-                )}
-
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-bold text-[#202721]">
-                    {raw.product?.name ||
-                      "Cancellation Item"}
-                  </h4>
-                  <p className="mt-1 text-xs text-[#9AA29C]">
-                    SKU:{" "}
-                    {raw.product?.product_code ||
-                      "N/A"}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-[#163F20]">
-                    Qty: {quantity}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Unit Price
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-[#202721]">
-                    {formatCurrency(unitPrice)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Subtotal
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-[#202721]">
-                    {formatCurrency(subtotal)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Tax
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-[#202721]">
-                    {formatCurrency(tax)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                    Reason
-                  </p>
-                  <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#59645C]">
-                    {reason}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                <FiCreditCard size={17} />
-              </div>
-              <h3 className="text-sm font-bold text-[#202721]">
-                Cancellation Payment Summary
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Subtotal
-                </p>
-                <p className="mt-1 text-base font-bold text-[#202721]">
-                  {formatCurrency(subtotal)}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Tax
-                </p>
-                <p className="mt-1 text-base font-bold text-[#202721]">
-                  {formatCurrency(tax)}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Shipping
-                </p>
-                <p className="mt-1 text-base font-bold text-[#202721]">
-                  {formatCurrency(
-                    raw.shipping_charge
-                  )}
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                  Pay Amount
-                </p>
-                <p className="mt-1 text-xl font-bold text-[#163F20]">
-                  {formatCurrency(amount)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* CANCELLATION TIMELINE */}
-          <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                <FiCalendar size={17} />
-              </div>
-              <h3 className="text-sm font-bold text-[#202721]">
-                Cancellation Timeline
-              </h3>
-            </div>
-
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                  </div>
-                </div>
-                <div className="pt-1">
-                  <p className="text-sm font-bold text-[#202721]">
-                    Cancellation Requested
-                  </p>
-                  <p className="mt-1 text-xs text-[#9AA29C]">
-                    {formatDate(
-                      raw.cancellation_requested_at ||
-                        raw.created_at
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {raw.admin_notes && (
-            <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                Admin Notes
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[#59645C]">
-                {raw.admin_notes}
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="border-t border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-semibold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
-            >
-              Close
-            </button>
-
-            <div className="flex flex-wrap justify-end gap-2">
-              {(detail.can_approve ??
-                status === "pending") && (
-                <button
-                  type="button"
-                  onClick={onApprove}
-                  disabled={
-                    actionLoading.type === "approve"
-                  }
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
-                >
-                  {actionLoading.type ===
-                  "approve" ? (
-                    <FiRefreshCw
-                      size={14}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <FiCheck size={14} />
-                  )}
-                  Approve
-                </button>
-              )}
-
-              {(detail.can_reject ??
-                status === "pending") && (
-                <button
-                  type="button"
-                  onClick={onReject}
-                  disabled={
-                    actionLoading.type === "reject"
-                  }
-                  className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
-                >
-                  <FiX size={14} />
-                  Reject
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
 
 // =====================================================
 // MAIN
@@ -1245,20 +1159,20 @@ const CancelRefund: React.FC = () => {
                 row.item_reference_id || "N/A",
               user: row.order?.user
                 ? {
-                    id: row.order.user.id,
-                    name:
-                      row.order.user.full_name ||
-                      row.order.user.name ||
-                      null,
-                    email:
-                      row.order.user.email || "",
-                    phone:
-                      row.order.user.phone || null,
-                    account_type:
-                      row.order.user.account_type ||
-                      row.order?.order_type ||
-                      null,
-                  }
+                  id: row.order.user.id,
+                  name:
+                    row.order.user.full_name ||
+                    row.order.user.name ||
+                    null,
+                  email:
+                    row.order.user.email || "",
+                  phone:
+                    row.order.user.phone || null,
+                  account_type:
+                    row.order.user.account_type ||
+                    row.order?.order_type ||
+                    null,
+                }
                 : undefined,
               status,
               items_count: row.quantity ?? 1,
@@ -1301,7 +1215,7 @@ const CancelRefund: React.FC = () => {
       );
       toast.error(
         error?.response?.data?.message ||
-          "Unable to fetch cancellation requests."
+        "Unable to fetch cancellation requests."
       );
     } finally {
       setLoading(false);
@@ -1347,7 +1261,7 @@ const CancelRefund: React.FC = () => {
         [
           request.order_reference,
           (request as any).item_reference_id ||
-            "",
+          "",
           request.user?.name || "",
           request.user?.email || "",
           request.user?.account_type || "",
@@ -1456,7 +1370,7 @@ const CancelRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Cancellation approved successfully."
+          "Cancellation approved successfully."
         );
         setPayModalOpen(false);
         await fetchCancellationRequests();
@@ -1474,7 +1388,7 @@ const CancelRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to approve cancellation."
+          "Unable to approve cancellation."
         );
       }
     } catch (error: any) {
@@ -1484,7 +1398,7 @@ const CancelRefund: React.FC = () => {
       );
       toast.error(
         error?.response?.data?.message ||
-          "Unable to approve cancellation."
+        "Unable to approve cancellation."
       );
     } finally {
       setActionLoading({ type: null, id: null });
@@ -1526,7 +1440,7 @@ const CancelRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Cancellation rejected successfully."
+          "Cancellation rejected successfully."
         );
         setRejectModalOpen(false);
         setDetailModalOpen(false);
@@ -1534,7 +1448,7 @@ const CancelRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to reject cancellation."
+          "Unable to reject cancellation."
         );
       }
     } catch (error: any) {
@@ -1544,7 +1458,7 @@ const CancelRefund: React.FC = () => {
       );
       toast.error(
         error?.response?.data?.message ||
-          "Unable to reject cancellation."
+        "Unable to reject cancellation."
       );
     } finally {
       setActionLoading({ type: null, id: null });
@@ -1699,9 +1613,9 @@ const CancelRefund: React.FC = () => {
                     filter === "All"
                       ? requests.length
                       : requests.filter(
-                          (item) =>
-                            item.status === filter
-                        ).length;
+                        (item) =>
+                          item.status === filter
+                      ).length;
 
                   return (
                     <button
@@ -1711,11 +1625,10 @@ const CancelRefund: React.FC = () => {
                       onClick={() =>
                         handleFilterChange(filter)
                       }
-                      className={`rounded-xl px-3.5 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
-                        activeFilter === filter
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                          : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                      }`}
+                      className={`rounded-xl px-3.5 py-2 text-[11px] font-bold transition disabled:opacity-60 ${activeFilter === filter
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                        : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        }`}
                     >
                       {getStatusLabel(filter)}
                       <span className="ml-1.5 opacity-80">
@@ -1811,7 +1724,7 @@ const CancelRefund: React.FC = () => {
 
                       const isApproveLoading =
                         actionLoading.type ===
-                          "approve" &&
+                        "approve" &&
                         actionLoading.id === requestId;
 
                       const amount =
@@ -2202,11 +2115,10 @@ const CancelRefund: React.FC = () => {
                       onClick={() =>
                         handlePageChange(page)
                       }
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                          : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                      }`}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                        : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        }`}
                     >
                       {page}
                     </button>
@@ -2266,8 +2178,8 @@ const CancelRefund: React.FC = () => {
         )}
         defaultAmount={Number(
           selectedPayRequest?.refund_amount ||
-            selectedPayRequest?.amount ||
-            0
+          selectedPayRequest?.amount ||
+          0
         )}
         loading={actionLoading.type === "approve"}
         onClose={() => setPayModalOpen(false)}

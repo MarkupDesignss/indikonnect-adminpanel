@@ -33,6 +33,10 @@ import contactApi, { Contact } from "../../api/endpoints/contact";
 
 type ContactFilter = "all" | "unread" | "read";
 
+type ContactWithAccountType = Contact & {
+  account_type?: string | null;
+};
+
 // =====================================================
 // ANIMATIONS
 // =====================================================
@@ -60,6 +64,7 @@ const itemVariants = {
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
@@ -74,6 +79,7 @@ const formatDate = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
@@ -86,6 +92,7 @@ const formatDateOnly = (value?: string | null) => {
 
 const formatTime = (value?: string | null) => {
   if (!value) return "";
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
@@ -106,6 +113,44 @@ const getInitials = (name?: string | null) => {
 };
 
 // =====================================================
+// ACCOUNT TYPE HELPERS
+// =====================================================
+
+const getAccountType = (contact: Contact): "customer" | "distributor" => {
+  const accountType = String(
+    (contact as ContactWithAccountType).account_type || "",
+  )
+    .trim()
+    .toLowerCase();
+
+  return accountType === "distributor" ? "distributor" : "customer";
+};
+
+const getAccountTypeLabel = (contact: Contact) => {
+  return getAccountType(contact) === "distributor"
+    ? "Distributor"
+    : "Customer";
+};
+
+const getAccountTypeLowerLabel = (contact: Contact) => {
+  return getAccountType(contact) === "distributor"
+    ? "distributor"
+    : "customer";
+};
+
+const getEnquiryLabel = (contact: Contact) => {
+  return `${getAccountTypeLabel(contact)} enquiry`;
+};
+
+const getContactDescription = (contact: Contact) => {
+  return `Details submitted by the ${getAccountTypeLowerLabel(contact)}`;
+};
+
+const getCallLabel = (contact: Contact) => {
+  return `Call ${getAccountTypeLabel(contact)}`;
+};
+
+// =====================================================
 // STATUS BADGE
 // =====================================================
 
@@ -122,6 +167,7 @@ const ReadStatusBadge: React.FC<{ isRead: boolean }> = ({ isRead }) => (
         isRead ? "bg-[#89918B]" : "bg-[#163F20]"
       }`}
     />
+
     {isRead ? "Read" : "Unread"}
   </span>
 );
@@ -201,7 +247,11 @@ const DeleteContactModal: React.FC<DeleteModalProps> = ({
   const isBulk = count > 1;
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
       <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#0F3219]" />
 
@@ -334,13 +384,14 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
           <div>
             <h3 className="flex items-center gap-2 text-base font-bold text-[#202721]">
               Contact Messages
+
               <span className="inline-flex items-center justify-center rounded-full bg-[#EAF3EA] px-2.5 py-0.5 text-xs font-semibold text-[#163F20]">
                 {contacts.length}
               </span>
             </h3>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
-              Review customer enquiries
+              Review customer & distributor enquiries
             </p>
           </div>
 
@@ -407,7 +458,11 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
             disabled={contacts.length === 0}
             className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-[#163F20] transition hover:text-[#0F3219] disabled:opacity-40"
           >
-            {allSelected ? <FiCheckSquare size={15} /> : <FiSquare size={15} />}
+            {allSelected ? (
+              <FiCheckSquare size={15} />
+            ) : (
+              <FiSquare size={15} />
+            )}
 
             {allSelected ? "Deselect All" : "Select All"}
           </button>
@@ -476,7 +531,10 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
                     title={checked ? "Deselect" : "Select"}
                   >
                     {checked ? (
-                      <FiCheckSquare size={17} className="text-[#163F20]" />
+                      <FiCheckSquare
+                        size={17}
+                        className="text-[#163F20]"
+                      />
                     ) : (
                       <FiSquare size={17} />
                     )}
@@ -586,6 +644,11 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
   onMarkRead,
   markReadLoading,
 }) => {
+  const accountTypeLabel = getAccountTypeLabel(contact);
+  const enquiryLabel = getEnquiryLabel(contact);
+  const contactDescription = getContactDescription(contact);
+  const callLabel = getCallLabel(contact);
+
   return (
     <section className="flex min-h-[680px] flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm lg:min-h-[720px]">
       {/* HEADER */}
@@ -664,7 +727,7 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                     </h3>
 
                     <p className="mt-1 text-xs text-[#9AA29C]">
-                      Customer enquiry
+                      {enquiryLabel}
                     </p>
                   </div>
                 </div>
@@ -694,7 +757,7 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                   </h3>
 
                   <p className="mt-1 text-xs text-[#9AA29C]">
-                    Details submitted by the customer
+                    {contactDescription}
                   </p>
                 </div>
               </div>
@@ -716,6 +779,12 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                   label="Phone Number"
                   value={contact.phone || "Not provided"}
                   icon={<FiPhone size={15} />}
+                />
+
+                <DetailBox
+                  label="Account Type"
+                  value={accountTypeLabel}
+                  icon={<FiUser size={15} />}
                 />
               </div>
             </div>
@@ -811,7 +880,9 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                   className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] px-4 py-3 text-xs font-bold text-[#3F4A41] transition hover:border-[#163F20]/25 hover:bg-[#EAF3EA]"
                 >
                   <FiMail size={16} className="text-[#163F20]" />
+
                   Send Email
+
                   <FiChevronRight
                     size={15}
                     className="ml-auto text-[#9AA29C]"
@@ -824,7 +895,9 @@ const ContactDetailPane: React.FC<ContactDetailProps> = ({
                     className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] px-4 py-3 text-xs font-bold text-[#3F4A41] transition hover:border-[#163F20]/25 hover:bg-[#EAF3EA]"
                   >
                     <FiPhone size={16} className="text-[#163F20]" />
-                    Call Customer
+
+                    {callLabel}
+
                     <FiChevronRight
                       size={15}
                       className="ml-auto text-[#9AA29C]"
@@ -938,13 +1011,21 @@ const ContactPage: React.FC = () => {
     return contacts.filter((contact) => {
       const matchesSearch =
         !query ||
-        [contact.name, contact.email, contact.phone, contact.message]
+        [
+          contact.name,
+          contact.email,
+          contact.phone,
+          contact.message,
+          (contact as ContactWithAccountType).account_type,
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query);
 
       if (!matchesSearch) return false;
+
       if (filter === "unread") return !contact.is_read;
+
       if (filter === "read") return contact.is_read;
 
       return true;
@@ -993,7 +1074,9 @@ const ContactPage: React.FC = () => {
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id],
     );
   };
 
@@ -1005,9 +1088,13 @@ const ContactPage: React.FC = () => {
       visibleIds.every((id) => selectedIds.includes(id));
 
     if (everySelected) {
-      setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+      setSelectedIds((prev) =>
+        prev.filter((id) => !visibleIds.includes(id)),
+      );
     } else {
-      setSelectedIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+      setSelectedIds((prev) =>
+        Array.from(new Set([...prev, ...visibleIds])),
+      );
     }
   };
 
@@ -1055,7 +1142,9 @@ const ContactPage: React.FC = () => {
           const idsToDelete = [...selectedIds];
 
           setContacts((prev) =>
-            prev.filter((contact) => !idsToDelete.includes(contact.id)),
+            prev.filter(
+              (contact) => !idsToDelete.includes(contact.id),
+            ),
           );
 
           setSelectedIds([]);
@@ -1065,12 +1154,16 @@ const ContactPage: React.FC = () => {
           }
 
           toast.success(
-            response.data.message || "Contacts deleted successfully.",
+            response.data.message ||
+              "Contacts deleted successfully.",
           );
 
           closeDelete();
         } else {
-          toast.error(response.data.message || "Unable to delete contacts.");
+          toast.error(
+            response.data.message ||
+              "Unable to delete contacts.",
+          );
         }
       } else {
         if (!deleteTarget) return;
@@ -1084,26 +1177,33 @@ const ContactPage: React.FC = () => {
             prev.filter((contact) => contact.id !== deletedId),
           );
 
-          setSelectedIds((prev) => prev.filter((id) => id !== deletedId));
+          setSelectedIds((prev) =>
+            prev.filter((id) => id !== deletedId),
+          );
 
           if (selectedId === deletedId) {
             setSelectedId(null);
           }
 
           toast.success(
-            response.data.message || "Contact deleted successfully.",
+            response.data.message ||
+              "Contact deleted successfully.",
           );
 
           closeDelete();
         } else {
-          toast.error(response.data.message || "Unable to delete contact.");
+          toast.error(
+            response.data.message ||
+              "Unable to delete contact.",
+          );
         }
       }
     } catch (error: any) {
       console.error("Delete contact error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to delete contact.",
+        error?.response?.data?.message ||
+          "Unable to delete contact.",
       );
     } finally {
       setDeleteLoading(false);
@@ -1131,22 +1231,36 @@ const ContactPage: React.FC = () => {
               ? {
                   ...item,
                   is_read: true,
-                  read_at: apiContact?.read_at || new Date().toISOString(),
-                  updated_at: apiContact?.updated_at || item.updated_at,
+                  read_at:
+                    apiContact?.read_at ||
+                    new Date().toISOString(),
+                  updated_at:
+                    apiContact?.updated_at ||
+                    item.updated_at,
                 }
               : item,
           ),
         );
 
-        toast.success(response.data.message || "Contact marked as read.");
+        toast.success(
+          response.data.message ||
+            "Contact marked as read.",
+        );
       } else {
-        toast.error(response.data.message || "Unable to mark contact as read.");
+        toast.error(
+          response.data.message ||
+            "Unable to mark contact as read.",
+        );
       }
     } catch (error: any) {
-      console.error("Mark contact as read error:", error);
+      console.error(
+        "Mark contact as read error:",
+        error,
+      );
 
       toast.error(
-        error?.response?.data?.message || "Unable to mark contact as read.",
+        error?.response?.data?.message ||
+          "Unable to mark contact as read.",
       );
     } finally {
       setMarkReadLoading(false);
@@ -1165,31 +1279,6 @@ const ContactPage: React.FC = () => {
         variants={containerVariants}
         className="min-h-screen bg-[#F5F7F5] p-4"
       >
-        {/* STATS */}
-        <motion.div
-          variants={containerVariants}
-          className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          <StatCard
-            title="Total Messages"
-            value={stats.total}
-            subtitle="All enquiries"
-            icon={<FiMessageSquare size={20} />}
-          />
-          <StatCard
-            title="Unread"
-            value={stats.unread}
-            subtitle="Pending review"
-            icon={<FiInbox size={20} />}
-          />
-          <StatCard
-            title="Read"
-            value={stats.read}
-            subtitle="Reviewed"
-            icon={<FiCheckCircle size={20} />}
-          />
-        </motion.div>
-
         {/* BULK ACTION */}
         {selectedIds.length > 0 && (
           <motion.div
@@ -1265,7 +1354,8 @@ const ContactPage: React.FC = () => {
                 </h3>
 
                 <p className="mt-1 text-xs text-[#9AA29C]">
-                  Select a contact from the list to view the complete message.
+                  Select a contact from the list to view the complete
+                  message.
                 </p>
               </div>
             </section>

@@ -24,7 +24,6 @@ import {
 import { toast } from "react-hot-toast";
 
 import { orderApi } from "../../api/endpoints/orders";
-
 import orderInvoiceApi from "../../api/endpoints/orderInvoice";
 
 import GlobalModal from "@/components/common/GlobalModal";
@@ -33,117 +32,35 @@ import { categoryApi } from "../../api/endpoints/category";
 import brandsApi from "../../api/endpoints/brands";
 
 const ClipboardIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.55228 2 15 2Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 13H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 17H12"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M8 13H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M8 17H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
 const CreditCardIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="2"
-      y="5"
-      width="20"
-      height="14"
-      rx="2"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-    <path
-      d="M2 10H22"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M7 15H10"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+    <path d="M2 10H22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M7 15H10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
 const CheckCircleIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path
-      d="M9 12L11.5 14.5L16 9"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+    <path d="M9 12L11.5 14.5L16 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
 const DollarIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path
-      d="M8 8H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 12H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 16H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+    <path d="M8 8H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M8 16H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
@@ -221,9 +138,7 @@ const ModalLoader: React.FC<ModalLoaderProps> = ({
     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
       {icon || <FiLoader size={27} className="animate-spin" />}
     </div>
-
     <p className="mt-4 text-sm font-semibold text-[#3F4A41]">{message}</p>
-
     <p className="mt-1 text-xs text-[#9AA29C]">
       Please wait while the information is loaded.
     </p>
@@ -245,11 +160,9 @@ const ModalError: React.FC<ModalErrorProps> = ({
     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
       <FiAlertCircle size={27} />
     </div>
-
     <p className="mt-4 text-sm font-semibold text-[#C23B32]">
       {error || defaultMessage}
     </p>
-
     {onClose && (
       <button
         type="button"
@@ -290,10 +203,8 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
   const fetchInvoice = async (id: number) => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await orderInvoiceApi.getByOrderId(id);
-
       if (response.data.success) {
         setInvoiceData(response.data.data);
       } else {
@@ -318,11 +229,7 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
 
   if (loading) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
           <ModalLoader message="Loading invoice..." />
         </div>
@@ -332,16 +239,9 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
 
   if (error || !invoiceData) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-          <ModalError
-            error={error || "No invoice data found"}
-            onClose={onClose}
-          />
+          <ModalError error={error || "No invoice data found"} onClose={onClose} />
         </div>
       </GlobalModal>
     );
@@ -363,7 +263,6 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
         shippingCharge: 0,
       };
     }
-
     if (!orderItemId || filteredItems.length === 0) {
       return {
         subtotal: parseFloat(invoice.subtotal_before_redemption || 0),
@@ -373,13 +272,11 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
         shippingCharge: parseFloat(invoice.shipping_charge || 0),
       };
     }
-
     const item = filteredItems[0];
     const subtotal =
       parseFloat(item.line_total || 0) - parseFloat(item.gst_amount || 0);
     const totalTax = parseFloat(item.gst_amount || 0);
     const totalPayable = parseFloat(item.line_total || 0);
-
     const totalOrderItems = orderItems.length || 1;
     const couponDiscount =
       totalOrderItems > 0
@@ -389,7 +286,6 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
       totalOrderItems > 0
         ? parseFloat(invoice.shipping_charge || 0) / totalOrderItems
         : 0;
-
     return { subtotal, totalPayable, totalTax, couponDiscount, shippingCharge };
   };
 
@@ -473,27 +369,13 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
               <table className="w-full min-w-[700px] border-collapse">
                 <thead>
                   <tr className="bg-[#163F20]">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      #
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      Product
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      Code
-                    </th>
-                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      Qty
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      Unit Price
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      GST
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                      Total
-                    </th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">#</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Product</th>
+                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Code</th>
+                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Qty</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Unit Price</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">GST</th>
+                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -503,9 +385,7 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
                         key={item.id || idx}
                         className={`border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA] ${orderItemId === item.id ? "bg-[#EAF3EA] border-l-2 border-l-[#163F20]" : ""}`}
                       >
-                        <td className="px-4 py-3 text-sm text-[#163F20]">
-                          {idx + 1}
-                        </td>
+                        <td className="px-4 py-3 text-sm text-[#163F20]">{idx + 1}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             {item.product_image && (
@@ -528,30 +408,17 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="text-xs text-[#9AA29C]">
-                            {item.product_code || "N/A"}
-                          </span>
+                          <span className="text-xs text-[#9AA29C]">{item.product_code || "N/A"}</span>
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">
-                          {item.quantity || 0}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">
-                          {formatCurrency(item.unit_price)}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">
-                          {item.gst_rate || 0}%
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">
-                          {formatCurrency(item.line_total)}
-                        </td>
+                        <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity || 0}</td>
+                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">{formatCurrency(item.unit_price)}</td>
+                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.gst_rate || 0}%</td>
+                        <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{formatCurrency(item.line_total)}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td
-                        colSpan={7}
-                        className="px-4 py-8 text-center text-sm text-[#9AA29C]"
-                      >
+                      <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
                         No items found in this invoice
                       </td>
                     </tr>
@@ -563,56 +430,31 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                Subtotal
-              </p>
-              <p className="mt-1 text-base font-bold text-[#202721]">
-                {formatCurrency(totals.subtotal)}
-              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Subtotal</p>
+              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.subtotal)}</p>
             </div>
-
             <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                Coupon Discount
-              </p>
-              <p className="mt-1 text-base font-bold text-[#202721]">
-                {formatCurrency(totals.couponDiscount)}
-              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Coupon Discount</p>
+              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.couponDiscount)}</p>
               {invoice.coupon_code && (
-                <p className="text-[10px] text-[#9AA29C]">
-                  Code: {invoice.coupon_code}
-                </p>
+                <p className="text-[10px] text-[#9AA29C]">Code: {invoice.coupon_code}</p>
               )}
             </div>
-
             <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                Shipping
-              </p>
-              <p className="mt-1 text-base font-bold text-[#202721]">
-                {formatCurrency(totals.shippingCharge)}
-              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Shipping</p>
+              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.shippingCharge)}</p>
             </div>
-
             <div className="rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6] p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
-                Total Payable
-              </p>
-              <p className="mt-1 text-xl font-bold text-[#0F3219]">
-                {formatCurrency(totals.totalPayable)}
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">Total Payable</p>
+              <p className="mt-1 text-xl font-bold text-[#0F3219]">{formatCurrency(totals.totalPayable)}</p>
             </div>
           </div>
 
           {totals.totalTax > 0 && (
             <div className="mt-3 grid grid-cols-3 gap-3">
               <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                  Total Tax
-                </p>
-                <p className="mt-1 text-base font-bold text-[#202721]">
-                  {formatCurrency(totals.totalTax)}
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Total Tax</p>
+                <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.totalTax)}</p>
               </div>
             </div>
           )}
@@ -620,28 +462,16 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
           <div className="mt-5 rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Order Reference
-                </p>
-                <p className="text-sm font-semibold text-[#202721]">
-                  {order.order_reference || "N/A"}
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Reference</p>
+                <p className="text-sm font-semibold text-[#202721]">{order.order_reference || "N/A"}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Invoice Number
-                </p>
-                <p className="text-sm font-semibold text-[#202721]">
-                  {invoice.invoice_number || "N/A"}
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Invoice Number</p>
+                <p className="text-sm font-semibold text-[#202721]">{invoice.invoice_number || "N/A"}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Delivery State
-                </p>
-                <p className="text-sm font-semibold text-[#202721]">
-                  {invoice.delivery_state || "N/A"}
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Delivery State</p>
+                <p className="text-sm font-semibold text-[#202721]">{invoice.delivery_state || "N/A"}</p>
               </div>
             </div>
           </div>
@@ -652,12 +482,8 @@ const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
                 <FiCheckCircle size={18} />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Order Status
-                </p>
-                <p className="text-sm font-bold capitalize text-[#163F20]">
-                  {order.status || "N/A"}
-                </p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Status</p>
+                <p className="text-sm font-bold capitalize text-[#163F20]">{order.status || "N/A"}</p>
               </div>
               <div className="ml-auto">
                 <span
@@ -743,14 +569,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   const fetchOrderDetails = async (id: string) => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await orderApi.getOrderDetails(id);
       let data = null;
-
       if (response?.data?.data) data = response.data.data;
       else if (response?.data) data = response.data;
-
       if (data) setOrderDetails(data);
       else setError("No data received from API");
     } catch (err) {
@@ -763,11 +586,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   if (loading) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
           <ModalLoader message="Loading order details..." />
@@ -778,11 +597,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   if (error || !orderDetails) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
           <ModalError error={error || "Order not found"} onClose={onClose} />
@@ -896,17 +711,14 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   Order Management
                 </span>
               </div>
-
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
                 <FiPackage className="text-[#163F20]" />
                 Order Details
               </h2>
-
               <p className="mt-1 text-sm text-[#9AA29C]">
                 {order_reference || "N/A"} • {formatDate(order_date)}
               </p>
             </div>
-
             <button
               type="button"
               onClick={onClose}
@@ -941,7 +753,6 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 ? "Customer Details"
                 : "Distributor Details"}
             </button>
-
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
@@ -964,130 +775,75 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   <table className="w-full min-w-[950px] border-collapse">
                     <thead>
                       <tr className="bg-[#163F20]">
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          #
-                        </th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Item Reference
-                        </th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Product
-                        </th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          SKU
-                        </th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Qty
-                        </th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Price
-                        </th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Total
-                        </th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Status
-                        </th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                          Invoice
-                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">#</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Item Reference</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Product</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">SKU</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Qty</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Price</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Status</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Invoice</th>
                       </tr>
                     </thead>
-
                     <tbody>
                       {uiItems && uiItems.length > 0 ? (
                         uiItems.map((item, idx) => {
                           const isDelivered =
                             item.delivery_status?.toLowerCase() === "delivered";
-
                           return (
-                            <tr
-                              key={item.id}
-                              className="border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA]"
-                            >
-                              <td className="px-4 py-3 text-sm text-[#163F20]">
-                                {idx + 1}
-                              </td>
-
+                            <tr key={item.id} className="border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA]">
+                              <td className="px-4 py-3 text-sm text-[#163F20]">{idx + 1}</td>
                               <td className="px-4 py-3">
                                 <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3F4A41]">
                                   {item.itemReferenceId || "N/A"}
                                 </span>
                               </td>
-
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
                                   {item.image ? (
-                                    <img
-                                      src={item.image}
-                                      alt={item.productName}
-                                      className="h-10 w-10 rounded-xl border border-[#163F20]/15 object-cover"
-                                    />
+                                    <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-xl border border-[#163F20]/15 object-cover" />
                                   ) : (
                                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                                       <FiPackage size={15} />
                                     </div>
                                   )}
-                                  <span className="text-sm font-semibold text-[#202721]">
-                                    {item.productName}
-                                  </span>
+                                  <span className="text-sm font-semibold text-[#202721]">{item.productName}</span>
                                 </div>
                               </td>
-
                               <td className="px-4 py-3">
-                                <span className="rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-semibold text-[#59645C]">
-                                  {item.sku}
-                                </span>
+                                <span className="rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-semibold text-[#59645C]">{item.sku}</span>
                               </td>
-
-                              <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">
-                                {item.quantity}
-                              </td>
-
-                              <td className="px-4 py-3 text-right text-sm text-[#59645C]">
-                                {item.price}
-                              </td>
-
-                              <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">
-                                {item.total}
-                              </td>
-
+                              <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
+                              <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
+                              <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
                               <td className="px-4 py-3 text-center">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}
-                                >
+                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
                                   {getStatusText(item.status)}
                                 </span>
                               </td>
-
                               <td className="px-4 py-3 text-center">
-                                {isDelivered &&
-                                  orderDetails?.id &&
-                                  onViewInvoice && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const orderId = orderDetails?.id;
-                                        if (orderId)
-                                          onViewInvoice(orderId, item.lineId);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                                    >
-                                      <FiFileText size={13} />
-                                      Invoice
-                                    </button>
-                                  )}
+                                {isDelivered && orderDetails?.id && onViewInvoice && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const orderId = orderDetails?.id;
+                                      if (orderId) onViewInvoice(orderId, item.lineId);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                  >
+                                    <FiFileText size={13} />
+                                    Invoice
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td
-                            colSpan={9}
-                            className="px-4 py-8 text-center text-sm text-[#9AA29C]"
-                          >
+                          <td colSpan={9} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
                             No items found in this order
                           </td>
                         </tr>
@@ -1099,49 +855,26 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
               <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
                 <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
-
                 <div className="mb-4 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                  <h4 className="text-sm font-bold text-[#202721]">
-                    Order Summary
-                  </h4>
+                  <h4 className="text-sm font-bold text-[#202721]">Order Summary</h4>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                      Subtotal
-                    </p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">
-                      ₹{Number(subtotal || 0).toLocaleString("en-IN")}
-                    </p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Subtotal</p>
+                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(subtotal || 0).toLocaleString("en-IN")}</p>
                   </div>
-
                   <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                      Shipping
-                    </p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">
-                      ₹{Number(shippingCharge || 0).toLocaleString("en-IN")}
-                    </p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Shipping</p>
+                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(shippingCharge || 0).toLocaleString("en-IN")}</p>
                   </div>
-
                   <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">
-                      Tax (GST)
-                    </p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">
-                      ₹{Number(totalGst || 0).toLocaleString("en-IN")}
-                    </p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Tax (GST)</p>
+                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(totalGst || 0).toLocaleString("en-IN")}</p>
                   </div>
-
                   <div className="rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">
-                      Total Payable
-                    </p>
-                    <p className="mt-1 text-xl font-bold text-[#0F3219]">
-                      ₹{Number(totalPayable || 0).toLocaleString("en-IN")}
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">Total Payable</p>
+                    <p className="mt-1 text-xl font-bold text-[#0F3219]">₹{Number(totalPayable || 0).toLocaleString("en-IN")}</p>
                   </div>
                 </div>
               </div>
@@ -1157,51 +890,32 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <FiUser size={17} />
                     </div>
                     <h4 className="font-bold text-[#202721]">
-                      {orderDetails?.order_type === "retail"
-                        ? "Customer Information"
-                        : "Distributor Information"}
+                      {orderDetails?.order_type === "retail" ? "Customer Information" : "Distributor Information"}
                     </h4>
                   </div>
-
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
                       <span className="text-xs text-[#9AA29C]">Name</span>
-                      <span className="text-right text-sm font-semibold text-[#202721]">
-                        {user?.name || "N/A"}
-                      </span>
+                      <span className="text-right text-sm font-semibold text-[#202721]">{user?.name || "N/A"}</span>
                     </div>
-
                     <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
                       <span className="text-xs text-[#9AA29C]">Email</span>
-                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#202721]">
-                        {user?.email || "N/A"}
-                      </span>
+                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#202721]">{user?.email || "N/A"}</span>
                     </div>
-
                     <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
                       <span className="text-xs text-[#9AA29C]">Phone</span>
-                      <span className="text-right text-sm font-semibold text-[#202721]">
-                        {user?.phone || "N/A"}
-                      </span>
+                      <span className="text-right text-sm font-semibold text-[#202721]">{user?.phone || "N/A"}</span>
                     </div>
-
                     <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
                       <span className="text-xs text-[#9AA29C]">Order Type</span>
                       <span className="text-sm font-semibold capitalize text-[#163F20]">
-                        {orderDetails?.order_type === "retail"
-                          ? "Customer"
-                          : orderDetails?.order_type || "N/A"}
+                        {orderDetails?.order_type === "retail" ? "Customer" : orderDetails?.order_type || "N/A"}
                       </span>
                     </div>
-
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-[#9AA29C]">
-                        Payment Status
-                      </span>
+                      <span className="text-xs text-[#9AA29C]">Payment Status</span>
                       <span className="rounded-full border border-[#163F20]/20 bg-white px-2.5 py-1 text-xs font-bold capitalize text-[#163F20]">
-                        {payment?.payment_status ||
-                          orderDetails?.payment_status ||
-                          "N/A"}
+                        {payment?.payment_status || orderDetails?.payment_status || "N/A"}
                       </span>
                     </div>
                   </div>
@@ -1212,63 +926,40 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiMapPin size={17} />
                     </div>
-                    <h4 className="font-bold text-[#202721]">
-                      Shipping Address
-                    </h4>
+                    <h4 className="font-bold text-[#202721]">Shipping Address</h4>
                   </div>
-
                   {addr ? (
                     <>
-                      <p className="text-sm leading-6 text-[#3F4A41]">
-                        {addr.full_address || "No address provided"}
-                      </p>
+                      <p className="text-sm leading-6 text-[#3F4A41]">{addr.full_address || "No address provided"}</p>
                       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#163F20]/10 bg-white p-3 text-xs">
                         <div>
-                          <span className="text-[#9AA29C]">
-                            Address Line 1:
-                          </span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.address_line_1 || "N/A"}
-                          </span>
+                          <span className="text-[#9AA29C]">Address Line 1:</span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.address_line_1 || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">
-                            Address Line 2:
-                          </span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.address_line_2 || "N/A"}
-                          </span>
+                          <span className="text-[#9AA29C]">Address Line 2:</span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.address_line_2 || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#9AA29C]">City:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.city || "N/A"}
-                          </span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.city || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#9AA29C]">State:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.state || "N/A"}
-                          </span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.state || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#9AA29C]">Country:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.country || "N/A"}
-                          </span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.country || "N/A"}</span>
                         </div>
                         <div>
                           <span className="text-[#9AA29C]">Pincode:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">
-                            {addr.postal_code || addr.pincode || "N/A"}
-                          </span>
+                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.postal_code || addr.pincode || "N/A"}</span>
                         </div>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-[#9AA29C]">
-                      No address provided
-                    </p>
+                    <p className="text-sm text-[#9AA29C]">No address provided</p>
                   )}
                 </div>
               </div>
@@ -1280,26 +971,16 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   </div>
                   <h4 className="font-bold text-[#202721]">Order Timeline</h4>
                 </div>
-
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                    <span className="text-xs text-[#9AA29C]">
-                      Order Placed:
-                    </span>
-                    <span className="text-sm font-semibold text-[#3F4A41]">
-                      {formatDate(order_date)}
-                    </span>
+                    <span className="text-xs text-[#9AA29C]">Order Placed:</span>
+                    <span className="text-sm font-semibold text-[#3F4A41]">{formatDate(order_date)}</span>
                   </div>
-
                   <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    <span className="text-xs text-[#9AA29C]">
-                      Current Status:
-                    </span>
-                    <span className="text-sm font-bold capitalize text-[#163F20]">
-                      {getStatusText(order_status || "N/A")}
-                    </span>
+                    <span className="text-xs text-[#9AA29C]">Current Status:</span>
+                    <span className="text-sm font-bold capitalize text-[#163F20]">{getStatusText(order_status || "N/A")}</span>
                   </div>
                 </div>
               </div>
@@ -1313,190 +994,54 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiTruck size={17} />
                   </div>
-                  <h4 className="font-bold text-[#202721]">
-                    Tracking Information
-                  </h4>
+                  <h4 className="font-bold text-[#202721]">Tracking Information</h4>
                 </div>
-
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <span className="text-xs text-[#9AA29C]">Order Status</span>
-                    <span className="text-sm font-bold capitalize text-[#163F20]">
-                      {getStatusText(order_status || "N/A")}
-                    </span>
+                    <span className="text-sm font-bold capitalize text-[#163F20]">{getStatusText(order_status || "N/A")}</span>
                   </div>
-
                   <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">
-                      Payment Gateway
-                    </span>
-                    <span className="text-sm font-semibold text-[#202721]">
-                      {payment?.payment_gateway ||
-                        orderDetails?.payment_gateway ||
-                        "N/A"}
-                    </span>
+                    <span className="text-xs text-[#9AA29C]">Payment Gateway</span>
+                    <span className="text-sm font-semibold text-[#202721]">{payment?.payment_gateway || orderDetails?.payment_gateway || "N/A"}</span>
                   </div>
-
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">
-                      Transaction ID
-                    </span>
+                    <span className="text-xs text-[#9AA29C]">Transaction ID</span>
                     <span className="max-w-[65%] truncate text-sm font-semibold text-[#202721]">
-                      {payment?.gateway_transaction_id ||
-                        orderDetails?.gateway_transaction_id ||
-                        "N/A"}
+                      {payment?.gateway_transaction_id || orderDetails?.gateway_transaction_id || "N/A"}
                     </span>
                   </div>
-
                   <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <span className="text-xs text-[#9AA29C]">Amount Paid</span>
                     <span className="text-sm font-bold text-[#163F20]">
-                      ₹
-                      {Number(
-                        payment?.amount_paid || orderDetails?.amount_paid || 0,
-                      ).toLocaleString("en-IN")}
+                      ₹{Number(payment?.amount_paid || orderDetails?.amount_paid || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
-
                   {(shipping_details || orderDetails?.courier_company) && (
                     <>
                       <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                        <span className="text-xs text-[#9AA29C]">
-                          Courier Company
-                        </span>
-                        <span className="text-sm font-semibold text-[#202721]">
-                          {shipping_details?.courier_company ||
-                            orderDetails?.courier_company ||
-                            "N/A"}
-                        </span>
+                        <span className="text-xs text-[#9AA29C]">Courier Company</span>
+                        <span className="text-sm font-semibold text-[#202721]">{shipping_details?.courier_company || orderDetails?.courier_company || "N/A"}</span>
                       </div>
-
                       <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                        <span className="text-xs text-[#9AA29C]">
-                          Tracking Number
-                        </span>
+                        <span className="text-xs text-[#9AA29C]">Tracking Number</span>
                         <span className="text-sm font-semibold text-[#202721]">
-                          {shipping_details?.courier_tracking_number ||
-                            orderDetails?.courier_tracking_number ||
-                            "N/A"}
+                          {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
                         </span>
                       </div>
-
                       {shipping_details?.courier_delivery_date && (
                         <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                          <span className="text-xs text-[#9AA29C]">
-                            Expected Delivery
-                          </span>
-                          <span className="text-sm font-semibold text-[#202721]">
-                            {formatDate(shipping_details.courier_delivery_date)}
-                          </span>
+                          <span className="text-xs text-[#9AA29C]">Expected Delivery</span>
+                          <span className="text-sm font-semibold text-[#202721]">{formatDate(shipping_details.courier_delivery_date)}</span>
                         </div>
                       )}
-
                       {shipping_details?.delivery_notes && (
                         <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                          <span className="text-xs text-[#9AA29C]">
-                            Delivery Notes
-                          </span>
-                          <span className="text-sm font-semibold text-[#202721]">
-                            {shipping_details.delivery_notes}
-                          </span>
+                          <span className="text-xs text-[#9AA29C]">Delivery Notes</span>
+                          <span className="text-sm font-semibold text-[#202721]">{shipping_details.delivery_notes}</span>
                         </div>
                       )}
                     </>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-5">
-                <h4 className="mb-5 text-sm font-bold text-[#202721]">
-                  Order Timeline
-                </h4>
-
-                <div className="space-y-5">
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF3EA]">
-                        <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                      </div>
-                      <div className="h-12 w-px bg-[#4C8A57]/30" />
-                    </div>
-
-                    <div className="pt-1">
-                      <p className="font-semibold text-[#202721]">
-                        Order Placed
-                      </p>
-                      <p className="mt-1 text-xs text-[#9AA29C]">
-                        {formatDate(order_date)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {order_status !== "pending" &&
-                    order_status !== "cancelled" && (
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF3EA]">
-                            <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                          </div>
-                          <div className="h-12 w-px bg-[#4C8A57]/30" />
-                        </div>
-
-                        <div className="pt-1">
-                          <p className="font-semibold text-[#202721]">
-                            Order Confirmed
-                          </p>
-                          <p className="mt-1 text-xs text-[#9AA29C]">
-                            {formatDate(order_date)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                  {(order_status === "dispatched" ||
-                    order_status === "shipped" ||
-                    order_status === "delivered" ||
-                    order_status === "partial_delivered") && (
-                      <div className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EAF3EA]">
-                            <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                          </div>
-                          <div className="h-12 w-px bg-[#4C8A57]/30" />
-                        </div>
-
-                        <div className="pt-1">
-                          <p className="font-semibold text-[#202721]">
-                            {order_status === "delivered" ||
-                              order_status === "partial_delivered"
-                              ? "Delivered"
-                              : "Shipped"}
-                          </p>
-                          <p className="mt-1 text-xs text-[#9AA29C]">
-                            {order_status === "delivered" ||
-                              order_status === "partial_delivered"
-                              ? formatDate(order_date)
-                              : "In Transit"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                  {order_status === "cancelled" && (
-                    <div className="flex gap-4">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FBEAEA]">
-                        <div className="h-2.5 w-2.5 rounded-full bg-[#C23B32]" />
-                      </div>
-
-                      <div className="pt-1">
-                        <p className="font-semibold text-[#C23B32]">
-                          Order Cancelled
-                        </p>
-                        <p className="mt-1 text-xs text-[#9AA29C]">
-                          {formatDate(order_date)}
-                        </p>
-                      </div>
-                    </div>
                   )}
                 </div>
               </div>
@@ -1527,22 +1072,7 @@ interface DispatchPopupProps {
   onClose: () => void;
   order: Order | null;
   selectedItems?: OrderItem[];
-  onDispatch: (trackingDetails: {
-    orderId: string;
-    items: {
-      id: string;
-      name: string;
-      sku: string;
-      quantity: number;
-      lineId?: number;
-    }[];
-    itemCount: number;
-    trackingNumber: string;
-    courierName: string;
-    expectedDelivery: string;
-    notes: string;
-    isFullOrder: boolean;
-  }) => void;
+  onDispatch: (trackingDetails: any) => void;
   isFullOrder?: boolean;
 }
 
@@ -1560,6 +1090,9 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const today = new Date();
+  const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     if (isOpen) {
@@ -1587,7 +1120,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const dispatchData: any = {
         order_reference: order.id,
@@ -1596,7 +1128,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
         delivery_notes: notes || undefined,
         courier_delivery_date: expectedDelivery || undefined,
       };
-
       if (isFullOrder) {
         dispatchData.dispatch_all = true;
       } else {
@@ -1604,13 +1135,9 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
           order_line_id: item.lineId || parseInt(item.id),
         }));
       }
-
       const response = await orderApi.dispatchOrder(dispatchData);
-
       if (response.data.success) {
-        toast.success(
-          `✅ Successfully dispatched ${itemsToDispatch.length} item(s)`,
-        );
+        toast.success(`✅ Successfully dispatched ${itemsToDispatch.length} item(s)`);
         onDispatch({
           orderId: order.id,
           items: itemsToDispatch.map((item) => ({
@@ -1627,7 +1154,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
           notes,
           isFullOrder,
         });
-
         onClose();
       } else {
         setError(response.data.message || "Failed to dispatch order");
@@ -1647,32 +1173,23 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-
         <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
-                  Fulfillment
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Fulfillment</span>
               </div>
-
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
                 <FiTruck className="text-[#163F20]" />
-                {isFullOrder
-                  ? "Dispatch Entire Order"
-                  : `Dispatch ${itemsToDispatch.length} Items`}
+                {isFullOrder ? "Dispatch Entire Order" : `Dispatch ${itemsToDispatch.length} Items`}
               </h2>
-
               <p className="mt-1 text-sm text-[#9AA29C]">
                 {order.id} • {order.customer}
-                {!isFullOrder &&
-                  ` • ${itemsToDispatch.length} item(s) selected`}
+                {!isFullOrder && ` • ${itemsToDispatch.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToDispatch.length} item(s)`}
               </p>
             </div>
-
             <button
               type="button"
               onClick={onClose}
@@ -1694,21 +1211,13 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 
             <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Order Total
-                  </span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">
-                    {order.total}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
                 </div>
-
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Items
-                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
                   <p className="mt-1 text-lg font-bold text-[#163F20]">
                     {itemsToDispatch.length}{" "}
                     <span className="text-xs font-semibold text-[#9AA29C]">
@@ -1716,17 +1225,11 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                     </span>
                   </p>
                 </div>
-
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Shipping Address
-                  </span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">
-                    {order.shippingAddress || "N/A"}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
-
               {isFullOrder && (
                 <div className="mt-4 rounded-xl border border-[#163F20]/15 bg-white p-3">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#163F20]">
@@ -1741,36 +1244,22 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               <div className="rounded-2xl border border-[#163F20]/15 bg-[#EAF3EA] p-5">
                 <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#202721]">
                   <FiPackage className="text-[#163F20]" />
-                  {isFullOrder
-                    ? "All Items in Order"
-                    : "Selected Items to Dispatch"}
+                  {isFullOrder ? "All Items in Order" : "Selected Items to Dispatch"}
                 </h4>
-
                 <div className="max-h-48 space-y-2 overflow-y-auto">
                   {itemsToDispatch.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3"
-                    >
+                    <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.productName}
-                            className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
-                          />
+                          <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
                         ) : (
                           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
                             <FiPackage size={12} />
                           </div>
                         )}
                         <div className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-[#3F4A41]">
-                            {item.productName}
-                          </span>
-                          <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">
-                            Ref: {item.itemReferenceId || "N/A"}
-                          </span>
+                          <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
+                          <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
                         </div>
                       </div>
                       <span className="shrink-0 text-xs text-[#9AA29C]">
@@ -1805,7 +1294,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                     disabled={loading}
                   />
                 </div>
-
                 <div>
                   <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
                     Courier Name <span className="text-[#C23B32]">*</span>
@@ -1823,22 +1311,18 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
-                  Expected Delivery Date
-                </label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">Expected Delivery Date</label>
                 <input
                   type="date"
                   value={expectedDelivery}
                   onChange={(e) => setExpectedDelivery(e.target.value)}
+                  min={minDate}
                   className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                   disabled={loading}
                 />
               </div>
-
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
-                  Notes (Optional)
-                </label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">Notes (Optional)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -1859,17 +1343,12 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? (
-                  <FiLoader size={17} className="animate-spin" />
-                ) : (
-                  <FiTruck size={17} />
-                )}
+                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiTruck size={17} />}
                 {loading
                   ? "Processing..."
                   : isFullOrder
@@ -1893,12 +1372,7 @@ interface ShipPopupProps {
   onClose: () => void;
   order: Order | null;
   selectedItems?: OrderItem[];
-  onShip: (data: {
-    orderId: string;
-    items: { id: string; name: string; lineId?: number }[];
-    itemCount: number;
-    isFullOrder: boolean;
-  }) => void;
+  onShip: (data: any) => void;
   isFullOrder?: boolean;
 }
 
@@ -1933,18 +1407,14 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const shipData: any = { order_reference: order.id };
-
       if (!isFullOrder) {
         shipData.items = itemsToShip.map((item) => ({
           order_line_id: item.lineId || parseInt(item.id),
         }));
       }
-
       const response = await orderApi.shipOrder(shipData);
-
       if (response.data.success) {
         toast.success(`✅ Successfully shipped ${itemsToShip.length} item(s)`);
         onShip({
@@ -1957,7 +1427,6 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
           itemCount: itemsToShip.length,
           isFullOrder,
         });
-
         onClose();
       } else {
         setError(response.data.message || "Failed to ship order");
@@ -1977,31 +1446,23 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-
         <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
-                  Shipment
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Shipment</span>
               </div>
-
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
                 <FiSend className="text-[#163F20]" />
-                {isFullOrder
-                  ? "Ship Entire Order"
-                  : `Ship ${itemsToShip.length} Items`}
+                {isFullOrder ? "Ship Entire Order" : `Ship ${itemsToShip.length} Items`}
               </h2>
-
               <p className="mt-1 text-sm text-[#9AA29C]">
                 {order.id} • {order.customer}
                 {!isFullOrder && ` • ${itemsToShip.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToShip.length} item(s)`}
               </p>
             </div>
-
             <button
               type="button"
               onClick={onClose}
@@ -2020,24 +1481,15 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 {error}
               </div>
             )}
-
             <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Order Total
-                  </span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">
-                    {order.total}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
                 </div>
-
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Items
-                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
                   <p className="mt-1 text-lg font-bold text-[#163F20]">
                     {itemsToShip.length}{" "}
                     <span className="text-xs font-semibold text-[#9AA29C]">
@@ -2045,14 +1497,9 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                     </span>
                   </p>
                 </div>
-
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Shipping Address
-                  </span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">
-                    {order.shippingAddress || "N/A"}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -2062,37 +1509,23 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 <FiPackage className="text-[#163F20]" />
                 {isFullOrder ? "All Items in Order" : "Selected Items to Ship"}
               </h4>
-
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToShip.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3"
-                  >
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.productName}
-                          className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
-                        />
+                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">
-                          {item.productName}
-                        </span>
-                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">
-                          Ref: {item.itemReferenceId || "N/A"}
-                        </span>
+                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#9AA29C]">
-                      Qty: {item.quantity} • SKU: {item.sku}
-                    </span>
+                    <span className="shrink-0 text-xs text-[#9AA29C]">Qty: {item.quantity} • SKU: {item.sku}</span>
                   </div>
                 ))}
               </div>
@@ -2107,17 +1540,12 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? (
-                  <FiLoader size={17} className="animate-spin" />
-                ) : (
-                  <FiSend size={17} />
-                )}
+                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiSend size={17} />}
                 {loading
                   ? "Processing..."
                   : isFullOrder
@@ -2141,12 +1569,7 @@ interface DeliverPopupProps {
   onClose: () => void;
   order: Order | null;
   selectedItems?: OrderItem[];
-  onDeliver: (data: {
-    orderId: string;
-    items: { id: string; name: string; lineId?: number }[];
-    itemCount: number;
-    isFullOrder: boolean;
-  }) => void;
+  onDeliver: (data: any) => void;
   isFullOrder?: boolean;
 }
 
@@ -2173,22 +1596,16 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       const deliverData: any = { order_reference: order.id };
-
       if (!isFullOrder) {
         deliverData.items = itemsToDeliver.map((item) => ({
           order_line_id: item.lineId || parseInt(item.id),
         }));
       }
-
       const response = await orderApi.deliverOrder(deliverData);
-
       if (response.data.success) {
-        toast.success(
-          `✅ Successfully delivered ${itemsToDeliver.length} item(s)`,
-        );
+        toast.success(`✅ Successfully delivered ${itemsToDeliver.length} item(s)`);
         onDeliver({
           orderId: order.id,
           items: itemsToDeliver.map((item) => ({
@@ -2199,7 +1616,6 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
           itemCount: itemsToDeliver.length,
           isFullOrder,
         });
-
         onClose();
       } else {
         setError(response.data.message || "Failed to deliver order");
@@ -2219,31 +1635,23 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-
         <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
-                  Delivery
-                </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Delivery</span>
               </div>
-
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
                 <FiCheckCircle className="text-[#163F20]" />
-                {isFullOrder
-                  ? "Deliver Entire Order"
-                  : `Deliver ${itemsToDeliver.length} Items`}
+                {isFullOrder ? "Deliver Entire Order" : `Deliver ${itemsToDeliver.length} Items`}
               </h2>
-
               <p className="mt-1 text-sm text-[#9AA29C]">
                 {order.id} • {order.customer}
                 {!isFullOrder && ` • ${itemsToDeliver.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToDeliver.length} item(s)`}
               </p>
             </div>
-
             <button
               type="button"
               onClick={onClose}
@@ -2262,24 +1670,15 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                 {error}
               </div>
             )}
-
             <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Order Total
-                  </span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">
-                    {order.total}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
                 </div>
-
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Items
-                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
                   <p className="mt-1 text-lg font-bold text-[#163F20]">
                     {itemsToDeliver.length}{" "}
                     <span className="text-xs font-semibold text-[#9AA29C]">
@@ -2287,14 +1686,9 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                     </span>
                   </p>
                 </div>
-
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Shipping Address
-                  </span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">
-                    {order.shippingAddress || "N/A"}
-                  </p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
             </div>
@@ -2302,41 +1696,25 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
             <div className="rounded-2xl border border-[#163F20]/15 bg-[#EAF3EA] p-5">
               <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#202721]">
                 <FiPackage className="text-[#163F20]" />
-                {isFullOrder
-                  ? "All Items in Order"
-                  : "Selected Items to Deliver"}
+                {isFullOrder ? "All Items in Order" : "Selected Items to Deliver"}
               </h4>
-
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToDeliver.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3"
-                  >
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.productName}
-                          className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
-                        />
+                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">
-                          {item.productName}
-                        </span>
-                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">
-                          Ref: {item.itemReferenceId || "N/A"}
-                        </span>
+                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#9AA29C]">
-                      Qty: {item.quantity} • SKU: {item.sku}
-                    </span>
+                    <span className="shrink-0 text-xs text-[#9AA29C]">Qty: {item.quantity} • SKU: {item.sku}</span>
                   </div>
                 ))}
               </div>
@@ -2351,17 +1729,12 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? (
-                  <FiLoader size={17} className="animate-spin" />
-                ) : (
-                  <FiCheckCircle size={17} />
-                )}
+                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiCheckCircle size={17} />}
                 {loading
                   ? "Processing..."
                   : isFullOrder
@@ -2401,29 +1774,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [showDispatchPopup, setShowDispatchPopup] = useState(false);
   const [showShipPopup, setShowShipPopup] = useState(false);
   const [showDeliverPopup, setShowDeliverPopup] = useState(false);
-  const [selectedOrderForView, setSelectedOrderForView] = useState<
-    string | null
-  >(null);
-  const [selectedOrderDataForView, setSelectedOrderDataForView] =
-    useState<any>(null);
-  const [selectedOrderForDispatch, setSelectedOrderForDispatch] =
-    useState<Order | null>(null);
-  const [selectedOrderForShip, setSelectedOrderForShip] =
-    useState<Order | null>(null);
-  const [selectedOrderForDeliver, setSelectedOrderForDeliver] =
-    useState<Order | null>(null);
-  const [selectedItemsForDispatch, setSelectedItemsForDispatch] = useState<
-    OrderItem[]
-  >([]);
-  const [selectedItemsForShip, setSelectedItemsForShip] = useState<OrderItem[]>(
-    [],
-  );
-  const [selectedItemsForDeliver, setSelectedItemsForDeliver] = useState<
-    OrderItem[]
-  >([]);
-  const [selectedItemsMap, setSelectedItemsMap] = useState<
-    Map<string, boolean>
-  >(new Map());
+  const [selectedOrderForView, setSelectedOrderForView] = useState<string | null>(null);
+  const [selectedOrderDataForView, setSelectedOrderDataForView] = useState<any>(null);
+  const [selectedOrderForDispatch, setSelectedOrderForDispatch] = useState<Order | null>(null);
+  const [selectedOrderForShip, setSelectedOrderForShip] = useState<Order | null>(null);
+  const [selectedOrderForDeliver, setSelectedOrderForDeliver] = useState<Order | null>(null);
+  const [selectedItemsForDispatch, setSelectedItemsForDispatch] = useState<OrderItem[]>([]);
+  const [selectedItemsForShip, setSelectedItemsForShip] = useState<OrderItem[]>([]);
+  const [selectedItemsForDeliver, setSelectedItemsForDeliver] = useState<OrderItem[]>([]);
+  const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, boolean>>(new Map());
   const [isFullOrderDispatch, setIsFullOrderDispatch] = useState(false);
   const [isFullOrderShip, setIsFullOrderShip] = useState(false);
   const [isFullOrderDeliver, setIsFullOrderDeliver] = useState(false);
@@ -2431,16 +1790,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
-  const [categories, setCategories] = useState<
-    { id: number; title: string }[]
-  >([]);
+  const [categories, setCategories] = useState<{ id: number; title: string }[]>([]);
   const [brands, setBrands] = useState<{ id: number; title: string }[]>([]);
   const [showInvoicePopup, setShowInvoicePopup] = useState(false);
-  const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<
-    number | null
-  >(null);
-  const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] =
-    useState<number | null>(null);
+  const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
+  const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] = useState<number | null>(null);
 
   const itemsPerPage = 6;
 
@@ -2456,10 +1810,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const response = await categoryApi.getAll();
       if (response.data.success) {
         setCategories(
-          (response.data.data || []).map((c: any) => ({
-            id: c.id,
-            title: c.title,
-          }))
+          (response.data.data || []).map((c: any) => ({ id: c.id, title: c.title }))
         );
       }
     } catch (err) {
@@ -2472,10 +1823,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const response = await brandsApi.getAll();
       if (response.data.success) {
         setBrands(
-          (response.data.data || []).map((b: any) => ({
-            id: b.id,
-            title: b.title,
-          }))
+          (response.data.data || []).map((b: any) => ({ id: b.id, title: b.title }))
         );
       }
     } catch (err) {
@@ -2486,7 +1834,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const fetchOrders = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await orderApi.getOrders();
       const data = response.data.data || [];
@@ -2536,9 +1883,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const formatStatus = (status: string) => {
     if (!status) return "N/A";
-    return status
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const formatOrderType = (type: string) => {
@@ -2585,8 +1930,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         apiOrder.items?.map((item: any) => ({
           id: String(item.line_id || item.id || ""),
           lineId: item.line_id || item.id,
-          orderReference:
-            item.order_reference || apiOrder.order_reference || "N/A",
+          orderReference: item.order_reference || apiOrder.order_reference || "N/A",
           itemReferenceId: item.item_reference_id || "N/A",
           productName: item.product_name || "N/A",
           sku: item.product_code || "N/A",
@@ -2623,86 +1967,144 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const getItemStatus = (item: OrderItem) => {
     const rawStatus = item.delivery_status || item.status || "pending";
-    return String(rawStatus)
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_");
+    return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
 
-  const filteredOrders = useMemo(() => {
-    return uiOrders
-      .map((order) => {
-        const searchText = search.toLowerCase().trim();
+  // Check if any item-level filter is active (search, status, category, brand, orderType)
+  const isItemLevelFilterActive = useMemo(() => {
+    return (
+      search.trim() !== "" ||
+      getFilterStatusValue(statusFilter) !== null ||
+      categoryFilter !== "Category: All" ||
+      brandFilter !== "Brand: All" ||
+      orderTypeFilter !== "Order Type: All"
+    );
+  }, [search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
 
-        const searchMatch =
-          !searchText ||
+  /**
+   * FILTER FUNCTION
+   * - If ANY filter is active (search, status, category, brand, orderType)
+   *   → returns a FLAT list of matching ITEMS (one "order" object per matching item).
+   * - If no filter is active → returns normal order-wise list.
+   */
+  const filteredOrders = useMemo(() => {
+    const searchText = search.toLowerCase().trim();
+    const filterStatusValue = getFilterStatusValue(statusFilter);
+    const categoryValue =
+      categoryFilter === "Category: All" ? null : categoryFilter.replace("Category: ", "");
+    const brandValue =
+      brandFilter === "Brand: All" ? null : brandFilter.replace("Brand: ", "");
+    const orderTypeValue =
+      orderTypeFilter === "Order Type: All" ? null : orderTypeFilter.replace("Order Type: ", "");
+
+    const result: Order[] = [];
+
+    uiOrders.forEach((order) => {
+      // Order type filter applies at order level
+      if (orderTypeValue !== null && order.orderType !== orderTypeValue) return;
+
+      // Build a predicate that decides if an ITEM matches
+      const itemMatches = (item: OrderItem): boolean => {
+        // Search filter (item-level fields)
+        if (searchText) {
+          const itemSearchMatch =
+            item.productName.toLowerCase().includes(searchText) ||
+            (item.sku && item.sku.toLowerCase().includes(searchText)) ||
+            (item.itemReferenceId &&
+              item.itemReferenceId.toLowerCase().includes(searchText)) ||
+            // Also allow matching by order-level fields
+            order.id.toLowerCase().includes(searchText) ||
+            order.customer.toLowerCase().includes(searchText) ||
+            order.customerName.toLowerCase().includes(searchText);
+          if (!itemSearchMatch) return false;
+        }
+
+        // Status filter (item-level)
+        if (filterStatusValue !== null) {
+          const itemStatus = getItemStatus(item);
+          const orderStatusNormalized = String(order.orderStatus || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_");
+          const orderMatches = orderStatusNormalized === filterStatusValue;
+          if (!orderMatches && itemStatus !== filterStatusValue) return false;
+        }
+
+        // Category filter
+        if (
+          categoryValue !== null &&
+          String(item.categoryId ?? "") !== String(categoryValue)
+        ) {
+          return false;
+        }
+
+        // Brand filter
+        if (
+          brandValue !== null &&
+          String(item.brandId ?? "") !== String(brandValue)
+        ) {
+          return false;
+        }
+
+        return true;
+      };
+
+      // If NO item-level filter active → keep order grouping as-is
+      if (!isItemLevelFilterActive) {
+        result.push(order);
+        return;
+      }
+
+      // Some item-level filter active → flatten into item rows
+      const matchingItems = (order.items || []).filter(itemMatches);
+
+      if (matchingItems.length > 0) {
+        // Push ONE row per matching item
+        matchingItems.forEach((item) => {
+          result.push({
+            ...order,
+            items: [item],
+          });
+        });
+      } else if (
+        // If order has no items at all, but matches order-level search/status,
+        // still show a single row for the order.
+        (!order.items || order.items.length === 0) &&
+        (filterStatusValue === null ||
+          String(order.orderStatus || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "_") === filterStatusValue) &&
+        (!searchText ||
           order.id.toLowerCase().includes(searchText) ||
           order.customer.toLowerCase().includes(searchText) ||
-          order.customerName.toLowerCase().includes(searchText);
+          order.customerName.toLowerCase().includes(searchText)) &&
+        categoryValue === null &&
+        brandValue === null
+      ) {
+        result.push(order);
+      }
+    });
 
-        const categoryMatch =
-          categoryFilter === "Category: All" ||
-          (order.items || []).some(
-            (item) =>
-              String(item.categoryId ?? "") ===
-              categoryFilter.replace("Category: ", "")
-          );
+    return result;
+  }, [
+    uiOrders,
+    search,
+    statusFilter,
+    categoryFilter,
+    brandFilter,
+    orderTypeFilter,
+    isItemLevelFilterActive,
+  ]);
 
-        const brandMatch =
-          brandFilter === "Brand: All" ||
-          (order.items || []).some(
-            (item) =>
-              String(item.brandId ?? "") ===
-              brandFilter.replace("Brand: ", "")
-          );
-
-        const orderTypeMatch =
-          orderTypeFilter === "Order Type: All" ||
-          order.orderType === orderTypeFilter.replace("Order Type: ", "");
-
-        if (!searchMatch || !categoryMatch || !brandMatch || !orderTypeMatch) {
-          return null;
-        }
-
-        const filterStatusValue = getFilterStatusValue(statusFilter);
-
-        if (!filterStatusValue) {
-          return order;
-        }
-
-        const filteredItems = (order.items || []).filter((item) => {
-          const itemStatus = getItemStatus(item);
-          return itemStatus === filterStatusValue;
-        });
-
-        if (filteredItems.length === 0) {
-          return null;
-        }
-
-        const orderStatusMatch =
-          order.orderStatus?.toLowerCase() === filterStatusValue;
-
-        if (orderStatusMatch) {
-          return order;
-        }
-
-        return {
-          ...order,
-          items: filteredItems,
-        };
-      })
-      .filter((order): order is Order => order !== null);
-  }, [uiOrders, search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredOrders.length / itemsPerPage),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
 
   const visibleOrders = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
+  const isItemWiseView = isItemLevelFilterActive;
 
   const changePage = (page: number) => {
     setCurrentPage(Math.min(Math.max(page, 1), totalPages));
@@ -2717,12 +2119,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setCurrentPage(1);
   };
 
-  const hasActiveFilters =
-    search !== "" ||
-    statusFilter !== "Status: All" ||
-    categoryFilter !== "Category: All" ||
-    brandFilter !== "Brand: All" ||
-    orderTypeFilter !== "Order Type: All";
+  const hasActiveFilters = isItemLevelFilterActive;
 
   const toggleRow = (orderId: string) => {
     const newExpanded = new Set(expandedRows);
@@ -2736,12 +2133,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleViewOrder = (orderId: string) => {
     const apiOrder = orders.find((o) => o.order_reference === orderId);
-
     if (apiOrder) {
       setSelectedOrderForView(apiOrder.order_reference);
       setSelectedOrderDataForView(apiOrder);
       setShowViewPopup(true);
-
       const uiOrder = uiOrders.find((o) => o.id === orderId);
       if (uiOrder) onSelectOrder(uiOrder);
     }
@@ -2765,11 +2160,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const isItemSelectable = (item: OrderItem) => {
-    return (
-      canItemDispatch(item) ||
-      canItemShip(item) ||
-      canItemDeliver(item)
-    );
+    return canItemDispatch(item) || canItemShip(item) || canItemDeliver(item);
   };
 
   const toggleItemSelection = (orderId: string, itemId: string) => {
@@ -2781,26 +2172,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const toggleAllItems = (orderId: string, items: OrderItem[]) => {
     if (items.length === 0) return;
-
     const selectableItems = items.filter((item) => isItemSelectable(item));
     if (selectableItems.length === 0) return;
-
     const allSelected = selectableItems.every((item) =>
       selectedItemsMap.get(`${orderId}-${item.id}`),
     );
-
     const newMap = new Map(selectedItemsMap);
     selectableItems.forEach((item) => {
       newMap.set(`${orderId}-${item.id}`, !allSelected);
     });
-
     setSelectedItemsMap(newMap);
   };
 
   const getSelectedItemsForOrder = (orderId: string, items: OrderItem[]) => {
-    return items.filter((item) =>
-      selectedItemsMap.get(`${orderId}-${item.id}`),
-    );
+    return items.filter((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
   };
 
   const getSelectedCount = (orderId: string, items: OrderItem[]) => {
@@ -2810,88 +2195,61 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const allSelectableSelected = (orderId: string, items: OrderItem[]) => {
     const selectable = items.filter((item) => isItemSelectable(item));
     if (selectable.length === 0) return false;
-    return selectable.every((item) =>
-      selectedItemsMap.get(`${orderId}-${item.id}`),
-    );
+    return selectable.every((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
   };
 
   const canDeliver = (orderStatus: string) => {
-    const status = String(orderStatus || "")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-
+    const status = String(orderStatus || "").trim().toLowerCase().replace(/\s+/g, "_");
     return status === "shipped" || status === "partial_shipped";
   };
 
-  const canItemDispatch = (item: OrderItem) => {
-    return getItemStatus(item) === "confirmed";
-  };
-
-  const canItemShip = (item: OrderItem) => {
-    return getItemStatus(item) === "dispatched";
-  };
-
-  const canItemDeliver = (item: OrderItem) => {
-    return getItemStatus(item) === "shipped";
-  };
+  const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
+  const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
+  const canItemDeliver = (item: OrderItem) => getItemStatus(item) === "shipped";
 
   const hasDispatchableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some((item) => canItemDispatch(item));
   };
-
   const hasShipableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some((item) => canItemShip(item));
   };
-
   const hasDeliverableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some((item) => canItemDeliver(item));
   };
-
   const allItemsDispatchable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every((item) => canItemDispatch(item));
   };
-
   const allItemsShipable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every((item) => canItemShip(item));
   };
-
   const allItemsDeliverable = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.every((item) => canItemDeliver(item));
   };
-
   const getDispatchableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter((item) => canItemDispatch(item)).length;
   };
-
   const getShipableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter((item) => canItemShip(item)).length;
   };
-
   const getDeliverableItemsCount = (order: Order) => {
     if (!order.items) return 0;
     return order.items.filter((item) => canItemDeliver(item)).length;
   };
 
   const handleDispatchSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(
-      order.id,
-      order.items || [],
-    ).filter(canItemDispatch);
-
+    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDispatch);
     if (selectedItems.length === 0) {
       toast.error("Please select at least one confirmed item to dispatch.");
       return;
     }
-
     setIsFullOrderDispatch(false);
     setSelectedOrderForDispatch(order);
     setSelectedItemsForDispatch(selectedItems);
@@ -2903,17 +2261,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error("This order has no items to dispatch.");
       return;
     }
-
     const dispatchableItems = order.items.filter(canItemDispatch);
-
     if (dispatchableItems.length === 0) {
       toast.error("No confirmed items available for dispatch in this order.");
       return;
     }
-
-    const allItemsAreConfirmed =
-      dispatchableItems.length === order.items.length;
-
+    const allItemsAreConfirmed = dispatchableItems.length === order.items.length;
     setIsFullOrderDispatch(allItemsAreConfirmed);
     setSelectedOrderForDispatch(order);
     setSelectedItemsForDispatch(allItemsAreConfirmed ? [] : dispatchableItems);
@@ -2926,16 +2279,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const handleShipSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(
-      order.id,
-      order.items || [],
-    ).filter(canItemShip);
-
+    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemShip);
     if (selectedItems.length === 0) {
       toast.error("Please select at least one dispatched item to ship.");
       return;
     }
-
     setIsFullOrderShip(false);
     setSelectedOrderForShip(order);
     setSelectedItemsForShip(selectedItems);
@@ -2947,16 +2295,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error("This order has no items to ship.");
       return;
     }
-
     const shipableItems = order.items.filter(canItemShip);
-
     if (shipableItems.length === 0) {
       toast.error("No dispatched items available for shipping in this order.");
       return;
     }
-
     const allItemsAreDispatched = shipableItems.length === order.items.length;
-
     setIsFullOrderShip(allItemsAreDispatched);
     setSelectedOrderForShip(order);
     setSelectedItemsForShip(allItemsAreDispatched ? [] : shipableItems);
@@ -2969,16 +2313,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const handleDeliverSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(
-      order.id,
-      order.items || [],
-    ).filter(canItemDeliver);
-
+    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDeliver);
     if (selectedItems.length === 0) {
       toast.error("Please select at least one item to deliver.");
       return;
     }
-
     setIsFullOrderDeliver(false);
     setSelectedOrderForDeliver(order);
     setSelectedItemsForDeliver(selectedItems);
@@ -2990,16 +2329,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error("This order has no items to deliver.");
       return;
     }
-
     const deliverableItems = order.items.filter(canItemDeliver);
-
     if (deliverableItems.length === 0) {
       toast.error("No shipped items available for delivery in this order.");
       return;
     }
-
     const allItemsAreShipped = deliverableItems.length === order.items.length;
-
     setIsFullOrderDeliver(allItemsAreShipped);
     setSelectedOrderForDeliver(order);
     setSelectedItemsForDeliver(allItemsAreShipped ? [] : deliverableItems);
@@ -3016,28 +2351,24 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedOrderForView(null);
     setSelectedOrderDataForView(null);
   };
-
   const closeDispatchPopup = () => {
     setShowDispatchPopup(false);
     setSelectedOrderForDispatch(null);
     setSelectedItemsForDispatch([]);
     setIsFullOrderDispatch(false);
   };
-
   const closeShipPopup = () => {
     setShowShipPopup(false);
     setSelectedOrderForShip(null);
     setSelectedItemsForShip([]);
     setIsFullOrderShip(false);
   };
-
   const closeDeliverPopup = () => {
     setShowDeliverPopup(false);
     setSelectedOrderForDeliver(null);
     setSelectedItemsForDeliver([]);
     setIsFullOrderDeliver(false);
   };
-
   const closeInvoicePopup = () => {
     setShowInvoicePopup(false);
     setSelectedOrderIdForInvoice(null);
@@ -3051,9 +2382,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
             <FiLoader size={28} className="animate-spin" />
           </div>
-          <p className="mt-4 text-sm font-bold text-[#202721]">
-            Loading orders...
-          </p>
+          <p className="mt-4 text-sm font-bold text-[#202721]">Loading orders...</p>
           <p className="mt-1 text-xs text-[#9AA29C]">
             Please wait while we fetch your orders.
           </p>
@@ -3103,7 +2432,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search orders, customers..."
+                placeholder="Search orders, customers, products..."
                 className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
               />
               {search && (
@@ -3249,12 +2578,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
-                />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
               </div>
-
               <div className="relative">
                 <select
                   value={orderTypeFilter}
@@ -3268,12 +2593,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <option value="Order Type: retail">Customer</option>
                   <option value="Order Type: distributor">Distributor</option>
                 </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
-                />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
               </div>
-
               <div className="relative">
                 <select
                   value={categoryFilter}
@@ -3290,12 +2611,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
-                />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
               </div>
-
               <div className="relative">
                 <select
                   value={brandFilter}
@@ -3312,12 +2629,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
-                />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
               </div>
-
               <button
                 type="button"
                 onClick={clearFilters}
@@ -3339,146 +2652,238 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <thead>
                 <tr className="bg-[#163F20]">
                   <th className="w-[45px] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    <FiChevronDown size={16} className="mx-auto opacity-50" />
+                    {isItemWiseView ? <span className="opacity-50">—</span> : <FiChevronDown size={16} className="mx-auto opacity-50" />}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Order ID
+                    {isItemWiseView ? "Order / Item" : "Order ID"}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Date
+                    {isItemWiseView ? "Item Reference" : "Date"}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Buyer
+                    {isItemWiseView ? "Product" : "Buyer"}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Total
-                  </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Status
-                  </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    Actions
-                  </th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Status</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {visibleOrders.length > 0 ? (
-                  visibleOrders.map((order, index) => (
-                    <React.Fragment key={order.id}>
-                      <tr
-                        onClick={() => toggleRow(order.id)}
-                        className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${selectedOrderId === order.id
-                          ? "bg-[#EAF3EA]"
-                          : "bg-white hover:bg-[#FAFBFA]"
-                          }`}
-                      >
-                        <td className="px-4 py-4 text-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleRow(order.id);
-                            }}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
-                          >
-                            {expandedRows.has(order.id) ? (
-                              <FiChevronUp size={16} />
-                            ) : (
-                              <FiChevronDown size={16} />
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3F4A41]">
-                            {order.id}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-xs font-medium text-[#59645C]">
-                          {order.date}
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-bold text-[#202721]">
-                            {order.customer}
-                          </p>
-                          <p className="mt-0.5 text-xs text-[#9AA29C]">
-                            {formatOrderType(order.orderType)}
-                          </p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-[#163F20]">
-                            {order.total}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(
-                              order.orderStatus,
-                            )}`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {formatStatus(order.orderStatus)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
+                  visibleOrders.map((order, index) => {
+                    // ---------- ITEM-WISE VIEW ----------
+                    if (isItemWiseView) {
+                      const item = order.items && order.items[0];
+                      if (!item) return null;
+                      const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
+
+                      return (
+                        <tr
+                          key={`${order.id}-${item.id}-${index}`}
+                          className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                        >
+                          <td className="px-4 py-4 text-center">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+                              <FiPackage size={14} />
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3F4A41]">
+                              {order.id}
+                            </span>
+                            <p className="mt-1 text-[11px] text-[#9AA29C]">{order.date}</p>
+                            <p className="mt-0.5 text-[11px] font-semibold text-[#59645C]">{order.customer}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#163F20]">
+                              {item.itemReferenceId || "N/A"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              {item.image ? (
+                                <img
+                                  src={item.image}
+                                  alt={item.productName}
+                                  className="h-9 w-9 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                                  <FiPackage size={14} />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-[#202721]">{item.productName}</p>
+                                <p className="truncate text-[11px] text-[#9AA29C]">
+                                  SKU: {item.sku} • Qty: {item.quantity}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-bold text-[#163F20]">{item.total}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${itemStatusBadge}`}
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                              {formatStatus(item.delivery_status || item.status || "pending")}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleViewOrder(order.id)}
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                title="View Order"
+                              >
+                                <FiEye size={16} />
+                              </button>
+                              {canItemDispatch(item) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsFullOrderDispatch(false);
+                                    setSelectedOrderForDispatch(order);
+                                    setSelectedItemsForDispatch([item]);
+                                    setShowDispatchPopup(true);
+                                  }}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  title="Dispatch Item"
+                                >
+                                  <FiTruck size={16} />
+                                </button>
+                              )}
+                              {canItemShip(item) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsFullOrderShip(false);
+                                    setSelectedOrderForShip(order);
+                                    setSelectedItemsForShip([item]);
+                                    setShowShipPopup(true);
+                                  }}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  title="Ship Item"
+                                >
+                                  <FiSend size={16} />
+                                </button>
+                              )}
+                              {canItemDeliver(item) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsFullOrderDeliver(false);
+                                    setSelectedOrderForDeliver(order);
+                                    setSelectedItemsForDeliver([item]);
+                                    setShowDeliverPopup(true);
+                                  }}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  title="Deliver Item"
+                                >
+                                  <FiCheckCircle size={16} />
+                                </button>
+                              )}
+                              {item.delivery_status?.toLowerCase() === "delivered" && order.orderId && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id))}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  title="View Invoice"
+                                >
+                                  <FiFileText size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    // ---------- ORDER-WISE VIEW ----------
+                    return (
+                      <React.Fragment key={order.id}>
+                        <tr
+                          onClick={() => toggleRow(order.id)}
+                          className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                            }`}
+                        >
+                          <td className="px-4 py-4 text-center">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleViewOrder(order.id);
+                                toggleRow(order.id);
                               }}
-                              className="group/view relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                              title="View Order"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
                             >
-                              <FiEye size={16} />
+                              {expandedRows.has(order.id) ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
                             </button>
-
-                            {hasDispatchableItems(order) && (
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3F4A41]">
+                              {order.id}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-xs font-medium text-[#59645C]">{order.date}</td>
+                          <td className="px-6 py-4">
+                            <p className="text-sm font-bold text-[#202721]">{order.customer}</p>
+                            <p className="mt-0.5 text-xs text-[#9AA29C]">{formatOrderType(order.orderType)}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm font-bold text-[#163F20]">{order.total}</span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                              {formatStatus(order.orderStatus)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDispatchFullOrder(order);
+                                  handleViewOrder(order.id);
                                 }}
-                                className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                                title="Dispatch Order"
+                                className="group/view relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                title="View Order"
                               >
-                                <FiTruck size={16} />
-                                {order.orderStatus === "partial_dispatched" &&
-                                  getDispatchableItemsCount(order) > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#163F20] text-[8px] font-bold text-white">
-                                      {getDispatchableItemsCount(order)}
-                                    </span>
-                                  )}
+                                <FiEye size={16} />
                               </button>
-                            )}
-
-                            {hasShipableItems(order) && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShipFullOrder(order);
-                                }}
-                                className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                                title="Ship Order"
-                              >
-                                <FiSend size={16} />
-                                {(order.orderStatus ===
-                                  "partial_dispatched" ||
-                                  order.orderStatus === "partial_shipped") &&
-                                  getShipableItemsCount(order) > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#163F20] text-[8px] font-bold text-white">
-                                      {getShipableItemsCount(order)}
-                                    </span>
-                                  )}
-                              </button>
-                            )}
-
-                            {(canDeliver(order.orderStatus) ||
-                              order.orderStatus === "partial_shipped") &&
-                              hasDeliverableItems(order) && (
+                              {hasDispatchableItems(order) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDispatchFullOrder(order);
+                                  }}
+                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  title="Dispatch Order"
+                                >
+                                  <FiTruck size={16} />
+                                </button>
+                              )}
+                              {hasShipableItems(order) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShipFullOrder(order);
+                                  }}
+                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  title="Ship Order"
+                                >
+                                  <FiSend size={16} />
+                                </button>
+                              )}
+                              {(canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && hasDeliverableItems(order) && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3489,17 +2894,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   title="Deliver Order"
                                 >
                                   <FiCheckCircle size={16} />
-                                  {order.orderStatus === "partial_shipped" &&
-                                    getDeliverableItemsCount(order) > 0 && (
-                                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#163F20] text-[8px] font-bold text-white">
-                                        {getDeliverableItemsCount(order)}
-                                      </span>
-                                    )}
                                 </button>
                               )}
-
-                            {order.orderStatus === "delivered" &&
-                              order.orderId && (
+                              {order.orderStatus === "delivered" && order.orderId && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3512,201 +2909,122 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   <FiFileText size={16} />
                                 </button>
                               )}
-                          </div>
-                        </td>
-                      </tr>
+                            </div>
+                          </td>
+                        </tr>
 
-                      {/* EXPANDED ROW */}
-                      {expandedRows.has(order.id) && (
-                        <tr>
-                          <td colSpan={8} className="bg-[#F5F7F5] px-6 py-0">
-                            <div className="overflow-hidden">
-                              <div className="animate-slideDown py-5">
-                                <div className="space-y-4">
-                                  <div className="flex flex-wrap items-center justify-between gap-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                                        <FiPackage size={16} />
+                        {expandedRows.has(order.id) && (
+                          <tr>
+                            <td colSpan={8} className="bg-[#F5F7F5] px-6 py-0">
+                              <div className="overflow-hidden">
+                                <div className="animate-slideDown py-5">
+                                  <div className="space-y-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                      <div className="flex items-center gap-3">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                                          <FiPackage size={16} />
+                                        </div>
+                                        <div>
+                                          <h4 className="text-sm font-bold text-[#202721]">Order Items</h4>
+                                          <p className="text-xs text-[#9AA29C]">
+                                            {order.items?.length || 0} items in this order
+                                          </p>
+                                        </div>
                                       </div>
-                                      <div>
-                                        <h4 className="text-sm font-bold text-[#202721]">
-                                          Order Items
-                                        </h4>
-                                        <p className="text-xs text-[#9AA29C]">
-                                          {order.items?.length || 0} items in
-                                          this order
-                                          {order.orderStatus ===
-                                            "partial_dispatched" && (
-                                              <span className="ml-2 text-[#163F20]">
-                                                (
-                                                {getDispatchableItemsCount(order)}{" "}
-                                                pending dispatch)
-                                              </span>
-                                            )}
-                                          {order.orderStatus ===
-                                            "partial_shipped" && (
-                                              <span className="ml-2 text-[#163F20]">
-                                                ({getShipableItemsCount(order)}{" "}
-                                                pending ship)
-                                              </span>
-                                            )}
-                                        </p>
+
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        {hasDispatchableItems(order) && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDispatchFullOrder(order);
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                          >
+                                            <FiTruck size={14} />
+                                            {allItemsDispatchable(order) ? "Dispatch All" : `Dispatch ${getDispatchableItemsCount(order)}`}
+                                          </button>
+                                        )}
+                                        {hasShipableItems(order) && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleShipFullOrder(order);
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                          >
+                                            <FiSend size={14} />
+                                            {allItemsShipable(order) ? "Ship All" : `Ship ${getShipableItemsCount(order)}`}
+                                          </button>
+                                        )}
+                                        {hasDeliverableItems(order) && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeliverFullOrder(order);
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                          >
+                                            <FiCheckCircle size={14} />
+                                            {allItemsDeliverable(order) ? "Deliver All" : `Deliver ${getDeliverableItemsCount(order)}`}
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleAllItems(order.id, order.items || []);
+                                          }}
+                                          className="text-xs font-bold text-[#163F20]"
+                                        >
+                                          {allSelectableSelected(order.id, order.items || []) ? "Deselect All" : "Select All"}
+                                        </button>
                                       </div>
                                     </div>
 
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      {hasDispatchableItems(order) && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDispatchFullOrder(order);
-                                          }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
-                                        >
-                                          <FiTruck size={14} />
-                                          {allItemsDispatchable(order)
-                                            ? "Dispatch All"
-                                            : `Dispatch ${getDispatchableItemsCount(order)}`}
-                                        </button>
-                                      )}
-
-                                      {hasShipableItems(order) && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleShipFullOrder(order);
-                                          }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
-                                        >
-                                          <FiSend size={14} />
-                                          {allItemsShipable(order)
-                                            ? "Ship All"
-                                            : `Ship ${getShipableItemsCount(order)}`}
-                                        </button>
-                                      )}
-
-                                      {hasDeliverableItems(order) && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeliverFullOrder(order);
-                                          }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
-                                        >
-                                          <FiCheckCircle size={14} />
-                                          {allItemsDeliverable(order)
-                                            ? "Deliver All"
-                                            : `Deliver ${getDeliverableItemsCount(order)}`}
-                                        </button>
-                                      )}
-
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleAllItems(
-                                            order.id,
-                                            order.items || [],
-                                          );
-                                        }}
-                                        className="text-xs font-bold text-[#163F20]"
-                                      >
-                                        {allSelectableSelected(
-                                          order.id,
-                                          order.items || [],
-                                        )
-                                          ? "Deselect All"
-                                          : "Select All"}
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  {/* Items Table */}
-                                  <div className="overflow-x-auto rounded-2xl border border-[#163F20]/15 bg-white">
-                                    <table className="w-full min-w-[1000px] border-collapse">
-                                      <thead>
-                                        <tr className="border-b border-[#163F20]/10 bg-[#FAFBFA]">
-                                          <th className="w-[45px] px-4 py-3 text-center">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleAllItems(
-                                                  order.id,
-                                                  order.items || [],
-                                                );
-                                              }}
-                                              className="text-[#163F20] hover:text-[#4C8A57]"
-                                            >
-                                              {allSelectableSelected(
-                                                order.id,
-                                                order.items || [],
-                                              ) ? (
-                                                <FiCheck size={16} />
-                                              ) : (
-                                                <FiSquare size={16} />
-                                              )}
-                                            </button>
-                                          </th>
-                                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Item Reference
-                                          </th>
-                                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Product
-                                          </th>
-                                          <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            SKU
-                                          </th>
-                                          <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Qty
-                                          </th>
-                                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Price
-                                          </th>
-                                          <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Total
-                                          </th>
-                                          <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Status
-                                          </th>
-                                          <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Action
-                                          </th>
-                                          <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">
-                                            Invoice
-                                          </th>
-                                        </tr>
-                                      </thead>
-
-                                      <tbody>
-                                        {(order.items || []).map(
-                                          (item) => {
-                                            const isSelected =
-                                              selectedItemsMap.get(
-                                                `${order.id}-${item.id}`,
-                                              );
-                                            const isDispatchable =
-                                              canItemDispatch(item);
-                                            const isShipable =
-                                              canItemShip(item);
-                                            const isDeliverable =
-                                              canItemDeliver(item);
-                                            const isSelectable =
-                                              isItemSelectable(item);
-                                            const isDelivered =
-                                              item.delivery_status?.toLowerCase() ===
-                                              "delivered";
+                                    <div className="overflow-x-auto rounded-2xl border border-[#163F20]/15 bg-white">
+                                      <table className="w-full min-w-[1000px] border-collapse">
+                                        <thead>
+                                          <tr className="border-b border-[#163F20]/10 bg-[#FAFBFA]">
+                                            <th className="w-[45px] px-4 py-3 text-center">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleAllItems(order.id, order.items || []);
+                                                }}
+                                                className="text-[#163F20] hover:text-[#4C8A57]"
+                                              >
+                                                {allSelectableSelected(order.id, order.items || []) ? <FiCheck size={16} /> : <FiSquare size={16} />}
+                                              </button>
+                                            </th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Item Reference</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Product</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">SKU</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Qty</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Price</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Total</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Status</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Action</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Invoice</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {(order.items || []).map((item) => {
+                                            const isSelected = selectedItemsMap.get(`${order.id}-${item.id}`);
+                                            const isDispatchable = canItemDispatch(item);
+                                            const isShipable = canItemShip(item);
+                                            const isDeliverable = canItemDeliver(item);
+                                            const isSelectable = isItemSelectable(item);
+                                            const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
 
                                             return (
                                               <tr
                                                 key={item.id}
-                                                className={`border-b border-[#163F20]/10 last:border-0 ${isSelected
-                                                  ? "bg-[#EAF3EA]"
-                                                  : "hover:bg-[#FAFBFA]"
-                                                  } ${!isSelectable ? "opacity-60" : ""}`}
+                                                className={`border-b border-[#163F20]/10 last:border-0 ${isSelected ? "bg-[#EAF3EA]" : "hover:bg-[#FAFBFA]"} ${!isSelectable ? "opacity-60" : ""}`}
                                               >
                                                 <td className="px-4 py-3 text-center">
                                                   <button
@@ -3714,79 +3032,43 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     onClick={(e) => {
                                                       e.stopPropagation();
                                                       if (isSelectable) {
-                                                        toggleItemSelection(
-                                                          order.id,
-                                                          item.id,
-                                                        );
+                                                        toggleItemSelection(order.id, item.id);
                                                       }
                                                     }}
-                                                    className={`text-[#163F20] hover:text-[#4C8A57] ${!isSelectable
-                                                      ? "cursor-not-allowed opacity-40"
-                                                      : ""
-                                                      }`}
+                                                    className={`text-[#163F20] hover:text-[#4C8A57] ${!isSelectable ? "cursor-not-allowed opacity-40" : ""}`}
                                                     disabled={!isSelectable}
                                                   >
-                                                    {isSelected ? (
-                                                      <FiCheck size={17} />
-                                                    ) : (
-                                                      <FiSquare size={17} />
-                                                    )}
+                                                    {isSelected ? <FiCheck size={17} /> : <FiSquare size={17} />}
                                                   </button>
                                                 </td>
-
                                                 <td className="px-4 py-3">
                                                   <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#163F20]">
                                                     {item.itemReferenceId || "N/A"}
                                                   </span>
                                                 </td>
-
                                                 <td className="px-4 py-3">
                                                   <div className="flex items-center gap-3">
                                                     {item.image ? (
-                                                      <img
-                                                        src={item.image}
-                                                        alt={item.productName}
-                                                        className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
-                                                      />
+                                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
                                                     ) : (
                                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
                                                         <FiPackage size={12} />
                                                       </div>
                                                     )}
-                                                    <span className="text-sm font-medium text-[#3F4A41]">
-                                                      {item.productName}
-                                                    </span>
+                                                    <span className="text-sm font-medium text-[#3F4A41]">{item.productName}</span>
                                                   </div>
                                                 </td>
-
                                                 <td className="px-4 py-3">
-                                                  <span className="text-xs text-[#9AA29C]">
-                                                    {item.sku}
-                                                  </span>
+                                                  <span className="text-xs text-[#9AA29C]">{item.sku}</span>
                                                 </td>
-
-                                                <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">
-                                                  {item.quantity}
-                                                </td>
-
-                                                <td className="px-4 py-3 text-right text-sm text-[#59645C]">
-                                                  {item.price}
-                                                </td>
-
-                                                <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">
-                                                  {item.total}
-                                                </td>
-
+                                                <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
+                                                <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
                                                 <td className="px-4 py-3 text-center">
-                                                  <span
-                                                    className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                                      item.status,
-                                                    )}`}
-                                                  >
+                                                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                                     {formatStatus(item.status)}
                                                   </span>
                                                 </td>
-
                                                 <td className="px-4 py-3 text-center">
                                                   <div className="flex items-center justify-center gap-1">
                                                     {isDispatchable && (
@@ -3794,18 +3076,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                         type="button"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
-                                                          setIsFullOrderDispatch(
-                                                            false,
-                                                          );
-                                                          setSelectedOrderForDispatch(
-                                                            order,
-                                                          );
-                                                          setSelectedItemsForDispatch(
-                                                            [item],
-                                                          );
-                                                          setShowDispatchPopup(
-                                                            true,
-                                                          );
+                                                          setIsFullOrderDispatch(false);
+                                                          setSelectedOrderForDispatch(order);
+                                                          setSelectedItemsForDispatch([item]);
+                                                          setShowDispatchPopup(true);
                                                         }}
                                                         className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
                                                         title="Dispatch this item"
@@ -3813,24 +3087,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                         <FiTruck size={13} />
                                                       </button>
                                                     )}
-
                                                     {isShipable && (
                                                       <button
                                                         type="button"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
-                                                          setIsFullOrderShip(
-                                                            false,
-                                                          );
-                                                          setSelectedOrderForShip(
-                                                            order,
-                                                          );
-                                                          setSelectedItemsForShip(
-                                                            [item],
-                                                          );
-                                                          setShowShipPopup(
-                                                            true,
-                                                          );
+                                                          setIsFullOrderShip(false);
+                                                          setSelectedOrderForShip(order);
+                                                          setSelectedItemsForShip([item]);
+                                                          setShowShipPopup(true);
                                                         }}
                                                         className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
                                                         title="Ship this item"
@@ -3838,179 +3103,77 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                         <FiSend size={13} />
                                                       </button>
                                                     )}
-
                                                     {isDeliverable && (
                                                       <button
                                                         type="button"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
-                                                          setIsFullOrderDeliver(
-                                                            false,
-                                                          );
-                                                          setSelectedOrderForDeliver(
-                                                            order,
-                                                          );
-                                                          setSelectedItemsForDeliver(
-                                                            [item],
-                                                          );
-                                                          setShowDeliverPopup(
-                                                            true,
-                                                          );
+                                                          setIsFullOrderDeliver(false);
+                                                          setSelectedOrderForDeliver(order);
+                                                          setSelectedItemsForDeliver([item]);
+                                                          setShowDeliverPopup(true);
                                                         }}
                                                         className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
                                                         title="Deliver this item"
                                                       >
-                                                        <FiCheckCircle
-                                                          size={13}
-                                                        />
+                                                        <FiCheckCircle size={13} />
                                                       </button>
                                                     )}
-
                                                     {!isSelectable && (
-                                                      <span className="text-[10px] text-[#9AA29C]">
-                                                        ✓
-                                                      </span>
+                                                      <span className="text-[10px] text-[#9AA29C]">✓</span>
                                                     )}
                                                   </div>
                                                 </td>
-
                                                 <td className="px-4 py-3 text-center">
-                                                  {isDelivered &&
-                                                    order.orderId && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          handleViewInvoiceItem(
-                                                            order.orderId!,
-                                                            item.lineId ||
-                                                            parseInt(item.id),
-                                                          );
-                                                        }}
-                                                        className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                                                      >
-                                                        <FiFileText size={11} />
-                                                        Invoice
-                                                      </button>
-                                                    )}
+                                                  {isDelivered && order.orderId && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id));
+                                                      }}
+                                                      className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                                    >
+                                                      <FiFileText size={11} />
+                                                      Invoice
+                                                    </button>
+                                                  )}
                                                 </td>
                                               </tr>
                                             );
-                                          },
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-
-                                  {/* Footer */}
-                                  <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#163F20]/10 pt-4">
-                                    <div className="flex min-w-0 items-center gap-2 text-xs text-[#59645C]">
-                                      <FiMapPin
-                                        size={14}
-                                        className="shrink-0 text-[#163F20]"
-                                      />
-                                      <span className="truncate">
-                                        {order.shippingAddress || "No address"}
-                                      </span>
+                                          })}
+                                        </tbody>
+                                      </table>
                                     </div>
 
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleViewOrder(order.id);
-                                        }}
-                                        className="rounded-xl border border-[#163F20]/20 bg-white px-4 py-2 text-xs font-semibold text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
-                                      >
-                                        <FiEye
-                                          size={14}
-                                          className="mr-1.5 inline"
-                                        />
-                                        View Details
-                                      </button>
-
-                                      {hasDispatchableItems(order) && (
+                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#163F20]/10 pt-4">
+                                      <div className="flex min-w-0 items-center gap-2 text-xs text-[#59645C]">
+                                        <FiMapPin size={14} className="shrink-0 text-[#163F20]" />
+                                        <span className="truncate">{order.shippingAddress || "No address"}</span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-2">
                                         <button
                                           type="button"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDispatchSelected(order);
+                                            handleViewOrder(order.id);
                                           }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-[#163F20] px-4 py-2 text-xs font-bold text-[#EAF3EA] transition hover:bg-[#0F3219]"
+                                          className="rounded-xl border border-[#163F20]/20 bg-white px-4 py-2 text-xs font-semibold text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
                                         >
-                                          <FiTruck size={14} />
-                                          Dispatch Selected (
-                                          {getSelectedCount(
-                                            order.id,
-                                            order.items || [],
-                                          )}
-                                          )
+                                          <FiEye size={14} className="mr-1.5 inline" />
+                                          View Details
                                         </button>
-                                      )}
-
-                                      {hasShipableItems(order) && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleShipSelected(order);
-                                          }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-[#163F20] px-4 py-2 text-xs font-bold text-[#EAF3EA] transition hover:bg-[#0F3219]"
-                                        >
-                                          <FiSend size={14} />
-                                          Ship Selected (
-                                          {getSelectedCount(
-                                            order.id,
-                                            order.items || [],
-                                          )}
-                                          )
-                                        </button>
-                                      )}
-
-                                      {hasDeliverableItems(order) && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeliverSelected(order);
-                                          }}
-                                          className="flex items-center gap-1.5 rounded-xl bg-[#163F20] px-4 py-2 text-xs font-bold text-[#EAF3EA] transition hover:bg-[#0F3219]"
-                                        >
-                                          <FiCheckCircle size={14} />
-                                          Deliver Selected (
-                                          {getSelectedCount(
-                                            order.id,
-                                            order.items || [],
-                                          )}
-                                          )
-                                        </button>
-                                      )}
-
-                                      {order.orderStatus === "delivered" &&
-                                        order.orderId && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleViewInvoice(order.orderId!);
-                                            }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-[#163F20] px-4 py-2 text-xs font-bold text-[#EAF3EA] transition hover:bg-[#0F3219]"
-                                          >
-                                            <FiFileText size={14} />
-                                            View Invoice
-                                          </button>
-                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={8} className="px-6 py-16 text-center">
@@ -4018,9 +3181,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                           <FiSearch size={24} />
                         </div>
-                        <p className="mt-4 text-sm font-bold text-[#202721]">
-                          No orders found
-                        </p>
+                        <p className="mt-4 text-sm font-bold text-[#202721]">No orders found</p>
                         <p className="mt-1 text-xs text-[#9AA29C]">
                           Try adjusting your filters or search criteria.
                         </p>
@@ -4035,211 +3196,185 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           {/* MOBILE VIEW */}
           <div className="block lg:hidden">
             {visibleOrders.length > 0 ? (
-              visibleOrders.map((order) => (
-                <div
-                  key={order.id}
-                  onClick={() => toggleRow(order.id)}
-                  className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${selectedOrderId === order.id
-                    ? "bg-[#EAF3EA]"
-                    : "bg-white hover:bg-[#FAFBFA]"
-                    }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-bold text-[#3F4A41]">
-                        {order.id}
-                      </span>
-                      <p className="mt-2 text-xs text-[#9AA29C]">
-                        {order.date}
-                      </p>
+              visibleOrders.map((order, index) => {
+                if (isItemWiseView) {
+                  const item = order.items && order.items[0];
+                  if (!item) return null;
+                  return (
+                    <div
+                      key={`${order.id}-${item.id}-${index}`}
+                      className="border-b border-[#163F20]/10 bg-white p-5"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-bold text-[#3F4A41]">
+                            {order.id}
+                          </span>
+                          <p className="mt-2 text-xs text-[#9AA29C]">{order.date}</p>
+                          <p className="mt-0.5 text-xs font-semibold text-[#59645C]">{order.customer}</p>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                            item.delivery_status || item.status || "pending"
+                          )}`}
+                        >
+                          {formatStatus(item.delivery_status || item.status || "pending")}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                        {item.image ? (
+                          <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                            <FiPackage size={14} />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[#202721]">{item.productName}</p>
+                          <p className="truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
+                          <p className="truncate text-[11px] text-[#9AA29C]">SKU: {item.sku} • Qty: {item.quantity}</p>
+                        </div>
+                        <span className="ml-auto shrink-0 text-sm font-bold text-[#163F20]">{item.total}</span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleViewOrder(order.id)}
+                          className="flex-1 rounded-lg border border-[#163F20]/20 bg-white px-3 py-2 text-xs font-bold text-[#163F20]"
+                        >
+                          View Order
+                        </button>
+                        {canItemDispatch(item) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsFullOrderDispatch(false);
+                              setSelectedOrderForDispatch(order);
+                              setSelectedItemsForDispatch([item]);
+                              setShowDispatchPopup(true);
+                            }}
+                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                          >
+                            Dispatch
+                          </button>
+                        )}
+                        {canItemShip(item) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsFullOrderShip(false);
+                              setSelectedOrderForShip(order);
+                              setSelectedItemsForShip([item]);
+                              setShowShipPopup(true);
+                            }}
+                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                          >
+                            Ship
+                          </button>
+                        )}
+                        {canItemDeliver(item) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsFullOrderDeliver(false);
+                              setSelectedOrderForDeliver(order);
+                              setSelectedItemsForDeliver([item]);
+                              setShowDeliverPopup(true);
+                            }}
+                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                          >
+                            Deliver
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewOrder(order.id);
-                        }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
-                      >
-                        <FiEye size={15} />
-                      </button>
-                      {hasDispatchableItems(order) && (
+                  );
+                }
+
+                return (
+                  <div
+                    key={order.id}
+                    onClick={() => toggleRow(order.id)}
+                    className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                      }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-bold text-[#3F4A41]">
+                          {order.id}
+                        </span>
+                        <p className="mt-2 text-xs text-[#9AA29C]">{order.date}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDispatchFullOrder(order);
-                          }}
-                          className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
-                        >
-                          <FiTruck size={15} />
-                          {order.orderStatus === "partial_dispatched" &&
-                            getDispatchableItemsCount(order) > 0 && (
-                              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#163F20] text-[8px] font-bold text-white">
-                                {getDispatchableItemsCount(order)}
-                              </span>
-                            )}
-                        </button>
-                      )}
-                      {hasShipableItems(order) && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShipFullOrder(order);
-                          }}
-                          className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
-                        >
-                          <FiSend size={15} />
-                        </button>
-                      )}
-                      {hasDeliverableItems(order) && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeliverFullOrder(order);
-                          }}
-                          className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
-                        >
-                          <FiCheckCircle size={15} />
-                        </button>
-                      )}
-                      {order.orderStatus === "delivered" && order.orderId && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewInvoice(order.orderId!);
+                            handleViewOrder(order.id);
                           }}
                           className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
                         >
-                          <FiFileText size={15} />
+                          <FiEye size={15} />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleRow(order.id);
-                        }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#59645C]"
-                      >
-                        {expandedRows.has(order.id) ? (
-                          <FiChevronUp size={15} />
-                        ) : (
-                          <FiChevronDown size={15} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <p className="text-sm font-bold text-[#202721]">
-                      {order.customer}
-                    </p>
-                    <p className="mt-0.5 text-xs text-[#9AA29C]">
-                      {formatOrderType(order.orderType)}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <span className="text-base font-bold text-[#163F20]">
-                      {order.total}
-                    </span>
-                    <span
-                      className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                        order.orderStatus,
-                      )}`}
-                    >
-                      {formatStatus(order.orderStatus)}
-                    </span>
-                  </div>
-
-                  {/* MOBILE EXPANDED */}
-                  {expandedRows.has(order.id) && (
-                    <div className="mt-4 animate-slideDown border-t border-[#163F20]/10 pt-4">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <h5 className="text-xs font-bold uppercase tracking-wider text-[#59645C]">
-                            Items
-                          </h5>
-                          <p className="mt-0.5 text-[11px] text-[#9AA29C]">
-                            {order.items?.length || 0} items
-                          </p>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleRow(order.id);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#59645C]"
+                        >
+                          {expandedRows.has(order.id) ? <FiChevronUp size={15} /> : <FiChevronDown size={15} />}
+                        </button>
                       </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        {(order.items || []).map((item) => {
-                          const isDelivered =
-                            item.delivery_status?.toLowerCase() === "delivered";
+                    <div className="mt-4">
+                      <p className="text-sm font-bold text-[#202721]">{order.customer}</p>
+                      <p className="mt-0.5 text-xs text-[#9AA29C]">{formatOrderType(order.orderType)}</p>
+                    </div>
 
-                          return (
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className="text-base font-bold text-[#163F20]">{order.total}</span>
+                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}>
+                        {formatStatus(order.orderStatus)}
+                      </span>
+                    </div>
+
+                    {expandedRows.has(order.id) && (
+                      <div className="mt-4 animate-slideDown border-t border-[#163F20]/10 pt-4">
+                        <div className="space-y-2">
+                          {(order.items || []).map((item) => (
                             <div
                               key={item.id}
                               className="flex items-center justify-between gap-2 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 {item.image && (
-                                  <img
-                                    src={item.image}
-                                    alt={item.productName}
-                                    className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
-                                  />
+                                  <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
                                 )}
                                 <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[#202721]">
-                                    {item.productName}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#4C8A57]">
-                                    Ref: {item.itemReferenceId || "N/A"}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-[11px] font-semibold text-[#4C8A57]">
-                                    Order: {item.orderReference || order.orderReference || order.id}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-[11px] text-[#9AA29C]">
-                                    SKU: {item.sku}
-                                  </p>
+                                  <p className="truncate text-sm font-semibold text-[#202721]">{item.productName}</p>
+                                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
                                 </div>
                               </div>
-
-                              {isDelivered && order.orderId && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewInvoiceItem(
-                                      order.orderId!,
-                                      item.lineId || parseInt(item.id),
-                                    );
-                                  }}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20]"
-                                >
-                                  <FiFileText size={11} />
-                                  Invoice
-                                </button>
-                              )}
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))
+                    )}
+                  </div>
+                );
+              })
             ) : (
               <div className="flex flex-col items-center px-6 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                   <FiSearch size={24} />
                 </div>
-                <p className="mt-4 text-sm font-bold text-[#202721]">
-                  No orders found
-                </p>
-                <p className="mt-1 text-xs text-[#9AA29C]">
-                  Try adjusting your filters.
-                </p>
+                <p className="mt-4 text-sm font-bold text-[#202721]">No orders found</p>
+                <p className="mt-1 text-xs text-[#9AA29C]">Try adjusting your filters.</p>
               </div>
             )}
           </div>
@@ -4255,16 +3390,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   </span>{" "}
                   to{" "}
                   <span className="font-bold text-[#3F4A41]">
-                    {Math.min(
-                      currentPage * itemsPerPage,
-                      filteredOrders.length,
-                    )}
+                    {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
                   </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#3F4A41]">
-                    {filteredOrders.length}
-                  </span>{" "}
-                  entries
+                  <span className="font-bold text-[#3F4A41]">{filteredOrders.length}</span> entries
                 </p>
 
                 <div className="flex items-center justify-center gap-1.5">
@@ -4276,7 +3405,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   >
                     <FiChevronLeft size={17} />
                   </button>
-
                   {[...Array(Math.min(totalPages, 3))].map((_, index) => {
                     const page = index + 1;
                     return (
@@ -4293,7 +3421,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       </button>
                     );
                   })}
-
                   {totalPages > 3 && (
                     <>
                       <span className="px-1 text-xs text-[#9AA29C]">...</span>
@@ -4309,7 +3436,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       </button>
                     </>
                   )}
-
                   <button
                     type="button"
                     onClick={() => changePage(currentPage + 1)}
@@ -4333,7 +3459,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         orderData={selectedOrderDataForView}
         onViewInvoice={handleViewInvoiceFromViewPopup}
       />
-
       <DispatchPopup
         isOpen={showDispatchPopup}
         onClose={closeDispatchPopup}
@@ -4342,7 +3467,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onDispatch={handleDispatchSubmit}
         isFullOrder={isFullOrderDispatch}
       />
-
       <ShipPopup
         isOpen={showShipPopup}
         onClose={closeShipPopup}
@@ -4351,7 +3475,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onShip={handleShipSubmit}
         isFullOrder={isFullOrderShip}
       />
-
       <DeliverPopup
         isOpen={showDeliverPopup}
         onClose={closeDeliverPopup}
@@ -4360,7 +3483,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onDeliver={handleDeliverSubmit}
         isFullOrder={isFullOrderDeliver}
       />
-
       <InvoiceViewPopup
         isOpen={showInvoicePopup}
         onClose={closeInvoicePopup}
@@ -4370,20 +3492,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       <style>{`
         @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-            max-height: 0;
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-            max-height: 1000px;
-          }
+          from { opacity: 0; transform: translateY(-10px); max-height: 0; }
+          to { opacity: 1; transform: translateY(0); max-height: 1000px; }
         }
-        .animate-slideDown {
-          animation: slideDown 0.35s ease-out forwards;
-        }
+        .animate-slideDown { animation: slideDown 0.35s ease-out forwards; }
       `}</style>
     </>
   );
@@ -4404,10 +3516,8 @@ const Orders: React.FC = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
-
     try {
       const response = await orderApi.getOrders();
-
       if (response.data.success) {
         const data = response.data.data || [];
         const extractedOrders = data.map((item: any) => item.order);
@@ -4459,8 +3569,7 @@ const Orders: React.FC = () => {
         apiOrder.items?.map((item: any) => ({
           id: String(item.line_id || item.id || ""),
           lineId: item.line_id || item.id,
-          orderReference:
-            item.order_reference || apiOrder.order_reference || "N/A",
+          orderReference: item.order_reference || apiOrder.order_reference || "N/A",
           itemReferenceId: item.item_reference_id || "N/A",
           productName: item.product_name || "N/A",
           sku: item.product_code || "N/A",
@@ -4488,9 +3597,7 @@ const Orders: React.FC = () => {
   }, [ordersData]);
 
   const totalEarnings = useMemo(() => {
-    return ordersData.reduce((sum, order) => {
-      return sum + (order.total_payable || 0);
-    }, 0);
+    return ordersData.reduce((sum, order) => sum + (order.total_payable || 0), 0);
   }, [ordersData]);
 
   const statsData = useMemo(() => {
@@ -4499,8 +3606,7 @@ const Orders: React.FC = () => {
       (o) => o.orderStatus === "confirmed" || o.orderStatus === "processing",
     ).length;
     const delivered = uiOrders.filter(
-      (o) =>
-        o.orderStatus === "delivered" || o.orderStatus === "partial_delivered",
+      (o) => o.orderStatus === "delivered" || o.orderStatus === "partial_delivered",
     ).length;
 
     return [
@@ -4568,9 +3674,7 @@ const Orders: React.FC = () => {
             Order Management
           </span>
         </div>
-        <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">
-          Orders
-        </h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">Orders</h1>
         <p className="mt-1 text-sm text-[#59645C]">
           Manage orders, dispatch, shipping, and delivery from one place.
         </p>
