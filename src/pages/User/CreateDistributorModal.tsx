@@ -45,6 +45,11 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
         date_of_birth: "",
         terms_condition: 1,
 
+        // ✅ NEW fields
+        distributor_id: "",
+        company_name: "",
+        gst_in: "",
+
         sponsor_id: "",
         placement_leg: "left",
 
@@ -185,6 +190,27 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                 if (formData.password !== formData.password_confirmation)
                     newErrors.password_confirmation = "Passwords do not match";
                 break;
+
+            // ✅ NEW field validations
+            case "distributor_id":
+                if (!formData.distributor_id?.trim())
+                    newErrors.distributor_id = "Distributor ID (BA ID) is required";
+                break;
+            case "company_name":
+                if (!formData.company_name?.trim())
+                    newErrors.company_name = "Company name is required";
+                break;
+            case "gst_in":
+                if (!formData.gst_in?.trim())
+                    newErrors.gst_in = "GST number is required";
+                else if (
+                    !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(
+                        formData.gst_in.trim().toUpperCase(),
+                    )
+                )
+                    newErrors.gst_in = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
+                break;
+
             case "sponsor_id":
                 if (!formData.sponsor_id?.trim())
                     newErrors.sponsor_id = "Sponsor ID is required";
@@ -274,6 +300,29 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
         if (formData.password !== formData.password_confirmation) {
             newErrors.password_confirmation = "Passwords do not match";
             if (!firstErrorField) firstErrorField = "password_confirmation";
+        }
+
+        // ✅ NEW field validations
+        if (!formData.distributor_id?.trim()) {
+            newErrors.distributor_id = "Distributor ID (BA ID) is required";
+            if (!firstErrorField) firstErrorField = "distributor_id";
+        }
+
+        if (!formData.company_name?.trim()) {
+            newErrors.company_name = "Company name is required";
+            if (!firstErrorField) firstErrorField = "company_name";
+        }
+
+        if (!formData.gst_in?.trim()) {
+            newErrors.gst_in = "GST number is required";
+            if (!firstErrorField) firstErrorField = "gst_in";
+        } else if (
+            !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(
+                formData.gst_in.trim().toUpperCase(),
+            )
+        ) {
+            newErrors.gst_in = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
+            if (!firstErrorField) firstErrorField = "gst_in";
         }
 
         if (!formData.sponsor_id?.trim()) {
@@ -388,6 +437,11 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                 country: formData.country || "India",
                 date_of_birth: formData.date_of_birth!,
                 terms_condition: formData.terms_condition || 1,
+
+                // ✅ NEW fields
+                distributor_id: formData.distributor_id!.trim(),
+                company_name: formData.company_name!.trim(),
+                gst_in: formData.gst_in!.trim().toUpperCase(),
 
                 sponsor_id: formData.sponsor_id!,
                 placement_leg: formData.placement_leg || "left",
@@ -529,8 +583,25 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                 <form
                     ref={formRef}
                     onSubmit={handleSubmit}
+                    autoComplete="off"
                     className="max-h-[calc(95vh-150px)] overflow-y-auto p-5 sm:p-6"
                 >
+                    {/* ✅ Hidden dummy inputs to trick browser autofill */}
+                    <input
+                        type="text"
+                        name="fakeusernameremembered"
+                        autoComplete="username"
+                        style={{ display: "none" }}
+                        tabIndex={-1}
+                    />
+                    <input
+                        type="password"
+                        name="fakepasswordremembered"
+                        autoComplete="new-password"
+                        style={{ display: "none" }}
+                        tabIndex={-1}
+                    />
+
                     {/* General Error */}
                     {generalError && (
                         <div className="mb-4 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] p-4">
@@ -571,6 +642,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="full_name"
+                                        autoComplete="off"
                                         value={formData.full_name || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -594,6 +666,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="email"
                                         name="email"
+                                        autoComplete="off"
                                         value={formData.email || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -617,6 +690,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="tel"
                                         name="phone"
+                                        autoComplete="off"
                                         value={formData.phone || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -640,6 +714,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="date"
                                         name="date_of_birth"
+                                        autoComplete="off"
                                         value={formData.date_of_birth || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -662,6 +737,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="country"
+                                        autoComplete="off"
                                         value={formData.country || "India"}
                                         onChange={handleChange}
                                         className="mt-1 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 py-2.5 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15"
@@ -708,6 +784,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             name="password"
+                                            autoComplete="new-password"
                                             value={formData.password || ""}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
@@ -744,6 +821,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                         <input
                                             type={showConfirmPassword ? "text" : "password"}
                                             name="password_confirmation"
+                                            autoComplete="new-password"
                                             value={formData.password_confirmation || ""}
                                             onChange={handleChange}
                                             onBlur={handleBlur}
@@ -878,18 +956,110 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                             )}
                         </div>
 
-                        {/* Distributor & Sponsor */}
+                        {/* ✅ NEW: Distributor Identity (BA ID, Company, GST) */}
+                        <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
+                            <div className="mb-4 flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                                    <FiBriefcase size={17} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-[#202721]">
+                                        Distributor Identity
+                                    </h3>
+                                    <p className="mt-0.5 text-xs text-[#9AA29C]">
+                                        BA ID, company name and GST details
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wide text-[#9AA29C]">
+                                        Distributor ID (BA ID) *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="distributor_id"
+                                        autoComplete="off"
+                                        value={formData.distributor_id || ""}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        className={`mt-1 w-full rounded-xl border ${errors.distributor_id && touched.distributor_id
+                                                ? "border-[#C23B32]"
+                                                : "border-[#D8E2D8]"
+                                            } bg-white px-4 py-2.5 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15`}
+                                        placeholder="e.g., IND-0077"
+                                    />
+                                    {errors.distributor_id && touched.distributor_id && (
+                                        <p className="mt-1 text-xs text-[#C23B32]">
+                                            {errors.distributor_id}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wide text-[#9AA29C]">
+                                        Company Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="company_name"
+                                        autoComplete="off"
+                                        value={formData.company_name || ""}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        className={`mt-1 w-full rounded-xl border ${errors.company_name && touched.company_name
+                                                ? "border-[#C23B32]"
+                                                : "border-[#D8E2D8]"
+                                            } bg-white px-4 py-2.5 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15`}
+                                        placeholder="Enter company name"
+                                    />
+                                    {errors.company_name && touched.company_name && (
+                                        <p className="mt-1 text-xs text-[#C23B32]">
+                                            {errors.company_name}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold uppercase tracking-wide text-[#9AA29C]">
+                                        GST Number *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="gst_in"
+                                        autoComplete="off"
+                                        value={formData.gst_in || ""}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        maxLength={15}
+                                        className={`mt-1 w-full rounded-xl border ${errors.gst_in && touched.gst_in
+                                                ? "border-[#C23B32]"
+                                                : "border-[#D8E2D8]"
+                                            } bg-white px-4 py-2.5 text-sm uppercase text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15`}
+                                        placeholder="e.g., 22AAAAA0000A1Z5"
+                                    />
+                                    {errors.gst_in && touched.gst_in && (
+                                        <p className="mt-1 text-xs text-[#C23B32]">
+                                            {errors.gst_in}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sponsor & Placement */}
                         <div className="rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                             <div className="mb-4 flex items-center gap-3">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                                     <FiBriefcase size={17} />
                                 </div>
                                 <h3 className="text-sm font-bold text-[#202721]">
-                                    Distributor Details
+                                    Sponsor & Placement
                                 </h3>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div>
                                     <label className="block text-xs font-bold uppercase tracking-wide text-[#9AA29C]">
                                         Sponsor ID *
@@ -897,6 +1067,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="sponsor_id"
+                                        autoComplete="off"
                                         value={formData.sponsor_id || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -967,6 +1138,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="encrypted_aadhaar"
+                                        autoComplete="off"
                                         value={formData.encrypted_aadhaar || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -993,6 +1165,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="encrypted_pan"
+                                        autoComplete="off"
                                         value={formData.encrypted_pan || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -1031,6 +1204,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="bank_holder_name"
+                                        autoComplete="off"
                                         value={formData.bank_holder_name || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -1056,6 +1230,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="bank_name"
+                                        autoComplete="off"
                                         value={formData.bank_name || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -1079,6 +1254,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="branch_name"
+                                        autoComplete="off"
                                         value={formData.branch_name || ""}
                                         onChange={handleChange}
                                         className="mt-1 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 py-2.5 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15"
@@ -1109,6 +1285,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="encrypted_bank_account"
+                                        autoComplete="off"
                                         value={formData.encrypted_bank_account || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -1135,6 +1312,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="confirm_account_number"
+                                        autoComplete="off"
                                         value={formData.confirm_account_number || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}
@@ -1174,6 +1352,7 @@ const CreateDistributorModal: React.FC<CreateDistributorModalProps> = ({
                                     <input
                                         type="text"
                                         name="bank_ifsc"
+                                        autoComplete="off"
                                         value={formData.bank_ifsc || ""}
                                         onChange={handleChange}
                                         onBlur={handleBlur}

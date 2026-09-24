@@ -156,6 +156,11 @@ export interface CreateDistributorRequest {
   date_of_birth: string;
   terms_condition: number;
 
+  // ✅ NEW: Distributor identifiers
+  distributor_id: string;
+  company_name: string;
+  gst_in: string;
+
   sponsor_id: string;
   placement_leg: string;
 

@@ -110,6 +110,24 @@ const getAccountLabel = (accountType: string) => {
 };
 
 // =====================================================
+// KYC STATUS — SINGLE SOURCE OF TRUTH
+// =====================================================
+
+/**
+ * KYC status hamesha business_profile.kyc_status se lo.
+ * Agar business_profile missing ho, tabhi distributor_status fallback.
+ */
+const getEffectiveKycStatus = (user: RegisteredUser): string => {
+  if (user.business_profile?.kyc_status) {
+    return user.business_profile.kyc_status.toLowerCase();
+  }
+  if (user.distributor_status) {
+    return user.distributor_status.toLowerCase();
+  }
+  return "pending";
+};
+
+// =====================================================
 // STATUS BADGES (green theme)
 // =====================================================
 
@@ -176,7 +194,7 @@ const getKycDisplayLabel = (status: string) => {
 };
 
 // =====================================================
-// USER STATUS DROPDOWN (Active / Inactive)
+// USER STATUS DROPDOWN
 // =====================================================
 
 interface UserStatusDropdownProps {
@@ -262,7 +280,7 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 };
 
 // =====================================================
-// DISTRIBUTOR STATUS DROPDOWN
+// DISTRIBUTOR STATUS DROPDOWN — FIXED
 // =====================================================
 
 interface DistributorStatusDropdownProps {
@@ -283,13 +301,19 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const normalizedKycStatus = kycStatus?.toLowerCase() || "";
-  const isKycPending = normalizedKycStatus === "pending";
+  // ✅ ALWAYS use kycStatus (from business_profile.kyc_status)
+  const effectiveStatus = (
+    kycStatus ||
+    currentStatus ||
+    "pending"
+  ).toLowerCase();
+
+  const isKycPending = effectiveStatus === "pending";
   const isKycVerified =
-    normalizedKycStatus === "active" ||
-    normalizedKycStatus === "verified" ||
-    normalizedKycStatus === "approved";
-  const isKycRejected = normalizedKycStatus === "rejected";
+    effectiveStatus === "active" ||
+    effectiveStatus === "verified" ||
+    effectiveStatus === "approved";
+  const isKycRejected = effectiveStatus === "rejected";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -304,6 +328,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Not pending → show static badge
   if (!isKycPending) {
     let label = "N/A";
     let statusClass = "";
@@ -315,7 +340,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
       label = "Rejected";
       statusClass = "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
     } else {
-      label = kycStatus || "N/A";
+      label = getKycDisplayLabel(effectiveStatus);
       statusClass = "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
     }
 
@@ -328,6 +353,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
     );
   }
 
+  // Pending → show dropdown
   const statusOptions = [
     { value: "active", label: "Verify & Activate", color: "text-[#163F20]" },
     { value: "rejected", label: "Reject", color: "text-[#C23B32]" },
@@ -358,7 +384,7 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
           isLoading
             ? "opacity-50 cursor-not-allowed"
             : "hover:border-[#163F20]/40"
-        } ${getDistributorStatusClass(currentStatus)}`}
+        } ${getDistributorStatusClass("pending")}`}
       >
         <span className={getCurrentColor()}>{getCurrentLabel()}</span>
         <FiChevronDown
@@ -471,7 +497,7 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
 };
 
 // =====================================================
-// USER DETAIL MODAL
+// USER DETAIL MODAL — FIXED
 // =====================================================
 
 interface UserDetailModalProps {
@@ -497,7 +523,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   if (!open) return null;
 
-  const kycStatus = user?.business_profile?.kyc_status?.toLowerCase() || "";
+  // ✅ FIXED: getEffectiveKycStatus use karo
+  const kycStatus = user ? getEffectiveKycStatus(user) : "";
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
@@ -1595,8 +1622,8 @@ const UserManagement: React.FC = () => {
                     const isDistributor = user.account_type === "distributor";
                     const distributorStatus =
                       user.distributor_status || "pending";
-                    const kycStatus =
-                      user.business_profile?.kyc_status?.toLowerCase() || "";
+                    // ✅ FIXED: getEffectiveKycStatus use karo
+                    const kycStatus = getEffectiveKycStatus(user);
                     const isHighlighted = highlightedUserId === user.id;
 
                     return (
@@ -1645,12 +1672,7 @@ const UserManagement: React.FC = () => {
                               <span className="text-xs text-[#9AA29C]">
                                 {user.phone || "No phone"}
                               </span>
-                              {user.phone_verified && (
-                                <FiCheckCircle
-                                  size={12}
-                                  className="text-[#163F20]"
-                                />
-                              )}
+                              
                             </div>
                           </div>
                         </td>
@@ -1736,8 +1758,8 @@ const UserManagement: React.FC = () => {
                 const distributorLoading = distributorLoadingId === user.id;
                 const isDistributor = user.account_type === "distributor";
                 const distributorStatus = user.distributor_status || "pending";
-                const kycStatus =
-                  user.business_profile?.kyc_status?.toLowerCase() || "";
+                // ✅ FIXED: getEffectiveKycStatus use karo
+                const kycStatus = getEffectiveKycStatus(user);
                 const isHighlighted = highlightedUserId === user.id;
 
                 return (
