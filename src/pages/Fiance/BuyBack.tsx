@@ -2122,9 +2122,11 @@ const BuyBack: React.FC = () => {
                                 {formatCurrency(request.refund_amount)}
                               </span>
 
-                              <p className="text-[10px] mt-1 font-bold uppercase tracking-[0.08em] text-[#4C8A57]">
-                                Refunded   {formatCurrency(request.refund_info?.amount)}
-                              </p>
+                              {request.status === "completed" && (
+                                <p className="text-[10px] mt-1 font-bold uppercase tracking-[0.08em] text-[#4C8A57]">
+                                  Refunded {formatCurrency(request.refund_info?.amount)}
+                                </p>
+                              )}
 
                             </div>
                           </td>

@@ -2192,16 +2192,16 @@ const ReturnRefund: React.FC = () => {
                           </td>
 
                           <td className="px-5 py-4 text-right">
-                            <div className="inline-flex items-center gap-2">
-                              <span className="text-sm font-bold text-[#163F20]">
-                                Refunded Amount
-                              </span>
-
-                              <span className="text-xl font-bold text-[#163F20]">
-                                {formatCurrency(request.refund_info?.amount)}
-                              </span>
-                            </div>
+                            <span className="text-sm font-bold text-[#163F20]">
+                              {formatCurrency(request.refund_amount)}
+                            </span>
+                            {request.status === "completed" && (
+                              <p className="text-[10px] mt-1 font-bold uppercase tracking-[0.08em] text-[#4C8A57]">
+                                Refunded {formatCurrency(request.refund_info?.amount)}
+                              </p>
+                            )}
                           </td>
+
                           <td className="px-5 py-4">
                             <p
                               title={request.reason || ""}
