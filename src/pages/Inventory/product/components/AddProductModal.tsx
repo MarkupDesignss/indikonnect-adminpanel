@@ -16,6 +16,7 @@ import {
   FiEdit2,
   FiLayers,
   FiAward,
+  FiTruck,
 } from "react-icons/fi";
 
 import { FaRupeeSign } from "react-icons/fa";
@@ -102,6 +103,7 @@ interface FormErrors {
   retail_mrp?: string;
   stock_quantity?: string;
   images?: string;
+  shipping_charge?: string;
 }
 
 interface SpecItem {
@@ -779,6 +781,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setDistributorDiscountValue,
   ] = useState("");
   const [commissionValue, setCommissionValue] = useState("");
+  const [shippingCharge, setShippingCharge] = useState("");
 
   const [stockQuantity, setStockQuantity] = useState("");
   const [lowStockThreshold, setLowStockThreshold] =
@@ -1003,6 +1006,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         : ""
     );
 
+    // ============================================================
+    // ✅ NEW: SHIPPING CHARGE — HYDRATE FROM EDIT DATA
+    // ============================================================
+
+    const editShippingCharge = product?.shipping_charge;
+
+    setShippingCharge(
+      editShippingCharge !== null &&
+        editShippingCharge !== undefined
+        ? String(editShippingCharge)
+        : ""
+    );
+
     setStockQuantity(
       product?.stock_quantity !== null &&
         product?.stock_quantity !== undefined
@@ -1090,6 +1106,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setDistributorDiscountValue("");
 
     setCommissionValue("");
+    setShippingCharge("");
 
     setStockQuantity("");
     setLowStockThreshold("10");
@@ -1493,6 +1510,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         "Please enter a valid stock quantity";
     }
 
+    // ============================================================
+    // ✅ NEW: SHIPPING CHARGE VALIDATION (OPTIONAL — must be >= 0 if provided)
+    // ============================================================
+
+    if (
+      shippingCharge !== "" &&
+      (Number.isNaN(Number(shippingCharge)) ||
+        Number(shippingCharge) < 0)
+    ) {
+      newErrors.shipping_charge =
+        "Please enter a valid shipping charge";
+    }
+
     if (images.length === 0) {
       newErrors.images =
         "At least one product image is required";
@@ -1578,6 +1608,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append(
       "commission_value",
       Number(commissionValue || 0)
+    );
+
+    // ============================================================
+    // ✅ NEW: SHIPPING CHARGE — APPEND TO FORM DATA
+    // ============================================================
+
+    formData.append(
+      "shipping_charge",
+      String(shippingCharge || 0)
     );
 
     if (isEdit && editData) {
@@ -3057,6 +3096,65 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           placeholder="0"
                           className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
                         />
+                      </div>
+
+                      {/* ============================================================
+                          ✅ NEW: SHIPPING CHARGE
+                      ============================================================ */}
+
+                      <div>
+                        <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#202721]">
+                          <FiTruck
+                            size={14}
+                            className="text-[#4C8A57]"
+                          />
+                          Shipping Charge
+                        </label>
+
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#4C8A57]">
+                            ₹
+                          </span>
+
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={shippingCharge}
+                            onChange={(e) => {
+                              const val = e.target.value;
+
+                              if (
+                                isValidDecimalInput(val)
+                              ) {
+                                setShippingCharge(val);
+
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  shipping_charge:
+                                    undefined,
+                                }));
+                              }
+                            }}
+                            placeholder="0"
+                            className={`h-12 w-full rounded-lg border ${
+                              errors.shipping_charge
+                                ? "border-[#C23B32]"
+                                : "border-[#D8E2D8]"
+                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                          />
+                        </div>
+
+                        {errors.shipping_charge && (
+                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
+                            <FiInfo size={14} />
+                            {errors.shipping_charge}
+                          </p>
+                        )}
+
+                        <p className="mt-1 flex items-center gap-1 text-xs text-[#9AA29C]">
+                          <FiInfo size={12} />
+                          Enter 0 for free shipping
+                        </p>
                       </div>
                     </div>
                   </div>

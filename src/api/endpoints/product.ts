@@ -145,6 +145,9 @@ export interface Product {
   commission_value: number;
   waiting_value: number;
 
+  // Shipping
+  shipping_charge: number;
+
   created_at: string;
   updated_at: string;
 }
@@ -213,6 +216,9 @@ export interface ProductPayload {
   // Commission & Waiting
   commission_value: number;
   waiting_value: number;
+
+  // Shipping
+  shipping_charge: number;
 
   product_images?: ProductImagePayload[];
   variants?: ProductVariantPayload[];

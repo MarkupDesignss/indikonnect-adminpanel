@@ -1,4 +1,3 @@
-// BuyBack.tsx
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
@@ -29,6 +28,7 @@ import returnApi, {
   ReturnListItem,
   SingleReturnResponse,
 } from "../../api/endpoints/return";
+import { FaRupeeSign } from "react-icons/fa";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -47,9 +47,6 @@ const itemVariants = {
   },
 };
 
-// =====================================================
-// TYPES
-// =====================================================
 
 type ReturnFilterTab =
   | "All"
@@ -64,9 +61,6 @@ interface ActionLoading {
   id: number | null;
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 
 const getStatusLabel = (status: string) => {
   if (!status) return "N/A";
@@ -244,7 +238,7 @@ const ReturnStatCard: React.FC<ReturnStatCardProps> = ({
 };
 
 // =====================================================
-// APPROVE POPUP (with manual refund amount + admin notes)
+// APPROVE POPUP (simple confirmation — no refund amount)
 // =====================================================
 
 interface ApprovePopupProps {
@@ -254,7 +248,7 @@ interface ApprovePopupProps {
   customerName: string;
   suggestedAmount: number;
   onClose: () => void;
-  onConfirm: (refundAmount: number, adminNotes: string) => void;
+  onConfirm: (adminNotes: string) => void;
 }
 
 const ApprovePopup: React.FC<ApprovePopupProps> = ({
@@ -266,23 +260,15 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const [refundAmount, setRefundAmount] = useState<string>("");
   const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (open) {
-      setRefundAmount(
-        suggestedAmount ? String(Number(suggestedAmount).toFixed(2)) : ""
-      );
       setAdminNotes("");
     }
-  }, [open, suggestedAmount]);
+  }, [open]);
 
   if (!open) return null;
-
-  const parsedAmount = parseFloat(refundAmount);
-  const isValidAmount =
-    !Number.isNaN(parsedAmount) && parsedAmount > 0;
 
   return (
     <GlobalModal
@@ -304,11 +290,12 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
             </div>
 
             <h2 className="text-lg font-bold text-[#202721]">
-              Approve & Refund
+              Approve Buyback Request
             </h2>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
-              Enter the refund amount to return to the customer.
+              Approve this buyback request. Refund will be processed when the
+              item is received.
             </p>
           </div>
 
@@ -341,39 +328,14 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
             </div>
 
             <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
-              <span className="text-xs text-[#9AA29C]">Full Amount</span>
+              <span className="text-xs text-[#9AA29C]">
+                Estimated Refund
+              </span>
 
               <span className="text-right text-sm font-bold text-[#163F20]">
                 {formatCurrency(suggestedAmount)}
               </span>
             </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
-              Refund Amount <span className="text-[#C23B32]">*</span>
-            </label>
-
-            <div className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#163F20]">
-                ₹
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={refundAmount}
-                onChange={(e) => setRefundAmount(e.target.value)}
-                placeholder="Enter refund amount"
-                className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-9 pr-4 text-sm font-semibold text-[#202721] outline-none transition placeholder:font-normal placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
-                disabled={loading}
-              />
-            </div>
-
-            <p className="mt-2 text-[11px] text-[#9AA29C]">
-              Full amount is pre-filled. You can change it before confirming.
-            </p>
           </div>
 
           <div>
@@ -393,8 +355,9 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
 
           <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
             <p className="text-xs leading-5 text-[#59645C]">
-              ⚠️ By approving, the entered refund amount will be sent back to
-              the customer's original payment method.
+              ⚠️ By approving, this buyback request will be marked as approved.
+              The refund will be processed once the item is received and marked
+              as received.
             </p>
           </div>
         </div>
@@ -411,10 +374,8 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
 
           <button
             type="button"
-            disabled={loading || !isValidAmount}
-            onClick={() =>
-              onConfirm(parsedAmount, adminNotes.trim())
-            }
+            disabled={loading}
+            onClick={() => onConfirm(adminNotes.trim())}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
@@ -423,7 +384,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
               <FiCheck size={15} />
             )}
 
-            {loading ? "Processing..." : "Approve & Refund"}
+            {loading ? "Processing..." : "Approve Buyback"}
           </button>
         </div>
       </div>
@@ -547,27 +508,45 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 };
 
 // =====================================================
-// MARK RECEIVED CONFIRM POPUP
+// MARK RECEIVED & REFUND POPUP (with refund amount)
 // =====================================================
 
 interface MarkReceivedPopupProps {
   open: boolean;
   orderReference: string;
   customerName: string;
+  suggestedAmount: number;
   loading: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (refundAmount: number, adminNotes: string) => void;
 }
 
 const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   open,
   orderReference,
   customerName,
+  suggestedAmount,
   loading,
   onClose,
   onConfirm,
 }) => {
+  const [refundAmount, setRefundAmount] = useState<string>("");
+  const [adminNotes, setAdminNotes] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setRefundAmount(
+        suggestedAmount ? String(Number(suggestedAmount).toFixed(2)) : ""
+      );
+      setAdminNotes("");
+    }
+  }, [open, suggestedAmount]);
+
   if (!open) return null;
+
+  const parsedAmount = parseFloat(refundAmount);
+  const isValidAmount =
+    !Number.isNaN(parsedAmount) && parsedAmount > 0;
 
   return (
     <GlobalModal
@@ -575,7 +554,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
+      <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] to-[#163F20]" />
 
         <div className="flex items-start justify-between gap-4 border-b border-[#D8E2D8] px-5 py-4">
@@ -584,16 +563,16 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
               <div className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#163F20]">
-                Mark Received
+                Mark Received & Refund
               </span>
             </div>
 
             <h2 className="text-lg font-bold text-[#202721]">
-              Confirm Received
+              Confirm Received & Process Refund
             </h2>
 
             <p className="mt-1 text-xs text-[#9AA29C]">
-              Mark this buyback as received by the warehouse.
+              Enter the refund amount to return to the customer.
             </p>
           </div>
 
@@ -607,7 +586,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="space-y-5 p-5">
           <div className="rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
             <div className="flex justify-between gap-4">
               <span className="text-xs text-[#9AA29C]">Order</span>
@@ -624,12 +603,63 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
                 {customerName}
               </span>
             </div>
+
+            <div className="mt-3 flex justify-between gap-4 border-t border-[#D8E2D8] pt-3">
+              <span className="text-xs text-[#9AA29C]">Full Amount</span>
+
+              <span className="text-right text-sm font-bold text-[#163F20]">
+                {formatCurrency(suggestedAmount)}
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-xl border border-[#D8E2D8] bg-[#EAF3EA] p-3">
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Refund Amount <span className="text-[#C23B32]">*</span>
+            </label>
+
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#163F20]">
+                ₹
+              </span>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                placeholder="Enter refund amount"
+                className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-9 pr-4 text-sm font-semibold text-[#202721] outline-none transition placeholder:font-normal placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+                disabled={loading}
+              />
+            </div>
+
+            <p className="mt-2 text-[11px] text-[#9AA29C]">
+              Full amount is pre-filled. You can change it before confirming.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+              Admin Notes
+            </label>
+
+            <textarea
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              rows={3}
+              placeholder="Optional internal notes..."
+              className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#4C8A57] focus:bg-white focus:ring-2 focus:ring-[#4C8A57]/15"
+              disabled={loading}
+            />
+          </div>
+
+          <div className="rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
             <p className="text-xs leading-5 text-[#59645C]">
-              ⚠️ By confirming, the buyback items will be marked as received by
-              the warehouse. This action cannot be undone.
+              ⚠️ By confirming, the buyback items will be marked as received and
+              the entered refund amount will be sent back to the customer's
+              original payment method. This action cannot be undone.
             </p>
           </div>
         </div>
@@ -646,8 +676,10 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
 
           <button
             type="button"
-            onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || !isValidAmount}
+            onClick={() =>
+              onConfirm(parsedAmount, adminNotes.trim())
+            }
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-[#163F20]/15 transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
@@ -656,7 +688,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
               <FiTruck size={15} />
             )}
 
-            {loading ? "Processing..." : "Confirm Received"}
+            {loading ? "Processing..." : "Mark Received & Refund"}
           </button>
         </div>
       </div>
@@ -778,14 +810,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </h2>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#9AA29C]">
-              <span>Request #{detail.id}</span>
-
-              <span>•</span>
-
               <span>{detail.order?.order_reference || "—"}</span>
-
               <span>•</span>
-
               <span>{formatDate(detail.created_at)}</span>
             </div>
           </div>
@@ -801,54 +827,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
         {/* BODY */}
         <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          {/* SUMMARY */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                Status
-              </p>
-
-              <div className="mt-2">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${getStatusClass(
-                    detail.status,
-                  )}`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                      detail.status,
-                    )}`}
-                  />
-
-                  {getStatusLabel(detail.status)}
-                </span>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#4C8A57]/20 bg-gradient-to-br from-[#EAF3EA] to-[#f4f8f4] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
-                Buyback Amount
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-[#163F20]">
-                {formatCurrency(detail.refund_details?.total)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                Items
-              </p>
-
-              <p className="mt-1 text-2xl font-bold text-[#202721]">
-                {detail.items.length}
-              </p>
-            </div>
-          </div>
 
           {/* REFUND DETAILS (shown when completed) */}
           {isCompleted && (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#4C8A57]/25">
+            <div className=" overflow-hidden rounded-2xl border border-[#4C8A57]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#4C8A57]/20 bg-gradient-to-r from-[#EAF3EA] to-[#f4f8f4] px-5 py-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#163F20]">
@@ -1173,17 +1155,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <FiDollarSign size={17} />
               </div>
 
-              <h3 className="text-sm font-bold text-[#202721]">
-                Refund Summary
-              </h3>
+              <h3 className="text-sm font-bold text-[#202721]">Refund Summary</h3>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Subtotal
                 </p>
-
                 <p className="mt-1 text-base font-bold text-[#202721]">
                   {formatCurrency(detail.refund_details?.subtotal)}
                 </p>
@@ -1193,9 +1172,17 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                   Tax
                 </p>
+                <p className="mt-1 text-base font-bold text-[#C0392B]">
+                  -{formatCurrency(detail.refund_details?.tax)}
+                </p>
+              </div>
 
-                <p className="mt-1 text-base font-bold text-[#202721]">
-                  {formatCurrency(detail.refund_details?.tax)}
+              <div className="rounded-xl border border-[#D8E2D8] bg-white p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                  Gateway Charges
+                </p>
+                <p className="mt-1 text-base font-bold text-[#C0392B]">
+                  -{formatCurrency(detail.refund_details?.refund_gateway_charges)}
                 </p>
               </div>
 
@@ -1203,12 +1190,23 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
                   Buyback Amount
                 </p>
-
                 <p className="mt-1 text-xl font-bold text-[#163F20]">
                   {formatCurrency(detail.refund_details?.total)}
                 </p>
               </div>
             </div>
+
+            {/* Refunded Amount */}
+            {detail.refund_info?.amount && (
+              <div className="mt-4 rounded-xl border border-[#4C8A57]/20 bg-[#EAF3EA] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
+                  Refunded Amount
+                </p>
+                <p className="mt-1 text-xl font-bold text-[#4C8A57]">
+                  {formatCurrency(detail.refund_info.amount)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* TIMELINE */}
@@ -1350,7 +1348,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <FiCheck size={14} />
                   )}
 
-                  Accept Buyback
+                  Approve Buyback
                 </button>
               )}
 
@@ -1379,7 +1377,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <FiTruck size={14} />
                   )}
 
-                  Mark Received
+                  Mark Received & Refund
                 </button>
               )}
             </div>
@@ -1600,13 +1598,10 @@ const BuyBack: React.FC = () => {
   };
 
   // ===================================================
-  // SUBMIT APPROVE
+  // SUBMIT APPROVE (no refund amount — just approval)
   // ===================================================
 
-  const handleApprove = async (
-    refundAmount: number,
-    adminNotes: string,
-  ) => {
+  const handleApprove = async (adminNotes: string) => {
     const id = selectedDetail?.id;
 
     if (!id) return;
@@ -1615,7 +1610,6 @@ const BuyBack: React.FC = () => {
       setActionLoading({ type: "approve", id });
 
       const response = await returnApi.approve(id, {
-        refund_amount: refundAmount,
         admin_notes: adminNotes || undefined,
       });
 
@@ -1724,10 +1718,13 @@ const BuyBack: React.FC = () => {
   };
 
   // ===================================================
-  // MARK RECEIVED
+  // MARK RECEIVED & REFUND
   // ===================================================
 
-  const handleMarkReceived = async () => {
+  const handleMarkReceived = async (
+    refundAmount: number,
+    adminNotes: string,
+  ) => {
     if (!selectedDetail) return;
 
     setReceivedLoading(true);
@@ -1735,12 +1732,15 @@ const BuyBack: React.FC = () => {
     setActionLoading({ type: "received", id: selectedDetail.id });
 
     try {
-      const response = await returnApi.markReceived(selectedDetail.id);
+      const response = await returnApi.markReceived(selectedDetail.id, {
+        refund_amount: refundAmount,
+        admin_notes: adminNotes || undefined,
+      });
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
-          "Buyback marked as received successfully.",
+          "Buyback marked as received and refund processed successfully.",
         );
 
         setReceivedModalOpen(false);
@@ -1871,8 +1871,8 @@ const BuyBack: React.FC = () => {
             </h1>
 
             <p className="mt-1 text-sm text-[#59645C]">
-              Review buyback requests, approve refunds, and manage the buyback
-              lifecycle.
+              Review buyback requests, approve buybacks, and process refunds on
+              receipt.
             </p>
           </div>
 
@@ -1980,8 +1980,8 @@ const BuyBack: React.FC = () => {
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
                     className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                        : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                      ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                      : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
                       }`}
                   >
                     {filter.label}
@@ -2077,135 +2077,144 @@ const BuyBack: React.FC = () => {
                       request.status === "approved";
 
                     return (
-                      <tr
-                        key={request.id}
-                        className="group border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
-                      >
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
+                      <React.Fragment key={request.id}>
+                        <tr
+                          className="group border-b border-[#D8E2D8] bg-white transition hover:bg-[#FAFBFA]"
+                        >
+                          <td className="px-5 py-4">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
+                              {startIndex + index + 1}
+                            </span>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <span className="inline-flex rounded-lg bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20]">
-                            {request.order_reference || "—"}
-                          </span>
-                        </td>
+                          <td className="px-5 py-4">
+                            <span className="inline-flex rounded-lg bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20]">
+                              {request.order_reference || "—"}
+                            </span>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <p className="text-sm font-bold text-[#202721]">
-                            {getCustomerName(request.user)}
-                          </p>
+                          <td className="px-5 py-4">
+                            <p className="text-sm font-bold text-[#202721]">
+                              {getCustomerName(request.user)}
+                            </p>
 
-                          <span
-                            className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                              request.user.account_type,
-                            )}`}
-                          >
-                            <FiBriefcase size={9} />
-                            {getAccountTypeLabel(
-                              request.user.account_type,
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#D8E2D8] bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold text-[#163F20]">
-                            {request.items_count}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-right">
-                          <span className="text-sm font-bold text-[#163F20]">
-                            {formatCurrency(request.refund_amount)}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <p
-                            title={request.reason || ""}
-                            className="max-w-[210px] truncate text-xs text-[#59645C]"
-                          >
-                            {request.reason || "No reason provided"}
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                              request.status,
-                            )}`}
-                          >
                             <span
-                              className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                              className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                                request.user.account_type,
+                              )}`}
+                            >
+                              <FiBriefcase size={9} />
+                              {getAccountTypeLabel(
+                                request.user.account_type,
+                              )}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-center">
+                            <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#D8E2D8] bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold text-[#163F20]">
+                              {request.items_count}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-right">
+                            <div className="inline-flex flex-col items-end">
+                              <span className="text-sm font-bold text-[#163F20]">
+                                {formatCurrency(request.refund_amount)}
+                              </span>
+
+                              <p className="text-[10px] mt-1 font-bold uppercase tracking-[0.08em] text-[#4C8A57]">
+                                Refunded   {formatCurrency(request.refund_info?.amount)}
+                              </p>
+
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            <p
+                              title={request.reason || ""}
+                              className="max-w-[210px] truncate text-xs text-[#59645C]"
+                            >
+                              {request.reason || "No reason provided"}
+                            </p>
+                          </td>
+
+                          <td className="px-5 py-4 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
                                 request.status,
                               )}`}
-                            />
-
-                            {getStatusLabel(request.status)}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex flex-nowrap items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleView(request.id)}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                              title="View"
                             >
-                              <FiEye size={15} />
-                            </button>
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                                  request.status,
+                                )}`}
+                              />
 
-                            {canApprove && (
-                              <button
-                                type="button"
-                                disabled={approveLoading}
-                                onClick={() =>
-                                  handleOpenApproveFromTable(request.id)
-                                }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
-                              >
-                                {approveLoading ? (
-                                  <FiRefreshCw
-                                    size={13}
-                                    className="animate-spin"
-                                  />
-                                ) : (
-                                  <FiCheck size={13} />
-                                )}
+                              {getStatusLabel(request.status)}
+                            </span>
+                          </td>
 
-                                Accept
-                              </button>
-                            )}
-
-                            {canReject && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleOpenReject(request.id)
-                                }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                              >
-                                <FiX size={13} />
-                                Reject
-                              </button>
-                            )}
-
-                            {showMarkReceived && (
+                          <td className="px-5 py-4">
+                            <div className="flex flex-nowrap items-center justify-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleView(request.id)}
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                                title="View"
                               >
-                                <FiTruck size={13} />
-                                Received
+                                <FiEye size={15} />
                               </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+
+                              {canApprove && (
+                                <button
+                                  type="button"
+                                  disabled={approveLoading}
+                                  onClick={() =>
+                                    handleOpenApproveFromTable(request.id)
+                                  }
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219] disabled:opacity-50"
+                                >
+                                  {approveLoading ? (
+                                    <FiRefreshCw
+                                      size={13}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <FiCheck size={13} />
+                                  )}
+
+                                  Approve
+                                </button>
+                              )}
+
+                              {canReject && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenReject(request.id)
+                                  }
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                >
+                                  <FiX size={13} />
+                                  Reject
+                                </button>
+                              )}
+
+                              {showMarkReceived && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleView(request.id)}
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
+                                >
+                                  <FiTruck size={13} />
+                                  Received
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+
+
+                      </React.Fragment>
                     );
                   })
                 )}
@@ -2345,7 +2354,7 @@ const BuyBack: React.FC = () => {
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#3f7749] hover:to-[#0F3219]"
                         >
                           <FiTruck size={14} />
-                          Mark Received
+                          Mark Received & Refund
                         </button>
                       </div>
                     )}
@@ -2354,6 +2363,18 @@ const BuyBack: React.FC = () => {
                       <p className="text-xs leading-5 text-[#59645C]">
                         {request.reason || "No reason provided."}
                       </p>
+                    </div>
+
+                    {/* BUYBACK AMOUNT - GREEN COLOR BELOW (MOBILE) */}
+                    <div className="mt-3 rounded-xl border border-[#4C8A57]/20 bg-gradient-to-r from-[#EAF3EA] to-[#f4f8f4] p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#4C8A57]">
+                          Buyback Amount
+                        </span>
+                        <span className="text-sm font-bold text-[#163F20]">
+                          {formatCurrency(request.refund_amount)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -2411,8 +2432,8 @@ const BuyBack: React.FC = () => {
                       type="button"
                       onClick={() => handlePageChange(page)}
                       className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                          : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                        : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
                         }`}
                     >
                       {page}
@@ -2469,13 +2490,14 @@ const BuyBack: React.FC = () => {
         onConfirm={handleReject}
       />
 
-      {/* MARK RECEIVED POPUP */}
+      {/* MARK RECEIVED & REFUND POPUP */}
       <MarkReceivedPopup
         open={receivedModalOpen}
         orderReference={
           selectedDetail?.order?.order_reference || "N/A"
         }
         customerName={getCustomerName(selectedDetail?.user)}
+        suggestedAmount={selectedDetail?.refund_details?.total || 0}
         loading={receivedLoading}
         onClose={() => setReceivedModalOpen(false)}
         onConfirm={handleMarkReceived}

@@ -1001,7 +1001,7 @@ const CancellationDetailModal: React.FC<
                   </div>
                   <div className="pt-1">
                     <p className="text-sm font-bold text-[#202721]">
-                      Cancellation Requested
+                      Cancelled
                     </p>
                     <p className="mt-1 text-xs text-[#9AA29C]">
                       {formatDate(

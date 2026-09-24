@@ -1,9 +1,5 @@
 import apiClient from "../client";
 
-// =====================================================
-// TYPES
-// =====================================================
-
 export interface ContentImage {
   id?: number;
   url: string;
@@ -56,23 +52,7 @@ export interface ContentBlockPayload {
   short_description: string;
   description: string;
   sort_order: number;
-
-  /**
-   * Newly selected files for this block only.
-   *
-   * Example:
-   *
-   * blocks[0].imageFiles = [image1]
-   * blocks[1].imageFiles = [image2, image3]
-   * blocks[2].imageFiles = [image4]
-   */
   imageFiles?: File[];
-
-  /**
-   * Existing images that are still kept for this block.
-   *
-   * This is useful while editing.
-   */
   existingImages?: ContentImage[];
 }
 
@@ -82,39 +62,11 @@ export interface ContentPayload {
   blocks: ContentBlockPayload[];
 }
 
-// =====================================================
-// HELPERS
-// =====================================================
 
-/**
- * Builds multipart/form-data payload.
- *
- * IMPORTANT:
- *
- * Every block gets its own image index starting from 0.
- *
- * Example:
- *
- * Block 0:
- * blocks[0][images][0]
- *
- * Block 1:
- * blocks[1][images][0]
- * blocks[1][images][1]
- *
- * Block 2:
- * blocks[2][images][0]
- *
- * Image indexes NEVER continue globally between blocks.
- */
 const buildFormData = (
   payload: ContentPayload
 ): FormData => {
   const formData = new FormData();
-
-  // ===================================================
-  // PAGE DATA
-  // ===================================================
 
   formData.append(
     "title",
@@ -126,15 +78,9 @@ const buildFormData = (
     payload.status || ""
   );
 
-  // ===================================================
-  // BLOCKS
-  // ===================================================
 
   payload.blocks.forEach(
     (block, blockIndex) => {
-      // -------------------------------------------------
-      // BASIC BLOCK FIELDS
-      // -------------------------------------------------
 
       formData.append(
         `blocks[${blockIndex}][heading]`,
@@ -155,23 +101,6 @@ const buildFormData = (
         `blocks[${blockIndex}][sort_order]`,
         String(block.sort_order ?? 0)
       );
-
-      // -------------------------------------------------
-      // EXISTING IMAGES
-      // -------------------------------------------------
-      //
-      // Existing images are sent separately from newly
-      // uploaded files.
-      //
-      // If user removes an existing image from the UI,
-      // it won't be present in this array.
-      //
-      // Example:
-      //
-      // blocks[1][existing_images][0][id] = 10
-      // blocks[1][existing_images][1][id] = 11
-      //
-      // -------------------------------------------------
 
       if (
         block.existingImages &&
@@ -217,26 +146,6 @@ const buildFormData = (
         );
       }
 
-      // -------------------------------------------------
-      // NEW IMAGES
-      // -------------------------------------------------
-      //
-      // IMPORTANT:
-      //
-      // imageIndex starts from ZERO for every block.
-      //
-      // Block 0:
-      // blocks[0][images][0]
-      //
-      // Block 1:
-      // blocks[1][images][0]
-      // blocks[1][images][1]
-      //
-      // Block 2:
-      // blocks[2][images][0]
-      //
-      // -------------------------------------------------
-
       if (
         block.imageFiles &&
         block.imageFiles.length > 0
@@ -261,14 +170,7 @@ const buildFormData = (
   return formData;
 };
 
-// =====================================================
-// DEBUG HELPER
-// =====================================================
 
-/**
- * Logs FormData in development so you can verify the
- * exact block/image indexes being sent.
- */
 const logFormData = (
   formData: FormData
 ) => {
@@ -311,23 +213,13 @@ const logFormData = (
   console.groupEnd();
 };
 
-// =====================================================
-// API
-// =====================================================
 
 const contentsApi = {
-  // ===================================================
-  // GET ALL CONTENTS
-  // ===================================================
 
   getAll: () =>
     apiClient.get<ContentsResponse>(
       "/contents"
     ),
-
-  // ===================================================
-  // CREATE CONTENT
-  // ===================================================
 
   create: (
     payload: ContentPayload
@@ -349,9 +241,6 @@ const contentsApi = {
     );
   },
 
-  // ===================================================
-  // UPDATE CONTENT
-  // ===================================================
 
   update: (
     id: number,
@@ -374,10 +263,7 @@ const contentsApi = {
     );
   },
 
-  // ===================================================
-  // DELETE CONTENT PAGE
-  // ===================================================
-
+ 
   delete: (
     id: number
   ) =>
@@ -385,17 +271,6 @@ const contentsApi = {
       `/contents/delete/${id}`
     ),
 
-  // ===================================================
-  // DELETE CONTENT MEDIA / IMAGE
-  // ===================================================
-  //
-  // API:
-  // DELETE /api/content-media/{id}
-  //
-  // Example:
-  // DELETE /api/content-media/2
-  //
-  // ===================================================
 
   deleteMedia: (
     mediaId: number

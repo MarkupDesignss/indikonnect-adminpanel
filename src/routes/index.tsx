@@ -40,6 +40,9 @@ import BuyBack from "@/pages/Fiance/BuyBack";
 import CoolOff from "@/pages/Fiance/CoolOff";
 import FAQManagement from "@/pages/Cms/FAQManagement";
 import SettingsManagement from "@/pages/SettingsManagement";
+import NotificationTemplates from "@/pages/Cms/NotificationTemplates";
+import SectionManagement from "@/pages/Cms/SectionManagement";
+import LandingPageManagement from "@/pages/Cms/LandingPageManagement";
 
 const ScrollLayout = () => {
   return (
@@ -74,9 +77,7 @@ export const router = createBrowserRouter(
       element: <OTPVerification />,
     },
 
-    // =========================
-    // MAIN APPLICATION
-    // =========================
+
     {
       path: "/",
       element: <ScrollLayout />,
@@ -133,9 +134,6 @@ export const router = createBrowserRouter(
               path: "Coupons",
               element: <Coupons />,
             },
-
-          
-
             {
               path: "RoleManagement/role",
               element: <RoleManagement />,
@@ -214,17 +212,25 @@ export const router = createBrowserRouter(
               element: <TestimonialsManagement />,
             },
             {
+              path: "cms/NotificationTemplates",
+              element: <NotificationTemplates />,
+            },
+            {
+              path: "cms/SectionManagement",
+              element: <SectionManagement />,
+            },
+            {
+              path: "cms/LandingPageManagement",
+              element: <LandingPageManagement />,
+            },
+            {
               path: "Fiance/BuyBack",
               element: <BuyBack />,
             },
-          
-            
             {
               path: "Fiance/CancelRefund",
               element: <CancelRefund />,
             },
-
-
             ...appRoutes,
           ],
         },

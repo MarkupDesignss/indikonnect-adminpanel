@@ -168,19 +168,22 @@ export const returnApi = {
    * POST /admin/returns/:id/approve
    * Payload:
    * {
-   *   refund_amount: number,   // required — manually entered by admin
+   *   refund_amount: number,   // optional
    *   admin_notes?: string     // optional
    * }
    */
   approve: (
     id: number,
     payload: {
-      refund_amount: number;
+      refund_amount?: number;
       admin_notes?: string;
     }
   ) =>
     apiClient.post<ReturnActionResponse>(`/admin/returns/${id}/approve`, {
-      refund_amount: payload.refund_amount,
+      ...(payload.refund_amount !== undefined &&
+        payload.refund_amount !== null && {
+          refund_amount: payload.refund_amount,
+        }),
       ...(payload.admin_notes?.trim() && {
         admin_notes: payload.admin_notes.trim(),
       }),
@@ -190,22 +193,40 @@ export const returnApi = {
    * POST /admin/returns/:id/reject
    * Payload:
    * {
-   *   admin_notes?: string   // optional
+   *   rejection_reason?: string
    * }
    */
   reject: (id: number, rejection_reason?: string) =>
     apiClient.post<ReturnActionResponse>(
       `/admin/returns/${id}/reject`,
-      rejection_reason?.trim() ? { rejection_reason: rejection_reason.trim() } : {}
+      rejection_reason?.trim()
+        ? { rejection_reason: rejection_reason.trim() }
+        : {}
     ),
 
   /**
    * POST /admin/returns/:id/received
+   * Payload:
+   * {
+   *   refund_amount: number,   // required for buyback/return refund on receive
+   *   admin_notes?: string     // optional
+   * }
    */
-  markReceived: (id: number, admin_notes?: string) =>
+  markReceived: (
+    id: number,
+    payload: {
+      refund_amount: number;
+      admin_notes?: string;
+    }
+  ) =>
     apiClient.post<ReturnActionResponse>(
       `/admin/returns/${id}/received`,
-      admin_notes ? { admin_notes } : {}
+      {
+        refund_amount: payload.refund_amount,
+        ...(payload.admin_notes?.trim() && {
+          admin_notes: payload.admin_notes.trim(),
+        }),
+      }
     ),
 
   /**
@@ -214,7 +235,7 @@ export const returnApi = {
   complete: (id: number, admin_notes?: string) =>
     apiClient.post<ReturnActionResponse>(
       `/admin/returns/${id}/complete`,
-      admin_notes ? { admin_notes } : {}
+      admin_notes?.trim() ? { admin_notes: admin_notes.trim() } : {}
     ),
 };
 

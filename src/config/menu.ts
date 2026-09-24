@@ -46,10 +46,7 @@ export const menuItems = [
         path: '/Fiance/CancelRefund',
         label: 'Cancel & Refunds',
         icon: 'currency_exchange'
-
-
       },
-
       {
         path: '/Fiance/BuyBack',
         label: 'Buy Back',
@@ -85,6 +82,7 @@ export const menuItems = [
       },
     ]
   },
+
   {
     path: '/cms',
     label: 'CMS Management',
@@ -92,17 +90,25 @@ export const menuItems = [
     children: [
       { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
       { path: '/cms/content', label: 'Content Management', icon: 'description' },
+      { path: '/cms/LandingPageManagement', label: 'LandingPage Management', icon: 'description' },
       { path: '/cms/ReelsManagement', label: 'Reels Management', icon: 'ReelsManagement' },
       { path: '/cms/TestimonialsManagement', label: 'Testimonials Management', icon: 'TestimonialsManagement' },
-      { path: 'cms/FAQManagement', label: 'FAQ Management', icon: 'TestimonialsManagement' },
+
+      {
+        path: '/cms/faq',
+        label: 'FAQ Management',
+        isHeading: true,          // ← non-clickable heading
+        children: [
+          { path: 'cms/SectionManagement', label: 'Section Management', icon: 'SectionManagement' },
+          { path: 'cms/FAQManagement', label: 'FAQ Management', icon: 'TestimonialsManagement' },
+        ]
+      },
+
       { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
+      { path: '/cms/NotificationTemplates', label: 'Notification Templates', icon: 'NotificationTemplates' },
     ]
   },
-  // {
-  //   path: '/Payout',
-  //   label: 'Payout Management',
-  //   icon: 'account_balance_wallet'
-  // },
+
   {
     path: '/reviews',
     label: 'Reviews Moderation',

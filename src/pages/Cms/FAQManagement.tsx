@@ -7,6 +7,7 @@ import {
   FiEdit3,
   FiEye,
   FiFileText,
+  FiLayers,
   FiMessageCircle,
   FiPlus,
   FiRefreshCw,
@@ -20,15 +21,24 @@ import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import faqsApi, { FAQ } from "../../api/endpoints/faqs";
+import faqSectionsApi, {
+  FAQSection,
+} from "../../api/endpoints/faqSectionsApi";
 
 // =====================================================
 // TYPES
 // =====================================================
 
 interface FAQForm {
+  section_id: number;
   question: string;
   answer: string;
   is_active: boolean;
+}
+
+interface FAQBulkFormItem {
+  question: string;
+  answer: string;
 }
 
 // =====================================================
@@ -85,49 +95,141 @@ const truncateText = (value: string, length = 100) => {
 interface FAQModalProps {
   open: boolean;
   editingFAQ: FAQ | null;
+  sections: FAQSection[];
+  sectionsLoading: boolean;
   loading: boolean;
   onClose: () => void;
   onSubmit: (payload: FAQForm) => void;
+  onSubmitBulk: (payload: {
+    section_id: number;
+    faqs: FAQBulkFormItem[];
+  }) => void;
 }
 
 const FAQModal: React.FC<FAQModalProps> = ({
   open,
   editingFAQ,
+  sections,
+  sectionsLoading,
   loading,
   onClose,
   onSubmit,
+  onSubmitBulk,
 }) => {
+  const isEdit = !!editingFAQ;
+
+  // ---- shared section ----
+  const [sectionId, setSectionId] = useState<number | "">("");
+
+  // ---- single (edit) ----
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [isActive, setIsActive] = useState(true);
+
+  // ---- bulk (add) ----
+  const [bulkItems, setBulkItems] = useState<FAQBulkFormItem[]>([
+    { question: "", answer: "" },
+  ]);
 
   useEffect(() => {
     if (!open) return;
 
-    setQuestion(editingFAQ?.question || "");
-    setAnswer(editingFAQ?.answer || "");
-    setIsActive(editingFAQ?.is_active ?? true);
+    if (editingFAQ) {
+      setSectionId(editingFAQ.section_id);
+      setQuestion(editingFAQ.question || "");
+      setAnswer(editingFAQ.answer || "");
+      setBulkItems([{ question: "", answer: "" }]);
+    } else {
+      setSectionId("");
+      setQuestion("");
+      setAnswer("");
+      setBulkItems([{ question: "", answer: "" }]);
+    }
   }, [open, editingFAQ]);
 
   if (!open) return null;
 
+  // ---- bulk helpers ----
+  const addMoreItem = () => {
+    setBulkItems((items) => [...items, { question: "", answer: "" }]);
+  };
+
+  const removeItem = (index: number) => {
+    setBulkItems((items) =>
+      items.length === 1
+        ? items
+        : items.filter((_, i) => i !== index),
+    );
+  };
+
+  const updateItem = (
+    index: number,
+    key: keyof FAQBulkFormItem,
+    value: string,
+  ) => {
+    setBulkItems((items) =>
+      items.map((item, i) =>
+        i === index ? { ...item, [key]: value } : item,
+      ),
+    );
+  };
+
+  // ---- submit ----
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!question.trim()) {
-      toast.error("Question is required.");
+    if (!sectionId) {
+      toast.error("Please select a section.");
       return;
     }
 
-    if (!answer.trim()) {
-      toast.error("Answer is required.");
+    if (isEdit) {
+      if (!question.trim()) {
+        toast.error("Question is required.");
+        return;
+      }
+
+      if (!answer.trim()) {
+        toast.error("Answer is required.");
+        return;
+      }
+
+      onSubmit({
+        section_id: Number(sectionId),
+        question: question.trim(),
+        answer: answer.trim(),
+        is_active: editingFAQ?.is_active ?? true,
+      });
+
       return;
     }
 
-    onSubmit({
-      question: question.trim(),
-      answer: answer.trim(),
-      is_active: isActive,
+    // bulk validation
+    const validItems = bulkItems
+      .map((item) => ({
+        question: item.question.trim(),
+        answer: item.answer.trim(),
+      }))
+      .filter((item) => item.question || item.answer);
+
+    if (validItems.length === 0) {
+      toast.error("Please add at least one FAQ.");
+      return;
+    }
+
+    const hasEmpty = validItems.some(
+      (item) => !item.question || !item.answer,
+    );
+
+    if (hasEmpty) {
+      toast.error(
+        "Please fill both question and answer for every FAQ.",
+      );
+      return;
+    }
+
+    onSubmitBulk({
+      section_id: Number(sectionId),
+      faqs: validItems,
     });
   };
 
@@ -137,7 +239,7 @@ const FAQModal: React.FC<FAQModalProps> = ({
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
+      <div className="w-full max-w-[640px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
         {/* HEADER */}
@@ -145,7 +247,7 @@ const FAQModal: React.FC<FAQModalProps> = ({
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
-                {editingFAQ ? (
+                {isEdit ? (
                   <FiEdit3 size={15} />
                 ) : (
                   <FiPlus size={15} />
@@ -158,13 +260,13 @@ const FAQModal: React.FC<FAQModalProps> = ({
             </div>
 
             <h2 className="text-lg font-bold text-[#202721]">
-              {editingFAQ ? "Edit FAQ" : "Add FAQ"}
+              {isEdit ? "Edit FAQ" : "Add FAQs"}
             </h2>
 
             <p className="mt-1 text-[11px] text-[#9AA29C]">
-              {editingFAQ
+              {isEdit
                 ? "Update the frequently asked question and answer."
-                : "Create a new frequently asked question."}
+                : "Add one or more frequently asked questions."}
             </p>
           </div>
 
@@ -180,54 +282,202 @@ const FAQModal: React.FC<FAQModalProps> = ({
 
         {/* FORM */}
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 p-5">
-            {/* QUESTION */}
+          <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5">
+            {/* SECTION */}
             <div>
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
-                Question *
+                Section *
               </label>
 
               <div className="relative">
-                <FiMessageCircle
+                <FiLayers
                   size={15}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
                 />
 
-                <input
-                  type="text"
-                  value={question}
-                  onChange={(event) => setQuestion(event.target.value)}
-                  placeholder="e.g. How the site works?"
-                  disabled={loading}
-                  className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-sm font-medium text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
-                />
+                <select
+                  value={sectionId}
+                  onChange={(event) =>
+                    setSectionId(
+                      event.target.value
+                        ? Number(event.target.value)
+                        : "",
+                    )
+                  }
+                  disabled={loading || sectionsLoading}
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm font-medium text-[#202721] outline-none focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
+                >
+                  <option value="">
+                    {sectionsLoading
+                      ? "Loading sections..."
+                      : "Select a section"}
+                  </option>
+
+                  {sections.map((section) => (
+                    <option key={section.id} value={section.id}>
+                      {section.name}
+                    </option>
+                  ))}
+                </select>
+
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9AA29C]">
+                  ▾
+                </span>
               </div>
             </div>
 
-            {/* ANSWER */}
-            <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
-                Answer *
-              </label>
+            {/* ============ EDIT MODE: single form ============ */}
+            {isEdit && (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                    Question *
+                  </label>
 
-              <div className="relative">
-                <FiFileText
-                  size={15}
-                  className="absolute left-4 top-4 text-[#163F20]"
-                />
+                  <div className="relative">
+                    <FiMessageCircle
+                      size={15}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                    />
 
-                <textarea
-                  value={answer}
-                  onChange={(event) => setAnswer(event.target.value)}
-                  placeholder="Write the answer here..."
-                  rows={6}
+                    <input
+                      type="text"
+                      value={question}
+                      onChange={(event) =>
+                        setQuestion(event.target.value)
+                      }
+                      placeholder="e.g. How the site works?"
+                      disabled={loading}
+                      className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-sm font-medium text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                    Answer *
+                  </label>
+
+                  <div className="relative">
+                    <FiFileText
+                      size={15}
+                      className="absolute left-4 top-4 text-[#163F20]"
+                    />
+
+                    <textarea
+                      value={answer}
+                      onChange={(event) =>
+                        setAnswer(event.target.value)
+                      }
+                      placeholder="Write the answer here..."
+                      rows={5}
+                      disabled={loading}
+                      className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 pl-11 text-sm font-medium leading-6 text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* ============ ADD MODE: bulk list ============ */}
+            {!isEdit && (
+              <div className="space-y-3">
+                {bulkItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3"
+                  >
+                    {/* ITEM HEADER */}
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-[#4C8A57]">
+                        FAQ #{index + 1}
+                      </span>
+
+                      {bulkItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          disabled={loading}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                          title="Remove FAQ"
+                        >
+                          <FiTrash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* QUESTION */}
+                    <div className="mb-2">
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                        Question *
+                      </label>
+
+                      <div className="relative">
+                        <FiMessageCircle
+                          size={14}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                        />
+
+                        <input
+                          type="text"
+                          value={item.question}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "question",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="e.g. How the site works?"
+                          disabled={loading}
+                          className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-10 pr-3 text-sm font-medium text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+
+                    {/* ANSWER */}
+                    <div>
+                      <label className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                        Answer *
+                      </label>
+
+                      <div className="relative">
+                        <FiFileText
+                          size={14}
+                          className="absolute left-3.5 top-3.5 text-[#163F20]"
+                        />
+
+                        <textarea
+                          value={item.answer}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "answer",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Write the answer here..."
+                          rows={3}
+                          disabled={loading}
+                          className="w-full resize-none rounded-lg border border-[#D8E2D8] bg-white px-3 py-2.5 pl-10 text-sm font-medium leading-6 text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* ADD MORE */}
+                <button
+                  type="button"
+                  onClick={addMoreItem}
                   disabled={loading}
-                  className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 pl-11 text-sm font-medium leading-6 text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:opacity-60"
-                />
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#163F20]/25 bg-[#F5F7F5] px-4 py-3 text-xs font-bold text-[#163F20] transition hover:border-[#163F20] hover:bg-[#EAF3EA] disabled:opacity-50"
+                >
+                  <FiPlus size={15} />
+                  Add More FAQ
+                </button>
               </div>
-            </div>
-
-        
+            )}
           </div>
 
           {/* FOOTER */}
@@ -248,7 +498,7 @@ const FAQModal: React.FC<FAQModalProps> = ({
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
-              ) : editingFAQ ? (
+              ) : isEdit ? (
                 <FiEdit3 size={15} />
               ) : (
                 <FiPlus size={15} />
@@ -256,9 +506,9 @@ const FAQModal: React.FC<FAQModalProps> = ({
 
               {loading
                 ? "Saving..."
-                : editingFAQ
+                : isEdit
                   ? "Update FAQ"
-                  : "Add FAQ"}
+                  : `Add ${bulkItems.length > 1 ? `${bulkItems.length} FAQs` : "FAQ"}`}
             </button>
           </div>
         </form>
@@ -301,9 +551,7 @@ const ViewFAQModal: React.FC<ViewFAQModalProps> = ({
               </span>
             </div>
 
-            <h2 className="text-lg font-bold text-[#202721]">
-              FAQ
-            </h2>
+            <h2 className="text-lg font-bold text-[#202721]">FAQ</h2>
           </div>
 
           <button
@@ -316,13 +564,25 @@ const ViewFAQModal: React.FC<ViewFAQModalProps> = ({
         </div>
 
         <div className="space-y-4 p-5">
+          {/* SECTION */}
+          <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <FiLayers size={14} className="text-[#163F20]" />
+
+              <span className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                Section
+              </span>
+            </div>
+
+            <p className="text-sm font-bold leading-6 text-[#202721]">
+              {faq.section?.name || "-"}
+            </p>
+          </div>
+
           {/* QUESTION */}
           <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-4">
             <div className="mb-2 flex items-center gap-2">
-              <FiMessageCircle
-                size={14}
-                className="text-[#163F20]"
-              />
+              <FiMessageCircle size={14} className="text-[#163F20]" />
 
               <span className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
                 Question
@@ -456,6 +716,9 @@ const FAQManagement: React.FC = () => {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [sections, setSections] = useState<FAQSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+
   const [search, setSearch] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -474,7 +737,11 @@ const FAQManagement: React.FC = () => {
   const [selectedFAQ, setSelectedFAQ] = useState<FAQ | null>(null);
 
   const ITEMS_PER_PAGE = 7;
-  
+
+  // =================================================
+  // FETCH FAQs
+  // =================================================
+
   const fetchFAQs = async () => {
     try {
       setLoading(true);
@@ -500,8 +767,39 @@ const FAQManagement: React.FC = () => {
     }
   };
 
+  // =================================================
+  // FETCH SECTIONS
+  // =================================================
+
+  const fetchSections = async () => {
+    try {
+      setSectionsLoading(true);
+
+      const response = await faqSectionsApi.getAll();
+
+      if (response.data.success) {
+        setSections(response.data.data || []);
+      } else {
+        toast.error(
+          response.data.message ||
+            "Unable to fetch FAQ sections.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Fetch FAQ sections error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to fetch FAQ sections.",
+      );
+    } finally {
+      setSectionsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchFAQs();
+    fetchSections();
   }, []);
 
   // =================================================
@@ -518,9 +816,12 @@ const FAQManagement: React.FC = () => {
           [
             faq.question,
             faq.answer,
+            faq.section?.name,
             String(faq.id),
+            String(faq.section_id),
             String(faq.order),
           ]
+            .filter(Boolean)
             .join(" ")
             .toLowerCase()
             .includes(query);
@@ -616,6 +917,7 @@ const FAQManagement: React.FC = () => {
     setViewModalOpen(true);
   };
 
+  // ---- single save (edit) ----
   const handleSaveFAQ = async (payload: FAQForm) => {
     try {
       setSavingFAQ(true);
@@ -624,18 +926,14 @@ const FAQManagement: React.FC = () => {
 
       if (editingFAQ) {
         response = await faqsApi.update(editingFAQ.id, {
+          section_id: payload.section_id,
           question: payload.question,
           answer: payload.answer,
           is_active: payload.is_active ? 1 : 0,
         });
-      } else {
-        response = await faqsApi.create({
-          question: payload.question,
-          answer: payload.answer,
-        });
       }
 
-      if (response.data.success) {
+      if (response && response.data.success) {
         toast.success(
           response.data.message ||
             (editingFAQ
@@ -647,7 +945,7 @@ const FAQManagement: React.FC = () => {
         setEditingFAQ(null);
 
         await fetchFAQs();
-      } else {
+      } else if (response) {
         toast.error(
           response.data.message || "Unable to save FAQ.",
         );
@@ -659,6 +957,55 @@ const FAQManagement: React.FC = () => {
         error?.response?.data?.message ||
           error?.message ||
           "Unable to save FAQ.",
+      );
+    } finally {
+      setSavingFAQ(false);
+    }
+  };
+
+  // ---- bulk save (add) ----
+  const handleSaveBulkFAQ = async (payload: {
+    section_id: number;
+    faqs: FAQBulkFormItem[];
+  }) => {
+    try {
+      setSavingFAQ(true);
+
+      const response = await faqsApi.createBulk({
+        section_id: payload.section_id,
+        is_active: true,
+        faqs: payload.faqs.map((item, index) => ({
+          question: item.question,
+          answer: item.answer,
+          order: index + 1,
+          is_active: true,
+        })),
+      });
+
+      if (response.data.success) {
+        toast.success(
+          response.data.message ||
+            (payload.faqs.length > 1
+              ? "FAQs added successfully."
+              : "FAQ added successfully."),
+        );
+
+        setFaqModalOpen(false);
+        setEditingFAQ(null);
+
+        await fetchFAQs();
+      } else {
+        toast.error(
+          response.data.message || "Unable to save FAQs.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Bulk save FAQs error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to save FAQs.",
       );
     } finally {
       setSavingFAQ(false);
@@ -680,22 +1027,18 @@ const FAQManagement: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message ||
-            "FAQ deleted successfully.",
+          response.data.message || "FAQ deleted successfully.",
         );
 
         setFaqs((current) =>
-          current.filter(
-            (faq) => faq.id !== selectedFAQ.id,
-          ),
+          current.filter((faq) => faq.id !== selectedFAQ.id),
         );
 
         setDeleteOpen(false);
         setSelectedFAQ(null);
       } else {
         toast.error(
-          response.data.message ||
-            "Unable to delete FAQ.",
+          response.data.message || "Unable to delete FAQ.",
         );
       }
     } catch (error: any) {
@@ -722,10 +1065,7 @@ const FAQManagement: React.FC = () => {
         animate="visible"
         className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
       >
-        {/* ==========================================
-            PAGE HEADER
-        ========================================== */}
-
+        {/* PAGE HEADER */}
         <motion.div
           variants={itemVariants}
           className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center"
@@ -772,10 +1112,7 @@ const FAQManagement: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* ==========================================
-            FAQ CARD
-        ========================================== */}
-
+        {/* FAQ CARD */}
         <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
@@ -816,16 +1153,17 @@ const FAQManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* ==========================================
-              DESKTOP TABLE
-          ========================================== */}
-
+          {/* DESKTOP TABLE */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[900px] border-collapse">
               <thead>
                 <tr className="bg-[#163F20]">
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                     S.No
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    Section
                   </th>
 
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
@@ -845,10 +1183,7 @@ const FAQManagement: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="px-5 py-14 text-center"
-                    >
+                    <td colSpan={5} className="px-5 py-14 text-center">
                       <FiRefreshCw
                         size={22}
                         className="mx-auto animate-spin text-[#163F20]"
@@ -861,10 +1196,7 @@ const FAQManagement: React.FC = () => {
                   </tr>
                 ) : paginatedFAQs.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={4}
-                      className="px-5 py-14 text-center"
-                    >
+                    <td colSpan={5} className="px-5 py-14 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                           <FiFileText size={21} />
@@ -884,23 +1216,27 @@ const FAQManagement: React.FC = () => {
                   paginatedFAQs.map((faq, index) => (
                     <motion.tr
                       key={faq.id}
-                      initial={{
-                        opacity: 0,
-                        y: 5,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        delay: index * 0.03,
-                      }}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
                       className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
                     >
                       {/* S.NO */}
                       <td className="px-5 py-4">
                         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
                           {startIndex + index + 1}
+                        </span>
+                      </td>
+
+                      {/* SECTION */}
+                      <td className="max-w-[200px] px-5 py-4">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F7F5] px-2.5 py-1.5 text-[10px] font-bold text-[#3F4A41]">
+                          <FiLayers
+                            size={11}
+                            className="text-[#163F20]"
+                          />
+
+                          {faq.section?.name || "-"}
                         </span>
                       </td>
 
@@ -968,10 +1304,7 @@ const FAQManagement: React.FC = () => {
             </table>
           </div>
 
-          {/* ==========================================
-              MOBILE
-          ========================================== */}
-
+          {/* MOBILE */}
           <div className="block lg:hidden">
             {loading ? (
               <div className="px-5 py-14 text-center">
@@ -1008,7 +1341,7 @@ const FAQManagement: React.FC = () => {
                         </p>
 
                         <p className="mt-1 font-mono text-[9px] text-[#9AA29C]">
-                          FAQ 
+                          FAQ #{faq.id}
                         </p>
                       </div>
                     </div>
@@ -1016,6 +1349,22 @@ const FAQManagement: React.FC = () => {
                     <span className="shrink-0 rounded-lg bg-[#F5F7F5] px-2.5 py-1.5 text-[9px] font-bold text-[#163F20]">
                       Order {faq.order}
                     </span>
+                  </div>
+
+                  {/* SECTION */}
+                  <div className="mt-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                      Section
+                    </p>
+
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-[#3F4A41]">
+                      <FiLayers
+                        size={12}
+                        className="text-[#163F20]"
+                      />
+
+                      {faq.section?.name || "-"}
+                    </p>
                   </div>
 
                   {/* ANSWER */}
@@ -1038,9 +1387,7 @@ const FAQManagement: React.FC = () => {
                     >
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
 
-                      {faq.is_active
-                        ? "Enabled"
-                        : "Disabled"}
+                      {faq.is_active ? "Enabled" : "Disabled"}
                     </span>
 
                     <div className="flex gap-2">
@@ -1088,10 +1435,7 @@ const FAQManagement: React.FC = () => {
             )}
           </div>
 
-          {/* ==========================================
-              PAGINATION
-          ========================================== */}
-
+          {/* PAGINATION */}
           {filteredFAQs.length > 0 && (
             <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4">
               <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
@@ -1156,13 +1500,12 @@ const FAQManagement: React.FC = () => {
         <div className="h-4" />
       </motion.div>
 
-      {/* =============================================
-          ADD / EDIT MODAL
-      ============================================= */}
-
+      {/* ADD / EDIT MODAL */}
       <FAQModal
         open={faqModalOpen}
         editingFAQ={editingFAQ}
+        sections={sections}
+        sectionsLoading={sectionsLoading}
         loading={savingFAQ}
         onClose={() => {
           if (savingFAQ) return;
@@ -1171,12 +1514,10 @@ const FAQManagement: React.FC = () => {
           setEditingFAQ(null);
         }}
         onSubmit={handleSaveFAQ}
+        onSubmitBulk={handleSaveBulkFAQ}
       />
 
-      {/* =============================================
-          VIEW MODAL
-      ============================================= */}
-
+      {/* VIEW MODAL */}
       <ViewFAQModal
         open={viewModalOpen}
         faq={selectedViewFAQ}
@@ -1186,10 +1527,7 @@ const FAQManagement: React.FC = () => {
         }}
       />
 
-      {/* =============================================
-          DELETE MODAL
-      ============================================= */}
-
+      {/* DELETE MODAL */}
       <DeleteFAQModal
         open={deleteOpen}
         loading={deleteLoading}

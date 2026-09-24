@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FiX, FiImage, FiTag, FiPackage, FiBox, FiEye, FiCalendar } from "react-icons/fi";
+import { FiX, FiImage, FiTag, FiPackage, FiBox, FiEye } from "react-icons/fi";
 import { SelectOption } from "@/types/product";
 import { RiMoneyRupeeCircleLine } from "react-icons/ri";
 
