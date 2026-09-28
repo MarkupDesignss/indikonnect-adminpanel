@@ -116,7 +116,7 @@ export const menuItems = [
   },
   {
     path: '/subscribers',
-    label: 'Subscribers',
+    label: 'Newsletter',
     icon: 'subscriptions'
   },
   {
