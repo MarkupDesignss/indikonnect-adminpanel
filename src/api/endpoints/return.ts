@@ -8,6 +8,7 @@ export interface ReturnUser {
   name: string | null;
   email: string;
   phone?: string;
+  account_type?: string | null;
 }
 
 export interface ReturnOrder {
@@ -48,6 +49,38 @@ export interface RefundDetails {
   tax: number;
   shipping: number;
   total: number;
+  method?: string | null;
+  amount_with_tax_shipping?: number;
+  deducted_shipping_charge?: number;
+  refund_gateway_charges?: number;
+}
+
+// ===================== REFUND INFO (Completed state) =====================
+
+export interface RefundDeduction {
+  label: string;
+  amount: number;
+}
+
+export interface RefundBreakdown {
+  gross_refund: {
+    subtotal: number;
+    tax: number;
+    shipping: number;
+    total: number;
+  };
+  deductions: RefundDeduction[];
+  net_refund: number;
+}
+
+export interface RefundInfo {
+  resolution?: "refund" | "replacement";
+  amount?: number;
+  refund_method?: string | null;
+  status?: string;
+  notes?: string | null;
+  completed_at?: string | null;
+  deduction_breakdown?: RefundBreakdown;
 }
 
 export type ReturnStatus =
@@ -66,8 +99,10 @@ export interface SingleReturnResponse {
     order: ReturnOrder;
     user: ReturnUser;
     status: ReturnStatus;
+    resolution?: "refund" | "replacement" | null;
     items: ReturnItem[];
     refund_details: RefundDetails;
+    refund_info?: RefundInfo | null;
     reason: string | null;
     admin_notes: string | null;
     rejection_reason: string | null;
@@ -86,15 +121,19 @@ export interface SingleReturnResponse {
 
 export interface ReturnListItem {
   id: number;
+  type?: string;
   order_reference: string;
   user: {
     id: number;
     name: string | null;
     email: string;
+    account_type?: string | null;
   };
   status: ReturnStatus;
+  resolution?: "refund" | "replacement" | null;
   items_count: number;
   refund_amount: number;
+  refund_info?: RefundInfo | null;
   reason: string | null;
   created_at: string;
   can_approve: boolean;
@@ -108,6 +147,7 @@ export interface AllReturnsResponse {
     pending: number;
     approved: number;
     rejected: number;
+    received: number;
     completed: number;
     data: ReturnListItem[];
   };
@@ -119,6 +159,7 @@ export interface ReturnActionResponse {
   data?: {
     id: number;
     status: string;
+    resolution?: "refund" | "replacement" | null;
     admin_notes?: string | null;
     rejection_reason?: string | null;
     refund_amount?: number;
@@ -168,8 +209,8 @@ export const returnApi = {
    * POST /admin/returns/:id/approve
    * Payload:
    * {
-   *   refund_amount: number,   // optional
-   *   admin_notes?: string     // optional
+   *   refund_amount?: number,   // optional
+   *   admin_notes?: string      // optional
    * }
    */
   approve: (
@@ -206,24 +247,22 @@ export const returnApi = {
 
   /**
    * POST /admin/returns/:id/received
+   * Mark the return as received (no refund happens here).
    * Payload:
    * {
-   *   refund_amount: number,   // required for buyback/return refund on receive
-   *   admin_notes?: string     // optional
+   *   admin_notes?: string   // optional
    * }
    */
   markReceived: (
     id: number,
-    payload: {
-      refund_amount: number;
+    payload?: {
       admin_notes?: string;
     }
   ) =>
     apiClient.post<ReturnActionResponse>(
       `/admin/returns/${id}/received`,
       {
-        refund_amount: payload.refund_amount,
-        ...(payload.admin_notes?.trim() && {
+        ...(payload?.admin_notes?.trim() && {
           admin_notes: payload.admin_notes.trim(),
         }),
       }
@@ -231,11 +270,35 @@ export const returnApi = {
 
   /**
    * POST /admin/returns/:id/complete
+   * Complete the return with a resolution (refund or replacement).
+   * Payload:
+   * {
+   *   resolution: "refund" | "replacement",
+   *   refund_amount?: number,   // required when resolution = "refund"
+   *   admin_notes?: string      // optional
+   * }
    */
-  complete: (id: number, admin_notes?: string) =>
+  complete: (
+    id: number,
+    payload: {
+      resolution: "refund" | "replacement";
+      refund_amount?: number;
+      admin_notes?: string;
+    }
+  ) =>
     apiClient.post<ReturnActionResponse>(
       `/admin/returns/${id}/complete`,
-      admin_notes?.trim() ? { admin_notes: admin_notes.trim() } : {}
+      {
+        resolution: payload.resolution,
+        ...(payload.resolution === "refund" &&
+          payload.refund_amount !== undefined &&
+          payload.refund_amount !== null && {
+            refund_amount: payload.refund_amount,
+          }),
+        ...(payload.admin_notes?.trim() && {
+          admin_notes: payload.admin_notes.trim(),
+        }),
+      }
     ),
 };
 

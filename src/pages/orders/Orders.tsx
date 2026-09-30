@@ -2207,6 +2207,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
   const canItemDeliver = (item: OrderItem) => getItemStatus(item) === "shipped";
 
+  // Count only selected items that are currently dispatchable.
+  const getSelectedDispatchableCount = (order: Order) => {
+    return getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDispatch).length;
+  };
+
   const hasDispatchableItems = (order: Order) => {
     if (!order.items || order.items.length === 0) return false;
     return order.items.some((item) => canItemDispatch(item));
@@ -2254,6 +2259,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedOrderForDispatch(order);
     setSelectedItemsForDispatch(selectedItems);
     setShowDispatchPopup(true);
+  };
+
+  // If the user has checked dispatchable items, dispatch only those checked items.
+  // Otherwise, keep the existing full/available dispatch behavior.
+  const handleDispatchFromSelection = (order: Order) => {
+    const selectedDispatchableCount = getSelectedDispatchableCount(order);
+
+    if (selectedDispatchableCount > 0) {
+      handleDispatchSelected(order);
+      return;
+    }
+
+    handleDispatchFullOrder(order);
   };
 
   const handleDispatchFullOrder = (order: Order) => {
@@ -2938,12 +2956,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleDispatchFullOrder(order);
+                                              handleDispatchFromSelection(order);
                                             }}
                                             className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
                                           >
                                             <FiTruck size={14} />
-                                            {allItemsDispatchable(order) ? "Dispatch All" : `Dispatch ${getDispatchableItemsCount(order)}`}
+                                            {getSelectedDispatchableCount(order) > 0
+                                              ? `Dispatch ${getSelectedDispatchableCount(order)}`
+                                              : allItemsDispatchable(order)
+                                                ? "Dispatch All"
+                                                : `Dispatch ${getDispatchableItemsCount(order)}`}
                                           </button>
                                         )}
                                         {hasShipableItems(order) && (
