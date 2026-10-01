@@ -75,6 +75,8 @@ export interface OrderItem {
   images: OrderImage[];
   primary_image: string | null;
   is_reviewed?: boolean;
+  /** NEW: whether cancel/return is allowed for this order line */
+  is_cancel_return_allowed?: boolean;
 }
 
 // Order Payment
@@ -207,6 +209,8 @@ export interface OrderList {
   coin_redeemed_amount: number;
   total_payable: number;
   user: OrderUser;
+  /** NEW: whether cancel/return is allowed for this order line */
+  is_cancel_return_allowed?: boolean;
 }
 
 // Order Details Response
@@ -243,6 +247,16 @@ export interface OrdersListResponse {
 export interface OrderStatusesResponse {
   success: boolean;
   data: OrderStatus[];
+}
+
+// NEW: Toggle Cancel/Return Response
+export interface ToggleCancelReturnResponse {
+  success: boolean;
+  message: string;
+  data: {
+    order_line_id: number;
+    is_cancel_return_allowed: boolean;
+  };
 }
 
 export const orderApi = {
@@ -293,6 +307,30 @@ export const orderApi = {
     apiClient.post<{ success: boolean; message: string; data?: any }>(
       '/orders/deliver',
       data
+    ),
+
+
+
+    // =====================================================
+// MARK ORDER LINE AS UNDELIVERED
+// POST /api/order-lines/:id/undelivered
+// =====================================================
+markUndelivered: (orderLineId: number) =>
+  apiClient.post<{ success: boolean; message: string; data?: any }>(
+    `/order-lines/${orderLineId}/undelivered`
+  ),
+
+  
+  // =====================================================
+  // NEW: TOGGLE CANCEL/RETURN ALLOWED
+  // POST /api/order-lines/:id/cancel-return
+  // =====================================================
+  toggleCancelReturn: (orderLineId: number, isCancelReturnAllowed: boolean) =>
+    apiClient.post<ToggleCancelReturnResponse>(
+      `/order-lines/${orderLineId}/cancel-return`,
+      {
+        is_cancel_return_allowed: isCancelReturnAllowed,
+      }
     ),
 
 };

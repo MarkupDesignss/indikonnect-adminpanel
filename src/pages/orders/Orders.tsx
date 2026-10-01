@@ -86,6 +86,7 @@ export interface OrderItem {
   gstAmount?: number;
   categoryId?: number | string;
   brandId?: number | string;
+  is_cancel_return_allowed?: boolean;
 }
 
 export interface Order {
@@ -657,6 +658,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     availableForReturn: item.available_for_return,
     gstRate: item.gst_rate,
     gstAmount: item.gst_amount,
+    is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
   }));
 
   const getStatusBadge = (status: string) => {
@@ -676,6 +678,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
       case "partial_return":
       case "partial_dispatched":
       case "partial_shipped":
+      case "undelivered":
         return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
       default:
         return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
@@ -1796,6 +1799,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
   const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] = useState<number | null>(null);
 
+  const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(new Set());
+  const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(new Set());
+
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -1875,6 +1881,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       case "partial_return":
       case "partial_dispatched":
       case "partial_shipped":
+      case "undelivered":
         return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
       default:
         return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
@@ -1951,6 +1958,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           gstAmount: item.gst_amount,
           categoryId: item.category_id,
           brandId: item.brand_id,
+          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
         })) || [],
     };
   };
@@ -1959,7 +1967,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return orders.map((order, index) => convertToOrder(order, index));
   }, [orders]);
 
-  // ==================== FILTER ORDERS & ITEMS ====================
   const getFilterStatusValue = (filter: string) => {
     if (filter === "Status: All") return null;
     return filter.replace("Status: ", "").trim().toLowerCase();
@@ -1970,7 +1977,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
 
-  // Check if any item-level filter is active (search, status, category, brand, orderType)
   const isItemLevelFilterActive = useMemo(() => {
     return (
       search.trim() !== "" ||
@@ -1981,12 +1987,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   }, [search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
 
-  /**
-   * FILTER FUNCTION
-   * - If ANY filter is active (search, status, category, brand, orderType)
-   *   → returns a FLAT list of matching ITEMS (one "order" object per matching item).
-   * - If no filter is active → returns normal order-wise list.
-   */
   const filteredOrders = useMemo(() => {
     const searchText = search.toLowerCase().trim();
     const filterStatusValue = getFilterStatusValue(statusFilter);
@@ -2000,26 +2000,21 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const result: Order[] = [];
 
     uiOrders.forEach((order) => {
-      // Order type filter applies at order level
       if (orderTypeValue !== null && order.orderType !== orderTypeValue) return;
 
-      // Build a predicate that decides if an ITEM matches
       const itemMatches = (item: OrderItem): boolean => {
-        // Search filter (item-level fields)
         if (searchText) {
           const itemSearchMatch =
             item.productName.toLowerCase().includes(searchText) ||
             (item.sku && item.sku.toLowerCase().includes(searchText)) ||
             (item.itemReferenceId &&
               item.itemReferenceId.toLowerCase().includes(searchText)) ||
-            // Also allow matching by order-level fields
             order.id.toLowerCase().includes(searchText) ||
             order.customer.toLowerCase().includes(searchText) ||
             order.customerName.toLowerCase().includes(searchText);
           if (!itemSearchMatch) return false;
         }
 
-        // Status filter (item-level)
         if (filterStatusValue !== null) {
           const itemStatus = getItemStatus(item);
           const orderStatusNormalized = String(order.orderStatus || "")
@@ -2030,7 +2025,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           if (!orderMatches && itemStatus !== filterStatusValue) return false;
         }
 
-        // Category filter
         if (
           categoryValue !== null &&
           String(item.categoryId ?? "") !== String(categoryValue)
@@ -2038,7 +2032,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           return false;
         }
 
-        // Brand filter
         if (
           brandValue !== null &&
           String(item.brandId ?? "") !== String(brandValue)
@@ -2049,17 +2042,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         return true;
       };
 
-      // If NO item-level filter active → keep order grouping as-is
       if (!isItemLevelFilterActive) {
         result.push(order);
         return;
       }
 
-      // Some item-level filter active → flatten into item rows
       const matchingItems = (order.items || []).filter(itemMatches);
 
       if (matchingItems.length > 0) {
-        // Push ONE row per matching item
         matchingItems.forEach((item) => {
           result.push({
             ...order,
@@ -2067,8 +2057,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           });
         });
       } else if (
-        // If order has no items at all, but matches order-level search/status,
-        // still show a single row for the order.
         (!order.items || order.items.length === 0) &&
         (filterStatusValue === null ||
           String(order.orderStatus || "")
@@ -2158,7 +2146,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     if (itemId) handleViewInvoiceItem(orderId, itemId);
     else handleViewInvoice(orderId);
   };
-
   const isItemSelectable = (item: OrderItem) => {
     return canItemDispatch(item) || canItemShip(item) || canItemDeliver(item);
   };
@@ -2205,9 +2192,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
-  const canItemDeliver = (item: OrderItem) => getItemStatus(item) === "shipped";
 
-  // Count only selected items that are currently dispatchable.
+  // ✅ Deliver is allowed when status is "shipped" OR "undelivered"
+  const canItemDeliver = (item: OrderItem) => {
+    const s = getItemStatus(item);
+    return s === "shipped" || s === "undelivered";
+  };
+
+  // ✅ Undelivered button only shows when status is "shipped"
+  const canItemMarkUndelivered = (item: OrderItem) => getItemStatus(item) === "shipped";
+
+  // ✅ Hide all actions after "delivered"
+  const isFullyDelivered = (item: OrderItem) => getItemStatus(item) === "delivered";
+
   const getSelectedDispatchableCount = (order: Order) => {
     return getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDispatch).length;
   };
@@ -2261,8 +2258,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setShowDispatchPopup(true);
   };
 
-  // If the user has checked dispatchable items, dispatch only those checked items.
-  // Otherwise, keep the existing full/available dispatch behavior.
   const handleDispatchFromSelection = (order: Order) => {
     const selectedDispatchableCount = getSelectedDispatchableCount(order);
 
@@ -2296,18 +2291,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsMap(new Map());
   };
 
-  const handleShipSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemShip);
-    if (selectedItems.length === 0) {
-      toast.error("Please select at least one dispatched item to ship.");
-      return;
-    }
-    setIsFullOrderShip(false);
-    setSelectedOrderForShip(order);
-    setSelectedItemsForShip(selectedItems);
-    setShowShipPopup(true);
-  };
-
   const handleShipFullOrder = (order: Order) => {
     if (!order.items || order.items.length === 0) {
       toast.error("This order has no items to ship.");
@@ -2330,18 +2313,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsMap(new Map());
   };
 
-  const handleDeliverSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDeliver);
-    if (selectedItems.length === 0) {
-      toast.error("Please select at least one item to deliver.");
-      return;
-    }
-    setIsFullOrderDeliver(false);
-    setSelectedOrderForDeliver(order);
-    setSelectedItemsForDeliver(selectedItems);
-    setShowDeliverPopup(true);
-  };
-
   const handleDeliverFullOrder = (order: Order) => {
     if (!order.items || order.items.length === 0) {
       toast.error("This order has no items to deliver.");
@@ -2362,6 +2333,105 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const handleDeliverSubmit = () => {
     fetchOrders();
     setSelectedItemsMap(new Map());
+  };
+
+  const handleToggleCancelReturn = async (order: Order, item: OrderItem) => {
+    const lineId = item.lineId || parseInt(item.id);
+    if (!lineId || isNaN(lineId)) {
+      toast.error("Invalid order line ID");
+      return;
+    }
+
+    const key = `${order.id}-${item.id}`;
+    const currentValue = Boolean(item.is_cancel_return_allowed);
+    const newValue = !currentValue;
+
+    setTogglingCancelReturn((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+
+    try {
+      const response = await orderApi.toggleCancelReturn(lineId, newValue);
+
+      if (response.data.success) {
+        toast.success(
+          newValue
+            ? "Cancel/Return option activated"
+            : "Cancel/Return option deactivated"
+        );
+
+        setOrders((prevOrders) =>
+          prevOrders.map((o) => {
+            if (o.order_reference !== order.orderReference) return o;
+            return {
+              ...o,
+              items: (o.items || []).map((it: any) => {
+                const itLineId = it.line_id || it.id;
+                if (itLineId !== lineId) return it;
+                return {
+                  ...it,
+                  is_cancel_return_allowed: newValue,
+                };
+              }),
+            };
+          })
+        );
+      } else {
+        toast.error(response.data.message || "Failed to update");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.message || "Failed to update cancel/return option");
+    } finally {
+      setTogglingCancelReturn((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
+  };
+
+  const handleMarkUndelivered = async (order: Order, item: OrderItem) => {
+    const lineId = item.lineId || parseInt(item.id);
+    if (!lineId || isNaN(lineId)) {
+      toast.error("Invalid order line ID");
+      return;
+    }
+
+    const key = `${order.id}-${item.id}`;
+
+    setMarkingUndelivered((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+
+    try {
+      const response = await orderApi.markUndelivered(lineId);
+
+      if (response.data.success) {
+        toast.success("Item marked as undelivered");
+        fetchOrders();
+        setSelectedItemsMap(new Map());
+      } else {
+        toast.error(response.data.message || "Failed to mark as undelivered");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to mark as undelivered"
+      );
+    } finally {
+      setMarkingUndelivered((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }
   };
 
   const closeViewPopup = () => {
@@ -2696,6 +2766,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       if (!item) return null;
                       const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
 
+                      const isDispatchable = canItemDispatch(item);
+                      const isShipable = canItemShip(item);
+                      const isDeliverable = canItemDeliver(item);
+                      const isUndeliverable = canItemMarkUndelivered(item);
+                      const isDelivered = isFullyDelivered(item);
+                      const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
+
                       return (
                         <tr
                           key={`${order.id}-${item.id}-${index}`}
@@ -2751,7 +2828,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
                               <button
                                 type="button"
                                 onClick={() => handleViewOrder(order.id)}
@@ -2760,7 +2837,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               >
                                 <FiEye size={16} />
                               </button>
-                              {canItemDispatch(item) && (
+
+                              {/* DISPATCH (confirmed) */}
+                              {isDispatchable && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2775,7 +2854,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   <FiTruck size={16} />
                                 </button>
                               )}
-                              {canItemShip(item) && (
+
+                              {/* SHIP (dispatched) */}
+                              {isShipable && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2790,7 +2871,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   <FiSend size={16} />
                                 </button>
                               )}
-                              {canItemDeliver(item) && (
+
+                              {/* DELIVER (shipped / undelivered) */}
+                              {isDeliverable && !isDelivered && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -2799,13 +2882,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     setSelectedItemsForDeliver([item]);
                                     setShowDeliverPopup(true);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/30 bg-[#EAF3EA] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
                                   title="Deliver Item"
                                 >
                                   <FiCheckCircle size={16} />
                                 </button>
                               )}
-                              {item.delivery_status?.toLowerCase() === "delivered" && order.orderId && (
+
+                              {/* UNDELIVERED (only when shipped) */}
+                              {isUndeliverable && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkUndelivered(order, item)}
+                                  disabled={isMarking}
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
+                                  title="Mark as Undelivered"
+                                >
+                                  {isMarking ? (
+                                    <FiLoader size={16} className="animate-spin" />
+                                  ) : (
+                                    <FiAlertCircle size={16} />
+                                  )}
+                                </button>
+                              )}
+
+                              {/* INVOICE (delivered) */}
+                              {isDelivered && order.orderId && (
                                 <button
                                   type="button"
                                   onClick={() => handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id))}
@@ -2901,7 +3003,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   <FiSend size={16} />
                                 </button>
                               )}
-                              {(canDeliver(order.orderStatus) || order.orderStatus === "partial_shipped") && hasDeliverableItems(order) && (
+                              {hasDeliverableItems(order) && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
@@ -3008,7 +3110,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     </div>
 
                                     <div className="overflow-x-auto rounded-2xl border border-[#163F20]/15 bg-white">
-                                      <table className="w-full min-w-[1000px] border-collapse">
+                                      <table className="w-full min-w-[1250px] border-collapse">
                                         <thead>
                                           <tr className="border-b border-[#163F20]/10 bg-[#FAFBFA]">
                                             <th className="w-[45px] px-4 py-3 text-center">
@@ -3032,6 +3134,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Status</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Action</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Invoice</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Cancel/Return</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -3040,8 +3143,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             const isDispatchable = canItemDispatch(item);
                                             const isShipable = canItemShip(item);
                                             const isDeliverable = canItemDeliver(item);
+                                            const isUndeliverable = canItemMarkUndelivered(item);
+                                            const isDelivered = isFullyDelivered(item);
                                             const isSelectable = isItemSelectable(item);
-                                            const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
+                                            const toggleKey = `${order.id}-${item.id}`;
+                                            const isToggling = togglingCancelReturn.has(toggleKey);
+                                            const isCancelReturnAllowed = Boolean(item.is_cancel_return_allowed);
+                                            const isMarking = markingUndelivered.has(toggleKey);
 
                                             return (
                                               <tr
@@ -3092,7 +3200,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                   </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                  <div className="flex items-center justify-center gap-1">
+                                                  <div className="flex items-center justify-center gap-1 flex-wrap">
                                                     {isDispatchable && (
                                                       <button
                                                         type="button"
@@ -3125,7 +3233,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                         <FiSend size={13} />
                                                       </button>
                                                     )}
-                                                    {isDeliverable && (
+                                                    {isDeliverable && !isDelivered && (
                                                       <button
                                                         type="button"
                                                         onClick={(e) => {
@@ -3141,8 +3249,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                         <FiCheckCircle size={13} />
                                                       </button>
                                                     )}
-                                                    {!isSelectable && (
-                                                      <span className="text-[10px] text-[#9AA29C]">✓</span>
+                                                    {isUndeliverable && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          if (!isMarking) handleMarkUndelivered(order, item);
+                                                        }}
+                                                        disabled={isMarking}
+                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
+                                                        title="Mark as Undelivered"
+                                                      >
+                                                        {isMarking ? (
+                                                          <FiLoader size={12} className="animate-spin" />
+                                                        ) : (
+                                                          <FiAlertCircle size={12} />
+                                                        )}
+                                                      </button>
+                                                    )}
+                                                    {isDelivered && (
+                                                      <span className="text-[10px] font-bold text-[#163F20]">✓</span>
                                                     )}
                                                   </div>
                                                 </td>
@@ -3160,6 +3286,34 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       Invoice
                                                     </button>
                                                   )}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (!isToggling) handleToggleCancelReturn(order, item);
+                                                    }}
+                                                    disabled={isToggling}
+                                                    title={isCancelReturnAllowed ? "Deactivate cancel/return" : "Activate cancel/return"}
+                                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${isCancelReturnAllowed
+                                                      ? "bg-[#163F20] text-white hover:bg-[#0F3219]"
+                                                      : "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
+                                                      }`}
+                                                  >
+                                                    {isToggling ? (
+                                                      <FiLoader size={12} className="animate-spin" />
+                                                    ) : isCancelReturnAllowed ? (
+                                                      <FiCheckCircle size={12} />
+                                                    ) : (
+                                                      <FiAlertCircle size={12} />
+                                                    )}
+                                                    {isToggling
+                                                      ? "Saving..."
+                                                      : isCancelReturnAllowed
+                                                        ? "Allowed"
+                                                        : "Not Allowed"}
+                                                  </button>
                                                 </td>
                                               </tr>
                                             );
@@ -3222,6 +3376,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 if (isItemWiseView) {
                   const item = order.items && order.items[0];
                   if (!item) return null;
+
+                  const isDispatchable = canItemDispatch(item);
+                  const isShipable = canItemShip(item);
+                  const isDeliverable = canItemDeliver(item);
+                  const isUndeliverable = canItemMarkUndelivered(item);
+                  const isDelivered = isFullyDelivered(item);
+                  const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
+
                   return (
                     <div
                       key={`${order.id}-${item.id}-${index}`}
@@ -3268,7 +3430,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         >
                           View Order
                         </button>
-                        {canItemDispatch(item) && (
+                        {isDispatchable && (
                           <button
                             type="button"
                             onClick={() => {
@@ -3282,7 +3444,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             Dispatch
                           </button>
                         )}
-                        {canItemShip(item) && (
+                        {isShipable && (
                           <button
                             type="button"
                             onClick={() => {
@@ -3296,7 +3458,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             Ship
                           </button>
                         )}
-                        {canItemDeliver(item) && (
+                        {isDeliverable && !isDelivered && (
                           <button
                             type="button"
                             onClick={() => {
@@ -3305,11 +3467,39 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               setSelectedItemsForDeliver([item]);
                               setShowDeliverPopup(true);
                             }}
-                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                            className="flex-1 rounded-lg bg-[#4C8A57] px-3 py-2 text-xs font-bold text-white"
                           >
-                            Deliver
+                            Delivered
                           </button>
                         )}
+                        {isUndeliverable && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkUndelivered(order, item)}
+                            disabled={isMarking}
+                            className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                          >
+                            {isMarking ? "Saving..." : "Undelivered"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
+                          onClick={() => handleToggleCancelReturn(order, item)}
+                          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
+                            ? "bg-[#163F20] text-white"
+                            : "bg-[#EAF3EA] text-[#163F20]"
+                            }`}
+                        >
+                          {togglingCancelReturn.has(`${order.id}-${item.id}`)
+                            ? "Saving..."
+                            : item.is_cancel_return_allowed
+                              ? "Cancel/Return: Allowed"
+                              : "Cancel/Return: Not Allowed"}
+                        </button>
                       </div>
                     </div>
                   );
@@ -3368,22 +3558,116 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     {expandedRows.has(order.id) && (
                       <div className="mt-4 animate-slideDown border-t border-[#163F20]/10 pt-4">
                         <div className="space-y-2">
-                          {(order.items || []).map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between gap-2 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3"
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                {item.image && (
-                                  <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
-                                )}
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-semibold text-[#202721]">{item.productName}</p>
-                                  <p className="mt-0.5 truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
+                          {(order.items || []).map((item) => {
+                            const isDispatchable = canItemDispatch(item);
+                            const isShipable = canItemShip(item);
+                            const isDeliverable = canItemDeliver(item);
+                            const isUndeliverable = canItemMarkUndelivered(item);
+                            const isDelivered = isFullyDelivered(item);
+                            const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {item.image && (
+                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-semibold text-[#202721]">{item.productName}</p>
+                                      <p className="mt-0.5 truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Action buttons row */}
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                  {isDispatchable && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsFullOrderDispatch(false);
+                                        setSelectedOrderForDispatch(order);
+                                        setSelectedItemsForDispatch([item]);
+                                        setShowDispatchPopup(true);
+                                      }}
+                                      className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                                    >
+                                      Dispatch
+                                    </button>
+                                  )}
+                                  {isShipable && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsFullOrderShip(false);
+                                        setSelectedOrderForShip(order);
+                                        setSelectedItemsForShip([item]);
+                                        setShowShipPopup(true);
+                                      }}
+                                      className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                                    >
+                                      Ship
+                                    </button>
+                                  )}
+                                  {isDeliverable && !isDelivered && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsFullOrderDeliver(false);
+                                        setSelectedOrderForDeliver(order);
+                                        setSelectedItemsForDeliver([item]);
+                                        setShowDeliverPopup(true);
+                                      }}
+                                      className="flex-1 rounded-lg bg-[#4C8A57] px-3 py-2 text-xs font-bold text-white"
+                                    >
+                                      Delivered
+                                    </button>
+                                  )}
+                                  {isUndeliverable && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleMarkUndelivered(order, item);
+                                      }}
+                                      disabled={isMarking}
+                                      className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                                    >
+                                      {isMarking ? "Saving..." : "Undelivered"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                <div className="mt-2">
+                                  <button
+                                    type="button"
+                                    disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleCancelReturn(order, item);
+                                    }}
+                                    className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
+                                      ? "bg-[#163F20] text-white"
+                                      : "bg-[#EAF3EA] text-[#163F20]"
+                                      }`}
+                                  >
+                                    {togglingCancelReturn.has(`${order.id}-${item.id}`)
+                                      ? "Saving..."
+                                      : item.is_cancel_return_allowed
+                                        ? "Cancel/Return: Allowed"
+                                        : "Cancel/Return: Not Allowed"}
+                                  </button>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -3610,6 +3894,7 @@ const Orders: React.FC = () => {
           availableForReturn: item.available_for_return,
           gstRate: item.gst_rate,
           gstAmount: item.gst_amount,
+          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
         })) || [],
     };
   };
