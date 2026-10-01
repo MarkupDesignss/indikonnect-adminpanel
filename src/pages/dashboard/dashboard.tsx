@@ -49,62 +49,46 @@ import adminDashboardApi, {
 import { Link, useNavigate } from "react-router-dom";
 
 // =====================================================
-// BRAND (matches MainLayout.tsx)
+// BRAND PALETTE  (Blue + Yellow — no gold)
 // =====================================================
 
-// Palette used for chart series / mini sparklines / pie slices
-const CHART_GREEN = "#163F20";
-const CHART_GREEN_SOFT = "#4C8A57";
-const CHART_GREEN_DARK = "#0F3219";
-const CHART_AMBER = "#D9A900";
+const CHART_NAVY = "#1E3A8A";
+const CHART_NAVY_SOFT = "#3B82F6";
+const CHART_NAVY_DARK = "#172554";
+const CHART_NAVY_LIGHT = "#93C5FD";
+
+const CHART_YELLOW = "#FACC15";
+const CHART_YELLOW_SOFT = "#FDE047";
+const CHART_YELLOW_DARK = "#EAB308";
+const CHART_YELLOW_LIGHT = "#FEF08A";
+
+const CHART_BLUE = "#2563EB";
+const CHART_BLUE_SOFT = "#60A5FA";
+const CHART_BLUE_DARK = "#1E40AF";
+const CHART_BLUE_LIGHT = "#BFDBFE";
+
 const CHART_RED = "#D1453B";
-const CHART_BLUE = "#3B6FD1";
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.055,
-      when: "beforeChildren",
-    },
+    transition: { staggerChildren: 0.055, when: "beforeChildren" },
   },
-
   exit: {
     opacity: 0,
-    transition: {
-      staggerChildren: 0.02,
-      when: "afterChildren",
-    },
+    transition: { staggerChildren: 0.02, when: "afterChildren" },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 14,
-  },
-
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 120,
-      damping: 18,
-    },
+    transition: { type: "spring", stiffness: 120, damping: 18 },
   },
-
-  exit: {
-    opacity: 0,
-    y: -10,
-    transition: {
-      duration: 0.2,
-    },
-  },
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } },
 };
 
 // =====================================================
@@ -129,6 +113,7 @@ interface InventoryAlertItem {
   stock?: number | string;
   current_stock?: number | string;
   quantity?: number | string;
+  stock_quantity?: number | string;
   status?: string;
 }
 
@@ -150,36 +135,40 @@ const trendIconMap: Record<string, React.ElementType> = {
   trending_flat: FaMinus,
 };
 
-// Each KPI card gets a soft icon-tile color + a sparkline color,
-// matching the tinted squares in the screenshot (green / amber / blue / red).
+// KPI cards alternate navy / yellow / blue / yellow / sky
 const metricTheme: Record<
   string,
-  { tile: string; iconColor: string; spark: string }
+  { tile: string; iconColor: string; spark: string; bar: string }
 > = {
   attach_money: {
-    tile: "bg-[#EAF3EA]",
-    iconColor: "text-[#163F20]",
-    spark: CHART_GREEN,
+    tile: "bg-[#EAF1FF]",
+    iconColor: "text-[#1E3A8A]",
+    spark: CHART_NAVY,
+    bar: "bg-[#1E3A8A]",
   },
   shopping_cart: {
-    tile: "bg-[#FBF3DC]",
-    iconColor: "text-[#8A6D16]",
-    spark: CHART_AMBER,
+    tile: "bg-[#FEF9C3]",
+    iconColor: "text-[#1E293B]",
+    spark: CHART_YELLOW,
+    bar: "bg-[#FACC15]",
   },
   groups: {
-    tile: "bg-[#E9EEFB]",
-    iconColor: "text-[#3B57A6]",
+    tile: "bg-[#EAF1FF]",
+    iconColor: "text-[#1E40AF]",
     spark: CHART_BLUE,
+    bar: "bg-[#2563EB]",
   },
   local_shipping: {
-    tile: "bg-[#EAF3EA]",
-    iconColor: "text-[#163F20]",
-    spark: CHART_GREEN_SOFT,
+    tile: "bg-[#FEF9C3]",
+    iconColor: "text-[#1E293B]",
+    spark: CHART_YELLOW,
+    bar: "bg-[#FACC15]",
   },
   account_balance_wallet: {
-    tile: "bg-[#FBEAEA]",
-    iconColor: "text-[#B23A32]",
-    spark: CHART_RED,
+    tile: "bg-[#DBEAFE]",
+    iconColor: "text-[#1E40AF]",
+    spark: CHART_BLUE_SOFT,
+    bar: "bg-[#60A5FA]",
   },
 };
 
@@ -189,7 +178,6 @@ const metricTheme: Record<
 
 const formatCurrency = (value: string | number | null | undefined) => {
   const numericValue = Number(value || 0);
-
   return `₹${numericValue.toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   })}`;
@@ -199,24 +187,15 @@ const formatNumber = (value: string | number | null | undefined) => {
   return Number(value || 0).toLocaleString("en-IN");
 };
 
-const getPercentageData = (
-  value: number,
-  positiveLabel = "Up",
-): {
-  change: string;
-  toneClass: string;
-  trendIcon: string;
-  note: string;
-} => {
+const getPercentageData = (value: number, positiveLabel = "Up") => {
   if (value > 0) {
     return {
       change: `${value.toFixed(2)}%`,
-      toneClass: "text-[#1F7A3D]",
+      toneClass: "text-[#1D4ED8]",
       trendIcon: "trending_up",
       note: positiveLabel,
     };
   }
-
   if (value < 0) {
     return {
       change: `${Math.abs(value).toFixed(2)}%`,
@@ -225,10 +204,9 @@ const getPercentageData = (
       note: "vs previous period",
     };
   }
-
   return {
     change: "0%",
-    toneClass: "text-[#8C917F]",
+    toneClass: "text-[#6B7896]",
     trendIcon: "trending_flat",
     note: "No change",
   };
@@ -236,24 +214,16 @@ const getPercentageData = (
 
 const getRelativeTime = (date: string | null | undefined) => {
   if (!date) return "Not submitted";
-
   const created = new Date(date).getTime();
-
-  if (Number.isNaN(created)) {
-    return date;
-  }
-
+  if (Number.isNaN(created)) return date;
   const diff = Date.now() - created;
-
   const minutes = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
-
   return new Date(date).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -270,21 +240,16 @@ const getInventoryName = (item: InventoryAlertItem) => {
   );
 };
 
-// A tiny deterministic "sparkline shape" seeded off the metric's own
-// value, so each card's squiggle looks distinct but stays stable
-// between renders (no fake random re-shuffling on refresh).
 const buildSparklineData = (seed: number, trendUp: boolean) => {
   const points = 8;
   const data: { i: number; v: number }[] = [];
   let v = 50;
-
   for (let i = 0; i < points; i++) {
     const wiggle = Math.sin(seed + i * 1.35) * 14;
     const drift = trendUp ? i * 2.2 : -i * 1.4;
     v = 50 + wiggle + drift;
     data.push({ i, v });
   }
-
   return data;
 };
 
@@ -300,7 +265,6 @@ const MetricIcon = ({
   className?: string;
 }) => {
   const IconComponent = iconMap[name || ""] || FaRupeeSign;
-
   return <IconComponent className={className} />;
 };
 
@@ -312,16 +276,15 @@ const TrendIcon = ({
   className?: string;
 }) => {
   const IconComponent = trendIconMap[name || ""] || FaMinus;
-
   return <IconComponent className={className} />;
 };
 
 // =====================================================
-// MINI SPARKLINE (replaces the gold glass circle decoration)
+// MINI SPARKLINE
 // =====================================================
 
 const MiniSparkline = ({
-  color = CHART_GREEN,
+  color = CHART_NAVY,
   seed = 0,
   trendUp = true,
 }: {
@@ -361,36 +324,48 @@ const SectionHeader = ({
   title,
   subtitle,
   action,
+  accent = "navy",
 }: {
   icon?: React.ReactNode;
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
-}) => (
-  <div className="mb-5 flex items-start justify-between gap-4">
-    <div className="flex min-w-0 items-center gap-3">
-      {icon && (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-[#EAF3EA] text-[#163F20] ring-1 ring-[#163F20]/10">
-          {icon}
-        </div>
-      )}
+  accent?: "navy" | "yellow" | "blue" | "red";
+}) => {
+  const accentClass = {
+    navy: "bg-[#EAF1FF] text-[#1E3A8A] ring-[#1E3A8A]/10",
+    yellow: "bg-[#FEF9C3] text-[#1E293B] ring-[#FACC15]/30",
+    blue: "bg-[#EAF1FF] text-[#1E40AF] ring-[#2563EB]/15",
+    red: "bg-[#FBEAEA] text-[#B23A32] ring-[#D1453B]/15",
+  }[accent];
 
-      <div className="min-w-0">
-        <h3 className="truncate text-[15px] font-bold text-[#202721] sm:text-[16px]">
-          {title}
-        </h3>
-
-        {subtitle && (
-          <p className="mt-0.5 truncate text-[10px] leading-5 text-[#89918B] sm:text-[11px]">
-            {subtitle}
-          </p>
+  return (
+    <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        {icon && (
+          <div
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] ring-1 ${accentClass}`}
+          >
+            {icon}
+          </div>
         )}
-      </div>
-    </div>
 
-    {action}
-  </div>
-);
+        <div className="min-w-0">
+          <h3 className="truncate text-[15px] font-bold text-[#0F1B3D] sm:text-[16px]">
+            {title}
+          </h3>
+          {subtitle && (
+            <p className="mt-0.5 truncate text-[10px] leading-5 text-[#6B7896] sm:text-[11px]">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {action}
+    </div>
+  );
+};
 
 // =====================================================
 // SALES LINE DOT
@@ -398,25 +373,20 @@ const SectionHeader = ({
 
 const SalesLineDot = (props: any) => {
   const { cx, cy } = props;
-
-  if (cx === undefined || cy === undefined) {
-    return null;
-  }
+  if (cx === undefined || cy === undefined) return null;
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={9} fill={CHART_GREEN} opacity={0.08} />
-
+      <circle cx={cx} cy={cy} r={9} fill={CHART_BLUE} opacity={0.08} />
       <circle
         cx={cx}
         cy={cy}
         r={5.5}
         fill="#ffffff"
-        stroke={CHART_GREEN}
+        stroke={CHART_BLUE}
         strokeWidth={2}
       />
-
-      <circle cx={cx} cy={cy} r={2.6} fill={CHART_GREEN_DARK} />
+      <circle cx={cx} cy={cy} r={2.6} fill={CHART_BLUE_DARK} />
     </g>
   );
 };
@@ -436,22 +406,16 @@ const Dashboard = () => {
 
   const navigate = useNavigate();
 
-  // ✅ Updated to send user_name instead of id
   const handleReview = (review: any) => {
     navigate("/UserManagement", {
-      state: {
-        kycUserName: review.user_name, // Send name instead of ID
-      },
+      state: { kycUserName: review.user_name },
     });
   };
 
   const fetchDashboard = useCallback(async (showRefreshing = false) => {
     try {
-      if (showRefreshing) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
+      if (showRefreshing) setIsRefreshing(true);
+      else setIsLoading(true);
 
       const response = await adminDashboardApi.getDashboard();
 
@@ -464,35 +428,23 @@ const Dashboard = () => {
       console.error("Failed to fetch dashboard:", error);
     } finally {
       setIsLoading(false);
-
       if (showRefreshing) {
-        setTimeout(() => {
-          setIsRefreshing(false);
-        }, 700);
+        setTimeout(() => setIsRefreshing(false), 700);
       }
     }
   }, []);
-
-  // ===================================================
-  // INITIAL API CALL
-  // ===================================================
 
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
 
-  // ===================================================
-  // REFRESH
-  // ===================================================
-
   const handleRefresh = useCallback(() => {
     if (isRefreshing) return;
-
     fetchDashboard(true);
   }, [fetchDashboard, isRefreshing]);
 
   // ===================================================
-  // DASHBOARD METRICS
+  // METRICS
   // ===================================================
 
   const metrics = useMemo(() => {
@@ -500,7 +452,6 @@ const Dashboard = () => {
 
     const weekChange =
       dashboard.sales_analysis?.percentage_change?.week_over_week ?? 0;
-
     const weekTrend = getPercentageData(weekChange);
 
     return [
@@ -521,7 +472,7 @@ const Dashboard = () => {
           dashboard.sales_analysis?.this_week?.summary?.orders ?? 0,
         )}`,
         trendIcon: "trending_up",
-        toneClass: "text-[#1F7A3D]",
+        toneClass: "text-[#1E293B]",
         note: "this week",
       },
       {
@@ -530,7 +481,7 @@ const Dashboard = () => {
         icon: "groups",
         change: "Registered",
         trendIcon: "trending_flat",
-        toneClass: "text-[#8C917F]",
+        toneClass: "text-[#1E40AF]",
         note: "customers",
       },
       {
@@ -539,7 +490,7 @@ const Dashboard = () => {
         icon: "local_shipping",
         change: "Active",
         trendIcon: "trending_flat",
-        toneClass: "text-[#8C917F]",
+        toneClass: "text-[#6B7896]",
         note: "distributors",
       },
       {
@@ -548,7 +499,7 @@ const Dashboard = () => {
         icon: "account_balance_wallet",
         change: `${dashboard.stock_status?.summary?.in_stock_count ?? 0}`,
         trendIcon: "trending_up",
-        toneClass: "text-[#1F7A3D]",
+        toneClass: "text-[#1D4ED8]",
         note: "in stock",
       },
     ];
@@ -560,17 +511,14 @@ const Dashboard = () => {
 
   const selectedSalesData = useMemo(() => {
     if (!dashboard) return [];
-
     const salesAnalysis = dashboard.sales_analysis;
 
     if (salesPeriod === "this_month") {
       return salesAnalysis.this_month?.weekly_breakdown || [];
     }
-
     if (salesPeriod === "last_week") {
       return salesAnalysis.last_week?.daily_breakdown || [];
     }
-
     return salesAnalysis.this_week?.daily_breakdown || [];
   }, [dashboard, salesPeriod]);
 
@@ -578,7 +526,6 @@ const Dashboard = () => {
     return selectedSalesData.map(
       (item: DailyBreakdown | WeeklyBreakdown, index: number) => {
         const isWeekly = "week_number" in item;
-
         const revenue = Number(item.revenue || 0);
         const orders = Number(item.orders || 0);
 
@@ -593,32 +540,20 @@ const Dashboard = () => {
               ? index === new Date().getDay() - 1
               : false,
           orders,
-          date: `${item.start_date}${
-            item.end_date && item.end_date !== item.start_date
-              ? ` - ${item.end_date}`
-              : ""
-          }`,
+          date: `${item.start_date}${item.end_date && item.end_date !== item.start_date
+            ? ` - ${item.end_date}`
+            : ""
+            }`,
         };
       },
     );
   }, [selectedSalesData, salesPeriod]);
 
-  // ===================================================
-  // SALES SUMMARY
-  // ===================================================
-
   const currentSalesSummary = useMemo(() => {
     if (!dashboard) {
-      return {
-        revenue: 0,
-        orders: 0,
-        startDate: "",
-        endDate: "",
-      };
+      return { revenue: 0, orders: 0, startDate: "", endDate: "" };
     }
-
     const summary = dashboard.sales_analysis?.[salesPeriod]?.summary;
-
     return {
       revenue: Number(summary?.revenue || 0),
       orders: Number(summary?.orders || 0),
@@ -631,9 +566,11 @@ const Dashboard = () => {
   // TOP CATEGORIES
   // ===================================================
 
+  // Pie slice colors: navy / yellow / blue
+  const PIE_COLORS = [CHART_NAVY, CHART_YELLOW, CHART_BLUE];
+
   const pieData = useMemo(() => {
     if (!dashboard) return [];
-
     return dashboard.top_categories.slice(0, 3).map((category) => ({
       name: category.name,
       value: Number(category.product_count || 0),
@@ -667,12 +604,14 @@ const Dashboard = () => {
       ...lowStockProducts.map((item) => ({
         ...item,
         alertType: "Low Stock",
-        toneClass: "text-[#B8850E]",
+        toneClass: "text-[#1E293B]",
+        tileClass: "bg-[#FEF9C3] text-[#1E293B]",
       })),
       ...outOfStockProducts.map((item) => ({
         ...item,
         alertType: "Out of Stock",
         toneClass: "text-[#C23B32]",
+        tileClass: "bg-[#FBEAEA] text-[#C23B32]",
       })),
     ];
   }, [lowStockProducts, outOfStockProducts]);
@@ -682,7 +621,7 @@ const Dashboard = () => {
     (dashboard?.stock_status?.summary?.out_of_stock_count || 0);
 
   // ===================================================
-  // SUPPORT CONTACTS
+  // SUPPORT
   // ===================================================
 
   const tickets = dashboard?.top_contacts || [];
@@ -694,7 +633,6 @@ const Dashboard = () => {
 
   const handleExport = useCallback(() => {
     if (isExporting || !dashboard) return;
-
     setIsExporting(true);
 
     const rows = [
@@ -731,10 +669,7 @@ const Dashboard = () => {
       )
       .join("\n");
 
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
@@ -747,46 +682,25 @@ const Dashboard = () => {
 
     URL.revokeObjectURL(url);
 
-    setTimeout(() => {
-      setIsExporting(false);
-    }, 700);
+    setTimeout(() => setIsExporting(false), 700);
   }, [dashboard, isExporting]);
 
   // ===================================================
-  // METRIC SUBTEXT
-  // ===================================================
-
-  const metricSubText = [
-    "Total business revenue",
-    "Total orders placed",
-    "Registered customers",
-    "Registered distributors",
-    "Available products",
-  ];
-
-  // ===================================================
-  // LOADING
+  // LOADING / ERROR
   // ===================================================
 
   if (isLoading && !dashboard) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-[#F5F7F5]">
+      <div className="relative flex min-h-screen items-center justify-center bg-[#F5F8FF]">
         <div className="flex flex-col items-center gap-4">
           <motion.div
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: 1,
-              ease: "linear",
-            }}
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#163F20] text-white shadow-lg"
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1E3A8A] text-[#FACC15] shadow-lg"
           >
             <FiRefreshCw size={22} />
           </motion.div>
-
-          <div className="text-sm font-semibold text-[#69746C]">
+          <div className="text-sm font-semibold text-[#5B6B8C]">
             Loading dashboard...
           </div>
         </div>
@@ -796,18 +710,16 @@ const Dashboard = () => {
 
   if (!dashboard) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center bg-[#F5F7F5]">
-        <div className="rounded-[20px] border border-[#E5EAE5] bg-white p-8 text-center shadow-xl">
-          <FiAlertCircle size={28} className="mx-auto text-[#163F20]" />
-
-          <h2 className="mt-3 text-lg font-bold text-[#202721]">
+      <div className="relative flex min-h-screen items-center justify-center bg-[#F5F8FF]">
+        <div className="rounded-[20px] border border-[#E3E9F5] bg-white p-8 text-center shadow-xl">
+          <FiAlertCircle size={28} className="mx-auto text-[#1E3A8A]" />
+          <h2 className="mt-3 text-lg font-bold text-[#0F1B3D]">
             Unable to load dashboard
           </h2>
-
           <button
             type="button"
             onClick={() => fetchDashboard()}
-            className="mt-4 rounded-xl bg-[#163F20] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#0F3219]"
+            className="mt-4 rounded-xl bg-[#1E3A8A] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#172554]"
           >
             Try Again
           </button>
@@ -817,7 +729,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-[#F7F9F6]">
+    <div className="relative min-h-screen bg-[#F5F8FF] bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(250,204,21,0.16),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(37,99,235,0.10),transparent)]">
       <motion.div
         className="min-h-screen p-3 sm:p-4 lg:p-5"
         variants={containerVariants}
@@ -831,29 +743,30 @@ const Dashboard = () => {
 
         <motion.div
           variants={itemVariants}
-          className="mb-5 border-b border-[#E3E8E2] pb-4 sm:pb-5"
+          className="mb-5 border-b border-[#E3E9F5] pb-4 sm:pb-5"
         >
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0 flex-1">
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#5F745F] sm:text-[10px]">
+                <span className="ml-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#5B6B8C] sm:text-[10px]">
                   Business Overview
                 </span>
               </div>
 
               <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-                <h1 className="text-[24px] font-extrabold tracking-[-0.035em] text-[#202721] sm:text-[28px]">
+                <h1 className="text-[24px] font-extrabold tracking-[-0.035em] text-[#0F1B3D] sm:text-[28px]">
                   Dashboard
                 </h1>
-
-                <span className="mb-1 hidden rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#163F20] sm:inline-flex">
+                <span className="mb-1 hidden rounded-full border border-[#FACC15]/50 bg-[#FEF9C3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E293B] sm:inline-flex">
                   Admin Overview
                 </span>
               </div>
 
-              <p className="mt-1 max-w-2xl text-[11px] leading-5 text-[#89918B] sm:text-xs">
+              <p className="mt-1 max-w-2xl text-[11px] leading-5 text-[#6B7896] sm:text-xs">
                 Monitor sales performance, customers, operations and important
                 business activity from one place.
               </p>
@@ -861,71 +774,55 @@ const Dashboard = () => {
 
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
               {/* Live */}
-              <div className="hidden items-center gap-2 rounded-xl border border-[#E5EAE5] bg-[#FAFBFA] px-3 py-2.5 sm:flex">
+              <div className="hidden items-center gap-2 rounded-xl border border-[#E3E9F5] bg-white px-3 py-2.5 sm:flex">
                 <motion.span
-                  className="h-2 w-2 rounded-full bg-[#163F20]"
-                  animate={{
-                    opacity: isRefreshing ? [1, 0.3, 1] : 1,
-                  }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                  }}
+                  className="h-2 w-2 rounded-full bg-[#FACC15] ring-2 ring-[#FACC15]/30"
+                  animate={{ opacity: isRefreshing ? [1, 0.3, 1] : 1 }}
+                  transition={{ duration: 1, repeat: Infinity }}
                 />
-
                 <div>
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
+                  <div className="text-[9px] font-bold uppercase tracking-wide text-[#4A5778]">
                     Live Data
                   </div>
-
-                  <div className="text-[8px] text-[#9AA29C]">
+                  <div className="text-[8px] text-[#8C97B2]">
                     {lastUpdated
                       ? `Updated ${lastUpdated.toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}`
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}`
                       : "Fetching data..."}
                   </div>
                 </div>
               </div>
 
               {/* Performance */}
-              <div className="hidden items-center gap-2 rounded-xl border border-[#E5EAE5] bg-white px-3 py-2.5 md:flex">
+              <div className="hidden items-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EAF1FF] px-3 py-2.5 md:flex">
                 <motion.div
                   animate={
                     isRefreshing
-                      ? {
-                          rotate: 360,
-                          scale: [1, 1.2, 1],
-                        }
-                      : {
-                          rotate: 0,
-                          scale: 1,
-                        }
+                      ? { rotate: 360, scale: [1, 1.2, 1] }
+                      : { rotate: 0, scale: 1 }
                   }
                   transition={
                     isRefreshing
                       ? {
-                          rotate: {
-                            repeat: Infinity,
-                            duration: 2,
-                            ease: "linear",
-                          },
-                          scale: {
-                            repeat: Infinity,
-                            duration: 1,
-                            ease: "easeInOut",
-                          },
-                        }
-                      : {
-                          duration: 0.3,
-                        }
+                        rotate: {
+                          repeat: Infinity,
+                          duration: 2,
+                          ease: "linear",
+                        },
+                        scale: {
+                          repeat: Infinity,
+                          duration: 1,
+                          ease: "easeInOut",
+                        },
+                      }
+                      : { duration: 0.3 }
                   }
                 >
-                  <FiTrendingUp size={14} className="text-[#163F20]" />
+                  <FiTrendingUp size={14} className="text-[#1E40AF]" />
                 </motion.div>
-
-                <span className="text-[10px] font-semibold text-[#59645C]">
+                <span className="text-[10px] font-bold text-[#1E40AF]">
                   Performance
                 </span>
               </div>
@@ -934,77 +831,48 @@ const Dashboard = () => {
               <motion.button
                 type="button"
                 onClick={handleRefresh}
-                whileTap={{
-                  scale: 0.95,
-                }}
+                whileTap={{ scale: 0.95 }}
                 disabled={isRefreshing}
-                className="flex h-10 items-center gap-2 rounded-xl border border-[#E5EAE5] bg-white px-3.5 text-[10px] font-bold text-[#163F20] shadow-sm transition-all hover:border-[#163F20]/30 hover:bg-[#F3F7F3] disabled:opacity-60"
+                className="flex h-10 items-center gap-2 rounded-xl border border-[#E3E9F5] bg-white px-3.5 text-[10px] font-bold text-[#1E3A8A] shadow-sm transition-all hover:border-[#2563EB]/40 hover:bg-[#F1F5FF] disabled:opacity-60"
               >
                 <motion.span
-                  animate={
-                    isRefreshing
-                      ? {
-                          rotate: 360,
-                        }
-                      : {
-                          rotate: 0,
-                        }
-                  }
+                  animate={isRefreshing ? { rotate: 360 } : { rotate: 0 }}
                   transition={
                     isRefreshing
-                      ? {
-                          repeat: Infinity,
-                          duration: 0.75,
-                          ease: "linear",
-                        }
-                      : {
-                          duration: 0.2,
-                        }
+                      ? { repeat: Infinity, duration: 0.75, ease: "linear" }
+                      : { duration: 0.2 }
                   }
                   className="flex"
                 >
                   <FiRefreshCw size={14} />
                 </motion.span>
-
                 <span className="hidden sm:inline">
                   {isRefreshing ? "Refreshing..." : "Refresh"}
                 </span>
               </motion.button>
 
-              {/* Export */}
+              {/* Export — bright yellow */}
               <motion.button
                 type="button"
                 onClick={handleExport}
-                whileTap={{
-                  scale: 0.95,
-                }}
+                whileTap={{ scale: 0.95 }}
                 disabled={isExporting}
-                className="flex h-10 items-center gap-2 rounded-xl bg-[#163F20] px-4 text-[10px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(22,63,32,0.55)] transition-all hover:-translate-y-0.5 hover:bg-[#0F3219]"
+                className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#FDE047] to-[#FACC15] px-4 text-[10px] font-bold text-[#1E293B] shadow-[0_8px_20px_-8px_rgba(250,204,21,0.65)] transition-all hover:-translate-y-0.5 hover:from-[#FACC15] hover:to-[#EAB308]"
               >
                 <motion.div
                   animate={
                     isExporting
-                      ? {
-                          scale: [1, 1.2, 1],
-                          opacity: [1, 0.5, 1],
-                        }
-                      : {
-                          scale: 1,
-                          opacity: 1,
-                        }
+                      ? { scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }
+                      : { scale: 1, opacity: 1 }
                   }
                   transition={
                     isExporting
-                      ? {
-                          repeat: Infinity,
-                          duration: 0.8,
-                        }
+                      ? { repeat: Infinity, duration: 0.8 }
                       : {}
                   }
                 >
                   <FiDownload size={14} />
                 </motion.div>
-
                 <span>{isExporting ? "Exporting..." : "Export"}</span>
               </motion.button>
             </div>
@@ -1027,14 +895,14 @@ const Dashboard = () => {
               <motion.div
                 key={metric.label}
                 variants={itemVariants}
-                whileHover={{
-                  y: -3,
-                  transition: {
-                    duration: 0.18,
-                  },
-                }}
-                className="group relative overflow-hidden rounded-[17px] border border-[#E5EAE5] bg-white px-4 py-4 shadow-[0_3px_14px_rgba(16,39,20,0.035)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#163F20]/15 hover:shadow-[0_10px_24px_rgba(16,39,20,0.07)]"
+                whileHover={{ y: -3, transition: { duration: 0.18 } }}
+                className="group relative overflow-hidden rounded-[17px] border border-[#E3E9F5] bg-white px-4 py-4 shadow-[0_3px_14px_rgba(30,58,138,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#2563EB]/25 hover:shadow-[0_10px_24px_rgba(30,58,138,0.10)]"
               >
+                {/* Colored top accent bar per card */}
+                <div
+                  className={`absolute left-0 right-0 top-0 h-[3px] ${theme.bar}`}
+                />
+
                 <div className="flex items-start justify-between gap-2">
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-[12px] ${theme.tile} ${theme.iconColor}`}
@@ -1053,40 +921,28 @@ const Dashboard = () => {
                 </div>
 
                 <div className="mt-3">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#89918B]">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#6B7896]">
                     {metric.label}
                   </div>
 
                   <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 5,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    transition={{
-                      delay: index * 0.05,
-                      duration: 0.4,
-                    }}
-                    className="mt-1 truncate text-[24px] font-extrabold leading-none tracking-[-0.03em] text-[#202721]"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.4 }}
+                    className="mt-1 truncate text-[24px] font-extrabold leading-none tracking-[-0.03em] text-[#0F1B3D]"
                   >
                     {metric.value}
                   </motion.div>
                 </div>
 
                 <div
-                  className={`mt-2.5 flex items-center text-[10px] font-bold ${
-                    metric.toneClass || "text-[#163F20]"
-                  }`}
+                  className={`mt-2.5 flex items-center text-[10px] font-bold ${metric.toneClass || "text-[#1E3A8A]"
+                    }`}
                 >
                   <TrendIcon name={metric.trendIcon} className="h-2.5 w-2.5" />
-
                   <span className="ml-1.5">{metric.change}</span>
-
                   {metric.note && (
-                    <span className="ml-1.5 truncate font-normal text-[#9AA29C]">
+                    <span className="ml-1.5 truncate font-normal text-[#8C97B2]">
                       {metric.note}
                     </span>
                   )}
@@ -1104,35 +960,32 @@ const Dashboard = () => {
           variants={containerVariants}
           className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3"
         >
-          {/* SALES */}
-
+          {/* SALES CHART */}
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white p-4 shadow-[0_3px_16px_rgba(16,39,20,0.035)] sm:p-5 xl:col-span-2"
+            className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5 xl:col-span-2"
           >
+            {/* Blue → yellow accent on top */}
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
+
             <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-[16px] font-bold text-[#202721] sm:text-[17px]">
+                  <h2 className="text-[16px] font-bold text-[#0F1B3D] sm:text-[17px]">
                     Sales Analytics
                   </h2>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF3EA] px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-[#163F20] ring-1 ring-[#163F20]/10">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EAF1FF] px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.1em] text-[#1E40AF] ring-1 ring-[#2563EB]/15">
                     <motion.span
-                      className="h-1.5 w-1.5 rounded-full bg-[#163F20]"
-                      animate={{
-                        opacity: isRefreshing ? [1, 0.3, 1] : 1,
-                      }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                      }}
+                      className="h-1.5 w-1.5 rounded-full bg-[#2563EB]"
+                      animate={{ opacity: isRefreshing ? [1, 0.3, 1] : 1 }}
+                      transition={{ duration: 1, repeat: Infinity }}
                     />
                     Live
                   </span>
                 </div>
 
-                <p className="mt-1 text-[10px] text-[#89918B]">
+                <p className="mt-1 text-[10px] text-[#6B7896]">
                   {salesPeriod === "this_month"
                     ? "Weekly sales activity and monthly performance"
                     : "Daily sales activity and period performance"}
@@ -1144,7 +997,7 @@ const Dashboard = () => {
                 onChange={(e) =>
                   setSalesPeriod(e.target.value as SalesPeriodType)
                 }
-                className="h-9 cursor-pointer rounded-lg border border-[#E5EAE5] bg-[#FAFBFA] px-3 text-[10px] font-semibold text-[#59645C] outline-none transition focus:border-[#163F20]/30 focus:ring-2 focus:ring-[#163F20]/10"
+                className="h-9 cursor-pointer rounded-lg border border-[#E3E9F5] bg-[#FAFBFF] px-3 text-[10px] font-semibold text-[#4A5778] outline-none transition focus:border-[#2563EB]/40 focus:ring-2 focus:ring-[#2563EB]/15"
               >
                 <option value="this_week">This Week</option>
                 <option value="last_week">Last Week</option>
@@ -1153,30 +1006,43 @@ const Dashboard = () => {
             </div>
 
             {/* GRAPH */}
-
-            <div className="mt-2 h-[300px] w-full overflow-hidden rounded-[15px] border border-[#E5EAE5] bg-[#FAFBFA]">
+            <div className="mt-2 h-[300px] w-full overflow-hidden rounded-[15px] border border-[#E3E9F5] bg-[#FAFBFF]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
                   data={barData}
                   barCategoryGap="24%"
-                  margin={{
-                    top: 18,
-                    right: 8,
-                    left: -20,
-                    bottom: 2,
-                  }}
+                  margin={{ top: 18, right: 8, left: -20, bottom: 2 }}
                 >
                   <defs>
-                    <linearGradient id="salesGold" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4C8A57" />
-                      <stop offset="100%" stopColor="#163F20" />
+                    {/* Bars rotate: navy → yellow → blue */}
+                    <linearGradient
+                      id="salesGreen"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#1E3A8A" />
                     </linearGradient>
 
-                    <linearGradient id="salesToday" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8FC199" />
-                      <stop offset="100%" stopColor="#0F3219" />
+                    <linearGradient
+                      id="salesAmber"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="0%" stopColor="#FDE047" />
+                      <stop offset="100%" stopColor="#FACC15" />
                     </linearGradient>
 
+                    <linearGradient id="salesBlue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#60A5FA" />
+                      <stop offset="100%" stopColor="#2563EB" />
+                    </linearGradient>
+
+                    {/* Blue line for trend */}
                     <linearGradient
                       id="salesLineGradient"
                       x1="0"
@@ -1184,16 +1050,16 @@ const Dashboard = () => {
                       x2="1"
                       y2="0"
                     >
-                      <stop offset="0%" stopColor="#0F3219" />
-                      <stop offset="45%" stopColor="#4C8A57" />
-                      <stop offset="100%" stopColor="#0F3219" />
+                      <stop offset="0%" stopColor="#1E40AF" />
+                      <stop offset="45%" stopColor="#2563EB" />
+                      <stop offset="100%" stopColor="#1E40AF" />
                     </linearGradient>
                   </defs>
 
                   <CartesianGrid
                     vertical={true}
                     horizontal={true}
-                    stroke="#EDF1ED"
+                    stroke="#EAEFF8"
                     strokeWidth={1}
                     strokeDasharray="0"
                     opacity={0.9}
@@ -1201,7 +1067,7 @@ const Dashboard = () => {
 
                   <XAxis
                     dataKey="name"
-                    stroke="#9AA29C"
+                    stroke="#8C97B2"
                     fontSize={10}
                     axisLine={false}
                     tickLine={false}
@@ -1209,40 +1075,33 @@ const Dashboard = () => {
                   />
 
                   <YAxis
-                    stroke="#9AA29C"
+                    stroke="#8C97B2"
                     fontSize={10}
                     axisLine={false}
                     tickLine={false}
                     width={45}
                     tickFormatter={(value) =>
-                      `₹${
-                        Number(value) >= 1000
-                          ? `${(Number(value) / 1000).toFixed(0)}k`
-                          : value
+                      `₹${Number(value) >= 1000
+                        ? `${(Number(value) / 1000).toFixed(0)}k`
+                        : value
                       }`
                     }
                   />
 
                   <Tooltip
-                    cursor={{
-                      fill: "rgba(22,63,32,0.05)",
-                    }}
+                    cursor={{ fill: "rgba(37,99,235,0.05)" }}
                     contentStyle={{
                       backgroundColor: "#ffffff",
-                      border: "1px solid rgba(22,63,32,0.14)",
+                      border: "1px solid rgba(37,99,235,0.14)",
                       borderRadius: "12px",
                       fontSize: "10px",
-                      boxShadow: "0 12px 30px rgba(16,39,20,0.09)",
+                      boxShadow: "0 12px 30px rgba(30,58,138,0.10)",
                     }}
-                    labelStyle={{
-                      color: "#3F4A41",
-                      fontWeight: 700,
-                    }}
+                    labelStyle={{ color: "#2B3656", fontWeight: 700 }}
                     formatter={(value: any, name: any) => {
                       if (name === "Orders") {
                         return [Number(value || 0), "Orders"];
                       }
-
                       return [formatCurrency(value), name];
                     }}
                   />
@@ -1261,12 +1120,12 @@ const Dashboard = () => {
                               ? "Last week"
                               : "This week",
                         type: "circle",
-                        color: CHART_GREEN,
+                        color: CHART_BLUE,
                       },
                     ]}
                     wrapperStyle={{
                       fontSize: "9px",
-                      color: "#59645C",
+                      color: "#4A5778",
                       paddingBottom: "16px",
                     }}
                   />
@@ -1277,18 +1136,22 @@ const Dashboard = () => {
                     radius={[8, 8, 3, 3]}
                     barSize={30}
                   >
-                    {barData.map((entry, index) => (
-                      <Cell
-                        key={`sales-${index}`}
-                        fill={
-                          entry.isCurrent
-                            ? "url(#salesToday)"
-                            : "url(#salesGold)"
-                        }
-                      />
-                    ))}
+                    {barData.map((entry, index) => {
+                      const palette = [
+                        "url(#salesGreen)",
+                        "url(#salesAmber)",
+                        "url(#salesBlue)",
+                      ];
+                      return (
+                        <Cell
+                          key={`sales-${index}`}
+                          fill={palette[index % 3]}
+                        />
+                      );
+                    })}
                   </Bar>
 
+                  {/* Blue trend line */}
                   <Line
                     type="monotone"
                     dataKey="lineValue"
@@ -1301,7 +1164,7 @@ const Dashboard = () => {
                     activeDot={{
                       r: 7,
                       fill: "#ffffff",
-                      stroke: CHART_GREEN_DARK,
+                      stroke: CHART_BLUE_DARK,
                       strokeWidth: 2.5,
                     }}
                     connectNulls
@@ -1310,61 +1173,61 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* GRAPH FOOTER */}
-
-            <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-[#E5EAE5] pt-3">
+            {/* FOOTER */}
+            <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-[#E3E9F5] pt-3">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#163F20]" />
-
-                <span className="text-[9px] text-[#89918B]">
+                <span className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
+                <span className="text-[9px] text-[#6B7896]">
                   Revenue: {formatCurrency(currentSalesSummary.revenue)}
                 </span>
               </div>
 
-              <div className="h-3 w-px bg-[#E5EAE5]" />
+              <div className="h-3 w-px bg-[#E3E9F5]" />
 
               <div className="flex items-center gap-1.5">
-                <span className="h-px w-5 bg-[#163F20]" />
-
-                <span className="text-[9px] text-[#89918B]">
+                <span className="h-2 w-2 rounded-full bg-[#FACC15]" />
+                <span className="text-[9px] text-[#6B7896]">
                   Orders: {formatNumber(currentSalesSummary.orders)}
                 </span>
               </div>
 
-              <div className="h-3 w-px bg-[#E5EAE5]" />
+              <div className="h-3 w-px bg-[#E3E9F5]" />
 
-              <div className="text-[9px] text-[#89918B]">
-                Updated automatically
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#2563EB]" />
+                <span className="text-[9px] text-[#6B7896]">
+                  Updated automatically
+                </span>
               </div>
             </div>
           </motion.div>
 
           {/* TOP CATEGORIES / PIE CHART */}
-
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white p-4 shadow-[0_3px_16px_rgba(16,39,20,0.035)] sm:p-5"
+            className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5"
           >
+            {/* Yellow accent */}
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#FACC15] via-[#FDE047] to-[#FEF08A]" />
+
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-[15px] font-extrabold tracking-[-0.01em] text-[#202721] sm:text-[16px]">
+                  <h3 className="text-[15px] font-extrabold tracking-[-0.01em] text-[#0F1B3D] sm:text-[16px]">
                     Top Categories
                   </h3>
-
-                  <span className="rounded-full bg-[#EAF3EA] px-2 py-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[#163F20]">
+                  <span className="rounded-full bg-[#FEF9C3] px-2 py-1 text-[7px] font-bold uppercase tracking-[0.1em] text-[#1E293B]">
                     Live
                   </span>
                 </div>
-
-                <p className="mt-1 text-[10px] leading-4 text-[#89918B]">
+                <p className="mt-1 text-[10px] leading-4 text-[#6B7896]">
                   Product distribution by category
                 </p>
               </div>
 
               <button
                 type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E5EAE5] bg-[#FAFBFA] text-[#59645C] transition hover:border-[#163F20]/20 hover:bg-[#F3F7F3] hover:text-[#163F20]"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#E3E9F5] bg-[#FAFBFF] text-[#4A5778] transition hover:border-[#FACC15]/50 hover:bg-[#FEF9C3] hover:text-[#1E293B]"
               >
                 <FiMoreHorizontal size={15} />
               </button>
@@ -1389,9 +1252,7 @@ const Dashboard = () => {
                     {pieData.map((_item, index) => (
                       <Cell
                         key={`pie-${index}`}
-                        fill={
-                          [CHART_GREEN, CHART_GREEN_SOFT, "#9BC5A1"][index % 3]
-                        }
+                        fill={PIE_COLORS[index % PIE_COLORS.length]}
                       />
                     ))}
                   </Pie>
@@ -1399,15 +1260,12 @@ const Dashboard = () => {
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#ffffff",
-                      border: "1px solid #E2E8E1",
+                      border: "1px solid #E3E9F5",
                       borderRadius: "12px",
                       fontSize: "10px",
-                      boxShadow: "0 12px 30px rgba(16,39,20,0.10)",
+                      boxShadow: "0 12px 30px rgba(30,58,138,0.12)",
                     }}
-                    labelStyle={{
-                      color: "#202721",
-                      fontWeight: 700,
-                    }}
+                    labelStyle={{ color: "#0F1B3D", fontWeight: 700 }}
                     formatter={(value: any) => [
                       `${Number(value || 0)} Products`,
                       "Count",
@@ -1416,12 +1274,10 @@ const Dashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Center label */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-2">
-                <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#9AA29C]">
+                <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#8C97B2]">
                   Total
                 </span>
-
                 <motion.span
                   animate={
                     isRefreshing ? { scale: [1, 1.05, 1] } : { scale: 1 }
@@ -1429,28 +1285,24 @@ const Dashboard = () => {
                   transition={
                     isRefreshing ? { duration: 0.6, ease: "easeInOut" } : {}
                   }
-                  className="mt-1 text-[25px] font-extrabold leading-none tracking-[-0.04em] text-[#202721]"
+                  className="mt-1 text-[25px] font-extrabold leading-none tracking-[-0.04em] text-[#0F1B3D]"
                 >
                   {formatNumber(dashboard.total_products)}
                 </motion.span>
-
-                <span className="mt-1 text-[8px] font-medium text-[#9AA29C]">
+                <span className="mt-1 text-[8px] font-medium text-[#8C97B2]">
                   Products
                 </span>
               </div>
             </div>
 
-            {/* Reference-style category legend */}
-            <div className="space-y-2 border-t border-[#E8ECE7] pt-3">
+            {/* Legend */}
+            <div className="space-y-2 border-t border-[#E3E9F5] pt-3">
               {pieData.map((item, index) => {
                 const percentage =
                   pieTotal > 0
                     ? Math.round((Number(item.value || 0) / pieTotal) * 100)
                     : 0;
-
-                const dotColor = [CHART_GREEN, CHART_GREEN_SOFT, "#9BC5A1"][
-                  index % 3
-                ];
+                const dotColor = PIE_COLORS[index % PIE_COLORS.length];
 
                 return (
                   <motion.div
@@ -1463,18 +1315,15 @@ const Dashboard = () => {
                         className="h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ background: dotColor }}
                       />
-
-                      <span className="truncate text-[10px] font-semibold text-[#4D574F]">
+                      <span className="truncate text-[10px] font-semibold text-[#3A4668]">
                         {item.name}
                       </span>
                     </div>
-
                     <div className="flex shrink-0 items-center gap-2">
-                      <span className="text-[10px] font-bold text-[#202721]">
+                      <span className="text-[10px] font-bold text-[#0F1B3D]">
                         {formatNumber(item.value)}
                       </span>
-
-                      <span className="min-w-[34px] text-right text-[9px] font-medium text-[#9AA29C]">
+                      <span className="min-w-[34px] text-right text-[9px] font-medium text-[#8C97B2]">
                         {percentage}%
                       </span>
                     </div>
@@ -1483,7 +1332,7 @@ const Dashboard = () => {
               })}
 
               {pieData.length === 0 && (
-                <div className="rounded-xl bg-[#FAFBFA] p-4 text-center text-[10px] text-[#89918B]">
+                <div className="rounded-xl bg-[#FAFBFF] p-4 text-center text-[10px] text-[#6B7896]">
                   No category data available.
                 </div>
               )}
@@ -1499,39 +1348,30 @@ const Dashboard = () => {
           variants={containerVariants}
           className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3"
         >
-          {/* KYC + INVENTORY */}
-
           <motion.div
             variants={itemVariants}
             className="space-y-5 xl:col-span-2"
           >
-            {/* KYC */}
+            {/* KYC — navy accent */}
+            <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
+              <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] to-[#1E3A8A]" />
 
-            <div className="relative overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white p-4 shadow-[0_3px_16px_rgba(16,39,20,0.035)] sm:p-5">
               <SectionHeader
                 icon={<FiCheckCircle size={17} />}
                 title="Pending KYC Reviews"
                 subtitle="Applications waiting for review"
+                accent="navy"
                 action={
                   <motion.span
                     animate={
-                      isRefreshing
-                        ? {
-                            scale: [1, 1.1, 1],
-                          }
-                        : {
-                            scale: 1,
-                          }
+                      isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
                     }
                     transition={
                       isRefreshing
-                        ? {
-                            duration: 0.4,
-                            ease: "easeInOut",
-                          }
+                        ? { duration: 0.4, ease: "easeInOut" }
                         : {}
                     }
-                    className="shrink-0 rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#163F20]"
+                    className="shrink-0 rounded-full border border-[#1E3A8A]/15 bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E3A8A]"
                   >
                     {totalPending} Pending
                   </motion.span>
@@ -1542,54 +1382,38 @@ const Dashboard = () => {
                 {kycReviews.slice(0, 4).map((review, idx) => (
                   <motion.div
                     key={review.id}
-                    whileHover={{
-                      x: 3,
-                    }}
+                    whileHover={{ x: 3 }}
                     animate={
                       isRefreshing
-                        ? {
-                            opacity: [1, 0.6, 1],
-                            x: [0, 2, 0],
-                          }
-                        : {
-                            opacity: 1,
-                            x: 0,
-                          }
+                        ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
+                        : { opacity: 1, x: 0 }
                     }
                     transition={
-                      isRefreshing
-                        ? {
-                            duration: 0.4,
-                            delay: idx * 0.06,
-                          }
-                        : {}
+                      isRefreshing ? { duration: 0.4, delay: idx * 0.06 } : {}
                     }
-                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E5EAE5] bg-[#FAFBFA] px-3 py-2.5 transition hover:border-[#163F20]/20 hover:bg-white"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] px-3 py-2.5 transition hover:border-[#2563EB]/30 hover:bg-white"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3EA] text-[10px] font-extrabold text-[#163F20]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FEF9C3] text-[10px] font-extrabold text-[#1E3A8A] ring-1 ring-[#FACC15]/50">
                         {String(review.user_name || "?")
                           .charAt(0)
                           .toUpperCase()}
                       </div>
-
                       <div className="min-w-0">
-                        <div className="truncate text-[11px] font-bold text-[#202721] sm:text-xs">
+                        <div className="truncate text-[11px] font-bold text-[#0F1B3D] sm:text-xs">
                           {review.user_name}
                         </div>
-
-                        <div className="mt-0.5 flex items-center gap-1 text-[8px] text-[#9AA29C] sm:text-[9px]">
+                        <div className="mt-0.5 flex items-center gap-1 text-[8px] text-[#8C97B2] sm:text-[9px]">
                           <FiClock size={9} />
                           {getRelativeTime(review.created_at)}
                         </div>
                       </div>
                     </div>
 
-                    {/* ✅ Updated onClick to pass entire review object */}
                     <button
                       type="button"
                       onClick={() => handleReview(review)}
-                      className="shrink-0 rounded-lg border border-[#163F20]/20 bg-white px-3 py-1.5 text-[9px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                      className="shrink-0 rounded-lg border border-[#1E3A8A]/20 bg-white px-3 py-1.5 text-[9px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                     >
                       Review
                     </button>
@@ -1597,104 +1421,82 @@ const Dashboard = () => {
                 ))}
 
                 {kycReviews.length === 0 && (
-                  <div className="rounded-xl bg-[#FAFBFA] p-5 text-center text-[10px] text-[#89918B]">
+                  <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
                     No pending KYC reviews.
                   </div>
                 )}
               </div>
             </div>
 
-            {/* INVENTORY */}
+            {/* INVENTORY — yellow accent */}
+            <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
+              <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
 
-            <div className="relative overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white p-4 shadow-[0_3px_16px_rgba(16,39,20,0.035)] sm:p-5">
               <SectionHeader
                 icon={<FiPackage size={17} />}
                 title="Inventory Alerts"
                 subtitle="Products requiring attention"
+                accent="yellow"
                 action={
                   <motion.span
                     animate={
-                      isRefreshing
-                        ? {
-                            scale: [1, 1.1, 1],
-                          }
-                        : {
-                            scale: 1,
-                          }
+                      isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
                     }
                     transition={
                       isRefreshing
-                        ? {
-                            duration: 0.4,
-                            ease: "easeInOut",
-                          }
+                        ? { duration: 0.4, ease: "easeInOut" }
                         : {}
                     }
-                    className="rounded-full bg-[#FBEAEA] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#C23B32]"
+                    className="rounded-full bg-[#FEF9C3] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E293B]"
                   >
                     {totalAlerts} Alerts
                   </motion.span>
                 }
               />
 
-              <div className="divide-y divide-[#E5EAE5]">
-                {inventoryAlerts.slice(0, 5).map((item: any, idx: number) => {
-                  return (
-                    <motion.div
-                      key={`${getInventoryName(item)}-${idx}`}
-                      whileHover={{
-                        x: 3,
-                      }}
-                      animate={
-                        isRefreshing
-                          ? {
-                              opacity: [1, 0.6, 1],
-                              x: [0, 2, 0],
-                            }
-                          : {
-                              opacity: 1,
-                              x: 0,
-                            }
-                      }
-                      transition={
-                        isRefreshing
-                          ? {
-                              duration: 0.4,
-                              delay: idx * 0.05,
-                            }
-                          : {}
-                      }
-                      className="flex items-center justify-between gap-3 py-2.5"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FBEAEA] text-[#C23B32]">
-                          <FiAlertCircle size={15} />
+              <div className="divide-y divide-[#E3E9F5]">
+                {inventoryAlerts.slice(0, 5).map((item: any, idx: number) => (
+                  <motion.div
+                    key={`${getInventoryName(item)}-${idx}`}
+                    whileHover={{ x: 3 }}
+                    animate={
+                      isRefreshing
+                        ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
+                        : { opacity: 1, x: 0 }
+                    }
+                    transition={
+                      isRefreshing ? { duration: 0.4, delay: idx * 0.05 } : {}
+                    }
+                    className="flex items-center justify-between gap-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.tileClass || "bg-[#FEF9C3] text-[#1E293B]"
+                          }`}
+                      >
+                        <FiAlertCircle size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-[11px] font-semibold text-[#0F1B3D]">
+                          {getInventoryName(item)}
                         </div>
-
-                        <div className="min-w-0">
-                          <div className="truncate text-[11px] font-semibold text-[#202721]">
-                            {getInventoryName(item)}
-                          </div>
-
-                          <div className="mt-0.5 text-[8px] text-[#9AA29C]">
-                            {item.stock_quantity || "Stock level"}
-                          </div>
+                        <div className="mt-0.5 text-[8px] text-[#8C97B2]">
+                          {item.stock_quantity || "Stock level"}
                         </div>
                       </div>
+                    </div>
 
-                      <span
-                        className={`shrink-0 rounded-full bg-[#FAFBFA] px-2.5 py-1 text-[9px] font-bold ${
-                          item.toneClass || "text-[#163F20]"
+                    <span
+                      className={`shrink-0 rounded-full bg-[#FAFBFF] px-2.5 py-1 text-[9px] font-bold ${item.toneClass || "text-[#1E3A8A]"
                         }`}
-                      >
-                        {item.stock_quantity || "Stock level"}
-                      </span>
-                    </motion.div>
-                  );
-                })}
+                    >
+                      {item.stock_quantity || "Stock level"}
+                    </span>
+                  </motion.div>
+                ))}
 
                 {inventoryAlerts.length === 0 && (
-                  <div className="rounded-xl bg-[#FAFBFA] p-5 text-center text-[10px] text-[#89918B]">
+                  <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
                     No inventory alerts.
                   </div>
                 )}
@@ -1702,36 +1504,27 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
-          {/* SUPPORT */}
-
+          {/* SUPPORT — blue accent */}
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white p-4 shadow-[0_3px_16px_rgba(16,39,20,0.035)] sm:p-5"
+            className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5"
           >
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
+
             <SectionHeader
               icon={<FiActivity size={17} />}
               title="Support Tickets"
               subtitle="Latest customer support activity"
+              accent="blue"
               action={
                 <motion.span
                   animate={
-                    isRefreshing
-                      ? {
-                          scale: [1, 1.1, 1],
-                        }
-                      : {
-                          scale: 1,
-                        }
+                    isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
                   }
                   transition={
-                    isRefreshing
-                      ? {
-                          duration: 0.4,
-                          ease: "easeInOut",
-                        }
-                      : {}
+                    isRefreshing ? { duration: 0.4, ease: "easeInOut" } : {}
                   }
-                  className="rounded-full bg-[#F3F7F3] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#163F20]"
+                  className="rounded-full bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E40AF]"
                 >
                   {totalTickets} Open
                 </motion.span>
@@ -1741,18 +1534,14 @@ const Dashboard = () => {
             <div className="space-y-2">
               {tickets.slice(0, 5).map((ticket, idx) => {
                 const status = ticket.is_read ? "Read" : "Unread";
-
                 const badgeClass = ticket.is_read
-                  ? "bg-[#F0F2F0] text-[#89918B]"
-                  : "bg-[#FBF3DC] text-[#8A6D16]";
+                  ? "bg-[#EEF1F8] text-[#6B7896]"
+                  : "bg-[#FEF9C3] text-[#1E293B]";
 
                 return (
                   <motion.div
                     key={ticket.id}
-                    initial={{
-                      opacity: 0,
-                      y: 6,
-                    }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{
                       opacity: isRefreshing ? 0.8 : 1,
                       y: isRefreshing ? 2 : 0,
@@ -1761,23 +1550,19 @@ const Dashboard = () => {
                       delay: idx * 0.045,
                       duration: isRefreshing ? 0.3 : 0.4,
                     }}
-                    whileHover={{
-                      x: 3,
-                    }}
-                    className="rounded-xl border border-[#E5EAE5] bg-[#FAFBFA] p-3 transition hover:border-[#163F20]/20 hover:bg-white"
+                    whileHover={{ x: 3 }}
+                    className="rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] p-3 transition hover:border-[#2563EB]/30 hover:bg-white"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate text-[10px] font-bold text-[#202721] sm:text-[11px]">
+                        <div className="truncate text-[10px] font-bold text-[#0F1B3D] sm:text-[11px]">
                           {ticket.name}
                         </div>
-
-                        <div className="mt-1 truncate text-[8px] text-[#9AA29C] sm:text-[9px]">
+                        <div className="mt-1 truncate text-[8px] text-[#8C97B2] sm:text-[9px]">
                           {ticket.message}
                         </div>
                       </div>
-
-                      <span className="shrink-0 text-[8px] text-[#9AA29C]">
+                      <span className="shrink-0 text-[8px] text-[#8C97B2]">
                         {getRelativeTime(ticket.created_at)}
                       </span>
                     </div>
@@ -1794,7 +1579,7 @@ const Dashboard = () => {
               })}
 
               {tickets.length === 0 && (
-                <div className="rounded-xl bg-[#FAFBFA] p-5 text-center text-[10px] text-[#89918B]">
+                <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
                   No support tickets found.
                 </div>
               )}
@@ -1803,7 +1588,7 @@ const Dashboard = () => {
             <Link to="/contact">
               <button
                 type="button"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#F3F7F3] py-2.5 text-[9px] font-bold uppercase tracking-wide text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EAF1FF] py-2.5 text-[9px] font-bold uppercase tracking-wide text-[#1E40AF] transition hover:border-[#2563EB]/35 hover:bg-[#DBEAFE]"
               >
                 View All Tickets
                 <FiChevronRight size={11} />
@@ -1813,7 +1598,7 @@ const Dashboard = () => {
         </motion.div>
 
         {/* =================================================
-            BOTTOM SUMMARY
+            BOTTOM SUMMARY — navy / yellow / blue
         ================================================= */}
 
         <motion.div
@@ -1826,18 +1611,24 @@ const Dashboard = () => {
               value: totalPending,
               subtitle: "Applications pending",
               icon: FiUsersIcon,
+              tile: "bg-[#EAF1FF] text-[#1E3A8A]",
+              bar: "bg-[#1E3A8A]",
             },
             {
               title: "Inventory",
               value: totalAlerts,
               subtitle: "Items need attention",
               icon: FiPackage,
+              tile: "bg-[#FEF9C3] text-[#1E293B]",
+              bar: "bg-[#FACC15]",
             },
             {
               title: "Support",
               value: totalTickets,
               subtitle: "Latest tickets",
               icon: FiActivity,
+              tile: "bg-[#EAF1FF] text-[#1E40AF]",
+              bar: "bg-[#2563EB]",
             },
           ].map((item, idx) => {
             const Icon = item.icon;
@@ -1846,39 +1637,33 @@ const Dashboard = () => {
               <motion.div
                 key={item.title}
                 variants={itemVariants}
-                whileHover={{
-                  y: -2,
-                }}
+                whileHover={{ y: -2 }}
                 animate={
                   isRefreshing
-                    ? {
-                        opacity: [1, 0.5, 1],
-                      }
-                    : {
-                        opacity: 1,
-                      }
+                    ? { opacity: [1, 0.5, 1] }
+                    : { opacity: 1 }
                 }
                 transition={
-                  isRefreshing
-                    ? {
-                        duration: 0.4,
-                        delay: idx * 0.08,
-                      }
-                    : {}
+                  isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
                 }
-                className="flex items-center justify-between rounded-[16px] border border-[#E5EAE5] bg-white px-4 py-3 shadow-[0_4px_14px_rgba(16,39,20,0.03)]"
+                className="relative flex items-center justify-between overflow-hidden rounded-[16px] border border-[#E3E9F5] bg-white px-4 py-3 shadow-[0_4px_14px_rgba(30,58,138,0.04)]"
               >
+                {/* Colored left accent */}
+                <div
+                  className={`absolute bottom-0 left-0 top-0 w-[3px] ${item.bar}`}
+                />
+
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F3F7F3] text-[#163F20]">
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tile}`}
+                  >
                     <Icon size={15} />
                   </div>
-
                   <div>
-                    <div className="text-[9px] font-bold uppercase tracking-wide text-[#59645C]">
+                    <div className="text-[9px] font-bold uppercase tracking-wide text-[#4A5778]">
                       {item.title}
                     </div>
-
-                    <div className="mt-0.5 text-[8px] text-[#9AA29C]">
+                    <div className="mt-0.5 text-[8px] text-[#8C97B2]">
                       {item.subtitle}
                     </div>
                   </div>
@@ -1886,23 +1671,12 @@ const Dashboard = () => {
 
                 <motion.div
                   animate={
-                    isRefreshing
-                      ? {
-                          scale: [1, 1.15, 1],
-                        }
-                      : {
-                          scale: 1,
-                        }
+                    isRefreshing ? { scale: [1, 1.15, 1] } : { scale: 1 }
                   }
                   transition={
-                    isRefreshing
-                      ? {
-                          duration: 0.4,
-                          delay: idx * 0.08,
-                        }
-                      : {}
+                    isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
                   }
-                  className="text-lg font-extrabold tracking-tight text-[#202721]"
+                  className="text-lg font-extrabold tracking-tight text-[#0F1B3D]"
                 >
                   {item.value}
                 </motion.div>

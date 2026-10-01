@@ -20,6 +20,7 @@ import {
   FiSend,
   FiCheckCircle,
   FiFileText,
+  FiDownload,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
@@ -93,15 +94,124 @@ export interface OrderItem {
   courier_tracking_number?: string;
   courierTrackingNumber?: string;
 
-
   invoice?: {
     id: number;
     invoice_number: string;
   } | null;
-
-
 }
+// =====================================================
+// CSV HELPERS
+// =====================================================
 
+const escapeCsvValue = (value: any): string => {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  // Agar value me comma, quote, ya newline hai to quotes me wrap karo
+  if (
+    str.includes(",") ||
+    str.includes('"') ||
+    str.includes("\n") ||
+    str.includes("\r")
+  ) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const formatCsvDate = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatCsvStatus = (status?: string) => {
+  if (!status) return "";
+  return status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const generateOrdersCsv = (orders: any[]): string => {
+  // ✅ Proper CSV headers
+  const headers = [
+    "S.No.",
+    "Order Reference",
+    "Order Date",
+    "Customer Name",
+    "Customer Email",
+    "Customer Phone",
+    "Order Type",
+    "Order Status",
+    "Payment Status",
+    "Payment Gateway",
+    "Transaction ID",
+    "Subtotal",
+    "Total GST",
+    "Shipping Charge",
+    "Total Payable",
+    "Amount Paid",
+    "Shipping Address",
+    "Courier Company",
+    "Courier Tracking Number",
+    "Courier Delivery Date",
+    "Total Items",
+    "Items Summary",
+  ];
+
+  const rows: string[] = [];
+  rows.push(headers.map(escapeCsvValue).join(","));
+
+  orders.forEach((order, index) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+
+    // Items summary: "ProductName (SKU) xQty [Status] | ..." — proper CSV escaping
+    const itemsSummary = items
+      .map((item: any) => {
+        const name = item.product_name || "N/A";
+        const sku = item.product_code || "N/A";
+        const qty = item.quantity || 0;
+        const st = formatCsvStatus(item.delivery_status) || "Pending";
+        return `${name} (${sku}) x${qty} [${st}]`;
+      })
+      .join(" | ");
+
+    const row = [
+      index + 1,
+      order.order_reference || "",
+      formatCsvDate(order.order_date) || "",
+      order.user?.name || "",
+      order.user?.email || "",
+      order.user?.phone || "",
+      order.order_type === "retail" ? "Customer" : (order.order_type || ""),
+      formatCsvStatus(order.order_status) || "",
+      formatCsvStatus(order.payment_status) || "",
+      order.payment_gateway || "",
+      order.gateway_transaction_id || "",
+      Number(order.subtotal || 0).toFixed(2),
+      Number(order.total_gst || 0).toFixed(2),
+      Number(order.shipping_charge || 0).toFixed(2),
+      Number(order.total_payable || 0).toFixed(2),
+      Number(order.amount_paid || 0).toFixed(2),
+      order.shipping_address?.full_address || "",
+      order.courier_company || "",
+      order.courier_tracking_number || "",
+      formatCsvDate(order.courier_delivery_date) || "",
+      items.length,
+      itemsSummary,
+    ];
+
+    rows.push(row.map(escapeCsvValue).join(","));
+  });
+
+  return rows.join("\r\n");
+};
 export interface Order {
   id: string;
   date: string;
@@ -1042,7 +1152,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
                         <span className="text-xs text-[#9AA29C]">Tracking Number</span>
                         <span className="text-sm font-semibold text-[#202721]">
-                          {items?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
+                          {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
                         </span>
                       </div>
                       {shipping_details?.courier_delivery_date && (
@@ -1815,6 +1925,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(new Set());
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(new Set());
 
+  // ✅ NEW: CSV download state
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
+
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -1874,6 +1987,49 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
     } catch (err) {
       console.error("Failed to fetch order statuses:", err);
+    }
+  };
+
+  // ✅ NEW: Download CSV handler
+  // ✅ CSV DOWNLOAD (client-side, all records, proper format)
+  const handleDownloadCsv = () => {
+    if (downloadingCsv) return;
+
+    if (!orders || orders.length === 0) {
+      toast.error("No orders available to export.");
+      return;
+    }
+
+    setDownloadingCsv(true);
+
+    try {
+      // ✅ Generate proper CSV from ALL orders (no filters applied)
+      const csvContent = generateOrdersCsv(orders);
+
+      // ✅ UTF-8 BOM add karo taaki Excel me ₹ aur special chars sahi dikhe
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      const today = new Date().toISOString().slice(0, 10);
+      link.download = `orders-${today}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`CSV downloaded — ${orders.length} orders exported`);
+    } catch (error: any) {
+      console.error("CSV download error:", error);
+      toast.error("Failed to download CSV. Please try again.");
+    } finally {
+      setDownloadingCsv(false);
     }
   };
 
@@ -1954,7 +2110,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           itemReferenceId: item.item_reference_id || "N/A",
           productName: item.product_name || "N/A",
           sku: item.product_code || "N/A",
-          quantity: item.quantity,
+          quantity: item.quantity || 0,
           price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
           total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
           unitPrice: item.unit_price || 0,
@@ -1969,9 +2125,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           availableForReturn: item.available_for_return,
           gstRate: item.gst_rate,
           gstAmount: item.gst_amount,
+          categoryId: item.category_id,
+          brandId: item.brand_id,
           is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-
-          // ✅ YEH 4 LINES ADD KARO
           courier_tracking_number: item.courier_tracking_number || undefined,
           courierTrackingNumber: item.courier_tracking_number || undefined,
           invoiceNumber: item.invoice?.invoice_number || undefined,
@@ -1993,9 +2149,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const rawStatus = item.delivery_status || item.status || "pending";
     return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
-  // ✅ Phone normalize — sirf digits nikaalo
+
   const normalizePhone = (phone: string) =>
     String(phone || "").replace(/\D/g, "");
+
   const isItemLevelFilterActive = useMemo(() => {
     return (
       search.trim() !== "" ||
@@ -2008,7 +2165,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const filteredOrders = useMemo(() => {
     const searchText = search.toLowerCase().trim();
-    const searchDigits = normalizePhone(searchText); // digits-only version
+    const searchDigits = normalizePhone(searchText);
     const filterStatusValue = getFilterStatusValue(statusFilter);
     const categoryValue =
       categoryFilter === "Category: All"
@@ -2023,13 +2180,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         ? null
         : orderTypeFilter.replace("Order Type: ", "");
 
-    // =====================================================
-    // ORDER-LEVEL SEARCH
-    // =====================================================
     const orderMatchesSearch = (order: Order): boolean => {
       if (!searchText) return true;
-
-      // ✅ Phone: digits-only match (handles +91, spaces, dashes)
       const phoneDigits = normalizePhone(order.userPhone);
       const phoneMatch =
         searchDigits.length > 0 && phoneDigits.includes(searchDigits);
@@ -2045,13 +2197,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       );
     };
 
-    // =====================================================
-    // ITEM-LEVEL SEARCH
-    // =====================================================
     const itemMatchesSearch = (item: OrderItem, order: Order): boolean => {
       if (!searchText) return true;
-
-      // ✅ Phone digits-only
       const phoneDigits = normalizePhone(order.userPhone);
       const phoneMatch =
         searchDigits.length > 0 && phoneDigits.includes(searchDigits);
@@ -2070,7 +2217,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         String((item as any).invoice_number || "")
           .toLowerCase()
           .includes(searchText) ||
-        // Order-level fallback
         (order.id || "").toLowerCase().includes(searchText) ||
         (order.customer || "").toLowerCase().includes(searchText) ||
         (order.userEmail || "").toLowerCase().includes(searchText) ||
@@ -2082,7 +2228,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const result: Order[] = [];
 
     uiOrders.forEach((order) => {
-      // Order type filter
       if (orderTypeValue !== null && order.orderType !== orderTypeValue) return;
 
       const orderStatusNormalized = String(order.orderStatus || "")
@@ -2099,7 +2244,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       const orderLevelMatch = orderMatchesSearch(order) && orderStatusMatches;
 
-      // Item matcher
       const itemMatches = (item: OrderItem): boolean => {
         if (!itemMatchesSearch(item, order)) return false;
 
@@ -2126,13 +2270,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         return true;
       };
 
-      // No item filter → keep grouping
       if (!isItemLevelFilterActive) {
         if (orderLevelMatch) result.push(order);
         return;
       }
 
-      // Item filter active → flatten
       const matchingItems = (order.items || []).filter(itemMatches);
 
       if (matchingItems.length > 0) {
@@ -2271,16 +2413,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
 
-  // ✅ Deliver is allowed when status is "shipped" OR "undelivered"
   const canItemDeliver = (item: OrderItem) => {
     const s = getItemStatus(item);
     return s === "shipped" || s === "undelivered";
   };
 
-  // ✅ Undelivered button only shows when status is "shipped"
   const canItemMarkUndelivered = (item: OrderItem) => getItemStatus(item) === "shipped";
 
-  // ✅ Hide all actions after "delivered"
   const isFullyDelivered = (item: OrderItem) => getItemStatus(item) === "delivered";
 
   const getSelectedDispatchableCount = (order: Order) => {
@@ -2709,6 +2848,21 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <FiFilter size={15} className="mr-1.5 inline" />
                 Clear Filters
               </button>
+
+              {/* ✅ NEW: Download CSV button */}
+              <button
+                type="button"
+                onClick={handleDownloadCsv}
+                disabled={downloadingCsv}
+                className="flex h-12 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {downloadingCsv ? (
+                  <FiLoader size={15} className="animate-spin" />
+                ) : (
+                  <FiDownload size={15} />
+                )}
+                {downloadingCsv ? "Downloading..." : "Download CSV"}
+              </button>
             </div>
 
             <button
@@ -2723,6 +2877,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   !
                 </span>
               )}
+            </button>
+          </div>
+
+          {/* ✅ NEW: Download CSV button also for mobile */}
+          <div className="relative z-10 mt-3 lg:hidden">
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              disabled={downloadingCsv}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {downloadingCsv ? (
+                <FiLoader size={15} className="animate-spin" />
+              ) : (
+                <FiDownload size={15} />
+              )}
+              {downloadingCsv ? "Downloading..." : "Download CSV"}
             </button>
           </div>
 

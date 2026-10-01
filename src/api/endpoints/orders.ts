@@ -309,7 +309,14 @@ export const orderApi = {
       data
     ),
 
-
+// =====================================================
+// DOWNLOAD CSV
+// GET /api/csv-data
+// =====================================================
+downloadCsv: () =>
+  apiClient.get<Blob>("/csv-data", {
+    responseType: "blob",
+  }),
 
     // =====================================================
 // MARK ORDER LINE AS UNDELIVERED
@@ -320,7 +327,7 @@ markUndelivered: (orderLineId: number) =>
     `/order-lines/${orderLineId}/undelivered`
   ),
 
-  
+
   // =====================================================
   // NEW: TOGGLE CANCEL/RETURN ALLOWED
   // POST /api/order-lines/:id/cancel-return

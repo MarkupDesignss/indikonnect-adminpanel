@@ -8,6 +8,7 @@ import {
   FiCreditCard,
   FiActivity,
   FiUser,
+  FiDownload,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -120,6 +121,64 @@ const getInitials = (name: string) => {
 };
 
 // =====================================================
+// CSV HELPERS
+// =====================================================
+
+const escapeCsvValue = (value: any): string => {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  // Agar value me comma, quote, ya newline hai to quotes me wrap karo
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+};
+
+const generateCsv = (records: PaymentRecord[]): string => {
+  // ✅ Proper CSV headers
+  const headers = [
+    "S.No.",
+    "Order Reference",
+    "Customer Name",
+    "Customer Email",
+    "Customer Phone",
+    "Transaction ID",
+    "Amount Paid",
+    "Status",
+    "Payment Gateway",
+    "Created At",
+  ];
+
+  const rows: string[] = [];
+
+  // Header row
+  rows.push(headers.map(escapeCsvValue).join(","));
+
+  // Data rows
+  records.forEach((payment, index) => {
+    const anyPayment = payment as any;
+    const customerName = getCustomerName(payment);
+
+    const row = [
+      index + 1,
+      payment.order_reference || "",
+      customerName || "",
+      anyPayment.email || "",
+      anyPayment.phone || "",
+      payment.gateway_transaction_id || "",
+      Number(payment.amount_paid || 0).toFixed(2),
+      formatStatus(payment.status) || "",
+      payment.payment_gateway || "",
+      formatDate(payment.created_at) || "",
+    ];
+
+    rows.push(row.map(escapeCsvValue).join(","));
+  });
+
+  return rows.join("\r\n");
+};
+
+// =====================================================
 // STAT CARD
 // =====================================================
 
@@ -183,6 +242,9 @@ const Payment: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ✅ NEW: CSV download state
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
+
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
@@ -215,6 +277,52 @@ const Payment: React.FC = () => {
   useEffect(() => {
     fetchPayments();
   }, []);
+
+  // ===================================================
+  // ✅ CSV DOWNLOAD HANDLER (No filters — all records)
+  // ===================================================
+
+  const handleDownloadCsv = () => {
+    if (downloadingCsv) return;
+
+    if (!payments || payments.length === 0) {
+      toast.error("No payment records available to export.");
+      return;
+    }
+
+    setDownloadingCsv(true);
+
+    try {
+      // ✅ Proper CSV generate karo (all records, no filters)
+      const csvContent = generateCsv(payments);
+
+      // ✅ UTF-8 BOM add karo taaki Excel me ₹ aur special chars sahi dikhe
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // ✅ Filename with date
+      const today = new Date().toISOString().slice(0, 10);
+      link.download = `payments-${today}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(`CSV downloaded — ${payments.length} records exported`);
+    } catch (error: any) {
+      console.error("CSV download error:", error);
+      toast.error("Failed to download CSV. Please try again.");
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
 
   // ===================================================
   // STATUS OPTIONS
@@ -374,15 +482,32 @@ const Payment: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={fetchPayments}
-          disabled={loading}
-          className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#163F20]/20 bg-white px-4 text-sm font-bold text-[#163F20] shadow-sm transition hover:border-[#163F20]/35 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3 self-start">
+          {/* ✅ NEW: Download CSV button */}
+          <button
+            type="button"
+            onClick={handleDownloadCsv}
+            disabled={downloadingCsv || loading}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {downloadingCsv ? (
+              <FiRefreshCw size={16} className="animate-spin" />
+            ) : (
+              <FiDownload size={16} />
+            )}
+            {downloadingCsv ? "Downloading..." : "Download CSV"}
+          </button>
+
+          <button
+            type="button"
+            onClick={fetchPayments}
+            disabled={loading}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 text-sm font-bold text-[#163F20] shadow-sm transition hover:border-[#163F20]/35 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </motion.div>
 
       {/* STATS */}
@@ -461,8 +586,8 @@ const Payment: React.FC = () => {
                     setCurrentPage(1);
                   }}
                   className={`shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${statusFilter === status
-                      ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                      : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                    ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                    : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
                     }`}
                 >
                   {status === "all" ? "All" : formatStatus(status)}
@@ -832,8 +957,8 @@ const Payment: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage(page)}
                     className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${currentPage === page
-                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                        : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                      ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                      : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
                       }`}
                   >
                     {page}
