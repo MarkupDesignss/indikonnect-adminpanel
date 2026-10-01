@@ -7,6 +7,7 @@ import {
   FiSearch,
   FiCreditCard,
   FiActivity,
+  FiUser,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -93,6 +94,29 @@ const getStatusClass = (status: string) => {
     default:
       return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
   }
+};
+
+// =====================================================
+// CUSTOMER HELPERS
+// =====================================================
+
+const getCustomerName = (payment: PaymentRecord) => {
+  const anyPayment = payment as any;
+  if (anyPayment.full_name?.trim()) return anyPayment.full_name;
+  if (anyPayment.name?.trim()) return anyPayment.name;
+  if (anyPayment.user?.name?.trim()) return anyPayment.user.name;
+  if (anyPayment.email) return String(anyPayment.email).split("@")[0];
+  return "Customer";
+};
+
+const getInitials = (name: string) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (
+    parts[0].charAt(0).toUpperCase() +
+    parts[parts.length - 1].charAt(0).toUpperCase()
+  );
 };
 
 // =====================================================
@@ -230,13 +254,15 @@ const Payment: React.FC = () => {
   }, [payments]);
 
   // ===================================================
-  // FILTER
+  // FILTER (now includes customer name / email / phone)
   // ===================================================
 
   const filteredPayments = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return payments.filter((payment) => {
+      const anyPayment = payment as any;
+
       const matchesSearch =
         !query ||
         [
@@ -246,6 +272,11 @@ const Payment: React.FC = () => {
           payment.status,
           payment.payment_gateway,
           formatDate(payment.created_at),
+          anyPayment.full_name || "",
+          anyPayment.name || "",
+          anyPayment.email || "",
+          anyPayment.phone || "",
+          anyPayment.account_type || "",
         ]
           .join(" ")
           .toLowerCase()
@@ -415,7 +446,7 @@ const Payment: React.FC = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search order, transaction ID, amount, gateway..."
+                placeholder="Search order, transaction, customer, email..."
                 className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
               />
             </div>
@@ -429,11 +460,10 @@ const Payment: React.FC = () => {
                     setStatusFilter(status);
                     setCurrentPage(1);
                   }}
-                  className={`shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${
-                    statusFilter === status
+                  className={`shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${statusFilter === status
                       ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
                       : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                  }`}
+                    }`}
                 >
                   {status === "all" ? "All" : formatStatus(status)}
                 </button>
@@ -444,7 +474,7 @@ const Payment: React.FC = () => {
 
         {/* DESKTOP TABLE */}
         <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[1050px] border-collapse">
+          <table className="w-full min-w-[1250px] border-collapse">
             <thead>
               <tr className="bg-[#163F20]">
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
@@ -452,6 +482,9 @@ const Payment: React.FC = () => {
                 </th>
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                   Order Reference
+                </th>
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  Customer
                 </th>
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                   Transaction ID
@@ -474,7 +507,7 @@ const Payment: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center">
+                  <td colSpan={8} className="px-5 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                         <FiRefreshCw size={22} className="animate-spin" />
@@ -492,7 +525,7 @@ const Payment: React.FC = () => {
                 </tr>
               ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-16 text-center">
+                  <td colSpan={8} className="px-5 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                         <FiSearch size={24} />
@@ -509,75 +542,108 @@ const Payment: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                paginatedPayments.map((payment, index) => (
-                  <motion.tr
-                    key={`${payment.order_reference}-${payment.gateway_transaction_id}-${index}`}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
-                  >
-                    <td className="px-5 py-4">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
-                        {startIndex + index + 1}
-                      </span>
-                    </td>
+                paginatedPayments.map((payment, index) => {
+                  const anyPayment = payment as any;
+                  const customerName = getCustomerName(payment);
+                  const initials = getInitials(customerName);
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                          <FiCreditCard size={17} />
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="max-w-[210px] truncate text-sm font-bold text-[#202721]">
-                            {payment.order_reference}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <p className="max-w-[220px] truncate text-xs font-semibold text-[#3F4A41]">
-                        {payment.gateway_transaction_id}
-                      </p>
-                    </td>
-
-                    <td className="px-5 py-4 text-right">
-                      <span className="text-sm font-bold text-[#163F20]">
-                        {formatAmount(payment.amount_paid)}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                          payment.status,
-                        )}`}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
-
-                        {formatStatus(payment.status)}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-center">
-                      <span className="inline-flex items-center rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] px-3 py-1.5 text-[10px] font-bold capitalize text-[#59645C]">
-                        {payment.payment_gateway}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <FiCalendar size={13} className="text-[#163F20]" />
-
-                        <span className="text-[10px] font-semibold text-[#59645C]">
-                          {formatDate(payment.created_at)}
+                  return (
+                    <motion.tr
+                      key={`${payment.order_reference}-${payment.gateway_transaction_id}-${index}`}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                    >
+                      <td className="px-5 py-4">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                          {startIndex + index + 1}
                         </span>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                            <FiCreditCard size={17} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="max-w-[210px] truncate text-sm font-bold text-[#202721]">
+                              {payment.order_reference}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* CUSTOMER COLUMN */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8FC199] to-[#163F20] text-[11px] font-bold text-white">
+                            {initials}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="max-w-[180px] truncate text-sm font-bold text-[#202721]">
+                              {customerName}
+                            </p>
+
+                            {anyPayment.email && (
+                              <p className="mt-0.5 max-w-[180px] truncate text-[11px] text-[#9AA29C]">
+                                {anyPayment.email}
+                              </p>
+                            )}
+
+                            {anyPayment.phone && (
+                              <p className="mt-0.5 text-[10px] font-semibold text-[#59645C]">
+                                {anyPayment.phone}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <p className="max-w-[220px] truncate text-xs font-semibold text-[#3F4A41]">
+                          {payment.gateway_transaction_id}
+                        </p>
+                      </td>
+
+                      <td className="px-5 py-4 text-right">
+                        <span className="text-sm font-bold text-[#163F20]">
+                          {formatAmount(payment.amount_paid)}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                            payment.status,
+                          )}`}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+
+                          {formatStatus(payment.status)}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-center">
+                        <span className="inline-flex items-center rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] px-3 py-1.5 text-[10px] font-bold capitalize text-[#59645C]">
+                          {payment.payment_gateway}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <FiCalendar size={13} className="text-[#163F20]" />
+
+                          <span className="text-[10px] font-semibold text-[#59645C]">
+                            {formatDate(payment.created_at)}
+                          </span>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -600,93 +666,124 @@ const Payment: React.FC = () => {
               </p>
             </div>
           ) : paginatedPayments.length > 0 ? (
-            paginatedPayments.map((payment, index) => (
-              <motion.div
-                key={`${payment.order_reference}-${payment.gateway_transaction_id}-${index}`}
-                variants={itemVariants}
-                className="border-b border-[#163F20]/10 p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                      <FiCreditCard size={17} />
+            paginatedPayments.map((payment, index) => {
+              const anyPayment = payment as any;
+              const customerName = getCustomerName(payment);
+              const initials = getInitials(customerName);
+
+              return (
+                <motion.div
+                  key={`${payment.order_reference}-${payment.gateway_transaction_id}-${index}`}
+                  variants={itemVariants}
+                  className="border-b border-[#163F20]/10 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                        <FiCreditCard size={17} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#202721]">
+                          {payment.order_reference}
+                        </p>
+
+                        <p className="mt-1 max-w-[220px] truncate text-[10px] text-[#9AA29C]">
+                          {payment.gateway_transaction_id}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-[#202721]">
-                        {payment.order_reference}
-                      </p>
-
-                      <p className="mt-1 max-w-[220px] truncate text-[10px] text-[#9AA29C]">
-                        {payment.gateway_transaction_id}
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="text-[10px] font-bold text-[#9AA29C]">
-                    #{startIndex + index + 1}
-                  </span>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#163F20]">
-                      Amount Paid
-                    </p>
-
-                    <p className="mt-1 text-sm font-bold text-[#0F3219]">
-                      {formatAmount(payment.amount_paid)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                      Status
-                    </p>
-
-                    <span
-                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold ${getStatusClass(
-                        payment.status,
-                      )}`}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-
-                      {formatStatus(payment.status)}
+                    <span className="text-[10px] font-bold text-[#9AA29C]">
+                      #{startIndex + index + 1}
                     </span>
                   </div>
 
-                  <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                      Gateway
-                    </p>
+                  {/* CUSTOMER CARD (mobile) */}
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8FC199] to-[#163F20] text-[12px] font-bold text-white">
+                      {initials}
+                    </div>
 
-                    <p className="mt-1 text-sm font-bold capitalize text-[#3F4A41]">
-                      {payment.payment_gateway}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-[#202721]">
+                        {customerName}
+                      </p>
+
+                      {anyPayment.email && (
+                        <p className="mt-0.5 truncate text-[11px] text-[#9AA29C]">
+                          {anyPayment.email}
+                        </p>
+                      )}
+
+                      {anyPayment.phone && (
+                        <p className="mt-0.5 text-[11px] font-semibold text-[#59645C]">
+                          {anyPayment.phone}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#163F20]">
+                        Amount Paid
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold text-[#0F3219]">
+                        {formatAmount(payment.amount_paid)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                        Status
+                      </p>
+
+                      <span
+                        className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-bold ${getStatusClass(
+                          payment.status,
+                        )}`}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+
+                        {formatStatus(payment.status)}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                        Gateway
+                      </p>
+
+                      <p className="mt-1 text-sm font-bold capitalize text-[#3F4A41]">
+                        {payment.payment_gateway}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                        Created At
+                      </p>
+
+                      <p className="mt-1 text-xs font-semibold text-[#3F4A41]">
+                        {formatDate(payment.created_at)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
                     <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                      Created At
+                      Transaction ID
                     </p>
 
-                    <p className="mt-1 text-xs font-semibold text-[#3F4A41]">
-                      {formatDate(payment.created_at)}
+                    <p className="mt-1 break-all text-xs font-semibold text-[#3F4A41]">
+                      {payment.gateway_transaction_id}
                     </p>
                   </div>
-                </div>
-
-                <div className="mt-3 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                    Transaction ID
-                  </p>
-
-                  <p className="mt-1 break-all text-xs font-semibold text-[#3F4A41]">
-                    {payment.gateway_transaction_id}
-                  </p>
-                </div>
-              </motion.div>
-            ))
+                </motion.div>
+              );
+            })
           ) : (
             <div className="flex flex-col items-center px-5 py-16 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
@@ -734,11 +831,10 @@ const Payment: React.FC = () => {
                     key={page}
                     type="button"
                     onClick={() => setCurrentPage(page)}
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
-                      currentPage === page
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${currentPage === page
                         ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
                         : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                    }`}
+                      }`}
                   >
                     {page}
                   </button>

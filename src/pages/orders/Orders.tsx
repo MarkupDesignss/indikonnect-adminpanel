@@ -66,6 +66,9 @@ const DollarIcon = () => (
 
 export interface OrderItem {
   id: string;
+  invoiceNumber?: string;
+  invoice_number?: string;
+  shipmentNumber?: string;
   productName: string;
   sku: string;
   quantity: number;
@@ -87,6 +90,16 @@ export interface OrderItem {
   categoryId?: number | string;
   brandId?: number | string;
   is_cancel_return_allowed?: boolean;
+  courier_tracking_number?: string;
+  courierTrackingNumber?: string;
+
+
+  invoice?: {
+    id: number;
+    invoice_number: string;
+  } | null;
+
+
 }
 
 export interface Order {
@@ -1029,7 +1042,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
                         <span className="text-xs text-[#9AA29C]">Tracking Number</span>
                         <span className="text-sm font-semibold text-[#202721]">
-                          {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
+                          {items?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
                         </span>
                       </div>
                       {shipping_details?.courier_delivery_date && (
@@ -1941,7 +1954,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           itemReferenceId: item.item_reference_id || "N/A",
           productName: item.product_name || "N/A",
           sku: item.product_code || "N/A",
-          quantity: item.quantity || 0,
+          quantity: item.quantity,
           price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
           total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
           unitPrice: item.unit_price || 0,
@@ -1956,9 +1969,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           availableForReturn: item.available_for_return,
           gstRate: item.gst_rate,
           gstAmount: item.gst_amount,
-          categoryId: item.category_id,
-          brandId: item.brand_id,
           is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+
+          // ✅ YEH 4 LINES ADD KARO
+          courier_tracking_number: item.courier_tracking_number || undefined,
+          courierTrackingNumber: item.courier_tracking_number || undefined,
+          invoiceNumber: item.invoice?.invoice_number || undefined,
+          invoice_number: item.invoice?.invoice_number || undefined,
         })) || [],
     };
   };
@@ -1976,7 +1993,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const rawStatus = item.delivery_status || item.status || "pending";
     return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
-
+  // ✅ Phone normalize — sirf digits nikaalo
+  const normalizePhone = (phone: string) =>
+    String(phone || "").replace(/\D/g, "");
   const isItemLevelFilterActive = useMemo(() => {
     return (
       search.trim() !== "" ||
@@ -1989,38 +2008,103 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const filteredOrders = useMemo(() => {
     const searchText = search.toLowerCase().trim();
+    const searchDigits = normalizePhone(searchText); // digits-only version
     const filterStatusValue = getFilterStatusValue(statusFilter);
     const categoryValue =
-      categoryFilter === "Category: All" ? null : categoryFilter.replace("Category: ", "");
+      categoryFilter === "Category: All"
+        ? null
+        : categoryFilter.replace("Category: ", "");
     const brandValue =
-      brandFilter === "Brand: All" ? null : brandFilter.replace("Brand: ", "");
+      brandFilter === "Brand: All"
+        ? null
+        : brandFilter.replace("Brand: ", "");
     const orderTypeValue =
-      orderTypeFilter === "Order Type: All" ? null : orderTypeFilter.replace("Order Type: ", "");
+      orderTypeFilter === "Order Type: All"
+        ? null
+        : orderTypeFilter.replace("Order Type: ", "");
+
+    // =====================================================
+    // ORDER-LEVEL SEARCH
+    // =====================================================
+    const orderMatchesSearch = (order: Order): boolean => {
+      if (!searchText) return true;
+
+      // ✅ Phone: digits-only match (handles +91, spaces, dashes)
+      const phoneDigits = normalizePhone(order.userPhone);
+      const phoneMatch =
+        searchDigits.length > 0 && phoneDigits.includes(searchDigits);
+
+      return (
+        phoneMatch ||
+        (order.id || "").toLowerCase().includes(searchText) ||
+        (order.customer || "").toLowerCase().includes(searchText) ||
+        (order.customerName || "").toLowerCase().includes(searchText) ||
+        (order.userEmail || "").toLowerCase().includes(searchText) ||
+        (order.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
+        (order.trackingNumber || "").toLowerCase().includes(searchText)
+      );
+    };
+
+    // =====================================================
+    // ITEM-LEVEL SEARCH
+    // =====================================================
+    const itemMatchesSearch = (item: OrderItem, order: Order): boolean => {
+      if (!searchText) return true;
+
+      // ✅ Phone digits-only
+      const phoneDigits = normalizePhone(order.userPhone);
+      const phoneMatch =
+        searchDigits.length > 0 && phoneDigits.includes(searchDigits);
+
+      return (
+        phoneMatch ||
+        (item.productName || "").toLowerCase().includes(searchText) ||
+        (item.sku || "").toLowerCase().includes(searchText) ||
+        (item.itemReferenceId || "").toLowerCase().includes(searchText) ||
+        String((item as any).courier_tracking_number || "")
+          .toLowerCase()
+          .includes(searchText) ||
+        String((item as any).invoiceNumber || "")
+          .toLowerCase()
+          .includes(searchText) ||
+        String((item as any).invoice_number || "")
+          .toLowerCase()
+          .includes(searchText) ||
+        // Order-level fallback
+        (order.id || "").toLowerCase().includes(searchText) ||
+        (order.customer || "").toLowerCase().includes(searchText) ||
+        (order.userEmail || "").toLowerCase().includes(searchText) ||
+        (order.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
+        (order.trackingNumber || "").toLowerCase().includes(searchText)
+      );
+    };
 
     const result: Order[] = [];
 
     uiOrders.forEach((order) => {
+      // Order type filter
       if (orderTypeValue !== null && order.orderType !== orderTypeValue) return;
 
+      const orderStatusNormalized = String(order.orderStatus || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "_");
+
+      const orderStatusMatches =
+        filterStatusValue === null ||
+        orderStatusNormalized === filterStatusValue ||
+        (order.items || []).some(
+          (it) => getItemStatus(it) === filterStatusValue,
+        );
+
+      const orderLevelMatch = orderMatchesSearch(order) && orderStatusMatches;
+
+      // Item matcher
       const itemMatches = (item: OrderItem): boolean => {
-        if (searchText) {
-          const itemSearchMatch =
-            item.productName.toLowerCase().includes(searchText) ||
-            (item.sku && item.sku.toLowerCase().includes(searchText)) ||
-            (item.itemReferenceId &&
-              item.itemReferenceId.toLowerCase().includes(searchText)) ||
-            order.id.toLowerCase().includes(searchText) ||
-            order.customer.toLowerCase().includes(searchText) ||
-            order.customerName.toLowerCase().includes(searchText);
-          if (!itemSearchMatch) return false;
-        }
+        if (!itemMatchesSearch(item, order)) return false;
 
         if (filterStatusValue !== null) {
           const itemStatus = getItemStatus(item);
-          const orderStatusNormalized = String(order.orderStatus || "")
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "_");
           const orderMatches = orderStatusNormalized === filterStatusValue;
           if (!orderMatches && itemStatus !== filterStatusValue) return false;
         }
@@ -2042,11 +2126,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         return true;
       };
 
+      // No item filter → keep grouping
       if (!isItemLevelFilterActive) {
-        result.push(order);
+        if (orderLevelMatch) result.push(order);
         return;
       }
 
+      // Item filter active → flatten
       const matchingItems = (order.items || []).filter(itemMatches);
 
       if (matchingItems.length > 0) {
@@ -2058,15 +2144,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         });
       } else if (
         (!order.items || order.items.length === 0) &&
-        (filterStatusValue === null ||
-          String(order.orderStatus || "")
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "_") === filterStatusValue) &&
-        (!searchText ||
-          order.id.toLowerCase().includes(searchText) ||
-          order.customer.toLowerCase().includes(searchText) ||
-          order.customerName.toLowerCase().includes(searchText)) &&
+        orderLevelMatch &&
         categoryValue === null &&
         brandValue === null
       ) {
@@ -2520,7 +2598,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search orders, customers, products..."
+                placeholder="Search by Order ID, Mobile, Invoice, Shipment no., Product, SKU..."
                 className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
               />
               {search && (

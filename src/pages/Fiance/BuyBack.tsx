@@ -18,6 +18,11 @@ import {
   FiCheckCircle,
   FiCreditCard,
   FiBriefcase,
+  FiSend,
+  FiXCircle,
+  FiRotateCcw,
+  FiRotateCw,
+  FiDollarSign,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -62,6 +67,15 @@ type ReturnFilterTab =
 interface ActionLoading {
   type: "approve" | "reject" | "received" | "complete" | null;
   id: number | null;
+}
+
+interface TimelineEvent {
+  key: string;
+  label: string;
+  description: string;
+  date: string;
+  color: string;
+  icon: React.ReactNode;
 }
 
 // =====================================================
@@ -196,6 +210,166 @@ const formatMethodLabel = (method?: string | null) => {
 };
 
 // =====================================================
+// TIMELINE EVENT BUILDER
+// =====================================================
+
+const buildTimelineEvents = (
+  timeline: Record<string, any> | undefined
+): TimelineEvent[] => {
+  if (!timeline) return [];
+
+  const rawEvents: Array<{
+    key: string;
+    label: string;
+    description: string;
+    date: string | null;
+    color: string;
+    icon: React.ReactNode;
+  }> = [
+      {
+        key: "created_at",
+        label: "Order Created",
+        description: "Order was placed by the customer.",
+        date: timeline.created_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiPackage size={14} />,
+      },
+      {
+        key: "dispatched_at",
+        label: "Dispatched",
+        description: "Order was handed over to courier.",
+        date: timeline.dispatched_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiTruck size={14} />,
+      },
+      {
+        key: "shipped_at",
+        label: "Shipped",
+        description: "Package is in transit.",
+        date: timeline.shipped_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiSend size={14} />,
+      },
+      {
+        key: "delivered_at",
+        label: "Delivered",
+        description: "Package delivered to the customer.",
+        date: timeline.delivered_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "cancellation_requested_at",
+        label: "Cancellation Requested",
+        description: "Customer requested order cancellation.",
+        date: timeline.cancellation_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiClock size={14} />,
+      },
+      {
+        key: "cancelled_at",
+        label: "Cancelled",
+        description: "Order was cancelled.",
+        date: timeline.cancelled_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "cancellation_rejected_at",
+        label: "Cancellation Rejected",
+        description: "Cancellation request was rejected.",
+        date: timeline.cancellation_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_requested_at",
+        label: "Return Requested",
+        description: "Customer requested a return.",
+        date: timeline.return_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiRotateCcw size={14} />,
+      },
+      {
+        key: "return_approved_at",
+        label: "Return Approved",
+        description: "Return request was approved.",
+        date: timeline.return_approved_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "return_rejected_at",
+        label: "Return Rejected",
+        description: "Return request was rejected.",
+        date: timeline.return_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_completed_at",
+        label: "Return Completed",
+        description: "Return process was completed.",
+        date: timeline.return_completed_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_requested_at",
+        label: "Buyback Requested",
+        description: "Customer requested a buyback.",
+        date: timeline.buyback_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiRotateCw size={14} />,
+      },
+      {
+        key: "buyback_approved_at",
+        label: "Buyback Approved",
+        description: "Buyback request was approved.",
+        date: timeline.buyback_approved_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_rejected_at",
+        label: "Buyback Rejected",
+        description: "Buyback request was rejected.",
+        date: timeline.buyback_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "buyback_refunded_at",
+        label: "Buyback Refunded",
+        description: "Buyback refund was processed.",
+        date: timeline.buyback_refunded_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiDollarSign size={14} />,
+      },
+      {
+        key: "updated_at",
+        label: "Last Updated",
+        description: "Last status change recorded.",
+        date: timeline.updated_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiClock size={14} />,
+      },
+    ];
+
+  return rawEvents
+    .filter((event) => Boolean(event.date))
+    .map((event) => ({
+      ...event,
+      date: event.date as string,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(a.date.replace(" ", "T")).getTime() -
+        new Date(b.date.replace(" ", "T")).getTime()
+    );
+};
+
+// =====================================================
 // STAT CARD
 // =====================================================
 
@@ -248,6 +422,83 @@ const ReturnStatCard: React.FC<ReturnStatCardProps> = ({
         </div>
       </div>
     </motion.div>
+  );
+};
+
+// =====================================================
+// TIMELINE STEPPER
+// =====================================================
+
+interface TimelineStepperProps {
+  events: TimelineEvent[];
+  emptyText?: string;
+}
+
+const TimelineStepper: React.FC<TimelineStepperProps> = ({
+  events,
+  emptyText = "No timeline events available.",
+}) => {
+  if (!events || events.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[#D8E2D8] bg-white p-4 text-center">
+        <p className="text-xs text-[#9AA29C]">{emptyText}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {events.map((event, index) => {
+        const isLast = index === events.length - 1;
+        const isFirst = index === 0;
+
+        return (
+          <div
+            key={event.key}
+            className="relative flex gap-4 pb-6 last:pb-0"
+          >
+            <div className="relative flex flex-col items-center">
+              {!isFirst && (
+                <div className="absolute bottom-full left-1/2 h-6 w-px -translate-x-1/2 bg-[#D8E2D8]" />
+              )}
+
+              <div
+                className={`relative z-10 flex h-10 w-10 items-center justify-center rounded-full text-white shadow-sm ring-4 ring-white ${event.color}`}
+              >
+                {event.icon}
+              </div>
+
+              {!isLast && (
+                <div className="absolute top-10 bottom-0 left-1/2 w-px -translate-x-1/2 bg-[#D8E2D8]" />
+              )}
+            </div>
+
+            <div className="flex-1 pt-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-[#202721]">
+                  {event.label}
+                </p>
+
+                {isLast && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#4C8A57]/25 bg-[#EAF3EA] px-2 py-0.5 text-[10px] font-bold text-[#163F20]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
+                    Latest
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-1 text-xs leading-5 text-[#59645C]">
+                {event.description}
+              </p>
+
+              <p className="mt-1.5 text-[11px] font-semibold text-[#9AA29C]">
+                {formatDate(event.date)}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
@@ -518,7 +769,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 };
 
 // =====================================================
-// MARK RECEIVED POPUP (Simple - No Refund Amount)
+// MARK RECEIVED POPUP
 // =====================================================
 
 interface MarkReceivedPopupProps {
@@ -659,7 +910,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
 };
 
 // =====================================================
-// COMPLETE POPUP (Refund only - no resolution type)
+// COMPLETE POPUP (Refund only)
 // =====================================================
 
 interface CompletePopupProps {
@@ -952,6 +1203,31 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const hasRefundBreakdown = Boolean(refundBreakdown);
 
+  // Build timeline from various possible API shapes
+  const rawDetail: any = detail;
+  const timelineSource =
+    rawDetail.timeline ||
+    rawDetail.order_lines_timeline?.[0]?.timeline ||
+    rawDetail.order_line_timeline?.timeline ||
+    null;
+
+  const timelineEvents = timelineSource
+    ? buildTimelineEvents(timelineSource)
+    : buildTimelineEvents({
+      created_at: rawDetail.order_created_at || rawDetail.created_at || null,
+      buyback_requested_at:
+        rawDetail.buyback_requested_at ||
+        rawDetail.created_at ||
+        null,
+      buyback_approved_at: rawDetail.approved_at || null,
+      buyback_rejected_at:
+        detail.status === "rejected" ? rawDetail.updated_at : null,
+      buyback_refunded_at:
+        detail.status === "completed"
+          ? rawDetail.refunded_at || rawDetail.updated_at
+          : null,
+    });
+
   return (
     <GlobalModal
       isOpen={open}
@@ -1032,7 +1308,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-xl font-bold text-[#163F20]">
                       {formatCurrency(
                         detail.refund_info?.amount ??
-                          detail.refund_details?.total
+                        detail.refund_details?.total
                       )}
                     </p>
                   </div>
@@ -1055,8 +1331,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-sm font-bold text-[#202721]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
-                          detail.refunded_at ||
-                          detail.updated_at
+                        detail.refunded_at ||
+                        detail.updated_at
                       )}
                     </p>
                   </div>
@@ -1293,6 +1569,36 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
+          {/* TRACK ORDER — Full Timeline */}
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2D8] bg-white">
+            <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                  <FiTruck size={17} />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold text-[#202721]">
+                    Track Order
+                  </h3>
+
+                  <p className="mt-0.5 text-xs text-[#9AA29C]">
+                    Full timeline of this buyback request
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <div className="rounded-2xl border border-[#D8E2D8] bg-[#FAFBFA] p-5">
+                <TimelineStepper
+                  events={timelineEvents}
+                  emptyText="No timeline events recorded for this request yet."
+                />
+              </div>
+            </div>
+          </div>
+
           {/* REFUND SECTION */}
           {hasRefundBreakdown ? (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#4C8A57]/20 bg-white">
@@ -1458,9 +1764,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
 
                   <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition-transform duration-200 ${
-                      refundBreakdownOpen ? "rotate-180" : ""
-                    }`}
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
+                      }`}
                   >
                     <FiChevronDown size={15} />
                   </span>
@@ -1646,105 +1951,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               )}
             </div>
           )}
-
-          {/* TIMELINE */}
-          <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                <FiCalendar size={17} />
-              </div>
-
-              <h3 className="text-sm font-bold text-[#202721]">
-                Buyback Timeline
-              </h3>
-            </div>
-
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                  </div>
-
-                  <div className="h-10 w-px bg-[#D8E2D8]" />
-                </div>
-
-                <div className="pt-1">
-                  <p className="text-sm font-bold text-[#202721]">
-                    Buyback Requested
-                  </p>
-
-                  <p className="mt-1 text-xs text-[#9AA29C]">
-                    {formatDate(detail.created_at)}
-                  </p>
-                </div>
-              </div>
-
-              {detail.approved_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    </div>
-
-                    <div className="h-10 w-px bg-[#D8E2D8]" />
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#202721]">
-                      Buyback Approved
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.approved_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {detail.received_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    </div>
-
-                    <div className="h-10 w-px bg-[#D8E2D8]" />
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#202721]">
-                      Buyback Received
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.received_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {isCompleted && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                    </div>
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#163F20]">
-                      Refund Completed
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.refunded_at || detail.updated_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {detail.admin_notes && (
             <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
@@ -2176,7 +2382,7 @@ const BuyBack: React.FC = () => {
   };
 
   // ===================================================
-  // MARK RECEIVED (Simple - no refund amount)
+  // MARK RECEIVED
   // ===================================================
 
   const handleMarkReceived = async (adminNotes: string) => {
@@ -2492,11 +2698,10 @@ const BuyBack: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
-                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
-                      activeFilter === filter.key
+                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${activeFilter === filter.key
                         ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
                         : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                    }`}
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -2580,7 +2785,6 @@ const BuyBack: React.FC = () => {
                 ) : (
                   paginatedRequests.map((request, index) => {
                     const canApprove = request.can_approve;
-
                     const canReject = request.can_reject;
 
                     const approveLoading =
@@ -2588,7 +2792,6 @@ const BuyBack: React.FC = () => {
                       actionLoading.id === request.id;
 
                     const showMarkReceived = request.status === "approved";
-
                     const showComplete = request.status === "received";
 
                     return (
@@ -2679,6 +2882,15 @@ const BuyBack: React.FC = () => {
                                 <FiEye size={15} />
                               </button>
 
+                              <button
+                                type="button"
+                                onClick={() => handleView(request.id)}
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20] transition hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                title="Track Order"
+                              >
+                                <FiTruck size={15} />
+                              </button>
+
                               {canApprove && (
                                 <button
                                   type="button"
@@ -2753,7 +2965,6 @@ const BuyBack: React.FC = () => {
                   actionLoading.id === request.id;
 
                 const showMarkReceived = request.status === "approved";
-
                 const showComplete = request.status === "received";
 
                 return (
@@ -2831,8 +3042,18 @@ const BuyBack: React.FC = () => {
                           type="button"
                           onClick={() => handleView(request.id)}
                           className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] text-[#163F20]"
+                          title="View"
                         >
                           <FiEye size={15} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleView(request.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20]"
+                          title="Track"
+                        >
+                          <FiTruck size={15} />
                         </button>
 
                         {request.can_approve && (
@@ -2958,11 +3179,10 @@ const BuyBack: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => handlePageChange(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
                           ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
                           : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>
@@ -3015,7 +3235,7 @@ const BuyBack: React.FC = () => {
         onConfirm={handleReject}
       />
 
-      {/* MARK RECEIVED POPUP (Simple - no refund amount) */}
+      {/* MARK RECEIVED POPUP */}
       <MarkReceivedPopup
         open={receivedModalOpen}
         orderReference={selectedDetail?.order?.order_reference || "N/A"}
@@ -3025,7 +3245,7 @@ const BuyBack: React.FC = () => {
         onConfirm={handleMarkReceived}
       />
 
-      {/* COMPLETE POPUP (Refund only - no resolution type) */}
+      {/* COMPLETE POPUP */}
       <CompletePopup
         open={completeModalOpen}
         loading={completeLoading}

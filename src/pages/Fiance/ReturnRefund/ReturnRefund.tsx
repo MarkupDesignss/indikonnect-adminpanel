@@ -18,6 +18,11 @@ import {
   FiCheckCircle,
   FiCreditCard,
   FiBriefcase,
+  FiSend,
+  FiXCircle,
+  FiRotateCcw,
+  FiRotateCw,
+  FiDollarSign,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -195,6 +200,168 @@ const formatMethodLabel = (method?: string | null) => {
   return method
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+// =====================================================
+// TIMELINE EVENT BUILDER
+// =====================================================
+// Takes a timeline object and produces an ordered array of events
+// Only includes events that have a non-null date.
+// =====================================================
+
+interface TimelineEvent {
+  key: string;
+  label: string;
+  description: string;
+  date: string;
+  color: string;
+  icon: React.ReactNode;
+}
+
+const buildTimelineEvents = (timeline: Record<string, any> | undefined): TimelineEvent[] => {
+  if (!timeline) return [];
+
+  const rawEvents: Array<{
+    key: string;
+    label: string;
+    description: string;
+    date: string | null;
+    color: string;
+    icon: React.ReactNode;
+  }> = [
+      {
+        key: "created_at",
+        label: "Order Created",
+        description: "Order was placed by the customer.",
+        date: timeline.created_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiPackage size={14} />,
+      },
+      {
+        key: "dispatched_at",
+        label: "Dispatched",
+        description: "Order was handed over to courier.",
+        date: timeline.dispatched_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiTruck size={14} />,
+      },
+      {
+        key: "shipped_at",
+        label: "Shipped",
+        description: "Package is in transit.",
+        date: timeline.shipped_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiSend size={14} />,
+      },
+      {
+        key: "delivered_at",
+        label: "Delivered",
+        description: "Package delivered to the customer.",
+        date: timeline.delivered_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "cancellation_requested_at",
+        label: "Cancellation Requested",
+        description: "Customer requested order cancellation.",
+        date: timeline.cancellation_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiClock size={14} />,
+      },
+      {
+        key: "cancelled_at",
+        label: "Cancelled",
+        description: "Order was cancelled.",
+        date: timeline.cancelled_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "cancellation_rejected_at",
+        label: "Cancellation Rejected",
+        description: "Cancellation request was rejected.",
+        date: timeline.cancellation_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_requested_at",
+        label: "Return Requested",
+        description: "Customer requested a return.",
+        date: timeline.return_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiRotateCcw size={14} />,
+      },
+      {
+        key: "return_approved_at",
+        label: "Return Approved",
+        description: "Return request was approved.",
+        date: timeline.return_approved_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "return_rejected_at",
+        label: "Return Rejected",
+        description: "Return request was rejected.",
+        date: timeline.return_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_completed_at",
+        label: "Return Completed",
+        description: "Return process was completed.",
+        date: timeline.return_completed_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_requested_at",
+        label: "Buyback Requested",
+        description: "Customer requested buyback.",
+        date: timeline.buyback_requested_at ?? null,
+        color: "bg-amber-500",
+        icon: <FiRotateCw size={14} />,
+      },
+      {
+        key: "buyback_approved_at",
+        label: "Buyback Approved",
+        description: "Buyback request was approved.",
+        date: timeline.buyback_approved_at ?? null,
+        color: "bg-[#4C8A57]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_rejected_at",
+        label: "Buyback Rejected",
+        description: "Buyback request was rejected.",
+        date: timeline.buyback_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "buyback_refunded_at",
+        label: "Buyback Refunded",
+        description: "Buyback refund was processed.",
+        date: timeline.buyback_refunded_at ?? null,
+        color: "bg-[#163F20]",
+        icon: <FiDollarSign size={14} />,
+      },
+    ];
+
+  return rawEvents
+    .filter((event) => Boolean(event.date))
+    .map((event) => ({
+      ...event,
+      date: event.date as string,
+    }))
+    .sort(
+      (a, b) =>
+        new Date(a.date.replace(" ", "T")).getTime() -
+        new Date(b.date.replace(" ", "T")).getTime()
+    );
 };
 
 // =====================================================
@@ -520,7 +687,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 };
 
 // =====================================================
-// MARK RECEIVED POPUP (Simple - No Refund Amount)
+// MARK RECEIVED POPUP
 // =====================================================
 
 interface MarkReceivedPopupProps {
@@ -660,7 +827,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
 };
 
 // =====================================================
-// COMPLETE POPUP (Refund or Replacement) - Replacement first
+// COMPLETE POPUP
 // =====================================================
 
 interface CompletePopupProps {
@@ -772,23 +939,20 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             </div>
           </div>
 
-          {/* RESOLUTION SELECTION - Replacement first, Refund second */}
           <div>
             <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#59645C]">
               Resolution Type <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="grid grid-cols-2 gap-2.5">
-              {/* REPLACEMENT OPTION - First */}
               <button
                 type="button"
                 onClick={() => setResolution("replacement")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
-                  resolution === "replacement"
-                    ? "border-[#4C8A57] bg-[#EAF3EA] shadow-md shadow-[#163F20]/10"
-                    : "border-[#D8E2D8] bg-[#F5F7F5] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA]/50"
-                } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "replacement"
+                  ? "border-[#4C8A57] bg-[#EAF3EA] shadow-md shadow-[#163F20]/10"
+                  : "border-[#D8E2D8] bg-[#F5F7F5] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA]/50"
+                  } disabled:opacity-50`}
               >
                 {resolution === "replacement" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#4C8A57] text-white">
@@ -797,22 +961,20 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                    resolution === "replacement"
-                      ? "bg-[#4C8A57] text-white"
-                      : "bg-white text-[#4C8A57]"
-                  }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "replacement"
+                    ? "bg-[#4C8A57] text-white"
+                    : "bg-white text-[#4C8A57]"
+                    }`}
                 >
                   <FiRefreshCw size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${
-                      resolution === "replacement"
-                        ? "text-[#163F20]"
-                        : "text-[#202721]"
-                    }`}
+                    className={`text-xs font-bold ${resolution === "replacement"
+                      ? "text-[#163F20]"
+                      : "text-[#202721]"
+                      }`}
                   >
                     Replacement
                   </p>
@@ -823,16 +985,14 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 </div>
               </button>
 
-              {/* REFUND OPTION - Second */}
               <button
                 type="button"
                 onClick={() => setResolution("refund")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
-                  resolution === "refund"
-                    ? "border-[#4C8A57] bg-[#EAF3EA] shadow-md shadow-[#163F20]/10"
-                    : "border-[#D8E2D8] bg-[#F5F7F5] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA]/50"
-                } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "refund"
+                  ? "border-[#4C8A57] bg-[#EAF3EA] shadow-md shadow-[#163F20]/10"
+                  : "border-[#D8E2D8] bg-[#F5F7F5] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA]/50"
+                  } disabled:opacity-50`}
               >
                 {resolution === "refund" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#4C8A57] text-white">
@@ -841,22 +1001,20 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                    resolution === "refund"
-                      ? "bg-[#4C8A57] text-white"
-                      : "bg-white text-[#4C8A57]"
-                  }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "refund"
+                    ? "bg-[#4C8A57] text-white"
+                    : "bg-white text-[#4C8A57]"
+                    }`}
                 >
                   <FaRupeeSign size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${
-                      resolution === "refund"
-                        ? "text-[#163F20]"
-                        : "text-[#202721]"
-                    }`}
+                    className={`text-xs font-bold ${resolution === "refund"
+                      ? "text-[#163F20]"
+                      : "text-[#202721]"
+                      }`}
                   >
                     Refund
                   </p>
@@ -869,7 +1027,6 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             </div>
           </div>
 
-          {/* REFUND AMOUNT - Only shown when refund is selected */}
           {resolution === "refund" && (
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#59645C]">
@@ -956,8 +1113,8 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             {loading
               ? "Processing..."
               : resolution === "refund"
-              ? "Complete & Refund"
-              : "Complete & Replace"}
+                ? "Complete & Refund"
+                : "Complete & Replace"}
           </button>
         </div>
       </div>
@@ -966,7 +1123,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
 };
 
 // =====================================================
-// REPLACEMENT CONFIRM POPUP (Secondary confirmation)
+// REPLACEMENT CONFIRM POPUP
 // =====================================================
 
 interface ReplacementConfirmPopupProps {
@@ -1068,6 +1225,77 @@ const ReplacementConfirmPopup: React.FC<ReplacementConfirmPopupProps> = ({
 };
 
 // =====================================================
+// TIMELINE STEPPER COMPONENT
+// =====================================================
+
+interface TimelineStepperProps {
+  events: TimelineEvent[];
+  emptyText?: string;
+}
+
+const TimelineStepper: React.FC<TimelineStepperProps> = ({
+  events,
+  emptyText = "No timeline events available.",
+}) => {
+  if (!events || events.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[#D8E2D8] bg-[#FAFBFA] p-4 text-center">
+        <p className="text-xs text-[#9AA29C]">{emptyText}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {events.map((event, index) => {
+        const isLast = index === events.length - 1;
+
+        return (
+          <div key={event.key} className="relative flex gap-4 pb-6 last:pb-0">
+            {/* Left: dot + line */}
+            <div className="relative flex flex-col items-center">
+              <div
+                className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm ${event.color}`}
+              >
+                {event.icon}
+              </div>
+
+              {!isLast && (
+                <div className="absolute top-9 bottom-0 w-px bg-[#D8E2D8]" />
+              )}
+            </div>
+
+            {/* Right: content */}
+            <div className="flex-1 pt-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-[#202721]">
+                  {event.label}
+                </p>
+
+                {isLast && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#4C8A57]/25 bg-[#EAF3EA] px-2 py-0.5 text-[10px] font-bold text-[#163F20]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#4C8A57]" />
+                    Latest
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-1 text-xs leading-5 text-[#59645C]">
+                {event.description}
+              </p>
+
+              <p className="mt-1 text-[11px] font-semibold text-[#9AA29C]">
+                {formatDate(event.date)}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// =====================================================
 // DETAIL MODAL
 // =====================================================
 
@@ -1095,10 +1323,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   onComplete,
 }) => {
   const [refundBreakdownOpen, setRefundBreakdownOpen] = useState(true);
+  const [expandedTimelineLines, setExpandedTimelineLines] = useState<
+    Record<number, boolean>
+  >({});
 
   useEffect(() => {
     if (open) {
       setRefundBreakdownOpen(true);
+      setExpandedTimelineLines({});
     }
   }, [open, detail?.id]);
 
@@ -1186,6 +1418,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const isReplacement =
     detail.resolution === "replacement" ||
     detail.refund_info?.resolution === "replacement";
+
+  // order_lines_timeline comes from API
+  const orderLinesTimeline: any[] =
+    (detail as any).order_lines_timeline || [];
 
   return (
     <GlobalModal
@@ -1276,9 +1512,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Replacement"
                         : formatCurrency(
-                            detail.refund_info?.amount ??
-                              detail.refund_details?.total
-                          )}
+                          detail.refund_info?.amount ??
+                          detail.refund_details?.total
+                        )}
                     </p>
                   </div>
 
@@ -1291,7 +1527,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Product Replacement"
                         : detail.refund_info?.refund_method ||
-                          "Original Payment"}
+                        "Original Payment"}
                     </p>
                   </div>
 
@@ -1303,8 +1539,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-sm font-bold text-[#202721]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
-                          detail.refunded_at ||
-                          detail.updated_at
+                        detail.refunded_at ||
+                        detail.updated_at
                       )}
                     </p>
                   </div>
@@ -1541,7 +1777,97 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
-          {/* REFUND SECTION - Only show if NOT replacement */}
+       
+          {/* TRACK ORDER — per item timeline */}
+          {orderLinesTimeline.length > 0 && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2D8] bg-white">
+              {/* Header */}
+              <div className="border-b border-[#D8E2D8] bg-[#FAFBFA] px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <FiTruck size={17} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[#202721]">
+                      Track Order
+                    </h3>
+
+                    <p className="mt-0.5 text-xs text-[#9AA29C]">
+                      Full tracking history for each item
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="divide-y divide-[#D8E2D8]">
+                {orderLinesTimeline.map((line) => {
+                  const events = buildTimelineEvents(line.timeline);
+
+                  return (
+                    <div key={line.line_id} className="p-5">
+                      {/* Item header */}
+                      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                            <FiPackage size={18} />
+                          </div>
+
+                          <div>
+                            <p className="text-sm font-bold text-[#202721]">
+                              {line.product?.name || "Product"}
+                            </p>
+
+                            <p className="mt-0.5 text-[11px] font-semibold text-[#9AA29C]">
+                              {line.item_reference} • Qty: {line.quantity}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusClass(
+                              line.delivery_status
+                            )}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                                line.delivery_status
+                              )}`}
+                            />
+                            {getStatusLabel(line.delivery_status)}
+                          </span>
+
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusClass(
+                              line.return_status
+                            )}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                                line.return_status
+                              )}`}
+                            />
+                            Return: {getStatusLabel(line.return_status)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Timeline stepper (always visible) */}
+                      <div className="rounded-2xl border border-[#D8E2D8] bg-[#FAFBFA] p-5">
+                        <TimelineStepper
+                          events={events}
+                          emptyText="No tracking events recorded for this item yet."
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* REFUND SECTION */}
           {!isReplacement && (
             <>
               {hasRefundBreakdown ? (
@@ -1708,9 +2034,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
 
                       <span
-                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition-transform duration-200 ${
-                          refundBreakdownOpen ? "rotate-180" : ""
-                        }`}
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#163F20] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
+                          }`}
                       >
                         <FiChevronDown size={15} />
                       </span>
@@ -1879,106 +2204,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </>
           )}
 
-          {/* TIMELINE */}
-          <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                <FiCalendar size={17} />
-              </div>
+          {/* GENERAL RETURN TIMELINE (kept for compatibility) */}
 
-              <h3 className="text-sm font-bold text-[#202721]">
-                Return Timeline
-              </h3>
-            </div>
-
-            <div className="space-y-5">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                  </div>
-
-                  <div className="h-10 w-px bg-[#D8E2D8]" />
-                </div>
-
-                <div className="pt-1">
-                  <p className="text-sm font-bold text-[#202721]">
-                    Return Requested
-                  </p>
-
-                  <p className="mt-1 text-xs text-[#9AA29C]">
-                    {formatDate(detail.created_at)}
-                  </p>
-                </div>
-              </div>
-
-              {detail.approved_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    </div>
-
-                    <div className="h-10 w-px bg-[#D8E2D8]" />
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#202721]">
-                      Return Approved
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.approved_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {detail.received_at && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    </div>
-
-                    <div className="h-10 w-px bg-[#D8E2D8]" />
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#202721]">
-                      Return Received
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.received_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {isCompleted && (
-                <div className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#EAF3EA]">
-                      <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                    </div>
-                  </div>
-
-                  <div className="pt-1">
-                    <p className="text-sm font-bold text-[#163F20]">
-                      {isReplacement
-                        ? "Replacement Completed"
-                        : "Refund Completed"}
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#9AA29C]">
-                      {formatDate(detail.refunded_at || detail.updated_at)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
           {detail.admin_notes && (
             <div className="mt-5 rounded-2xl border border-[#D8E2D8] bg-[#F5F7F5] p-4">
@@ -2424,7 +2651,7 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // MARK RECEIVED (No refund amount - simple)
+  // MARK RECEIVED
   // ===================================================
 
   const handleMarkReceived = async (adminNotes: string) => {
@@ -2451,7 +2678,6 @@ const ReturnRefund: React.FC = () => {
 
         closeAllModals();
 
-        // Refetch detail to show updated state if user reopens
         const updatedId = selectedDetail.id;
         setTimeout(() => {
           fetchReturnDetail(updatedId);
@@ -2493,7 +2719,7 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // SUBMIT COMPLETE (Refund or Replacement)
+  // SUBMIT COMPLETE
   // ===================================================
 
   const handleComplete = async (
@@ -2503,19 +2729,17 @@ const ReturnRefund: React.FC = () => {
   ) => {
     if (!selectedDetail) return;
 
-    // For replacement, show confirmation popup first
     if (resolution === "replacement") {
       setPendingReplacementData({ adminNotes });
       setReplacementConfirmOpen(true);
       return;
     }
 
-    // For refund, proceed directly
     await performComplete(resolution, refundAmount, adminNotes);
   };
 
   // ===================================================
-  // PERFORM COMPLETE (actual API call)
+  // PERFORM COMPLETE
   // ===================================================
 
   const performComplete = async (
@@ -2542,7 +2766,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            `Return completed with ${resolution} successfully.`
+          `Return completed with ${resolution} successfully.`
         );
 
         await fetchReturnRequests();
@@ -2594,7 +2818,7 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // FILTER
+  // FILTER / SEARCH / PAGINATION
   // ===================================================
 
   const handleFilterChange = (filter: ReturnFilterTab) => {
@@ -2602,18 +2826,10 @@ const ReturnRefund: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // ===================================================
-  // SEARCH
-  // ===================================================
-
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
   };
-
-  // ===================================================
-  // PAGINATION
-  // ===================================================
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) {
@@ -2785,11 +3001,10 @@ const ReturnRefund: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
-                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
-                      activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                        : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                    }`}
+                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${activeFilter === filter.key
+                      ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                      : "border border-[#D8E2D8] bg-[#F5F7F5] text-[#59645C] hover:border-[#4C8A57]/40 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -3252,11 +3467,10 @@ const ReturnRefund: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => handlePageChange(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
-                          : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                      }`}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/15"
+                        : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        }`}
                     >
                       {page}
                     </button>
@@ -3319,7 +3533,7 @@ const ReturnRefund: React.FC = () => {
         onConfirm={handleMarkReceived}
       />
 
-      {/* COMPLETE POPUP (Refund or Replacement) */}
+      {/* COMPLETE POPUP */}
       <CompletePopup
         open={completeModalOpen}
         loading={completeLoading}
@@ -3330,7 +3544,7 @@ const ReturnRefund: React.FC = () => {
         onConfirm={handleComplete}
       />
 
-      {/* REPLACEMENT CONFIRM POPUP (Secondary confirmation) */}
+      {/* REPLACEMENT CONFIRM POPUP */}
       <ReplacementConfirmPopup
         open={replacementConfirmOpen}
         loading={completeLoading}
