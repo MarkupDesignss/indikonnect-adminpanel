@@ -1,15 +1,15 @@
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-
 import { menuItems } from "@/config/menu";
 import Header from "./Header";
-
 import { useState, useEffect, useRef } from "react";
-
 import type { ReactNode, RefObject } from "react";
-
 import { adminApi } from "../../api/endpoints/Auth";
-
 import { FiX, FiLogOut } from "react-icons/fi";
+
+import {
+  getPortalName,
+  getPortalLoginUrl,
+} from "../../config/portalConfig";
 
 // =====================================================
 // TYPES
@@ -25,15 +25,6 @@ interface SidebarContentProps {
 }
 
 // =====================================================
-// BRAND PALETTE
-// =====================================================
-
-const BRAND_GREEN = "#163F20";
-const BRAND_GREEN_DARK = "#0F3219";
-const BRAND_GREEN_SOFT = "#4C8A57";
-const BRAND_GREEN_LIGHT = "#EAF3EA";
-
-// =====================================================
 // STABLE SIDEBAR CONTENT
 // =====================================================
 
@@ -47,10 +38,16 @@ const SidebarContent = ({
 }: SidebarContentProps) => {
   const showLabels = isMobile || isSidebarOpen;
 
+  // ===================================================
+  // DYNAMIC PORTAL NAME
+  // ===================================================
+
+  const portalName = getPortalName();
+
   return (
     <>
       {/* =====================================================
-          AMBIENT BACKGROUND LAYER (very subtle)
+          AMBIENT BACKGROUND LAYER
       ===================================================== */}
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -60,8 +57,8 @@ const SidebarContent = ({
             absolute
             -top-24
             left-1/2
-            w-72
             h-72
+            w-72
             rounded-full
             bg-[#163F20]
             opacity-[0.04]
@@ -75,9 +72,9 @@ const SidebarContent = ({
             absolute
             -bottom-24
             left-1/2
-            -translate-x-1/2
-            w-64
             h-64
+            w-64
+            -translate-x-1/2
             rounded-full
             bg-[#4C8A57]
             opacity-[0.03]
@@ -94,8 +91,8 @@ const SidebarContent = ({
         className={`
           relative
           mb-6
-          px-2
           flex-shrink-0
+          px-2
           transition-all
           duration-300
           ${!isMobile && !isSidebarOpen ? "flex justify-center px-0" : ""}
@@ -112,30 +109,32 @@ const SidebarContent = ({
           `}
         >
           {/* LOGO IMAGE */}
+
           <div
             className="
               relative
-              w-14
-              h-14
-              flex-shrink-0
               flex
+              h-14
+              w-14
+              flex-shrink-0
               items-center
               justify-center
               rounded-2xl
-              bg-white
               border
               border-[#163F20]/10
+              bg-white
               p-1.5
             "
           >
             <img
               src={`${import.meta.env.BASE_URL}assets/logo.png`}
               alt="IndieKonnect Logo"
-              className="w-full h-full object-contain relative z-10"
+              className="relative z-10 h-full w-full object-contain"
             />
           </div>
 
           {/* BRAND */}
+
           {showLabels && (
             <div className="min-w-0">
               <h1
@@ -155,12 +154,12 @@ const SidebarContent = ({
                   mt-0.5
                   text-[10px]
                   font-bold
-                  tracking-[0.25em]
                   uppercase
+                  tracking-[0.25em]
                   text-[#4C8A57]
                 "
               >
-                Admin Portal
+                {portalName}
               </p>
             </div>
           )}
@@ -174,9 +173,9 @@ const SidebarContent = ({
       <div
         className="
           relative
+          mb-6
           h-px
           w-full
-          mb-6
           flex-shrink-0
           bg-[#163F20]/10
         "
@@ -218,15 +217,15 @@ const SidebarContent = ({
         className="
           relative
           mt-2
-          pt-5
           flex-shrink-0
+          pt-5
         "
       >
         <div
           className="
+            mb-5
             h-px
             w-full
-            mb-5
             bg-[#163F20]/10
           "
         />
@@ -235,35 +234,36 @@ const SidebarContent = ({
           type="button"
           onClick={onLogout}
           disabled={isLoggingOut}
-          title={!isMobile && !isSidebarOpen ? "Logout" : undefined}
+          title={
+            !isMobile && !isSidebarOpen
+              ? "Logout"
+              : undefined
+          }
           className={`
             group
             relative
-            w-full
             flex
+            w-full
             items-center
             justify-center
             gap-3
-            px-4
-            py-3
             rounded-xl
-
             border
             border-[#163F20]/15
-
             bg-white
-
+            px-4
+            py-3
             text-[#163F20]
+            transition-all
+            duration-200
 
             hover:border-[#163F20]/30
             hover:bg-[#EAF3EA]
 
-            transition-all
-            duration-200
             active:scale-[0.98]
 
-            disabled:opacity-60
             disabled:cursor-not-allowed
+            disabled:opacity-60
 
             ${!isMobile && !isSidebarOpen ? "px-0" : ""}
           `}
@@ -272,12 +272,12 @@ const SidebarContent = ({
             <>
               <span
                 className="
-                  w-4
                   h-4
+                  w-4
+                  rounded-full
                   border-2
                   border-[#163F20]
                   border-t-transparent
-                  rounded-full
                   animate-spin
                 "
               />
@@ -332,9 +332,16 @@ const MainLayout = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] =
+    useState(false);
 
   const location = useLocation();
+
+  // =====================================================
+  // DYNAMIC PORTAL NAME
+  // =====================================================
+
+  const portalName = getPortalName();
 
   // =====================================================
   // MOBILE SCROLL REFS
@@ -357,8 +364,10 @@ const MainLayout = () => {
 
   const toggleMobileSidebar = () => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
+
     setIsMobileSidebarOpen((prev) => !prev);
   };
 
@@ -368,8 +377,10 @@ const MainLayout = () => {
 
   useEffect(() => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
+
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
 
@@ -401,11 +412,17 @@ const MainLayout = () => {
 
     const frame = requestAnimationFrame(() => {
       if (!mobileNavRef.current) return;
-      mobileNavRef.current.scrollTop = mobileScrollTopRef.current;
+
+      mobileNavRef.current.scrollTop =
+        mobileScrollTopRef.current;
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [isMobileSidebarOpen, expandedMenus, location.pathname]);
+  }, [
+    isMobileSidebarOpen,
+    expandedMenus,
+    location.pathname,
+  ]);
 
   // =====================================================
   // MENU TOGGLE
@@ -413,11 +430,14 @@ const MainLayout = () => {
 
   const toggleMenu = (path: string) => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
 
     setExpandedMenus((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
+      prev.includes(path)
+        ? prev.filter((p) => p !== path)
+        : [...prev, path],
     );
   };
 
@@ -427,11 +447,13 @@ const MainLayout = () => {
 
   const openLogoutModal = () => {
     if (isLoggingOut) return;
+
     setIsLogoutModalOpen(true);
   };
 
   const closeLogoutModal = () => {
     if (isLoggingOut) return;
+
     setIsLogoutModalOpen(false);
   };
 
@@ -444,16 +466,96 @@ const MainLayout = () => {
 
     try {
       setIsLoggingOut(true);
-      await adminApi.logout();
-    } catch (error) {
-      console.error("Logout API failed:", error);
-    } finally {
-      sessionStorage.removeItem("adminToken");
-      sessionStorage.removeItem("adminData");
-      sessionStorage.removeItem("adminPermissions");
-      sessionStorage.removeItem("adminRoles");
 
-      window.location.href = `${import.meta.env.BASE_URL}login`;
+      // =================================================
+      // IMPORTANT:
+      // Get login URL BEFORE clearing storage
+      // =================================================
+
+      const loginUrl = getPortalLoginUrl();
+      const currentPortalName = getPortalName();
+
+      console.log(
+        "Logging out from:",
+        currentPortalName,
+      );
+
+      console.log(
+        "Redirecting to:",
+        loginUrl,
+      );
+
+      // =================================================
+      // LOGOUT API
+      // =================================================
+
+      try {
+        await adminApi.logout();
+      } catch (error) {
+        console.error(
+          "Logout API failed:",
+          error,
+        );
+      }
+
+      // =================================================
+      // CLEAR ALL LOCAL STORAGE
+      // =================================================
+
+      localStorage.clear();
+
+      // =================================================
+      // CLEAR ALL SESSION STORAGE
+      // =================================================
+
+      sessionStorage.clear();
+
+      // =================================================
+      // CLEAR ACCESSIBLE COOKIES
+      // =================================================
+
+      document.cookie.split(";").forEach((cookie) => {
+        const cookieName =
+          cookie.split("=")[0].trim();
+
+        if (cookieName) {
+          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      });
+
+      // =================================================
+      // CLOSE MODAL
+      // =================================================
+
+      setIsLogoutModalOpen(false);
+
+      // =================================================
+      // REDIRECT TO CURRENT PORTAL LOGIN
+      // =================================================
+
+      window.location.href = loginUrl;
+    } catch (error) {
+      console.error(
+        "Logout failed:",
+        error,
+      );
+
+      // =================================================
+      // FORCE CLEAR STORAGE
+      // =================================================
+
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // =================================================
+      // FALLBACK LOGIN URL
+      // =================================================
+
+      const loginUrl = getPortalLoginUrl();
+
+      window.location.href = loginUrl;
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -467,52 +569,71 @@ const MainLayout = () => {
     isMobile: boolean = false,
   ): ReactNode => {
     const hasChildren =
-      Array.isArray(item.children) && item.children.length > 0;
+      Array.isArray(item.children) &&
+      item.children.length > 0;
 
-    const isExpanded = expandedMenus.includes(item.path);
+    const isExpanded = expandedMenus.includes(
+      item.path,
+    );
 
-    const shouldShowLabels = isMobile || isSidebarOpen || depth > 0;
+    const shouldShowLabels =
+      isMobile ||
+      isSidebarOpen ||
+      depth > 0;
 
-    // =====================================================
+    // ===================================================
     // PARENT WITH CHILDREN
-    // =====================================================
+    // ===================================================
 
     if (hasChildren) {
       return (
-        <div key={item.path} className="mb-0.5">
+        <div
+          key={item.path}
+          className="mb-0.5"
+        >
           <button
             type="button"
-            onClick={() => toggleMenu(item.path)}
-            title={!shouldShowLabels && depth === 0 ? item.label : undefined}
+            onClick={() =>
+              toggleMenu(item.path)
+            }
+            title={
+              !shouldShowLabels &&
+              depth === 0
+                ? item.label
+                : undefined
+            }
             className={`
               group
-              w-full
               flex
+              w-full
               items-center
               gap-3.5
+              rounded-lg
               px-4
               py-2.5
-              rounded-lg
-
               text-[#59645C]
-
-              hover:text-[#163F20]
-              hover:bg-[#EAF3EA]
-
               transition-colors
               duration-200
 
+              hover:bg-[#EAF3EA]
+              hover:text-[#163F20]
+
               ${depth > 0 ? "ml-4" : ""}
 
-              ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
+              ${
+                !shouldShowLabels &&
+                depth === 0
+                  ? "justify-center px-0"
+                  : ""
+              }
             `}
           >
             <span
               className="
                 material-symbols-outlined
+                flex-shrink-0
                 text-lg
                 text-[#163F20]
-                flex-shrink-0
               "
             >
               {item.icon}
@@ -541,7 +662,6 @@ const MainLayout = () => {
                     transition-transform
                     duration-300
                     ease-out
-
                     ${isExpanded ? "rotate-180" : ""}
                   `}
                 >
@@ -561,22 +681,27 @@ const MainLayout = () => {
 
                 ${
                   isExpanded
-                    ? "max-h-[500px] opacity-100 mt-0.5"
+                    ? "mt-0.5 max-h-[500px] opacity-100"
                     : "max-h-0 opacity-0"
                 }
               `}
             >
               <div
                 className="
+                  ml-6
                   space-y-0.5
                   border-l
                   border-[#163F20]/15
                   pl-3
-                  ml-6
                 "
               >
-                {item.children.map((child: any) =>
-                  renderNavItem(child, depth + 1, isMobile),
+                {item.children.map(
+                  (child: any) =>
+                    renderNavItem(
+                      child,
+                      depth + 1,
+                      isMobile,
+                    ),
                 )}
               </div>
             </div>
@@ -585,18 +710,27 @@ const MainLayout = () => {
       );
     }
 
-    // =====================================================
+    // ===================================================
     // NORMAL NAVIGATION ITEM
-    // =====================================================
+    // ===================================================
 
     return (
       <NavLink
         key={item.path}
         to={item.path}
-        title={!shouldShowLabels && depth === 0 ? item.label : undefined}
+        title={
+          !shouldShowLabels &&
+          depth === 0
+            ? item.label
+            : undefined
+        }
         onClick={() => {
-          if (isMobile && mobileNavRef.current) {
-            mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+          if (
+            isMobile &&
+            mobileNavRef.current
+          ) {
+            mobileScrollTopRef.current =
+              mobileNavRef.current.scrollTop;
           }
         }}
         className={({ isActive }) => `
@@ -605,49 +739,46 @@ const MainLayout = () => {
           flex
           items-center
           gap-3.5
+          rounded-lg
           px-4
           py-2.5
-          rounded-lg
-
           transition-colors
           duration-200
 
           ${
             isActive
-              ? `
-                bg-[#163F20]
-                text-white
-                font-semibold
-              `
-              : `
-                text-[#59645C]
-                hover:text-[#163F20]
-                hover:bg-[#EAF3EA]
-              `
+              ? "bg-[#163F20] font-semibold text-white"
+              : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
           }
 
           ${depth > 0 ? "ml-2" : ""}
 
-          ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
+          ${
+            !shouldShowLabels &&
+            depth === 0
+              ? "justify-center px-0"
+              : ""
+          }
         `}
       >
         {({ isActive }) => (
           <>
             {/* SUB ITEM DOT / MAIN ICON */}
+
             {depth > 0 ? (
               <span
                 className={`
-                  flex-shrink-0
-                  w-1.5
                   h-1.5
+                  w-1.5
+                  flex-shrink-0
                   rounded-full
                   transition-colors
                   duration-200
 
                   ${
                     isActive
-                      ? `bg-white`
-                      : `bg-[#89918B]/50 group-hover:bg-[#163F20]/70`
+                      ? "bg-white"
+                      : "bg-[#89918B]/50 group-hover:bg-[#163F20]/70"
                   }
                 `}
               />
@@ -655,8 +786,8 @@ const MainLayout = () => {
               <span
                 className={`
                   material-symbols-outlined
-                  text-lg
                   flex-shrink-0
+                  text-lg
 
                   ${
                     isActive
@@ -691,11 +822,27 @@ const MainLayout = () => {
   // =====================================================
 
   const desktopNavContent = (
-    <>{menuItems.map((item) => renderNavItem(item, 0, false))}</>
+    <>
+      {menuItems.map((item) =>
+        renderNavItem(
+          item,
+          0,
+          false,
+        ),
+      )}
+    </>
   );
 
   const mobileNavContent = (
-    <>{menuItems.map((item) => renderNavItem(item, 0, true))}</>
+    <>
+      {menuItems.map((item) =>
+        renderNavItem(
+          item,
+          0,
+          true,
+        ),
+      )}
+    </>
   );
 
   // =====================================================
@@ -707,8 +854,8 @@ const MainLayout = () => {
       className="
         min-h-screen
         bg-[#F5F7F5]
-        text-[#202721]
         font-sans
+        text-[#202721]
       "
     >
       {/* =====================================================
@@ -717,35 +864,32 @@ const MainLayout = () => {
 
       <nav
         className={`
-          hidden
-          md:flex
           fixed
           left-0
           top-0
           bottom-0
-          h-screen
-
-          bg-white
-
-          border-r
-          border-[#163F20]/10
-
-          flex-col
-
-          pt-8
-          pb-8
-          px-5
-
           z-[9999]
-
+          hidden
+          h-screen
+          flex-col
           overflow-hidden
           overscroll-contain
-
+          border-r
+          border-[#163F20]/10
+          bg-white
+          px-5
+          pt-8
+          pb-8
           transition-all
           duration-300
           ease-in-out
+          md:flex
 
-          ${isSidebarOpen ? "w-[280px]" : "w-[90px]"}
+          ${
+            isSidebarOpen
+              ? "w-[280px]"
+              : "w-[90px]"
+          }
         `}
       >
         <SidebarContent
@@ -767,9 +911,9 @@ const MainLayout = () => {
             fixed
             inset-0
             z-[99999]
+            touch-none
             bg-black/40
             md:hidden
-            touch-none
           "
           onClick={toggleMobileSidebar}
         />
@@ -781,38 +925,33 @@ const MainLayout = () => {
 
       <nav
         className={`
-          md:hidden
-
           fixed
           left-0
           top-0
           bottom-0
-
-          w-[280px]
-          h-screen
-
-          bg-white
-
-          border-r
-          border-[#163F20]/10
-
-          flex
-          flex-col
-
-          pt-8
-          pb-8
-          px-5
-
           z-[99999]
-
+          flex
+          h-screen
+          w-[280px]
+          flex-col
           overflow-hidden
           overscroll-contain
-
+          border-r
+          border-[#163F20]/10
+          bg-white
+          px-5
+          pt-8
+          pb-8
           transition-transform
           duration-300
           ease-in-out
+          md:hidden
 
-          ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          ${
+            isMobileSidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
         `}
       >
         {/* MOBILE CLOSE */}
@@ -824,12 +963,12 @@ const MainLayout = () => {
             absolute
             right-3
             top-3
-            p-2
-            rounded-full
-            hover:bg-[#EAF3EA]
-            transition-colors
-            text-[#59645C]
             z-10
+            rounded-full
+            p-2
+            text-[#59645C]
+            transition-colors
+            hover:bg-[#EAF3EA]
           "
           aria-label="Close sidebar"
         >
@@ -852,11 +991,10 @@ const MainLayout = () => {
 
       <div
         className={`
-          min-h-screen
           flex
-          flex-col
+          min-h-screen
           w-full
-
+          flex-col
           transition-all
           duration-300
           ease-in-out
@@ -877,12 +1015,16 @@ const MainLayout = () => {
         <Header
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
-          isMobileSidebarOpen={isMobileSidebarOpen}
-          onToggleMobileSidebar={toggleMobileSidebar}
+          isMobileSidebarOpen={
+            isMobileSidebarOpen
+          }
+          onToggleMobileSidebar={
+            toggleMobileSidebar
+          }
         />
 
         <main className="flex-1 pt-[72px]">
-          <div className="max-w-full mx-auto">
+          <div className="mx-auto max-w-full">
             <Outlet />
           </div>
         </main>
@@ -922,15 +1064,16 @@ const MainLayout = () => {
               relative
               w-full
               max-w-[400px]
-              bg-white
+              overflow-hidden
               rounded-2xl
-              shadow-lg
               border
               border-[#163F20]/10
-              overflow-hidden
+              bg-white
+              shadow-lg
             "
           >
             {/* TOP ACCENT */}
+
             <div
               className="
                 h-1
@@ -949,25 +1092,20 @@ const MainLayout = () => {
                 absolute
                 right-4
                 top-4
-
-                w-8
-                h-8
-
-                rounded-full
-
                 flex
+                h-8
+                w-8
                 items-center
                 justify-center
-
+                rounded-full
                 text-[#59645C]
-
-                hover:text-[#163F20]
-                hover:bg-[#EAF3EA]
-
                 transition-colors
 
-                disabled:opacity-50
+                hover:bg-[#EAF3EA]
+                hover:text-[#163F20]
+
                 disabled:cursor-not-allowed
+                disabled:opacity-50
               "
               aria-label="Close"
             >
@@ -976,20 +1114,21 @@ const MainLayout = () => {
 
             {/* CONTENT */}
 
-            <div className="px-6 pt-7 pb-6">
+            <div className="px-6 pb-6 pt-7">
               {/* LOGOUT ICON */}
+
               <div
                 className="
                   relative
                   mx-auto
-                  w-14
-                  h-14
-                  rounded-full
+                  mb-5
                   flex
+                  h-14
+                  w-14
                   items-center
                   justify-center
+                  rounded-full
                   bg-[#EAF3EA]
-                  mb-5
                 "
               >
                 <FiLogOut className="text-[25px] text-[#163F20]" />
@@ -1013,15 +1152,19 @@ const MainLayout = () => {
               <p
                 className="
                   mt-2
+                  px-2
                   text-center
                   text-sm
                   leading-6
                   text-[#59645C]
-                  px-2
                 "
               >
-                Are you sure you want to logout from the{" "}
-                <span className="font-bold text-[#163F20]">Admin Portal</span>?
+                Are you sure you want to logout
+                from the{" "}
+                <span className="font-bold text-[#163F20]">
+                  {portalName}
+                </span>
+                ?
               </p>
 
               <p
@@ -1032,12 +1175,13 @@ const MainLayout = () => {
                   text-[#89918B]
                 "
               >
-                You will need to login again to access your account.
+                You will need to login again to
+                access your account.
               </p>
 
               {/* BUTTONS */}
 
-              <div className="flex items-center gap-3 mt-7">
+              <div className="mt-7 flex items-center gap-3">
                 {/* CANCEL */}
 
                 <button
@@ -1046,21 +1190,23 @@ const MainLayout = () => {
                   disabled={isLoggingOut}
                   className="
                     flex-1
-                    px-4
-                    py-3
                     rounded-xl
                     border
                     border-[#163F20]/15
                     bg-white
-                    text-[#59645C]
+                    px-4
+                    py-3
                     text-sm
                     font-bold
-                    hover:bg-[#F5F7F5]
-                    hover:text-[#163F20]
+                    text-[#59645C]
                     transition-colors
                     duration-200
-                    disabled:opacity-50
+
+                    hover:bg-[#F5F7F5]
+                    hover:text-[#163F20]
+
                     disabled:cursor-not-allowed
+                    disabled:opacity-50
                   "
                 >
                   Cancel
@@ -1073,45 +1219,43 @@ const MainLayout = () => {
                   onClick={handleLogout}
                   disabled={isLoggingOut}
                   className="
-                    flex-1
-                    px-4
-                    py-3
-                    rounded-xl
-
-                    bg-[#163F20]
-                    hover:bg-[#0F3219]
-
-                    text-white
-                    text-sm
-                    font-bold
-
-                    transition-colors
-                    duration-200
-
-                    active:scale-[0.98]
-
-                    disabled:opacity-60
-                    disabled:cursor-not-allowed
-
                     flex
+                    flex-1
                     items-center
                     justify-center
                     gap-2
+                    rounded-xl
+                    bg-[#163F20]
+                    px-4
+                    py-3
+                    text-sm
+                    font-bold
+                    text-white
+                    transition-colors
+                    duration-200
+
+                    hover:bg-[#0F3219]
+
+                    active:scale-[0.98]
+
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
                   "
                 >
                   {isLoggingOut ? (
                     <>
                       <span
                         className="
-                          w-4
                           h-4
+                          w-4
+                          rounded-full
                           border-2
                           border-white/80
                           border-t-transparent
-                          rounded-full
                           animate-spin
                         "
                       />
+
                       Logging out...
                     </>
                   ) : (

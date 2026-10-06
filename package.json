@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:finance": "vite --config vite.finance.config.js",
+    "dev:warehouse": "vite --config vite.warehouse.config.js",
     "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "build:finance": "vite build --config vite.finance.config.js",
+    "build:warehouse": "vite build --config vite.warehouse.config.js"
   },
   "dependencies": {
     "@recharts/devtools": "^0.0.18",

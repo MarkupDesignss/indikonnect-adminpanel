@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import { adminApi, AdminProfile } from "../../api/endpoints/Auth";
+
 import headerApi, {
   GlobalSearchAdmin,
   GlobalSearchProduct,
@@ -36,6 +37,12 @@ import {
 import { HiOutlineChevronDown } from "react-icons/hi";
 
 import { Link, useNavigate } from "react-router-dom";
+
+// =====================================================
+// DYNAMIC PORTAL CONFIG
+// =====================================================
+
+import { getPortalLoginUrl } from "@/config/portalConfig";
 
 // =====================================================
 // TYPES
@@ -139,24 +146,33 @@ const Header = ({
         // =================================================
         // LOCAL STORAGE
         // =================================================
+
         localStorage.setItem(
           "adminData",
-          JSON.stringify(adminData)
+          JSON.stringify(adminData),
         );
       }
     } catch (error) {
-      console.error("Failed to fetch admin profile:", error);
+      console.error(
+        "Failed to fetch admin profile:",
+        error,
+      );
 
       // =================================================
       // FALLBACK FROM LOCAL STORAGE
       // =================================================
-      const storedAdmin = localStorage.getItem("adminData");
+
+      const storedAdmin =
+        localStorage.getItem("adminData");
 
       if (storedAdmin) {
         try {
           setAdmin(JSON.parse(storedAdmin));
         } catch (error) {
-          console.error("Invalid stored admin data:", error);
+          console.error(
+            "Invalid stored admin data:",
+            error,
+          );
         }
       }
     } finally {
@@ -169,7 +185,9 @@ const Header = ({
   // ===================================================
 
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
+    const handleOutsideClick = (
+      event: MouseEvent,
+    ) => {
       const target = event.target as Node;
 
       if (
@@ -187,12 +205,15 @@ const Header = ({
       }
     };
 
-    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick,
+    );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        handleOutsideClick
+        handleOutsideClick,
       );
     };
   }, []);
@@ -202,7 +223,7 @@ const Header = ({
   // ===================================================
 
   const getProductImage = (
-    product: GlobalSearchProduct
+    product: GlobalSearchProduct,
   ): string | null => {
     if (product.image) {
       return product.image;
@@ -226,7 +247,11 @@ const Header = ({
         return first;
       }
 
-      return first?.image || first?.url || null;
+      return (
+        first?.image ||
+        first?.url ||
+        null
+      );
     }
 
     return null;
@@ -241,7 +266,7 @@ const Header = ({
       | GlobalSearchUser
       | GlobalSearchAdmin
       | null
-      | undefined
+      | undefined,
   ) => {
     if (!person) {
       return null;
@@ -275,30 +300,43 @@ const Header = ({
         return;
       }
 
-      const requestId = ++searchRequestRef.current;
+      const requestId =
+        ++searchRequestRef.current;
 
       try {
         setIsSearchLoading(true);
         setIsSearchOpen(true);
 
-        const response = await headerApi.globalSearch({
-          search: trimmedValue,
-        });
+        const response =
+          await headerApi.globalSearch({
+            search: trimmedValue,
+          });
 
-        if (requestId !== searchRequestRef.current) {
+        if (
+          requestId !==
+          searchRequestRef.current
+        ) {
           return;
         }
 
-        const data = response.data?.data;
+        const data =
+          response.data?.data;
 
         setSearchResults({
-          products: data?.products || [],
-          admins: data?.admins || [],
-          users: data?.users || [],
-          total_results: data?.total_results || 0,
+          products:
+            data?.products || [],
+          admins:
+            data?.admins || [],
+          users:
+            data?.users || [],
+          total_results:
+            data?.total_results || 0,
         });
       } catch (error) {
-        console.error("Global search failed:", error);
+        console.error(
+          "Global search failed:",
+          error,
+        );
 
         setSearchResults({
           products: [],
@@ -307,12 +345,15 @@ const Header = ({
           total_results: 0,
         });
       } finally {
-        if (requestId === searchRequestRef.current) {
+        if (
+          requestId ===
+          searchRequestRef.current
+        ) {
           setIsSearchLoading(false);
         }
       }
     },
-    []
+    [],
   );
 
   // ===================================================
@@ -369,7 +410,7 @@ const Header = ({
     item:
       | GlobalSearchProduct
       | GlobalSearchAdmin
-      | GlobalSearchUser
+      | GlobalSearchUser,
   ) => {
     setSearch("");
     setIsSearchOpen(false);
@@ -379,7 +420,8 @@ const Header = ({
     // =================================================
 
     if (type === "product") {
-      const product = item as GlobalSearchProduct;
+      const product =
+        item as GlobalSearchProduct;
 
       navigate("/inventory/products", {
         state: {
@@ -395,13 +437,17 @@ const Header = ({
     // =================================================
 
     if (type === "admin") {
-      const searchAdmin = item as GlobalSearchAdmin;
+      const searchAdmin =
+        item as GlobalSearchAdmin;
 
-      navigate("/RoleManagement/addmember", {
-        state: {
-          admin: searchAdmin,
+      navigate(
+        "/RoleManagement/addmember",
+        {
+          state: {
+            admin: searchAdmin,
+          },
         },
-      });
+      );
 
       return;
     }
@@ -411,7 +457,8 @@ const Header = ({
     // =================================================
 
     if (type === "user") {
-      const user = item as GlobalSearchUser;
+      const user =
+        item as GlobalSearchUser;
 
       navigate("/UserManagement", {
         state: {
@@ -427,35 +474,113 @@ const Header = ({
 
   const handleLogout = async () => {
     try {
-      await adminApi.logout();
-
       // =================================================
-      // LOCAL STORAGE CLEAR
-      // =================================================
-
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("adminData");
-      localStorage.removeItem("adminPermissions");
-      localStorage.removeItem("adminRoles");
-
-      // =================================================
-      // SUBDOMAIN ROUTER
+      // GET CURRENT PORTAL LOGIN URL
+      // BEFORE CLEARING STORAGE
       // =================================================
 
-      window.location.href = "/login";
+      const loginUrl =
+        getPortalLoginUrl();
+
+      console.log(
+        "Current path:",
+        window.location.pathname,
+      );
+
+      console.log(
+        "Logout redirect:",
+        loginUrl,
+      );
+
+      // =================================================
+      // LOGOUT API
+      // =================================================
+
+      try {
+        await adminApi.logout();
+      } catch (error) {
+        console.error(
+          "Logout API failed:",
+          error,
+        );
+      }
+
+      // =================================================
+      // CLEAR ALL LOCAL STORAGE
+      // =================================================
+
+      localStorage.clear();
+
+      // =================================================
+      // CLEAR ALL SESSION STORAGE
+      // =================================================
+
+      sessionStorage.clear();
+
+      // =================================================
+      // CLEAR ACCESSIBLE COOKIES
+      // =================================================
+
+      document.cookie
+        .split(";")
+        .forEach((cookie) => {
+          const cookieName =
+            cookie.split("=")[0].trim();
+
+          if (cookieName) {
+            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+
+            // Also try current path
+            document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${window.location.pathname}`;
+          }
+        });
+
+      // =================================================
+      // CLOSE DROPDOWN
+      // =================================================
+
+      setIsDropdownOpen(false);
+
+      // =================================================
+      // CLEAR SEARCH
+      // =================================================
+
+      setSearch("");
+      setIsSearchOpen(false);
+
+      setSearchResults({
+        products: [],
+        admins: [],
+        users: [],
+        total_results: 0,
+      });
+
+      // =================================================
+      // REDIRECT TO CURRENT PORTAL LOGIN
+      // =================================================
+
+      window.location.href = loginUrl;
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error(
+        "Logout failed:",
+        error,
+      );
 
       // =================================================
-      // LOCAL STORAGE CLEAR
+      // FORCE CLEAR STORAGE
       // =================================================
 
-      localStorage.removeItem("adminToken");
-      localStorage.removeItem("adminData");
-      localStorage.removeItem("adminPermissions");
-      localStorage.removeItem("adminRoles");
+      localStorage.clear();
+      sessionStorage.clear();
 
-      window.location.href = "/login";
+      // =================================================
+      // DYNAMIC FALLBACK LOGIN URL
+      // =================================================
+
+      const loginUrl =
+        getPortalLoginUrl();
+
+      window.location.href = loginUrl;
     }
   };
 
@@ -464,7 +589,9 @@ const Header = ({
   // ===================================================
 
   const toggleDropdown = () => {
-    setIsDropdownOpen((previous) => !previous);
+    setIsDropdownOpen(
+      (previous) => !previous,
+    );
   };
 
   // ===================================================
@@ -492,21 +619,21 @@ const Header = ({
         top-0
         right-0
         z-[9999]
+        flex
         h-[72px]
         w-full
-        flex
         items-center
         justify-between
-        px-3
-        sm:px-4
-        md:px-6
-        bg-white/95
-        backdrop-blur-xl
         border-b
         border-black/[0.06]
+        bg-white/95
+        px-3
         shadow-[0_4px_20px_rgba(0,0,0,0.035)]
+        backdrop-blur-xl
         transition-all
         duration-300
+        sm:px-4
+        md:px-6
 
         ${
           isSidebarOpen
@@ -519,7 +646,7 @@ const Header = ({
           LEFT
       =================================================== */}
 
-      <div className="flex items-center shrink-0">
+      <div className="flex shrink-0 items-center">
         {/* DESKTOP SIDEBAR BUTTON */}
 
         <button
@@ -527,17 +654,17 @@ const Header = ({
           onClick={onToggleSidebar}
           className="
             hidden
-            md:flex
             h-10
             w-10
             items-center
             justify-center
             rounded-xl
             text-gray-500
-            hover:text-gray-900
-            hover:bg-gray-100
             transition-all
             duration-200
+            hover:bg-gray-100
+            hover:text-gray-900
+            md:flex
           "
           aria-label={
             isSidebarOpen
@@ -556,19 +683,21 @@ const Header = ({
 
         <button
           type="button"
-          onClick={onToggleMobileSidebar}
+          onClick={
+            onToggleMobileSidebar
+          }
           className="
             flex
-            md:hidden
             h-10
             w-10
             items-center
             justify-center
             rounded-xl
             text-gray-500
-            hover:text-gray-900
-            hover:bg-gray-100
             transition-all
+            hover:bg-gray-100
+            hover:text-gray-900
+            md:hidden
           "
           aria-label={
             isMobileSidebarOpen
@@ -592,15 +721,15 @@ const Header = ({
         ref={searchRef}
         className="
           relative
-          flex-1
-          max-w-[680px]
           mx-2
+          min-w-0
+          max-w-[680px]
+          flex-1
           sm:mx-4
           md:mx-8
-          min-w-0
         "
       >
-        <div className="relative group">
+        <div className="group relative">
           {/* SEARCH ICON */}
 
           <div
@@ -608,11 +737,11 @@ const Header = ({
               absolute
               left-4
               top-1/2
-              -translate-y-1/2
               z-10
+              -translate-y-1/2
               text-gray-400
-              group-focus-within:text-primary
               transition-colors
+              group-focus-within:text-primary
             "
           >
             <FiSearch size={18} />
@@ -623,7 +752,9 @@ const Header = ({
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
             onFocus={() => {
               if (search.trim()) {
                 setIsSearchOpen(true);
@@ -632,8 +763,8 @@ const Header = ({
             placeholder="Search products, users, admins..."
             autoComplete="off"
             className="
-              w-full
               h-[44px]
+              w-full
               rounded-2xl
               border
               border-gray-200
@@ -642,15 +773,15 @@ const Header = ({
               pr-20
               text-sm
               text-gray-800
-              placeholder:text-gray-400
               outline-none
               transition-all
               duration-200
-              focus:bg-white
+              placeholder:text-gray-400
+              hover:border-gray-300
               focus:border-primary/40
+              focus:bg-white
               focus:ring-4
               focus:ring-primary/10
-              hover:border-gray-300
             "
           />
 
@@ -662,9 +793,8 @@ const Header = ({
                 absolute
                 right-3
                 top-1/2
-                -translate-y-1/2
                 hidden
-                sm:flex
+                -translate-y-1/2
                 items-center
                 gap-1
                 rounded-lg
@@ -677,6 +807,7 @@ const Header = ({
                 font-medium
                 text-gray-400
                 shadow-sm
+                sm:flex
               "
             >
               <FiCommand size={10} />
@@ -702,31 +833,32 @@ const Header = ({
 
           {/* CLEAR */}
 
-          {!isSearchLoading && search && (
-            <button
-              type="button"
-              onClick={clearSearch}
-              className="
-                absolute
-                right-3
-                top-1/2
-                -translate-y-1/2
-                h-7
-                w-7
-                rounded-lg
-                flex
-                items-center
-                justify-center
-                text-gray-400
-                hover:text-gray-700
-                hover:bg-gray-100
-                transition
-              "
-              aria-label="Clear search"
-            >
-              <IoCloseOutline size={18} />
-            </button>
-          )}
+          {!isSearchLoading &&
+            search && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="
+                  absolute
+                  right-3
+                  top-1/2
+                  flex
+                  h-7
+                  w-7
+                  -translate-y-1/2
+                  items-center
+                  justify-center
+                  rounded-lg
+                  text-gray-400
+                  transition
+                  hover:bg-gray-100
+                  hover:text-gray-700
+                "
+                aria-label="Clear search"
+              >
+                <IoCloseOutline size={18} />
+              </button>
+            )}
         </div>
 
         {/* ===================================================
@@ -740,48 +872,49 @@ const Header = ({
               left-0
               right-0
               top-[52px]
+              z-[10000]
               overflow-hidden
               rounded-2xl
               border
               border-gray-200
               bg-white
               shadow-[0_20px_55px_rgba(0,0,0,0.12)]
-              z-[10000]
             "
           >
             {/* LOADING */}
 
-            {isSearchLoading && !hasResults && (
-              <div className="px-5 py-8 text-center">
-                <div
-                  className="
-                    mx-auto
-                    mb-3
-                    flex
-                    h-11
-                    w-11
-                    items-center
-                    justify-center
-                    rounded-xl
-                    bg-primary/10
-                    text-primary
-                  "
-                >
-                  <FiLoader
-                    size={20}
-                    className="animate-spin"
-                  />
+            {isSearchLoading &&
+              !hasResults && (
+                <div className="px-5 py-8 text-center">
+                  <div
+                    className="
+                      mx-auto
+                      mb-3
+                      flex
+                      h-11
+                      w-11
+                      items-center
+                      justify-center
+                      rounded-xl
+                      bg-primary/10
+                      text-primary
+                    "
+                  >
+                    <FiLoader
+                      size={20}
+                      className="animate-spin"
+                    />
+                  </div>
+
+                  <p className="text-sm font-semibold text-gray-800">
+                    Searching...
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    Looking across products, users and admins
+                  </p>
                 </div>
-
-                <p className="text-sm font-semibold text-gray-800">
-                  Searching...
-                </p>
-
-                <p className="mt-1 text-xs text-gray-400">
-                  Looking across products, users and admins
-                </p>
-              </div>
-            )}
+              )}
 
             {/* NO RESULTS */}
 
@@ -848,7 +981,9 @@ const Header = ({
 
                     <p className="mt-0.5 text-[11px] text-gray-400">
                       {totalSearchItems} matching result
-                      {totalSearchItems !== 1 ? "s" : ""}
+                      {totalSearchItems !== 1
+                        ? "s"
+                        : ""}
                     </p>
                   </div>
 
@@ -873,7 +1008,8 @@ const Header = ({
                     PRODUCTS
                 ================================================= */}
 
-                {searchResults.products.length > 0 && (
+                {searchResults.products.length >
+                  0 && (
                   <section className="border-b border-gray-100 py-2">
                     <div
                       className="
@@ -908,119 +1044,127 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {searchResults.products.length}
+                        {
+                          searchResults
+                            .products.length
+                        }
                       </span>
                     </div>
 
                     <div className="space-y-0.5">
-                      {searchResults.products.map((product) => {
-                        const image = getProductImage(product);
+                      {searchResults.products.map(
+                        (product) => {
+                          const image =
+                            getProductImage(
+                              product,
+                            );
 
-                        const name =
-                          product.name ||
-                          product.title ||
-                          "Unnamed Product";
+                          const name =
+                            product.name ||
+                            product.title ||
+                            "Unnamed Product";
 
-                        return (
-                          <button
-                            key={`product-${product.id}`}
-                            type="button"
-                            onClick={() =>
-                              goToSearchResult(
-                                "product",
-                                product
-                              )
-                            }
-                            className="
-                              group
-                              flex
-                              w-full
-                              items-center
-                              gap-3
-                              px-4
-                              py-2.5
-                              text-left
-                              transition-all
-                              hover:bg-gray-50
-                            "
-                          >
-                            <div
+                          return (
+                            <button
+                              key={`product-${product.id}`}
+                              type="button"
+                              onClick={() =>
+                                goToSearchResult(
+                                  "product",
+                                  product,
+                                )
+                              }
                               className="
-                                relative
-                                h-11
-                                w-11
-                                shrink-0
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-gray-100
-                                bg-gray-50
+                                group
+                                flex
+                                w-full
+                                items-center
+                                gap-3
+                                px-4
+                                py-2.5
+                                text-left
+                                transition-all
+                                hover:bg-gray-50
                               "
                             >
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={name}
-                                  className="
-                                    h-full
-                                    w-full
-                                    object-cover
-                                    transition-transform
-                                    duration-300
-                                    group-hover:scale-105
-                                  "
-                                  onError={(e) => {
-                                    e.currentTarget.style.display =
-                                      "none";
-                                  }}
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                  <FiPackage size={17} />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p
+                              <div
                                 className="
-                                  truncate
-                                  text-sm
-                                  font-semibold
-                                  text-gray-800
+                                  relative
+                                  h-11
+                                  w-11
+                                  shrink-0
+                                  overflow-hidden
+                                  rounded-xl
+                                  border
+                                  border-gray-100
+                                  bg-gray-50
+                                "
+                              >
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={name}
+                                    className="
+                                      h-full
+                                      w-full
+                                      object-cover
+                                      transition-transform
+                                      duration-300
+                                      group-hover:scale-105
+                                    "
+                                    onError={(e) => {
+                                      e.currentTarget.style.display =
+                                        "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                    <FiPackage size={17} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className="
+                                    truncate
+                                    text-sm
+                                    font-semibold
+                                    text-gray-800
+                                    group-hover:text-primary
+                                  "
+                                >
+                                  {name}
+                                </p>
+
+                                {product.slug && (
+                                  <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                                    {product.slug}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div
+                                className="
+                                  flex
+                                  h-7
+                                  w-7
+                                  shrink-0
+                                  items-center
+                                  justify-center
+                                  rounded-lg
+                                  text-gray-300
+                                  transition-all
+                                  group-hover:bg-primary/10
                                   group-hover:text-primary
                                 "
                               >
-                                {name}
-                              </p>
-
-                              {product.slug && (
-                                <p className="mt-0.5 truncate text-[10px] text-gray-400">
-                                  {product.slug}
-                                </p>
-                              )}
-                            </div>
-
-                            <div
-                              className="
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-lg
-                                text-gray-300
-                                transition-all
-                                group-hover:bg-primary/10
-                                group-hover:text-primary
-                              "
-                            >
-                              <FiChevronRight size={15} />
-                            </div>
-                          </button>
-                        );
-                      })}
+                                <FiChevronRight size={15} />
+                              </div>
+                            </button>
+                          );
+                        },
+                      )}
                     </div>
                   </section>
                 )}
@@ -1029,7 +1173,8 @@ const Header = ({
                     ADMINS
                 ================================================= */}
 
-                {searchResults.admins.length > 0 && (
+                {searchResults.admins.length >
+                  0 && (
                   <section className="border-b border-gray-100 py-2">
                     <div
                       className="
@@ -1062,193 +1207,229 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {searchResults.admins.length}
+                        {
+                          searchResults
+                            .admins.length
+                        }
                       </span>
                     </div>
 
                     <div className="space-y-0.5">
-                      {searchResults.admins.map((searchAdmin) => {
-                        const image =
-                          getProfileImage(searchAdmin);
+                      {searchResults.admins.map(
+                        (searchAdmin) => {
+                          const image =
+                            getProfileImage(
+                              searchAdmin,
+                            );
 
-                        const roles =
-                          searchAdmin.roles || [];
+                          const roles =
+                            searchAdmin.roles ||
+                            [];
 
-                        const permissionCount =
-                          roles.reduce(
-                            (total, role) =>
-                              total +
-                              (role.permissions?.length || 0),
-                            0
-                          );
+                          const permissionCount =
+                            roles.reduce(
+                              (
+                                total,
+                                role,
+                              ) =>
+                                total +
+                                (role
+                                  .permissions
+                                  ?.length ||
+                                  0),
+                              0,
+                            );
 
-                        return (
-                          <button
-                            key={`admin-${searchAdmin.id}`}
-                            type="button"
-                            onClick={() =>
-                              goToSearchResult(
-                                "admin",
-                                searchAdmin
-                              )
-                            }
-                            className="
-                              group
-                              flex
-                              w-full
-                              items-start
-                              gap-3
-                              px-4
-                              py-3
-                              text-left
-                              transition-all
-                              hover:bg-gray-50
-                            "
-                          >
-                            <div
+                          return (
+                            <button
+                              key={`admin-${searchAdmin.id}`}
+                              type="button"
+                              onClick={() =>
+                                goToSearchResult(
+                                  "admin",
+                                  searchAdmin,
+                                )
+                              }
                               className="
-                                h-11
-                                w-11
-                                shrink-0
-                                overflow-hidden
-                                rounded-full
-                                bg-gradient-to-br
-                                from-violet-500
-                                to-primary
-                                shadow-sm
-                                ring-2
-                                ring-white
-                              "
-                            >
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={searchAdmin.name}
-                                  className="
-                                    h-full
-                                    w-full
-                                    object-cover
-                                  "
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                                  {getInitials(
-                                    searchAdmin.name
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p
-                                  className="
-                                    truncate
-                                    text-sm
-                                    font-semibold
-                                    text-gray-800
-                                    group-hover:text-primary
-                                  "
-                                >
-                                  {searchAdmin.name}
-                                </p>
-
-                                <span
-                                  className="
-                                    shrink-0
-                                    rounded-md
-                                    bg-violet-50
-                                    px-1.5
-                                    py-0.5
-                                    text-[8px]
-                                    font-bold
-                                    uppercase
-                                    tracking-wide
-                                    text-violet-600
-                                  "
-                                >
-                                  Admin
-                                </span>
-                              </div>
-
-                              <div className="mt-1 flex items-center gap-1.5">
-                                <FiMail
-                                  size={11}
-                                  className="shrink-0 text-gray-400"
-                                />
-
-                                <p
-                                  className="
-                                    truncate
-                                    text-[11px]
-                                    text-gray-400
-                                  "
-                                >
-                                  {searchAdmin.email}
-                                </p>
-                              </div>
-
-                              {roles.length > 0 && (
-                                <div className="mt-1.5 flex flex-wrap gap-1">
-                                  {roles
-                                    .slice(0, 3)
-                                    .map((role) => (
-                                      <span
-                                        key={role.id}
-                                        className="
-                                          rounded-md
-                                          bg-gray-100
-                                          px-1.5
-                                          py-0.5
-                                          text-[8px]
-                                          font-medium
-                                          text-gray-500
-                                        "
-                                      >
-                                        {role.name}
-                                      </span>
-                                    ))}
-
-                                  {roles.length > 3 && (
-                                    <span className="px-1 text-[8px] font-medium text-gray-400">
-                                      +
-                                      {roles.length - 3} more
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              {permissionCount > 0 && (
-                                <p className="mt-1 text-[9px] font-medium text-gray-400">
-                                  {permissionCount} permission
-                                  {permissionCount !== 1
-                                    ? "s"
-                                    : ""}
-                                </p>
-                              )}
-                            </div>
-
-                            <div
-                              className="
-                                mt-2
+                                group
                                 flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-lg
-                                text-gray-300
+                                w-full
+                                items-start
+                                gap-3
+                                px-4
+                                py-3
+                                text-left
                                 transition-all
-                                group-hover:bg-primary/10
-                                group-hover:text-primary
+                                hover:bg-gray-50
                               "
                             >
-                              <FiChevronRight size={15} />
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <div
+                                className="
+                                  h-11
+                                  w-11
+                                  shrink-0
+                                  overflow-hidden
+                                  rounded-full
+                                  bg-gradient-to-br
+                                  from-violet-500
+                                  to-primary
+                                  shadow-sm
+                                  ring-2
+                                  ring-white
+                                "
+                              >
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      searchAdmin.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                                    {getInitials(
+                                      searchAdmin.name,
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p
+                                    className="
+                                      truncate
+                                      text-sm
+                                      font-semibold
+                                      text-gray-800
+                                      group-hover:text-primary
+                                    "
+                                  >
+                                    {
+                                      searchAdmin.name
+                                    }
+                                  </p>
+
+                                  <span
+                                    className="
+                                      shrink-0
+                                      rounded-md
+                                      bg-violet-50
+                                      px-1.5
+                                      py-0.5
+                                      text-[8px]
+                                      font-bold
+                                      uppercase
+                                      tracking-wide
+                                      text-violet-600
+                                    "
+                                  >
+                                    Admin
+                                  </span>
+                                </div>
+
+                                <div className="mt-1 flex items-center gap-1.5">
+                                  <FiMail
+                                    size={11}
+                                    className="shrink-0 text-gray-400"
+                                  />
+
+                                  <p
+                                    className="
+                                      truncate
+                                      text-[11px]
+                                      text-gray-400
+                                    "
+                                  >
+                                    {
+                                      searchAdmin.email
+                                    }
+                                  </p>
+                                </div>
+
+                                {roles.length >
+                                  0 && (
+                                  <div className="mt-1.5 flex flex-wrap gap-1">
+                                    {roles
+                                      .slice(
+                                        0,
+                                        3,
+                                      )
+                                      .map(
+                                        (
+                                          role,
+                                        ) => (
+                                          <span
+                                            key={
+                                              role.id
+                                            }
+                                            className="
+                                              rounded-md
+                                              bg-gray-100
+                                              px-1.5
+                                              py-0.5
+                                              text-[8px]
+                                              font-medium
+                                              text-gray-500
+                                            "
+                                          >
+                                            {
+                                              role.name
+                                            }
+                                          </span>
+                                        ),
+                                      )}
+
+                                    {roles.length >
+                                      3 && (
+                                      <span className="px-1 text-[8px] font-medium text-gray-400">
+                                        +
+                                        {roles.length -
+                                          3}{" "}
+                                        more
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {permissionCount >
+                                  0 && (
+                                  <p className="mt-1 text-[9px] font-medium text-gray-400">
+                                    {
+                                      permissionCount
+                                    }{" "}
+                                    permission
+                                    {permissionCount !==
+                                    1
+                                      ? "s"
+                                      : ""}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div
+                                className="
+                                  mt-2
+                                  flex
+                                  h-7
+                                  w-7
+                                  shrink-0
+                                  items-center
+                                  justify-center
+                                  rounded-lg
+                                  text-gray-300
+                                  transition-all
+                                  group-hover:bg-primary/10
+                                  group-hover:text-primary
+                                "
+                              >
+                                <FiChevronRight size={15} />
+                              </div>
+                            </button>
+                          );
+                        },
+                      )}
                     </div>
                   </section>
                 )}
@@ -1257,7 +1438,8 @@ const Header = ({
                     USERS
                 ================================================= */}
 
-                {searchResults.users.length > 0 && (
+                {searchResults.users.length >
+                  0 && (
                   <section className="py-2">
                     <div
                       className="
@@ -1290,119 +1472,126 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {searchResults.users.length}
+                        {
+                          searchResults
+                            .users.length
+                        }
                       </span>
                     </div>
 
                     <div className="space-y-0.5">
-                      {searchResults.users.map((user) => {
-                        const image =
-                          getProfileImage(user);
+                      {searchResults.users.map(
+                        (user) => {
+                          const image =
+                            getProfileImage(
+                              user,
+                            );
 
-                        return (
-                          <button
-                            key={`user-${user.id}`}
-                            type="button"
-                            onClick={() =>
-                              goToSearchResult(
-                                "user",
-                                user
-                              )
-                            }
-                            className="
-                              group
-                              flex
-                              w-full
-                              items-start
-                              gap-3
-                              px-4
-                              py-3
-                              text-left
-                              transition-all
-                              hover:bg-gray-50
-                            "
-                          >
-                            <div
+                          return (
+                            <button
+                              key={`user-${user.id}`}
+                              type="button"
+                              onClick={() =>
+                                goToSearchResult(
+                                  "user",
+                                  user,
+                                )
+                              }
                               className="
-                                h-11
-                                w-11
-                                shrink-0
-                                overflow-hidden
-                                rounded-full
-                                bg-gradient-to-br
-                                from-emerald-400
-                                to-emerald-600
+                                group
+                                flex
+                                w-full
+                                items-start
+                                gap-3
+                                px-4
+                                py-3
+                                text-left
+                                transition-all
+                                hover:bg-gray-50
                               "
                             >
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={user.name}
-                                  className="
-                                    h-full
-                                    w-full
-                                    object-cover
-                                  "
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                                  {getInitials(user.name)}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p
+                              <div
                                 className="
-                                  truncate
-                                  text-sm
-                                  font-semibold
-                                  text-gray-800
-                                  group-hover:text-primary
+                                  h-11
+                                  w-11
+                                  shrink-0
+                                  overflow-hidden
+                                  rounded-full
+                                  bg-gradient-to-br
+                                  from-emerald-400
+                                  to-emerald-600
                                 "
                               >
-                                {user.name}
-                              </p>
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      user.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                                    {getInitials(
+                                      user.name,
+                                    )}
+                                  </div>
+                                )}
+                              </div>
 
-                              <div className="mt-1 flex items-center gap-1.5">
-                                <FiMail
-                                  size={11}
-                                  className="shrink-0 text-gray-400"
-                                />
-
+                              <div className="min-w-0 flex-1">
                                 <p
                                   className="
                                     truncate
-                                    text-[11px]
-                                    text-gray-400
+                                    text-sm
+                                    font-semibold
+                                    text-gray-800
+                                    group-hover:text-primary
                                   "
                                 >
-                                  {user.email}
+                                  {user.name}
                                 </p>
-                              </div>
-                            </div>
 
-                            <div
-                              className="
-                                mt-1
-                                flex
-                                h-7
-                                w-7
-                                shrink-0
-                                items-center
-                                justify-center
-                                rounded-lg
-                                text-gray-300
-                                transition-all
-                                group-hover:bg-primary/10
-                                group-hover:text-primary
-                              "
-                            >
-                              <FiChevronRight size={15} />
-                            </div>
-                          </button>
-                        );
-                      })}
+                                <div className="mt-1 flex items-center gap-1.5">
+                                  <FiMail
+                                    size={11}
+                                    className="shrink-0 text-gray-400"
+                                  />
+
+                                  <p
+                                    className="
+                                      truncate
+                                      text-[11px]
+                                      text-gray-400
+                                    "
+                                  >
+                                    {user.email}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div
+                                className="
+                                  mt-1
+                                  flex
+                                  h-7
+                                  w-7
+                                  shrink-0
+                                  items-center
+                                  justify-center
+                                  rounded-lg
+                                  text-gray-300
+                                  transition-all
+                                  group-hover:bg-primary/10
+                                  group-hover:text-primary
+                                "
+                              >
+                                <FiChevronRight size={15} />
+                              </div>
+                            </button>
+                          );
+                        },
+                      )}
                     </div>
                   </section>
                 )}
@@ -1432,7 +1621,7 @@ const Header = ({
           RIGHT
       =================================================== */}
 
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         {/* NOTIFICATION */}
 
         <Link to="/notifications">
@@ -1597,7 +1786,8 @@ const Header = ({
               >
                 {isLoading
                   ? "Loading..."
-                  : admin?.name || "Administrator"}
+                  : admin?.name ||
+                    "Administrator"}
               </p>
 
               <p
@@ -1642,6 +1832,7 @@ const Header = ({
                 absolute
                 right-0
                 top-[52px]
+                z-[10001]
                 w-[320px]
                 max-w-[calc(100vw-20px)]
                 overflow-hidden
@@ -1650,7 +1841,6 @@ const Header = ({
                 border-gray-200
                 bg-white
                 shadow-[0_20px_60px_rgba(0,0,0,0.14)]
-                z-[10001]
               "
             >
               {/* HEADER */}
@@ -1690,7 +1880,9 @@ const Header = ({
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
-                        {getInitials(admin?.name)}
+                        {getInitials(
+                          admin?.name,
+                        )}
                       </div>
                     )}
                   </div>
@@ -1706,7 +1898,8 @@ const Header = ({
                         text-gray-900
                       "
                     >
-                      {admin?.name || "Administrator"}
+                      {admin?.name ||
+                        "Administrator"}
                     </p>
 
                     <p
@@ -1717,7 +1910,8 @@ const Header = ({
                         text-gray-400
                       "
                     >
-                      {admin?.email || "admin@example.com"}
+                      {admin?.email ||
+                        "admin@example.com"}
                     </p>
                   </div>
                 </div>
@@ -1727,8 +1921,11 @@ const Header = ({
                   ROLES
               ================================================= */}
 
-              {Array.isArray((admin as any)?.roles) &&
-                (admin as any).roles.length > 0 && (
+              {Array.isArray(
+                (admin as any)?.roles,
+              ) &&
+                (admin as any).roles
+                  .length > 0 && (
                   <div className="border-t border-gray-100 px-4 py-3">
                     <div className="mb-2 flex items-center gap-2">
                       <div
@@ -1759,9 +1956,15 @@ const Header = ({
 
                     <div className="space-y-2">
                       {(admin as any).roles.map(
-                        (role: any, index: number) => (
+                        (
+                          role: any,
+                          index: number,
+                        ) => (
                           <div
-                            key={role.id ?? index}
+                            key={
+                              role.id ??
+                              index
+                            }
                             className="
                               rounded-xl
                               border
@@ -1789,14 +1992,22 @@ const Header = ({
                               </p>
                             )}
 
-                            {Array.isArray(role.permissions) &&
-                              role.permissions.length > 0 && (
+                            {Array.isArray(
+                              role.permissions,
+                            ) &&
+                              role
+                                .permissions
+                                .length >
+                                0 && (
                                 <div className="mt-2 flex flex-wrap gap-1">
                                   {role.permissions
-                                    .slice(0, 5)
+                                    .slice(
+                                      0,
+                                      5,
+                                    )
                                     .map(
                                       (
-                                        permission: any
+                                        permission: any,
                                       ) => (
                                         <span
                                           key={
@@ -1818,10 +2029,12 @@ const Header = ({
                                             permission.name
                                           }
                                         </span>
-                                      )
+                                      ),
                                     )}
 
-                                  {role.permissions.length >
+                                  {role
+                                    .permissions
+                                    .length >
                                     5 && (
                                     <span
                                       className="
@@ -1835,7 +2048,9 @@ const Header = ({
                                       "
                                     >
                                       +
-                                      {role.permissions.length -
+                                      {role
+                                        .permissions
+                                        .length -
                                         5}{" "}
                                       more
                                     </span>
@@ -1843,7 +2058,7 @@ const Header = ({
                                 </div>
                               )}
                           </div>
-                        )
+                        ),
                       )}
                     </div>
                   </div>
@@ -1860,7 +2075,9 @@ const Header = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setIsDropdownOpen(false)
+                      setIsDropdownOpen(
+                        false,
+                      )
                     }
                     className="
                       flex
@@ -1910,7 +2127,9 @@ const Header = ({
                   <button
                     type="button"
                     onClick={() =>
-                      setIsDropdownOpen(false)
+                      setIsDropdownOpen(
+                        false,
+                      )
                     }
                     className="
                       flex
@@ -1961,7 +2180,10 @@ const Header = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setIsDropdownOpen(false);
+                    setIsDropdownOpen(
+                      false,
+                    );
+
                     handleLogout();
                   }}
                   className="
