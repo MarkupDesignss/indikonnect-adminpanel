@@ -1,6 +1,8 @@
 import React, {
   useEffect,
   useState,
+  useRef,
+  useCallback,
 } from "react";
 
 import {
@@ -148,10 +150,6 @@ const getValue = (obj: any, ...keys: string[]) => {
   return "";
 };
 
-/**
- * ✅ NEW: Normalize any id-like value into a clean string.
- * Handles: numbers, strings, strings with spaces.
- */
 const normalizeId = (value: any): string => {
   if (value === null || value === undefined) {
     return "";
@@ -792,10 +790,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [variants, setVariants] = useState<VariantFormData[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // ✅ NEW: track whether we've hydrated editData already
   const [hydratedEditKey, setHydratedEditKey] = useState<
     string | null
   >(null);
+
+  // ============================================================
+  // DRAG & DROP STATE
+  // ============================================================
+
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // ============================================================
   // FETCH OPTIONS
@@ -900,8 +904,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    // ✅ Build a unique key for this edit session.
-    // If the same product is reopened, we DON'T re-hydrate.
     const productKey = `${product?.id ?? "new"}-${isEdit}`;
 
     if (hydratedEditKey === productKey) {
@@ -925,8 +927,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     } else {
       setSpecification([{ key: "", value: "" }]);
     }
-
-    // ✅ Use normalizeId for all id fields (trims spaces, converts to clean string)
 
     const editCategoryId = normalizeId(
       product?.category_id ?? product?.category?.id
@@ -1006,10 +1006,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         : ""
     );
 
-    // ============================================================
-    // ✅ NEW: SHIPPING CHARGE — HYDRATE FROM EDIT DATA
-    // ============================================================
-
     const editShippingCharge = product?.shipping_charge;
 
     setShippingCharge(
@@ -1068,11 +1064,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setVariants(generateVariantsFromProduct(product));
 
-    // ✅ Mark this edit session as hydrated
     setHydratedEditKey(productKey);
   }, [open, isEdit, editData, hydratedEditKey]);
 
-  // Reset hydrated key when modal closes
   useEffect(() => {
     if (!open) {
       setHydratedEditKey(null);
@@ -1116,6 +1110,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setImages([]);
     setVariants([]);
     setErrors({});
+    setIsDragging(false);
+    dragCounterRef.current = 0;
   }, [open]);
 
   if (!open) {
@@ -1194,6 +1190,47 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     });
   };
 
+  // ============================================================
+  // IMAGE HANDLING (with drag & drop)
+  // ============================================================
+
+  const addImageFiles = useCallback(
+    (files: FileList | File[]) => {
+      const fileArray = Array.from(files).filter((file) =>
+        file.type.startsWith("image/")
+      );
+
+      if (fileArray.length === 0) {
+        return;
+      }
+
+      const newImages: ImageItem[] = fileArray.map(
+        (file, index) => ({
+          id: Date.now() + index + Math.random(),
+
+          file,
+
+          preview: URL.createObjectURL(file),
+
+          sort_order: images.length + index + 1,
+
+          is_primary:
+            images.length === 0 && index === 0 ? 1 : 0,
+
+          is_existing: false,
+        })
+      );
+
+      setImages((prev) => [...prev, ...newImages]);
+
+      setErrors((prev) => ({
+        ...prev,
+        images: undefined,
+      }));
+    },
+    [images.length]
+  );
+
   const handleImages = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -1203,32 +1240,71 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    const newImages: ImageItem[] = Array.from(files).map(
-      (file, index) => ({
-        id: Date.now() + index,
-
-        file,
-
-        preview: URL.createObjectURL(file),
-
-        sort_order: images.length + index + 1,
-
-        is_primary:
-          images.length === 0 && index === 0 ? 1 : 0,
-
-        is_existing: false,
-      })
-    );
-
-    setImages((prev) => [...prev, ...newImages]);
-
-    setErrors((prev) => ({
-      ...prev,
-      images: undefined,
-    }));
+    addImageFiles(files);
 
     e.target.value = "";
   };
+
+  // ✅ DRAG & DROP HANDLERS
+  const handleDragEnter = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      dragCounterRef.current += 1;
+
+      if (
+        e.dataTransfer?.types?.includes("Files")
+      ) {
+        setIsDragging(true);
+      }
+    },
+    []
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
+      }
+    },
+    []
+  );
+
+  const handleDragLeave = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      dragCounterRef.current -= 1;
+
+      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current = 0;
+        setIsDragging(false);
+      }
+    },
+    []
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      dragCounterRef.current = 0;
+      setIsDragging(false);
+
+      const files = e.dataTransfer?.files;
+
+      if (files && files.length > 0) {
+        addImageFiles(files);
+      }
+    },
+    [addImageFiles]
+  );
 
   const removeImage = (id: number) => {
     setImages((prev) => {
@@ -1385,24 +1461,33 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    const newImages: VariantImageItem[] = Array.from(
-      files
-    ).map((file, index) => ({
-      id: Date.now() + index,
+    const fileArray = Array.from(files).filter((file) =>
+      file.type.startsWith("image/")
+    );
 
-      file,
+    if (fileArray.length === 0) {
+      e.target.value = "";
+      return;
+    }
 
-      preview: URL.createObjectURL(file),
+    const newImages: VariantImageItem[] = fileArray.map(
+      (file, index) => ({
+        id: Date.now() + index + Math.random(),
 
-      sort_order: variant.images.length + index + 1,
+        file,
 
-      is_primary:
-        variant.images.length === 0 && index === 0
-          ? 1
-          : 0,
+        preview: URL.createObjectURL(file),
 
-      is_existing: false,
-    }));
+        sort_order: variant.images.length + index + 1,
+
+        is_primary:
+          variant.images.length === 0 && index === 0
+            ? 1
+            : 0,
+
+        is_existing: false,
+      })
+    );
 
     updateVariant(variantId, "images", [
       ...variant.images,
@@ -1510,10 +1595,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         "Please enter a valid stock quantity";
     }
 
-    // ============================================================
-    // ✅ NEW: SHIPPING CHARGE VALIDATION (OPTIONAL — must be >= 0 if provided)
-    // ============================================================
-
     if (
       shippingCharge !== "" &&
       (Number.isNaN(Number(shippingCharge)) ||
@@ -1609,10 +1690,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       "commission_value",
       Number(commissionValue || 0)
     );
-
-    // ============================================================
-    // ✅ NEW: SHIPPING CHARGE — APPEND TO FORM DATA
-    // ============================================================
 
     formData.append(
       "shipping_charge",
@@ -2011,7 +2088,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 Select category...
                               </option>
 
-                              {/* ✅ Fallback for categories not yet loaded */}
                               {categoryId &&
                                 !categories.some(
                                   (c) =>
@@ -2073,10 +2149,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 Select subcategory...
                               </option>
 
-                              {/* ✅ CRITICAL FIX:
-                                  If the selected subcategoryId is NOT yet
-                                  in the loaded list, show a fallback option
-                                  so React doesn't reset the value. */}
                               {subcategoryId &&
                                 !subcategories.some(
                                   (s) =>
@@ -2401,87 +2473,154 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       </p>
                     )}
 
-                    {images.length === 0 ? (
-                      <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#D8E2D8] bg-[#F5F7F5] transition-colors hover:bg-[#EAF3EA]">
-                        <FiUploadCloud
-                          size={40}
-                          className="text-[#9AA29C]"
-                        />
+                    {/* ✅ DRAG & DROP ZONE */}
+                    <div
+                      onDragEnter={handleDragEnter}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className="relative"
+                    >
+                      {images.length === 0 ? (
+                        <label
+                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                            isDragging
+                              ? "border-[#163F20] bg-[#EAF3EA]"
+                              : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
+                          }`}
+                        >
+                          <FiUploadCloud
+                            size={40}
+                            className={
+                              isDragging
+                                ? "text-[#163F20]"
+                                : "text-[#9AA29C]"
+                            }
+                          />
 
-                        <p className="mt-2 text-sm font-semibold text-[#202721]">
-                          Upload Product Images
-                        </p>
+                          <p className="mt-2 text-sm font-semibold text-[#202721]">
+                            {isDragging
+                              ? "Drop images here"
+                              : "Upload Product Images"}
+                          </p>
 
-                        <p className="mt-0.5 text-xs text-[#9AA29C]">
-                          You can select multiple images
-                        </p>
+                          <p className="mt-0.5 text-xs text-[#9AA29C]">
+                            Drag & drop or click to select multiple
+                            images
+                          </p>
 
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImages}
-                        />
-                      </label>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                        {images.map((item) => (
-                          <div
-                            key={item.id}
-                            className="group relative overflow-hidden rounded-lg border border-[#E5EAE5] bg-white shadow-sm transition-all hover:shadow-md"
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImages}
+                          />
+                        </label>
+                      ) : (
+                        <div
+                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${
+                            isDragging
+                              ? "border-dashed border-[#163F20] bg-[#EAF3EA]"
+                              : ""
+                          }`}
+                        >
+                          {images.map((item) => (
+                            <div
+                              key={item.id}
+                              className="group relative overflow-hidden rounded-lg border border-[#E5EAE5] bg-white shadow-sm transition-all hover:shadow-md"
+                            >
+                              <img
+                                src={item.preview}
+                                alt="Product"
+                                className="h-[140px] w-full object-cover"
+                                draggable={false}
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPrimaryImage(item.id)
+                                }
+                                className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors ${
+                                  item.is_primary
+                                    ? "bg-[#163F20] text-white"
+                                    : "bg-white/90 text-[#59645C] hover:bg-white"
+                                }`}
+                              >
+                                {item.is_primary
+                                  ? "★ Primary"
+                                  : "Set Primary"}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeImage(item.id)
+                                }
+                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white"
+                              >
+                                <FiX size={14} />
+                              </button>
+
+                              <div className="flex items-center justify-between border-t border-[#E5EAE5] px-3 py-1.5 text-xs text-[#59645C]">
+                                <span>#{item.sort_order}</span>
+
+                                {item.is_primary && (
+                                  <span className="font-semibold text-[#163F20]">
+                                    Primary
+                                  </span>
+                                )}
+
+                                {item.is_existing && (
+                                  <span className="text-[10px] text-[#4C8A57]">
+                                    Existing
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* ADD MORE TILE */}
+                          <label
+                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                              isDragging
+                                ? "border-[#163F20] bg-[#EAF3EA]"
+                                : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
+                            }`}
                           >
-                            <img
-                              src={item.preview}
-                              alt="Product"
-                              className="h-[140px] w-full object-cover"
+                            <FiPlus
+                              size={24}
+                              className="text-[#4C8A57]"
                             />
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPrimaryImage(item.id)
-                              }
-                              className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors ${
-                                item.is_primary
-                                  ? "bg-[#163F20] text-white"
-                                  : "bg-white/90 text-[#59645C] hover:bg-white"
-                              }`}
-                            >
-                              {item.is_primary
-                                ? "★ Primary"
-                                : "Set Primary"}
-                            </button>
+                            <span className="mt-1 text-xs font-semibold text-[#59645C]">
+                              Add More
+                            </span>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeImage(item.id)
-                              }
-                              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white"
-                            >
-                              <FiX size={14} />
-                            </button>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleImages}
+                            />
+                          </label>
+                        </div>
+                      )}
 
-                            <div className="flex items-center justify-between border-t border-[#E5EAE5] px-3 py-1.5 text-xs text-[#59645C]">
-                              <span>#{item.sort_order}</span>
-
-                              {item.is_primary && (
-                                <span className="font-semibold text-[#163F20]">
-                                  Primary
-                                </span>
-                              )}
-
-                              {item.is_existing && (
-                                <span className="text-[10px] text-[#4C8A57]">
-                                  Existing
-                                </span>
-                              )}
-                            </div>
+                      {/* ✅ DRAG OVERLAY */}
+                      {isDragging && (
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-[#163F20] bg-[#EAF3EA]/80 backdrop-blur-[1px]">
+                          <div className="flex flex-col items-center text-[#163F20]">
+                            <FiUploadCloud size={36} />
+                            <span className="mt-1 text-sm font-bold">
+                              Drop to upload
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* VARIANTS */}
@@ -2863,6 +3002,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                         src={img.preview}
                                         alt="Variant"
                                         className="h-full w-full object-cover"
+                                        draggable={false}
                                       />
 
                                       <button
@@ -3098,10 +3238,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         />
                       </div>
 
-                      {/* ============================================================
-                          ✅ NEW: SHIPPING CHARGE
-                      ============================================================ */}
-
+                      {/* SHIPPING CHARGE */}
                       <div>
                         <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#202721]">
                           <FiTruck

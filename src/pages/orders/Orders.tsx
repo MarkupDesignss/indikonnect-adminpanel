@@ -32,6 +32,15 @@ import StatsCard from "@/components/common/StatsCard";
 import { categoryApi } from "../../api/endpoints/category";
 import brandsApi from "../../api/endpoints/brands";
 
+import {
+  downloadOrdersCsv,
+  openInvoicePdfInNewTab,
+} from "./csvUtils";
+
+// =====================================================
+// ICONS
+// =====================================================
+
 const ClipboardIcon = () => (
   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
@@ -65,6 +74,10 @@ const DollarIcon = () => (
   </svg>
 );
 
+// =====================================================
+// TYPES
+// =====================================================
+
 export interface OrderItem {
   id: string;
   invoiceNumber?: string;
@@ -93,125 +106,9 @@ export interface OrderItem {
   is_cancel_return_allowed?: boolean;
   courier_tracking_number?: string;
   courierTrackingNumber?: string;
-
-  invoice?: {
-    id: number;
-    invoice_number: string;
-  } | null;
+  invoice?: { id: number; invoice_number: string } | null;
 }
-// =====================================================
-// CSV HELPERS
-// =====================================================
 
-const escapeCsvValue = (value: any): string => {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  // Agar value me comma, quote, ya newline hai to quotes me wrap karo
-  if (
-    str.includes(",") ||
-    str.includes('"') ||
-    str.includes("\n") ||
-    str.includes("\r")
-  ) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-};
-
-const formatCsvDate = (value?: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatCsvStatus = (status?: string) => {
-  if (!status) return "";
-  return status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-const generateOrdersCsv = (orders: any[]): string => {
-  // ✅ Proper CSV headers
-  const headers = [
-    "S.No.",
-    "Order Reference",
-    "Order Date",
-    "Customer Name",
-    "Customer Email",
-    "Customer Phone",
-    "Order Type",
-    "Order Status",
-    "Payment Status",
-    "Payment Gateway",
-    "Transaction ID",
-    "Subtotal",
-    "Total GST",
-    "Shipping Charge",
-    "Total Payable",
-    "Amount Paid",
-    "Shipping Address",
-    "Courier Company",
-    "Courier Tracking Number",
-    "Courier Delivery Date",
-    "Total Items",
-    "Items Summary",
-  ];
-
-  const rows: string[] = [];
-  rows.push(headers.map(escapeCsvValue).join(","));
-
-  orders.forEach((order, index) => {
-    const items = Array.isArray(order.items) ? order.items : [];
-
-    // Items summary: "ProductName (SKU) xQty [Status] | ..." — proper CSV escaping
-    const itemsSummary = items
-      .map((item: any) => {
-        const name = item.product_name || "N/A";
-        const sku = item.product_code || "N/A";
-        const qty = item.quantity || 0;
-        const st = formatCsvStatus(item.delivery_status) || "Pending";
-        return `${name} (${sku}) x${qty} [${st}]`;
-      })
-      .join(" | ");
-
-    const row = [
-      index + 1,
-      order.order_reference || "",
-      formatCsvDate(order.order_date) || "",
-      order.user?.name || "",
-      order.user?.email || "",
-      order.user?.phone || "",
-      order.order_type === "retail" ? "Customer" : (order.order_type || ""),
-      formatCsvStatus(order.order_status) || "",
-      formatCsvStatus(order.payment_status) || "",
-      order.payment_gateway || "",
-      order.gateway_transaction_id || "",
-      Number(order.subtotal || 0).toFixed(2),
-      Number(order.total_gst || 0).toFixed(2),
-      Number(order.shipping_charge || 0).toFixed(2),
-      Number(order.total_payable || 0).toFixed(2),
-      Number(order.amount_paid || 0).toFixed(2),
-      order.shipping_address?.full_address || "",
-      order.courier_company || "",
-      order.courier_tracking_number || "",
-      formatCsvDate(order.courier_delivery_date) || "",
-      items.length,
-      itemsSummary,
-    ];
-
-    rows.push(row.map(escapeCsvValue).join(","));
-  });
-
-  return rows.join("\r\n");
-};
 export interface Order {
   id: string;
   date: string;
@@ -300,358 +197,6 @@ const ModalError: React.FC<ModalErrorProps> = ({
 );
 
 // =====================================================
-// INVOICE VIEW POPUP
-// =====================================================
-
-interface InvoiceViewPopupProps {
-  isOpen: boolean;
-  onClose: () => void;
-  orderId: number | null;
-  orderItemId?: number | null;
-}
-
-const InvoiceViewPopup: React.FC<InvoiceViewPopupProps> = ({
-  isOpen,
-  onClose,
-  orderId,
-  orderItemId = null,
-}) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [invoiceData, setInvoiceData] = useState<any>(null);
-
-  useEffect(() => {
-    if (isOpen && orderId) fetchInvoice(orderId);
-  }, [isOpen, orderId]);
-
-  const fetchInvoice = async (id: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await orderInvoiceApi.getByOrderId(id);
-      if (response.data.success) {
-        setInvoiceData(response.data.data);
-      } else {
-        setError(response.data.message || "Failed to fetch invoice data");
-        setInvoiceData(null);
-      }
-    } catch (err) {
-      setError("An error occurred while fetching invoice");
-      console.error(err);
-      setInvoiceData(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (value: number | string | null | undefined) => {
-    if (value === null || value === undefined) return "₹0";
-    const num = typeof value === "string" ? parseFloat(value) : value;
-    if (isNaN(num)) return "₹0";
-    return `₹${num.toLocaleString("en-IN")}`;
-  };
-
-  if (loading) {
-    return (
-      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-          <ModalLoader message="Loading invoice..." />
-        </div>
-      </GlobalModal>
-    );
-  }
-
-  if (error || !invoiceData) {
-    return (
-      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-          <ModalError error={error || "No invoice data found"} onClose={onClose} />
-        </div>
-      </GlobalModal>
-    );
-  }
-
-  const { invoice = {}, order = {} } = invoiceData || {};
-  const orderItems = (order && order.order_items) || [];
-  const filteredItems = orderItemId
-    ? orderItems.filter((item: any) => item.id === orderItemId)
-    : orderItems;
-
-  const getFilteredTotals = () => {
-    if (!invoice) {
-      return {
-        subtotal: 0,
-        totalPayable: 0,
-        totalTax: 0,
-        couponDiscount: 0,
-        shippingCharge: 0,
-      };
-    }
-    if (!orderItemId || filteredItems.length === 0) {
-      return {
-        subtotal: parseFloat(invoice.subtotal_before_redemption || 0),
-        totalPayable: parseFloat(invoice.total_payable || 0),
-        totalTax: parseFloat(invoice.total_tax || 0),
-        couponDiscount: parseFloat(invoice.coupon_discount || 0),
-        shippingCharge: parseFloat(invoice.shipping_charge || 0),
-      };
-    }
-    const item = filteredItems[0];
-    const subtotal =
-      parseFloat(item.line_total || 0) - parseFloat(item.gst_amount || 0);
-    const totalTax = parseFloat(item.gst_amount || 0);
-    const totalPayable = parseFloat(item.line_total || 0);
-    const totalOrderItems = orderItems.length || 1;
-    const couponDiscount =
-      totalOrderItems > 0
-        ? parseFloat(invoice.coupon_discount || 0) / totalOrderItems
-        : 0;
-    const shippingCharge =
-      totalOrderItems > 0
-        ? parseFloat(invoice.shipping_charge || 0) / totalOrderItems
-        : 0;
-    return { subtotal, totalPayable, totalTax, couponDiscount, shippingCharge };
-  };
-
-  const totals = getFilteredTotals();
-
-  return (
-    <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
-                  Invoice Details
-                </span>
-              </div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
-                <FiFileText className="text-[#163F20]" />
-                Invoice #{invoice.invoice_number || "N/A"}
-              </h2>
-              <p className="mt-1 text-sm text-[#9AA29C]">
-                Order: {order.order_reference || "N/A"} •{" "}
-                {order.delivery_state || "N/A"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
-            >
-              <FiX size={19} />
-            </button>
-          </div>
-        </div>
-
-        <div className="max-h-[calc(95vh-190px)] overflow-y-auto p-5 sm:p-6">
-          {orderItemId && (
-            <div className="mb-4 rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] p-3">
-              <div className="flex items-center gap-2 text-sm">
-                <FiPackage className="text-[#163F20]" size={16} />
-                <span className="font-semibold text-[#202721]">
-                  Item-Specific Invoice
-                </span>
-              </div>
-            </div>
-          )}
-
-          <div className="mb-6 rounded-2xl border border-[#163F20]/15 bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6] p-5">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Seller
-                </p>
-                <p className="mt-1 text-lg font-bold text-[#202721]">
-                  {(invoice.seller && invoice.seller.name) || "N/A"}
-                </p>
-                <p className="mt-0.5 text-sm text-[#59645C]">
-                  GSTIN: {(invoice.seller && invoice.seller.gstin) || "N/A"}
-                </p>
-                <p className="text-sm text-[#59645C]">
-                  {(invoice.seller && invoice.seller.address) || "N/A"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                  Buyer
-                </p>
-                <p className="mt-1 text-lg font-bold text-[#202721]">
-                  {(invoice.buyer && invoice.buyer.name) || "N/A"}
-                </p>
-                <p className="text-sm text-[#59645C]">
-                  {(invoice.buyer && invoice.buyer.address) || "N/A"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-2xl border border-[#163F20]/15">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] border-collapse">
-                <thead>
-                  <tr className="bg-[#163F20]">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">#</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Product</th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Code</th>
-                    <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Qty</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Unit Price</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">GST</th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredItems.length > 0 ? (
-                    filteredItems.map((item: any, idx: number) => (
-                      <tr
-                        key={item.id || idx}
-                        className={`border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA] ${orderItemId === item.id ? "bg-[#EAF3EA] border-l-2 border-l-[#163F20]" : ""}`}
-                      >
-                        <td className="px-4 py-3 text-sm text-[#163F20]">{idx + 1}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            {item.product_image && (
-                              <img
-                                src={item.product_image}
-                                alt={item.product_name || "Product"}
-                                className="h-10 w-10 rounded-xl border border-[#163F20]/15 object-cover"
-                              />
-                            )}
-                            <div>
-                              <p className="text-sm font-semibold text-[#202721]">
-                                {item.product_name || "N/A"}
-                              </p>
-                              {orderItemId === item.id && (
-                                <span className="text-[10px] font-bold text-[#163F20]">
-                                  ✓ Selected Item
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-[#9AA29C]">{item.product_code || "N/A"}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity || 0}</td>
-                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">{formatCurrency(item.unit_price)}</td>
-                        <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.gst_rate || 0}%</td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{formatCurrency(item.line_total)}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
-                        No items found in this invoice
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Subtotal</p>
-              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.subtotal)}</p>
-            </div>
-            <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Coupon Discount</p>
-              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.couponDiscount)}</p>
-              {invoice.coupon_code && (
-                <p className="text-[10px] text-[#9AA29C]">Code: {invoice.coupon_code}</p>
-              )}
-            </div>
-            <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Shipping</p>
-              <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.shippingCharge)}</p>
-            </div>
-            <div className="rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6] p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">Total Payable</p>
-              <p className="mt-1 text-xl font-bold text-[#0F3219]">{formatCurrency(totals.totalPayable)}</p>
-            </div>
-          </div>
-
-          {totals.totalTax > 0 && (
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Total Tax</p>
-                <p className="mt-1 text-base font-bold text-[#202721]">{formatCurrency(totals.totalTax)}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-5 rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Reference</p>
-                <p className="text-sm font-semibold text-[#202721]">{order.order_reference || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Invoice Number</p>
-                <p className="text-sm font-semibold text-[#202721]">{invoice.invoice_number || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Delivery State</p>
-                <p className="text-sm font-semibold text-[#202721]">{invoice.delivery_state || "N/A"}</p>
-              </div>
-            </div>
-          </div>
-
-          {order && order.status && (
-            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
-                <FiCheckCircle size={18} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Status</p>
-                <p className="text-sm font-bold capitalize text-[#163F20]">{order.status || "N/A"}</p>
-              </div>
-              <div className="ml-auto">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${order.status === "delivered"
-                    ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
-                    : "border-[#4C8A57]/30 bg-[#F0F6F0] text-[#4C8A57]"
-                    }`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                  {order.status?.toUpperCase() || "N/A"}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="sticky bottom-0 flex justify-between items-center border-t border-[#163F20]/10 bg-[#FAFBFA]/95 px-6 py-4 backdrop-blur-sm">
-          {invoice.pdf_path && (
-            <button
-              type="button"
-              onClick={() => {
-                const pdfUrl = invoice.pdf_path;
-                if (pdfUrl) window.open(pdfUrl, "_blank");
-              }}
-              className="flex items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#163F20] transition hover:border-[#163F20] hover:bg-[#EAF3EA]"
-            >
-              <FiFileText size={16} />
-              Download PDF
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
-
-// =====================================================
 // VIEW ORDER POPUP
 // =====================================================
 
@@ -670,9 +215,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   orderData,
   onViewInvoice,
 }) => {
-  const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking">(
-    "items",
-  );
+  const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking">("items");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -760,8 +303,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   const uiItems: OrderItem[] = (items || []).map((item: any) => ({
     id: String(item.line_id || ""),
     lineId: item.line_id,
-    orderReference:
-      item.order_reference || orderDetails?.order_reference || "N/A",
+    orderReference: item.order_reference || orderDetails?.order_reference || "N/A",
     itemReferenceId: item.item_reference_id || "N/A",
     productName: item.product_name || "N/A",
     sku: item.product_code || "N/A",
@@ -771,8 +313,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     unitPrice: item.unit_price || 0,
     lineTotal: item.line_total || 0,
     status: item.delivery_status
-      ? item.delivery_status.charAt(0).toUpperCase() +
-      item.delivery_status.slice(1)
+      ? item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1)
       : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
@@ -782,6 +323,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     gstRate: item.gst_rate,
     gstAmount: item.gst_amount,
     is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+    courier_tracking_number: item.courier_tracking_number || undefined,
+    courierTrackingNumber: item.courier_tracking_number || undefined,
   }));
 
   const getStatusBadge = (status: string) => {
@@ -810,9 +353,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const getStatusText = (status: string) => {
     if (!status) return "N/A";
-    return status
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const getShippingAddress = () => {
@@ -858,10 +399,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "items"
+                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+              }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -869,23 +411,23 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "details"
+                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+              }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
-              {orderDetails?.order_type === "retail"
-                ? "Customer Details"
-                : "Distributor Details"}
+              {orderDetails?.order_type === "retail" ? "Customer Details" : "Distributor Details"}
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "tracking"
+                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+              }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
@@ -898,7 +440,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <div className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#163F20]/15">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[950px] border-collapse">
+                  <table className="w-full min-w-[1100px] border-collapse">
                     <thead>
                       <tr className="bg-[#163F20]">
                         <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">#</th>
@@ -908,6 +450,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Qty</th>
                         <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Price</th>
                         <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Tracking No.</th>
                         <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Status</th>
                         <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Invoice</th>
                       </tr>
@@ -915,8 +458,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     <tbody>
                       {uiItems && uiItems.length > 0 ? (
                         uiItems.map((item, idx) => {
-                          const isDelivered =
-                            item.delivery_status?.toLowerCase() === "delivered";
+                          const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
                           return (
                             <tr key={item.id} className="border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA]">
                               <td className="px-4 py-3 text-sm text-[#163F20]">{idx + 1}</td>
@@ -943,6 +485,16 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                               <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
                               <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
                               <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
+                              <td className="px-4 py-3">
+                                {item.courier_tracking_number ? (
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                                    <FiTruck size={11} />
+                                    {item.courier_tracking_number}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-[#9AA29C]">—</span>
+                                )}
+                              </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -954,8 +506,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const orderId = orderDetails?.id;
-                                      if (orderId) onViewInvoice(orderId, item.lineId);
+                                      const oid = orderDetails?.id;
+                                      if (oid) onViewInvoice(oid, item.lineId);
                                     }}
                                     className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
                                   >
@@ -969,7 +521,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         })
                       ) : (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
+                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
                             No items found in this order
                           </td>
                         </tr>
@@ -1882,11 +1434,13 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
 interface OrdersTableProps {
   onSelectOrder: (order: Order) => void;
   selectedOrderId?: string;
+  onFilteredChange?: (orders: Order[], label: string) => void;
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({
   onSelectOrder,
   selectedOrderId,
+  onFilteredChange,
 }) => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Status: All");
@@ -1918,15 +1472,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: number; title: string }[]>([]);
   const [brands, setBrands] = useState<{ id: number; title: string }[]>([]);
-  const [showInvoicePopup, setShowInvoicePopup] = useState(false);
-  const [selectedOrderIdForInvoice, setSelectedOrderIdForInvoice] = useState<number | null>(null);
-  const [selectedOrderItemIdForInvoice, setSelectedOrderItemIdForInvoice] = useState<number | null>(null);
 
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(new Set());
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(new Set());
-
-  // ✅ NEW: CSV download state
-  const [downloadingCsv, setDownloadingCsv] = useState(false);
 
   const itemsPerPage = 6;
 
@@ -1942,7 +1490,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const response = await categoryApi.getAll();
       if (response.data.success) {
         setCategories(
-          (response.data.data || []).map((c: any) => ({ id: c.id, title: c.title }))
+          (response.data.data || []).map((c: any) => ({ id: c.id, title: c.title })),
         );
       }
     } catch (err) {
@@ -1955,7 +1503,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const response = await brandsApi.getAll();
       if (response.data.success) {
         setBrands(
-          (response.data.data || []).map((b: any) => ({ id: b.id, title: b.title }))
+          (response.data.data || []).map((b: any) => ({ id: b.id, title: b.title })),
         );
       }
     } catch (err) {
@@ -1987,49 +1535,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
     } catch (err) {
       console.error("Failed to fetch order statuses:", err);
-    }
-  };
-
-  // ✅ NEW: Download CSV handler
-  // ✅ CSV DOWNLOAD (client-side, all records, proper format)
-  const handleDownloadCsv = () => {
-    if (downloadingCsv) return;
-
-    if (!orders || orders.length === 0) {
-      toast.error("No orders available to export.");
-      return;
-    }
-
-    setDownloadingCsv(true);
-
-    try {
-      // ✅ Generate proper CSV from ALL orders (no filters applied)
-      const csvContent = generateOrdersCsv(orders);
-
-      // ✅ UTF-8 BOM add karo taaki Excel me ₹ aur special chars sahi dikhe
-      const BOM = "\uFEFF";
-      const blob = new Blob([BOM + csvContent], {
-        type: "text/csv;charset=utf-8;",
-      });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      const today = new Date().toISOString().slice(0, 10);
-      link.download = `orders-${today}.csv`;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast.success(`CSV downloaded — ${orders.length} orders exported`);
-    } catch (error: any) {
-      console.error("CSV download error:", error);
-      toast.error("Failed to download CSV. Please try again.");
-    } finally {
-      setDownloadingCsv(false);
     }
   };
 
@@ -2074,10 +1579,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -2117,7 +1622,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           lineTotal: item.line_total || 0,
           status:
             item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
+              item.delivery_status?.slice(1) || "Pending",
           delivery_status: item.delivery_status || "pending",
           image: item.primary_image || item.product_image || undefined,
           productId: item.product_id,
@@ -2150,8 +1655,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
 
-  const normalizePhone = (phone: string) =>
-    String(phone || "").replace(/\D/g, "");
+  const normalizePhone = (phone: string) => String(phone || "").replace(/\D/g, "");
 
   const isItemLevelFilterActive = useMemo(() => {
     return (
@@ -2211,6 +1715,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         String((item as any).courier_tracking_number || "")
           .toLowerCase()
           .includes(searchText) ||
+        String((item as any).courierTrackingNumber || "")
+          .toLowerCase()
+          .includes(searchText) ||
         String((item as any).invoiceNumber || "")
           .toLowerCase()
           .includes(searchText) ||
@@ -2238,9 +1745,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const orderStatusMatches =
         filterStatusValue === null ||
         orderStatusNormalized === filterStatusValue ||
-        (order.items || []).some(
-          (it) => getItemStatus(it) === filterStatusValue,
-        );
+        (order.items || []).some((it) => getItemStatus(it) === filterStatusValue);
 
       const orderLevelMatch = orderMatchesSearch(order) && orderStatusMatches;
 
@@ -2279,10 +1784,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       if (matchingItems.length > 0) {
         matchingItems.forEach((item) => {
-          result.push({
-            ...order,
-            items: [item],
-          });
+          result.push({ ...order, items: [item] });
         });
       } else if (
         (!order.items || order.items.length === 0) &&
@@ -2304,6 +1806,37 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     orderTypeFilter,
     isItemLevelFilterActive,
   ]);
+
+  const activeFilterLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (orderTypeFilter !== "Order Type: All") {
+      const t = orderTypeFilter.replace("Order Type: ", "");
+      parts.push(t === "retail" ? "Customers" : "Distributors");
+    }
+    if (statusFilter !== "Status: All") {
+      parts.push(formatStatus(statusFilter.replace("Status: ", "")));
+    }
+    if (categoryFilter !== "Category: All") {
+      const cat = categories.find(
+        (c) => String(c.id) === categoryFilter.replace("Category: ", ""),
+      );
+      if (cat) parts.push(cat.title);
+    }
+    if (brandFilter !== "Brand: All") {
+      const br = brands.find(
+        (b) => String(b.id) === brandFilter.replace("Brand: ", ""),
+      );
+      if (br) parts.push(br.title);
+    }
+    if (search.trim()) parts.push("Search");
+    return parts.length > 0 ? parts.join(" • ") : "All Orders";
+  }, [orderTypeFilter, statusFilter, categoryFilter, brandFilter, search, categories, brands]);
+
+  useEffect(() => {
+    if (onFilteredChange) {
+      onFilteredChange(filteredOrders, activeFilterLabel);
+    }
+  }, [filteredOrders, activeFilterLabel, onFilteredChange]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
 
@@ -2331,11 +1864,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const toggleRow = (orderId: string) => {
     const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(orderId)) {
-      newExpanded.delete(orderId);
-    } else {
-      newExpanded.add(orderId);
-    }
+    if (newExpanded.has(orderId)) newExpanded.delete(orderId);
+    else newExpanded.add(orderId);
     setExpandedRows(newExpanded);
   };
 
@@ -2350,22 +1880,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const handleViewInvoice = (orderId: number) => {
-    setSelectedOrderIdForInvoice(orderId);
-    setSelectedOrderItemIdForInvoice(null);
-    setShowInvoicePopup(true);
+  const handleOpenInvoicePdf = async (orderId: number, itemId?: number) => {
+    try {
+      toast.loading("Generating invoice PDF...", { id: "invoice-pdf" });
+      const response = await orderInvoiceApi.getByOrderId(orderId);
+      toast.dismiss("invoice-pdf");
+      if (response.data.success && response.data.data) {
+        openInvoicePdfInNewTab(response.data.data, itemId ?? null);
+      } else {
+        toast.error(response.data.message || "Failed to fetch invoice data");
+      }
+    } catch (err: any) {
+      toast.dismiss("invoice-pdf");
+      console.error("Invoice fetch error:", err);
+      toast.error(err?.response?.data?.message || "Failed to load invoice.");
+    }
   };
 
-  const handleViewInvoiceItem = (orderId: number, itemId: number) => {
-    setSelectedOrderIdForInvoice(orderId);
-    setSelectedOrderItemIdForInvoice(itemId);
-    setShowInvoicePopup(true);
-  };
-
-  const handleViewInvoiceFromViewPopup = (orderId: number, itemId?: number) => {
-    if (itemId) handleViewInvoiceItem(orderId, itemId);
-    else handleViewInvoice(orderId);
-  };
   const isItemSelectable = (item: OrderItem) => {
     return canItemDispatch(item) || canItemShip(item) || canItemDeliver(item);
   };
@@ -2395,19 +1926,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return items.filter((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
   };
 
-  const getSelectedCount = (orderId: string, items: OrderItem[]) => {
-    return getSelectedItemsForOrder(orderId, items).length;
-  };
+  const getSelectedCount = (orderId: string, items: OrderItem[]) =>
+    getSelectedItemsForOrder(orderId, items).length;
 
   const allSelectableSelected = (orderId: string, items: OrderItem[]) => {
     const selectable = items.filter((item) => isItemSelectable(item));
     if (selectable.length === 0) return false;
     return selectable.every((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
-  };
-
-  const canDeliver = (orderStatus: string) => {
-    const status = String(orderStatus || "").trim().toLowerCase().replace(/\s+/g, "_");
-    return status === "shipped" || status === "partial_shipped";
   };
 
   const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
@@ -2477,12 +2002,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleDispatchFromSelection = (order: Order) => {
     const selectedDispatchableCount = getSelectedDispatchableCount(order);
-
     if (selectedDispatchableCount > 0) {
       handleDispatchSelected(order);
       return;
     }
-
     handleDispatchFullOrder(order);
   };
 
@@ -2576,7 +2099,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         toast.success(
           newValue
             ? "Cancel/Return option activated"
-            : "Cancel/Return option deactivated"
+            : "Cancel/Return option deactivated",
         );
 
         setOrders((prevOrders) =>
@@ -2587,13 +2110,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               items: (o.items || []).map((it: any) => {
                 const itLineId = it.line_id || it.id;
                 if (itLineId !== lineId) return it;
-                return {
-                  ...it,
-                  is_cancel_return_allowed: newValue,
-                };
+                return { ...it, is_cancel_return_allowed: newValue };
               }),
             };
-          })
+          }),
         );
       } else {
         toast.error(response.data.message || "Failed to update");
@@ -2610,6 +2130,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
+  // ✅ FIXED: Mark undelivered with immediate optimistic UI + API + refetch
   const handleMarkUndelivered = async (order: Order, item: OrderItem) => {
     const lineId = item.lineId || parseInt(item.id);
     if (!lineId || isNaN(lineId)) {
@@ -2625,23 +2146,39 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       return next;
     });
 
+    // Optimistic UI update — status changes instantly
+    setOrders((prevOrders) =>
+      prevOrders.map((o) => {
+        if (o.order_reference !== order.orderReference) return o;
+        return {
+          ...o,
+          items: (o.items || []).map((it: any) => {
+            const itLineId = it.line_id || it.id;
+            if (itLineId !== lineId) return it;
+            return { ...it, delivery_status: "undelivered" };
+          }),
+        };
+      }),
+    );
+
     try {
       const response = await orderApi.markUndelivered(lineId);
-
       if (response.data.success) {
         toast.success("Item marked as undelivered");
-        fetchOrders();
+        await fetchOrders();
         setSelectedItemsMap(new Map());
       } else {
         toast.error(response.data.message || "Failed to mark as undelivered");
+        await fetchOrders();
       }
     } catch (err: any) {
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to mark as undelivered"
+          err?.message ||
+          "Failed to mark as undelivered",
       );
+      await fetchOrders();
     } finally {
       setMarkingUndelivered((prev) => {
         const next = new Set(prev);
@@ -2673,11 +2210,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedOrderForDeliver(null);
     setSelectedItemsForDeliver([]);
     setIsFullOrderDeliver(false);
-  };
-  const closeInvoicePopup = () => {
-    setShowInvoicePopup(false);
-    setSelectedOrderIdForInvoice(null);
-    setSelectedOrderItemIdForInvoice(null);
   };
 
   if (loading) {
@@ -2719,16 +2251,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   return (
     <>
       <div className="space-y-5">
-        {/* FILTER CARD */}
+        {/* FILTER BAR */}
         <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm sm:p-5">
           <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#4C8A57] to-[#0F3219]" />
           <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#4C8A57]/20" />
 
-          <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="relative min-w-0 flex-1">
+          <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative min-w-0 flex-1 lg:flex-[2]">
               <FiSearch
-                size={19}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                size={17}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
               />
               <input
                 type="text"
@@ -2737,8 +2269,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search by Order ID, Mobile, Invoice, Shipment no., Product, SKU..."
-                className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                placeholder="Search by Order ID, Mobile, Invoice, Tracking No., Product, SKU..."
+                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-9 text-xs text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
               />
               {search && (
                 <button
@@ -2746,20 +2278,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   onClick={() => setSearch("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] transition hover:text-[#163F20]"
                 >
-                  <FiX size={16} />
+                  <FiX size={14} />
                 </button>
               )}
             </div>
 
-            <div className="hidden items-center gap-3 lg:flex">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-[140px]">
                 <select
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-12 cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 >
                   <option>Status: All</option>
                   {availableStatuses.map((status) => (
@@ -2769,38 +2301,38 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  size={14}
                 />
               </div>
 
-              <div className="relative">
+              <div className="relative w-[140px]">
                 <select
                   value={orderTypeFilter}
                   onChange={(e) => {
                     setOrderTypeFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-12 cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 >
                   <option>Order Type: All</option>
                   <option value="Order Type: retail">Customer</option>
                   <option value="Order Type: distributor">Distributor</option>
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  size={14}
                 />
               </div>
 
-              <div className="relative">
+              <div className="relative w-[140px]">
                 <select
                   value={categoryFilter}
                   onChange={(e) => {
                     setCategoryFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-12 cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 >
                   <option>Category: All</option>
                   {categories.map((c) => (
@@ -2810,19 +2342,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  size={14}
                 />
               </div>
 
-              <div className="relative">
+              <div className="relative w-[140px]">
                 <select
                   value={brandFilter}
                   onChange={(e) => {
                     setBrandFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-12 cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 >
                   <option>Brand: All</option>
                   {brands.map((b) => (
@@ -2832,69 +2364,38 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]"
-                  size={16}
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  size={14}
                 />
               </div>
 
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-12 rounded-xl px-4 text-sm font-semibold transition-all ${hasActiveFilters
-                  ? "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
-                  : "text-[#9AA29C] hover:text-[#163F20]"
-                  }`}
+                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
+                  hasActiveFilters
+                    ? "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
+                    : "text-[#9AA29C] hover:text-[#163F20]"
+                }`}
               >
-                <FiFilter size={15} className="mr-1.5 inline" />
-                Clear Filters
+                <FiFilter size={14} className="mr-1.5 inline" />
+                Clear
               </button>
 
-              {/* ✅ NEW: Download CSV button */}
               <button
                 type="button"
-                onClick={handleDownloadCsv}
-                disabled={downloadingCsv}
-                className="flex h-12 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-70"
+                onClick={() => setShowMobileFilters(!showMobileFilters)}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] px-3 text-xs font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20] lg:hidden"
               >
-                {downloadingCsv ? (
-                  <FiLoader size={15} className="animate-spin" />
-                ) : (
-                  <FiDownload size={15} />
+                <FiFilter size={14} />
+                Filters
+                {hasActiveFilters && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#163F20] text-[10px] font-bold text-white">
+                    !
+                  </span>
                 )}
-                {downloadingCsv ? "Downloading..." : "Download CSV"}
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] px-4 text-sm font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20] lg:hidden"
-            >
-              <FiFilter size={15} />
-              Filters
-              {hasActiveFilters && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#163F20] text-[10px] font-bold text-white">
-                  !
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* ✅ NEW: Download CSV button also for mobile */}
-          <div className="relative z-10 mt-3 lg:hidden">
-            <button
-              type="button"
-              onClick={handleDownloadCsv}
-              disabled={downloadingCsv}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {downloadingCsv ? (
-                <FiLoader size={15} className="animate-spin" />
-              ) : (
-                <FiDownload size={15} />
-              )}
-              {downloadingCsv ? "Downloading..." : "Download CSV"}
-            </button>
           </div>
 
           {showMobileFilters && (
@@ -2983,33 +2484,49 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         <div className="overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm">
           <div className="h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-          {/* DESKTOP TABLE */}
           <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1080px] border-collapse">
+            <table className="w-full min-w-[1180px] border-collapse">
               <thead>
                 <tr className="bg-[#163F20]">
                   <th className="w-[45px] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     {isItemWiseView ? <span className="opacity-50">—</span> : <FiChevronDown size={16} className="mx-auto opacity-50" />}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    {isItemWiseView ? "Order / Item" : "Order ID"}
+                    {isItemWiseView ? "Item Reference" : "Order ID"}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    {isItemWiseView ? "Item Reference" : "Date"}
+                    {isItemWiseView ? "Product" : "Date"}
                   </th>
                   <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
-                    {isItemWiseView ? "Product" : "Buyer"}
+                    {isItemWiseView ? "SKU" : "Buyer"}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Status</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Actions</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Qty" : "Total"}
+                  </th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Price" : ""}
+                  </th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Total" : ""}
+                  </th>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Tracking No." : "Status"}
+                  </th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Status" : "Actions"}
+                  </th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Action" : ""}
+                  </th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                    {isItemWiseView ? "Invoice" : ""}
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {visibleOrders.length > 0 ? (
                   visibleOrders.map((order, index) => {
-                    // ---------- ITEM-WISE VIEW ----------
                     if (isItemWiseView) {
                       const item = order.items && order.items[0];
                       if (!item) return null;
@@ -3033,16 +2550,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3F4A41]">
-                              {order.id}
-                            </span>
-                            <p className="mt-1 text-[11px] text-[#9AA29C]">{order.date}</p>
-                            <p className="mt-0.5 text-[11px] font-semibold text-[#59645C]">{order.customer}</p>
-                          </td>
-                          <td className="px-6 py-4">
                             <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#163F20]">
                               {item.itemReferenceId || "N/A"}
                             </span>
+                            <p className="mt-1 text-[11px] text-[#9AA29C]">{order.id}</p>
+                            <p className="mt-0.5 text-[11px] font-semibold text-[#59645C]">{order.customer}</p>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -3059,14 +2571,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               )}
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-bold text-[#202721]">{item.productName}</p>
-                                <p className="truncate text-[11px] text-[#9AA29C]">
-                                  SKU: {item.sku} • Qty: {item.quantity}
-                                </p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-bold text-[#163F20]">{item.total}</span>
+                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3F4A41]">
+                              {item.sku}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center text-sm font-semibold text-[#3F4A41]">
+                            {item.quantity}
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm text-[#59645C]">
+                            {item.price}
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm font-bold text-[#163F20]">
+                            {item.total}
+                          </td>
+                          <td className="px-6 py-4">
+                            {item.courier_tracking_number ? (
+                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                                <FiTruck size={11} />
+                                {item.courier_tracking_number}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-[#9AA29C]">—</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span
@@ -3087,7 +2617,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 <FiEye size={16} />
                               </button>
 
-                              {/* DISPATCH (confirmed) */}
                               {isDispatchable && (
                                 <button
                                   type="button"
@@ -3104,7 +2633,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 </button>
                               )}
 
-                              {/* SHIP (dispatched) */}
                               {isShipable && (
                                 <button
                                   type="button"
@@ -3121,7 +2649,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 </button>
                               )}
 
-                              {/* DELIVER (shipped / undelivered) */}
                               {isDeliverable && !isDelivered && (
                                 <button
                                   type="button"
@@ -3138,7 +2665,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 </button>
                               )}
 
-                              {/* UNDELIVERED (only when shipped) */}
                               {isUndeliverable && (
                                 <button
                                   type="button"
@@ -3154,31 +2680,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   )}
                                 </button>
                               )}
-
-                              {/* INVOICE (delivered) */}
-                              {isDelivered && order.orderId && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id))}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
-                                  title="View Invoice"
-                                >
-                                  <FiFileText size={16} />
-                                </button>
-                              )}
                             </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {isDelivered && order.orderId && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-[11px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                              >
+                                <FiFileText size={13} />
+                                Invoice
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
                     }
 
-                    // ---------- ORDER-WISE VIEW ----------
                     return (
                       <React.Fragment key={order.id}>
                         <tr
                           onClick={() => toggleRow(order.id)}
-                          className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
-                            }`}
+                          className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${
+                            selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                          }`}
                         >
                           <td className="px-4 py-4 text-center">
                             <button
@@ -3202,10 +2728,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             <p className="text-sm font-bold text-[#202721]">{order.customer}</p>
                             <p className="mt-0.5 text-xs text-[#9AA29C]">{formatOrderType(order.orderType)}</p>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 text-center">
                             <span className="text-sm font-bold text-[#163F20]">{order.total}</span>
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-6 py-4 text-right"></td>
+                          <td className="px-6 py-4 text-right"></td>
+                          <td className="px-6 py-4 text-left">
                             <span
                               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}
                             >
@@ -3270,21 +2798,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleViewInvoice(order.orderId!);
+                                    handleOpenInvoicePdf(order.orderId!);
                                   }}
                                   className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                                  title="View Invoice"
+                                  title="View Invoice PDF"
                                 >
                                   <FiFileText size={16} />
                                 </button>
                               )}
                             </div>
                           </td>
+                          <td className="px-6 py-4 text-center"></td>
                         </tr>
 
                         {expandedRows.has(order.id) && (
                           <tr>
-                            <td colSpan={8} className="bg-[#F5F7F5] px-6 py-0">
+                            <td colSpan={10} className="bg-[#F5F7F5] px-6 py-0">
                               <div className="overflow-hidden">
                                 <div className="animate-slideDown py-5">
                                   <div className="space-y-4">
@@ -3359,7 +2888,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     </div>
 
                                     <div className="overflow-x-auto rounded-2xl border border-[#163F20]/15 bg-white">
-                                      <table className="w-full min-w-[1250px] border-collapse">
+                                      <table className="w-full min-w-[1350px] border-collapse">
                                         <thead>
                                           <tr className="border-b border-[#163F20]/10 bg-[#FAFBFA]">
                                             <th className="w-[45px] px-4 py-3 text-center">
@@ -3380,6 +2909,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Qty</th>
                                             <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Price</th>
                                             <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Total</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Tracking No.</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Status</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Action</th>
                                             <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Invoice</th>
@@ -3403,18 +2933,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             return (
                                               <tr
                                                 key={item.id}
-                                                className={`border-b border-[#163F20]/10 last:border-0 ${isSelected ? "bg-[#EAF3EA]" : "hover:bg-[#FAFBFA]"} ${!isSelectable ? "opacity-60" : ""}`}
+                                                className={`border-b border-[#163F20]/10 last:border-0 ${
+                                                  isSelected ? "bg-[#EAF3EA]" : "hover:bg-[#FAFBFA]"
+                                                } ${!isSelectable ? "opacity-60" : ""}`}
                                               >
                                                 <td className="px-4 py-3 text-center">
                                                   <button
                                                     type="button"
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      if (isSelectable) {
-                                                        toggleItemSelection(order.id, item.id);
-                                                      }
+                                                      if (isSelectable) toggleItemSelection(order.id, item.id);
                                                     }}
-                                                    className={`text-[#163F20] hover:text-[#4C8A57] ${!isSelectable ? "cursor-not-allowed opacity-40" : ""}`}
+                                                    className={`text-[#163F20] hover:text-[#4C8A57] ${
+                                                      !isSelectable ? "cursor-not-allowed opacity-40" : ""
+                                                    }`}
                                                     disabled={!isSelectable}
                                                   >
                                                     {isSelected ? <FiCheck size={17} /> : <FiSquare size={17} />}
@@ -3443,6 +2975,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                 <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
                                                 <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
                                                 <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
+                                                <td className="px-4 py-3">
+                                                  {item.courier_tracking_number ? (
+                                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                                                      <FiTruck size={11} />
+                                                      {item.courier_tracking_number}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-xs text-[#9AA29C]">—</span>
+                                                  )}
+                                                </td>
                                                 <td className="px-4 py-3 text-center">
                                                   <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                                     {formatStatus(item.status)}
@@ -3527,7 +3069,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleViewInvoiceItem(order.orderId!, item.lineId || parseInt(item.id));
+                                                        handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
                                                       }}
                                                       className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
                                                     >
@@ -3545,10 +3087,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     }}
                                                     disabled={isToggling}
                                                     title={isCancelReturnAllowed ? "Deactivate cancel/return" : "Activate cancel/return"}
-                                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${isCancelReturnAllowed
-                                                      ? "bg-[#163F20] text-white hover:bg-[#0F3219]"
-                                                      : "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
-                                                      }`}
+                                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                      isCancelReturnAllowed
+                                                        ? "bg-[#163F20] text-white hover:bg-[#0F3219]"
+                                                        : "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
+                                                    }`}
                                                   >
                                                     {isToggling ? (
                                                       <FiLoader size={12} className="animate-spin" />
@@ -3557,11 +3100,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                     ) : (
                                                       <FiAlertCircle size={12} />
                                                     )}
-                                                    {isToggling
-                                                      ? "Saving..."
-                                                      : isCancelReturnAllowed
-                                                        ? "Allowed"
-                                                        : "Not Allowed"}
+                                                    {isToggling ? "Saving..." : isCancelReturnAllowed ? "Allowed" : "Not Allowed"}
                                                   </button>
                                                 </td>
                                               </tr>
@@ -3601,7 +3140,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-6 py-16 text-center">
+                    <td colSpan={10} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                           <FiSearch size={24} />
@@ -3625,7 +3164,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 if (isItemWiseView) {
                   const item = order.items && order.items[0];
                   if (!item) return null;
-
                   const isDispatchable = canItemDispatch(item);
                   const isShipable = canItemShip(item);
                   const isDeliverable = canItemDeliver(item);
@@ -3648,7 +3186,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         </div>
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                            item.delivery_status || item.status || "pending"
+                            item.delivery_status || item.status || "pending",
                           )}`}
                         >
                           {formatStatus(item.delivery_status || item.status || "pending")}
@@ -3731,6 +3269,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             {isMarking ? "Saving..." : "Undelivered"}
                           </button>
                         )}
+                        {isDelivered && order.orderId && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
+                            className="flex-1 rounded-lg bg-[#EAF3EA] px-3 py-2 text-xs font-bold text-[#163F20]"
+                          >
+                            Invoice PDF
+                          </button>
+                        )}
                       </div>
 
                       <div className="mt-2">
@@ -3738,10 +3285,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           type="button"
                           disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
                           onClick={() => handleToggleCancelReturn(order, item)}
-                          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
-                            ? "bg-[#163F20] text-white"
-                            : "bg-[#EAF3EA] text-[#163F20]"
-                            }`}
+                          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
+                            item.is_cancel_return_allowed
+                              ? "bg-[#163F20] text-white"
+                              : "bg-[#EAF3EA] text-[#163F20]"
+                          }`}
                         >
                           {togglingCancelReturn.has(`${order.id}-${item.id}`)
                             ? "Saving..."
@@ -3758,8 +3306,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <div
                     key={order.id}
                     onClick={() => toggleRow(order.id)}
-                    className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
-                      }`}
+                    className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${
+                      selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -3832,7 +3381,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   </div>
                                 </div>
 
-                                {/* Action buttons row */}
                                 <div className="mt-2 flex flex-wrap items-center gap-2">
                                   {isDispatchable && (
                                     <button
@@ -3892,6 +3440,18 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       {isMarking ? "Saving..." : "Undelivered"}
                                     </button>
                                   )}
+                                  {isDelivered && order.orderId && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
+                                      }}
+                                      className="flex-1 rounded-lg bg-[#EAF3EA] px-3 py-2 text-xs font-bold text-[#163F20]"
+                                    >
+                                      Invoice PDF
+                                    </button>
+                                  )}
                                 </div>
 
                                 <div className="mt-2">
@@ -3902,10 +3462,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       e.stopPropagation();
                                       handleToggleCancelReturn(order, item);
                                     }}
-                                    className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
-                                      ? "bg-[#163F20] text-white"
-                                      : "bg-[#EAF3EA] text-[#163F20]"
-                                      }`}
+                                    className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
+                                      item.is_cancel_return_allowed
+                                        ? "bg-[#163F20] text-white"
+                                        : "bg-[#EAF3EA] text-[#163F20]"
+                                    }`}
                                   >
                                     {togglingCancelReturn.has(`${order.id}-${item.id}`)
                                       ? "Saving..."
@@ -3967,10 +3528,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         key={page}
                         type="button"
                         onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                        }`}
                       >
                         {page}
                       </button>
@@ -3982,10 +3544,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white"
-                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === totalPages
+                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white"
+                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                        }`}
                       >
                         {totalPages}
                       </button>
@@ -4012,7 +3575,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onClose={closeViewPopup}
         orderId={selectedOrderForView}
         orderData={selectedOrderDataForView}
-        onViewInvoice={handleViewInvoiceFromViewPopup}
+        onViewInvoice={handleOpenInvoicePdf}
       />
       <DispatchPopup
         isOpen={showDispatchPopup}
@@ -4038,12 +3601,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onDeliver={handleDeliverSubmit}
         isFullOrder={isFullOrderDeliver}
       />
-      <InvoiceViewPopup
-        isOpen={showInvoicePopup}
-        onClose={closeInvoicePopup}
-        orderId={selectedOrderIdForInvoice}
-        orderItemId={selectedOrderItemIdForInvoice}
-      />
 
       <style>{`
         @keyframes slideDown {
@@ -4064,6 +3621,9 @@ const Orders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [ordersData, setOrdersData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [filteredForExport, setFilteredForExport] = useState<Order[]>([]);
+  const [filterLabel, setFilterLabel] = useState<string>("All Orders");
 
   useEffect(() => {
     fetchOrders();
@@ -4092,10 +3652,10 @@ const Orders: React.FC = () => {
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -4135,7 +3695,7 @@ const Orders: React.FC = () => {
           lineTotal: item.line_total || 0,
           status:
             item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
+              item.delivery_status?.slice(1) || "Pending",
           delivery_status: item.delivery_status || "pending",
           image: item.primary_image || item.product_image || undefined,
           productId: item.product_id,
@@ -4144,6 +3704,8 @@ const Orders: React.FC = () => {
           gstRate: item.gst_rate,
           gstAmount: item.gst_amount,
           is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+          courier_tracking_number: item.courier_tracking_number || undefined,
+          courierTrackingNumber: item.courier_tracking_number || undefined,
         })) || [],
     };
   };
@@ -4221,19 +3783,52 @@ const Orders: React.FC = () => {
     setSelectedOrder(order);
   };
 
+  const handleDownloadFilteredCsv = () => {
+    if (!filteredForExport || filteredForExport.length === 0) {
+      toast.error("No orders match the current filters to export.");
+      return;
+    }
+    const slug = filterLabel
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    downloadOrdersCsv(filteredForExport, `orders-${slug || "filtered"}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F7F5] p-4">
-      <div className="mb-5">
-        <div className="mb-1 flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-[#163F20]" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
-            Order Management
-          </span>
+      <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-[#163F20]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+              Order Management
+            </span>
+          </div>
+          <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">Orders</h1>
+          <p className="mt-1 text-sm text-[#59645C]">
+            Manage orders, dispatch, shipping, and delivery from one place.
+          </p>
         </div>
-        <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">Orders</h1>
-        <p className="mt-1 text-sm text-[#59645C]">
-          Manage orders, dispatch, shipping, and delivery from one place.
-        </p>
+
+        <button
+          type="button"
+          onClick={handleDownloadFilteredCsv}
+          disabled={filteredForExport.length === 0 || loading}
+          title={`Export ${filterLabel} as CSV`}
+          className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-60 md:self-auto"
+        >
+          <FiDownload size={15} />
+          Download CSV
+          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+            {filterLabel}
+          </span>
+          {filteredForExport.length > 0 && (
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+              {filteredForExport.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {loading ? (
@@ -4255,6 +3850,10 @@ const Orders: React.FC = () => {
         <OrdersTable
           onSelectOrder={handleSelectOrder}
           selectedOrderId={selectedOrder?.id}
+          onFilteredChange={(list, label) => {
+            setFilteredForExport(list);
+            setFilterLabel(label);
+          }}
         />
       </div>
     </div>

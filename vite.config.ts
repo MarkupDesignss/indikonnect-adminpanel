@@ -3,14 +3,20 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import tailwindcss from "@tailwindcss/vite";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [react(), tailwindcss()],
 
-  base: mode === "production" ? "/indiekonnect-admin/" : "/",
+  // ✅ Subfolder deploy ke liye
+  base: "/indiekonnect-admin/",
 
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
-}));
+
+  server: {
+    host: true,
+    port: 5173,
+  },
+});

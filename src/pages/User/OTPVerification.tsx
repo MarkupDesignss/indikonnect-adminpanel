@@ -4,11 +4,15 @@ import { motion } from "framer-motion";
 import { adminApi } from "../../api/endpoints/Auth";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getPortalName } from "../../utils/getPortalName";
+
 
 const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || "";
+  const portalName = getPortalName();
+
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -269,7 +273,7 @@ const OTPVerification = () => {
                 variants={itemVariants}
                 className="text-[#4C8A57] mt-1 text-xs font-semibold tracking-[0.2em] uppercase"
               >
-                Admin Portal
+                {portalName}
               </motion.p>
 
               <motion.div

@@ -12,8 +12,6 @@ import {
   FiUserX,
   FiChevronLeft,
   FiChevronRight,
-  FiMail,
-  FiPhone,
   FiCalendar,
   FiShield,
   FiCreditCard,
@@ -29,13 +27,20 @@ import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import CreateDistributorModal from "./CreateDistributorModal";
-import userManagementApi, { RegisteredUser } from "../../api/endpoints/user";
+import userManagementApi, {
+  RegisteredUser,
+} from "../../api/endpoints/user";
 
 // =====================================================
 // FILTER TYPE
 // =====================================================
 
-type UserFilter = "all" | "customer" | "distributor" | "active" | "inactive";
+type UserFilter =
+  | "all"
+  | "customer"
+  | "distributor"
+  | "active"
+  | "inactive";
 
 // =====================================================
 // ANIMATION
@@ -54,9 +59,67 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100, damping: 14 },
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 14,
+    },
   },
 };
+
+// =====================================================
+// TYPES
+// =====================================================
+
+interface KycProfileLike {
+  id?: number | null;
+  gst_in?: string | null;
+  company_name?: string | null;
+  user_id?: number | null;
+
+  aadhaar_verified?: boolean | null;
+  aadhaar_verified_at?: string | null;
+  aadhaar_consent?: boolean | null;
+
+  pan_verified?: boolean | null;
+  pan_verified_at?: string | null;
+
+  bank_verified?: boolean | null;
+  bank_holder_name?: string | null;
+  bank_name?: string | null;
+  bank_ifsc?: string | null;
+  account_type?: string | null;
+
+  title?: string | null;
+  type_of_entity?: string | null;
+  branch_name?: string | null;
+
+  kyc_status?: string | null;
+  application_status?: string | null;
+
+  location_consent?: boolean | null;
+  location_consent_at?: string | null;
+
+  latitude?: string | null;
+  longitude?: string | null;
+
+  pincode?: string | null;
+  city?: string | null;
+  state?: string | null;
+
+  registration_completed?: boolean | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+  withdrawn_at?: string | null;
+  reviewed_by?: number | null;
+  rejection_reason?: string | null;
+  terms_accepted_at?: string | null;
+
+  created_at?: string | null;
+  updated_at?: string | null;
+
+  [key: string]: any;
+}
 
 // =====================================================
 // HELPERS
@@ -64,7 +127,9 @@ const itemVariants = {
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value.replace(" ", "T"));
+
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString("en-IN", {
@@ -78,7 +143,9 @@ const formatDate = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value.replace(" ", "T"));
+
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("en-IN", {
@@ -90,15 +157,23 @@ const formatDateOnly = (value?: string | null) => {
 
 const getUserName = (user: RegisteredUser) => {
   if (user.full_name?.trim()) return user.full_name;
+
   if (user.email) return user.email.split("@")[0];
+
   return "Unknown User";
 };
 
 const getInitials = (user: RegisteredUser) => {
   const name = getUserName(user);
-  const parts = name.trim().split(/\s+/).filter(Boolean);
 
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
 
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
@@ -110,25 +185,51 @@ const getAccountLabel = (accountType: string) => {
 };
 
 // =====================================================
+// KYC PROFILE — SUPPORT BOTH RESPONSE STRUCTURES
+// business_profile OR distributor_profile
+// =====================================================
+
+const getKycProfile = (
+  user: RegisteredUser,
+): KycProfileLike | null => {
+  const userWithProfiles = user as RegisteredUser & {
+    distributor_profile?: KycProfileLike | null;
+  };
+
+  const businessProfile = (
+    user as RegisteredUser & {
+      business_profile?: KycProfileLike | null;
+    }
+  ).business_profile;
+
+  const distributorProfile =
+    userWithProfiles.distributor_profile;
+
+  return businessProfile || distributorProfile || null;
+};
+
+// =====================================================
 // KYC STATUS — SINGLE SOURCE OF TRUTH
 // =====================================================
 
-/**
- * KYC status hamesha business_profile.kyc_status se lo.
- * Agar business_profile missing ho, tabhi distributor_status fallback.
- */
-const getEffectiveKycStatus = (user: RegisteredUser): string => {
-  if (user.business_profile?.kyc_status) {
-    return user.business_profile.kyc_status.toLowerCase();
+const getEffectiveKycStatus = (
+  user: RegisteredUser,
+): string => {
+  const profile = getKycProfile(user);
+
+  if (profile?.kyc_status) {
+    return String(profile.kyc_status).toLowerCase();
   }
+
   if (user.distributor_status) {
     return user.distributor_status.toLowerCase();
   }
+
   return "pending";
 };
 
 // =====================================================
-// STATUS BADGES (green theme)
+// STATUS BADGES
 // =====================================================
 
 const getActiveStatusClass = (active: boolean) => {
@@ -187,10 +288,284 @@ const getKycDisplayLabel = (status: string) => {
   ) {
     return "Verified";
   }
+
   if (normalizedStatus === "pending") return "Pending";
+
   if (normalizedStatus === "rejected") return "Rejected";
 
   return status || "N/A";
+};
+
+// =====================================================
+// CSV HELPERS
+// =====================================================
+
+const csvEscape = (value: unknown) => {
+  if (value === null || value === undefined) {
+    return '""';
+  }
+
+  let stringValue = String(value);
+
+  stringValue = stringValue.replace(/\r?\n|\r/g, " ");
+  stringValue = stringValue.replace(/"/g, '""');
+
+  return `"${stringValue}"`;
+};
+
+const getCsvBoolean = (
+  value?: boolean | number | null,
+) => {
+  return value === true || value === 1 ? "Yes" : "No";
+};
+
+const getDateStamp = () => {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getExportRows = (
+  users: RegisteredUser[],
+) => {
+  return users.map((user, index) => {
+    const profile = getKycProfile(user);
+    const kycStatus = getEffectiveKycStatus(user);
+
+    return {
+      "S.No.": index + 1,
+
+      "User ID": user.id ?? "",
+
+      "Full Name": getUserName(user),
+
+      Email: user.email ?? "",
+
+      Phone: user.phone ?? "",
+
+      Country: user.country ?? "",
+
+      "Date of Birth": formatDateOnly(
+        user.date_of_birth,
+      ),
+
+      "Account Type": getAccountLabel(
+        user.account_type || "",
+      ),
+
+      "User Status": user.is_active
+        ? "Active"
+        : "Inactive",
+
+      "KYC Status": getKycDisplayLabel(
+        kycStatus,
+      ),
+
+      "Distributor Status":
+        user.distributor_status || "",
+
+      "Distributor ID":
+        user.distributor_id || "",
+
+      "Sponsor ID":
+        user.sponsor_id || "",
+
+      "Placement Leg":
+        user.placement_leg || "",
+
+      "Registration Step":
+        user.registration_step ?? "",
+
+      "Is Registered": getCsvBoolean(
+        user.is_registered,
+      ),
+
+      "Phone Verified": getCsvBoolean(
+        user.phone_verified,
+      ),
+
+      "Phone Verified At": formatDate(
+        user.phone_verified_at,
+      ),
+
+      "Email Verified": user.email_verified_at
+        ? "Yes"
+        : "No",
+
+      "Email Verified At": formatDate(
+        user.email_verified_at,
+      ),
+
+      "Activation Date": formatDate(
+        user.activation_date,
+      ),
+
+      "Registration Completed At": formatDate(
+        user.registration_completed_at,
+      ),
+
+      Terms: getCsvBoolean(
+        user.terms_condition,
+      ),
+
+      "Terms Accepted": getCsvBoolean(
+        user.accept_terms,
+      ),
+
+      Agreement: getCsvBoolean(
+        user.accept_agreement,
+      ),
+
+      "Code of Conduct": getCsvBoolean(
+        user.accept_code_of_conduct,
+      ),
+
+      "Location Consent": getCsvBoolean(
+        user.location_consent_given,
+      ),
+
+      "Aadhaar Last 4":
+        user.aadhaar_last4 || "",
+
+      "Aadhaar Verified": getCsvBoolean(
+        profile?.aadhaar_verified,
+      ),
+
+      "PAN Last 4":
+        user.pan_last4 || "",
+
+      "PAN Verified": getCsvBoolean(
+        profile?.pan_verified,
+      ),
+
+      "Bank Account Last 4":
+        user.account_last4 || "",
+
+      "Bank Verified": getCsvBoolean(
+        profile?.bank_verified,
+      ),
+
+      "Bank Name":
+        profile?.bank_name || "",
+
+      "Bank Holder Name":
+        profile?.bank_holder_name || "",
+
+      "KYC Account Type":
+        profile?.account_type || "",
+
+      "Entity Type":
+        profile?.type_of_entity || "",
+
+      "Company Name":
+        profile?.company_name || "",
+
+      "Application Status":
+        profile?.application_status || "",
+
+      "Registration Completed":
+        getCsvBoolean(
+          profile?.registration_completed,
+        ),
+
+      "Submitted At":
+        formatDate(profile?.submitted_at),
+
+      "Reviewed At":
+        formatDate(profile?.reviewed_at),
+
+      "Rejection Reason":
+        profile?.rejection_reason || "",
+
+      Created: formatDate(
+        user.created_at,
+      ),
+
+      Updated: formatDate(
+        user.updated_at,
+      ),
+    };
+  });
+};
+
+const downloadUsersCsv = (
+  users: RegisteredUser[],
+  filename: string,
+) => {
+  if (!users.length) {
+    toast.error(
+      "No users available for CSV export.",
+    );
+
+    return;
+  }
+
+  const rows = getExportRows(users);
+
+  if (!rows.length) {
+    toast.error(
+      "No data available for CSV export.",
+    );
+
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+
+  const csvLines = [
+    headers.map(csvEscape).join(","),
+    ...rows.map((row) =>
+      headers
+        .map((header) =>
+          csvEscape(
+            row[
+              header as keyof typeof row
+            ],
+          ),
+        )
+        .join(","),
+    ),
+  ];
+
+  const csvContent =
+    "\uFEFF" +
+    csvLines.join("\r\n");
+
+  const blob = new Blob(
+    [csvContent],
+    {
+      type: "text/csv;charset=utf-8;",
+    },
+  );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  document.body.removeChild(link);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 500);
+
+  toast.success(
+    `${users.length} user${
+      users.length === 1 ? "" : "s"
+    } exported successfully.`,
+  );
 };
 
 // =====================================================
@@ -200,79 +575,148 @@ const getKycDisplayLabel = (status: string) => {
 interface UserStatusDropdownProps {
   userId: number;
   isActive: boolean;
-  onStatusChange: (userId: number, newStatus: boolean) => void;
+  onStatusChange: (
+    userId: number,
+    newStatus: boolean,
+  ) => void;
   isLoading: boolean;
 }
 
-const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
+const UserStatusDropdown: React.FC<
+  UserStatusDropdownProps
+> = ({
   userId,
   isActive,
   onStatusChange,
   isLoading,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] =
+    useState(false);
+
+  const dropdownRef =
+    useRef<HTMLDivElement>(null);
 
   const statusOptions = [
-    { value: true, label: "Active", color: "text-[#163F20]" },
-    { value: false, label: "Inactive", color: "text-[#59645C]" },
+    {
+      value: true,
+      label: "Active",
+      color: "text-[#163F20]",
+    },
+    {
+      value: false,
+      label: "Inactive",
+      color: "text-[#59645C]",
+    },
   ];
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (
+      event: MouseEvent,
+    ) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(
+          event.target as Node,
+        )
       ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside,
+    );
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside,
+      );
   }, []);
 
-  const handleSelect = (value: boolean) => {
-    if (value !== isActive) onStatusChange(userId, value);
+  const handleSelect = (
+    value: boolean,
+  ) => {
+    if (value !== isActive) {
+      onStatusChange(
+        userId,
+        value,
+      );
+    }
+
     setIsOpen(false);
   };
 
-  const getCurrentLabel = () => (isActive ? "Active" : "Inactive");
+  const getCurrentLabel = () =>
+    isActive ? "Active" : "Inactive";
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div
+      className="relative"
+      ref={dropdownRef}
+    >
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() =>
+          setIsOpen(!isOpen)
+        }
         disabled={isLoading}
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
           isLoading
-            ? "opacity-50 cursor-not-allowed"
+            ? "cursor-not-allowed opacity-50"
             : "hover:border-[#163F20]/40"
-        } ${getActiveStatusClass(isActive)}`}
+        } ${getActiveStatusClass(
+          isActive,
+        )}`}
       >
-        <span className={isActive ? "text-[#163F20]" : "text-[#59645C]"}>
+        <span
+          className={
+            isActive
+              ? "text-[#163F20]"
+              : "text-[#59645C]"
+          }
+        >
           {getCurrentLabel()}
         </span>
+
         <FiChevronDown
           size={14}
-          className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`transition-transform ${
+            isOpen
+              ? "rotate-180"
+              : ""
+          }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-36 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg z-50">
-          {statusOptions.map((option) => (
-            <button
-              key={String(option.value)}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
-                option.value === isActive ? "bg-[#EAF3EA] cursor-default" : ""
-              } ${option.color}`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="absolute right-0 z-50 mt-1 w-36 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg">
+          {statusOptions.map(
+            (option) => (
+              <button
+                key={String(
+                  option.value,
+                )}
+                type="button"
+                onClick={() =>
+                  handleSelect(
+                    option.value,
+                  )
+                }
+                className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
+                  option.value ===
+                  isActive
+                    ? "cursor-default bg-[#EAF3EA]"
+                    : ""
+                } ${
+                  option.color
+                }`}
+              >
+                {option.label}
+              </button>
+            ),
+          )}
         </div>
       )}
     </div>
@@ -280,68 +724,99 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 };
 
 // =====================================================
-// DISTRIBUTOR STATUS DROPDOWN — FIXED
+// DISTRIBUTOR STATUS DROPDOWN
 // =====================================================
 
 interface DistributorStatusDropdownProps {
   userId: number;
   currentStatus: string;
   kycStatus: string;
-  onStatusChange: (userId: number, newStatus: string) => void;
+  onStatusChange: (
+    userId: number,
+    newStatus: string,
+  ) => void;
   isLoading: boolean;
 }
 
-const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
+const DistributorStatusDropdown: React.FC<
+  DistributorStatusDropdownProps
+> = ({
   userId,
   currentStatus,
   kycStatus,
   onStatusChange,
   isLoading,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] =
+    useState(false);
 
-  // ✅ ALWAYS use kycStatus (from business_profile.kyc_status)
+  const dropdownRef =
+    useRef<HTMLDivElement>(null);
+
   const effectiveStatus = (
     kycStatus ||
     currentStatus ||
     "pending"
   ).toLowerCase();
 
-  const isKycPending = effectiveStatus === "pending";
+  const isKycPending =
+    effectiveStatus === "pending";
+
   const isKycVerified =
     effectiveStatus === "active" ||
     effectiveStatus === "verified" ||
     effectiveStatus === "approved";
-  const isKycRejected = effectiveStatus === "rejected";
+
+  const isKycRejected =
+    effectiveStatus === "rejected";
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (
+      event: MouseEvent,
+    ) => {
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(
+          event.target as Node,
+        )
       ) {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside,
+    );
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside,
+      );
   }, []);
 
-  // Not pending → show static badge
   if (!isKycPending) {
     let label = "N/A";
-    let statusClass = "";
+
+    let statusClass =
+      "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
 
     if (isKycVerified) {
       label = "Verified";
-      statusClass = "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
+
+      statusClass =
+        "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
     } else if (isKycRejected) {
       label = "Rejected";
-      statusClass = "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
+
+      statusClass =
+        "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
     } else {
-      label = getKycDisplayLabel(effectiveStatus);
-      statusClass = "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
+      label =
+        getKycDisplayLabel(
+          effectiveStatus,
+        );
     }
 
     return (
@@ -353,67 +828,124 @@ const DistributorStatusDropdown: React.FC<DistributorStatusDropdownProps> = ({
     );
   }
 
-  // Pending → show dropdown
   const statusOptions = [
-    { value: "active", label: "Verify & Activate", color: "text-[#163F20]" },
-    { value: "rejected", label: "Reject", color: "text-[#C23B32]" },
+    {
+      value: "active",
+      label: "Verify & Activate",
+      color: "text-[#163F20]",
+    },
+    {
+      value: "rejected",
+      label: "Reject",
+      color: "text-[#C23B32]",
+    },
   ];
 
-  const handleSelect = (value: string) => {
-    if (value !== currentStatus) onStatusChange(userId, value);
+  const handleSelect = (
+    value: string,
+  ) => {
+    if (value !== currentStatus) {
+      onStatusChange(
+        userId,
+        value,
+      );
+    }
+
     setIsOpen(false);
   };
 
   const getCurrentLabel = () => {
-    const option = statusOptions.find((opt) => opt.value === currentStatus);
-    return option ? option.label : "Pending";
+    const option =
+      statusOptions.find(
+        (opt) =>
+          opt.value ===
+          currentStatus,
+      );
+
+    return option
+      ? option.label
+      : "Pending";
   };
 
   const getCurrentColor = () => {
-    const option = statusOptions.find((opt) => opt.value === currentStatus);
-    return option ? option.color : "text-[#8A6D16]";
+    const option =
+      statusOptions.find(
+        (opt) =>
+          opt.value ===
+          currentStatus,
+      );
+
+    return option
+      ? option.color
+      : "text-[#8A6D16]";
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div
+      className="relative"
+      ref={dropdownRef}
+    >
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() =>
+          setIsOpen(!isOpen)
+        }
         disabled={isLoading}
         className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
           isLoading
-            ? "opacity-50 cursor-not-allowed"
+            ? "cursor-not-allowed opacity-50"
             : "hover:border-[#163F20]/40"
-        } ${getDistributorStatusClass("pending")}`}
+        } ${getDistributorStatusClass(
+          "pending",
+        )}`}
       >
-        <span className={getCurrentColor()}>{getCurrentLabel()}</span>
+        <span
+          className={getCurrentColor()}
+        >
+          {getCurrentLabel()}
+        </span>
+
         <FiChevronDown
           size={14}
-          className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`transition-transform ${
+            isOpen
+              ? "rotate-180"
+              : ""
+          }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 w-44 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg z-50">
-          <div className="px-3 py-1.5 border-b border-[#163F20]/10">
+        <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-[#163F20]/15 bg-white py-1 shadow-lg">
+          <div className="border-b border-[#163F20]/10 px-3 py-1.5">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#8A6D16]">
               KYC Pending
             </span>
           </div>
-          {statusOptions.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
-                option.value === currentStatus
-                  ? "bg-[#EAF3EA] cursor-default"
-                  : ""
-              } ${option.color}`}
-            >
-              {option.label}
-            </button>
-          ))}
+
+          {statusOptions.map(
+            (option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  handleSelect(
+                    option.value,
+                  )
+                }
+                className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F3F7F3] ${
+                  option.value ===
+                  currentStatus
+                    ? "cursor-default bg-[#EAF3EA]"
+                    : ""
+                } ${
+                  option.color
+                }`}
+              >
+                {option.label}
+              </button>
+            ),
+          )}
         </div>
       )}
     </div>
@@ -432,7 +964,9 @@ interface StatCardProps {
   accent: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({
+const StatCard: React.FC<
+  StatCardProps
+> = ({
   title,
   value,
   subtitle,
@@ -444,11 +978,14 @@ const StatCard: React.FC<StatCardProps> = ({
       variants={itemVariants}
       whileHover={{
         y: -4,
-        boxShadow: "0 16px 30px -18px rgba(22,63,32,0.28)",
+        boxShadow:
+          "0 16px 30px -18px rgba(22,63,32,0.28)",
       }}
       className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-sm"
     >
-      <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
+      <div
+        className={`absolute left-0 top-0 h-1 w-full ${accent}`}
+      />
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#163F20]/10" />
 
@@ -461,10 +998,14 @@ const StatCard: React.FC<StatCardProps> = ({
           </p>
 
           <p className="mt-2 text-3xl font-bold text-[#202721]">
-            {value.toLocaleString("en-IN")}
+            {value.toLocaleString(
+              "en-IN",
+            )}
           </p>
 
-          <p className="mt-1 text-xs text-[#89918B]">{subtitle}</p>
+          <p className="mt-1 text-xs text-[#89918B]">
+            {subtitle}
+          </p>
         </div>
 
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
@@ -484,10 +1025,17 @@ interface InfoRowProps {
   value: React.ReactNode;
 }
 
-const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
+const InfoRow: React.FC<
+  InfoRowProps
+> = ({
+  label,
+  value,
+}) => {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 py-3 last:border-b-0">
-      <span className="text-xs text-[#9AA29C]">{label}</span>
+      <span className="text-xs text-[#9AA29C]">
+        {label}
+      </span>
 
       <span className="max-w-[62%] text-right text-sm font-semibold text-[#202721]">
         {value}
@@ -497,7 +1045,7 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
 };
 
 // =====================================================
-// USER DETAIL MODAL — FIXED
+// USER DETAIL MODAL
 // =====================================================
 
 interface UserDetailModalProps {
@@ -505,13 +1053,21 @@ interface UserDetailModalProps {
   loading: boolean;
   user: RegisteredUser | null;
   onClose: () => void;
-  onUserStatusChange?: (userId: number, newStatus: boolean) => void;
-  onDistributorStatusChange?: (userId: number, newStatus: string) => void;
+  onUserStatusChange?: (
+    userId: number,
+    newStatus: boolean,
+  ) => void;
+  onDistributorStatusChange?: (
+    userId: number,
+    newStatus: string,
+  ) => void;
   isLoading?: boolean;
   isDistributorLoading?: boolean;
 }
 
-const UserDetailModal: React.FC<UserDetailModalProps> = ({
+const UserDetailModal: React.FC<
+  UserDetailModalProps
+> = ({
   open,
   loading,
   user,
@@ -523,11 +1079,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   if (!open) return null;
 
-  // ✅ FIXED: getEffectiveKycStatus use karo
-  const kycStatus = user ? getEffectiveKycStatus(user) : "";
+  const kycStatus = user
+    ? getEffectiveKycStatus(user)
+    : "";
+
+  const kycProfile = user
+    ? getKycProfile(user)
+    : null;
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={false}
+    >
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
 
@@ -535,7 +1100,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white">
-              {user ? getInitials(user) : <FiUser size={19} />}
+              {user ? (
+                getInitials(user)
+              ) : (
+                <FiUser size={19} />
+              )}
             </div>
 
             <div>
@@ -544,7 +1113,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </p>
 
               <h2 className="mt-0.5 text-xl font-bold text-[#202721]">
-                {user ? getUserName(user) : "User Details"}
+                {user
+                  ? getUserName(user)
+                  : "User Details"}
               </h2>
 
               {user && (
@@ -569,7 +1140,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
           {loading ? (
             <div className="flex min-h-[360px] flex-col items-center justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
-                <FiRefreshCw size={25} className="animate-spin" />
+                <FiRefreshCw
+                  size={25}
+                  className="animate-spin"
+                />
               </div>
 
               <p className="mt-4 text-sm font-bold text-[#202721]">
@@ -600,7 +1174,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </p>
 
                   <p className="mt-2 text-lg font-bold text-[#202721]">
-                    {getAccountLabel(user.account_type)}
+                    {getAccountLabel(
+                      user.account_type,
+                    )}
                   </p>
                 </div>
 
@@ -613,9 +1189,15 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     {onUserStatusChange ? (
                       <UserStatusDropdown
                         userId={user.id}
-                        isActive={user.is_active}
-                        onStatusChange={onUserStatusChange}
-                        isLoading={isLoading}
+                        isActive={
+                          user.is_active
+                        }
+                        onStatusChange={
+                          onUserStatusChange
+                        }
+                        isLoading={
+                          isLoading
+                        }
                       />
                     ) : (
                       <span
@@ -625,10 +1207,15 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            user.is_active ? "bg-[#163F20]" : "bg-[#89918B]"
+                            user.is_active
+                              ? "bg-[#163F20]"
+                              : "bg-[#89918B]"
                           }`}
                         />
-                        {user.is_active ? "Active" : "Inactive"}
+
+                        {user.is_active
+                          ? "Active"
+                          : "Inactive"}
                       </span>
                     )}
                   </div>
@@ -640,14 +1227,26 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </p>
 
                   <div className="mt-2">
-                    {user.account_type === "distributor" &&
+                    {user.account_type ===
+                      "distributor" &&
                     onDistributorStatusChange ? (
                       <DistributorStatusDropdown
-                        userId={user.id}
-                        currentStatus={user.distributor_status || "pending"}
-                        kycStatus={kycStatus}
-                        onStatusChange={onDistributorStatusChange}
-                        isLoading={isDistributorLoading}
+                        userId={
+                          user.id
+                        }
+                        currentStatus={
+                          user.distributor_status ||
+                          "pending"
+                        }
+                        kycStatus={
+                          kycStatus
+                        }
+                        onStatusChange={
+                          onDistributorStatusChange
+                        }
+                        isLoading={
+                          isDistributorLoading
+                        }
                       />
                     ) : (
                       <span
@@ -655,7 +1254,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           kycStatus,
                         )}`}
                       >
-                        {getKycDisplayLabel(kycStatus)}
+                        {getKycDisplayLabel(
+                          kycStatus,
+                        )}
                       </span>
                     )}
                   </div>
@@ -669,18 +1270,43 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiUser size={17} />
                     </div>
+
                     <h3 className="text-sm font-bold text-[#202721]">
                       Personal Information
                     </h3>
                   </div>
 
-                  <InfoRow label="Full Name" value={getUserName(user)} />
-                  <InfoRow label="Email" value={user.email} />
-                  <InfoRow label="Phone" value={user.phone || "N/A"} />
-                  <InfoRow label="Country" value={user.country || "N/A"} />
+                  <InfoRow
+                    label="Full Name"
+                    value={getUserName(user)}
+                  />
+
+                  <InfoRow
+                    label="Email"
+                    value={user.email}
+                  />
+
+                  <InfoRow
+                    label="Phone"
+                    value={
+                      user.phone ||
+                      "N/A"
+                    }
+                  />
+
+                  <InfoRow
+                    label="Country"
+                    value={
+                      user.country ||
+                      "N/A"
+                    }
+                  />
+
                   <InfoRow
                     label="Date of Birth"
-                    value={formatDateOnly(user.date_of_birth)}
+                    value={formatDateOnly(
+                      user.date_of_birth,
+                    )}
                   />
                 </div>
 
@@ -689,6 +1315,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiShield size={17} />
                     </div>
+
                     <h3 className="text-sm font-bold text-[#202721]">
                       Account Information
                     </h3>
@@ -696,23 +1323,39 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <InfoRow
                     label="Registered"
-                    value={user.is_registered ? "Yes" : "No"}
+                    value={
+                      user.is_registered
+                        ? "Yes"
+                        : "No"
+                    }
                   />
+
                   <InfoRow
                     label="Registration Step"
-                    value={user.registration_step}
+                    value={
+                      user.registration_step
+                    }
                   />
+
                   <InfoRow
                     label="Created At"
-                    value={formatDate(user.created_at)}
+                    value={formatDate(
+                      user.created_at,
+                    )}
                   />
+
                   <InfoRow
                     label="Updated At"
-                    value={formatDate(user.updated_at)}
+                    value={formatDate(
+                      user.updated_at,
+                    )}
                   />
+
                   <InfoRow
                     label="Activation Date"
-                    value={formatDate(user.activation_date)}
+                    value={formatDate(
+                      user.activation_date,
+                    )}
                   />
                 </div>
               </div>
@@ -723,6 +1366,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiCheckCircle size={17} />
                   </div>
+
                   <h3 className="text-sm font-bold text-[#202721]">
                     Verification
                   </h3>
@@ -731,7 +1375,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#9AA29C]">Phone</span>
+                      <span className="text-xs text-[#9AA29C]">
+                        Phone
+                      </span>
+
                       <span
                         className={`text-[10px] font-bold ${
                           user.phone_verified
@@ -739,19 +1386,27 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.phone_verified ? "Verified" : "Not Verified"}
+                        {user.phone_verified
+                          ? "Verified"
+                          : "Not Verified"}
                       </span>
                     </div>
+
                     {user.phone_verified_at && (
                       <p className="mt-2 text-[10px] text-[#9AA29C]">
-                        {formatDate(user.phone_verified_at)}
+                        {formatDate(
+                          user.phone_verified_at,
+                        )}
                       </p>
                     )}
                   </div>
 
                   <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#9AA29C]">Email</span>
+                      <span className="text-xs text-[#9AA29C]">
+                        Email
+                      </span>
+
                       <span
                         className={`text-[10px] font-bold ${
                           user.email_verified_at
@@ -759,19 +1414,27 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.email_verified_at ? "Verified" : "Not Verified"}
+                        {user.email_verified_at
+                          ? "Verified"
+                          : "Not Verified"}
                       </span>
                     </div>
+
                     {user.email_verified_at && (
                       <p className="mt-2 text-[10px] text-[#9AA29C]">
-                        {formatDate(user.email_verified_at)}
+                        {formatDate(
+                          user.email_verified_at,
+                        )}
                       </p>
                     )}
                   </div>
 
                   <div className="rounded-xl border border-[#E5EAE5] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#9AA29C]">Terms</span>
+                      <span className="text-xs text-[#9AA29C]">
+                        Terms
+                      </span>
+
                       <span
                         className={`text-[10px] font-bold ${
                           user.terms_condition
@@ -779,7 +1442,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.terms_condition ? "Accepted" : "Not Accepted"}
+                        {user.terms_condition
+                          ? "Accepted"
+                          : "Not Accepted"}
                       </span>
                     </div>
                   </div>
@@ -787,16 +1452,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </div>
 
               {/* DISTRIBUTOR */}
-              {user.account_type === "distributor" && (
+              {user.account_type ===
+                "distributor" && (
                 <div className="mt-5 rounded-2xl border border-[#163F20]/20 bg-gradient-to-br from-[#FBFDFB] to-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiBriefcase size={17} />
                     </div>
+
                     <div>
                       <h3 className="text-sm font-bold text-[#202721]">
                         Distributor Information
                       </h3>
+
                       <p className="mt-0.5 text-xs text-[#9AA29C]">
                         Distributor registration and KYC information.
                       </p>
@@ -808,8 +1476,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Distributor ID
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#202721]">
-                        {user.distributor_id || "Not Assigned"}
+                        {user.distributor_id ||
+                          "Not Assigned"}
                       </p>
                     </div>
 
@@ -817,8 +1487,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Sponsor ID
                       </p>
+
                       <p className="mt-1 truncate text-sm font-bold text-[#202721]">
-                        {user.sponsor_id || "Not Assigned"}
+                        {user.sponsor_id ||
+                          "Not Assigned"}
                       </p>
                     </div>
 
@@ -826,8 +1498,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Placement
                       </p>
+
                       <p className="mt-1 text-sm font-bold capitalize text-[#202721]">
-                        {user.placement_leg || "Not Assigned"}
+                        {user.placement_leg ||
+                          "Not Assigned"}
                       </p>
                     </div>
 
@@ -835,8 +1509,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Registration
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#202721]">
-                        Step {user.registration_step}
+                        Step{" "}
+                        {user.registration_step}
                       </p>
                     </div>
                   </div>
@@ -845,14 +1521,26 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                       KYC Status
                     </p>
+
                     <div className="mt-2">
                       {onDistributorStatusChange ? (
                         <DistributorStatusDropdown
-                          userId={user.id}
-                          currentStatus={user.distributor_status || "pending"}
-                          kycStatus={kycStatus}
-                          onStatusChange={onDistributorStatusChange}
-                          isLoading={isDistributorLoading}
+                          userId={
+                            user.id
+                          }
+                          currentStatus={
+                            user.distributor_status ||
+                            "pending"
+                          }
+                          kycStatus={
+                            kycStatus
+                          }
+                          onStatusChange={
+                            onDistributorStatusChange
+                          }
+                          isLoading={
+                            isDistributorLoading
+                          }
                         />
                       ) : (
                         <span
@@ -860,7 +1548,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             kycStatus,
                           )}`}
                         >
-                          {getKycDisplayLabel(kycStatus)}
+                          {getKycDisplayLabel(
+                            kycStatus,
+                          )}
                         </span>
                       )}
                     </div>
@@ -869,16 +1559,18 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               )}
 
               {/* KYC */}
-              {user.business_profile && (
+              {kycProfile && (
                 <div className="mt-5 rounded-2xl border border-[#E5EAE5] bg-[#F5F7F5] p-5">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                       <FiCreditCard size={17} />
                     </div>
+
                     <div>
                       <h3 className="text-sm font-bold text-[#202721]">
                         KYC & Banking
                       </h3>
+
                       <p className="mt-0.5 text-xs text-[#9AA29C]">
                         Verification status and masked account information.
                       </p>
@@ -890,8 +1582,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         KYC Status
                       </p>
+
                       <p className="mt-1 text-sm font-bold capitalize text-[#202721]">
-                        {getKycDisplayLabel(user.business_profile.kyc_status)}
+                        {getKycDisplayLabel(
+                          kycProfile.kyc_status ||
+                            kycStatus,
+                        )}
                       </p>
                     </div>
 
@@ -899,19 +1595,21 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Aadhaar
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.aadhaar_last4
                           ? `XXXX XXXX ${user.aadhaar_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
                         className={`mt-1 text-[10px] font-bold ${
-                          user.business_profile.aadhaar_verified
+                          kycProfile.aadhaar_verified
                             ? "text-[#1F7A3D]"
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.business_profile.aadhaar_verified
+                        {kycProfile.aadhaar_verified
                           ? "Verified"
                           : "Not Verified"}
                       </p>
@@ -921,19 +1619,21 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         PAN
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.pan_last4
                           ? `XXXXXX${user.pan_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
                         className={`mt-1 text-[10px] font-bold ${
-                          user.business_profile.pan_verified
+                          kycProfile.pan_verified
                             ? "text-[#1F7A3D]"
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.business_profile.pan_verified
+                        {kycProfile.pan_verified
                           ? "Verified"
                           : "Not Verified"}
                       </p>
@@ -943,19 +1643,21 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Bank Account
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#202721]">
                         {user.account_last4
                           ? `XXXX${user.account_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
                         className={`mt-1 text-[10px] font-bold ${
-                          user.business_profile.bank_verified
+                          kycProfile.bank_verified
                             ? "text-[#1F7A3D]"
                             : "text-[#C23B32]"
                         }`}
                       >
-                        {user.business_profile.bank_verified
+                        {kycProfile.bank_verified
                           ? "Verified"
                           : "Not Verified"}
                       </p>
@@ -967,8 +1669,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Bank Name
                       </p>
+
                       <p className="mt-1 text-sm font-semibold text-[#202721]">
-                        {user.business_profile.bank_name || "N/A"}
+                        {kycProfile.bank_name ||
+                          "N/A"}
                       </p>
                     </div>
 
@@ -976,8 +1680,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
                         Account Holder
                       </p>
+
                       <p className="mt-1 text-sm font-semibold text-[#202721]">
-                        {user.business_profile.bank_holder_name || "N/A"}
+                        {kycProfile.bank_holder_name ||
+                          "N/A"}
                       </p>
                     </div>
                   </div>
@@ -990,6 +1696,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
                     <FiCheckCircle size={17} />
                   </div>
+
                   <h3 className="text-sm font-bold text-[#202721]">
                     Registration Consents
                   </h3>
@@ -997,30 +1704,50 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    { label: "Terms", value: user.accept_terms },
-                    { label: "Agreement", value: user.accept_agreement },
                     {
-                      label: "Code of Conduct",
-                      value: user.accept_code_of_conduct,
+                      label: "Terms",
+                      value:
+                        user.accept_terms,
                     },
                     {
-                      label: "Location Consent",
-                      value: user.location_consent_given,
+                      label:
+                        "Agreement",
+                      value:
+                        user.accept_agreement,
+                    },
+                    {
+                      label:
+                        "Code of Conduct",
+                      value:
+                        user.accept_code_of_conduct,
+                    },
+                    {
+                      label:
+                        "Location Consent",
+                      value:
+                        user.location_consent_given,
                     },
                   ].map((item) => (
                     <div
-                      key={item.label}
+                      key={
+                        item.label
+                      }
                       className="flex items-center justify-between rounded-xl border border-[#E5EAE5] bg-white p-3"
                     >
                       <span className="text-xs text-[#89918B]">
                         {item.label}
                       </span>
+
                       <span
                         className={`text-[10px] font-bold ${
-                          item.value ? "text-[#1F7A3D]" : "text-[#C23B32]"
+                          item.value
+                            ? "text-[#1F7A3D]"
+                            : "text-[#C23B32]"
                         }`}
                       >
-                        {item.value ? "Accepted" : "Not Accepted"}
+                        {item.value
+                          ? "Accepted"
+                          : "Not Accepted"}
                       </span>
                     </div>
                   ))}
@@ -1052,28 +1779,95 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 const UserManagement: React.FC = () => {
   const location = useLocation();
 
-  const kycUserName = location.state?.kycUserName as string | undefined;
-  const userFromHeader = location.state?.user as RegisteredUser | undefined;
-  const adminFromHeader = location.state?.admin as RegisteredUser | undefined;
-  const personFromHeader = userFromHeader || adminFromHeader;
+  const kycUserName =
+    location.state
+      ?.kycUserName as
+      | string
+      | undefined;
 
-  const [users, setUsers] = useState<RegisteredUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<UserFilter>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedUser, setSelectedUser] = useState<RegisteredUser | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
-  const [distributorLoadingId, setDistributorLoadingId] = useState<
-    number | null
-  >(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [highlightedUserId, setHighlightedUserId] = useState<number | null>(
-    null,
-  );
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const userFromHeader =
+    location.state
+      ?.user as
+      | RegisteredUser
+      | undefined;
+
+  const adminFromHeader =
+    location.state
+      ?.admin as
+      | RegisteredUser
+      | undefined;
+
+  const personFromHeader =
+    userFromHeader ||
+    adminFromHeader;
+
+  const [users, setUsers] =
+    useState<RegisteredUser[]>([]);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [
+    activeFilter,
+    setActiveFilter,
+  ] =
+    useState<UserFilter>("all");
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] =
+    useState(1);
+
+  const [
+    selectedUser,
+    setSelectedUser,
+  ] =
+    useState<RegisteredUser | null>(
+      null,
+    );
+
+  const [
+    detailOpen,
+    setDetailOpen,
+  ] = useState(false);
+
+  const [
+    detailLoading,
+    setDetailLoading,
+  ] = useState(false);
+
+  const [
+    statusLoadingId,
+    setStatusLoadingId,
+  ] =
+    useState<number | null>(null);
+
+  const [
+    distributorLoadingId,
+    setDistributorLoadingId,
+  ] =
+    useState<number | null>(null);
+
+  const [
+    isInitialLoad,
+    setIsInitialLoad,
+  ] =
+    useState(true);
+
+  const [
+    highlightedUserId,
+    setHighlightedUserId,
+  ] =
+    useState<number | null>(null);
+
+  const [
+    createModalOpen,
+    setCreateModalOpen,
+  ] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -1085,68 +1879,165 @@ const UserManagement: React.FC = () => {
     try {
       setLoading(true);
 
-      const response = await userManagementApi.getRegisteredUsers();
+      const response =
+        await userManagementApi.getRegisteredUsers();
 
       if (response.data.success) {
-        const userData = response.data.data || [];
+        const userData =
+          response.data.data || [];
+
         setUsers(userData);
 
-        // PRIORITY 1: KYC user from dashboard
-        if (kycUserName && isInitialLoad && userData.length > 0) {
-          const searchTerm = kycUserName.trim().toLowerCase();
+        // PRIORITY 1: KYC USER
+        if (
+          kycUserName &&
+          isInitialLoad &&
+          userData.length > 0
+        ) {
+          const searchTerm =
+            kycUserName
+              .trim()
+              .toLowerCase();
 
-          const targetUser = userData.find((user: RegisteredUser) => {
-            const fullName = (user.full_name || "").toLowerCase();
-            const email = (user.email || "").toLowerCase();
-            return (
-              fullName.includes(searchTerm) ||
-              email.includes(searchTerm) ||
-              fullName === searchTerm
+          const targetUser =
+            userData.find(
+              (
+                user: RegisteredUser,
+              ) => {
+                const fullName =
+                  (
+                    user.full_name ||
+                    ""
+                  ).toLowerCase();
+
+                const email =
+                  (
+                    user.email ||
+                    ""
+                  ).toLowerCase();
+
+                return (
+                  fullName.includes(
+                    searchTerm,
+                  ) ||
+                  email.includes(
+                    searchTerm,
+                  ) ||
+                  fullName ===
+                    searchTerm
+                );
+              },
             );
-          });
 
           if (targetUser) {
             const term =
-              targetUser.full_name || targetUser.email || String(targetUser.id);
+              targetUser.full_name ||
+              targetUser.email ||
+              String(
+                targetUser.id,
+              );
+
             setSearch(term);
-            setHighlightedUserId(targetUser.id);
-            await handleView(targetUser.id);
-            toast.success(`Found KYC review for ${getUserName(targetUser)}`);
+
+            setHighlightedUserId(
+              targetUser.id,
+            );
+
+            await handleView(
+              targetUser.id,
+            );
+
+            toast.success(
+              `Found KYC review for ${getUserName(
+                targetUser,
+              )}`,
+            );
           } else {
-            setSearch(kycUserName);
-            toast.info(`Searching for user: ${kycUserName}`);
+            setSearch(
+              kycUserName,
+            );
+
+            toast.info(
+              `Searching for user: ${kycUserName}`,
+            );
           }
 
-          setIsInitialLoad(false);
+          setIsInitialLoad(
+            false,
+          );
+
           return;
         }
 
-        // PRIORITY 2: Header user/admin
-        if (personFromHeader && isInitialLoad && userData.length > 0) {
-          const targetUser = userData.find(
-            (user: RegisteredUser) =>
-              String(user.id) === String(personFromHeader.id),
-          );
+        // PRIORITY 2: HEADER USER
+        if (
+          personFromHeader &&
+          isInitialLoad &&
+          userData.length > 0
+        ) {
+          const targetUser =
+            userData.find(
+              (
+                user: RegisteredUser,
+              ) =>
+                String(
+                  user.id,
+                ) ===
+                String(
+                  personFromHeader.id,
+                ),
+            );
 
           if (targetUser) {
             const term =
-              targetUser.full_name || targetUser.email || String(targetUser.id);
+              targetUser.full_name ||
+              targetUser.email ||
+              String(
+                targetUser.id,
+              );
+
             setSearch(term);
-            setHighlightedUserId(targetUser.id);
-            await handleView(targetUser.id);
+
+            setHighlightedUserId(
+              targetUser.id,
+            );
+
+            await handleView(
+              targetUser.id,
+            );
           } else {
-            setSearch(String(personFromHeader.id));
-            toast.info(`Looking for user with ID: ${personFromHeader.id}`);
+            setSearch(
+              String(
+                personFromHeader.id,
+              ),
+            );
+
+            toast.info(
+              `Looking for user with ID: ${personFromHeader.id}`,
+            );
           }
 
-          setIsInitialLoad(false);
+          setIsInitialLoad(
+            false,
+          );
         }
       } else {
-        toast.error(response.data.message || "Unable to fetch users.");
+        toast.error(
+          response.data.message ||
+            "Unable to fetch users.",
+        );
       }
     } catch (error: any) {
-      console.error("Fetch users error:", error);
-      toast.error(error?.response?.data?.message || "Unable to fetch users.");
+      console.error(
+        "Fetch users error:",
+        error,
+      );
+
+      toast.error(
+        error?.response?.data
+          ?.message ||
+          "Unable to fetch users.",
+      );
     } finally {
       setLoading(false);
     }
@@ -1161,239 +2052,664 @@ const UserManagement: React.FC = () => {
   // =================================================
 
   const stats = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((user) => user.is_active).length;
-    const inactive = users.filter((user) => !user.is_active).length;
-    const distributors = users.filter(
-      (user) => user.account_type === "distributor",
-    ).length;
+    const total =
+      users.length;
 
-    return { total, active, inactive, distributors };
+    const active =
+      users.filter(
+        (user) =>
+          user.is_active,
+      ).length;
+
+    const inactive =
+      users.filter(
+        (user) =>
+          !user.is_active,
+      ).length;
+
+    const distributors =
+      users.filter(
+        (user) =>
+          user.account_type ===
+          "distributor",
+      ).length;
+
+    const customers =
+      users.filter(
+        (user) =>
+          user.account_type ===
+          "customer",
+      ).length;
+
+    return {
+      total,
+      active,
+      inactive,
+      distributors,
+      customers,
+    };
   }, [users]);
 
   // =================================================
   // FILTER
   // =================================================
 
-  const filteredUsers = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  const filteredUsers =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    return users.filter((user) => {
-      const searchMatch =
-        !query ||
-        [
-          user.full_name || "",
-          user.email,
-          user.phone || "",
-          user.country || "",
-          user.account_type || "",
-          user.distributor_id || "",
-          user.sponsor_id || "",
-          String(user.id),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
+      return users.filter(
+        (user) => {
+          const searchMatch =
+            !query ||
+            [
+              user.full_name ||
+                "",
+              user.email,
+              user.phone ||
+                "",
+              user.country ||
+                "",
+              user.account_type ||
+                "",
+              user.distributor_id ||
+                "",
+              user.sponsor_id ||
+                "",
+              String(user.id),
+            ]
+              .join(" ")
+              .toLowerCase()
+              .includes(query);
 
-      if (!searchMatch) return false;
+          if (!searchMatch) {
+            return false;
+          }
 
-      switch (activeFilter) {
-        case "customer":
-          return user.account_type === "customer";
-        case "distributor":
-          return user.account_type === "distributor";
-        case "active":
-          return user.is_active;
-        case "inactive":
-          return !user.is_active;
-        default:
-          return true;
-      }
-    });
-  }, [users, search, activeFilter]);
+          switch (
+            activeFilter
+          ) {
+            case "customer":
+              return (
+                user.account_type ===
+                "customer"
+              );
+
+            case "distributor":
+              return (
+                user.account_type ===
+                "distributor"
+              );
+
+            case "active":
+              return user.is_active;
+
+            case "inactive":
+              return !user.is_active;
+
+            default:
+              return true;
+          }
+        },
+      );
+    }, [
+      users,
+      search,
+      activeFilter,
+    ]);
+
+  // =================================================
+  // CSV EXPORT
+  // CURRENT TAB ONLY
+  // SEARCH DOES NOT LIMIT EXPORT
+  // =================================================
+
+  const tabExportUsers = useMemo(() => {
+    switch (activeFilter) {
+      case "customer":
+        return users.filter(
+          (user) =>
+            user.account_type ===
+            "customer",
+        );
+
+      case "distributor":
+        return users.filter(
+          (user) =>
+            user.account_type ===
+            "distributor",
+        );
+
+      case "active":
+        return users.filter(
+          (user) =>
+            user.is_active,
+        );
+
+      case "inactive":
+        return users.filter(
+          (user) =>
+            !user.is_active,
+        );
+
+      case "all":
+      default:
+        return users;
+    }
+  }, [
+    users,
+    activeFilter,
+  ]);
+
+  const getExportTabLabel = () => {
+    switch (activeFilter) {
+      case "customer":
+        return "customers";
+
+      case "distributor":
+        return "distributors";
+
+      case "active":
+        return "active";
+
+      case "inactive":
+        return "inactive";
+
+      case "all":
+      default:
+        return "all";
+    }
+  };
+
+  const getExportButtonLabel = () => {
+    switch (activeFilter) {
+      case "customer":
+        return "Download csv Customers";
+
+      case "distributor":
+        return "Download csv Distributors";
+
+      case "active":
+        return "Download csv Active";
+
+      case "inactive":
+        return "Download csv Inactive";
+
+      case "all":
+      default:
+        return "Download csv All";
+    }
+  };
+
+  const handleExportAll = () => {
+    const exportUsers =
+      tabExportUsers;
+
+    const exportLabel =
+      getExportTabLabel();
+
+    if (!exportUsers.length) {
+      toast.error(
+        `No ${exportLabel} users available for CSV export.`,
+      );
+
+      return;
+    }
+
+    const dateStamp =
+      getDateStamp();
+
+    downloadUsersCsv(
+      exportUsers,
+      `registered-users-${exportLabel}-${dateStamp}.csv`,
+    );
+  };
 
   // =================================================
   // PAGINATION
   // =================================================
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / ITEMS_PER_PAGE),
-  );
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedUsers = filteredUsers.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
-  const startEntry = filteredUsers.length === 0 ? 0 : startIndex + 1;
-  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredUsers.length);
+  const totalPages =
+    Math.max(
+      1,
+      Math.ceil(
+        filteredUsers.length /
+          ITEMS_PER_PAGE,
+      ),
+    );
+
+  const startIndex =
+    (currentPage - 1) *
+    ITEMS_PER_PAGE;
+
+  const paginatedUsers =
+    filteredUsers.slice(
+      startIndex,
+      startIndex +
+        ITEMS_PER_PAGE,
+    );
+
+  const startEntry =
+    filteredUsers.length === 0
+      ? 0
+      : startIndex + 1;
+
+  const endEntry =
+    Math.min(
+      startIndex +
+        ITEMS_PER_PAGE,
+      filteredUsers.length,
+    );
 
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+    if (
+      currentPage >
+      totalPages
+    ) {
+      setCurrentPage(
+        totalPages,
+      );
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
 
   // =================================================
   // HANDLERS
   // =================================================
 
-  const handleFilter = (filter: UserFilter) => {
-    setActiveFilter(filter);
+  const handleFilter = (
+    filter: UserFilter,
+  ) => {
+    setActiveFilter(
+      filter,
+    );
+
     setCurrentPage(1);
+
+    setHighlightedUserId(
+      null,
+    );
   };
 
-  const handleSearch = (value: string) => {
+  const handleSearch = (
+    value: string,
+  ) => {
     setSearch(value);
+
     setCurrentPage(1);
-    setHighlightedUserId(null);
+
+    setHighlightedUserId(
+      null,
+    );
   };
 
-  const handleView = async (id: number) => {
+  const handleView = async (
+    id: number,
+  ) => {
     try {
       setDetailOpen(true);
+
       setDetailLoading(true);
-      setSelectedUser(null);
 
-      const response = await userManagementApi.getUserById(id);
+      setSelectedUser(
+        null,
+      );
 
-      if (response.data.success) {
-        const detail = response.data.data?.[0] || null;
-        setSelectedUser(detail);
+      const response =
+        await userManagementApi.getUserById(
+          id,
+        );
+
+      if (
+        response.data.success
+      ) {
+        const detail =
+          response.data
+            .data?.[0] ||
+          null;
+
+        setSelectedUser(
+          detail,
+        );
       } else {
-        toast.error(response.data.message || "Unable to fetch user details.");
-      }
-    } catch (error: any) {
-      console.error("View user error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch user details.",
-      );
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
-  const handleToggleUserStatus = async (
-    userId: number,
-    nextStatus: boolean,
-  ) => {
-    try {
-      setStatusLoadingId(userId);
-
-      const response = await userManagementApi.updateUserStatus(
-        userId,
-        nextStatus,
-      );
-
-      if (response.data.success) {
-        setUsers((prev) =>
-          prev.map((item) =>
-            item.id === userId ? { ...item, is_active: nextStatus } : item,
-          ),
-        );
-
-        setSelectedUser((current) =>
-          current?.id === userId
-            ? { ...current, is_active: nextStatus }
-            : current,
-        );
-
-        toast.success(
+        toast.error(
           response.data.message ||
-            `User ${nextStatus ? "activated" : "deactivated"} successfully.`,
+            "Unable to fetch user details.",
         );
-      } else {
-        toast.error(response.data.message || "Unable to update user status.");
       }
     } catch (error: any) {
-      console.error("User status error:", error);
+      console.error(
+        "View user error:",
+        error,
+      );
+
       toast.error(
-        error?.response?.data?.message || "Unable to update user status.",
+        error?.response?.data
+          ?.message ||
+          "Unable to fetch user details.",
       );
     } finally {
-      setStatusLoadingId(null);
+      setDetailLoading(
+        false,
+      );
     }
   };
 
-  const handleUpdateDistributorStatus = async (
-    userId: number,
-    newStatus: string,
-  ) => {
-    try {
-      setDistributorLoadingId(userId);
-
-      const payloadStatus = newStatus === "active" ? "verified" : newStatus;
-
-      const response = await userManagementApi.updateDistributorStatus(
-        userId,
-        payloadStatus,
-      );
-
-      if (response.data.success) {
-        setUsers((prev) =>
-          prev.map((item) =>
-            item.id === userId
-              ? {
-                  ...item,
-                  distributor_status: newStatus,
-                  business_profile: item.business_profile
-                    ? { ...item.business_profile, kyc_status: newStatus }
-                    : null,
-                }
-              : item,
-          ),
+  const handleToggleUserStatus =
+    async (
+      userId: number,
+      nextStatus: boolean,
+    ) => {
+      try {
+        setStatusLoadingId(
+          userId,
         );
 
-        setSelectedUser((current) =>
-          current?.id === userId
-            ? {
-                ...current,
-                distributor_status: newStatus,
-                business_profile: current.business_profile
-                  ? { ...current.business_profile, kyc_status: newStatus }
-                  : null,
+        const response =
+          await userManagementApi.updateUserStatus(
+            userId,
+            nextStatus,
+          );
+
+        if (
+          response.data.success
+        ) {
+          setUsers(
+            (prev) =>
+              prev.map(
+                (item) =>
+                  item.id ===
+                  userId
+                    ? {
+                        ...item,
+                        is_active:
+                          nextStatus,
+                      }
+                    : item,
+              ),
+          );
+
+          setSelectedUser(
+            (current) =>
+              current?.id ===
+              userId
+                ? {
+                    ...current,
+                    is_active:
+                      nextStatus,
+                  }
+                : current,
+          );
+
+          toast.success(
+            response.data.message ||
+              `User ${
+                nextStatus
+                  ? "activated"
+                  : "deactivated"
+              } successfully.`,
+          );
+        } else {
+          toast.error(
+            response.data.message ||
+              "Unable to update user status.",
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          "User status error:",
+          error,
+        );
+
+        toast.error(
+          error?.response?.data
+            ?.message ||
+            "Unable to update user status.",
+        );
+      } finally {
+        setStatusLoadingId(
+          null,
+        );
+      }
+    };
+
+  const handleUpdateDistributorStatus =
+    async (
+      userId: number,
+      newStatus: string,
+    ) => {
+      try {
+        setDistributorLoadingId(
+          userId,
+        );
+
+        const payloadStatus =
+          newStatus ===
+          "active"
+            ? "verified"
+            : newStatus;
+
+        const response =
+          await userManagementApi.updateDistributorStatus(
+            userId,
+            payloadStatus,
+          );
+
+        if (
+          response.data.success
+        ) {
+          setUsers(
+            (prev) =>
+              prev.map(
+                (item) => {
+                  if (
+                    item.id !==
+                    userId
+                  ) {
+                    return item;
+                  }
+
+                  const existingBusinessProfile =
+                    (
+                      item as RegisteredUser & {
+                        business_profile?: KycProfileLike | null;
+                      }
+                    )
+                      .business_profile;
+
+                  const existingDistributorProfile =
+                    (
+                      item as RegisteredUser & {
+                        distributor_profile?: KycProfileLike | null;
+                      }
+                    )
+                      .distributor_profile;
+
+                  const updatedProfile = {
+                    ...(
+                      existingBusinessProfile ||
+                      existingDistributorProfile ||
+                      {}
+                    ),
+                    kyc_status:
+                      newStatus,
+                  };
+
+                  return {
+                    ...item,
+                    distributor_status:
+                      newStatus,
+
+                    business_profile:
+                      existingBusinessProfile
+                        ? updatedProfile
+                        : (
+                            item as any
+                          )
+                            .business_profile,
+
+                    distributor_profile:
+                      existingDistributorProfile
+                        ? updatedProfile
+                        : (
+                            item as any
+                          )
+                            .distributor_profile,
+                  };
+                },
+              ),
+          );
+
+          setSelectedUser(
+            (current) => {
+              if (
+                !current ||
+                current.id !==
+                  userId
+              ) {
+                return current;
               }
-            : current,
+
+              const existingBusinessProfile =
+                (
+                  current as RegisteredUser & {
+                    business_profile?: KycProfileLike | null;
+                  }
+                )
+                  .business_profile;
+
+              const existingDistributorProfile =
+                (
+                  current as RegisteredUser & {
+                    distributor_profile?: KycProfileLike | null;
+                  }
+                )
+                  .distributor_profile;
+
+              const updatedProfile = {
+                ...(
+                  existingBusinessProfile ||
+                  existingDistributorProfile ||
+                  {}
+                ),
+                kyc_status:
+                  newStatus,
+              };
+
+              return {
+                ...current,
+                distributor_status:
+                  newStatus,
+
+                business_profile:
+                  existingBusinessProfile
+                    ? updatedProfile
+                    : (
+                        current as any
+                      )
+                        .business_profile,
+
+                distributor_profile:
+                  existingDistributorProfile
+                    ? updatedProfile
+                    : (
+                        current as any
+                      )
+                        .distributor_profile,
+              };
+            },
+          );
+
+          const displayStatus =
+            newStatus ===
+            "active"
+              ? "Verified"
+              : newStatus;
+
+          toast.success(
+            response.data.message ||
+              `KYC status updated to ${displayStatus} successfully.`,
+          );
+        } else {
+          toast.error(
+            response.data.message ||
+              "Unable to update KYC status.",
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          "Update KYC status error:",
+          error,
         );
 
-        const displayStatus = newStatus === "active" ? "Verified" : newStatus;
-        toast.success(
-          response.data.message ||
-            `KYC status updated to ${displayStatus} successfully.`,
+        toast.error(
+          error?.response?.data
+            ?.message ||
+            "Unable to update KYC status.",
         );
-      } else {
-        toast.error(response.data.message || "Unable to update KYC status.");
+      } finally {
+        setDistributorLoadingId(
+          null,
+        );
       }
-    } catch (error: any) {
-      console.error("Update KYC status error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to update KYC status.",
-      );
-    } finally {
-      setDistributorLoadingId(null);
-    }
-  };
+    };
 
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5)
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const paginationPages =
+    useMemo(() => {
+      if (
+        totalPages <= 5
+      ) {
+        return Array.from(
+          {
+            length:
+              totalPages,
+          },
+          (_, index) =>
+            index + 1,
+        );
+      }
 
-    if (currentPage <= 3) return [1, 2, 3, 4, 5];
-    if (currentPage >= totalPages - 2)
+      if (
+        currentPage <= 3
+      ) {
+        return [
+          1,
+          2,
+          3,
+          4,
+          5,
+        ];
+      }
+
+      if (
+        currentPage >=
+        totalPages - 2
+      ) {
+        return [
+          totalPages - 4,
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        ];
+      }
+
       return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
+        currentPage - 2,
+        currentPage - 1,
+        currentPage,
+        currentPage + 1,
+        currentPage + 2,
       ];
-
-    return [
-      currentPage - 2,
-      currentPage - 1,
+    }, [
       currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
-  }, [currentPage, totalPages]);
+      totalPages,
+    ]);
 
   // =================================================
   // RENDER
@@ -1405,16 +2721,21 @@ const UserManagement: React.FC = () => {
         className="min-h-screen bg-[#F5F7F5] p-4"
         initial="hidden"
         animate="visible"
-        variants={containerVariants}
+        variants={
+          containerVariants
+        }
       >
         {/* HEADER */}
         <motion.div
-          variants={itemVariants}
+          variants={
+            itemVariants
+          }
           className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
         >
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-[#163F20]" />
+
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#163F20]">
                 User Management
               </span>
@@ -1425,31 +2746,68 @@ const UserManagement: React.FC = () => {
             </h1>
 
             <p className="mt-1 text-sm text-[#89918B]">
-              Manage customers, distributors, account status, and registration
-              details.
+              Manage customers, distributors, account status, and registration details.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* EXPORT CURRENT TAB */}
             <button
               type="button"
-              onClick={() => setCreateModalOpen(true)}
+              onClick={
+                handleExportAll
+              }
+              disabled={
+                tabExportUsers.length ===
+                0
+              }
+              title={`Download ${getExportTabLabel()} users`}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#EAF3EA] px-4 text-sm font-bold text-[#163F20] shadow-sm transition hover:border-[#163F20]/35 hover:bg-[#DDEEDF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiDownload
+                size={16}
+              />
+
+              {getExportButtonLabel()}
+            </button>
+
+            {/* CREATE DISTRIBUTOR */}
+            <button
+              type="button"
+              onClick={() =>
+                setCreateModalOpen(
+                  true,
+                )
+              }
               className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4C8A57] to-[#163F20] px-5 text-sm font-bold text-white shadow-md shadow-[#163F20]/20 transition hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <FiBriefcase size={16} />
+              <FiBriefcase
+                size={16}
+              />
+
               Create Distributor
             </button>
 
+            {/* REFRESH */}
             <button
               type="button"
-              onClick={fetchUsers}
-              disabled={loading}
+              onClick={
+                fetchUsers
+              }
+              disabled={
+                loading
+              }
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 text-sm font-bold text-[#163F20] shadow-sm transition hover:border-[#163F20]/35 hover:bg-[#F3F7F3] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={16}
-                className={loading ? "animate-spin" : ""}
+                className={
+                  loading
+                    ? "animate-spin"
+                    : ""
+                }
               />
+
               Refresh
             </button>
           </div>
@@ -1457,53 +2815,83 @@ const UserManagement: React.FC = () => {
 
         {/* STATS */}
         <motion.div
-          variants={containerVariants}
+          variants={
+            containerVariants
+          }
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <StatCard
             title="Total Users"
-            value={stats.total}
+            value={
+              stats.total
+            }
             subtitle="All registered users"
-            icon={<FiUsers size={21} />}
+            icon={
+              <FiUsers
+                size={21}
+              />
+            }
             accent="bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]"
           />
 
           <StatCard
             title="Active Users"
-            value={stats.active}
+            value={
+              stats.active
+            }
             subtitle="Currently active"
-            icon={<FiUserCheck size={21} />}
+            icon={
+              <FiUserCheck
+                size={21}
+              />
+            }
             accent="bg-gradient-to-r from-[#8FC199] to-[#163F20]"
           />
 
           <StatCard
             title="Inactive Users"
-            value={stats.inactive}
+            value={
+              stats.inactive
+            }
             subtitle="Currently inactive"
-            icon={<FiUserX size={21} />}
+            icon={
+              <FiUserX
+                size={21}
+              />
+            }
             accent="bg-gradient-to-r from-[#89918B] to-[#59645C]"
           />
 
           <StatCard
             title="Distributors"
-            value={stats.distributors}
+            value={
+              stats.distributors
+            }
             subtitle="Registered distributors"
-            icon={<FiBriefcase size={21} />}
+            icon={
+              <FiBriefcase
+                size={21}
+              />
+            }
             accent="bg-gradient-to-r from-[#4C8A57] to-[#0F3219]"
           />
         </motion.div>
 
         {/* MAIN CARD */}
         <motion.div
-          variants={itemVariants}
+          variants={
+            itemVariants
+          }
           className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm"
         >
           <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
           {/* TOOLBAR */}
           <div className="border-b border-[#163F20]/10 p-4 sm:p-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="relative w-full xl:max-w-[520px]">
+            {/* SEARCH + FILTERS IN ONE LINE */}
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+              {/* SEARCH */}
+              <div className="relative w-full xl:w-[320px] xl:shrink-0">
                 <FiSearch
                   size={19}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
@@ -1511,8 +2899,17 @@ const UserManagement: React.FC = () => {
 
                 <input
                   type="text"
-                  value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  value={
+                    search
+                  }
+                  onChange={(
+                    e,
+                  ) =>
+                    handleSearch(
+                      e.target
+                        .value,
+                    )
+                  }
                   placeholder="Search name, email, phone, ID..."
                   className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
                 />
@@ -1520,37 +2917,104 @@ const UserManagement: React.FC = () => {
                 {search && (
                   <button
                     type="button"
-                    onClick={() => handleSearch("")}
+                    onClick={() =>
+                      handleSearch(
+                        "",
+                      )
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] hover:text-[#163F20]"
                   >
-                    <FiX size={16} />
+                    <FiX
+                      size={16}
+                    />
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              {/* FILTER TABS */}
+              <div className="flex flex-1 items-center gap-1 overflow-x-auto rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-1">
                 {[
-                  { key: "all" as UserFilter, label: "All" },
-                  { key: "customer" as UserFilter, label: "Customers" },
-                  { key: "distributor" as UserFilter, label: "Distributors" },
-                  { key: "active" as UserFilter, label: "Active" },
-                  { key: "inactive" as UserFilter, label: "Inactive" },
-                ].map((filter) => (
-                  <button
-                    key={filter.key}
-                    type="button"
-                    onClick={() => handleFilter(filter.key)}
-                    className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${
-                      activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
-                        : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                    }`}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
+                  {
+                    key: "all" as UserFilter,
+                    label: "All",
+                    count:
+                      stats.total,
+                  },
+                  {
+                    key: "customer" as UserFilter,
+                    label:
+                      "Customers",
+                    count:
+                      stats.customers,
+                  },
+                  {
+                    key: "distributor" as UserFilter,
+                    label:
+                      "Distributors",
+                    count:
+                      stats.distributors,
+                  },
+                  {
+                    key: "active" as UserFilter,
+                    label:
+                      "Active",
+                    count:
+                      stats.active,
+                  },
+                  {
+                    key: "inactive" as UserFilter,
+                    label:
+                      "Inactive",
+                    count:
+                      stats.inactive,
+                  },
+                ].map(
+                  (tab) => {
+                    const isActive =
+                      activeFilter ===
+                      tab.key;
+
+                    return (
+                      <button
+                        key={
+                          tab.key
+                        }
+                        type="button"
+                        onClick={() =>
+                          handleFilter(
+                            tab.key,
+                          )
+                        }
+                        className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold transition-all ${
+                          isActive
+                            ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
+                            : "text-[#59645C] hover:bg-white hover:text-[#163F20]"
+                        }`}
+                      >
+                        <span>
+                          {
+                            tab.label
+                          }
+                        </span>
+
+                        <span
+                          className={`inline-flex min-w-[24px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                            isActive
+                              ? "bg-white/20 text-white"
+                              : "bg-[#EAF3EA] text-[#163F20]"
+                          }`}
+                        >
+                          {
+                            tab.count
+                          }
+                        </span>
+                      </button>
+                    );
+                  },
+                )}
               </div>
             </div>
+
           </div>
 
           {/* DESKTOP TABLE */}
@@ -1561,24 +3025,31 @@ const UserManagement: React.FC = () => {
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     S.No.
                   </th>
+
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     User
                   </th>
+
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Contact
                   </th>
+
                   <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Account Type
                   </th>
+
                   <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     User Status
                   </th>
+
                   <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     KYC Status
                   </th>
+
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Registered
                   </th>
+
                   <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
                     Actions
                   </th>
@@ -1588,27 +3059,46 @@ const UserManagement: React.FC = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={
+                        8
+                      }
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
-                          <FiRefreshCw size={22} className="animate-spin" />
+                          <FiRefreshCw
+                            size={22}
+                            className="animate-spin"
+                          />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#202721]">
                           Loading users...
                         </p>
                       </div>
                     </td>
                   </tr>
-                ) : paginatedUsers.length === 0 ? (
+                ) : paginatedUsers.length ===
+                  0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={
+                        8
+                      }
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#163F20]">
-                          <FiUsers size={24} />
+                          <FiUsers
+                            size={24}
+                          />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#202721]">
                           No users found
                         </p>
+
                         <p className="mt-1 text-xs text-[#9AA29C]">
                           Try another search or filter.
                         </p>
@@ -1616,135 +3106,218 @@ const UserManagement: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginatedUsers.map((user, index) => {
-                    const statusLoading = statusLoadingId === user.id;
-                    const distributorLoading = distributorLoadingId === user.id;
-                    const isDistributor = user.account_type === "distributor";
-                    const distributorStatus =
-                      user.distributor_status || "pending";
-                    // ✅ FIXED: getEffectiveKycStatus use karo
-                    const kycStatus = getEffectiveKycStatus(user);
-                    const isHighlighted = highlightedUserId === user.id;
+                  paginatedUsers.map(
+                    (
+                      user,
+                      index,
+                    ) => {
+                      const statusLoading =
+                        statusLoadingId ===
+                        user.id;
 
-                    return (
-                      <tr
-                        key={user.id}
-                        className={`border-b border-[#163F20]/10 transition-all duration-300 ${
-                          isHighlighted
-                            ? "bg-[#EAF3EA]/70 border-l-4 border-l-[#163F20] shadow-inner"
-                            : "bg-white hover:bg-[#F5F7F5]"
-                        }`}
-                      >
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
+                      const distributorLoading =
+                        distributorLoadingId ===
+                        user.id;
 
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
-                              {user.profile_picture ? (
-                                <img
-                                  src={user.profile_picture}
-                                  alt={getUserName(user)}
-                                  className="h-full w-full object-cover"
+                      const isDistributor =
+                        user.account_type ===
+                        "distributor";
+
+                      const distributorStatus =
+                        user.distributor_status ||
+                        "pending";
+
+                      const kycStatus =
+                        getEffectiveKycStatus(
+                          user,
+                        );
+
+                      const isHighlighted =
+                        highlightedUserId ===
+                        user.id;
+
+                      return (
+                        <tr
+                          key={
+                            user.id
+                          }
+                          className={`border-b border-[#163F20]/10 transition-all duration-300 ${
+                            isHighlighted
+                              ? "border-l-4 border-l-[#163F20] bg-[#EAF3EA]/70 shadow-inner"
+                              : "bg-white hover:bg-[#F5F7F5]"
+                          }`}
+                        >
+                          <td className="px-5 py-4">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-xs font-bold text-[#163F20]">
+                              {startIndex +
+                                index +
+                                1}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
+                                {user.profile_picture ? (
+                                  <img
+                                    src={
+                                      user.profile_picture
+                                    }
+                                    alt={getUserName(
+                                      user,
+                                    )}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  getInitials(
+                                    user,
+                                  )
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-[#202721]">
+                                  {getUserName(
+                                    user,
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="max-w-[220px]">
+                              <p className="truncate text-xs font-semibold text-[#3F4A41]">
+                                {
+                                  user.email
+                                }
+                              </p>
+
+                              <div className="mt-1 flex items-center gap-1.5">
+                                <span className="text-xs text-[#9AA29C]">
+                                  {user.phone ||
+                                    "No phone"}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
+                                isDistributor
+                                  ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
+                                  : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]"
+                              }`}
+                            >
+                              {isDistributor ? (
+                                <FiBriefcase
+                                  size={
+                                    12
+                                  }
                                 />
                               ) : (
-                                getInitials(user)
+                                <FiUser
+                                  size={
+                                    12
+                                  }
+                                />
                               )}
-                            </div>
 
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#202721]">
-                                {getUserName(user)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
+                              {getAccountLabel(
+                                user.account_type,
+                              )}
+                            </span>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <div className="max-w-[220px]">
-                            <p className="truncate text-xs font-semibold text-[#3F4A41]">
-                              {user.email}
-                            </p>
-                            <div className="mt-1 flex items-center gap-1.5">
-                              <span className="text-xs text-[#9AA29C]">
-                                {user.phone || "No phone"}
-                              </span>
-                              
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
-                              isDistributor
-                                ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
-                                : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]"
-                            }`}
-                          >
-                            {isDistributor ? (
-                              <FiBriefcase size={12} />
-                            ) : (
-                              <FiUser size={12} />
-                            )}
-                            {getAccountLabel(user.account_type)}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <div className="flex justify-center">
-                            <UserStatusDropdown
-                              userId={user.id}
-                              isActive={user.is_active}
-                              onStatusChange={handleToggleUserStatus}
-                              isLoading={statusLoading}
-                            />
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          {isDistributor ? (
+                          <td className="px-5 py-4 text-center">
                             <div className="flex justify-center">
-                              <DistributorStatusDropdown
-                                userId={user.id}
-                                currentStatus={distributorStatus}
-                                kycStatus={kycStatus}
-                                onStatusChange={handleUpdateDistributorStatus}
-                                isLoading={distributorLoading}
+                              <UserStatusDropdown
+                                userId={
+                                  user.id
+                                }
+                                isActive={
+                                  user.is_active
+                                }
+                                onStatusChange={
+                                  handleToggleUserStatus
+                                }
+                                isLoading={
+                                  statusLoading
+                                }
                               />
                             </div>
-                          ) : (
-                            <span className="text-xs text-[#9AA29C]">—</span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <FiCalendar size={13} className="text-[#163F20]" />
-                            <span className="text-xs font-semibold text-[#3F4A41]">
-                              {formatDateOnly(user.created_at)}
-                            </span>
-                          </div>
-                        </td>
+                          <td className="px-5 py-4 text-center">
+                            {isDistributor ? (
+                              <div className="flex justify-center">
+                                <DistributorStatusDropdown
+                                  userId={
+                                    user.id
+                                  }
+                                  currentStatus={
+                                    distributorStatus
+                                  }
+                                  kycStatus={
+                                    kycStatus
+                                  }
+                                  onStatusChange={
+                                    handleUpdateDistributorStatus
+                                  }
+                                  isLoading={
+                                    distributorLoading
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-xs text-[#9AA29C]">
+                                —
+                              </span>
+                            )}
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <div className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={() => handleView(user.id)}
-                              title="View User Details"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                            >
-                              <FiEye size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <FiCalendar
+                                size={
+                                  13
+                                }
+                                className="text-[#163F20]"
+                              />
+
+                              <span className="text-xs font-semibold text-[#3F4A41]">
+                                {formatDateOnly(
+                                  user.created_at,
+                                )}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleView(
+                                    user.id,
+                                  )
+                                }
+                                title="View User Details"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                              >
+                                <FiEye
+                                  size={
+                                    15
+                                  }
+                                />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )
                 )}
               </tbody>
             </table>
@@ -1752,114 +3325,202 @@ const UserManagement: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {paginatedUsers.length > 0 ? (
-              paginatedUsers.map((user, index) => {
-                const statusLoading = statusLoadingId === user.id;
-                const distributorLoading = distributorLoadingId === user.id;
-                const isDistributor = user.account_type === "distributor";
-                const distributorStatus = user.distributor_status || "pending";
-                // ✅ FIXED: getEffectiveKycStatus use karo
-                const kycStatus = getEffectiveKycStatus(user);
-                const isHighlighted = highlightedUserId === user.id;
+            {loading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                  <FiRefreshCw
+                    size={24}
+                    className="animate-spin"
+                  />
+                </div>
 
-                return (
-                  <div
-                    key={user.id}
-                    className={`border-b border-[#163F20]/10 p-4 transition-all duration-300 ${
-                      isHighlighted
-                        ? "bg-[#EAF3EA]/70 border-l-4 border-l-[#163F20]"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
-                          {user.profile_picture ? (
-                            <img
-                              src={user.profile_picture}
-                              alt={getUserName(user)}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            getInitials(user)
-                          )}
+                <p className="mt-4 text-sm font-bold text-[#202721]">
+                  Loading users...
+                </p>
+              </div>
+            ) : paginatedUsers.length >
+              0 ? (
+              paginatedUsers.map(
+                (
+                  user,
+                  index,
+                ) => {
+                  const statusLoading =
+                    statusLoadingId ===
+                    user.id;
+
+                  const distributorLoading =
+                    distributorLoadingId ===
+                    user.id;
+
+                  const isDistributor =
+                    user.account_type ===
+                    "distributor";
+
+                  const distributorStatus =
+                    user.distributor_status ||
+                    "pending";
+
+                  const kycStatus =
+                    getEffectiveKycStatus(
+                      user,
+                    );
+
+                  const isHighlighted =
+                    highlightedUserId ===
+                    user.id;
+
+                  return (
+                    <div
+                      key={
+                        user.id
+                      }
+                      className={`border-b border-[#163F20]/10 p-4 transition-all duration-300 ${
+                        isHighlighted
+                          ? "border-l-4 border-l-[#163F20] bg-[#EAF3EA]/70"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-bold text-white">
+                            {user.profile_picture ? (
+                              <img
+                                src={
+                                  user.profile_picture
+                                }
+                                alt={getUserName(
+                                  user,
+                                )}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              getInitials(
+                                user,
+                              )
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-[#202721]">
+                              {getUserName(
+                                user,
+                              )}
+                            </p>
+
+                            <p className="mt-1 truncate text-xs text-[#9AA29C]">
+                              {
+                                user.email
+                              }
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202721]">
-                            {getUserName(user)}
+                        <span className="text-[10px] font-bold text-[#9AA29C]">
+                          #
+                          {startIndex +
+                            index +
+                            1}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            Type
                           </p>
-                          <p className="mt-1 truncate text-xs text-[#9AA29C]">
-                            {user.email}
+
+                          <p className="mt-1 text-xs font-bold capitalize text-[#202721]">
+                            {
+                              user.account_type
+                            }
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            Phone
+                          </p>
+
+                          <p className="mt-1 truncate text-xs font-bold text-[#202721]">
+                            {user.phone ||
+                              "N/A"}
                           </p>
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold text-[#9AA29C]">
-                        #{startIndex + index + 1}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Type
-                        </p>
-                        <p className="mt-1 text-xs font-bold capitalize text-[#202721]">
-                          {user.account_type}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                          Phone
-                        </p>
-                        <p className="mt-1 truncate text-xs font-bold text-[#202721]">
-                          {user.phone || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <UserStatusDropdown
-                        userId={user.id}
-                        isActive={user.is_active}
-                        onStatusChange={handleToggleUserStatus}
-                        isLoading={statusLoading}
-                      />
-
-                      {isDistributor && (
-                        <DistributorStatusDropdown
-                          userId={user.id}
-                          currentStatus={distributorStatus}
-                          kycStatus={kycStatus}
-                          onStatusChange={handleUpdateDistributorStatus}
-                          isLoading={distributorLoading}
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <UserStatusDropdown
+                          userId={
+                            user.id
+                          }
+                          isActive={
+                            user.is_active
+                          }
+                          onStatusChange={
+                            handleToggleUserStatus
+                          }
+                          isLoading={
+                            statusLoading
+                          }
                         />
-                      )}
-                    </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleView(user.id)}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] px-4 py-2.5 text-xs font-bold text-[#163F20]"
-                      >
-                        <FiEye size={14} />
-                        View
-                      </button>
+                        {isDistributor && (
+                          <DistributorStatusDropdown
+                            userId={
+                              user.id
+                            }
+                            currentStatus={
+                              distributorStatus
+                            }
+                            kycStatus={
+                              kycStatus
+                            }
+                            onStatusChange={
+                              handleUpdateDistributorStatus
+                            }
+                            isLoading={
+                              distributorLoading
+                            }
+                          />
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleView(
+                              user.id,
+                            )
+                          }
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] px-4 py-2.5 text-xs font-bold text-[#163F20]"
+                        >
+                          <FiEye
+                            size={
+                              14
+                            }
+                          />
+
+                          View
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                },
+              )
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F7F5] text-[#163F20]">
-                  <FiUsers size={24} />
+                  <FiUsers
+                    size={24}
+                  />
                 </div>
+
                 <p className="mt-4 text-sm font-bold text-[#202721]">
                   No users found
                 </p>
+
                 <p className="mt-1 text-xs text-[#9AA29C]">
                   Try another search or filter.
                 </p>
@@ -1868,17 +3529,28 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredUsers.length > 0 && (
+          {filteredUsers.length >
+            0 && (
             <div className="border-t border-[#163F20]/10 bg-[#FBFDFB] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#89918B]">
                   Showing{" "}
-                  <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#3F4A41]">
+                    {
+                      startEntry
+                    }
+                  </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
+                  <span className="font-bold text-[#3F4A41]">
+                    {
+                      endEntry
+                    }
+                  </span>{" "}
                   of{" "}
                   <span className="font-bold text-[#3F4A41]">
-                    {filteredUsers.length}
+                    {
+                      filteredUsers.length
+                    }
                   </span>{" "}
                   entries
                 </p>
@@ -1886,35 +3558,78 @@ const UserManagement: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((page) => page - 1)}
-                    disabled={currentPage === 1}
+                    onClick={() =>
+                      setCurrentPage(
+                        (
+                          page,
+                        ) =>
+                          page -
+                          1,
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      1
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    <FiChevronLeft size={17} />
+                    <FiChevronLeft
+                      size={
+                        17
+                      }
+                    />
                   </button>
 
-                  {paginationPages.map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
-                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {paginationPages.map(
+                    (
+                      page,
+                    ) => (
+                      <button
+                        key={
+                          page
+                        }
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage(
+                            page,
+                          )
+                        }
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
+                          currentPage ===
+                          page
+                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-md shadow-[#163F20]/20"
+                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                        }`}
+                      >
+                        {
+                          page
+                        }
+                      </button>
+                    ),
+                  )}
 
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((page) => page + 1)}
-                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage(
+                        (
+                          page,
+                        ) =>
+                          page +
+                          1,
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      totalPages
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    <FiChevronRight size={17} />
+                    <FiChevronRight
+                      size={
+                        17
+                      }
+                    />
                   </button>
                 </div>
               </div>
@@ -1925,23 +3640,50 @@ const UserManagement: React.FC = () => {
 
       {/* DETAIL MODAL */}
       <UserDetailModal
-        open={detailOpen}
-        loading={detailLoading}
-        user={selectedUser}
+        open={
+          detailOpen
+        }
+        loading={
+          detailLoading
+        }
+        user={
+          selectedUser
+        }
         onClose={() => {
-          setDetailOpen(false);
-          setSelectedUser(null);
+          setDetailOpen(
+            false,
+          );
+
+          setSelectedUser(
+            null,
+          );
         }}
-        onUserStatusChange={handleToggleUserStatus}
-        onDistributorStatusChange={handleUpdateDistributorStatus}
-        isLoading={statusLoadingId !== null}
-        isDistributorLoading={distributorLoadingId !== null}
+        onUserStatusChange={
+          handleToggleUserStatus
+        }
+        onDistributorStatusChange={
+          handleUpdateDistributorStatus
+        }
+        isLoading={
+          statusLoadingId !==
+          null
+        }
+        isDistributorLoading={
+          distributorLoadingId !==
+          null
+        }
       />
 
       {/* CREATE DISTRIBUTOR MODAL */}
       <CreateDistributorModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        open={
+          createModalOpen
+        }
+        onClose={() =>
+          setCreateModalOpen(
+            false,
+          )
+        }
         onSuccess={() => {
           fetchUsers();
         }}

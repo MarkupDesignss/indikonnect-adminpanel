@@ -136,7 +136,10 @@ const Header = ({
       if (adminData) {
         setAdmin(adminData);
 
-        sessionStorage.setItem(
+        // =================================================
+        // LOCAL STORAGE
+        // =================================================
+        localStorage.setItem(
           "adminData",
           JSON.stringify(adminData)
         );
@@ -144,7 +147,10 @@ const Header = ({
     } catch (error) {
       console.error("Failed to fetch admin profile:", error);
 
-      const storedAdmin = sessionStorage.getItem("adminData");
+      // =================================================
+      // FALLBACK FROM LOCAL STORAGE
+      // =================================================
+      const storedAdmin = localStorage.getItem("adminData");
 
       if (storedAdmin) {
         try {
@@ -355,7 +361,7 @@ const Header = ({
   };
 
   // ===================================================
-  // SEARCH NAVIGATION - FIXED
+  // SEARCH NAVIGATION
   // ===================================================
 
   const goToSearchResult = (
@@ -370,7 +376,6 @@ const Header = ({
 
     // =================================================
     // PRODUCT
-    // Full product object sent through location.state
     // =================================================
 
     if (type === "product") {
@@ -387,7 +392,6 @@ const Header = ({
 
     // =================================================
     // ADMIN
-    // Full admin object sent through location.state
     // =================================================
 
     if (type === "admin") {
@@ -404,7 +408,6 @@ const Header = ({
 
     // =================================================
     // USER
-    // Full user object sent through location.state
     // =================================================
 
     if (type === "user") {
@@ -426,21 +429,33 @@ const Header = ({
     try {
       await adminApi.logout();
 
-      sessionStorage.removeItem("adminToken");
-      sessionStorage.removeItem("adminData");
-      sessionStorage.removeItem("adminPermissions");
-      sessionStorage.removeItem("adminRoles");
+      // =================================================
+      // LOCAL STORAGE CLEAR
+      // =================================================
 
-      window.location.href = `${import.meta.env.BASE_URL}login`;
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminData");
+      localStorage.removeItem("adminPermissions");
+      localStorage.removeItem("adminRoles");
+
+      // =================================================
+      // SUBDOMAIN ROUTER
+      // =================================================
+
+      window.location.href = "/login";
     } catch (error) {
       console.error("Logout failed:", error);
 
-      sessionStorage.removeItem("adminToken");
-      sessionStorage.removeItem("adminData");
-      sessionStorage.removeItem("adminPermissions");
-      sessionStorage.removeItem("adminRoles");
+      // =================================================
+      // LOCAL STORAGE CLEAR
+      // =================================================
 
-      window.location.href = `${import.meta.env.BASE_URL}login`;
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminData");
+      localStorage.removeItem("adminPermissions");
+      localStorage.removeItem("adminRoles");
+
+      window.location.href = "/login";
     }
   };
 
@@ -929,8 +944,6 @@ const Header = ({
                               hover:bg-gray-50
                             "
                           >
-                            {/* IMAGE */}
-
                             <div
                               className="
                                 relative
@@ -967,8 +980,6 @@ const Header = ({
                                 </div>
                               )}
                             </div>
-
-                            {/* CONTENT */}
 
                             <div className="min-w-0 flex-1">
                               <p
@@ -1094,8 +1105,6 @@ const Header = ({
                               hover:bg-gray-50
                             "
                           >
-                            {/* IMAGE */}
-
                             <div
                               className="
                                 h-11
@@ -1129,8 +1138,6 @@ const Header = ({
                                 </div>
                               )}
                             </div>
-
-                            {/* INFO */}
 
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
@@ -1180,8 +1187,6 @@ const Header = ({
                                   {searchAdmin.email}
                                 </p>
                               </div>
-
-                              {/* ROLES */}
 
                               {roles.length > 0 && (
                                 <div className="mt-1.5 flex flex-wrap gap-1">
@@ -1291,7 +1296,8 @@ const Header = ({
 
                     <div className="space-y-0.5">
                       {searchResults.users.map((user) => {
-                        const image = getProfileImage(user);
+                        const image =
+                          getProfileImage(user);
 
                         return (
                           <button
@@ -1316,8 +1322,6 @@ const Header = ({
                               hover:bg-gray-50
                             "
                           >
-                            {/* IMAGE */}
-
                             <div
                               className="
                                 h-11
@@ -1346,8 +1350,6 @@ const Header = ({
                                 </div>
                               )}
                             </div>
-
-                            {/* INFO */}
 
                             <div className="min-w-0 flex-1">
                               <p

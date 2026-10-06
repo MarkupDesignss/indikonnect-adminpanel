@@ -47,6 +47,8 @@ import adminDashboardApi, {
   WeeklyBreakdown,
 } from "../../api/endpoints/adminDashboard";
 import { Link, useNavigate } from "react-router-dom";
+import { getPortalName } from "../../utils/getPortalName";
+
 
 // =====================================================
 // BRAND PALETTE  (Blue + Yellow — no gold)
@@ -403,6 +405,8 @@ const Dashboard = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [salesPeriod, setSalesPeriod] = useState<SalesPeriodType>("this_week");
+  const portalName = getPortalName();
+
 
   const navigate = useNavigate();
 
@@ -762,7 +766,7 @@ const Dashboard = () => {
                   Dashboard
                 </h1>
                 <span className="mb-1 hidden rounded-full border border-[#FACC15]/50 bg-[#FEF9C3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E293B] sm:inline-flex">
-                  Admin Overview
+                 {portalName}
                 </span>
               </div>
 
@@ -913,11 +917,7 @@ const Dashboard = () => {
                     />
                   </div>
 
-                  <MiniSparkline
-                    color={theme.spark}
-                    seed={index * 1.7}
-                    trendUp={trendUp}
-                  />
+               
                 </div>
 
                 <div className="mt-3">
@@ -1513,7 +1513,7 @@ const Dashboard = () => {
 
             <SectionHeader
               icon={<FiActivity size={17} />}
-              title="Support Tickets"
+              title="Contact Requests"
               subtitle="Latest customer support activity"
               accent="blue"
               action={
@@ -1590,7 +1590,7 @@ const Dashboard = () => {
                 type="button"
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EAF1FF] py-2.5 text-[9px] font-bold uppercase tracking-wide text-[#1E40AF] transition hover:border-[#2563EB]/35 hover:bg-[#DBEAFE]"
               >
-                View All Tickets
+                View All Requests
                 <FiChevronRight size={11} />
               </button>
             </Link>
@@ -1623,7 +1623,7 @@ const Dashboard = () => {
               bar: "bg-[#FACC15]",
             },
             {
-              title: "Support",
+              title: "Contact Requests",
               value: totalTickets,
               subtitle: "Latest tickets",
               icon: FiActivity,

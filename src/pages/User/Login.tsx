@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { adminApi } from "../../api/endpoints/Auth";
 import { toast } from "react-toastify";
+import { getPortalName } from "../../utils/getPortalName";
+
 
 const Login = () => {
   const navigate = useNavigate();
+  const portalName = getPortalName();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -14,6 +17,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setIsLoading(true);
     setError("");
 
@@ -24,7 +28,37 @@ const Login = () => {
       });
 
       if (response.data.success) {
-        sessionStorage.setItem("adminToken", response.data.data.token);
+        const token = response.data.data.token;
+
+        // ==========================================
+        // SAVE ADMIN AUTH IN LOCAL STORAGE
+        // ==========================================
+
+        localStorage.setItem("adminToken", token);
+
+        // Optional: save admin data if API provides it
+        if (response.data.data.admin) {
+          localStorage.setItem(
+            "adminData",
+            JSON.stringify(response.data.data.admin)
+          );
+        }
+
+        // Optional permissions
+        if (response.data.data.permissions) {
+          localStorage.setItem(
+            "adminPermissions",
+            JSON.stringify(response.data.data.permissions)
+          );
+        }
+
+        // Optional roles
+        if (response.data.data.roles) {
+          localStorage.setItem(
+            "adminRoles",
+            JSON.stringify(response.data.data.roles)
+          );
+        }
 
         toast.success(
           response.data.message || "Login successful! Welcome back!",
@@ -37,12 +71,15 @@ const Login = () => {
             draggable: true,
             progress: undefined,
             theme: "light",
-          },
+          }
         );
 
         setTimeout(() => {
           setIsLoading(false);
-          navigate("/dashboard");
+
+          // Finance/Admin dono ke respective
+          // subdomain par same router handle karega.
+          navigate("/dashboard", { replace: true });
         }, 1000);
       } else {
         setError(response.data.message || "Invalid email or password");
@@ -50,16 +87,21 @@ const Login = () => {
       }
     } catch (err: any) {
       console.error("Login error:", err);
+
       const errorMessage =
         err.response?.data?.message ||
         err.response?.data?.error ||
         "Invalid email or password. Please try again.";
+
       setError(errorMessage);
       setIsLoading(false);
     }
   };
 
-  // Animation variants (simplified)
+  // ==========================================
+  // ANIMATIONS
+  // ==========================================
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -72,12 +114,15 @@ const Login = () => {
   };
 
   const itemVariants = {
-    hidden: { y: 12, opacity: 0 },
+    hidden: {
+      y: 12,
+      opacity: 0,
+    },
     visible: {
       y: 0,
       opacity: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 120,
         damping: 14,
       },
@@ -86,10 +131,12 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#F5F7F5] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Simple static background circles (no animation, no blur) */}
+      {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-[#163F20]/5" />
+
         <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-[#4C8A57]/5" />
+
         <div className="absolute top-1/3 -right-10 w-56 h-56 rounded-full bg-[#163F20]/5" />
       </div>
 
@@ -107,11 +154,15 @@ const Login = () => {
             rounded-2xl
             border
             border-[#163F20]/10
-            p-8 md:p-10
+            p-8
+            md:p-10
           "
         >
           {/* Logo & Brand */}
-          <motion.div variants={itemVariants} className="text-center mb-7">
+          <motion.div
+            variants={itemVariants}
+            className="text-center mb-7"
+          >
             <div className="flex justify-center mb-4">
               <div
                 className="
@@ -141,22 +192,42 @@ const Login = () => {
 
             <motion.p
               variants={itemVariants}
-              className="text-[#4C8A57] mt-1 text-xs font-semibold tracking-[0.2em] uppercase"
-            >
-              Admin Portal
+              className="
+                text-[#4C8A57]
+                mt-1
+                text-xs
+                font-semibold
+                tracking-[0.2em]
+                uppercase
+              "
+            > 
+            {portalName}
             </motion.p>
 
             <motion.div
               variants={itemVariants}
-              className="mt-5 w-16 h-0.5 bg-[#163F20] mx-auto rounded-full"
+              className="
+                mt-5
+                w-16
+                h-0.5
+                bg-[#163F20]
+                mx-auto
+                rounded-full
+              "
             />
           </motion.div>
 
-          {/* Error Message */}
+          {/* Error */}
           {error && (
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{
+                opacity: 0,
+                x: -10,
+              }}
+              animate={{
+                opacity: 1,
+                x: 0,
+              }}
               className="
                 mb-4
                 p-3
@@ -171,18 +242,22 @@ const Login = () => {
                 gap-2
               "
             >
-              <span className="material-symbols-outlined text-lg">error</span>
+              <span className="material-symbols-outlined text-lg">
+                error
+              </span>
+
               {error}
             </motion.div>
           )}
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
+            {/* Email */}
             <motion.div variants={itemVariants}>
               <label className="block text-[#59645C] text-sm font-medium mb-1.5">
                 Email Address
               </label>
+
               <div className="relative group">
                 <span
                   className="
@@ -199,6 +274,7 @@ const Login = () => {
                 >
                   email
                 </span>
+
                 <input
                   type="email"
                   value={email}
@@ -225,11 +301,12 @@ const Login = () => {
               </div>
             </motion.div>
 
-            {/* Password Field */}
+            {/* Password */}
             <motion.div variants={itemVariants}>
               <label className="block text-[#59645C] text-sm font-medium mb-1.5">
                 Password
               </label>
+
               <div className="relative group">
                 <span
                   className="
@@ -246,6 +323,7 @@ const Login = () => {
                 >
                   lock
                 </span>
+
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
@@ -269,6 +347,7 @@ const Login = () => {
                   placeholder="Enter your password"
                   required
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -283,13 +362,15 @@ const Login = () => {
                   "
                 >
                   <span className="material-symbols-outlined text-xl">
-                    {showPassword ? "visibility_off" : "visibility"}
+                    {showPassword
+                      ? "visibility_off"
+                      : "visibility"}
                   </span>
                 </button>
               </div>
             </motion.div>
 
-            {/* Forgot Password */}
+            {/* Remember / Forgot */}
             <motion.div
               variants={itemVariants}
               className="flex items-center justify-between"
@@ -297,13 +378,26 @@ const Login = () => {
               <label className="flex items-center gap-2 text-sm text-[#59645C] cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded border-[#163F20]/20 accent-[#163F20] cursor-pointer"
+                  className="
+                    rounded
+                    border-[#163F20]/20
+                    accent-[#163F20]
+                    cursor-pointer
+                  "
                 />
+
                 Remember me
               </label>
+
               <Link
                 to="/forgot-password"
-                className="text-sm text-[#163F20] hover:text-[#4C8A57] font-medium transition-colors"
+                className="
+                  text-sm
+                  text-[#163F20]
+                  hover:text-[#4C8A57]
+                  font-medium
+                  transition-colors
+                "
               >
                 Forgot password?
               </Link>
@@ -312,7 +406,9 @@ const Login = () => {
             {/* Login Button */}
             <motion.div variants={itemVariants}>
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{
+                  scale: 0.98,
+                }}
                 type="submit"
                 disabled={isLoading}
                 className="
@@ -349,12 +445,14 @@ const Login = () => {
                         stroke="currentColor"
                         strokeWidth="4"
                       />
+
                       <path
                         className="opacity-75"
                         fill="currentColor"
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
+
                     Signing in...
                   </>
                 ) : (
@@ -362,6 +460,7 @@ const Login = () => {
                     <span className="material-symbols-outlined text-xl">
                       login
                     </span>
+
                     Sign In
                   </>
                 )}
@@ -370,7 +469,10 @@ const Login = () => {
           </form>
 
           {/* Footer */}
-          <motion.div variants={itemVariants} className="mt-6 text-center">
+          <motion.div
+            variants={itemVariants}
+            className="mt-6 text-center"
+          >
             <p className="text-xs text-[#89918B]">
               &copy; 2026 IndieKonnect. All rights reserved.
             </p>

@@ -9,26 +9,43 @@ export const menuItems = [
     label: 'User Management',
     icon: 'people'
   },
-
   {
     path: '/orders',
     label: 'Orders',
     icon: 'shopping_cart'
   },
-
   {
     path: '/inventory',
     label: 'Inventory',
     icon: 'inventory_2',
     children: [
-      { path: '/cms/brands', label: 'Brands', icon: 'brands' },
+      { path: '/cms/brands', label: 'Brands', icon: 'sell' },
       { path: '/inventory/categories', label: 'Categories', icon: 'category' },
-      { path: '/inventory/SubCategories', label: 'Sub Categories', icon: 'SubCategories' },
+      { path: '/inventory/SubCategories', label: 'Sub Categories', icon: 'account_tree' },
       { path: '/inventory/tax-categories', label: 'Tax Categories', icon: 'percent' },
       { path: '/inventory/AttributesManagement', label: 'Attributes Management', icon: 'tune' },
       { path: '/inventory/products', label: 'Products', icon: 'shopping_bag' },
       { path: '/inventory/stock', label: 'Stock', icon: 'warehouse' },
       { path: '/coupons', label: 'Promo Codes', icon: 'local_offer' },
+    ]
+  },
+
+  // ✅ NAYA SECTION: Warehouse (Add Warehouse + Product Assignment)
+  {
+    path: '/warehouse',
+    label: 'Warehouse',
+    icon: 'warehouse',
+    children: [
+      {
+        path: '/Addwarehouse',
+        label: 'Add Warehouse',
+        icon: 'add_business'
+      },
+      {
+        path: '/Productsaasignment',
+        label: 'Product Assignment',
+        icon: 'assignment_ind'
+      },
     ]
   },
 
@@ -50,7 +67,7 @@ export const menuItems = [
       {
         path: '/Fiance/BuyBack',
         label: 'Buy Back',
-        icon: 'buy_back'
+        icon: 'replay'
       },
       {
         path: '/CreditNotes',
@@ -62,6 +79,31 @@ export const menuItems = [
         label: 'Payment Summary',
         icon: 'payments'
       },
+    ]
+  },
+
+  
+  {
+    path: '/cms',
+    label: 'CMS Management',
+    icon: 'web',
+    children: [
+      { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
+      { path: '/cms/content', label: 'Content Management', icon: 'description' },
+      { path: '/cms/LandingPageManagement', label: 'LandingPage Management', icon: 'description' },
+      { path: '/cms/ReelsManagement', label: 'Reels Management', icon: 'movie' },
+      { path: '/cms/TestimonialsManagement', label: 'Testimonials Management', icon: 'format_quote' },
+      {
+        path: '/cms/faq',
+        label: 'FAQ Management',
+        isHeading: true,
+        children: [
+          { path: 'cms/SectionManagement', label: 'Section Management', icon: 'view_agenda' },
+          { path: 'cms/FAQManagement', label: 'FAQ Management', icon: 'quiz' },
+        ]
+      },
+      { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
+      { path: '/cms/NotificationTemplates', label: 'Notification Templates', icon: 'notifications_active' },
     ]
   },
 
@@ -83,31 +125,6 @@ export const menuItems = [
     ]
   },
 
-  {
-    path: '/cms',
-    label: 'CMS Management',
-    icon: 'web',
-    children: [
-      { path: '/cms/header', label: 'Header Management', icon: 'vertical_align_top' },
-      { path: '/cms/content', label: 'Content Management', icon: 'description' },
-      { path: '/cms/LandingPageManagement', label: 'LandingPage Management', icon: 'description' },
-      { path: '/cms/ReelsManagement', label: 'Reels Management', icon: 'ReelsManagement' },
-      { path: '/cms/TestimonialsManagement', label: 'Testimonials Management', icon: 'TestimonialsManagement' },
-
-      {
-        path: '/cms/faq',
-        label: 'FAQ Management',
-        isHeading: true,          // ← non-clickable heading
-        children: [
-          { path: 'cms/SectionManagement', label: 'Section Management', icon: 'SectionManagement' },
-          { path: 'cms/FAQManagement', label: 'FAQ Management', icon: 'TestimonialsManagement' },
-        ]
-      },
-
-      { path: '/cms/footer', label: 'Footer Management', icon: 'vertical_align_bottom' },
-      { path: '/cms/NotificationTemplates', label: 'Notification Templates', icon: 'NotificationTemplates' },
-    ]
-  },
 
   {
     path: '/reviews',

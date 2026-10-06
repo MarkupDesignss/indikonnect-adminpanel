@@ -89,7 +89,6 @@ export interface Product {
   tax_category_id: number;
   tax_category: TaxCategory;
 
-  // Retail
   retail_mrp: string | number;
   retail_price: string | number;
 
@@ -98,7 +97,6 @@ export interface Product {
   retail_discount_amount: number;
   retail_discount_percentage: number;
 
-  // Distributor
   distributor_mrp: string | number;
   distributor_price: string | number;
 
@@ -107,45 +105,35 @@ export interface Product {
   distributor_discount_amount: number;
   distributor_discount_percentage: number;
 
-  // Stock
   stock_quantity: number;
   low_stock_threshold: number;
 
-  // Product flags
   is_published: boolean;
   is_trending: boolean;
   trending_sort_order: number;
 
-  // Deal
   is_deal_of_the_day: boolean;
   is_active_deal: boolean;
 
   deal_of_the_day_starts_at: string | null;
   deal_of_the_day_ends_at: string | null;
 
-  // Status
   stock_status: StockStatus;
   status: ProductStatus;
 
-  // Wishlist
   is_wishlisted: boolean;
 
-  // Images
   images: ProductImage[];
   primary_image: string;
   primary_image_url: string;
 
-  // Variants
   variants?: ProductVariant[];
 
-  // Reviews
   reviews_summary: ReviewsSummary;
 
-  // Commission & Waiting
   commission_value: number;
   waiting_value: number;
 
-  // Shipping
   shipping_charge: number;
 
   created_at: string;
@@ -178,10 +166,6 @@ export interface ProductVariantPayload {
   images?: ProductImagePayload[];
 }
 
-// ============================
-// PRODUCT PAYLOAD
-// ============================
-
 export interface ProductPayload {
   product_code: string;
   name: string;
@@ -203,21 +187,17 @@ export interface ProductPayload {
 
   sale_type?: string;
 
-  // Retail
   retail_mrp: number;
   retail_discount_type: DiscountType;
   retail_discount_value: number;
 
-  // Distributor
   distributor_mrp: number;
   distributor_discount_type: DiscountType;
   distributor_discount_value: number;
 
-  // Commission & Waiting
   commission_value: number;
   waiting_value: number;
 
-  // Shipping
   shipping_charge: number;
 
   product_images?: ProductImagePayload[];
@@ -229,10 +209,6 @@ export interface DealPayload {
   ends_at: string;
   sale_type: string;
 }
-
-// ============================
-// PUBLISH / UNPUBLISH PAYLOAD
-// ============================
 
 export interface PublishProductPayload {
   is_published: 0 | 1;
@@ -260,6 +236,28 @@ export interface ApiResponse<T = unknown> {
   status?: number;
   pagination?: Pagination;
   filters?: ProductFilters;
+}
+
+/* =========================================================
+   WAREHOUSE TYPES
+========================================================= */
+
+export interface Warehouse {
+  id: number;
+  name: string;
+  code?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  status?: string;
+  is_active?: boolean;
+}
+
+export interface WarehouseStockPayload {
+  warehouse_id: number;
+  product_id: number[];
+  variant_id: (number | null)[];
+  quantity: number;
 }
 
 export const productApi = {
@@ -293,17 +291,14 @@ export const productApi = {
     }),
 
   deleteImages: (productId: number, imageIds: number[]) =>
-    apiClient.delete<ApiResponse<null>>(
-      `/products/${productId}/images`,
-      {
-        data: {
-          image_ids: imageIds,
-        },
-      }
-    ),
+    apiClient.delete<ApiResponse<null>>(`/products/${productId}/images`, {
+      data: {
+        image_ids: imageIds,
+      },
+    }),
 
   // ============================
-  // PUBLISH / UNPUBLISH PRODUCT
+  // PUBLISH / UNPUBLISH
   // ============================
 
   publishProduct: (
@@ -341,5 +336,20 @@ export const productApi = {
   removeDeal: (productId: number) =>
     apiClient.delete<ApiResponse<null>>(
       `/products-deal-of-the-day/${productId}`
+    ),
+
+  // ============================
+  // WAREHOUSE
+  // ============================
+
+  getWarehouses: () =>
+    apiClient.get<ApiResponse<Warehouse[]>>("/warehouses"),
+
+  assignProductsToWarehouse: (
+    data: WarehouseStockPayload
+  ) =>
+    apiClient.post<ApiResponse<unknown>>(
+      "/warehouse-stocks",
+      data
     ),
 };

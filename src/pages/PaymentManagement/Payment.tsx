@@ -89,6 +89,9 @@ const getStatusClass = (status: string) => {
     case "partial_returned":
       return "border-[#D9A900]/25 bg-[#FDF4E3] text-[#8A6D16]";
 
+    case "partial_return_pending":
+      return "border-[#D9A900]/25 bg-[#FDF4E3] text-[#8A6D16]";
+
     case "partial_delivered":
       return "border-[#4C8A57]/25 bg-[#EAF3EA] text-[#163F20]";
 
@@ -120,6 +123,27 @@ const getInitials = (name: string) => {
   );
 };
 
+const getAccountTypeBadge = (accountType: string) => {
+  const normalized = (accountType || "").toLowerCase();
+  switch (normalized) {
+    case "distributor":
+      return "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]";
+    case "customer":
+      return "border-[#4C8A57]/25 bg-[#F0F6F0] text-[#4C8A57]";
+    case "admin":
+      return "border-[#D9A900]/25 bg-[#FBF3DC] text-[#8A6D16]";
+    default:
+      return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
+  }
+};
+
+const formatAccountType = (accountType: string) => {
+  if (!accountType) return "—";
+  return accountType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 // =====================================================
 // CSV HELPERS
 // =====================================================
@@ -127,21 +151,25 @@ const getInitials = (name: string) => {
 const escapeCsvValue = (value: any): string => {
   if (value === null || value === undefined) return "";
   const str = String(value);
-  // Agar value me comma, quote, ya newline hai to quotes me wrap karo
-  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+  if (
+    str.includes(",") ||
+    str.includes('"') ||
+    str.includes("\n") ||
+    str.includes("\r")
+  ) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
 };
 
 const generateCsv = (records: PaymentRecord[]): string => {
-  // ✅ Proper CSV headers
   const headers = [
     "S.No.",
     "Order Reference",
     "Customer Name",
     "Customer Email",
     "Customer Phone",
+    "Account Type",
     "Transaction ID",
     "Amount Paid",
     "Status",
@@ -150,11 +178,8 @@ const generateCsv = (records: PaymentRecord[]): string => {
   ];
 
   const rows: string[] = [];
-
-  // Header row
   rows.push(headers.map(escapeCsvValue).join(","));
 
-  // Data rows
   records.forEach((payment, index) => {
     const anyPayment = payment as any;
     const customerName = getCustomerName(payment);
@@ -165,6 +190,7 @@ const generateCsv = (records: PaymentRecord[]): string => {
       customerName || "",
       anyPayment.email || "",
       anyPayment.phone || "",
+      formatAccountType(anyPayment.account_type) || "",
       payment.gateway_transaction_id || "",
       Number(payment.amount_paid || 0).toFixed(2),
       formatStatus(payment.status) || "",
@@ -242,7 +268,6 @@ const Payment: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ✅ NEW: CSV download state
   const [downloadingCsv, setDownloadingCsv] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
@@ -279,52 +304,6 @@ const Payment: React.FC = () => {
   }, []);
 
   // ===================================================
-  // ✅ CSV DOWNLOAD HANDLER (No filters — all records)
-  // ===================================================
-
-  const handleDownloadCsv = () => {
-    if (downloadingCsv) return;
-
-    if (!payments || payments.length === 0) {
-      toast.error("No payment records available to export.");
-      return;
-    }
-
-    setDownloadingCsv(true);
-
-    try {
-      // ✅ Proper CSV generate karo (all records, no filters)
-      const csvContent = generateCsv(payments);
-
-      // ✅ UTF-8 BOM add karo taaki Excel me ₹ aur special chars sahi dikhe
-      const BOM = "\uFEFF";
-      const blob = new Blob([BOM + csvContent], {
-        type: "text/csv;charset=utf-8;",
-      });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-
-      // ✅ Filename with date
-      const today = new Date().toISOString().slice(0, 10);
-      link.download = `payments-${today}.csv`;
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      toast.success(`CSV downloaded — ${payments.length} records exported`);
-    } catch (error: any) {
-      console.error("CSV download error:", error);
-      toast.error("Failed to download CSV. Please try again.");
-    } finally {
-      setDownloadingCsv(false);
-    }
-  };
-
-  // ===================================================
   // STATUS OPTIONS
   // ===================================================
 
@@ -335,6 +314,7 @@ const Payment: React.FC = () => {
     "returned",
     "pending",
     "partial_returned",
+    "partial_return_pending",
     "partial_delivered",
   ];
 
@@ -362,7 +342,7 @@ const Payment: React.FC = () => {
   }, [payments]);
 
   // ===================================================
-  // FILTER (now includes customer name / email / phone)
+  // FILTER
   // ===================================================
 
   const filteredPayments = useMemo(() => {
@@ -396,6 +376,71 @@ const Payment: React.FC = () => {
       return matchesSearch && matchesStatus;
     });
   }, [payments, search, statusFilter]);
+
+  // ===================================================
+  // ✅ FILTER-AWARE CSV DOWNLOAD
+  // Exports exactly the currently filtered records.
+  // ===================================================
+
+  // Human-readable label for the currently active filter
+  const activeFilterLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (statusFilter !== "all") {
+      parts.push(formatStatus(statusFilter));
+    }
+    if (search.trim()) {
+      parts.push("Search");
+    }
+    return parts.length > 0 ? parts.join(" • ") : "All Payments";
+  }, [statusFilter, search]);
+
+  const handleDownloadCsv = () => {
+    if (downloadingCsv) return;
+
+    if (!filteredPayments || filteredPayments.length === 0) {
+      toast.error("No payment records match the current filters to export.");
+      return;
+    }
+
+    setDownloadingCsv(true);
+
+    try {
+      const csvContent = generateCsv(filteredPayments);
+
+      const BOM = "\uFEFF";
+      const blob = new Blob([BOM + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+
+      // ✅ Filename reflects active filter
+      const today = new Date().toISOString().slice(0, 10);
+      const slug = activeFilterLabel
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      link.download = `payments-${slug || "filtered"}-${today}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(
+        `CSV downloaded — ${filteredPayments.length} record${
+          filteredPayments.length === 1 ? "" : "s"
+        } exported`,
+      );
+    } catch (error: any) {
+      console.error("CSV download error:", error);
+      toast.error("Failed to download CSV. Please try again.");
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
 
   // ===================================================
   // PAGINATION
@@ -482,12 +527,16 @@ const Payment: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start">
-          {/* ✅ NEW: Download CSV button */}
+        <div className="flex flex-wrap items-center gap-3 self-start">
+          {/* ✅ Download CSV — exports the current filtered list.
+              Label shows the active filter & count. */}
           <button
             type="button"
             onClick={handleDownloadCsv}
-            disabled={downloadingCsv || loading}
+            disabled={
+              downloadingCsv || loading || filteredPayments.length === 0
+            }
+            title={`Export ${activeFilterLabel} as CSV`}
             className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {downloadingCsv ? (
@@ -496,6 +545,14 @@ const Payment: React.FC = () => {
               <FiDownload size={16} />
             )}
             {downloadingCsv ? "Downloading..." : "Download CSV"}
+            <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+              {activeFilterLabel}
+            </span>
+            {filteredPayments.length > 0 && (
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+                {filteredPayments.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -585,10 +642,11 @@ const Payment: React.FC = () => {
                     setStatusFilter(status);
                     setCurrentPage(1);
                   }}
-                  className={`shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${statusFilter === status
-                    ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                    : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                    }`}
+                  className={`shrink-0 whitespace-nowrap rounded-xl px-3.5 py-2 text-[11px] font-bold transition ${
+                    statusFilter === status
+                      ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                      : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                  }`}
                 >
                   {status === "all" ? "All" : formatStatus(status)}
                 </button>
@@ -599,7 +657,7 @@ const Payment: React.FC = () => {
 
         {/* DESKTOP TABLE */}
         <div className="hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[1250px] border-collapse">
+          <table className="w-full min-w-[1400px] border-collapse">
             <thead>
               <tr className="bg-[#163F20]">
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
@@ -609,7 +667,10 @@ const Payment: React.FC = () => {
                   Order Reference
                 </th>
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
-                  Customer
+                  User
+                </th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  Account Type
                 </th>
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
                   Transaction ID
@@ -632,7 +693,7 @@ const Payment: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-16 text-center">
+                  <td colSpan={9} className="px-5 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                         <FiRefreshCw size={22} className="animate-spin" />
@@ -650,7 +711,7 @@ const Payment: React.FC = () => {
                 </tr>
               ) : paginatedPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-16 text-center">
+                  <td colSpan={9} className="px-5 py-16 text-center">
                     <div className="flex flex-col items-center">
                       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
                         <FiSearch size={24} />
@@ -700,7 +761,6 @@ const Payment: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* CUSTOMER COLUMN */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8FC199] to-[#163F20] text-[11px] font-bold text-white">
@@ -725,6 +785,18 @@ const Payment: React.FC = () => {
                             )}
                           </div>
                         </div>
+                      </td>
+
+                      {/* ✅ ACCOUNT TYPE */}
+                      <td className="px-5 py-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getAccountTypeBadge(
+                            anyPayment.account_type,
+                          )}`}
+                        >
+                          <FiUser size={11} />
+                          {formatAccountType(anyPayment.account_type)}
+                        </span>
                       </td>
 
                       <td className="px-5 py-4">
@@ -824,7 +896,6 @@ const Payment: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* CUSTOMER CARD (mobile) */}
                   <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8FC199] to-[#163F20] text-[12px] font-bold text-white">
                       {initials}
@@ -847,6 +918,16 @@ const Payment: React.FC = () => {
                         </p>
                       )}
                     </div>
+
+                    {/* ✅ ACCOUNT TYPE BADGE (MOBILE) */}
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold ${getAccountTypeBadge(
+                        anyPayment.account_type,
+                      )}`}
+                    >
+                      <FiUser size={10} />
+                      {formatAccountType(anyPayment.account_type)}
+                    </span>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
@@ -956,10 +1037,11 @@ const Payment: React.FC = () => {
                     key={page}
                     type="button"
                     onClick={() => setCurrentPage(page)}
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${currentPage === page
-                      ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                      : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                      }`}
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
+                      currentPage === page
+                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                        : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                    }`}
                   >
                     {page}
                   </button>

@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { adminApi } from "../../api/endpoints/Auth";
 import { toast } from "react-toastify";
+import { getPortalName } from "../../utils/getPortalName";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
+  const portalName = getPortalName();
+
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -132,7 +135,7 @@ const ForgotPassword = () => {
               variants={itemVariants}
               className="text-[#4C8A57] mt-1 text-xs font-semibold tracking-[0.2em] uppercase"
             >
-              Admin Portal
+              {portalName}
             </motion.p>
 
             <motion.div

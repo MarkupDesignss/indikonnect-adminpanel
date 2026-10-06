@@ -24,25 +24,33 @@ import FooterManagement from "@/pages/Cms/FooterManagement";
 import GrowthSteps from "@/pages/Cms/GrowthSteps";
 import ContentsManagement from "@/pages/Cms/ContentsManagement";
 import AttributesManagement from "@/pages/AttributesManagement/AttributesManagement";
+
 import Payout from "@/pages/PaymentManagement/Payout";
 import Payment from "@/pages/PaymentManagement/Payment";
+
 import UpdateProfile from "@/pages/User/UpdateProfile";
 import ChangePassword from "@/pages/User/ChangePassword";
+
 import BrandsManagement from "@/pages/Cms/BrandsManagement";
 import CreditNotes from "@/pages/CreditNotes/CreditNotes";
 import ReelsManagement from "@/pages/ReelsManagement/ReelsManagement";
 import SubCategories from "@/pages/Inventory/SubCategories";
 
 import ScrollToTop from "../ScrollToTop";
+
 import TestimonialsManagement from "@/pages/Cms/TestimonialsManagement";
 import CancelRefund from "@/pages/Fiance/CancelRefund";
 import BuyBack from "@/pages/Fiance/BuyBack";
 import CoolOff from "@/pages/Fiance/CoolOff";
+
 import FAQManagement from "@/pages/Cms/FAQManagement";
 import SettingsManagement from "@/pages/SettingsManagement";
 import NotificationTemplates from "@/pages/Cms/NotificationTemplates";
 import SectionManagement from "@/pages/Cms/SectionManagement";
 import LandingPageManagement from "@/pages/Cms/LandingPageManagement";
+
+import Addwarehouse from "@/pages/Warehouse/Addwarehouse";
+import Productsaasignment from "@/pages/Warehouse/Productsaasignment";
 
 const ScrollLayout = () => {
   return (
@@ -53,13 +61,11 @@ const ScrollLayout = () => {
   );
 };
 
-const basename = import.meta.env.PROD ? "/indiekonnect-admin" : "/";
-
-export const router = createBrowserRouter(
+export const adminRouter = createBrowserRouter(
   [
-    // =========================
+    // ==========================================
     // AUTH ROUTES
-    // =========================
+    // ==========================================
     {
       path: "/login",
       element: <Login />,
@@ -77,7 +83,9 @@ export const router = createBrowserRouter(
       element: <OTPVerification />,
     },
 
-
+    // ==========================================
+    // ADMIN ROUTES
+    // ==========================================
     {
       path: "/",
       element: <ScrollLayout />,
@@ -85,127 +93,114 @@ export const router = createBrowserRouter(
         {
           element: <MainLayout />,
           children: [
+            // Dashboard
             {
               index: true,
               element: <Dashboard />,
             },
 
+            // INVENTORY
             {
               path: "inventory/Taxcategories",
               element: <Taxcategories />,
             },
-
             {
               path: "inventory/AttributesManagement",
               element: <AttributesManagement />,
             },
-
             {
               path: "inventory/SubCategories",
               element: <SubCategories />,
             },
 
-            {
-              path: "Notifications",
-              element: <Notifications />,
-            },
-
-            {
-              path: "Subscribers",
-              element: <Subscribers />,
-            },
-
-            {
-              path: "Payout",
-              element: <Payout />,
-            },
-
-            {
-              path: "Payment",
-              element: <Payment />,
-            },
-
-            {
-              path: "Contact",
-              element: <Contact />,
-            },
-
-            {
-              path: "Coupons",
-              element: <Coupons />,
-            },
-            {
-              path: "RoleManagement/role",
-              element: <RoleManagement />,
-            },
-
-            {
-              path: "RoleManagement/addmember",
-              element: <AdminManagement />,
-            },
-
-            {
-              path: "cms/header",
-              element: <HeaderManagement />,
-            },
-
-            {
-              path: "cms/footer",
-              element: <FooterManagement />,
-            },
-
-            {
-              path: "cms/growth",
-              element: <GrowthSteps />,
-            },
-
-            {
-              path: "cms/content",
-              element: <ContentsManagement />,
-            },
-
-            {
-              path: "cms/brands",
-              element: <BrandsManagement />,
-            },
-
+            // USERS
             {
               path: "UserManagement",
               element: <UserManagement />,
             },
 
+            // NOTIFICATIONS
             {
-              path: "CreditNotes",
-              element: <CreditNotes />,
+              path: "Notifications",
+              element: <Notifications />,
             },
 
+            // SUBSCRIBERS
             {
-              path: "UpdateProfile",
-              element: <UpdateProfile />,
+              path: "Subscribers",
+              element: <Subscribers />,
             },
 
+            // PAYMENT
             {
-              path: "ChangePassword",
-              element: <ChangePassword />,
+              path: "Payout",
+              element: <Payout />,
+            },
+            {
+              path: "Payment",
+              element: <Payment />,
             },
 
+            // CONTACT
+            {
+              path: "Contact",
+              element: <Contact />,
+            },
+
+            // COUPONS
+            {
+              path: "Coupons",
+              element: <Coupons />,
+            },
+
+            // ROLE MANAGEMENT
+            {
+              path: "RoleManagement/role",
+              element: <RoleManagement />,
+            },
+            {
+              path: "RoleManagement/addmember",
+              element: <AdminManagement />,
+            },
+
+            // WAREHOUSE
+            {
+              path: "Addwarehouse",
+              element: <Addwarehouse />,
+            },
+            {
+              path: "Productsaasignment",
+              element: <Productsaasignment />,
+            },
+
+            // CMS
+            {
+              path: "cms/header",
+              element: <HeaderManagement />,
+            },
+            {
+              path: "cms/footer",
+              element: <FooterManagement />,
+            },
+            {
+              path: "cms/growth",
+              element: <GrowthSteps />,
+            },
+            {
+              path: "cms/content",
+              element: <ContentsManagement />,
+            },
+            {
+              path: "cms/brands",
+              element: <BrandsManagement />,
+            },
             {
               path: "cms/ReelsManagement",
               element: <ReelsManagement />,
             },
-
             {
               path: "cms/FAQManagement",
               element: <FAQManagement />,
-            },
-
-            {
-              path: "Fiance/CoolOff",
-              element: <CoolOff />,
-            },
-            {
-              path: "/SettingsManagement",
-              element: <SettingsManagement />,
             },
             {
               path: "cms/TestimonialsManagement",
@@ -223,6 +218,28 @@ export const router = createBrowserRouter(
               path: "cms/LandingPageManagement",
               element: <LandingPageManagement />,
             },
+
+            // CREDIT NOTES
+            {
+              path: "CreditNotes",
+              element: <CreditNotes />,
+            },
+
+            // PROFILE
+            {
+              path: "UpdateProfile",
+              element: <UpdateProfile />,
+            },
+            {
+              path: "ChangePassword",
+              element: <ChangePassword />,
+            },
+
+            // FINANCE EXISTING ADMIN PAGES
+            {
+              path: "Fiance/CoolOff",
+              element: <CoolOff />,
+            },
             {
               path: "Fiance/BuyBack",
               element: <BuyBack />,
@@ -231,6 +248,14 @@ export const router = createBrowserRouter(
               path: "Fiance/CancelRefund",
               element: <CancelRefund />,
             },
+
+            // SETTINGS
+            {
+              path: "SettingsManagement",
+              element: <SettingsManagement />,
+            },
+
+            // OTHER ADMIN ROUTES
             ...appRoutes,
           ],
         },
@@ -238,8 +263,8 @@ export const router = createBrowserRouter(
     },
   ],
   {
-    basename,
+    basename: "/indiekonnect-admin",   // ✅ Subfolder fix
   }
 );
 
-export default router;
+export default adminRouter;
