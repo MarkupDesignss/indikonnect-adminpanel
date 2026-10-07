@@ -31,19 +31,27 @@ export interface TaxCategory {
   rate_formatted?: string;
 }
 
+/* =========================================================
+   PRODUCT IMAGE
+========================================================= */
+
 export interface ProductImage {
   id: number;
   image: string;
   image_url: string;
   sort_order: number;
-  is_primary: boolean;
+  is_primary: boolean | number;
 }
 
 export interface ProductImagePayload {
   image: File;
   sort_order: number;
-  is_primary: boolean;
+  is_primary: boolean | number;
 }
+
+/* =========================================================
+   PRODUCT VARIANT
+========================================================= */
 
 export interface ProductVariant {
   id?: number;
@@ -72,6 +80,10 @@ export interface ReviewsSummary {
   total_reviews: number;
   recent_reviews: any[];
 }
+
+/* =========================================================
+   PRODUCT
+========================================================= */
 
 export interface Product {
   id: number;
@@ -123,7 +135,9 @@ export interface Product {
 
   is_wishlisted: boolean;
 
+  // Product Images
   images: ProductImage[];
+
   primary_image: string;
   primary_image_url: string;
 
@@ -140,10 +154,18 @@ export interface Product {
   updated_at: string;
 }
 
+/* =========================================================
+   SELECT OPTION
+========================================================= */
+
 export interface SelectOption {
   id: number;
   name: string;
 }
+
+/* =========================================================
+   PRODUCT VARIANT PAYLOAD
+========================================================= */
 
 export interface ProductVariantPayload {
   sku: string;
@@ -165,6 +187,10 @@ export interface ProductVariantPayload {
 
   images?: ProductImagePayload[];
 }
+
+/* =========================================================
+   PRODUCT PAYLOAD
+========================================================= */
 
 export interface ProductPayload {
   product_code: string;
@@ -204,15 +230,27 @@ export interface ProductPayload {
   variants?: ProductVariantPayload[];
 }
 
+/* =========================================================
+   DEAL
+========================================================= */
+
 export interface DealPayload {
   starts_at: string;
   ends_at: string;
   sale_type: string;
 }
 
+/* =========================================================
+   PUBLISH
+========================================================= */
+
 export interface PublishProductPayload {
   is_published: 0 | 1;
 }
+
+/* =========================================================
+   PAGINATION
+========================================================= */
 
 export interface Pagination {
   total: number;
@@ -223,12 +261,20 @@ export interface Pagination {
   to: number;
 }
 
+/* =========================================================
+   PRODUCT FILTERS
+========================================================= */
+
 export interface ProductFilters {
   price_range: {
     min: number;
     max: number;
   };
 }
+
+/* =========================================================
+   API RESPONSE
+========================================================= */
 
 export interface ApiResponse<T = unknown> {
   data: T;
@@ -260,6 +306,18 @@ export interface WarehouseStockPayload {
   quantity: number;
 }
 
+/* =========================================================
+   DELETE PRODUCT IMAGE
+========================================================= */
+
+export interface DeleteProductImagesPayload {
+  image_ids: number[];
+}
+
+/* =========================================================
+   PRODUCT API
+========================================================= */
+
 export const productApi = {
   // ============================
   // PRODUCT CRUD
@@ -284,18 +342,33 @@ export const productApi = {
     }),
 
   updateProduct: (id: number, data: FormData) =>
-    apiClient.post<ApiResponse<Product>>(`/products/update/${id}`, data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }),
+    apiClient.post<ApiResponse<Product>>(
+      `/products/update/${id}`,
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    ),
 
-  deleteImages: (productId: number, imageIds: number[]) =>
-    apiClient.delete<ApiResponse<null>>(`/products/${productId}/images`, {
-      data: {
-        image_ids: imageIds,
-      },
-    }),
+  // ============================
+  // DELETE PRODUCT IMAGES
+  // DELETE /products/{productId}/images
+  // ============================
+
+  deleteImages: (
+    productId: number,
+    imageIds: number[]
+  ) =>
+    apiClient.delete<ApiResponse<null>>(
+      `/products/${productId}/images`,
+      {
+        data: {
+          image_ids: imageIds,
+        },
+      }
+    ),
 
   // ============================
   // PUBLISH / UNPUBLISH
@@ -343,7 +416,9 @@ export const productApi = {
   // ============================
 
   getWarehouses: () =>
-    apiClient.get<ApiResponse<Warehouse[]>>("/warehouses"),
+    apiClient.get<ApiResponse<Warehouse[]>>(
+      "/warehouses"
+    ),
 
   assignProductsToWarehouse: (
     data: WarehouseStockPayload

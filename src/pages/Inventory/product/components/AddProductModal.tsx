@@ -30,6 +30,7 @@ import attributesApi, {
 } from "../../../../api/endpoints/attributes";
 import brandsApi from "../../../../api/endpoints/brands";
 import { subcategoryApi } from "../../../../api/endpoints/subcategory";
+import { productApi } from "../../../../api/endpoints/product";
 
 interface SelectOption {
   id: number;
@@ -790,6 +791,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [variants, setVariants] = useState<VariantFormData[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
 
+  // Existing product images are deleted from the server immediately
+  // when the user removes them in edit mode.
+  const [deletingImageIds, setDeletingImageIds] = useState<number[]>([]);
+
   const [hydratedEditKey, setHydratedEditKey] = useState<
     string | null
   >(null);
@@ -1306,7 +1311,77 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     [addImageFiles]
   );
 
-  const removeImage = (id: number) => {
+  const removeImage = async (id: number) => {
+    const imageToRemove = images.find((item) => item.id === id);
+
+    if (!imageToRemove) {
+      return;
+    }
+
+    // New images are only present in local state, so no API call is needed.
+    // Existing images must be deleted from the backend first.
+    if (isEdit && imageToRemove.is_existing) {
+      const product = getProductObject(editData);
+      const productId = Number(product?.id);
+      const existingImageId = Number(imageToRemove.existing_id);
+
+      if (
+        !Number.isFinite(productId) ||
+        productId <= 0 ||
+        !Number.isFinite(existingImageId) ||
+        existingImageId <= 0
+      ) {
+        console.error(
+          "Unable to delete existing product image: invalid product/image id",
+          {
+            productId,
+            existingImageId,
+          }
+        );
+        return;
+      }
+
+      if (deletingImageIds.includes(existingImageId)) {
+        return;
+      }
+
+      try {
+        setDeletingImageIds((prev) => [...prev, existingImageId]);
+
+        // DELETE /api/products/{productId}/images
+        // Body: { image_ids: [existingImageId] }
+        await productApi.deleteImages(productId, [existingImageId]);
+
+        setImages((prev) => {
+          let filtered = prev.filter((item) => item.id !== id);
+
+          if (
+            filtered.length > 0 &&
+            !filtered.some((item) => item.is_primary === 1)
+          ) {
+            filtered = filtered.map((item, idx) => ({
+              ...item,
+              is_primary: idx === 0 ? 1 : item.is_primary,
+            }));
+          }
+
+          return filtered.map((item, index) => ({
+            ...item,
+            sort_order: index + 1,
+          }));
+        });
+      } catch (error) {
+        console.error("Delete product image API error:", error);
+      } finally {
+        setDeletingImageIds((prev) =>
+          prev.filter((imageId) => imageId !== existingImageId)
+        );
+      }
+
+      return;
+    }
+
+    // Local-only removal for newly uploaded images.
     setImages((prev) => {
       let filtered = prev.filter((item) => item.id !== id);
 
@@ -2555,10 +2630,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                               <button
                                 type="button"
-                                onClick={() =>
-                                  removeImage(item.id)
+                                onClick={() => removeImage(item.id)}
+                                disabled={
+                                  item.is_existing &&
+                                  !!item.existing_id &&
+                                  deletingImageIds.includes(
+                                    Number(item.existing_id)
+                                  )
                                 }
-                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white"
+                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 <FiX size={14} />
                               </button>

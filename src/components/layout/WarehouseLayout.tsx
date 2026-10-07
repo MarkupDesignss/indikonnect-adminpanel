@@ -24,9 +24,6 @@ import {
   FiLogOut,
 } from "react-icons/fi";
 
-// =====================================================
-// DYNAMIC PORTAL CONFIG
-// =====================================================
 
 import {
   getPortalLoginUrl,
