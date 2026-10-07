@@ -51,6 +51,15 @@ export interface ProductImagePayload {
 }
 
 /* =========================================================
+   MOVE PRODUCT IMAGE PAYLOAD
+========================================================= */
+
+export interface MoveProductImagePayload {
+  image_id_1: number;
+  image_id_2: number;
+}
+
+/* =========================================================
    PRODUCT VARIANT
 ========================================================= */
 
@@ -314,14 +323,19 @@ export interface WarehouseStockPayload {
 export interface UploadProgressMeta {
   /** 0 - 100 */
   percent: number;
+
   /** bytes uploaded so far */
   loaded: number;
+
   /** total bytes (0 if server doesn't send Content-Length) */
   total: number;
+
   /** bytes per second */
   bytesPerSecond: number;
+
   /** milliseconds elapsed since upload started */
   elapsedMs: number;
+
   /** estimated ms remaining (null if unknown) */
   estimatedRemainingMs: number | null;
 }
@@ -343,11 +357,16 @@ function emitUploadProgress(
   const total = e.total ?? 0;
 
   const percent =
-    total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+    total > 0
+      ? Math.min(100, Math.round((loaded / total) * 100))
+      : 0;
 
   const elapsedMs = Date.now() - startedAt;
 
-  const bytesPerSecond = elapsedMs > 0 ? (loaded / elapsedMs) * 1000 : 0;
+  const bytesPerSecond =
+    elapsedMs > 0
+      ? (loaded / elapsedMs) * 1000
+      : 0;
 
   const estimatedRemainingMs =
     bytesPerSecond > 0 && total > 0
@@ -363,10 +382,6 @@ function emitUploadProgress(
     estimatedRemainingMs,
   });
 }
-
-/* =========================================================
-   PRODUCT API
-========================================================= */
 
 /* =========================================================
    DELETE PRODUCT IMAGE
@@ -394,18 +409,31 @@ export const productApi = {
     apiClient.get<ApiResponse<Product>>(`/products/${id}`),
 
   getProductBySlug: (slug: string) =>
-    apiClient.get<ApiResponse<Product>>(`/products/slug/${slug}`),
+    apiClient.get<ApiResponse<Product>>(
+      `/products/slug/${slug}`,
+    ),
 
-  createProduct: (data: FormData, onUploadProgress?: OnUploadProgress) => {
+  createProduct: (
+    data: FormData,
+    onUploadProgress?: OnUploadProgress,
+  ) => {
     const startedAt = Date.now();
 
-    return apiClient.post<ApiResponse<Product>>("/products", data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
+    return apiClient.post<ApiResponse<Product>>(
+      "/products",
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (e) =>
+          emitUploadProgress(
+            e,
+            startedAt,
+            onUploadProgress,
+          ),
       },
-      onUploadProgress: (e) =>
-        emitUploadProgress(e, startedAt, onUploadProgress),
-    });
+    );
   },
 
   updateProduct: (
@@ -423,14 +451,18 @@ export const productApi = {
           "Content-Type": "multipart/form-data",
         },
         onUploadProgress: (e) =>
-          emitUploadProgress(e, startedAt, onUploadProgress),
+          emitUploadProgress(
+            e,
+            startedAt,
+            onUploadProgress,
+          ),
       },
     );
   },
 
   deleteImages: (
     productId: number,
-    imageIds: number[]
+    imageIds: number[],
   ) =>
     apiClient.delete<ApiResponse<null>>(
       `/products/${productId}/images`,
@@ -438,27 +470,53 @@ export const productApi = {
         data: {
           image_ids: imageIds,
         },
-      }
+      },
+    ),
+
+  // ============================
+  // MOVE / SWAP PRODUCT IMAGE
+  // ============================
+
+  moveProductImage: (
+    productId: number,
+    data: MoveProductImagePayload,
+  ) =>
+    apiClient.post<ApiResponse<null>>(
+      `/move-product-image/${productId}`,
+      data,
     ),
 
   // ============================
   // PUBLISH / UNPUBLISH
   // ============================
 
-  publishProduct: (productId: number, data: PublishProductPayload) =>
-    apiClient.post<ApiResponse<Product>>(`/publish/${productId}/product`, data),
+  publishProduct: (
+    productId: number,
+    data: PublishProductPayload,
+  ) =>
+    apiClient.post<ApiResponse<Product>>(
+      `/publish/${productId}/product`,
+      data,
+    ),
 
   // ============================
   // DEAL CRUD
   // ============================
 
   getDeals: () =>
-    apiClient.get<ApiResponse<Product[]>>("/products-deal-of-the-day"),
+    apiClient.get<ApiResponse<Product[]>>(
+      "/products-deal-of-the-day",
+    ),
 
   getDealById: (id: number) =>
-    apiClient.get<ApiResponse<Product>>(`/products-deal-of-the-day/${id}`),
+    apiClient.get<ApiResponse<Product>>(
+      `/products-deal-of-the-day/${id}`,
+    ),
 
-  addDeal: (productId: number, data: DealPayload) =>
+  addDeal: (
+    productId: number,
+    data: DealPayload,
+  ) =>
     apiClient.post<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
       data,
@@ -473,10 +531,16 @@ export const productApi = {
   // WAREHOUSE
   // ============================
 
-  getWarehouses: () => apiClient.get<ApiResponse<Warehouse[]>>(
-      "/warehouses"
+  getWarehouses: () =>
+    apiClient.get<ApiResponse<Warehouse[]>>(
+      "/warehouses",
     ),
 
-  assignProductsToWarehouse: (data: WarehouseStockPayload) =>
-    apiClient.post<ApiResponse<unknown>>("/warehouse-stocks", data),
+  assignProductsToWarehouse: (
+    data: WarehouseStockPayload,
+  ) =>
+    apiClient.post<ApiResponse<unknown>>(
+      "/warehouse-stocks",
+      data,
+    ),
 };

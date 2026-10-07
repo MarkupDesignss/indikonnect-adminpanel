@@ -19,9 +19,11 @@ import {
   FiLayers,
   FiAward,
   FiTruck,
+  FiMove,
 } from "react-icons/fi";
 
 import { FaRupeeSign } from "react-icons/fa";
+import { toast } from "react-hot-toast";
 
 import { categoryApi } from "../../../../api/endpoints/category";
 import { taxApi } from "../../../../api/endpoints/taxApi";
@@ -33,10 +35,17 @@ import { subcategoryApi } from "../../../../api/endpoints/subcategory";
 import { productApi } from "../../../../api/endpoints/product";
 
 /* =========================================================
-   UPLOAD PROGRESS (NEW)
+   UPLOAD PROGRESS
 ========================================================= */
+
 import UploadProgressBar from "./UploadProgressBar";
-import type { UploadProgressMeta } from "../../../../api/endpoints/product";
+import type {
+  UploadProgressMeta,
+} from "../../../../api/endpoints/product";
+
+/* =========================================================
+   TYPES
+========================================================= */
 
 interface SelectOption {
   id: number;
@@ -50,7 +59,7 @@ interface AddProductModalProps {
   onSubmit: (formData: FormData) => void;
   editData?: any;
   isEdit?: boolean;
-  uploadProgress?: UploadProgressMeta | null; // ← NEW
+  uploadProgress?: UploadProgressMeta | null;
 }
 
 interface ImageItem {
@@ -121,6 +130,10 @@ interface SpecItem {
   value: string;
 }
 
+/* =========================================================
+   HELPERS
+========================================================= */
+
 const isValidDecimalInput = (value: string): boolean => {
   return /^\d*\.?\d*$/.test(value);
 };
@@ -166,30 +179,32 @@ const normalizeId = (value: any): string => {
     return Number.isFinite(value) ? String(value) : "";
   }
 
-  const str = String(value).trim();
-
-  return str;
+  return String(value).trim();
 };
 
-// ============================================================
-// SPECIFICATION
-// ============================================================
+/* =========================================================
+   SPECIFICATION
+========================================================= */
 
 const parseSpecification = (
   spec: string | Record<string, any>
 ): SpecItem[] => {
   try {
     const parsed =
-      typeof spec === "string" ? JSON.parse(spec) : spec;
+      typeof spec === "string"
+        ? JSON.parse(spec)
+        : spec;
 
     if (!parsed || typeof parsed !== "object") {
       return [{ key: "", value: "" }];
     }
 
-    const result = Object.entries(parsed).map(([key, value]) => ({
-      key,
-      value: String(value ?? ""),
-    }));
+    const result = Object.entries(parsed).map(
+      ([key, value]) => ({
+        key,
+        value: String(value ?? ""),
+      })
+    );
 
     return result.length > 0
       ? result
@@ -199,9 +214,9 @@ const parseSpecification = (
   }
 };
 
-// ============================================================
-// VARIANT ATTRIBUTES
-// ============================================================
+/* =========================================================
+   VARIANT ATTRIBUTES
+========================================================= */
 
 const parseVariantAttributes = (
   attributes: Record<string, string | string[]> | string
@@ -212,47 +227,64 @@ const parseVariantAttributes = (
 
       const result: AttributeItem[] = [];
 
-      Object.entries(parsed).forEach(([key, value]) => {
-        let values: string[] = [];
+      Object.entries(parsed).forEach(
+        ([key, value]) => {
+          let values: string[] = [];
 
-        if (Array.isArray(value)) {
-          values = value.map((v) => String(v).trim());
-        } else {
-          values = String(value)
-            .split(",")
-            .map((v) => v.trim());
-        }
-
-        values.forEach((val) => {
-          if (val) {
-            result.push({ key, value: val });
+          if (Array.isArray(value)) {
+            values = value.map((v) =>
+              String(v).trim()
+            );
+          } else {
+            values = String(value)
+              .split(",")
+              .map((v) => v.trim());
           }
-        });
-      });
+
+          values.forEach((val) => {
+            if (val) {
+              result.push({
+                key,
+                value: val,
+              });
+            }
+          });
+        }
+      );
 
       return result;
     }
 
-    if (typeof attributes === "object" && attributes !== null) {
+    if (
+      typeof attributes === "object" &&
+      attributes !== null
+    ) {
       const result: AttributeItem[] = [];
 
-      Object.entries(attributes).forEach(([key, value]) => {
-        let values: string[] = [];
+      Object.entries(attributes).forEach(
+        ([key, value]) => {
+          let values: string[] = [];
 
-        if (Array.isArray(value)) {
-          values = value.map((v) => String(v).trim());
-        } else {
-          values = String(value)
-            .split(",")
-            .map((v) => v.trim());
-        }
-
-        values.forEach((val) => {
-          if (val) {
-            result.push({ key, value: val });
+          if (Array.isArray(value)) {
+            values = value.map((v) =>
+              String(v).trim()
+            );
+          } else {
+            values = String(value)
+              .split(",")
+              .map((v) => v.trim());
           }
-        });
-      });
+
+          values.forEach((val) => {
+            if (val) {
+              result.push({
+                key,
+                value: val,
+              });
+            }
+          });
+        }
+      );
 
       return result;
     }
@@ -266,9 +298,9 @@ const parseVariantAttributes = (
   return [];
 };
 
-// ============================================================
-// ATTRIBUTE COMBINATIONS
-// ============================================================
+/* =========================================================
+   ATTRIBUTE COMBINATIONS
+========================================================= */
 
 const getAttributeCombinations = (
   attributes: Record<string, any[]>
@@ -313,9 +345,9 @@ const getAttributeCombinations = (
   return result;
 };
 
-// ============================================================
-// GENERATE VARIANTS
-// ============================================================
+/* =========================================================
+   GENERATE VARIANTS
+========================================================= */
 
 const generateVariantsFromProduct = (
   rawProduct: any
@@ -344,12 +376,18 @@ const generateVariantsFromProduct = (
         ),
 
         retail_mrp: String(
-          getValue(variant, "retail_mrp", "retail_price") ?? ""
+          getValue(
+            variant,
+            "retail_mrp",
+            "retail_price"
+          ) ?? ""
         ),
 
         retail_discount_type:
-          getValue(variant, "retail_discount_type") ||
-          "percentage",
+          getValue(
+            variant,
+            "retail_discount_type"
+          ) || "percentage",
 
         retail_discount_value: String(
           getValue(
@@ -368,8 +406,10 @@ const generateVariantsFromProduct = (
         ),
 
         distributor_discount_type:
-          getValue(variant, "distributor_discount_type") ||
-          "percentage",
+          getValue(
+            variant,
+            "distributor_discount_type"
+          ) || "percentage",
 
         distributor_discount_value: String(
           getValue(
@@ -387,12 +427,13 @@ const generateVariantsFromProduct = (
           variant.low_stock_threshold ?? ""
         ),
 
-        sort_order: variant.sort_order ?? index + 1,
+        sort_order:
+          variant.sort_order ?? index + 1,
 
         is_active:
           variant.is_active === true ||
-            variant.is_active === 1 ||
-            variant.is_active === "1"
+          variant.is_active === 1 ||
+          variant.is_active === "1"
             ? 1
             : 0,
 
@@ -400,14 +441,19 @@ const generateVariantsFromProduct = (
           (img: any, imgIndex: number) => ({
             id: Date.now() + imgIndex + 1000,
 
-            preview: img.image_url || img.image || "",
+            preview:
+              img.image_url ||
+              img.image ||
+              "",
 
-            sort_order: img.sort_order ?? imgIndex + 1,
+            sort_order:
+              img.sort_order ??
+              imgIndex + 1,
 
             is_primary:
               img.is_primary === true ||
-                img.is_primary === 1 ||
-                img.is_primary === "1"
+              img.is_primary === 1 ||
+              img.is_primary === "1"
                 ? 1
                 : 0,
 
@@ -428,115 +474,154 @@ const generateVariantsFromProduct = (
     product.variants_summary &&
     product.variants_summary.attributes
   ) {
-    const attributes = product.variants_summary.attributes;
+    const attributes =
+      product.variants_summary.attributes;
 
-    const attributeKeys = Object.keys(attributes);
+    const attributeKeys =
+      Object.keys(attributes);
 
     if (attributeKeys.length > 0) {
       const combinations =
         getAttributeCombinations(attributes);
 
-      combinations.forEach((combo, index) => {
-        const attributeItems: AttributeItem[] = [];
+      combinations.forEach(
+        (combo, index) => {
+          const attributeItems: AttributeItem[] =
+            [];
 
-        Object.entries(combo).forEach(([key, value]) => {
-          if (value && String(value).trim()) {
-            attributeItems.push({
-              key,
-              value: String(value),
-            });
-          }
-        });
+          Object.entries(combo).forEach(
+            ([key, value]) => {
+              if (
+                value &&
+                String(value).trim()
+              ) {
+                attributeItems.push({
+                  key,
+                  value: String(value),
+                });
+              }
+            }
+          );
 
-        const skuSuffix = attributeItems
-          .map((attr) =>
-            String(attr.value)
-              .replace(/\s+/g, "-")
-              .substring(0, 10)
-          )
-          .join("-");
+          const skuSuffix =
+            attributeItems
+              .map((attr) =>
+                String(attr.value)
+                  .replace(/\s+/g, "-")
+                  .substring(0, 10)
+              )
+              .join("-");
 
-        const retailMrp =
-          getValue(product, "retail_mrp") ||
-          product.variants_summary?.min_retail_mrp ||
-          0;
-
-        const retailDiscount = getValue(
-          product,
-          "retail_discount_value",
-          "retail_discount_percentage"
-        );
-
-        const distributorMrp =
-          getValue(product, "distributor_mrp") ||
-          product.variants_summary?.min_distributor_mrp ||
-          0;
-
-        const distributorDiscount = getValue(
-          product,
-          "distributor_discount_value",
-          "distributor_discount_percentage"
-        );
-
-        const stockQty = product.stock_quantity ?? 0;
-
-        variants.push({
-          id: `variant-${Date.now()}-${index}`,
-
-          sku: `${product.product_code || "PROD"}-${skuSuffix}`,
-
-          attributes: attributeItems,
-
-          retail_mrp: String(retailMrp),
-
-          retail_discount_type:
-            getValue(product, "retail_discount_type") ||
-            "percentage",
-
-          retail_discount_value:
-            retailDiscount !== null &&
-              retailDiscount !== undefined
-              ? String(retailDiscount)
-              : "0",
-
-          distributor_mrp: String(distributorMrp),
-
-          distributor_discount_type:
+          const retailMrp =
             getValue(
               product,
-              "distributor_discount_type"
-            ) || "percentage",
+              "retail_mrp"
+            ) ||
+            product.variants_summary
+              ?.min_retail_mrp ||
+            0;
 
-          distributor_discount_value:
-            distributorDiscount !== null &&
-              distributorDiscount !== undefined
-              ? String(distributorDiscount)
-              : "0",
+          const retailDiscount =
+            getValue(
+              product,
+              "retail_discount_value",
+              "retail_discount_percentage"
+            );
 
-          stock_quantity: String(stockQty),
+          const distributorMrp =
+            getValue(
+              product,
+              "distributor_mrp"
+            ) ||
+            product.variants_summary
+              ?.min_distributor_mrp ||
+            0;
 
-          low_stock_threshold: String(
-            product.low_stock_threshold || "10"
-          ),
+          const distributorDiscount =
+            getValue(
+              product,
+              "distributor_discount_value",
+              "distributor_discount_percentage"
+            );
 
-          sort_order: index + 1,
+          const stockQty =
+            product.stock_quantity ?? 0;
 
-          is_active: 1,
+          variants.push({
+            id: `variant-${Date.now()}-${index}`,
 
-          images: [],
+            sku: `${
+              product.product_code ||
+              "PROD"
+            }-${skuSuffix}`,
 
-          is_existing: false,
-        });
-      });
+            attributes: attributeItems,
+
+            retail_mrp: String(
+              retailMrp
+            ),
+
+            retail_discount_type:
+              getValue(
+                product,
+                "retail_discount_type"
+              ) || "percentage",
+
+            retail_discount_value:
+              retailDiscount !== null &&
+              retailDiscount !== undefined
+                ? String(
+                    retailDiscount
+                  )
+                : "0",
+
+            distributor_mrp: String(
+              distributorMrp
+            ),
+
+            distributor_discount_type:
+              getValue(
+                product,
+                "distributor_discount_type"
+              ) || "percentage",
+
+            distributor_discount_value:
+              distributorDiscount !== null &&
+              distributorDiscount !==
+                undefined
+                ? String(
+                    distributorDiscount
+                  )
+                : "0",
+
+            stock_quantity:
+              String(stockQty),
+
+            low_stock_threshold:
+              String(
+                product.low_stock_threshold ||
+                  "10"
+              ),
+
+            sort_order: index + 1,
+
+            is_active: 1,
+
+            images: [],
+
+            is_existing: false,
+          });
+        }
+      );
     }
   }
 
   return variants;
 };
 
-// ============================================================
-// ATTRIBUTE SELECTOR
-// ============================================================
+/* =========================================================
+   ATTRIBUTE SELECTOR
+========================================================= */
 
 const AttributeSelector: React.FC<{
   variantId: string;
@@ -561,49 +646,75 @@ const AttributeSelector: React.FC<{
   onAddAttribute,
   onRemoveAttribute,
 }) => {
-    const [selectedKey, setSelectedKey] = useState("");
-    const [selectedValue, setSelectedValue] = useState("");
-    const [isOpen, setIsOpen] = useState(false);
+  const [selectedKey, setSelectedKey] =
+    useState("");
 
-    const handleAdd = () => {
-      if (selectedKey && selectedValue) {
-        onAddAttribute(variantId, selectedKey, selectedValue);
+  const [selectedValue, setSelectedValue] =
+    useState("");
 
-        setSelectedKey("");
-        setSelectedValue("");
-        setIsOpen(false);
-      }
-    };
+  const [isOpen, setIsOpen] =
+    useState(false);
 
-    const getValuesForAttribute = (key: string) => {
-      const attribute = availableAttributes.find(
-        (attr) => attr.attribute_key === key
+  const handleAdd = () => {
+    if (
+      selectedKey &&
+      selectedValue
+    ) {
+      onAddAttribute(
+        variantId,
+        selectedKey,
+        selectedValue
       );
 
-      return attribute?.values || [];
-    };
+      setSelectedKey("");
+      setSelectedValue("");
+      setIsOpen(false);
+    }
+  };
 
-    const isAttributeValueSelected = (
-      key: string,
-      value: string
-    ) => {
-      return selectedAttributes.some(
-        (attr) => attr.key === key && attr.value === value
+  const getValuesForAttribute = (
+    key: string
+  ) => {
+    const attribute =
+      availableAttributes.find(
+        (attr) =>
+          attr.attribute_key === key
       );
-    };
 
-    const getAvailableValuesForAttribute = (key: string) => {
-      const allValues = getValuesForAttribute(key);
+    return attribute?.values || [];
+  };
 
-      return allValues.filter(
-        (val) => !isAttributeValueSelected(key, val.value)
-      );
-    };
+  const isAttributeValueSelected = (
+    key: string,
+    value: string
+  ) => {
+    return selectedAttributes.some(
+      (attr) =>
+        attr.key === key &&
+        attr.value === value
+    );
+  };
 
-    return (
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-1.5">
-          {selectedAttributes.map((attr, index) => (
+  const getAvailableValuesForAttribute = (
+    key: string
+  ) => {
+    const allValues =
+      getValuesForAttribute(key);
+
+    return allValues.filter(
+      (val) =>
+        !isAttributeValueSelected(
+          key,
+          val.value
+        )
+    );
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {selectedAttributes.map(
+          (attr, index) => (
             <span
               key={`${attr.key}-${attr.value}-${index}`}
               className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1 text-xs font-medium"
@@ -630,260 +741,395 @@ const AttributeSelector: React.FC<{
                 <FiX size={12} />
               </button>
             </span>
-          ))}
+          )
+        )}
 
-          {selectedAttributes.length === 0 && (
-            <span className="text-xs text-[#9AA29C]">
-              No attributes selected
-            </span>
-          )}
-        </div>
+        {selectedAttributes.length ===
+          0 && (
+          <span className="text-xs text-[#9AA29C]">
+            No attributes selected
+          </span>
+        )}
+      </div>
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#4C8A57] transition-colors hover:bg-[#EAF3EA] hover:text-[#163F20]"
-          >
-            <FiPlus size={14} />
-            Add Attribute
-          </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() =>
+            setIsOpen(!isOpen)
+          }
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#4C8A57] transition-colors hover:bg-[#EAF3EA] hover:text-[#163F20]"
+        >
+          <FiPlus size={14} />
+          Add Attribute
+        </button>
 
-          {isOpen && (
-            <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E5EAE5] bg-white p-4 shadow-xl">
-              <div className="space-y-3">
+        {isOpen && (
+          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E5EAE5] bg-white p-4 shadow-xl">
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#202721]">
+                  Select Attribute
+                </label>
+
+                <select
+                  value={selectedKey}
+                  onChange={(e) => {
+                    setSelectedKey(
+                      e.target.value
+                    );
+                    setSelectedValue("");
+                  }}
+                  className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                >
+                  <option value="">
+                    Choose attribute...
+                  </option>
+
+                  {availableAttributes.map(
+                    (attr) => (
+                      <option
+                        key={attr.id}
+                        value={
+                          attr.attribute_key
+                        }
+                      >
+                        {
+                          attr.attribute_key
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              {selectedKey && (
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-[#202721]">
-                    Select Attribute
+                    Select Value
                   </label>
 
                   <select
-                    value={selectedKey}
-                    onChange={(e) => {
-                      setSelectedKey(e.target.value);
-                      setSelectedValue("");
-                    }}
+                    value={
+                      selectedValue
+                    }
+                    onChange={(e) =>
+                      setSelectedValue(
+                        e.target.value
+                      )
+                    }
                     className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
                   >
                     <option value="">
-                      Choose attribute...
+                      Choose value...
                     </option>
 
-                    {availableAttributes.map((attr) => (
+                    {getAvailableValuesForAttribute(
+                      selectedKey
+                    ).map((val) => (
                       <option
-                        key={attr.id}
-                        value={attr.attribute_key}
+                        key={val.id}
+                        value={val.value}
                       >
-                        {attr.attribute_key}
+                        {val.value}
                       </option>
                     ))}
                   </select>
                 </div>
+              )}
 
-                {selectedKey && (
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-[#202721]">
-                      Select Value
-                    </label>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setSelectedKey("");
+                    setSelectedValue("");
+                  }}
+                  className="h-8 flex-1 rounded-lg border border-[#D8E2D8] text-xs font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
+                >
+                  Cancel
+                </button>
 
-                    <select
-                      value={selectedValue}
-                      onChange={(e) =>
-                        setSelectedValue(e.target.value)
-                      }
-                      className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                    >
-                      <option value="">
-                        Choose value...
-                      </option>
-
-                      {getAvailableValuesForAttribute(
-                        selectedKey
-                      ).map((val) => (
-                        <option key={val.id} value={val.value}>
-                          {val.value}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsOpen(false);
-                      setSelectedKey("");
-                      setSelectedValue("");
-                    }}
-                    className="h-8 flex-1 rounded-lg border border-[#D8E2D8] text-xs font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleAdd}
-                    disabled={!selectedKey || !selectedValue}
-                    className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Add
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleAdd}
+                  disabled={
+                    !selectedKey ||
+                    !selectedValue
+                  }
+                  className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
+/* =========================================================
+   MAIN COMPONENT
+========================================================= */
 
-const AddProductModal: React.FC<AddProductModalProps> = ({
+const AddProductModal: React.FC<
+  AddProductModalProps
+> = ({
   open,
   loading,
   onClose,
   onSubmit,
   editData,
   isEdit = false,
-  uploadProgress, // ← NEW
+  uploadProgress,
 }) => {
-  const [categories, setCategories] = useState<SelectOption[]>([]);
-  const [subcategories, setSubcategories] = useState<
-    SelectOption[]
-  >([]);
-  const [brands, setBrands] = useState<SelectOption[]>([]);
-  const [taxCategories, setTaxCategories] = useState<
-    SelectOption[]
-  >([]);
-  const [attributeMasters, setAttributeMasters] = useState<
-    AttributeMaster[]
-  >([]);
+  const [categories, setCategories] =
+    useState<SelectOption[]>([]);
+
+  const [subcategories, setSubcategories] =
+    useState<SelectOption[]>([]);
+
+  const [brands, setBrands] =
+    useState<SelectOption[]>([]);
+
+  const [taxCategories, setTaxCategories] =
+    useState<SelectOption[]>([]);
+
+  const [attributeMasters, setAttributeMasters] =
+    useState<AttributeMaster[]>([]);
+
   const [fetchingOptions, setFetchingOptions] =
     useState(false);
 
-  const [productCode, setProductCode] = useState("");
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [specification, setSpecification] = useState<
-    SpecItem[]
-  >([{ key: "", value: "" }]);
-
-  const [categoryId, setCategoryId] = useState("");
-  const [subcategoryId, setSubcategoryId] = useState("");
-  const [brandId, setBrandId] = useState("");
-  const [taxCategoryId, setTaxCategoryId] = useState("");
-
-  const [retailMrp, setRetailMrp] = useState("");
-  const [retailDiscountValue, setRetailDiscountValue] =
+  const [productCode, setProductCode] =
     useState("");
-  const [distributorMrp, setDistributorMrp] = useState("");
+
+  const [name, setName] =
+    useState("");
+
+  const [slug, setSlug] =
+    useState("");
+
+  const [description, setDescription] =
+    useState("");
+
+  const [specification, setSpecification] =
+    useState<SpecItem[]>([
+      {
+        key: "",
+        value: "",
+      },
+    ]);
+
+  const [categoryId, setCategoryId] =
+    useState("");
+
+  const [subcategoryId, setSubcategoryId] =
+    useState("");
+
+  const [brandId, setBrandId] =
+    useState("");
+
+  const [taxCategoryId, setTaxCategoryId] =
+    useState("");
+
+  const [retailMrp, setRetailMrp] =
+    useState("");
+
+  const [
+    retailDiscountValue,
+    setRetailDiscountValue,
+  ] = useState("");
+
+  const [distributorMrp, setDistributorMrp] =
+    useState("");
+
   const [
     distributorDiscountValue,
     setDistributorDiscountValue,
   ] = useState("");
-  const [commissionValue, setCommissionValue] = useState("");
-  const [shippingCharge, setShippingCharge] = useState("");
 
-  const [stockQuantity, setStockQuantity] = useState("");
-  const [lowStockThreshold, setLowStockThreshold] =
-    useState("10");
-  const [isPublished, setIsPublished] = useState(true);
+  const [
+    commissionValue,
+    setCommissionValue,
+  ] = useState("");
 
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [variants, setVariants] = useState<VariantFormData[]>([]);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [
+    shippingCharge,
+    setShippingCharge,
+  ] = useState("");
 
-  // Existing product images are deleted from the server immediately
-  // when the user removes them in edit mode.
-  const [deletingImageIds, setDeletingImageIds] = useState<number[]>([]);
+  const [stockQuantity, setStockQuantity] =
+    useState("");
 
-  const [hydratedEditKey, setHydratedEditKey] = useState<
-    string | null
-  >(null);
+  const [
+    lowStockThreshold,
+    setLowStockThreshold,
+  ] = useState("10");
 
-  // ============================================================
-  // DRAG & DROP STATE
-  // ============================================================
+  const [isPublished, setIsPublished] =
+    useState(true);
 
-  const [isDragging, setIsDragging] = useState(false);
-  const dragCounterRef = useRef(0);
+  const [images, setImages] =
+    useState<ImageItem[]>([]);
 
-  // ============================================================
-  // FETCH OPTIONS
-  // ============================================================
+  const [variants, setVariants] =
+    useState<VariantFormData[]>([]);
+
+  const [errors, setErrors] =
+    useState<FormErrors>({});
+
+  const [deletingImageIds, setDeletingImageIds] =
+    useState<number[]>([]);
+
+  const [
+    hydratedEditKey,
+    setHydratedEditKey,
+  ] = useState<string | null>(null);
+
+  /* =========================================================
+     IMAGE ARRANGE STATE
+  ========================================================= */
+
+  const draggedImageIdRef =
+    useRef<number | null>(null);
+
+  const [
+    dragOverImageId,
+    setDragOverImageId,
+  ] = useState<number | null>(null);
+
+  const [
+    arrangingImageIds,
+    setArrangingImageIds,
+  ] = useState<number[]>([]);
+
+  /* =========================================================
+     DRAG & DROP UPLOAD STATE
+  ========================================================= */
+
+  const [isDragging, setIsDragging] =
+    useState(false);
+
+  const dragCounterRef =
+    useRef(0);
+
+  /* =========================================================
+     FETCH OPTIONS
+  ========================================================= */
 
   const fetchOptions = async () => {
     try {
       setFetchingOptions(true);
 
-      const categoriesRes = await categoryApi.getAll();
-      const formattedCategories =
-        categoriesRes.data?.data?.map((cat: any) => ({
-          id: cat.id,
-          name: cat.title || cat.name,
-        })) || [];
+      const categoriesRes =
+        await categoryApi.getAll();
 
-      setCategories(formattedCategories);
+      const formattedCategories =
+        categoriesRes.data?.data?.map(
+          (cat: any) => ({
+            id: cat.id,
+            name:
+              cat.title ||
+              cat.name,
+          })
+        ) || [];
+
+      setCategories(
+        formattedCategories
+      );
 
       const subcategoriesRes =
         await subcategoryApi.getAll();
 
       let subcategoriesData: any[] = [];
 
-      if (subcategoriesRes?.data?.data?.data) {
+      if (
+        subcategoriesRes?.data?.data?.data
+      ) {
         subcategoriesData =
           subcategoriesRes.data.data.data;
-      } else if (Array.isArray(subcategoriesRes?.data?.data)) {
-        subcategoriesData = subcategoriesRes.data.data;
-      } else if (Array.isArray(subcategoriesRes?.data)) {
-        subcategoriesData = subcategoriesRes.data;
+      } else if (
+        Array.isArray(
+          subcategoriesRes?.data?.data
+        )
+      ) {
+        subcategoriesData =
+          subcategoriesRes.data.data;
+      } else if (
+        Array.isArray(
+          subcategoriesRes?.data
+        )
+      ) {
+        subcategoriesData =
+          subcategoriesRes.data;
       }
 
-      const formattedSubcategories = subcategoriesData.map(
-        (sub: any) => ({
-          id: Number(sub.id),
-          name: sub.name,
-        })
+      const formattedSubcategories =
+        subcategoriesData.map(
+          (sub: any) => ({
+            id: Number(sub.id),
+            name: sub.name,
+          })
+        );
+
+      setSubcategories(
+        formattedSubcategories
       );
 
-      setSubcategories(formattedSubcategories);
+      const brandsRes =
+        await brandsApi.getAll();
 
-      const brandsRes = await brandsApi.getAll();
-      const brandsData = brandsRes.data?.data || [];
+      const brandsData =
+        brandsRes.data?.data || [];
 
-      const formattedBrands = brandsData.map(
-        (brand: any) => ({
-          id: brand.id,
-          name: brand.title || brand.name,
-        })
+      const formattedBrands =
+        brandsData.map(
+          (brand: any) => ({
+            id: brand.id,
+            name:
+              brand.title ||
+              brand.name,
+          })
+        );
+
+      setBrands(
+        formattedBrands
       );
 
-      setBrands(formattedBrands);
-
-      const taxRes = await taxApi.getAll();
+      const taxRes =
+        await taxApi.getAll();
 
       const formattedTaxCategories =
-        taxRes.data?.data?.map((tax: any) => ({
-          id: tax.id,
-          name: tax.name,
-        })) || [];
+        taxRes.data?.data?.map(
+          (tax: any) => ({
+            id: tax.id,
+            name: tax.name,
+          })
+        ) || [];
 
-      setTaxCategories(formattedTaxCategories);
+      setTaxCategories(
+        formattedTaxCategories
+      );
 
-      const attributesRes = await attributesApi.getAll();
+      const attributesRes =
+        await attributesApi.getAll();
 
-      if (attributesRes.data?.success) {
+      if (
+        attributesRes.data?.success
+      ) {
         setAttributeMasters(
           attributesRes.data.data || []
         );
       }
     } catch (error: any) {
-      console.error("Fetch options error:", error);
+      console.error(
+        "Fetch options error:",
+        error
+      );
 
       setCategories([]);
       setSubcategories([]);
@@ -901,80 +1147,131 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }
   }, [open]);
 
-  // ============================================================
-  // LOAD EDIT DATA
-  // ============================================================
+  /* =========================================================
+     LOAD EDIT DATA
+  ========================================================= */
 
   useEffect(() => {
-    if (!open || !isEdit || !editData) {
+    if (
+      !open ||
+      !isEdit ||
+      !editData
+    ) {
       return;
     }
 
-    const product = getProductObject(editData);
+    const product =
+      getProductObject(editData);
 
     if (!product) {
       return;
     }
 
-    const productKey = `${product?.id ?? "new"}-${isEdit}`;
+    const productKey =
+      `${product?.id ?? "new"}-${isEdit}`;
 
-    if (hydratedEditKey === productKey) {
+    if (
+      hydratedEditKey ===
+      productKey
+    ) {
       return;
     }
 
-    console.log("EDIT MODAL PRODUCT:", product);
-
     setProductCode(
-      String(product?.product_code ?? product?.sku ?? "")
+      String(
+        product?.product_code ??
+        product?.sku ??
+        ""
+      )
     );
 
-    setName(String(product?.name ?? ""));
-    setSlug(String(product?.slug ?? ""));
-    setDescription(String(product?.description ?? ""));
+    setName(
+      String(
+        product?.name ?? ""
+      )
+    );
 
-    if (product?.specification) {
+    setSlug(
+      String(
+        product?.slug ?? ""
+      )
+    );
+
+    setDescription(
+      String(
+        product?.description ??
+        ""
+      )
+    );
+
+    if (
+      product?.specification
+    ) {
       setSpecification(
-        parseSpecification(product.specification)
+        parseSpecification(
+          product.specification
+        )
       );
     } else {
-      setSpecification([{ key: "", value: "" }]);
+      setSpecification([
+        {
+          key: "",
+          value: "",
+        },
+      ]);
     }
 
-    const editCategoryId = normalizeId(
-      product?.category_id ?? product?.category?.id
+    const editCategoryId =
+      normalizeId(
+        product?.category_id ??
+        product?.category?.id
+      );
+
+    setCategoryId(
+      editCategoryId
     );
 
-    setCategoryId(editCategoryId);
+    const editSubcategoryId =
+      normalizeId(
+        product?.subcategory_id ??
+        product?.["subcategory_id "] ??
+        product?.subcategory?.id
+      );
 
-    const editSubcategoryId = normalizeId(
-      product?.subcategory_id ??
-      product?.["subcategory_id "] ??
-      product?.subcategory?.id
+    setSubcategoryId(
+      editSubcategoryId
     );
 
-    setSubcategoryId(editSubcategoryId);
+    const editBrandId =
+      normalizeId(
+        product?.brand_id ??
+        product?.brand?.id
+      );
 
-    const editBrandId = normalizeId(
-      product?.brand_id ?? product?.brand?.id
+    setBrandId(
+      editBrandId
     );
 
-    setBrandId(editBrandId);
+    const editTaxCategoryId =
+      normalizeId(
+        product?.tax_category_id ??
+        product?.tax_category?.id
+      );
 
-    const editTaxCategoryId = normalizeId(
-      product?.tax_category_id ??
-      product?.tax_category?.id
+    setTaxCategoryId(
+      editTaxCategoryId
     );
 
-    setTaxCategoryId(editTaxCategoryId);
-
-    const editRetailMrp = product?.retail_mrp;
+    const editRetailMrp =
+      product?.retail_mrp;
 
     const editRetailDiscount =
       product?.retail_discount_value ??
       product?.retail_discount_percentage ??
       "";
 
-    const editDistributorMrp = product?.distributor_mrp;
+    const editDistributorMrp =
+      product?.distributor_mrp;
 
     const editDistributorDiscount =
       product?.distributor_discount_value ??
@@ -984,110 +1281,185 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setRetailMrp(
       editRetailMrp !== null &&
         editRetailMrp !== undefined
-        ? String(editRetailMrp)
+        ? String(
+            editRetailMrp
+          )
         : ""
     );
 
     setRetailDiscountValue(
-      editRetailDiscount !== null &&
-        editRetailDiscount !== undefined
-        ? String(editRetailDiscount)
+      editRetailDiscount !==
+        null &&
+      editRetailDiscount !==
+        undefined
+        ? String(
+            editRetailDiscount
+          )
         : ""
     );
 
     setDistributorMrp(
-      editDistributorMrp !== null &&
-        editDistributorMrp !== undefined
-        ? String(editDistributorMrp)
+      editDistributorMrp !==
+        null &&
+        editDistributorMrp !==
+          undefined
+        ? String(
+            editDistributorMrp
+          )
         : ""
     );
 
     setDistributorDiscountValue(
-      editDistributorDiscount !== null &&
-        editDistributorDiscount !== undefined
-        ? String(editDistributorDiscount)
+      editDistributorDiscount !==
+        null &&
+      editDistributorDiscount !==
+        undefined
+        ? String(
+            editDistributorDiscount
+          )
         : ""
     );
 
-    const editCommissionValue = product?.commission_value;
+    const editCommissionValue =
+      product?.commission_value;
 
     setCommissionValue(
-      editCommissionValue !== null &&
-        editCommissionValue !== undefined
-        ? String(editCommissionValue)
+      editCommissionValue !==
+        null &&
+        editCommissionValue !==
+          undefined
+        ? String(
+            editCommissionValue
+          )
         : ""
     );
 
-    const editShippingCharge = product?.shipping_charge;
+    const editShippingCharge =
+      product?.shipping_charge;
 
     setShippingCharge(
-      editShippingCharge !== null &&
-        editShippingCharge !== undefined
-        ? String(editShippingCharge)
+      editShippingCharge !==
+        null &&
+        editShippingCharge !==
+          undefined
+        ? String(
+            editShippingCharge
+          )
         : ""
     );
 
     setStockQuantity(
-      product?.stock_quantity !== null &&
-        product?.stock_quantity !== undefined
-        ? String(product.stock_quantity)
+      product?.stock_quantity !==
+        null &&
+      product?.stock_quantity !==
+        undefined
+        ? String(
+            product.stock_quantity
+          )
         : ""
     );
 
     setLowStockThreshold(
-      product?.low_stock_threshold !== null &&
-        product?.low_stock_threshold !== undefined
-        ? String(product.low_stock_threshold)
+      product?.low_stock_threshold !==
+        null &&
+      product?.low_stock_threshold !==
+        undefined
+        ? String(
+            product.low_stock_threshold
+          )
         : "10"
     );
 
     setIsPublished(
-      product?.is_published === true ||
-      product?.is_published === 1 ||
-      product?.is_published === "1" ||
-      product?.is_published === "true"
+      product?.is_published ===
+        true ||
+      product?.is_published ===
+        1 ||
+      product?.is_published ===
+        "1" ||
+      product?.is_published ===
+        "true"
     );
 
-    if (Array.isArray(product?.images)) {
-      const existingImages: ImageItem[] =
-        product.images.map((img: any, index: number) => ({
-          id: Date.now() + index,
+    if (
+      Array.isArray(
+        product?.images
+      )
+    ) {
+      const existingImages:
+        ImageItem[] =
+        product.images.map(
+          (
+            img: any,
+            index: number
+          ) => ({
+            id:
+              Date.now() +
+              index,
 
-          preview: img?.image_url || img?.image || "",
+            preview:
+              img?.image_url ||
+              img?.image ||
+              "",
 
-          sort_order: img?.sort_order ?? index + 1,
+            sort_order:
+              img?.sort_order ??
+              index + 1,
 
-          is_primary:
-            img?.is_primary === true ||
-              img?.is_primary === 1 ||
-              img?.is_primary === "1"
-              ? 1
-              : 0,
+            is_primary:
+              img?.is_primary ===
+                true ||
+              img?.is_primary ===
+                1 ||
+              img?.is_primary ===
+                "1"
+                ? 1
+                : 0,
 
-          existing_id: img?.id,
+            existing_id:
+              img?.id,
 
-          is_existing: true,
-        }));
+            is_existing:
+              true,
+          })
+        );
 
-      setImages(existingImages);
+      setImages(
+        existingImages
+      );
     } else {
       setImages([]);
     }
 
-    setVariants(generateVariantsFromProduct(product));
+    setVariants(
+      generateVariantsFromProduct(
+        product
+      )
+    );
 
-    setHydratedEditKey(productKey);
-  }, [open, isEdit, editData, hydratedEditKey]);
+    setHydratedEditKey(
+      productKey
+    );
+  }, [
+    open,
+    isEdit,
+    editData,
+    hydratedEditKey,
+  ]);
 
   useEffect(() => {
     if (!open) {
       setHydratedEditKey(null);
+      setDragOverImageId(null);
+      draggedImageIdRef.current =
+        null;
+      setArrangingImageIds([]);
     }
   }, [open]);
 
-  // ============================================================
-  // RESET FORM (only when closed)
-  // ============================================================
+  /* =========================================================
+     RESET FORM
+  ========================================================= */
 
   useEffect(() => {
     if (open) {
@@ -1099,7 +1471,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSlug("");
     setDescription("");
 
-    setSpecification([{ key: "", value: "" }]);
+    setSpecification([
+      {
+        key: "",
+        value: "",
+      },
+    ]);
 
     setCategoryId("");
     setSubcategoryId("");
@@ -1123,26 +1500,41 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setVariants([]);
     setErrors({});
     setIsDragging(false);
+
     dragCounterRef.current = 0;
+
+    draggedImageIdRef.current =
+      null;
+
+    setDragOverImageId(null);
+    setArrangingImageIds([]);
   }, [open]);
 
   if (!open) {
     return null;
   }
 
-  // ============================================================
-  // FORM HANDLERS
-  // ============================================================
+  /* =========================================================
+     FORM HANDLERS
+  ========================================================= */
 
-  const handleNameChange = (value: string) => {
+  const handleNameChange = (
+    value: string
+  ) => {
     setName(value);
 
     setSlug(
       value
         .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "")
+        .replace(
+          /[^a-z0-9]+/g,
+          "-"
+        )
+        .replace(
+          /^-+|-+$/g,
+          ""
+        )
     );
 
     setErrors((prev) => ({
@@ -1151,7 +1543,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }));
   };
 
-  const handleCategoryChange = (value: string) => {
+  const handleCategoryChange = (
+    value: string
+  ) => {
     setCategoryId(value);
 
     setErrors((prev) => ({
@@ -1164,89 +1558,145 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }
   };
 
-  const handleSubcategoryChange = (value: string) => {
-    setSubcategoryId(value);
+  const handleSubcategoryChange =
+    (value: string) => {
+      setSubcategoryId(value);
 
-    setErrors((prev) => ({
-      ...prev,
-      subcategory_id: undefined,
-    }));
-  };
+      setErrors((prev) => ({
+        ...prev,
+        subcategory_id:
+          undefined,
+      }));
+    };
 
-  const addSpecificationField = () => {
-    setSpecification([
-      ...specification,
-      { key: "", value: "" },
-    ]);
-  };
+  const addSpecificationField =
+    () => {
+      setSpecification([
+        ...specification,
+        {
+          key: "",
+          value: "",
+        },
+      ]);
+    };
 
-  const removeSpecificationField = (index: number) => {
-    if (specification.length <= 1) {
-      return;
-    }
+  const removeSpecificationField =
+    (index: number) => {
+      if (
+        specification.length <= 1
+      ) {
+        return;
+      }
 
-    setSpecification(
-      specification.filter((_, i) => i !== index)
-    );
-  };
+      setSpecification(
+        specification.filter(
+          (_, i) =>
+            i !== index
+        )
+      );
+    };
 
   const updateSpecification = (
     index: number,
-    field: "key" | "value",
+    field:
+      | "key"
+      | "value",
     value: string
   ) => {
     setSpecification((prev) => {
-      const newSpec = [...prev];
-      newSpec[index] = { ...newSpec[index], [field]: value };
+      const newSpec = [
+        ...prev,
+      ];
+
+      newSpec[index] = {
+        ...newSpec[index],
+        [field]: value,
+      };
+
       return newSpec;
     });
   };
 
-  // ============================================================
-  // IMAGE HANDLING (with drag & drop)
-  // ============================================================
+  /* =========================================================
+     ADD IMAGE FILES
+  ========================================================= */
 
-  const addImageFiles = useCallback(
-    (files: FileList | File[]) => {
-      const fileArray = Array.from(files).filter((file) =>
-        file.type.startsWith("image/")
-      );
+  const addImageFiles =
+    useCallback(
+      (
+        files:
+          | FileList
+          | File[]
+      ) => {
+        const fileArray =
+          Array.from(files).filter(
+            (file) =>
+              file.type.startsWith(
+                "image/"
+              )
+          );
 
-      if (fileArray.length === 0) {
-        return;
-      }
+        if (
+          fileArray.length === 0
+        ) {
+          return;
+        }
 
-      const newImages: ImageItem[] = fileArray.map(
-        (file, index) => ({
-          id: Date.now() + index + Math.random(),
+        const newImages:
+          ImageItem[] =
+          fileArray.map(
+            (
+              file,
+              index
+            ) => ({
+              id:
+                Date.now() +
+                index +
+                Math.random(),
 
-          file,
+              file,
 
-          preview: URL.createObjectURL(file),
+              preview:
+                URL.createObjectURL(
+                  file
+                ),
 
-          sort_order: images.length + index + 1,
+              sort_order:
+                images.length +
+                index +
+                1,
 
-          is_primary:
-            images.length === 0 && index === 0 ? 1 : 0,
+              is_primary:
+                images.length ===
+                  0 &&
+                index === 0
+                  ? 1
+                  : 0,
 
-          is_existing: false,
-        })
-      );
+              is_existing:
+                false,
+            })
+          );
 
-      setImages((prev) => [...prev, ...newImages]);
+        setImages((prev) => [
+          ...prev,
+          ...newImages,
+        ]);
 
-      setErrors((prev) => ({
-        ...prev,
-        images: undefined,
-      }));
-    },
-    [images.length]
-  );
+        setErrors((prev) => ({
+          ...prev,
+          images:
+            undefined,
+        }));
+      },
+      [images.length]
+    );
 
   const handleImages = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const files = e.target.files;
+    const files =
+      e.target.files;
 
     if (!files) {
       return;
@@ -1257,84 +1707,133 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     e.target.value = "";
   };
 
-  const handleDragEnter = useCallback(
-    (e: React.DragEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+  /* =========================================================
+     FILE DRAG / DROP
+  ========================================================= */
 
-      dragCounterRef.current += 1;
+  const handleDragEnter =
+    useCallback(
+      (
+        e: React.DragEvent<HTMLElement>
+      ) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      if (
-        e.dataTransfer?.types?.includes("Files")
-      ) {
-        setIsDragging(true);
-      }
-    },
-    []
-  );
+        dragCounterRef.current += 1;
 
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+        if (
+          e.dataTransfer?.types?.includes(
+            "Files"
+          )
+        ) {
+          setIsDragging(true);
+        }
+      },
+      []
+    );
 
-      if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = "copy";
-      }
-    },
-    []
-  );
+  const handleDragOver =
+    useCallback(
+      (
+        e: React.DragEvent<HTMLElement>
+      ) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+        if (e.dataTransfer) {
+          e.dataTransfer.dropEffect =
+            "copy";
+        }
+      },
+      []
+    );
 
-      dragCounterRef.current -= 1;
+  const handleDragLeave =
+    useCallback(
+      (
+        e: React.DragEvent<HTMLElement>
+      ) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      if (dragCounterRef.current <= 0) {
+        dragCounterRef.current -= 1;
+
+        if (
+          dragCounterRef.current <=
+          0
+        ) {
+          dragCounterRef.current = 0;
+          setIsDragging(false);
+        }
+      },
+      []
+    );
+
+  const handleDrop =
+    useCallback(
+      (
+        e: React.DragEvent<HTMLElement>
+      ) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         dragCounterRef.current = 0;
         setIsDragging(false);
-      }
-    },
-    []
-  );
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLElement>) => {
-      e.preventDefault();
-      e.stopPropagation();
+        const files =
+          e.dataTransfer?.files;
 
-      dragCounterRef.current = 0;
-      setIsDragging(false);
+        if (
+          files &&
+          files.length > 0
+        ) {
+          addImageFiles(files);
+        }
+      },
+      [addImageFiles]
+    );
 
-      const files = e.dataTransfer?.files;
+  /* =========================================================
+     PRODUCT IMAGE DELETE
+  ========================================================= */
 
-      if (files && files.length > 0) {
-        addImageFiles(files);
-      }
-    },
-    [addImageFiles]
-  );
-
-  const removeImage = async (id: number) => {
-    const imageToRemove = images.find((item) => item.id === id);
+  const removeImage = async (
+    id: number
+  ) => {
+    const imageToRemove =
+      images.find(
+        (item) => item.id === id
+      );
 
     if (!imageToRemove) {
       return;
     }
 
-    // New images are only present in local state, so no API call is needed.
-    // Existing images must be deleted from the backend first.
-    if (isEdit && imageToRemove.is_existing) {
-      const product = getProductObject(editData);
-      const productId = Number(product?.id);
-      const existingImageId = Number(imageToRemove.existing_id);
+    if (
+      isEdit &&
+      imageToRemove.is_existing
+    ) {
+      const product =
+        getProductObject(
+          editData
+        );
+
+      const productId =
+        Number(product?.id);
+
+      const existingImageId =
+        Number(
+          imageToRemove.existing_id
+        );
 
       if (
-        !Number.isFinite(productId) ||
+        !Number.isFinite(
+          productId
+        ) ||
         productId <= 0 ||
-        !Number.isFinite(existingImageId) ||
+        !Number.isFinite(
+          existingImageId
+        ) ||
         existingImageId <= 0
       ) {
         console.error(
@@ -1344,117 +1843,488 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             existingImageId,
           }
         );
+
         return;
       }
 
-      if (deletingImageIds.includes(existingImageId)) {
+      if (
+        deletingImageIds.includes(
+          existingImageId
+        )
+      ) {
         return;
       }
 
       try {
-        setDeletingImageIds((prev) => [...prev, existingImageId]);
+        setDeletingImageIds(
+          (prev) => [
+            ...prev,
+            existingImageId,
+          ]
+        );
 
-        // DELETE /api/products/{productId}/images
-        // Body: { image_ids: [existingImageId] }
-        await productApi.deleteImages(productId, [existingImageId]);
+        await productApi.deleteImages(
+          productId,
+          [existingImageId]
+        );
 
         setImages((prev) => {
-          let filtered = prev.filter((item) => item.id !== id);
+          let filtered =
+            prev.filter(
+              (item) =>
+                item.id !== id
+            );
 
           if (
-            filtered.length > 0 &&
-            !filtered.some((item) => item.is_primary === 1)
+            filtered.length >
+              0 &&
+            !filtered.some(
+              (item) =>
+                item.is_primary ===
+                1
+            )
           ) {
-            filtered = filtered.map((item, idx) => ({
-              ...item,
-              is_primary: idx === 0 ? 1 : item.is_primary,
-            }));
+            filtered =
+              filtered.map(
+                (
+                  item,
+                  idx
+                ) => ({
+                  ...item,
+                  is_primary:
+                    idx ===
+                    0
+                      ? 1
+                      : item.is_primary,
+                })
+              );
           }
 
-          return filtered.map((item, index) => ({
-            ...item,
-            sort_order: index + 1,
-          }));
+          return filtered.map(
+            (
+              item,
+              index
+            ) => ({
+              ...item,
+              sort_order:
+                index + 1,
+            })
+          );
         });
+
+        toast.success(
+          "Image deleted successfully"
+        );
       } catch (error) {
-        console.error("Delete product image API error:", error);
+        console.error(
+          "Delete product image API error:",
+          error
+        );
+
+        toast.error(
+          "Unable to delete image"
+        );
       } finally {
-        setDeletingImageIds((prev) =>
-          prev.filter((imageId) => imageId !== existingImageId)
+        setDeletingImageIds(
+          (prev) =>
+            prev.filter(
+              (imageId) =>
+                imageId !==
+                existingImageId
+            )
         );
       }
 
       return;
     }
 
-    // Local-only removal for newly uploaded images.
     setImages((prev) => {
-      let filtered = prev.filter((item) => item.id !== id);
+      let filtered =
+        prev.filter(
+          (item) =>
+            item.id !== id
+        );
 
       if (
         filtered.length > 0 &&
-        !filtered.some((item) => item.is_primary === 1)
+        !filtered.some(
+          (item) =>
+            item.is_primary ===
+            1
+        )
       ) {
-        filtered = filtered.map((item, idx) => ({
-          ...item,
-          is_primary: idx === 0 ? 1 : item.is_primary,
-        }));
+        filtered =
+          filtered.map(
+            (
+              item,
+              idx
+            ) => ({
+              ...item,
+              is_primary:
+                idx === 0
+                  ? 1
+                  : item.is_primary,
+            })
+          );
       }
 
-      return filtered.map((item, index) => ({
-        ...item,
-        sort_order: index + 1,
-      }));
+      return filtered.map(
+        (
+          item,
+          index
+        ) => ({
+          ...item,
+          sort_order:
+            index + 1,
+        })
+      );
     });
   };
 
-  const setPrimaryImage = (id: number) => {
-    setImages((prev) =>
-      prev.map((item) => ({
+  /* =========================================================
+     IMAGE ARRANGE / MOVE
+  ========================================================= */
+
+  const reorderImageItems = (
+    sourceId: number,
+    targetId: number
+  ) => {
+    const sourceIndex =
+      images.findIndex(
+        (item) =>
+          item.id ===
+          sourceId
+      );
+
+    const targetIndex =
+      images.findIndex(
+        (item) =>
+          item.id ===
+          targetId
+      );
+
+    if (
+      sourceIndex === -1 ||
+      targetIndex === -1 ||
+      sourceIndex ===
+        targetIndex
+    ) {
+      return images;
+    }
+
+    const newImages = [
+      ...images,
+    ];
+
+    [
+      newImages[sourceIndex],
+      newImages[targetIndex],
+    ] = [
+      newImages[targetIndex],
+      newImages[sourceIndex],
+    ];
+
+    return newImages.map(
+      (item, index) => ({
         ...item,
-        is_primary: item.id === id ? 1 : 0,
-      }))
+        sort_order:
+          index + 1,
+      })
     );
   };
 
-  const addVariant = () => {
-    const newVariant: VariantFormData = {
-      id: `variant-${Date.now()}`,
+  const handleImageDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    imageId: number
+  ) => {
+    if (loading) {
+      e.preventDefault();
+      return;
+    }
 
-      sku: "",
+    draggedImageIdRef.current =
+      imageId;
 
-      attributes: [],
+    setDragOverImageId(null);
 
-      retail_mrp: "",
+    e.dataTransfer.effectAllowed =
+      "move";
 
-      retail_discount_type: "percentage",
-
-      retail_discount_value: "",
-
-      distributor_mrp: "",
-
-      distributor_discount_type: "percentage",
-
-      distributor_discount_value: "",
-
-      stock_quantity: "",
-
-      low_stock_threshold: "",
-
-      sort_order: variants.length + 1,
-
-      is_active: 1,
-
-      images: [],
-
-      is_existing: false,
-    };
-
-    setVariants([...variants, newVariant]);
+    e.dataTransfer.setData(
+      "text/plain",
+      String(imageId)
+    );
   };
 
-  const removeVariant = (id: string) => {
-    setVariants(variants.filter((v) => v.id !== id));
+  const handleImageDragOver =
+    (
+      e: React.DragEvent<HTMLDivElement>,
+      imageId: number
+    ) => {
+      if (loading) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const draggedId =
+        draggedImageIdRef.current;
+
+      if (
+        draggedId === null ||
+        draggedId === imageId
+      ) {
+        return;
+      }
+
+      e.dataTransfer.dropEffect =
+        "move";
+
+      setDragOverImageId(
+        imageId
+      );
+    };
+
+  const handleImageDragLeave =
+    (
+      e: React.DragEvent<HTMLDivElement>
+    ) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      setDragOverImageId(null);
+    };
+
+  const handleImageDragEnd = () => {
+    draggedImageIdRef.current =
+      null;
+
+    setDragOverImageId(null);
+  };
+
+  const handleImageDrop = async (
+    e: React.DragEvent<HTMLDivElement>,
+    targetImageId: number
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (loading) {
+      handleImageDragEnd();
+      return;
+    }
+
+    const sourceImageId =
+      draggedImageIdRef.current;
+
+    setDragOverImageId(null);
+
+    if (
+      sourceImageId === null ||
+      sourceImageId ===
+        targetImageId
+    ) {
+      handleImageDragEnd();
+      return;
+    }
+
+    const sourceImage =
+      images.find(
+        (item) =>
+          item.id ===
+          sourceImageId
+      );
+
+    const targetImage =
+      images.find(
+        (item) =>
+          item.id ===
+          targetImageId
+      );
+
+    if (
+      !sourceImage ||
+      !targetImage
+    ) {
+      handleImageDragEnd();
+      return;
+    }
+
+    const product =
+      getProductObject(
+        editData
+      );
+
+    const productId =
+      Number(product?.id);
+
+    const sourceExistingId =
+      Number(
+        sourceImage.existing_id
+      );
+
+    const targetExistingId =
+      Number(
+        targetImage.existing_id
+      );
+
+    const previousImages = [
+      ...images,
+    ];
+
+    /* ---------------------------------------------------------
+       LOCAL REORDER
+    --------------------------------------------------------- */
+
+    const reorderedImages =
+      reorderImageItems(
+        sourceImageId,
+        targetImageId
+      );
+
+    setImages(
+      reorderedImages
+    );
+
+    draggedImageIdRef.current =
+      null;
+
+    /* ---------------------------------------------------------
+       API MOVE / SWAP
+       Only existing backend images can be moved by API.
+    --------------------------------------------------------- */
+
+    const canCallMoveApi =
+      isEdit &&
+      Number.isFinite(
+        productId
+      ) &&
+      productId > 0 &&
+      sourceImage.is_existing &&
+      targetImage.is_existing &&
+      Number.isFinite(
+        sourceExistingId
+      ) &&
+      sourceExistingId > 0 &&
+      Number.isFinite(
+        targetExistingId
+      ) &&
+      targetExistingId > 0;
+
+    if (!canCallMoveApi) {
+      return;
+    }
+
+    try {
+      setArrangingImageIds(
+        (prev) =>
+          Array.from(
+            new Set([
+              ...prev,
+              sourceExistingId,
+              targetExistingId,
+            ])
+          )
+      );
+
+      await productApi.moveProductImage(
+        productId,
+        {
+          image_id_1:
+            sourceExistingId,
+          image_id_2:
+            targetExistingId,
+        }
+      );
+
+      toast.success(
+        "Image order updated"
+      );
+    } catch (error) {
+      console.error(
+        "Move product image API error:",
+        error
+      );
+
+      setImages(
+        previousImages
+      );
+
+      toast.error(
+        "Unable to arrange images"
+      );
+    } finally {
+      setArrangingImageIds(
+        (prev) =>
+          prev.filter(
+            (id) =>
+              id !==
+                sourceExistingId &&
+              id !==
+                targetExistingId
+          )
+      );
+    }
+  };
+
+  /* =========================================================
+     VARIANTS
+  ========================================================= */
+
+  const addVariant = () => {
+    const newVariant:
+      VariantFormData = {
+        id: `variant-${Date.now()}`,
+
+        sku: "",
+
+        attributes: [],
+
+        retail_mrp: "",
+
+        retail_discount_type:
+          "percentage",
+
+        retail_discount_value:
+          "",
+
+        distributor_mrp: "",
+
+        distributor_discount_type:
+          "percentage",
+
+        distributor_discount_value:
+          "",
+
+        stock_quantity: "",
+
+        low_stock_threshold: "",
+
+        sort_order:
+          variants.length + 1,
+
+        is_active: 1,
+
+        images: [],
+
+        is_existing: false,
+      };
+
+    setVariants([
+      ...variants,
+      newVariant,
+    ]);
+  };
+
+  const removeVariant = (
+    id: string
+  ) => {
+    setVariants(
+      variants.filter(
+        (v) => v.id !== id
+      )
+    );
   };
 
   const updateVariant = (
@@ -1463,117 +2333,183 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     value: any
   ) => {
     setVariants(
-      variants.map((v) => {
-        if (v.id === id) {
-          return { ...v, [field]: value };
-        }
-
-        return v;
-      })
-    );
-  };
-
-  const updateVariantAttribute = (
-    id: string,
-    key: string,
-    value: string
-  ) => {
-    setVariants(
-      variants.map((v) => {
-        if (v.id === id) {
-          const exists = v.attributes.some(
-            (attr) =>
-              attr.key === key && attr.value === value
-          );
-
-          if (exists) {
-            return v;
+      variants.map(
+        (v) => {
+          if (
+            v.id === id
+          ) {
+            return {
+              ...v,
+              [field]:
+                value,
+            };
           }
 
-          return {
-            ...v,
-            attributes: [
-              ...v.attributes,
-              { key, value },
-            ],
-          };
+          return v;
         }
-
-        return v;
-      })
+      )
     );
   };
 
-  const removeVariantAttribute = (
-    id: string,
-    key: string,
-    value: string
-  ) => {
-    setVariants(
-      variants.map((v) => {
-        if (v.id === id) {
-          return {
-            ...v,
-            attributes: v.attributes.filter(
-              (attr) =>
-                !(attr.key === key && attr.value === value)
-            ),
-          };
-        }
+  const updateVariantAttribute =
+    (
+      id: string,
+      key: string,
+      value: string
+    ) => {
+      setVariants(
+        variants.map(
+          (v) => {
+            if (
+              v.id === id
+            ) {
+              const exists =
+                v.attributes.some(
+                  (attr) =>
+                    attr.key ===
+                      key &&
+                    attr.value ===
+                      value
+                );
 
-        return v;
-      })
-    );
-  };
+              if (exists) {
+                return v;
+              }
+
+              return {
+                ...v,
+                attributes: [
+                  ...v.attributes,
+                  {
+                    key,
+                    value,
+                  },
+                ],
+              };
+            }
+
+            return v;
+          }
+        )
+      );
+    };
+
+  const removeVariantAttribute =
+    (
+      id: string,
+      key: string,
+      value: string
+    ) => {
+      setVariants(
+        variants.map(
+          (v) => {
+            if (
+              v.id === id
+            ) {
+              return {
+                ...v,
+                attributes:
+                  v.attributes.filter(
+                    (attr) =>
+                      !(
+                        attr.key ===
+                          key &&
+                        attr.value ===
+                          value
+                      )
+                  ),
+              };
+            }
+
+            return v;
+          }
+        )
+      );
+    };
 
   const handleVariantImages = (
     variantId: string,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const files = e.target.files;
+    const files =
+      e.target.files;
 
     if (!files) {
       return;
     }
 
-    const variant = variants.find((v) => v.id === variantId);
+    const variant =
+      variants.find(
+        (v) =>
+          v.id ===
+          variantId
+      );
 
     if (!variant) {
       return;
     }
 
-    const fileArray = Array.from(files).filter((file) =>
-      file.type.startsWith("image/")
-    );
+    const fileArray =
+      Array.from(files).filter(
+        (file) =>
+          file.type.startsWith(
+            "image/"
+          )
+      );
 
-    if (fileArray.length === 0) {
+    if (
+      fileArray.length === 0
+    ) {
       e.target.value = "";
       return;
     }
 
-    const newImages: VariantImageItem[] = fileArray.map(
-      (file, index) => ({
-        id: Date.now() + index + Math.random(),
+    const newImages:
+      VariantImageItem[] =
+      fileArray.map(
+        (
+          file,
+          index
+        ) => ({
+          id:
+            Date.now() +
+            index +
+            Math.random(),
 
-        file,
+          file,
 
-        preview: URL.createObjectURL(file),
+          preview:
+            URL.createObjectURL(
+              file
+            ),
 
-        sort_order: variant.images.length + index + 1,
+          sort_order:
+            variant.images
+              .length +
+            index +
+            1,
 
-        is_primary:
-          variant.images.length === 0 && index === 0
-            ? 1
-            : 0,
+          is_primary:
+            variant.images
+              .length ===
+              0 &&
+            index === 0
+              ? 1
+              : 0,
 
-        is_existing: false,
-      })
+          is_existing:
+            false,
+        })
+      );
+
+    updateVariant(
+      variantId,
+      "images",
+      [
+        ...variant.images,
+        ...newImages,
+      ]
     );
-
-    updateVariant(variantId, "images", [
-      ...variant.images,
-      ...newImages,
-    ]);
 
     e.target.value = "";
   };
@@ -1582,74 +2518,86 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     variantId: string,
     imageId: number
   ) => {
-    const variant = variants.find((v) => v.id === variantId);
+    const variant =
+      variants.find(
+        (v) =>
+          v.id ===
+          variantId
+      );
 
     if (!variant) {
       return;
     }
 
-    let filtered = variant.images.filter(
-      (img) => img.id !== imageId
-    );
+    let filtered =
+      variant.images.filter(
+        (img) =>
+          img.id !==
+          imageId
+      );
 
     if (
       filtered.length > 0 &&
-      !filtered.some((img) => img.is_primary === 1)
+      !filtered.some(
+        (img) =>
+          img.is_primary ===
+          1
+      )
     ) {
-      filtered = filtered.map((img, idx) => ({
-        ...img,
-        is_primary: idx === 0 ? 1 : img.is_primary,
-      }));
+      filtered =
+        filtered.map(
+          (
+            img,
+            idx
+          ) => ({
+            ...img,
+            is_primary:
+              idx === 0
+                ? 1
+                : img.is_primary,
+          })
+        );
     }
 
     updateVariant(
       variantId,
       "images",
-      filtered.map((img, index) => ({
-        ...img,
-        sort_order: index + 1,
-      }))
+      filtered.map(
+        (
+          img,
+          index
+        ) => ({
+          ...img,
+          sort_order:
+            index + 1,
+        })
+      )
     );
   };
 
-  const setPrimaryVariantImage = (
-    variantId: string,
-    imageId: number
-  ) => {
-    const variant = variants.find((v) => v.id === variantId);
-
-    if (!variant) {
-      return;
-    }
-
-    updateVariant(
-      variantId,
-      "images",
-      variant.images.map((img) => ({
-        ...img,
-        is_primary: img.id === imageId ? 1 : 0,
-      }))
-    );
-  };
-
-  // ============================================================
-  // VALIDATE
-  // ============================================================
+  /* =========================================================
+     VALIDATE
+  ========================================================= */
 
   const validate = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors:
+      FormErrors = {};
 
-    if (!productCode.trim()) {
+    if (
+      !productCode.trim()
+    ) {
       newErrors.product_code =
         "Product code is required";
     }
 
     if (!name.trim()) {
-      newErrors.name = "Product name is required";
+      newErrors.name =
+        "Product name is required";
     }
 
     if (!categoryId) {
-      newErrors.category_id = "Please select a category";
+      newErrors.category_id =
+        "Please select a category";
     }
 
     if (!subcategoryId) {
@@ -1658,7 +2606,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }
 
     if (!brandId) {
-      newErrors.brand_id = "Please select a brand";
+      newErrors.brand_id =
+        "Please select a brand";
     }
 
     if (!taxCategoryId) {
@@ -1666,298 +2615,501 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         "Please select a tax category";
     }
 
-    if (!retailMrp || Number(retailMrp) <= 0) {
+    if (
+      !retailMrp ||
+      Number(retailMrp) <=
+        0
+    ) {
       newErrors.retail_mrp =
         "Please enter a valid retail MRP";
     }
 
-    if (!stockQuantity || Number(stockQuantity) < 0) {
+    if (
+      !stockQuantity ||
+      Number(stockQuantity) <
+        0
+    ) {
       newErrors.stock_quantity =
         "Please enter a valid stock quantity";
     }
 
     if (
-      shippingCharge !== "" &&
-      (Number.isNaN(Number(shippingCharge)) ||
-        Number(shippingCharge) < 0)
+      shippingCharge !==
+        "" &&
+      (Number.isNaN(
+        Number(shippingCharge)
+      ) ||
+        Number(
+          shippingCharge
+        ) < 0)
     ) {
       newErrors.shipping_charge =
         "Please enter a valid shipping charge";
     }
 
-    if (images.length === 0) {
+    if (
+      images.length === 0
+    ) {
       newErrors.images =
         "At least one product image is required";
     }
 
-    setErrors(newErrors);
+    setErrors(
+      newErrors
+    );
 
-    return Object.keys(newErrors).length === 0;
+    return (
+      Object.keys(
+        newErrors
+      ).length === 0
+    );
   };
 
-  // ============================================================
-  // BUILD FORM DATA
-  // ============================================================
+  /* =========================================================
+     BUILD FORM DATA
+  ========================================================= */
 
-  const buildFormData = (): FormData => {
-    const formData = new FormData();
+  const buildFormData =
+    (): FormData => {
+      const formData =
+        new FormData();
 
-    const specObject: Record<string, string> = {};
+      const specObject:
+        Record<string, string> =
+        {};
 
-    specification.forEach((item) => {
-      if (item.key.trim() && item.value.trim()) {
-        specObject[item.key.trim()] = item.value.trim();
-      }
-    });
-
-    formData.append("product_code", productCode);
-    formData.append("name", name);
-    formData.append("slug", slug);
-    formData.append("description", description);
-    formData.append(
-      "specification",
-      JSON.stringify(specObject)
-    );
-    formData.append("category_id", String(categoryId));
-    formData.append(
-      "subcategory_id",
-      String(subcategoryId)
-    );
-    formData.append("brand_id", String(brandId));
-    formData.append(
-      "tax_category_id",
-      String(taxCategoryId)
-    );
-    formData.append(
-      "stock_quantity",
-      String(stockQuantity || 0)
-    );
-    formData.append(
-      "low_stock_threshold",
-      String(lowStockThreshold || 0)
-    );
-    formData.append(
-      "is_published",
-      String(isPublished ? 1 : 0)
-    );
-    formData.append("is_trending", "0");
-    formData.append("trending_sort_order", "0");
-    formData.append("sale_type", "today_best");
-
-    formData.append("retail_mrp", String(retailMrp || 0));
-    formData.append(
-      "retail_discount_type",
-      "percentage"
-    );
-    formData.append(
-      "retail_discount_value",
-      String(retailDiscountValue || 0)
-    );
-
-    formData.append(
-      "distributor_mrp",
-      String(distributorMrp || 0)
-    );
-    formData.append(
-      "distributor_discount_type",
-      "percentage"
-    );
-    formData.append(
-      "distributor_discount_value",
-      String(distributorDiscountValue || 0)
-    );
-
-    formData.append(
-      "commission_value",
-      Number(commissionValue || 0)
-    );
-
-    formData.append(
-      "shipping_charge",
-      String(shippingCharge || 0)
-    );
-
-    if (isEdit && editData) {
-      const existingImageIds = images
-        .filter(
-          (img) => img.is_existing && img.existing_id
-        )
-        .map((img) => img.existing_id);
-
-      if (existingImageIds.length > 0) {
-        formData.append(
-          "existing_image_ids",
-          JSON.stringify(existingImageIds)
-        );
-      }
-    }
-
-    const newImages = images.filter(
-      (img) => !img.is_existing
-    );
-
-    newImages.forEach((item, index) => {
-      if (item.file) {
-        formData.append(
-          `product_images[${index}][image]`,
-          item.file
-        );
-
-        formData.append(
-          `product_images[${index}][sort_order]`,
-          String(item.sort_order)
-        );
-
-        formData.append(
-          `product_images[${index}][is_primary]`,
-          String(item.is_primary)
-        );
-      }
-    });
-
-    variants.forEach((variant, vIndex) => {
-      if (
-        isEdit &&
-        variant.is_existing &&
-        variant.existing_id
-      ) {
-        formData.append(
-          `variants[${vIndex}][id]`,
-          String(variant.existing_id)
-        );
-      }
-
-      formData.append(
-        `variants[${vIndex}][sku]`,
-        variant.sku
-      );
-
-      const attributesObject: Record<string, string> = {};
-
-      variant.attributes.forEach((attr) => {
-        if (attributesObject[attr.key]) {
-          attributesObject[attr.key] =
-            attributesObject[attr.key] +
-            "," +
-            attr.value;
-        } else {
-          attributesObject[attr.key] = attr.value;
+      specification.forEach(
+        (item) => {
+          if (
+            item.key.trim() &&
+            item.value.trim()
+          ) {
+            specObject[
+              item.key.trim()
+            ] =
+              item.value.trim();
+          }
         }
-      });
-
-      formData.append(
-        `variants[${vIndex}][attributes]`,
-        JSON.stringify(attributesObject)
       );
 
       formData.append(
-        `variants[${vIndex}][retail_mrp]`,
-        String(variant.retail_mrp || 0)
+        "product_code",
+        productCode
       );
 
       formData.append(
-        `variants[${vIndex}][retail_discount_type]`,
-        variant.retail_discount_type || "percentage"
+        "name",
+        name
       );
 
       formData.append(
-        `variants[${vIndex}][retail_discount_value]`,
-        String(variant.retail_discount_value || 0)
+        "slug",
+        slug
       );
 
       formData.append(
-        `variants[${vIndex}][distributor_mrp]`,
-        String(variant.distributor_mrp || 0)
+        "description",
+        description
       );
 
       formData.append(
-        `variants[${vIndex}][distributor_discount_type]`,
-        variant.distributor_discount_type ||
+        "specification",
+        JSON.stringify(
+          specObject
+        )
+      );
+
+      formData.append(
+        "category_id",
+        String(categoryId)
+      );
+
+      formData.append(
+        "subcategory_id",
+        String(subcategoryId)
+      );
+
+      formData.append(
+        "brand_id",
+        String(brandId)
+      );
+
+      formData.append(
+        "tax_category_id",
+        String(
+          taxCategoryId
+        )
+      );
+
+      formData.append(
+        "stock_quantity",
+        String(
+          stockQuantity || 0
+        )
+      );
+
+      formData.append(
+        "low_stock_threshold",
+        String(
+          lowStockThreshold ||
+            0
+        )
+      );
+
+      formData.append(
+        "is_published",
+        String(
+          isPublished ? 1 : 0
+        )
+      );
+
+      formData.append(
+        "is_trending",
+        "0"
+      );
+
+      formData.append(
+        "trending_sort_order",
+        "0"
+      );
+
+      formData.append(
+        "sale_type",
+        "today_best"
+      );
+
+      formData.append(
+        "retail_mrp",
+        String(
+          retailMrp || 0
+        )
+      );
+
+      formData.append(
+        "retail_discount_type",
         "percentage"
       );
 
       formData.append(
-        `variants[${vIndex}][distributor_discount_value]`,
-        String(variant.distributor_discount_value || 0)
+        "retail_discount_value",
+        String(
+          retailDiscountValue ||
+            0
+        )
       );
 
       formData.append(
-        `variants[${vIndex}][stock_quantity]`,
-        String(variant.stock_quantity || 0)
+        "distributor_mrp",
+        String(
+          distributorMrp || 0
+        )
       );
 
       formData.append(
-        `variants[${vIndex}][low_stock_threshold]`,
-        String(variant.low_stock_threshold || 0)
+        "distributor_discount_type",
+        "percentage"
       );
 
       formData.append(
-        `variants[${vIndex}][sort_order]`,
-        String(variant.sort_order)
+        "distributor_discount_value",
+        String(
+          distributorDiscountValue ||
+            0
+        )
       );
 
       formData.append(
-        `variants[${vIndex}][is_active]`,
-        String(variant.is_active)
+        "commission_value",
+        String(
+          Number(
+            commissionValue || 0
+          )
+        )
       );
 
-      const newVariantImages = variant.images.filter(
-        (img) => !img.is_existing
+      formData.append(
+        "shipping_charge",
+        String(
+          shippingCharge || 0
+        )
       );
 
-      newVariantImages.forEach((img, imgIndex) => {
-        if (img.file) {
-          formData.append(
-            `variants[${vIndex}][images][${imgIndex}][image]`,
-            img.file
-          );
-
-          formData.append(
-            `variants[${vIndex}][images][${imgIndex}][sort_order]`,
-            String(img.sort_order)
-          );
-
-          formData.append(
-            `variants[${vIndex}][images][${imgIndex}][is_primary]`,
-            String(img.is_primary)
-          );
-        }
-      });
-
-      if (isEdit) {
-        const existingVariantImageIds =
-          variant.images
+      if (
+        isEdit &&
+        editData
+      ) {
+        const existingImageIds =
+          images
             .filter(
-              (img) => img.is_existing && img.existing_id
+              (img) =>
+                img.is_existing &&
+                img.existing_id
             )
-            .map((img) => img.existing_id);
+            .map(
+              (img) =>
+                img.existing_id
+            );
 
-        if (existingVariantImageIds.length > 0) {
+        if (
+          existingImageIds.length >
+          0
+        ) {
           formData.append(
-            `variants[${vIndex}][existing_image_ids]`,
-            JSON.stringify(existingVariantImageIds)
+            "existing_image_ids",
+            JSON.stringify(
+              existingImageIds
+            )
           );
         }
       }
-    });
 
-    return formData;
-  };
+      const newImages =
+        images.filter(
+          (img) =>
+            !img.is_existing
+        );
 
-  // ============================================================
-  // SUBMIT
-  // ============================================================
+      newImages.forEach(
+        (item, index) => {
+          if (item.file) {
+            formData.append(
+              `product_images[${index}][image]`,
+              item.file
+            );
 
-  const handleSubmit = (e: React.FormEvent) => {
+            formData.append(
+              `product_images[${index}][sort_order]`,
+              String(
+                item.sort_order
+              )
+            );
+
+            formData.append(
+              `product_images[${index}][is_primary]`,
+              String(
+                item.is_primary
+              )
+            );
+          }
+        }
+      );
+
+      variants.forEach(
+        (
+          variant,
+          vIndex
+        ) => {
+          if (
+            isEdit &&
+            variant.is_existing &&
+            variant.existing_id
+          ) {
+            formData.append(
+              `variants[${vIndex}][id]`,
+              String(
+                variant.existing_id
+              )
+            );
+          }
+
+          formData.append(
+            `variants[${vIndex}][sku]`,
+            variant.sku
+          );
+
+          const attributesObject:
+            Record<string, string> =
+            {};
+
+          variant.attributes.forEach(
+            (attr) => {
+              if (
+                attributesObject[
+                  attr.key
+                ]
+              ) {
+                attributesObject[
+                  attr.key
+                ] =
+                  attributesObject[
+                    attr.key
+                  ] +
+                  "," +
+                  attr.value;
+              } else {
+                attributesObject[
+                  attr.key
+                ] =
+                  attr.value;
+              }
+            }
+          );
+
+          formData.append(
+            `variants[${vIndex}][attributes]`,
+            JSON.stringify(
+              attributesObject
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][retail_mrp]`,
+            String(
+              variant.retail_mrp ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][retail_discount_type]`,
+            variant.retail_discount_type ||
+              "percentage"
+          );
+
+          formData.append(
+            `variants[${vIndex}][retail_discount_value]`,
+            String(
+              variant.retail_discount_value ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][distributor_mrp]`,
+            String(
+              variant.distributor_mrp ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][distributor_discount_type]`,
+            variant.distributor_discount_type ||
+              "percentage"
+          );
+
+          formData.append(
+            `variants[${vIndex}][distributor_discount_value]`,
+            String(
+              variant.distributor_discount_value ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][stock_quantity]`,
+            String(
+              variant.stock_quantity ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][low_stock_threshold]`,
+            String(
+              variant.low_stock_threshold ||
+                0
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][sort_order]`,
+            String(
+              variant.sort_order
+            )
+          );
+
+          formData.append(
+            `variants[${vIndex}][is_active]`,
+            String(
+              variant.is_active
+            )
+          );
+
+          const newVariantImages =
+            variant.images.filter(
+              (img) =>
+                !img.is_existing
+            );
+
+          newVariantImages.forEach(
+            (
+              img,
+              imgIndex
+            ) => {
+              if (img.file) {
+                formData.append(
+                  `variants[${vIndex}][images][${imgIndex}][image]`,
+                  img.file
+                );
+
+                formData.append(
+                  `variants[${vIndex}][images][${imgIndex}][sort_order]`,
+                  String(
+                    img.sort_order
+                  )
+                );
+
+                formData.append(
+                  `variants[${vIndex}][images][${imgIndex}][is_primary]`,
+                  String(
+                    img.is_primary
+                  )
+                );
+              }
+            }
+          );
+
+          if (isEdit) {
+            const existingVariantImageIds =
+              variant.images
+                .filter(
+                  (img) =>
+                    img.is_existing &&
+                    img.existing_id
+                )
+                .map(
+                  (img) =>
+                    img.existing_id
+                );
+
+            if (
+              existingVariantImageIds.length >
+              0
+            ) {
+              formData.append(
+                `variants[${vIndex}][existing_image_ids]`,
+                JSON.stringify(
+                  existingVariantImageIds
+                )
+              );
+            }
+          }
+        }
+      );
+
+      return formData;
+    };
+
+  /* =========================================================
+     SUBMIT
+  ========================================================= */
+
+  const handleSubmit = (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
 
     if (!validate()) {
       const firstError =
-        document.querySelector(".error-message");
+        document.querySelector(
+          ".error-message"
+        );
 
       if (firstError) {
         firstError.scrollIntoView({
-          behavior: "smooth",
+          behavior:
+            "smooth",
           block: "center",
         });
       }
@@ -1965,23 +3117,35 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    const formData = buildFormData();
+    const formData =
+      buildFormData();
 
-    console.log("SUBMIT FORM DATA:");
+    console.log(
+      "SUBMIT FORM DATA:"
+    );
 
-    for (const [key, value] of formData.entries()) {
-      console.log(key, value);
+    for (
+      const [
+        key,
+        value,
+      ] of formData.entries()
+    ) {
+      console.log(
+        key,
+        value
+      );
     }
 
     onSubmit(formData);
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  /* =========================================================
+     RENDER
+  ========================================================= */
 
   return (
     <>
+      {/* BACKDROP */}
       <div
         className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
         onClick={onClose}
@@ -1990,12 +3154,17 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div
           className="relative flex max-h-[90vh] w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) =>
+            e.stopPropagation()
+          }
         >
           {/* TOP GRADIENT BAR */}
           <div className="h-[3px] w-full flex-shrink-0 bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
-          {/* HEADER */}
+          {/* =====================================================
+              HEADER
+          ===================================================== */}
+
           <div className="flex flex-shrink-0 items-center justify-between border-b border-[#E5EAE5] bg-white px-6 py-5">
             <div>
               <h2 className="flex items-center gap-2 text-2xl font-bold text-[#202721]">
@@ -2011,14 +3180,20 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   />
                 )}
 
-                {isEdit ? "Edit Product" : "Add New Product"}
+                {isEdit
+                  ? "Edit Product"
+                  : "Add New Product"}
               </h2>
 
               <p className="mt-0.5 text-sm text-[#59645C]">
                 {isEdit
-                  ? `Editing: ${getProductObject(editData)?.name ||
-                  "Product"
-                  }`
+                  ? `Editing: ${
+                      getProductObject(
+                        editData
+                      )
+                        ?.name ||
+                      "Product"
+                    }`
                   : "Fill in the product details, pricing, variants and images"}
               </p>
             </div>
@@ -2032,19 +3207,27 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             </button>
           </div>
 
-          {/* BODY */}
+          {/* =====================================================
+              BODY
+          ===================================================== */}
+
           <div className="flex-1 overflow-y-auto bg-[#F5F7F5] p-6">
             <form
               onSubmit={handleSubmit}
               id="product-form"
             >
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
+
                 {/* =================================================
-                    LEFT
+                    LEFT SIDE
                 ================================================= */}
 
                 <div className="space-y-6">
-                  {/* BASIC INFORMATION */}
+
+                  {/* =================================================
+                      BASIC INFORMATION
+                  ================================================= */}
+
                   <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
                       <FiInfo
@@ -2058,6 +3241,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
 
                     <div className="space-y-4">
+
                       {/* PRODUCT NAME */}
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
@@ -2071,13 +3255,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           type="text"
                           value={name}
                           onChange={(e) =>
-                            handleNameChange(e.target.value)
+                            handleNameChange(
+                              e.target.value
+                            )
                           }
                           placeholder="e.g. SoundMax Pro 5G Smartphone"
-                          className={`h-12 w-full rounded-lg border ${errors.name
+                          className={`h-12 w-full rounded-lg border ${
+                            errors.name
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.name && (
@@ -2101,19 +3288,24 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           type="text"
                           value={productCode}
                           onChange={(e) =>
-                            setProductCode(e.target.value)
+                            setProductCode(
+                              e.target.value
+                            )
                           }
                           placeholder="e.g. SMP5G-BLACK-128"
-                          className={`h-12 w-full rounded-lg border ${errors.product_code
+                          className={`h-12 w-full rounded-lg border ${
+                            errors.product_code
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.product_code && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                             <FiInfo size={14} />
-                            {errors.product_code}
+                            {
+                              errors.product_code
+                            }
                           </p>
                         )}
                       </div>
@@ -2139,6 +3331,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                       {/* CATEGORY / SUBCATEGORY / BRAND / TAX */}
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
                         {/* CATEGORY */}
                         <div>
                           <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
@@ -2150,16 +3343,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           <div className="relative">
                             <select
-                              value={categoryId}
+                              value={
+                                categoryId
+                              }
                               onChange={(e) =>
                                 handleCategoryChange(
                                   e.target.value
                                 )
                               }
-                              className={`h-12 w-full appearance-none rounded-lg border ${errors.category_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${
+                                errors.category_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select category...
@@ -2168,21 +3364,42 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               {categoryId &&
                                 !categories.some(
                                   (c) =>
-                                    String(c.id) === categoryId
+                                    String(
+                                      c.id
+                                    ) ===
+                                    categoryId
                                 ) && (
-                                  <option value={categoryId}>
-                                    Loading... (ID: {categoryId})
+                                  <option
+                                    value={
+                                      categoryId
+                                    }
+                                  >
+                                    Loading... (ID:{" "}
+                                    {
+                                      categoryId
+                                    }
+                                    )
                                   </option>
                                 )}
 
-                              {categories.map((category) => (
-                                <option
-                                  key={category.id}
-                                  value={String(category.id)}
-                                >
-                                  {category.name}
-                                </option>
-                              ))}
+                              {categories.map(
+                                (
+                                  category
+                                ) => (
+                                  <option
+                                    key={
+                                      category.id
+                                    }
+                                    value={String(
+                                      category.id
+                                    )}
+                                  >
+                                    {
+                                      category.name
+                                    }
+                                  </option>
+                                )
+                              )}
                             </select>
 
                             <FiTag
@@ -2194,7 +3411,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           {errors.category_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                               <FiInfo size={14} />
-                              {errors.category_id}
+                              {
+                                errors.category_id
+                              }
                             </p>
                           )}
                         </div>
@@ -2210,16 +3429,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           <div className="relative">
                             <select
-                              value={subcategoryId}
+                              value={
+                                subcategoryId
+                              }
                               onChange={(e) =>
                                 handleSubcategoryChange(
                                   e.target.value
                                 )
                               }
-                              className={`h-12 w-full appearance-none rounded-lg border ${errors.subcategory_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${
+                                errors.subcategory_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select subcategory...
@@ -2228,23 +3450,39 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               {subcategoryId &&
                                 !subcategories.some(
                                   (s) =>
-                                    String(s.id) ===
+                                    String(
+                                      s.id
+                                    ) ===
                                     subcategoryId
                                 ) && (
-                                  <option value={subcategoryId}>
-                                    Loading... (ID: {subcategoryId})
+                                  <option
+                                    value={
+                                      subcategoryId
+                                    }
+                                  >
+                                    Loading... (ID:{" "}
+                                    {
+                                      subcategoryId
+                                    }
+                                    )
                                   </option>
                                 )}
 
                               {subcategories.map(
-                                (subcategory) => (
+                                (
+                                  subcategory
+                                ) => (
                                   <option
-                                    key={subcategory.id}
+                                    key={
+                                      subcategory.id
+                                    }
                                     value={String(
                                       subcategory.id
                                     )}
                                   >
-                                    {subcategory.name}
+                                    {
+                                      subcategory.name
+                                    }
                                   </option>
                                 )
                               )}
@@ -2259,7 +3497,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           {errors.subcategory_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                               <FiInfo size={14} />
-                              {errors.subcategory_id}
+                              {
+                                errors.subcategory_id
+                              }
                             </p>
                           )}
                         </div>
@@ -2275,19 +3515,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           <div className="relative">
                             <select
-                              value={brandId}
+                              value={
+                                brandId
+                              }
                               onChange={(e) => {
-                                setBrandId(e.target.value);
+                                setBrandId(
+                                  e.target.value
+                                );
 
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  brand_id: undefined,
-                                }));
+                                setErrors(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    brand_id:
+                                      undefined,
+                                  })
+                                );
                               }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${errors.brand_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${
+                                errors.brand_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select brand...
@@ -2296,21 +3546,41 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               {brandId &&
                                 !brands.some(
                                   (b) =>
-                                    String(b.id) === brandId
+                                    String(
+                                      b.id
+                                    ) ===
+                                    brandId
                                 ) && (
-                                  <option value={brandId}>
-                                    Loading... (ID: {brandId})
+                                  <option
+                                    value={
+                                      brandId
+                                    }
+                                  >
+                                    Loading... (ID:{" "}
+                                    {
+                                      brandId
+                                    }
+                                    )
                                   </option>
                                 )}
 
-                              {brands.map((brand) => (
-                                <option
-                                  key={brand.id}
-                                  value={String(brand.id)}
-                                >
-                                  {brand.name}
-                                </option>
-                              ))}
+                              {brands.map(
+                                (
+                                  brand
+                                ) => (
+                                  <option
+                                    key={
+                                      brand.id                                    }
+                                    value={String(
+                                      brand.id
+                                    )}
+                                  >
+                                    {
+                                      brand.name
+                                    }
+                                  </option>
+                                )
+                              )}
                             </select>
 
                             <FiAward
@@ -2322,7 +3592,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           {errors.brand_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                               <FiInfo size={14} />
-                              {errors.brand_id}
+                              {
+                                errors.brand_id
+                              }
                             </p>
                           )}
                         </div>
@@ -2338,22 +3610,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           <div className="relative">
                             <select
-                              value={taxCategoryId}
+                              value={
+                                taxCategoryId
+                              }
                               onChange={(e) => {
                                 setTaxCategoryId(
                                   e.target.value
                                 );
 
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  tax_category_id:
-                                    undefined,
-                                }));
+                                setErrors(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    tax_category_id:
+                                      undefined,
+                                  })
+                                );
                               }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${errors.tax_category_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${
+                                errors.tax_category_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select tax...
@@ -2362,22 +3641,42 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               {taxCategoryId &&
                                 !taxCategories.some(
                                   (t) =>
-                                    String(t.id) ===
+                                    String(
+                                      t.id
+                                    ) ===
                                     taxCategoryId
                                 ) && (
-                                  <option value={taxCategoryId}>
-                                    Loading... (ID: {taxCategoryId})
+                                  <option
+                                    value={
+                                      taxCategoryId
+                                    }
+                                  >
+                                    Loading... (ID:{" "}
+                                    {
+                                      taxCategoryId
+                                    }
+                                    )
                                   </option>
                                 )}
 
-                              {taxCategories.map((tax) => (
-                                <option
-                                  key={tax.id}
-                                  value={String(tax.id)}
-                                >
-                                  {tax.name}
-                                </option>
-                              ))}
+                              {taxCategories.map(
+                                (
+                                  tax
+                                ) => (
+                                  <option
+                                    key={
+                                      tax.id
+                                    }
+                                    value={String(
+                                      tax.id
+                                    )}
+                                  >
+                                    {
+                                      tax.name
+                                    }
+                                  </option>
+                                )
+                              )}
                             </select>
 
                             <FiTag
@@ -2389,7 +3688,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           {errors.tax_category_id && (
                             <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                               <FiInfo size={14} />
-                              {errors.tax_category_id}
+                              {
+                                errors.tax_category_id
+                              }
                             </p>
                           )}
                         </div>
@@ -2398,7 +3699,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </div>
 
                   {/* DESCRIPTION / SPECIFICATION */}
+
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+
                     {/* DESCRIPTION */}
                     <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
                       <div className="mb-4 flex items-center gap-2">
@@ -2414,9 +3717,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                       <textarea
                         rows={6}
-                        value={description}
+                        value={
+                          description
+                        }
                         onChange={(e) =>
-                          setDescription(e.target.value)
+                          setDescription(
+                            e.target.value
+                          )
                         }
                         placeholder="Enter product description..."
                         className="w-full resize-none rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
@@ -2439,75 +3746,107 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                         <button
                           type="button"
-                          onClick={addSpecificationField}
+                          onClick={
+                            addSpecificationField
+                          }
                           className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
                         >
-                          <FiPlus size={14} />
+                          <FiPlus
+                            size={14}
+                          />
                           Add Field
                         </button>
                       </div>
 
                       <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
-                        {specification.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-start gap-2"
-                          >
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={item.key}
-                                onChange={(e) =>
-                                  updateSpecification(
-                                    index,
-                                    "key",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Key (e.g., Display)"
-                                className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
-                              />
-                            </div>
-
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={item.value}
-                                onChange={(e) =>
-                                  updateSpecification(
-                                    index,
-                                    "value",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Value (e.g., 6.7-inch AMOLED)"
-                                className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
-                              />
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeSpecificationField(index)
+                        {specification.map(
+                          (
+                            item,
+                            index
+                          ) => (
+                            <div
+                              key={
+                                index
                               }
-                              disabled={
-                                specification.length <= 1
-                              }
-                              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${specification.length <= 1
-                                  ? "cursor-not-allowed border-[#E5EAE5] text-[#9AA29C]"
-                                  : "border-[#C23B32]/20 text-[#C23B32] hover:border-[#C23B32]/40 hover:bg-[#C23B32]/5"
-                                } transition-colors`}
+                              className="flex items-start gap-2"
                             >
-                              <FiTrash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
+                              <div className="flex-1">
+                                <input
+                                  type="text"
+                                  value={
+                                    item.key
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    updateSpecification(
+                                      index,
+                                      "key",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  placeholder="Key (e.g., Display)"
+                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                                />
+                              </div>
+
+                              <div className="flex-1">
+                                <input
+                                  type="text"
+                                  value={
+                                    item.value
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    updateSpecification(
+                                      index,
+                                      "value",
+                                      e.target
+                                        .value
+                                    )
+                                  }
+                                  placeholder="Value (e.g., 6.7-inch AMOLED)"
+                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                                />
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeSpecificationField(
+                                    index
+                                  )
+                                }
+                                disabled={
+                                  specification.length <=
+                                  1
+                                }
+                                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${
+                                  specification.length <=
+                                  1
+                                    ? "cursor-not-allowed border-[#E5EAE5] text-[#9AA29C]"
+                                    : "border-[#C23B32]/20 text-[#C23B32] hover:border-[#C23B32]/40 hover:bg-[#C23B32]/5"
+                                } transition-colors`}
+                              >
+                                <FiTrash2
+                                  size={16}
+                                />
+                              </button>
+                            </div>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* PRODUCT IMAGES */}
+                  {/* =================================================
+                      PRODUCT IMAGES
+                  ================================================= */}
+
                   <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FiUploadCloud
@@ -2525,7 +3864,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       </div>
 
                       <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90">
-                        <FiPlus size={16} />
+                        <FiPlus
+                          size={16}
+                        />
 
                         Add Images
 
@@ -2534,32 +3875,68 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           multiple
                           accept="image/*"
                           className="hidden"
-                          onChange={handleImages}
+                          onChange={
+                            handleImages
+                          }
                         />
                       </label>
                     </div>
 
+                    {/* ARRANGE HELP */}
+                    {images.length >
+                      1 && (
+                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 py-2 text-xs text-[#59645C]">
+                        <FiMove
+                          size={14}
+                          className="text-[#4C8A57]"
+                        />
+
+                        <span>
+                          Drag and drop images
+                          to arrange their order.
+                        </span>
+
+                        {isEdit && (
+                          <span className="font-semibold text-[#163F20]">
+                            Existing images are
+                            updated instantly.
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {errors.images && (
                       <p className="error-message mb-3 flex items-center gap-1 text-sm text-[#C23B32]">
                         <FiInfo size={14} />
-                        {errors.images}
+                        {
+                          errors.images
+                        }
                       </p>
                     )}
 
-                    {/* ✅ DRAG & DROP ZONE */}
                     <div
-                      onDragEnter={handleDragEnter}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
+                      onDragEnter={
+                        handleDragEnter
+                      }
+                      onDragOver={
+                        handleDragOver
+                      }
+                      onDragLeave={
+                        handleDragLeave
+                      }
+                      onDrop={
+                        handleDrop
+                      }
                       className="relative"
                     >
-                      {images.length === 0 ? (
+                      {images.length ===
+                      0 ? (
                         <label
-                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${isDragging
+                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                            isDragging
                               ? "border-[#163F20] bg-[#EAF3EA]"
                               : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
-                            }`}
+                          }`}
                         >
                           <FiUploadCloud
                             size={40}
@@ -2577,7 +3954,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           </p>
 
                           <p className="mt-0.5 text-xs text-[#9AA29C]">
-                            Drag & drop or click to select multiple
+                            Drag & drop or click
+                            to select multiple
                             images
                           </p>
 
@@ -2586,82 +3964,149 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             multiple
                             accept="image/*"
                             className="hidden"
-                            onChange={handleImages}
+                            onChange={
+                              handleImages
+                            }
                           />
                         </label>
                       ) : (
                         <div
-                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${isDragging
+                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${
+                            isDragging
                               ? "border-dashed border-[#163F20] bg-[#EAF3EA]"
                               : ""
-                            }`}
+                          }`}
                         >
-                          {images.map((item) => (
-                            <div
-                              key={item.id}
-                              className="group relative overflow-hidden rounded-lg border border-[#E5EAE5] bg-white shadow-sm transition-all hover:shadow-md"
-                            >
-                              <img
-                                src={item.preview}
-                                alt="Product"
-                                className="h-[140px] w-full object-cover"
-                                draggable={false}
-                              />
+                          {images.map(
+                            (item) => {
+                              const isArranging =
+                                item.is_existing &&
+                                item.existing_id
+                                  ? arrangingImageIds.includes(
+                                      Number(
+                                        item.existing_id
+                                      )
+                                    )
+                                  : false;
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setPrimaryImage(item.id)
-                                }
-                                className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors ${item.is_primary
-                                    ? "bg-[#163F20] text-white"
-                                    : "bg-white/90 text-[#59645C] hover:bg-white"
+                              return (
+                                <div
+                                  key={
+                                    item.id
+                                  }
+                                  draggable={
+                                    !loading &&
+                                    !isArranging
+                                  }
+                                  onDragStart={(
+                                    e
+                                  ) =>
+                                    handleImageDragStart(
+                                      e,
+                                      item.id
+                                    )
+                                  }
+                                  onDragOver={(
+                                    e
+                                  ) =>
+                                    handleImageDragOver(
+                                      e,
+                                      item.id
+                                    )
+                                  }
+                                  onDragLeave={
+                                    handleImageDragLeave
+                                  }
+                                  onDrop={(
+                                    e
+                                  ) =>
+                                    handleImageDrop(
+                                      e,
+                                      item.id
+                                    )
+                                  }
+                                  onDragEnd={
+                                    handleImageDragEnd
+                                  }
+                                  className={`group relative cursor-grab overflow-hidden rounded-lg border bg-white shadow-sm transition-all active:cursor-grabbing ${
+                                    dragOverImageId ===
+                                    item.id
+                                      ? "border-[#163F20] ring-2 ring-[#4C8A57]/30 scale-[1.02]"
+                                      : "border-[#E5EAE5]"
+                                  } ${
+                                    isArranging
+                                      ? "opacity-70"
+                                      : "hover:shadow-md"
                                   }`}
-                              >
-                                {item.is_primary
-                                  ? "★ Primary"
-                                  : "Set Primary"}
-                              </button>
+                                >
+                                  <img
+                                    src={
+                                      item.preview
+                                    }
+                                    alt="Product"
+                                    className="h-[140px] w-full object-cover"
+                                    draggable={
+                                      false
+                                    }
+                                  />
 
-                              <button
-                                type="button"
-                                onClick={() => removeImage(item.id)}
-                                disabled={
-                                  item.is_existing &&
-                                  !!item.existing_id &&
-                                  deletingImageIds.includes(
-                                    Number(item.existing_id)
-                                  )
-                                }
-                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                              >
-                                <FiX size={14} />
-                              </button>
+                                  {/* DRAG HANDLE */}
+                                  <div className="absolute bottom-4 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                                    <FiMove
+                                      size={
+                                        14
+                                      }
+                                    />
+                                  </div>
 
-                              <div className="flex items-center justify-between border-t border-[#E5EAE5] px-3 py-1.5 text-xs text-[#59645C]">
-                                <span>#{item.sort_order}</span>
+                                  {/* ARRANGE LOADER */}
+                                  {isArranging && (
+                                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55 backdrop-blur-[1px]">
+                                      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#163F20]/20 border-t-[#163F20]" />
+                                    </div>
+                                  )}
 
-                                {item.is_primary && (
-                                  <span className="font-semibold text-[#163F20]">
-                                    Primary
-                                  </span>
-                                )}
+                               
 
-                                {item.is_existing && (
-                                  <span className="text-[10px] text-[#4C8A57]">
-                                    Existing
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                                  {/* DELETE */}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeImage(
+                                        item.id
+                                      )
+                                    }
+                                    disabled={
+                                      item.is_existing &&
+                                      !!item.existing_id &&
+                                      deletingImageIds.includes(
+                                        Number(
+                                          item.existing_id
+                                        )
+                                      )
+                                    }
+                                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <FiX
+                                      size={
+                                        14
+                                      }
+                                    />
+                                  </button>
 
-                          {/* ADD MORE TILE */}
+        
+                                </div>
+                              );
+                            }
+                          )}
+
+                          {/* ADD MORE */}
                           <label
-                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${isDragging
+                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                              isDragging
                                 ? "border-[#163F20] bg-[#EAF3EA]"
                                 : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
-                              }`}
+                            }`}
                           >
                             <FiPlus
                               size={24}
@@ -2677,17 +4122,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               multiple
                               accept="image/*"
                               className="hidden"
-                              onChange={handleImages}
+                              onChange={
+                                handleImages
+                              }
                             />
                           </label>
                         </div>
                       )}
 
-                      {/* ✅ DRAG OVERLAY */}
+                      {/* FILE DROP OVERLAY */}
                       {isDragging && (
                         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-[#163F20] bg-[#EAF3EA]/80 backdrop-blur-[1px]">
                           <div className="flex flex-col items-center text-[#163F20]">
-                            <FiUploadCloud size={36} />
+                            <FiUploadCloud
+                              size={36}
+                            />
+
                             <span className="mt-1 text-sm font-bold">
                               Drop to upload
                             </span>
@@ -2697,7 +4147,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
                   </div>
 
-                  {/* VARIANTS */}
+                  {/* =================================================
+                      VARIANTS
+                  ================================================= */}
+
                   <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -2711,191 +4164,198 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         </h3>
 
                         <span className="text-xs text-[#9AA29C]">
-                          ({variants.length} variant
-                          {variants.length !== 1 ? "s" : ""})
+                          (
+                          {
+                            variants.length
+                          }{" "}
+                          variant
+                          {variants.length !==
+                          1
+                            ? "s"
+                            : ""}
+                          )
                         </span>
                       </div>
 
                       <button
                         type="button"
-                        onClick={addVariant}
+                        onClick={
+                          addVariant
+                        }
                         className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90"
                       >
-                        <FiPlus size={16} />
+                        <FiPlus
+                          size={16}
+                        />
                         Add Variant
                       </button>
                     </div>
 
-                    {variants.length === 0 ? (
+                    {variants.length ===
+                    0 ? (
                       <div className="rounded-xl border-2 border-dashed border-[#D8E2D8] bg-[#F5F7F5] py-10 text-center text-sm text-[#9AA29C]">
-                        No variants added. Click "Add Variant" to
-                        create one.
+                        No variants added. Click
+                        "Add Variant" to create one.
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {variants.map((variant, index) => (
-                          <div
-                            key={variant.id}
-                            className="rounded-lg border border-[#E5EAE5] bg-[#F5F7F5] p-4 transition-colors hover:bg-[#EAF3EA]/40"
-                          >
-                            <div className="mb-3 flex items-center justify-between">
-                              <h4 className="flex items-center gap-2 font-bold text-[#202721]">
-                                <FiPackage
-                                  className="text-[#4C8A57]"
-                                  size={16}
-                                />
+                        {variants.map(
+                          (
+                            variant,
+                            index
+                          ) => (
+                            <div
+                              key={
+                                variant.id
+                              }
+                              className="rounded-lg border border-[#E5EAE5] bg-[#F5F7F5] p-4 transition-colors hover:bg-[#EAF3EA]/40"
+                            >
+                              <div className="mb-3 flex items-center justify-between">
+                                <h4 className="flex items-center gap-2 font-bold text-[#202721]">
+                                  <FiPackage
+                                    className="text-[#4C8A57]"
+                                    size={
+                                      16
+                                    }
+                                  />
 
-                                Variant #{index + 1}
+                                  Variant #
+                                  {index +
+                                    1}
 
-                                {variant.is_existing && (
-                                  <span className="rounded-full bg-[#EAF3EA] px-2 py-0.5 text-xs text-[#4C8A57]">
-                                    Existing
-                                  </span>
-                                )}
-                              </h4>
+                                  {variant.is_existing && (
+                                    <span className="rounded-full bg-[#EAF3EA] px-2 py-0.5 text-xs text-[#4C8A57]">
+                                      Existing
+                                    </span>
+                                  )}
+                                </h4>
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeVariant(variant.id)
-                                }
-                                className="rounded-lg p-1 text-[#C23B32] transition-colors hover:bg-[#C23B32]/10 hover:text-red-700"
-                              >
-                                <FiTrash2 size={18} />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              {/* SKU */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  SKU
-                                </label>
-
-                                <input
-                                  type="text"
-                                  value={variant.sku}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      variant.id,
-                                      "sku",
-                                      e.target.value
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeVariant(
+                                      variant.id
                                     )
                                   }
-                                  placeholder="e.g. SMP5G-BLACK-128"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                />
+                                  className="rounded-lg p-1 text-[#C23B32] transition-colors hover:bg-[#C23B32]/10 hover:text-red-700"
+                                >
+                                  <FiTrash2
+                                    size={
+                                      18
+                                    }
+                                  />
+                                </button>
                               </div>
 
-                              {/* ATTRIBUTE */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Attributes
-                                </label>
+                              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 
-                                <AttributeSelector
-                                  variantId={variant.id}
-                                  selectedAttributes={
-                                    variant.attributes
-                                  }
-                                  availableAttributes={
-                                    attributeMasters
-                                  }
-                                  onAddAttribute={
-                                    updateVariantAttribute
-                                  }
-                                  onRemoveAttribute={
-                                    removeVariantAttribute
-                                  }
-                                />
-                              </div>
-
-                              {/* RETAIL MRP */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Retail MRP
-                                </label>
-
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
-                                    ₹
-                                  </span>
+                                {/* SKU */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    SKU
+                                  </label>
 
                                   <input
                                     type="text"
-                                    inputMode="decimal"
-                                    value={variant.retail_mrp}
-                                    onChange={(e) => {
-                                      const val =
-                                        e.target.value;
-
-                                      if (
-                                        isValidDecimalInput(
-                                          val
-                                        )
-                                      ) {
-                                        updateVariant(
-                                          variant.id,
-                                          "retail_mrp",
-                                          val
-                                        );
-                                      }
-                                    }}
-                                    placeholder="100000"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                  />
-                                </div>
-                              </div>
-
-                              {/* RETAIL DISCOUNT */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Discount (%)
-                                </label>
-
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={
-                                    variant.retail_discount_value
-                                  }
-                                  onChange={(e) => {
-                                    const val =
-                                      e.target.value;
-
-                                    if (
-                                      isValidDecimalInput(val)
-                                    ) {
+                                    value={
+                                      variant.sku
+                                    }
+                                    onChange={(
+                                      e
+                                    ) =>
                                       updateVariant(
                                         variant.id,
-                                        "retail_discount_value",
-                                        val
-                                      );
+                                        "sku",
+                                        e.target
+                                          .value
+                                      )
                                     }
-                                  }}
-                                  placeholder="40"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                />
-                              </div>
+                                    placeholder="e.g. SMP5G-BLACK-128"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                  />
+                                </div>
 
-                              {/* DISTRIBUTOR MRP */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Distributor MRP
-                                </label>
+                                {/* ATTRIBUTE */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Attributes
+                                  </label>
 
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
-                                    ₹
-                                  </span>
+                                  <AttributeSelector
+                                    variantId={
+                                      variant.id
+                                    }
+                                    selectedAttributes={
+                                      variant.attributes
+                                    }
+                                    availableAttributes={
+                                      attributeMasters
+                                    }
+                                    onAddAttribute={
+                                      updateVariantAttribute
+                                    }
+                                    onRemoveAttribute={
+                                      removeVariantAttribute
+                                    }
+                                  />
+                                </div>
+
+                                {/* RETAIL MRP */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Retail MRP
+                                  </label>
+
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
+                                      ₹
+                                    </span>
+
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={
+                                        variant.retail_mrp
+                                      }
+                                      onChange={(
+                                        e
+                                      ) => {
+                                        const val =
+                                          e.target.value;
+
+                                        if (
+                                          isValidDecimalInput(
+                                            val
+                                          )
+                                        ) {
+                                          updateVariant(
+                                            variant.id,
+                                            "retail_mrp",
+                                            val
+                                          );
+                                        }
+                                      }}
+                                      placeholder="100000"
+                                      className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* RETAIL DISCOUNT */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Discount (%)
+                                  </label>
 
                                   <input
                                     type="text"
                                     inputMode="decimal"
                                     value={
-                                      variant.distributor_mrp
+                                      variant.retail_discount_value
                                     }
-                                    onChange={(e) => {
+                                    onChange={(
+                                      e
+                                    ) => {
                                       const val =
                                         e.target.value;
 
@@ -2906,232 +4366,313 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                       ) {
                                         updateVariant(
                                           variant.id,
-                                          "distributor_mrp",
+                                          "retail_discount_value",
                                           val
                                         );
                                       }
                                     }}
-                                    placeholder="90000"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    placeholder="40"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
                                   />
                                 </div>
-                              </div>
 
-                              {/* DISTRIBUTOR DISCOUNT */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Distributor Discount (%)
-                                </label>
+                                {/* DISTRIBUTOR MRP */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Distributor MRP
+                                  </label>
 
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={
-                                    variant.distributor_discount_value
-                                  }
-                                  onChange={(e) => {
-                                    const val =
-                                      e.target.value;
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
+                                      ₹
+                                    </span>
 
-                                    if (
-                                      isValidDecimalInput(val)
-                                    ) {
-                                      updateVariant(
-                                        variant.id,
-                                        "distributor_discount_value",
-                                        val
-                                      );
-                                    }
-                                  }}
-                                  placeholder="35"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                />
-                              </div>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={
+                                        variant.distributor_mrp
+                                      }
+                                      onChange={(
+                                        e
+                                      ) => {
+                                        const val =
+                                          e.target.value;
 
-                              {/* STOCK */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Stock
-                                </label>
+                                        if (
+                                          isValidDecimalInput(
+                                            val
+                                          )
+                                        ) {
+                                          updateVariant(
+                                            variant.id,
+                                            "distributor_mrp",
+                                            val
+                                          );
+                                        }
+                                      }}
+                                      placeholder="90000"
+                                      className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    />
+                                  </div>
+                                </div>
 
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={
-                                    variant.stock_quantity
-                                  }
-                                  onChange={(e) => {
-                                    const val =
-                                      e.target.value;
-
-                                    if (
-                                      isValidIntegerInput(val)
-                                    ) {
-                                      updateVariant(
-                                        variant.id,
-                                        "stock_quantity",
-                                        val
-                                      );
-                                    }
-                                  }}
-                                  placeholder="20"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                />
-                              </div>
-
-                              {/* LOW STOCK */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Low Stock Alert
-                                </label>
-
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={
-                                    variant.low_stock_threshold
-                                  }
-                                  onChange={(e) => {
-                                    const val =
-                                      e.target.value;
-
-                                    if (
-                                      isValidIntegerInput(val)
-                                    ) {
-                                      updateVariant(
-                                        variant.id,
-                                        "low_stock_threshold",
-                                        val
-                                      );
-                                    }
-                                  }}
-                                  placeholder="5"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                />
-                              </div>
-
-                              {/* STATUS */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#59645C]">
-                                  Status
-                                </label>
-
-                                <select
-                                  value={variant.is_active}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      variant.id,
-                                      "is_active",
-                                      Number(e.target.value)
-                                    )
-                                  }
-                                  className="h-10 w-full appearance-none rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                                >
-                                  <option value={1}>
-                                    Active
-                                  </option>
-
-                                  <option value={0}>
-                                    Inactive
-                                  </option>
-                                </select>
-                              </div>
-                            </div>
-
-                            {/* VARIANT IMAGES */}
-                            <div className="mt-3 border-t border-[#E5EAE5] pt-3">
-                              <div className="mb-2 flex items-center justify-between">
-                                <label className="flex items-center gap-1 text-xs font-semibold text-[#59645C]">
-                                  <FiUploadCloud size={14} />
-                                  Variant Images
-                                </label>
-
-                                <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-[#EAF3EA] px-3 py-1 text-xs font-semibold text-[#163F20] transition-colors hover:bg-[#8FC199]/40">
-                                  <FiPlus size={12} />
-                                  Add Images
+                                {/* DISTRIBUTOR DISCOUNT */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Distributor Discount (%)
+                                  </label>
 
                                   <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) =>
-                                      handleVariantImages(
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={
+                                      variant.distributor_discount_value
+                                    }
+                                    onChange={(
+                                      e
+                                    ) => {
+                                      const val =
+                                        e.target.value;
+
+                                      if (
+                                        isValidDecimalInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "distributor_discount_value",
+                                          val
+                                        );
+                                      }
+                                    }}
+                                    placeholder="35"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                  />
+                                </div>
+
+                                {/* STOCK */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Stock
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={
+                                      variant.stock_quantity
+                                    }
+                                    onChange={(
+                                      e
+                                    ) => {
+                                      const val =
+                                        e.target.value;
+
+                                      if (
+                                        isValidIntegerInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "stock_quantity",
+                                          val
+                                        );
+                                      }
+                                    }}
+                                    placeholder="20"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                  />
+                                </div>
+
+                                {/* LOW STOCK */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Low Stock Alert
+                                  </label>
+
+                                  <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={
+                                      variant.low_stock_threshold
+                                    }
+                                    onChange={(
+                                      e
+                                    ) => {
+                                      const val =
+                                        e.target.value;
+
+                                      if (
+                                        isValidIntegerInput(
+                                          val
+                                        )
+                                      ) {
+                                        updateVariant(
+                                          variant.id,
+                                          "low_stock_threshold",
+                                          val
+                                        );
+                                      }
+                                    }}
+                                    placeholder="5"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                  />
+                                </div>
+
+                                {/* STATUS */}
+                                <div>
+                                  <label className="text-xs font-semibold text-[#59645C]">
+                                    Status
+                                  </label>
+
+                                  <select
+                                    value={
+                                      variant.is_active
+                                    }
+                                    onChange={(
+                                      e
+                                    ) =>
+                                      updateVariant(
                                         variant.id,
-                                        e
+                                        "is_active",
+                                        Number(
+                                          e.target
+                                            .value
+                                        )
                                       )
                                     }
-                                  />
-                                </label>
+                                    className="h-10 w-full appearance-none rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                  >
+                                    <option value={1}>
+                                      Active
+                                    </option>
+
+                                    <option value={0}>
+                                      Inactive
+                                    </option>
+                                  </select>
+                                </div>
                               </div>
 
-                              {variant.images.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                  {variant.images.map((img) => (
-                                    <div
-                                      key={img.id}
-                                      className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#E5EAE5] shadow-sm"
-                                    >
-                                      <img
-                                        src={img.preview}
-                                        alt="Variant"
-                                        className="h-full w-full object-cover"
-                                        draggable={false}
-                                      />
+                              {/* VARIANT IMAGES */}
+                              <div className="mt-3 border-t border-[#E5EAE5] pt-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <label className="flex items-center gap-1 text-xs font-semibold text-[#59645C]">
+                                    <FiUploadCloud
+                                      size={
+                                        14
+                                      }
+                                    />
+                                    Variant Images
+                                  </label>
 
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setPrimaryVariantImage(
-                                            variant.id,
-                                            img.id
-                                          )
-                                        }
-                                        className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${img.is_primary
-                                            ? "bg-[#163F20] text-white"
-                                            : "bg-white/90 text-[#59645C] hover:bg-white"
-                                          }`}
-                                      >
-                                        {img.is_primary
-                                          ? "P"
-                                          : "Set"}
-                                      </button>
+                                  <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-[#EAF3EA] px-3 py-1 text-xs font-semibold text-[#163F20] transition-colors hover:bg-[#8FC199]/40">
+                                    <FiPlus
+                                      size={
+                                        12
+                                      }
+                                    />
+                                    Add Images
 
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          removeVariantImage(
-                                            variant.id,
-                                            img.id
-                                          )
-                                        }
-                                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[#C23B32] transition-colors hover:bg-[#C23B32] hover:text-white"
-                                      >
-                                        <FiX size={10} />
-                                      </button>
-
-                                      {img.is_existing && (
-                                        <span className="absolute bottom-0 left-0 right-0 bg-[#4C8A57] text-center text-[6px] text-white">
-                                          Existing
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))}
+                                    <input
+                                      type="file"
+                                      multiple
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(
+                                        e
+                                      ) =>
+                                        handleVariantImages(
+                                          variant.id,
+                                          e
+                                        )
+                                      }
+                                    />
+                                  </label>
                                 </div>
-                              )}
+
+                                {variant.images
+                                  .length >
+                                  0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {variant.images.map(
+                                      (
+                                        img
+                                      ) => (
+                                        <div
+                                          key={
+                                            img.id
+                                          }
+                                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#E5EAE5] shadow-sm"
+                                        >
+                                          <img
+                                            src={
+                                              img.preview
+                                            }
+                                            alt="Variant"
+                                            className="h-full w-full object-cover"
+                                            draggable={
+                                              false
+                                            }
+                                          />
+
+                                          <div
+                                            className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${
+                                              img.is_primary
+                                                ? "bg-[#163F20] text-white"
+                                                : "bg-white/90 text-[#59645C]"
+                                            }`}
+                                          >
+                                            {img.is_primary
+                                              ? "P"
+                                              : "Img"}
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              removeVariantImage(
+                                                variant.id,
+                                                img.id
+                                              )
+                                            }
+                                            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[#C23B32] transition-colors hover:bg-[#C23B32] hover:text-white"
+                                          >
+                                            <FiX
+                                              size={
+                                                10
+                                              }
+                                            />
+                                          </button>
+
+                                          {img.is_existing && (
+                                            <span className="absolute bottom-0 left-0 right-0 bg-[#4C8A57] text-center text-[6px] text-white">
+                                              Existing
+                                            </span>
+                                          )}
+                                        </div>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* =================================================
-                    RIGHT
+                    RIGHT SIDE
                 ================================================= */}
 
                 <div className="space-y-6">
+
                   {/* PRICING */}
                   <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
@@ -3146,6 +4687,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
 
                     <div className="space-y-4">
+
                       {/* RETAIL MRP */}
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
@@ -3163,33 +4705,50 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
-                            value={retailMrp}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            value={
+                              retailMrp
+                            }
+                            onChange={(
+                              e
+                            ) => {
+                              const val =
+                                e.target.value;
 
                               if (
-                                isValidDecimalInput(val)
+                                isValidDecimalInput(
+                                  val
+                                )
                               ) {
-                                setRetailMrp(val);
+                                setRetailMrp(
+                                  val
+                                );
 
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  retail_mrp: undefined,
-                                }));
+                                setErrors(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    retail_mrp:
+                                      undefined,
+                                  })
+                                );
                               }
                             }}
                             placeholder="100000"
-                            className={`h-12 w-full rounded-lg border ${errors.retail_mrp
+                            className={`h-12 w-full rounded-lg border ${
+                              errors.retail_mrp
                                 ? "border-[#C23B32]"
                                 : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                           />
                         </div>
 
                         {errors.retail_mrp && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                             <FiInfo size={14} />
-                            {errors.retail_mrp}
+                            {
+                              errors.retail_mrp
+                            }
                           </p>
                         )}
                       </div>
@@ -3204,12 +4763,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
-                            value={retailDiscountValue}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            value={
+                              retailDiscountValue
+                            }
+                            onChange={(
+                              e
+                            ) => {
+                              const val =
+                                e.target.value;
 
                               if (
-                                isValidDecimalInput(val)
+                                isValidDecimalInput(
+                                  val
+                                )
                               ) {
                                 setRetailDiscountValue(
                                   val
@@ -3240,14 +4806,23 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
-                            value={distributorMrp}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            value={
+                              distributorMrp
+                            }
+                            onChange={(
+                              e
+                            ) => {
+                              const val =
+                                e.target.value;
 
                               if (
-                                isValidDecimalInput(val)
+                                isValidDecimalInput(
+                                  val
+                                )
                               ) {
-                                setDistributorMrp(val);
+                                setDistributorMrp(
+                                  val
+                                );
                               }
                             }}
                             placeholder="90000"
@@ -3266,12 +4841,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
-                            value={distributorDiscountValue}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            value={
+                              distributorDiscountValue
+                            }
+                            onChange={(
+                              e
+                            ) => {
+                              const val =
+                                e.target.value;
 
                               if (
-                                isValidDecimalInput(val)
+                                isValidDecimalInput(
+                                  val
+                                )
                               ) {
                                 setDistributorDiscountValue(
                                   val
@@ -3288,7 +4870,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         </div>
                       </div>
 
-                      {/* COMMISSION VALUE */}
+                      {/* COMMISSION */}
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
                           Commission Value
@@ -3297,12 +4879,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={commissionValue}
+                          value={
+                            commissionValue
+                          }
                           onChange={(e) => {
-                            const val = e.target.value;
+                            const val =
+                              e.target.value;
 
-                            if (isValidIntegerInput(val)) {
-                              setCommissionValue(val);
+                            if (
+                              isValidIntegerInput(
+                                val
+                              )
+                            ) {
+                              setCommissionValue(
+                                val
+                              );
                             }
                           }}
                           placeholder="0"
@@ -3310,7 +4901,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         />
                       </div>
 
-                      {/* SHIPPING CHARGE */}
+                      {/* SHIPPING */}
                       <div>
                         <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#202721]">
                           <FiTruck
@@ -3328,34 +4919,50 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
-                            value={shippingCharge}
-                            onChange={(e) => {
-                              const val = e.target.value;
+                            value={
+                              shippingCharge
+                            }
+                            onChange={(
+                              e
+                            ) => {
+                              const val =
+                                e.target.value;
 
                               if (
-                                isValidDecimalInput(val)
+                                isValidDecimalInput(
+                                  val
+                                )
                               ) {
-                                setShippingCharge(val);
+                                setShippingCharge(
+                                  val
+                                );
 
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  shipping_charge:
-                                    undefined,
-                                }));
+                                setErrors(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    shipping_charge:
+                                      undefined,
+                                  })
+                                );
                               }
                             }}
                             placeholder="0"
-                            className={`h-12 w-full rounded-lg border ${errors.shipping_charge
+                            className={`h-12 w-full rounded-lg border ${
+                              errors.shipping_charge
                                 ? "border-[#C23B32]"
                                 : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                           />
                         </div>
 
                         {errors.shipping_charge && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                             <FiInfo size={14} />
-                            {errors.shipping_charge}
+                            {
+                              errors.shipping_charge
+                            }
                           </p>
                         )}
 
@@ -3381,6 +4988,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
 
                     <div className="space-y-4">
+
                       {/* STOCK */}
                       <div>
                         <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
@@ -3393,30 +5001,49 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={stockQuantity}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          value={
+                            stockQuantity
+                          }
+                          onChange={(
+                            e
+                          ) => {
+                            const val =
+                              e.target.value;
 
-                            if (isValidIntegerInput(val)) {
-                              setStockQuantity(val);
+                            if (
+                              isValidIntegerInput(
+                                val
+                              )
+                            ) {
+                              setStockQuantity(
+                                val
+                              );
 
-                              setErrors((prev) => ({
-                                ...prev,
-                                stock_quantity: undefined,
-                              }));
+                              setErrors(
+                                (
+                                  prev
+                                ) => ({
+                                  ...prev,
+                                  stock_quantity:
+                                    undefined,
+                                })
+                              );
                             }
                           }}
                           placeholder="100"
-                          className={`h-12 w-full rounded-lg border ${errors.stock_quantity
+                          className={`h-12 w-full rounded-lg border ${
+                            errors.stock_quantity
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.stock_quantity && (
                           <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
                             <FiInfo size={14} />
-                            {errors.stock_quantity}
+                            {
+                              errors.stock_quantity
+                            }
                           </p>
                         )}
                       </div>
@@ -3430,12 +5057,23 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={lowStockThreshold}
-                          onChange={(e) => {
-                            const val = e.target.value;
+                          value={
+                            lowStockThreshold
+                          }
+                          onChange={(
+                            e
+                          ) => {
+                            const val =
+                              e.target.value;
 
-                            if (isValidIntegerInput(val)) {
-                              setLowStockThreshold(val);
+                            if (
+                              isValidIntegerInput(
+                                val
+                              )
+                            ) {
+                              setLowStockThreshold(
+                                val
+                              );
                             }
                           }}
                           placeholder="10"
@@ -3444,8 +5082,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                         <p className="mt-1 flex items-center gap-1 text-xs text-[#9AA29C]">
                           <FiInfo size={12} />
-                          You'll be notified when stock falls below
-                          this number
+                          You'll be notified when stock falls below this number
                         </p>
                       </div>
                     </div>
@@ -3477,9 +5114,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                       <input
                         type="checkbox"
-                        checked={isPublished}
-                        onChange={(e) =>
-                          setIsPublished(e.target.checked)
+                        checked={
+                          isPublished
+                        }
+                        onChange={(
+                          e
+                        ) =>
+                          setIsPublished(
+                            e.target
+                              .checked
+                          )
                         }
                         className="h-5 w-5 cursor-pointer rounded border-[#D8E2D8] accent-[#163F20]"
                       />
@@ -3490,42 +5134,52 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             </form>
           </div>
 
-          {/* FOOTER */}
+          {/* =====================================================
+              FOOTER
+          ===================================================== */}
+
           <div className="flex flex-shrink-0 flex-col gap-3 border-t border-[#E5EAE5] bg-white px-6 py-4">
 
-            {/* =========================================================
-                UPLOAD PROGRESS (NEW) — shows while uploading
-            ========================================================= */}
-            {loading && uploadProgress && (
-              <UploadProgressBar
-                percent={uploadProgress.percent}
-                loaded={uploadProgress.loaded}
-                total={uploadProgress.total}
-                bytesPerSecond={uploadProgress.bytesPerSecond}
-                estimatedRemainingMs={
-                  uploadProgress.estimatedRemainingMs
-                }
-                label={
-                  isEdit
-                    ? "Updating product & images…"
-                    : "Uploading product & images…"
-                }
-              />
-            )}
+            {/* UPLOAD PROGRESS */}
+            {loading &&
+              uploadProgress && (
+                <UploadProgressBar
+                  percent={
+                    uploadProgress.percent
+                  }
+                  loaded={
+                    uploadProgress.loaded
+                  }
+                  total={
+                    uploadProgress.total
+                  }
+                  bytesPerSecond={
+                    uploadProgress.bytesPerSecond
+                  }
+                  estimatedRemainingMs={
+                    uploadProgress.estimatedRemainingMs
+                  }
+                  label={
+                    isEdit
+                      ? "Updating product & images…"
+                      : "Uploading product & images…"
+                  }
+                />
+              )}
 
             <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="h-11 rounded-lg border border-[#D8E2D8] px-7 text-sm font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
-              >
-                Cancel
-              </button>
-
+           
               <button
                 type="submit"
-                disabled={loading || fetchingOptions}
-                onClick={handleSubmit}
+                disabled={
+                  loading ||
+                  fetchingOptions ||
+                  arrangingImageIds.length >
+                    0
+                }
+                onClick={
+                  handleSubmit
+                }
                 className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50"
               >
                 {loading ? (
@@ -3552,7 +5206,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       />
                     </svg>
 
-                    {isEdit ? "Updating..." : "Adding..."}
+                    {isEdit
+                      ? "Updating..."
+                      : "Adding..."}
                   </>
                 ) : fetchingOptions ? (
                   "Loading..."
