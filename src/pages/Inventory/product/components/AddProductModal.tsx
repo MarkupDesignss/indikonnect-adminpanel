@@ -32,6 +32,12 @@ import brandsApi from "../../../../api/endpoints/brands";
 import { subcategoryApi } from "../../../../api/endpoints/subcategory";
 import { productApi } from "../../../../api/endpoints/product";
 
+/* =========================================================
+   UPLOAD PROGRESS (NEW)
+========================================================= */
+import UploadProgressBar from "./UploadProgressBar";
+import type { UploadProgressMeta } from "../../../../api/endpoints/product";
+
 interface SelectOption {
   id: number;
   name: string;
@@ -44,6 +50,7 @@ interface AddProductModalProps {
   onSubmit: (formData: FormData) => void;
   editData?: any;
   isEdit?: boolean;
+  uploadProgress?: UploadProgressMeta | null; // ← NEW
 }
 
 interface ImageItem {
@@ -113,7 +120,6 @@ interface SpecItem {
   key: string;
   value: string;
 }
-
 
 const isValidDecimalInput = (value: string): boolean => {
   return /^\d*\.?\d*$/.test(value);
@@ -385,8 +391,8 @@ const generateVariantsFromProduct = (
 
         is_active:
           variant.is_active === true ||
-          variant.is_active === 1 ||
-          variant.is_active === "1"
+            variant.is_active === 1 ||
+            variant.is_active === "1"
             ? 1
             : 0,
 
@@ -400,8 +406,8 @@ const generateVariantsFromProduct = (
 
             is_primary:
               img.is_primary === true ||
-              img.is_primary === 1 ||
-              img.is_primary === "1"
+                img.is_primary === 1 ||
+                img.is_primary === "1"
                 ? 1
                 : 0,
 
@@ -489,7 +495,7 @@ const generateVariantsFromProduct = (
 
           retail_discount_value:
             retailDiscount !== null &&
-            retailDiscount !== undefined
+              retailDiscount !== undefined
               ? String(retailDiscount)
               : "0",
 
@@ -503,7 +509,7 @@ const generateVariantsFromProduct = (
 
           distributor_discount_value:
             distributorDiscount !== null &&
-            distributorDiscount !== undefined
+              distributorDiscount !== undefined
               ? String(distributorDiscount)
               : "0",
 
@@ -555,182 +561,182 @@ const AttributeSelector: React.FC<{
   onAddAttribute,
   onRemoveAttribute,
 }) => {
-  const [selectedKey, setSelectedKey] = useState("");
-  const [selectedValue, setSelectedValue] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
+    const [selectedKey, setSelectedKey] = useState("");
+    const [selectedValue, setSelectedValue] = useState("");
+    const [isOpen, setIsOpen] = useState(false);
 
-  const handleAdd = () => {
-    if (selectedKey && selectedValue) {
-      onAddAttribute(variantId, selectedKey, selectedValue);
+    const handleAdd = () => {
+      if (selectedKey && selectedValue) {
+        onAddAttribute(variantId, selectedKey, selectedValue);
 
-      setSelectedKey("");
-      setSelectedValue("");
-      setIsOpen(false);
-    }
-  };
+        setSelectedKey("");
+        setSelectedValue("");
+        setIsOpen(false);
+      }
+    };
 
-  const getValuesForAttribute = (key: string) => {
-    const attribute = availableAttributes.find(
-      (attr) => attr.attribute_key === key
-    );
+    const getValuesForAttribute = (key: string) => {
+      const attribute = availableAttributes.find(
+        (attr) => attr.attribute_key === key
+      );
 
-    return attribute?.values || [];
-  };
+      return attribute?.values || [];
+    };
 
-  const isAttributeValueSelected = (
-    key: string,
-    value: string
-  ) => {
-    return selectedAttributes.some(
-      (attr) => attr.key === key && attr.value === value
-    );
-  };
+    const isAttributeValueSelected = (
+      key: string,
+      value: string
+    ) => {
+      return selectedAttributes.some(
+        (attr) => attr.key === key && attr.value === value
+      );
+    };
 
-  const getAvailableValuesForAttribute = (key: string) => {
-    const allValues = getValuesForAttribute(key);
+    const getAvailableValuesForAttribute = (key: string) => {
+      const allValues = getValuesForAttribute(key);
 
-    return allValues.filter(
-      (val) => !isAttributeValueSelected(key, val.value)
-    );
-  };
+      return allValues.filter(
+        (val) => !isAttributeValueSelected(key, val.value)
+      );
+    };
 
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
-        {selectedAttributes.map((attr, index) => (
-          <span
-            key={`${attr.key}-${attr.value}-${index}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1 text-xs font-medium"
-          >
-            <span className="font-semibold text-[#163F20]">
-              {attr.key}:
-            </span>
-
-            <span className="text-[#4C8A57]">
-              {attr.value}
-            </span>
-
-            <button
-              type="button"
-              onClick={() =>
-                onRemoveAttribute(
-                  variantId,
-                  attr.key,
-                  attr.value
-                )
-              }
-              className="ml-0.5 text-[#C23B32] transition-colors hover:text-red-700"
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {selectedAttributes.map((attr, index) => (
+            <span
+              key={`${attr.key}-${attr.value}-${index}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1 text-xs font-medium"
             >
-              <FiX size={12} />
-            </button>
-          </span>
-        ))}
+              <span className="font-semibold text-[#163F20]">
+                {attr.key}:
+              </span>
 
-        {selectedAttributes.length === 0 && (
-          <span className="text-xs text-[#9AA29C]">
-            No attributes selected
-          </span>
-        )}
-      </div>
+              <span className="text-[#4C8A57]">
+                {attr.value}
+              </span>
 
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#4C8A57] transition-colors hover:bg-[#EAF3EA] hover:text-[#163F20]"
-        >
-          <FiPlus size={14} />
-          Add Attribute
-        </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onRemoveAttribute(
+                    variantId,
+                    attr.key,
+                    attr.value
+                  )
+                }
+                className="ml-0.5 text-[#C23B32] transition-colors hover:text-red-700"
+              >
+                <FiX size={12} />
+              </button>
+            </span>
+          ))}
 
-        {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E5EAE5] bg-white p-4 shadow-xl">
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#202721]">
-                  Select Attribute
-                </label>
+          {selectedAttributes.length === 0 && (
+            <span className="text-xs text-[#9AA29C]">
+              No attributes selected
+            </span>
+          )}
+        </div>
 
-                <select
-                  value={selectedKey}
-                  onChange={(e) => {
-                    setSelectedKey(e.target.value);
-                    setSelectedValue("");
-                  }}
-                  className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                >
-                  <option value="">
-                    Choose attribute...
-                  </option>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#4C8A57] transition-colors hover:bg-[#EAF3EA] hover:text-[#163F20]"
+          >
+            <FiPlus size={14} />
+            Add Attribute
+          </button>
 
-                  {availableAttributes.map((attr) => (
-                    <option
-                      key={attr.id}
-                      value={attr.attribute_key}
-                    >
-                      {attr.attribute_key}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedKey && (
+          {isOpen && (
+            <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E5EAE5] bg-white p-4 shadow-xl">
+              <div className="space-y-3">
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-[#202721]">
-                    Select Value
+                    Select Attribute
                   </label>
 
                   <select
-                    value={selectedValue}
-                    onChange={(e) =>
-                      setSelectedValue(e.target.value)
-                    }
+                    value={selectedKey}
+                    onChange={(e) => {
+                      setSelectedKey(e.target.value);
+                      setSelectedValue("");
+                    }}
                     className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
                   >
                     <option value="">
-                      Choose value...
+                      Choose attribute...
                     </option>
 
-                    {getAvailableValuesForAttribute(
-                      selectedKey
-                    ).map((val) => (
-                      <option key={val.id} value={val.value}>
-                        {val.value}
+                    {availableAttributes.map((attr) => (
+                      <option
+                        key={attr.id}
+                        value={attr.attribute_key}
+                      >
+                        {attr.attribute_key}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setSelectedKey("");
-                    setSelectedValue("");
-                  }}
-                  className="h-8 flex-1 rounded-lg border border-[#D8E2D8] text-xs font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
-                >
-                  Cancel
-                </button>
+                {selectedKey && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#202721]">
+                      Select Value
+                    </label>
 
-                <button
-                  type="button"
-                  onClick={handleAdd}
-                  disabled={!selectedKey || !selectedValue}
-                  className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Add
-                </button>
+                    <select
+                      value={selectedValue}
+                      onChange={(e) =>
+                        setSelectedValue(e.target.value)
+                      }
+                      className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                    >
+                      <option value="">
+                        Choose value...
+                      </option>
+
+                      {getAvailableValuesForAttribute(
+                        selectedKey
+                      ).map((val) => (
+                        <option key={val.id} value={val.value}>
+                          {val.value}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      setSelectedKey("");
+                      setSelectedValue("");
+                    }}
+                    className="h-8 flex-1 rounded-lg border border-[#D8E2D8] text-xs font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={!selectedKey || !selectedValue}
+                    className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 // ============================================================
 // MAIN COMPONENT
@@ -743,6 +749,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   onSubmit,
   editData,
   isEdit = false,
+  uploadProgress, // ← NEW
 }) => {
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [subcategories, setSubcategories] = useState<
@@ -941,8 +948,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     const editSubcategoryId = normalizeId(
       product?.subcategory_id ??
-        product?.["subcategory_id "] ??
-        product?.subcategory?.id
+      product?.["subcategory_id "] ??
+      product?.subcategory?.id
     );
 
     setSubcategoryId(editSubcategoryId);
@@ -955,7 +962,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     const editTaxCategoryId = normalizeId(
       product?.tax_category_id ??
-        product?.tax_category?.id
+      product?.tax_category?.id
     );
 
     setTaxCategoryId(editTaxCategoryId);
@@ -1036,9 +1043,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setIsPublished(
       product?.is_published === true ||
-        product?.is_published === 1 ||
-        product?.is_published === "1" ||
-        product?.is_published === "true"
+      product?.is_published === 1 ||
+      product?.is_published === "1" ||
+      product?.is_published === "true"
     );
 
     if (Array.isArray(product?.images)) {
@@ -1052,8 +1059,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
           is_primary:
             img?.is_primary === true ||
-            img?.is_primary === 1 ||
-            img?.is_primary === "1"
+              img?.is_primary === 1 ||
+              img?.is_primary === "1"
               ? 1
               : 0,
 
@@ -1250,7 +1257,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     e.target.value = "";
   };
 
-  // ✅ DRAG & DROP HANDLERS
   const handleDragEnter = useCallback(
     (e: React.DragEvent<HTMLElement>) => {
       e.preventDefault();
@@ -1867,7 +1873,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       formData.append(
         `variants[${vIndex}][distributor_discount_type]`,
         variant.distributor_discount_type ||
-          "percentage"
+        "percentage"
       );
 
       formData.append(
@@ -2010,10 +2016,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
               <p className="mt-0.5 text-sm text-[#59645C]">
                 {isEdit
-                  ? `Editing: ${
-                      getProductObject(editData)?.name ||
-                      "Product"
-                    }`
+                  ? `Editing: ${getProductObject(editData)?.name ||
+                  "Product"
+                  }`
                   : "Fill in the product details, pricing, variants and images"}
               </p>
             </div>
@@ -2069,11 +2074,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             handleNameChange(e.target.value)
                           }
                           placeholder="e.g. SoundMax Pro 5G Smartphone"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.name
+                          className={`h-12 w-full rounded-lg border ${errors.name
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.name && (
@@ -2100,11 +2104,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             setProductCode(e.target.value)
                           }
                           placeholder="e.g. SMP5G-BLACK-128"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.product_code
+                          className={`h-12 w-full rounded-lg border ${errors.product_code
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.product_code && (
@@ -2153,11 +2156,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   e.target.value
                                 )
                               }
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.category_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${errors.category_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select category...
@@ -2214,11 +2216,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   e.target.value
                                 )
                               }
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.subcategory_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${errors.subcategory_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select subcategory...
@@ -2283,11 +2284,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   brand_id: undefined,
                                 }));
                               }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.brand_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${errors.brand_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select brand...
@@ -2350,11 +2350,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                     undefined,
                                 }));
                               }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.tax_category_id
+                              className={`h-12 w-full appearance-none rounded-lg border ${errors.tax_category_id
                                   ? "border-[#C23B32]"
                                   : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                             >
                               <option value="">
                                 Select tax...
@@ -2494,11 +2493,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               disabled={
                                 specification.length <= 1
                               }
-                              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${
-                                specification.length <= 1
+                              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${specification.length <= 1
                                   ? "cursor-not-allowed border-[#E5EAE5] text-[#9AA29C]"
                                   : "border-[#C23B32]/20 text-[#C23B32] hover:border-[#C23B32]/40 hover:bg-[#C23B32]/5"
-                              } transition-colors`}
+                                } transition-colors`}
                             >
                               <FiTrash2 size={16} />
                             </button>
@@ -2558,11 +2556,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     >
                       {images.length === 0 ? (
                         <label
-                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
-                            isDragging
+                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${isDragging
                               ? "border-[#163F20] bg-[#EAF3EA]"
                               : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
-                          }`}
+                            }`}
                         >
                           <FiUploadCloud
                             size={40}
@@ -2594,11 +2591,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         </label>
                       ) : (
                         <div
-                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${
-                            isDragging
+                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${isDragging
                               ? "border-dashed border-[#163F20] bg-[#EAF3EA]"
                               : ""
-                          }`}
+                            }`}
                         >
                           {images.map((item) => (
                             <div
@@ -2617,11 +2613,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 onClick={() =>
                                   setPrimaryImage(item.id)
                                 }
-                                className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors ${
-                                  item.is_primary
+                                className={`absolute left-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold transition-colors ${item.is_primary
                                     ? "bg-[#163F20] text-white"
                                     : "bg-white/90 text-[#59645C] hover:bg-white"
-                                }`}
+                                  }`}
                               >
                                 {item.is_primary
                                   ? "★ Primary"
@@ -2663,11 +2658,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           {/* ADD MORE TILE */}
                           <label
-                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
-                              isDragging
+                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${isDragging
                                 ? "border-[#163F20] bg-[#EAF3EA]"
                                 : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
-                            }`}
+                              }`}
                           >
                             <FiPlus
                               size={24}
@@ -3093,11 +3087,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                             img.id
                                           )
                                         }
-                                        className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${
-                                          img.is_primary
+                                        className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${img.is_primary
                                             ? "bg-[#163F20] text-white"
                                             : "bg-white/90 text-[#59645C] hover:bg-white"
-                                        }`}
+                                          }`}
                                       >
                                         {img.is_primary
                                           ? "P"
@@ -3186,11 +3179,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               }
                             }}
                             placeholder="100000"
-                            className={`h-12 w-full rounded-lg border ${
-                              errors.retail_mrp
+                            className={`h-12 w-full rounded-lg border ${errors.retail_mrp
                                 ? "border-[#C23B32]"
                                 : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                           />
                         </div>
 
@@ -3353,11 +3345,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               }
                             }}
                             placeholder="0"
-                            className={`h-12 w-full rounded-lg border ${
-                              errors.shipping_charge
+                            className={`h-12 w-full rounded-lg border ${errors.shipping_charge
                                 ? "border-[#C23B32]"
                                 : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                           />
                         </div>
 
@@ -3416,11 +3407,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             }
                           }}
                           placeholder="100"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.stock_quantity
+                          className={`h-12 w-full rounded-lg border ${errors.stock_quantity
                               ? "border-[#C23B32]"
                               : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                            } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
                         />
 
                         {errors.stock_quantity && (
@@ -3501,55 +3491,78 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
 
           {/* FOOTER */}
-          <div className="flex flex-shrink-0 justify-end gap-3 border-t border-[#E5EAE5] bg-white px-6 py-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="h-11 rounded-lg border border-[#D8E2D8] px-7 text-sm font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-[#E5EAE5] bg-white px-6 py-4">
 
-            <button
-              type="submit"
-              disabled={loading || fetchingOptions}
-              onClick={handleSubmit}
-              className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <svg
-                    className="h-4 w-4 animate-spin text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
+            {/* =========================================================
+                UPLOAD PROGRESS (NEW) — shows while uploading
+            ========================================================= */}
+            {loading && uploadProgress && (
+              <UploadProgressBar
+                percent={uploadProgress.percent}
+                loaded={uploadProgress.loaded}
+                total={uploadProgress.total}
+                bytesPerSecond={uploadProgress.bytesPerSecond}
+                estimatedRemainingMs={
+                  uploadProgress.estimatedRemainingMs
+                }
+                label={
+                  isEdit
+                    ? "Updating product & images…"
+                    : "Uploading product & images…"
+                }
+              />
+            )}
 
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-11 rounded-lg border border-[#D8E2D8] px-7 text-sm font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
+              >
+                Cancel
+              </button>
 
-                  {isEdit ? "Updating..." : "Adding..."}
-                </>
-              ) : fetchingOptions ? (
-                "Loading..."
-              ) : isEdit ? (
-                "Update Product"
-              ) : (
-                "Add Product"
-              )}
-            </button>
+              <button
+                type="submit"
+                disabled={loading || fetchingOptions}
+                onClick={handleSubmit}
+                className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="h-4 w-4 animate-spin text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+
+                    {isEdit ? "Updating..." : "Adding..."}
+                  </>
+                ) : fetchingOptions ? (
+                  "Loading..."
+                ) : isEdit ? (
+                  "Update Product"
+                ) : (
+                  "Add Product"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,13 +1,6 @@
-import React, {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
-import {
-  FiPlus,
-  FiSearch,
-} from "react-icons/fi";
+import { FiPlus, FiSearch } from "react-icons/fi";
 
 import { motion } from "framer-motion";
 
@@ -21,34 +14,25 @@ import ProductTable from "./components/ProductTable";
 import AddProductModal from "./components/AddProductModal";
 import ViewProductModal from "./components/ViewProductModal";
 
-import { productApi } from "../../../api/endpoints/product";
+import {
+  productApi,
+  type UploadProgressMeta,
+} from "../../../api/endpoints/product";
 
 import trendingProductsApi from "../../../api/endpoints/today";
 
-import {
-  Product,
-  SelectOption,
-} from "@/types/product";
+import { Product, SelectOption } from "@/types/product";
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.06,
-    },
+    transition: { staggerChildren: 0.06 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    y: 12,
-    opacity: 0,
-  },
-
+  hidden: { y: 12, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
@@ -71,46 +55,42 @@ const Products: React.FC = () => {
   // STATE
   // ===================================================
 
-  const [products, setProducts] =
-    useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const [categories, setCategories] =
-    useState<SelectOption[]>([]);
+  const [categories, setCategories] = useState<SelectOption[]>([]);
 
-  const [taxCategories, setTaxCategories] =
-    useState<SelectOption[]>([]);
+  const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
 
-  const [brands, setBrands] =
-    useState<SelectOption[]>([]);
+  const [brands, setBrands] = useState<SelectOption[]>([]);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [addLoading, setAddLoading] =
-    useState(false);
+  const [addLoading, setAddLoading] = useState(false);
 
-  const [editLoading, setEditLoading] =
-    useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
-  const [fetchingProduct, setFetchingProduct] =
-    useState(false);
+  const [fetchingProduct, setFetchingProduct] = useState(false);
 
-  const [trendingLoadingId, setTrendingLoadingId] =
-    useState<number | null>(null);
+  const [trendingLoadingId, setTrendingLoadingId] = useState<number | null>(
+    null,
+  );
 
-  const [publishLoadingId, setPublishLoadingId] =
-    useState<number | null>(null);
+  const [publishLoadingId, setPublishLoadingId] = useState<number | null>(null);
 
-  const [search, setSearch] =
-    useState("");
+  // ===================================================
+  // UPLOAD PROGRESS STATE
+  // ===================================================
 
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [uploadProgress, setUploadProgress] =
+    useState<UploadProgressMeta | null>(null);
 
-  const [
-    highlightedProductId,
-    setHighlightedProductId,
-  ] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [highlightedProductId, setHighlightedProductId] = useState<
+    number | null
+  >(null);
 
   const ITEMS_PER_PAGE = 10;
 
@@ -118,24 +98,15 @@ const Products: React.FC = () => {
   // MODALS
   // ===================================================
 
-  const [addModalOpen, setAddModalOpen] =
-    useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
-  const [editModalOpen, setEditModalOpen] =
-    useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
-  const [viewModalOpen, setViewModalOpen] =
-    useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
 
-  const [
-    selectedProduct,
-    setSelectedProduct,
-  ] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const productFromHeader =
-    location.state?.product as
-      | Product
-      | undefined;
+  const productFromHeader = location.state?.product as Product | undefined;
 
   // ===================================================
   // FETCH PRODUCTS
@@ -145,27 +116,18 @@ const Products: React.FC = () => {
     try {
       setLoading(true);
 
-      const response =
-        await productApi.getProducts();
+      const response = await productApi.getProducts();
 
-      const productData =
-        response?.data?.data ?? [];
+      const productData = response?.data?.data ?? [];
 
-      setProducts(
-        Array.isArray(productData)
-          ? productData
-          : []
-      );
+      setProducts(Array.isArray(productData) ? productData : []);
     } catch (error: any) {
-      console.error(
-        "Fetch products error:",
-        error
-      );
+      console.error("Fetch products error:", error);
 
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Unable to fetch products."
+          "Unable to fetch products.",
       );
     } finally {
       setLoading(false);
@@ -176,30 +138,13 @@ const Products: React.FC = () => {
   // FETCH PRODUCT DETAILS
   // ===================================================
 
-  const fetchProductDetails = async (
-    productId: number
-  ) => {
+  const fetchProductDetails = async (productId: number) => {
     try {
       setFetchingProduct(true);
 
-      const response =
-        await productApi.getProductById(
-          productId
-        );
+      const response = await productApi.getProductById(productId);
 
-      console.log(
-        "EDIT PRODUCT API RESPONSE:",
-        response?.data
-      );
-
-      /*
-       * Supports:
-       *
-       * response.data.data.data
-       * response.data.data
-       * response.data.product
-       * response.data
-       */
+      console.log("EDIT PRODUCT API RESPONSE:", response?.data);
 
       const rawProduct =
         response?.data?.data?.data ??
@@ -207,29 +152,11 @@ const Products: React.FC = () => {
         response?.data?.product ??
         response?.data;
 
-      if (
-        !rawProduct ||
-        typeof rawProduct !== "object"
-      ) {
+      if (!rawProduct || typeof rawProduct !== "object") {
         return null;
       }
 
-      // =================================================
-      // NORMALIZE SUBCATEGORY ID
-      // =================================================
-
-      /*
-       * API can return subcategory in different formats:
-       *
-       * subcategory_id
-       * sub_category_id
-       * subcategory.id
-       * sub_category.id
-       */
-
-      let normalizedSubcategoryId:
-        | number
-        | null = null;
+      let normalizedSubcategoryId: number | null = null;
 
       const possibleSubcategoryId =
         rawProduct?.subcategory_id ??
@@ -238,49 +165,32 @@ const Products: React.FC = () => {
         rawProduct?.sub_category?.id;
 
       if (
-        possibleSubcategoryId !==
-          undefined &&
+        possibleSubcategoryId !== undefined &&
         possibleSubcategoryId !== null &&
         possibleSubcategoryId !== ""
       ) {
-        const parsedId =
-          Number(
-            possibleSubcategoryId
-          );
+        const parsedId = Number(possibleSubcategoryId);
 
         if (!Number.isNaN(parsedId)) {
-          normalizedSubcategoryId =
-            parsedId;
+          normalizedSubcategoryId = parsedId;
         }
       }
 
-      // =================================================
-      // NORMALIZE PRODUCT
-      // =================================================
-
       const product = {
         ...rawProduct,
-
-        subcategory_id:
-          normalizedSubcategoryId,
+        subcategory_id: normalizedSubcategoryId,
       };
 
-      console.log(
-        "NORMALIZED PRODUCT:",
-        product
-      );
+      console.log("NORMALIZED PRODUCT:", product);
 
       return product as Product;
     } catch (error: any) {
-      console.error(
-        "Fetch product details error:",
-        error
-      );
+      console.error("Fetch product details error:", error);
 
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Unable to fetch product details."
+          "Unable to fetch product details.",
       );
 
       return null;
@@ -307,557 +217,320 @@ const Products: React.FC = () => {
     }
 
     if (productFromHeader.name) {
-      setSearch(
-        productFromHeader.name
-      );
-    } else if (
-      productFromHeader.id
-    ) {
-      setSearch(
-        String(
-          productFromHeader.id
-        )
-      );
+      setSearch(productFromHeader.name);
+    } else if (productFromHeader.id) {
+      setSearch(String(productFromHeader.id));
     }
 
-    setHighlightedProductId(
-      productFromHeader.id
-    );
+    setHighlightedProductId(productFromHeader.id);
 
-    window.history.replaceState(
-      {},
-      document.title
-    );
-  }, [
-    productFromHeader,
-  ]);
+    window.history.replaceState({}, document.title);
+  }, [productFromHeader]);
 
   // ===================================================
   // SEARCH
   // ===================================================
 
-  const filteredProducts =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      if (!query) {
-        return products;
+    if (!query) {
+      return products;
+    }
+
+    return products.filter((product: any) => {
+      if (!isNaN(Number(query)) && product.id === Number(query)) {
+        return true;
       }
 
-      return products.filter(
-        (product: any) => {
-          // PRODUCT ID
-          if (
-            !isNaN(Number(query)) &&
-            product.id ===
-              Number(query)
-          ) {
-            return true;
-          }
+      if (product.name?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // NAME
-          if (
-            product.name
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.product_code?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // PRODUCT CODE
-          if (
-            product.product_code
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.slug?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // SLUG
-          if (
-            product.slug
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.description?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // DESCRIPTION
-          if (
-            product.description
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.sku?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // SKU
-          if (
-            product.sku
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.category?.name?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // CATEGORY
-          if (
-            product.category?.name
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.subcategory?.name?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // SUBCATEGORY
-          if (
-            product.subcategory?.name
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.brand?.name?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // BRAND
-          if (
-            product.brand?.name
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.price?.toString().includes(query)) {
+        return true;
+      }
 
-          // PRICE
-          if (
-            product.price
-              ?.toString()
-              .includes(query)
-          ) {
-            return true;
-          }
+      if (product.status?.toLowerCase().includes(query)) {
+        return true;
+      }
 
-          // STATUS
-          if (
-            product.status
-              ?.toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
+      const isPublished =
+        product.is_published === true ||
+        product.is_published === 1 ||
+        product.is_published === "1" ||
+        product.is_published === "true";
 
-          // =================================================
-          // PUBLISHED STATUS
-          // =================================================
+      if (query === "published" && isPublished) return true;
+      if (query === "unpublished" && !isPublished) return true;
+      if (query === "active" && isPublished) return true;
+      if (query === "inactive" && !isPublished) return true;
 
-          const isPublished =
-            product.is_published ===
-              true ||
-            product.is_published ===
-              1 ||
-            product.is_published ===
-              "1" ||
-            product.is_published ===
-              "true";
+      if (String(product.is_published).toLowerCase().includes(query)) {
+        return true;
+      }
 
-          if (
-            query ===
-              "published" &&
-            isPublished
-          ) {
-            return true;
-          }
-
-          if (
-            query ===
-              "unpublished" &&
-            !isPublished
-          ) {
-            return true;
-          }
-
-          if (
-            query === "active" &&
-            isPublished
-          ) {
-            return true;
-          }
-
-          if (
-            query === "inactive" &&
-            !isPublished
-          ) {
-            return true;
-          }
-
-          // RAW PUBLISH VALUE
-          if (
-            String(
-              product.is_published
-            )
-              .toLowerCase()
-              .includes(query)
-          ) {
-            return true;
-          }
-
-          return false;
-        }
-      );
-    }, [
-      products,
-      search,
-    ]);
+      return false;
+    });
+  }, [products, search]);
 
   // ===================================================
   // COUNTS
   // ===================================================
 
-  const publishedCount =
-    useMemo(() => {
-      return products.filter(
-        (product: any) =>
-          product.is_published ===
-            true ||
-          product.is_published ===
-            1 ||
-          product.is_published ===
-            "1" ||
-          product.is_published ===
-            "true"
-      ).length;
-    }, [products]);
+  const publishedCount = useMemo(() => {
+    return products.filter(
+      (product: any) =>
+        product.is_published === true ||
+        product.is_published === 1 ||
+        product.is_published === "1" ||
+        product.is_published === "true",
+    ).length;
+  }, [products]);
 
-  const unpublishedCount =
-    useMemo(() => {
-      return (
-        products.length -
-        publishedCount
-      );
-    }, [
-      products,
-      publishedCount,
-    ]);
+  const unpublishedCount = useMemo(() => {
+    return products.length - publishedCount;
+  }, [products, publishedCount]);
 
   // ===================================================
   // PAGINATION
   // ===================================================
 
-  const totalPages = Math.ceil(
-    filteredProducts.length /
-      ITEMS_PER_PAGE
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  const safeTotalPages = Math.max(totalPages, 1);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
   );
 
-  const safeTotalPages =
-    Math.max(
-      totalPages,
-      1
-    );
+  const startEntry = filteredProducts.length === 0 ? 0 : startIndex + 1;
 
-  const startIndex =
-    (currentPage - 1) *
-    ITEMS_PER_PAGE;
-
-  const paginatedProducts =
-    filteredProducts.slice(
-      startIndex,
-      startIndex +
-        ITEMS_PER_PAGE
-    );
-
-  const startEntry =
-    filteredProducts.length ===
-    0
-      ? 0
-      : startIndex + 1;
-
-  const endEntry =
-    Math.min(
-      startIndex +
-        ITEMS_PER_PAGE,
-      filteredProducts.length
-    );
+  const endEntry = Math.min(
+    startIndex + ITEMS_PER_PAGE,
+    filteredProducts.length,
+  );
 
   // ===================================================
   // KEEP PAGE VALID
   // ===================================================
 
   useEffect(() => {
-    if (
-      currentPage >
-      safeTotalPages
-    ) {
-      setCurrentPage(
-        safeTotalPages
-      );
+    if (currentPage > safeTotalPages) {
+      setCurrentPage(safeTotalPages);
     }
-  }, [
-    currentPage,
-    safeTotalPages,
-  ]);
+  }, [currentPage, safeTotalPages]);
 
   // ===================================================
   // ADD PRODUCT
   // ===================================================
 
-  const handleAddProduct =
-    async (
-      formData: FormData
-    ) => {
-      try {
-        setAddLoading(true);
+  const handleAddProduct = async (formData: FormData) => {
+    try {
+      setAddLoading(true);
+      setUploadProgress(null);
 
-        const response =
-          await productApi.createProduct(
-            formData
-          );
+      const response = await productApi.createProduct(formData, (meta) =>
+        setUploadProgress(meta),
+      );
 
-        await fetchProducts();
+      await fetchProducts();
 
-        setAddModalOpen(false);
-        setCurrentPage(1);
+      setAddModalOpen(false);
+      setCurrentPage(1);
 
-        toast.success(
-          response.data?.message ||
-            "Product added successfully."
+      toast.success(response.data?.message || "Product added successfully.");
+    } catch (error: any) {
+      console.error("Add product error:", error);
+
+      if (error?.response?.data?.errors) {
+        const errors = error.response.data.errors;
+
+        const errorMessages = Object.values(errors).flat().join(", ");
+
+        toast.error(errorMessages);
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to add product.",
         );
-      } catch (error: any) {
-        console.error(
-          "Add product error:",
-          error
-        );
-
-        if (
-          error?.response?.data
-            ?.errors
-        ) {
-          const errors =
-            error.response.data
-              .errors;
-
-          const errorMessages =
-            Object.values(errors)
-              .flat()
-              .join(", ");
-
-          toast.error(
-            errorMessages
-          );
-        } else {
-          toast.error(
-            error?.response?.data
-              ?.message ||
-              error?.message ||
-              "Unable to add product."
-          );
-        }
-      } finally {
-        setAddLoading(false);
       }
-    };
+    } finally {
+      setAddLoading(false);
+      setUploadProgress(null);
+    }
+  };
 
   // ===================================================
   // EDIT PRODUCT
   // ===================================================
 
-  const handleEditProduct =
-    async (
-      formData: FormData
-    ) => {
-      if (!selectedProduct) {
-        return;
-      }
+  const handleEditProduct = async (formData: FormData) => {
+    if (!selectedProduct) {
+      return;
+    }
 
-      try {
-        setEditLoading(true);
+    try {
+      setEditLoading(true);
+      setUploadProgress(null);
 
-        const response =
-          await productApi.updateProduct(
-            selectedProduct.id,
-            formData
-          );
+      const response = await productApi.updateProduct(
+        selectedProduct.id,
+        formData,
+        (meta) => setUploadProgress(meta),
+      );
 
-        await fetchProducts();
+      await fetchProducts();
 
-        setEditModalOpen(false);
-        setSelectedProduct(null);
+      setEditModalOpen(false);
+      setSelectedProduct(null);
 
-        toast.success(
-          response.data?.message ||
-            "Product updated successfully."
+      toast.success(response.data?.message || "Product updated successfully.");
+    } catch (error: any) {
+      console.error("Update product error:", error);
+
+      if (error?.response?.data?.errors) {
+        const errors = error.response.data.errors;
+
+        const errorMessages = Object.values(errors).flat().join(", ");
+
+        toast.error(errorMessages);
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to update product.",
         );
-      } catch (error: any) {
-        console.error(
-          "Update product error:",
-          error
-        );
-
-        if (
-          error?.response?.data
-            ?.errors
-        ) {
-          const errors =
-            error.response.data
-              .errors;
-
-          const errorMessages =
-            Object.values(errors)
-              .flat()
-              .join(", ");
-
-          toast.error(
-            errorMessages
-          );
-        } else {
-          toast.error(
-            error?.response?.data
-              ?.message ||
-              error?.message ||
-              "Unable to update product."
-          );
-        }
-      } finally {
-        setEditLoading(false);
       }
-    };
+    } finally {
+      setEditLoading(false);
+      setUploadProgress(null);
+    }
+  };
 
   // ===================================================
   // TRENDING TOGGLE
   // ===================================================
 
-  const handleTrendingToggle =
-    async (
-      product: Product,
-      checked: boolean
-    ) => {
-      try {
-        setTrendingLoadingId(
-          product.id
-        );
+  const handleTrendingToggle = async (product: Product, checked: boolean) => {
+    try {
+      setTrendingLoadingId(product.id);
 
-        const response =
-          await trendingProductsApi.updateTrendingStatus(
-            product.id,
-            {
-              is_trending:
-                checked ? 1 : 0,
-            }
-          );
+      const response = await trendingProductsApi.updateTrendingStatus(
+        product.id,
+        {
+          is_trending: checked ? 1 : 0,
+        },
+      );
 
-        await fetchProducts();
+      await fetchProducts();
 
-        toast.success(
-          response.data?.message ||
-            (checked
-              ? "Product added to trending."
-              : "Product removed from trending.")
-        );
-      } catch (error: any) {
-        console.error(
-          "Trending status update error:",
-          error
-        );
+      toast.success(
+        response.data?.message ||
+          (checked
+            ? "Product added to trending."
+            : "Product removed from trending."),
+      );
+    } catch (error: any) {
+      console.error("Trending status update error:", error);
 
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            error?.message ||
-            "Unable to update trending status."
-        );
-      } finally {
-        setTrendingLoadingId(
-          null
-        );
-      }
-    };
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update trending status.",
+      );
+    } finally {
+      setTrendingLoadingId(null);
+    }
+  };
 
   // ===================================================
   // PUBLISH / UNPUBLISH
   // ===================================================
 
-  const handlePublishToggle =
-    async (
-      product: Product,
-      isPublished: boolean
-    ) => {
-      try {
-        setPublishLoadingId(
-          product.id
-        );
+  const handlePublishToggle = async (
+    product: Product,
+    isPublished: boolean,
+  ) => {
+    try {
+      setPublishLoadingId(product.id);
 
-        const response =
-          await productApi.publishProduct(
-            product.id,
-            {
-              is_published:
-                isPublished ? 1 : 0,
-            }
-          );
+      const response = await productApi.publishProduct(product.id, {
+        is_published: isPublished ? 1 : 0,
+      });
 
-        await fetchProducts();
+      await fetchProducts();
 
-        toast.success(
-          response.data?.message ||
-            (isPublished
-              ? "Product published successfully."
-              : "Product unpublished successfully.")
-        );
-      } catch (error: any) {
-        console.error(
-          "Publish status update error:",
-          error
-        );
+      toast.success(
+        response.data?.message ||
+          (isPublished
+            ? "Product published successfully."
+            : "Product unpublished successfully."),
+      );
+    } catch (error: any) {
+      console.error("Publish status update error:", error);
 
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            error?.message ||
-            "Unable to update product publish status."
-        );
-      } finally {
-        setPublishLoadingId(
-          null
-        );
-      }
-    };
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update product publish status.",
+      );
+    } finally {
+      setPublishLoadingId(null);
+    }
+  };
 
   // ===================================================
   // HANDLE EDIT
   // ===================================================
 
-  const handleEdit = async (
-    product: Product
-  ) => {
+  const handleEdit = async (product: Product) => {
     try {
-      const fullProduct =
-        await fetchProductDetails(
-          product.id
-        );
+      const fullProduct = await fetchProductDetails(product.id);
 
-      const productToEdit =
-        fullProduct || product;
+      const productToEdit = fullProduct || product;
 
-      console.log(
-        "PRODUCT PASSED TO EDIT MODAL:",
-        productToEdit
-      );
+      console.log("PRODUCT PASSED TO EDIT MODAL:", productToEdit);
 
-      setSelectedProduct(
-        productToEdit
-      );
+      setSelectedProduct(productToEdit);
 
       setEditModalOpen(true);
     } catch (error) {
-      console.error(
-        "Error fetching product details:",
-        error
-      );
+      console.error("Error fetching product details:", error);
 
-      setSelectedProduct(
-        product
-      );
+      setSelectedProduct(product);
 
       setEditModalOpen(true);
     }
@@ -867,12 +540,8 @@ const Products: React.FC = () => {
   // HANDLE VIEW
   // ===================================================
 
-  const handleView = (
-    product: Product
-  ) => {
-    setSelectedProduct(
-      product
-    );
+  const handleView = (product: Product) => {
+    setSelectedProduct(product);
 
     setViewModalOpen(true);
   };
@@ -881,13 +550,8 @@ const Products: React.FC = () => {
   // HANDLE PAGE CHANGE
   // ===================================================
 
-  const handlePageChange = (
-    page: number
-  ) => {
-    if (
-      page < 1 ||
-      page > safeTotalPages
-    ) {
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > safeTotalPages) {
       return;
     }
 
@@ -901,9 +565,7 @@ const Products: React.FC = () => {
   return (
     <motion.div
       className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
-      variants={
-        containerVariants
-      }
+      variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
@@ -912,9 +574,7 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={
-          itemVariants
-        }
+        variants={itemVariants}
         className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
       >
         <div>
@@ -931,18 +591,14 @@ const Products: React.FC = () => {
           </h1>
 
           <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
-            Manage your products,
-            pricing, inventory, and
-            product information from
-            one place.
+            Manage your products, pricing, inventory, and product information
+            from one place.
           </p>
         </div>
 
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* TOTAL */}
-
           <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
               Total Products
@@ -953,8 +609,6 @@ const Products: React.FC = () => {
             </div>
           </div>
 
-          {/* PUBLISHED */}
-
           <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4C8A57]">
               Published
@@ -964,8 +618,6 @@ const Products: React.FC = () => {
               {publishedCount}
             </div>
           </div>
-
-          {/* UNPUBLISHED */}
 
           <div className="rounded-xl border border-[#C23B32]/15 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C23B32]">
@@ -984,9 +636,7 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={
-          itemVariants
-        }
+        variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
       >
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
@@ -1010,15 +660,9 @@ const Products: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => {
-                setSearch(
-                  e.target.value
-                );
-
+                setSearch(e.target.value);
                 setCurrentPage(1);
-
-                setHighlightedProductId(
-                  null
-                );
+                setHighlightedProductId(null);
               }}
               placeholder="Search by ID, name, code, slug, SKU, price, status..."
               className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
@@ -1026,14 +670,8 @@ const Products: React.FC = () => {
 
             {search && (
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-[#EAF3EA] px-2 py-1 text-[9px] font-bold text-[#163F20]">
-                {
-                  filteredProducts.length
-                }{" "}
-                result
-                {filteredProducts.length !==
-                1
-                  ? "s"
-                  : ""}
+                {filteredProducts.length} result
+                {filteredProducts.length !== 1 ? "s" : ""}
               </div>
             )}
           </div>
@@ -1042,17 +680,9 @@ const Products: React.FC = () => {
 
           <motion.button
             type="button"
-            onClick={() =>
-              setAddModalOpen(
-                true
-              )
-            }
-            whileHover={{
-              y: -2,
-            }}
-            whileTap={{
-              scale: 0.97,
-            }}
+            onClick={() => setAddModalOpen(true)}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
             className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
           >
             <FiPlus size={15} />
@@ -1066,54 +696,28 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <motion.div
-        variants={
-          itemVariants
-        }
+        variants={itemVariants}
         className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
       >
         <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
 
         <div className="pt-[3px]">
           <ProductTable
-            products={
-              paginatedProducts
-            }
+            products={paginatedProducts}
             loading={loading}
-            currentPage={
-              currentPage
-            }
-            totalPages={
-              totalPages
-            }
-            totalEntries={
-              filteredProducts.length
-            }
-            startEntry={
-              startEntry
-            }
-            endEntry={
-              endEntry
-            }
-            onPageChange={
-              handlePageChange
-            }
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalEntries={filteredProducts.length}
+            startEntry={startEntry}
+            endEntry={endEntry}
+            onPageChange={handlePageChange}
             onEdit={handleEdit}
             onView={handleView}
-            onTrendingToggle={
-              handleTrendingToggle
-            }
-            trendingLoadingId={
-              trendingLoadingId
-            }
-            highlightedProductId={
-              highlightedProductId
-            }
-            onPublishToggle={
-              handlePublishToggle
-            }
-            publishLoadingId={
-              publishLoadingId
-            }
+            onTrendingToggle={handleTrendingToggle}
+            trendingLoadingId={trendingLoadingId}
+            highlightedProductId={highlightedProductId}
+            onPublishToggle={handlePublishToggle}
+            publishLoadingId={publishLoadingId}
           />
         </div>
       </motion.div>
@@ -1123,37 +727,24 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <GlobalModal
-        isOpen={
-          addModalOpen
-        }
+        isOpen={addModalOpen}
         onClose={() => {
           if (!addLoading) {
-            setAddModalOpen(
-              false
-            );
+            setAddModalOpen(false);
           }
         }}
-        closeOnOverlayClick={
-          !addLoading
-        }
+        closeOnOverlayClick={!addLoading}
       >
         <AddProductModal
-          open={
-            addModalOpen
-          }
-          loading={
-            addLoading
-          }
+          open={addModalOpen}
+          loading={addLoading}
+          uploadProgress={uploadProgress}
           onClose={() => {
             if (!addLoading) {
-              setAddModalOpen(
-                false
-              );
+              setAddModalOpen(false);
             }
           }}
-          onSubmit={
-            handleAddProduct
-          }
+          onSubmit={handleAddProduct}
           isEdit={false}
         />
       </GlobalModal>
@@ -1163,52 +754,28 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <GlobalModal
-        isOpen={
-          editModalOpen
-        }
+        isOpen={editModalOpen}
         onClose={() => {
           if (!editLoading) {
-            setEditModalOpen(
-              false
-            );
-
-            setSelectedProduct(
-              null
-            );
+            setEditModalOpen(false);
+            setSelectedProduct(null);
           }
         }}
-        closeOnOverlayClick={
-          !editLoading
-        }
+        closeOnOverlayClick={!editLoading}
       >
         <AddProductModal
-          key={`edit-product-${
-            selectedProduct?.id ??
-            "new"
-          }`}
-          open={
-            editModalOpen
-          }
-          loading={
-            editLoading
-          }
+          key={`edit-product-${selectedProduct?.id ?? "new"}`}
+          open={editModalOpen}
+          loading={editLoading}
+          uploadProgress={uploadProgress}
           onClose={() => {
             if (!editLoading) {
-              setEditModalOpen(
-                false
-              );
-
-              setSelectedProduct(
-                null
-              );
+              setEditModalOpen(false);
+              setSelectedProduct(null);
             }
           }}
-          onSubmit={
-            handleEditProduct
-          }
-          editData={
-            selectedProduct
-          }
+          onSubmit={handleEditProduct}
+          editData={selectedProduct}
           isEdit={true}
         />
       </GlobalModal>
@@ -1218,49 +785,25 @@ const Products: React.FC = () => {
       ================================================= */}
 
       <GlobalModal
-        isOpen={
-          viewModalOpen
-        }
+        isOpen={viewModalOpen}
         onClose={() => {
           if (!fetchingProduct) {
-            setViewModalOpen(
-              false
-            );
-
-            setSelectedProduct(
-              null
-            );
+            setViewModalOpen(false);
+            setSelectedProduct(null);
           }
         }}
-        closeOnOverlayClick={
-          !fetchingProduct
-        }
+        closeOnOverlayClick={!fetchingProduct}
       >
         <ViewProductModal
-          open={
-            viewModalOpen
-          }
-          product={
-            selectedProduct
-          }
-          categories={
-            categories
-          }
-          taxCategories={
-            taxCategories
-          }
-          brands={
-            brands
-          }
+          open={viewModalOpen}
+          product={selectedProduct}
+          categories={categories}
+          taxCategories={taxCategories}
+          brands={brands}
           onClose={() => {
             if (!fetchingProduct) {
-              setViewModalOpen(
-                false
-              );
-
-              setSelectedProduct(
-                null
-              );
+              setViewModalOpen(false);
+              setSelectedProduct(null);
             }
           }}
         />

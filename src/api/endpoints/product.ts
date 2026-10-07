@@ -1,4 +1,5 @@
 import apiClient from "../client";
+import type { AxiosProgressEvent } from "axios";
 
 export type DiscountType = "percentage" | "fixed";
 export type ProductStatus = "active" | "inactive" | "draft";
@@ -307,6 +308,67 @@ export interface WarehouseStockPayload {
 }
 
 /* =========================================================
+   UPLOAD PROGRESS TYPES
+========================================================= */
+
+export interface UploadProgressMeta {
+  /** 0 - 100 */
+  percent: number;
+  /** bytes uploaded so far */
+  loaded: number;
+  /** total bytes (0 if server doesn't send Content-Length) */
+  total: number;
+  /** bytes per second */
+  bytesPerSecond: number;
+  /** milliseconds elapsed since upload started */
+  elapsedMs: number;
+  /** estimated ms remaining (null if unknown) */
+  estimatedRemainingMs: number | null;
+}
+
+export type OnUploadProgress = (meta: UploadProgressMeta) => void;
+
+/* =========================================================
+   INTERNAL UPLOAD PROGRESS HELPER
+========================================================= */
+
+function emitUploadProgress(
+  e: AxiosProgressEvent,
+  startedAt: number,
+  cb?: OnUploadProgress,
+) {
+  if (!cb) return;
+
+  const loaded = e.loaded ?? 0;
+  const total = e.total ?? 0;
+
+  const percent =
+    total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+
+  const elapsedMs = Date.now() - startedAt;
+
+  const bytesPerSecond = elapsedMs > 0 ? (loaded / elapsedMs) * 1000 : 0;
+
+  const estimatedRemainingMs =
+    bytesPerSecond > 0 && total > 0
+      ? ((total - loaded) / bytesPerSecond) * 1000
+      : null;
+
+  cb({
+    percent,
+    loaded,
+    total,
+    bytesPerSecond,
+    elapsedMs,
+    estimatedRemainingMs,
+  });
+}
+
+/* =========================================================
+   PRODUCT API
+========================================================= */
+
+/* =========================================================
    DELETE PRODUCT IMAGE
 ========================================================= */
 
@@ -334,28 +396,37 @@ export const productApi = {
   getProductBySlug: (slug: string) =>
     apiClient.get<ApiResponse<Product>>(`/products/slug/${slug}`),
 
-  createProduct: (data: FormData) =>
-    apiClient.post<ApiResponse<Product>>("/products", data, {
+  createProduct: (data: FormData, onUploadProgress?: OnUploadProgress) => {
+    const startedAt = Date.now();
+
+    return apiClient.post<ApiResponse<Product>>("/products", data, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }),
+      onUploadProgress: (e) =>
+        emitUploadProgress(e, startedAt, onUploadProgress),
+    });
+  },
 
-  updateProduct: (id: number, data: FormData) =>
-    apiClient.post<ApiResponse<Product>>(
+  updateProduct: (
+    id: number,
+    data: FormData,
+    onUploadProgress?: OnUploadProgress,
+  ) => {
+    const startedAt = Date.now();
+
+    return apiClient.post<ApiResponse<Product>>(
       `/products/update/${id}`,
       data,
       {
         headers: {
           "Content-Type": "multipart/form-data",
         },
-      }
-    ),
-
-  // ============================
-  // DELETE PRODUCT IMAGES
-  // DELETE /products/{productId}/images
-  // ============================
+        onUploadProgress: (e) =>
+          emitUploadProgress(e, startedAt, onUploadProgress),
+      },
+    );
+  },
 
   deleteImages: (
     productId: number,
@@ -374,57 +445,38 @@ export const productApi = {
   // PUBLISH / UNPUBLISH
   // ============================
 
-  publishProduct: (
-    productId: number,
-    data: PublishProductPayload
-  ) =>
-    apiClient.post<ApiResponse<Product>>(
-      `/publish/${productId}/product`,
-      data
-    ),
+  publishProduct: (productId: number, data: PublishProductPayload) =>
+    apiClient.post<ApiResponse<Product>>(`/publish/${productId}/product`, data),
 
   // ============================
   // DEAL CRUD
   // ============================
 
   getDeals: () =>
-    apiClient.get<ApiResponse<Product[]>>(
-      "/products-deal-of-the-day"
-    ),
+    apiClient.get<ApiResponse<Product[]>>("/products-deal-of-the-day"),
 
   getDealById: (id: number) =>
-    apiClient.get<ApiResponse<Product>>(
-      `/products-deal-of-the-day/${id}`
-    ),
+    apiClient.get<ApiResponse<Product>>(`/products-deal-of-the-day/${id}`),
 
-  addDeal: (
-    productId: number,
-    data: DealPayload
-  ) =>
+  addDeal: (productId: number, data: DealPayload) =>
     apiClient.post<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
-      data
+      data,
     ),
 
   removeDeal: (productId: number) =>
     apiClient.delete<ApiResponse<null>>(
-      `/products-deal-of-the-day/${productId}`
+      `/products-deal-of-the-day/${productId}`,
     ),
 
   // ============================
   // WAREHOUSE
   // ============================
 
-  getWarehouses: () =>
-    apiClient.get<ApiResponse<Warehouse[]>>(
+  getWarehouses: () => apiClient.get<ApiResponse<Warehouse[]>>(
       "/warehouses"
     ),
 
-  assignProductsToWarehouse: (
-    data: WarehouseStockPayload
-  ) =>
-    apiClient.post<ApiResponse<unknown>>(
-      "/warehouse-stocks",
-      data
-    ),
+  assignProductsToWarehouse: (data: WarehouseStockPayload) =>
+    apiClient.post<ApiResponse<unknown>>("/warehouse-stocks", data),
 };
