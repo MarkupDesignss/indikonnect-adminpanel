@@ -1,3 +1,5 @@
+// src/config/portalConfig.ts
+
 // =====================================================
 // PORTAL TYPE
 // =====================================================
@@ -55,15 +57,11 @@ export const getPortalName = (): string => {
 // GET PORTAL BASE PATH (For router basename)
 // =====================================================
 export const getPortalBasePath = (): string => {
-  const portal = getPortalType();
-
-  // Agar subfolder URL use ho raha hai
   const pathname = window.location.pathname;
   if (pathname.startsWith("/indiekonnect-admin")) return "/indiekonnect-admin";
   if (pathname.startsWith("/indiekonnect-finance")) return "/indiekonnect-finance";
   if (pathname.startsWith("/indiekonnect-warehouse")) return "/indiekonnect-warehouse";
 
-  // Warna root (subdomain case)
   return "/";
 };
 
@@ -75,7 +73,6 @@ export const getPortalUrl = (portal: PortalType): string => {
   const isLocal = hostname.includes("localhost");
   const protocol = window.location.protocol;
 
-  // Local: subfolder ports
   if (isLocal) {
     const portMap: Record<PortalType, number> = {
       admin: 5173,
@@ -85,8 +82,28 @@ export const getPortalUrl = (portal: PortalType): string => {
     return `${protocol}//localhost:${portMap[portal]}/indiekonnect-${portal}`;
   }
 
-  // Production: subdomains
   return `https://${portal}.indiekonnect.com`;
+};
+
+// =====================================================
+// GET PORTAL LOGIN URL (For logout redirect)
+// =====================================================
+export const getPortalLoginUrl = (): string => {
+  const portal = getPortalType();
+  const hostname = window.location.hostname;
+  const isLocal = hostname.includes("localhost");
+  const protocol = window.location.protocol;
+
+  if (isLocal) {
+    const portMap: Record<PortalType, number> = {
+      admin: 5173,
+      warehouse: 5175,
+      finance: 5176,
+    };
+    return `${protocol}//localhost:${portMap[portal]}/indiekonnect-${portal}/login`;
+  }
+
+  return `https://${portal}.indiekonnect.com/login`;
 };
 
 // =====================================================

@@ -38,6 +38,12 @@ import {
 } from "./csvUtils";
 
 // =====================================================
+// ✅ PERMISSIONS
+// =====================================================
+
+import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
 // ICONS
 // =====================================================
 
@@ -143,7 +149,7 @@ export interface Order {
 }
 
 // =====================================================
-// COMMON LOADER / ERROR
+// COMMON LOADER / ERROR — NAVY THEME
 // =====================================================
 
 interface ModalLoaderProps {
@@ -156,11 +162,11 @@ const ModalLoader: React.FC<ModalLoaderProps> = ({
   icon,
 }) => (
   <div className="flex min-h-[230px] flex-col items-center justify-center p-8">
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
       {icon || <FiLoader size={27} className="animate-spin" />}
     </div>
-    <p className="mt-4 text-sm font-semibold text-[#3F4A41]">{message}</p>
-    <p className="mt-1 text-xs text-[#9AA29C]">
+    <p className="mt-4 text-sm font-semibold text-[#3A4668]">{message}</p>
+    <p className="mt-1 text-xs text-[#8C97B2]">
       Please wait while the information is loaded.
     </p>
   </div>
@@ -188,7 +194,7 @@ const ModalError: React.FC<ModalErrorProps> = ({
       <button
         type="button"
         onClick={onClose}
-        className="mt-6 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+        className="mt-6 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
       >
         Close
       </button>
@@ -197,7 +203,7 @@ const ModalError: React.FC<ModalErrorProps> = ({
 );
 
 // =====================================================
-// VIEW ORDER POPUP
+// VIEW ORDER POPUP — NAVY THEME
 // =====================================================
 
 interface ViewOrderPopupProps {
@@ -254,8 +260,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   if (loading) {
     return (
       <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-          <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
           <ModalLoader message="Loading order details..." />
         </div>
       </GlobalModal>
@@ -265,8 +271,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   if (error || !orderDetails) {
     return (
       <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-          <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
           <ModalError error={error || "Order not found"} onClose={onClose} />
         </div>
       </GlobalModal>
@@ -332,22 +338,22 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     switch (lowerStatus) {
       case "delivered":
       case "partial_delivered":
-        return "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
+        return "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]";
       case "cancelled":
         return "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
       case "confirmed":
       case "processing":
       case "dispatched":
       case "shipped":
-        return "border-[#4C8A57]/30 bg-[#F0F6F0] text-[#4C8A57]";
+        return "border-[#2563EB]/30 bg-[#EAF1FF] text-[#2563EB]";
       case "pending":
       case "partial_return":
       case "partial_dispatched":
       case "partial_shipped":
       case "undelivered":
-        return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
+        return "border-[#FACC15]/40 bg-[#FEF9C3] text-[#8A6D16]";
       default:
-        return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
+        return "border-[#D8E2F0] bg-[#F3F6FB] text-[#4A5778]";
     }
   };
 
@@ -366,30 +372,30 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
 
-        <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-10 border-b border-[#1E3A8A]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2563EB]">
                   Order Management
                 </span>
               </div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
-                <FiPackage className="text-[#163F20]" />
+              <h2 className="flex items-center gap-2 text-xl font-bold text-[#0F1B3D]">
+                <FiPackage className="text-[#1E3A8A]" />
                 Order Details
               </h2>
-              <p className="mt-1 text-sm text-[#9AA29C]">
+              <p className="mt-1 text-sm text-[#8C97B2]">
                 {order_reference || "N/A"} • {formatDate(order_date)}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
             >
               <FiX size={19} />
             </button>
@@ -401,8 +407,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               onClick={() => setActiveTab("items")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "items"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                  ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                  : "bg-[#F5F8FF] text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
               }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
@@ -413,8 +419,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               onClick={() => setActiveTab("details")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "details"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                  ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                  : "bg-[#F5F8FF] text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
               }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
@@ -425,8 +431,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               onClick={() => setActiveTab("tracking")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === "tracking"
-                  ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                  : "bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                  ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                  : "bg-[#F5F8FF] text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
               }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
@@ -438,21 +444,21 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         <div className="max-h-[calc(95vh-190px)] overflow-y-auto p-5 sm:p-6">
           {activeTab === "items" && (
             <div className="space-y-5">
-              <div className="overflow-hidden rounded-2xl border border-[#163F20]/15">
+              <div className="overflow-hidden rounded-2xl border border-[#1E3A8A]/15">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1100px] border-collapse">
                     <thead>
-                      <tr className="bg-[#163F20]">
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">#</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Item Reference</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Product</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">SKU</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Qty</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Price</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Total</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Tracking No.</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Status</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">Invoice</th>
+                      <tr className="bg-[#1E3A8A]">
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">#</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Item Reference</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Product</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">SKU</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Qty</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Price</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Total</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Tracking No.</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Status</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">Invoice</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -460,39 +466,39 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         uiItems.map((item, idx) => {
                           const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
                           return (
-                            <tr key={item.id} className="border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA]">
-                              <td className="px-4 py-3 text-sm text-[#163F20]">{idx + 1}</td>
+                            <tr key={item.id} className="border-b border-[#1E3A8A]/10 transition hover:bg-[#FAFBFF]">
+                              <td className="px-4 py-3 text-sm text-[#1E3A8A]">{idx + 1}</td>
                               <td className="px-4 py-3">
-                                <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3F4A41]">
+                                <span className="inline-flex rounded-lg bg-[#F5F8FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3A4668]">
                                   {item.itemReferenceId || "N/A"}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
                                   {item.image ? (
-                                    <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-xl border border-[#163F20]/15 object-cover" />
+                                    <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-xl border border-[#1E3A8A]/15 object-cover" />
                                   ) : (
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                                       <FiPackage size={15} />
                                     </div>
                                   )}
-                                  <span className="text-sm font-semibold text-[#202721]">{item.productName}</span>
+                                  <span className="text-sm font-semibold text-[#0F1B3D]">{item.productName}</span>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                <span className="rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-semibold text-[#59645C]">{item.sku}</span>
+                                <span className="rounded-lg bg-[#F5F8FF] px-2.5 py-1 text-xs font-semibold text-[#4A5778]">{item.sku}</span>
                               </td>
-                              <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
-                              <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
-                              <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
+                              <td className="px-4 py-3 text-center text-sm text-[#3A4668]">{item.quantity}</td>
+                              <td className="px-4 py-3 text-right text-sm text-[#4A5778]">{item.price}</td>
+                              <td className="px-4 py-3 text-right text-sm font-bold text-[#0F1B3D]">{item.total}</td>
                               <td className="px-4 py-3">
                                 {item.courier_tracking_number ? (
-                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[11px] font-bold text-[#1E3A8A]">
                                     <FiTruck size={11} />
                                     {item.courier_tracking_number}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-[#9AA29C]">—</span>
+                                  <span className="text-xs text-[#8C97B2]">—</span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -509,7 +515,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                       const oid = orderDetails?.id;
                                       if (oid) onViewInvoice(oid, item.lineId);
                                     }}
-                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-xs font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF1FF] px-3 py-1.5 text-xs font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                                   >
                                     <FiFileText size={13} />
                                     Invoice
@@ -521,7 +527,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         })
                       ) : (
                         <tr>
-                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-[#9AA29C]">
+                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-[#8C97B2]">
                             No items found in this order
                           </td>
                         </tr>
@@ -531,28 +537,28 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
-                <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
+              <div className="relative overflow-hidden rounded-2xl border border-[#1E3A8A]/15 bg-[#F5F8FF] p-5">
+                <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2563EB]/20" />
                 <div className="mb-4 flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                  <h4 className="text-sm font-bold text-[#202721]">Order Summary</h4>
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                  <h4 className="text-sm font-bold text-[#0F1B3D]">Order Summary</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Subtotal</p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(subtotal || 0).toLocaleString("en-IN")}</p>
+                  <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8C97B2]">Subtotal</p>
+                    <p className="mt-1 text-base font-bold text-[#0F1B3D]">₹{Number(subtotal || 0).toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Shipping</p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(shippingCharge || 0).toLocaleString("en-IN")}</p>
+                  <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8C97B2]">Shipping</p>
+                    <p className="mt-1 text-base font-bold text-[#0F1B3D]">₹{Number(shippingCharge || 0).toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9AA29C]">Tax (GST)</p>
-                    <p className="mt-1 text-base font-bold text-[#202721]">₹{Number(totalGst || 0).toLocaleString("en-IN")}</p>
+                  <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#8C97B2]">Tax (GST)</p>
+                    <p className="mt-1 text-base font-bold text-[#0F1B3D]">₹{Number(totalGst || 0).toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#163F20]">Total Payable</p>
-                    <p className="mt-1 text-xl font-bold text-[#0F3219]">₹{Number(totalPayable || 0).toLocaleString("en-IN")}</p>
+                  <div className="rounded-xl border border-[#1E3A8A]/20 bg-gradient-to-br from-[#EAF1FF] to-[#DBEAFE] p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#1E3A8A]">Total Payable</p>
+                    <p className="mt-1 text-xl font-bold text-[#172554]">₹{Number(totalPayable || 0).toLocaleString("en-IN")}</p>
                   </div>
                 </div>
               </div>
@@ -562,103 +568,103 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
           {activeTab === "details" && (
             <div className="space-y-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-5">
+                <div className="rounded-2xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                       <FiUser size={17} />
                     </div>
-                    <h4 className="font-bold text-[#202721]">
+                    <h4 className="font-bold text-[#0F1B3D]">
                       {orderDetails?.order_type === "retail" ? "Customer Information" : "Distributor Information"}
                     </h4>
                   </div>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
-                      <span className="text-xs text-[#9AA29C]">Name</span>
-                      <span className="text-right text-sm font-semibold text-[#202721]">{user?.name || "N/A"}</span>
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1E3A8A]/10 pb-2.5">
+                      <span className="text-xs text-[#8C97B2]">Name</span>
+                      <span className="text-right text-sm font-semibold text-[#0F1B3D]">{user?.name || "N/A"}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
-                      <span className="text-xs text-[#9AA29C]">Email</span>
-                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#202721]">{user?.email || "N/A"}</span>
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1E3A8A]/10 pb-2.5">
+                      <span className="text-xs text-[#8C97B2]">Email</span>
+                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#0F1B3D]">{user?.email || "N/A"}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
-                      <span className="text-xs text-[#9AA29C]">Phone</span>
-                      <span className="text-right text-sm font-semibold text-[#202721]">{user?.phone || "N/A"}</span>
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1E3A8A]/10 pb-2.5">
+                      <span className="text-xs text-[#8C97B2]">Phone</span>
+                      <span className="text-right text-sm font-semibold text-[#0F1B3D]">{user?.phone || "N/A"}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-b border-[#163F20]/10 pb-2.5">
-                      <span className="text-xs text-[#9AA29C]">Order Type</span>
-                      <span className="text-sm font-semibold capitalize text-[#163F20]">
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1E3A8A]/10 pb-2.5">
+                      <span className="text-xs text-[#8C97B2]">Order Type</span>
+                      <span className="text-sm font-semibold capitalize text-[#1E3A8A]">
                         {orderDetails?.order_type === "retail" ? "Customer" : orderDetails?.order_type || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-[#9AA29C]">Payment Status</span>
-                      <span className="rounded-full border border-[#163F20]/20 bg-white px-2.5 py-1 text-xs font-bold capitalize text-[#163F20]">
+                      <span className="text-xs text-[#8C97B2]">Payment Status</span>
+                      <span className="rounded-full border border-[#1E3A8A]/20 bg-white px-2.5 py-1 text-xs font-bold capitalize text-[#1E3A8A]">
                         {payment?.payment_status || orderDetails?.payment_status || "N/A"}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-5">
+                <div className="rounded-2xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-5">
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                       <FiMapPin size={17} />
                     </div>
-                    <h4 className="font-bold text-[#202721]">Shipping Address</h4>
+                    <h4 className="font-bold text-[#0F1B3D]">Shipping Address</h4>
                   </div>
                   {addr ? (
                     <>
-                      <p className="text-sm leading-6 text-[#3F4A41]">{addr.full_address || "No address provided"}</p>
-                      <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#163F20]/10 bg-white p-3 text-xs">
+                      <p className="text-sm leading-6 text-[#3A4668]">{addr.full_address || "No address provided"}</p>
+                      <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#1E3A8A]/10 bg-white p-3 text-xs">
                         <div>
-                          <span className="text-[#9AA29C]">Address Line 1:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.address_line_1 || "N/A"}</span>
+                          <span className="text-[#8C97B2]">Address Line 1:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.address_line_1 || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">Address Line 2:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.address_line_2 || "N/A"}</span>
+                          <span className="text-[#8C97B2]">Address Line 2:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.address_line_2 || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">City:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.city || "N/A"}</span>
+                          <span className="text-[#8C97B2]">City:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.city || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">State:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.state || "N/A"}</span>
+                          <span className="text-[#8C97B2]">State:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.state || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">Country:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.country || "N/A"}</span>
+                          <span className="text-[#8C97B2]">Country:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.country || "N/A"}</span>
                         </div>
                         <div>
-                          <span className="text-[#9AA29C]">Pincode:</span>
-                          <span className="ml-1 font-semibold text-[#3F4A41]">{addr.postal_code || addr.pincode || "N/A"}</span>
+                          <span className="text-[#8C97B2]">Pincode:</span>
+                          <span className="ml-1 font-semibold text-[#3A4668]">{addr.postal_code || addr.pincode || "N/A"}</span>
                         </div>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-[#9AA29C]">No address provided</p>
+                    <p className="text-sm text-[#8C97B2]">No address provided</p>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-5">
+              <div className="rounded-2xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiCalendar size={17} />
                   </div>
-                  <h4 className="font-bold text-[#202721]">Order Timeline</h4>
+                  <h4 className="font-bold text-[#0F1B3D]">Order Timeline</h4>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#163F20]" />
-                    <span className="text-xs text-[#9AA29C]">Order Placed:</span>
-                    <span className="text-sm font-semibold text-[#3F4A41]">{formatDate(order_date)}</span>
+                  <div className="flex items-center gap-3 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#1E3A8A]" />
+                    <span className="text-xs text-[#8C97B2]">Order Placed:</span>
+                    <span className="text-sm font-semibold text-[#3A4668]">{formatDate(order_date)}</span>
                   </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#4C8A57]" />
-                    <span className="text-xs text-[#9AA29C]">Current Status:</span>
-                    <span className="text-sm font-bold capitalize text-[#163F20]">{getStatusText(order_status || "N/A")}</span>
+                  <div className="flex items-center gap-3 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <div className="h-2.5 w-2.5 rounded-full bg-[#FACC15]" />
+                    <span className="text-xs text-[#8C97B2]">Current Status:</span>
+                    <span className="text-sm font-bold capitalize text-[#1E3A8A]">{getStatusText(order_status || "N/A")}</span>
                   </div>
                 </div>
               </div>
@@ -667,56 +673,56 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
           {activeTab === "tracking" && (
             <div className="space-y-5">
-              <div className="rounded-2xl border border-[#163F20]/10 bg-[#F5F7F5] p-5">
+              <div className="rounded-2xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-5">
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiTruck size={17} />
                   </div>
-                  <h4 className="font-bold text-[#202721]">Tracking Information</h4>
+                  <h4 className="font-bold text-[#0F1B3D]">Tracking Information</h4>
                 </div>
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">Order Status</span>
-                    <span className="text-sm font-bold capitalize text-[#163F20]">{getStatusText(order_status || "N/A")}</span>
+                  <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <span className="text-xs text-[#8C97B2]">Order Status</span>
+                    <span className="text-sm font-bold capitalize text-[#1E3A8A]">{getStatusText(order_status || "N/A")}</span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">Payment Gateway</span>
-                    <span className="text-sm font-semibold text-[#202721]">{payment?.payment_gateway || orderDetails?.payment_gateway || "N/A"}</span>
+                  <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <span className="text-xs text-[#8C97B2]">Payment Gateway</span>
+                    <span className="text-sm font-semibold text-[#0F1B3D]">{payment?.payment_gateway || orderDetails?.payment_gateway || "N/A"}</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">Transaction ID</span>
-                    <span className="max-w-[65%] truncate text-sm font-semibold text-[#202721]">
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <span className="text-xs text-[#8C97B2]">Transaction ID</span>
+                    <span className="max-w-[65%] truncate text-sm font-semibold text-[#0F1B3D]">
                       {payment?.gateway_transaction_id || orderDetails?.gateway_transaction_id || "N/A"}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                    <span className="text-xs text-[#9AA29C]">Amount Paid</span>
-                    <span className="text-sm font-bold text-[#163F20]">
+                  <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                    <span className="text-xs text-[#8C97B2]">Amount Paid</span>
+                    <span className="text-sm font-bold text-[#1E3A8A]">
                       ₹{Number(payment?.amount_paid || orderDetails?.amount_paid || 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                   {(shipping_details || orderDetails?.courier_company) && (
                     <>
-                      <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                        <span className="text-xs text-[#9AA29C]">Courier Company</span>
-                        <span className="text-sm font-semibold text-[#202721]">{shipping_details?.courier_company || orderDetails?.courier_company || "N/A"}</span>
+                      <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                        <span className="text-xs text-[#8C97B2]">Courier Company</span>
+                        <span className="text-sm font-semibold text-[#0F1B3D]">{shipping_details?.courier_company || orderDetails?.courier_company || "N/A"}</span>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                        <span className="text-xs text-[#9AA29C]">Tracking Number</span>
-                        <span className="text-sm font-semibold text-[#202721]">
+                      <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                        <span className="text-xs text-[#8C97B2]">Tracking Number</span>
+                        <span className="text-sm font-semibold text-[#0F1B3D]">
                           {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
                         </span>
                       </div>
                       {shipping_details?.courier_delivery_date && (
-                        <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                          <span className="text-xs text-[#9AA29C]">Expected Delivery</span>
-                          <span className="text-sm font-semibold text-[#202721]">{formatDate(shipping_details.courier_delivery_date)}</span>
+                        <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                          <span className="text-xs text-[#8C97B2]">Expected Delivery</span>
+                          <span className="text-sm font-semibold text-[#0F1B3D]">{formatDate(shipping_details.courier_delivery_date)}</span>
                         </div>
                       )}
                       {shipping_details?.delivery_notes && (
-                        <div className="flex items-center justify-between rounded-xl border border-[#163F20]/10 bg-white p-3">
-                          <span className="text-xs text-[#9AA29C]">Delivery Notes</span>
-                          <span className="text-sm font-semibold text-[#202721]">{shipping_details.delivery_notes}</span>
+                        <div className="flex items-center justify-between rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+                          <span className="text-xs text-[#8C97B2]">Delivery Notes</span>
+                          <span className="text-sm font-semibold text-[#0F1B3D]">{shipping_details.delivery_notes}</span>
                         </div>
                       )}
                     </>
@@ -727,11 +733,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
           )}
         </div>
 
-        <div className="sticky bottom-0 flex justify-end border-t border-[#163F20]/10 bg-[#FAFBFA]/95 px-6 py-4 backdrop-blur-sm">
+        <div className="sticky bottom-0 flex justify-end border-t border-[#1E3A8A]/10 bg-[#FAFBFF]/95 px-6 py-4 backdrop-blur-sm">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+            className="rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
           >
             Close
           </button>
@@ -742,7 +748,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 };
 
 // =====================================================
-// DISPATCH POPUP
+// DISPATCH POPUP — NAVY THEME
 // =====================================================
 
 interface DispatchPopupProps {
@@ -849,20 +855,20 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-        <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
+        <div className="sticky top-0 z-10 border-b border-[#1E3A8A]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Fulfillment</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2563EB]">Fulfillment</span>
               </div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
-                <FiTruck className="text-[#163F20]" />
+              <h2 className="flex items-center gap-2 text-xl font-bold text-[#0F1B3D]">
+                <FiTruck className="text-[#1E3A8A]" />
                 {isFullOrder ? "Dispatch Entire Order" : `Dispatch ${itemsToDispatch.length} Items`}
               </h2>
-              <p className="mt-1 text-sm text-[#9AA29C]">
+              <p className="mt-1 text-sm text-[#8C97B2]">
                 {order.id} • {order.customer}
                 {!isFullOrder && ` • ${itemsToDispatch.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToDispatch.length} item(s)`}
@@ -871,7 +877,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
             >
               <FiX size={19} />
             </button>
@@ -887,30 +893,30 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               </div>
             )}
 
-            <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
+            <div className="relative overflow-hidden rounded-2xl border border-[#1E3A8A]/15 bg-[#F5F8FF] p-5">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2563EB]/20" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#0F1B3D]">{order.total}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
-                  <p className="mt-1 text-lg font-bold text-[#163F20]">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Items</span>
+                  <p className="mt-1 text-lg font-bold text-[#1E3A8A]">
                     {itemsToDispatch.length}{" "}
-                    <span className="text-xs font-semibold text-[#9AA29C]">
+                    <span className="text-xs font-semibold text-[#8C97B2]">
                       {isFullOrder ? "(All)" : "(Selected)"}
                     </span>
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3A4668]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
               {isFullOrder && (
-                <div className="mt-4 rounded-xl border border-[#163F20]/15 bg-white p-3">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#163F20]">
+                <div className="mt-4 rounded-xl border border-[#1E3A8A]/15 bg-white p-3">
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#1E3A8A]">
                     <FiPackage size={13} />
                     Dispatching all items in this order
                   </span>
@@ -919,28 +925,28 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
             </div>
 
             {itemsToDispatch.length > 0 && (
-              <div className="rounded-2xl border border-[#163F20]/15 bg-[#EAF3EA] p-5">
-                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#202721]">
-                  <FiPackage className="text-[#163F20]" />
+              <div className="rounded-2xl border border-[#1E3A8A]/15 bg-[#EAF1FF] p-5">
+                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F1B3D]">
+                  <FiPackage className="text-[#1E3A8A]" />
                   {isFullOrder ? "All Items in Order" : "Selected Items to Dispatch"}
                 </h4>
                 <div className="max-h-48 space-y-2 overflow-y-auto">
                   {itemsToDispatch.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
+                    <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
                       <div className="flex items-center gap-3 min-w-0">
                         {item.image ? (
-                          <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                          <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                         ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                             <FiPackage size={12} />
                           </div>
                         )}
                         <div className="min-w-0">
-                          <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
-                          <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
+                          <span className="block truncate text-sm font-semibold text-[#3A4668]">{item.productName}</span>
+                          <span className="block truncate text-[10px] font-semibold text-[#2563EB]">Ref: {item.itemReferenceId || "N/A"}</span>
                         </div>
                       </div>
-                      <span className="shrink-0 text-xs text-[#9AA29C]">
+                      <span className="shrink-0 text-xs text-[#8C97B2]">
                         Qty: {item.quantity} • SKU: {item.sku}
                       </span>
                     </div>
@@ -951,15 +957,15 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                   <FiTruck size={17} />
                 </div>
-                <h3 className="font-bold text-[#202721]">Tracking Details</h3>
+                <h3 className="font-bold text-[#0F1B3D]">Tracking Details</h3>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
                     Tracking Number <span className="text-[#C23B32]">*</span>
                   </label>
                   <input
@@ -967,13 +973,13 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                     value={trackingNumber}
                     onChange={(e) => setTrackingNumber(e.target.value)}
                     placeholder="Enter tracking number"
-                    className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                    className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                     required
                     disabled={loading}
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
                     Courier Name <span className="text-[#C23B32]">*</span>
                   </label>
                   <input
@@ -981,7 +987,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                     value={courierName}
                     onChange={(e) => setCourierName(e.target.value)}
                     placeholder="Enter courier name"
-                    className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                    className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                     required
                     disabled={loading}
                   />
@@ -989,34 +995,34 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">Expected Delivery Date</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">Expected Delivery Date</label>
                 <input
                   type="date"
                   value={expectedDelivery}
                   onChange={(e) => setExpectedDelivery(e.target.value)}
                   min={minDate}
-                  className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                   disabled={loading}
                 />
               </div>
               <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#59645C]">Notes (Optional)</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">Notes (Optional)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any additional notes..."
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 py-3 text-sm text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-[#163F20]/10 pt-5 sm:flex-row">
+            <div className="flex flex-col gap-3 border-t border-[#1E3A8A]/10 pt-5 sm:flex-row">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#163F20]/20 bg-white px-4 py-3 text-sm font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                className="flex-1 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 py-3 text-sm font-semibold text-[#4A5778] transition hover:border-[#1E3A8A]/30 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                 disabled={loading}
               >
                 Cancel
@@ -1024,7 +1030,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiTruck size={17} />}
                 {loading
@@ -1042,7 +1048,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 };
 
 // =====================================================
-// SHIP POPUP
+// SHIP POPUP — NAVY THEME
 // =====================================================
 
 interface ShipPopupProps {
@@ -1122,20 +1128,20 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-        <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
+        <div className="sticky top-0 z-10 border-b border-[#1E3A8A]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Shipment</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2563EB]">Shipment</span>
               </div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
-                <FiSend className="text-[#163F20]" />
+              <h2 className="flex items-center gap-2 text-xl font-bold text-[#0F1B3D]">
+                <FiSend className="text-[#1E3A8A]" />
                 {isFullOrder ? "Ship Entire Order" : `Ship ${itemsToShip.length} Items`}
               </h2>
-              <p className="mt-1 text-sm text-[#9AA29C]">
+              <p className="mt-1 text-sm text-[#8C97B2]">
                 {order.id} • {order.customer}
                 {!isFullOrder && ` • ${itemsToShip.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToShip.length} item(s)`}
@@ -1144,7 +1150,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
             >
               <FiX size={19} />
             </button>
@@ -1159,61 +1165,61 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 {error}
               </div>
             )}
-            <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
+            <div className="relative overflow-hidden rounded-2xl border border-[#1E3A8A]/15 bg-[#F5F8FF] p-5">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2563EB]/20" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#0F1B3D]">{order.total}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
-                  <p className="mt-1 text-lg font-bold text-[#163F20]">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Items</span>
+                  <p className="mt-1 text-lg font-bold text-[#1E3A8A]">
                     {itemsToShip.length}{" "}
-                    <span className="text-xs font-semibold text-[#9AA29C]">
+                    <span className="text-xs font-semibold text-[#8C97B2]">
                       {isFullOrder ? "(All)" : "(Selected)"}
                     </span>
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3A4668]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#163F20]/15 bg-[#EAF3EA] p-5">
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#202721]">
-                <FiPackage className="text-[#163F20]" />
+            <div className="rounded-2xl border border-[#1E3A8A]/15 bg-[#EAF1FF] p-5">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F1B3D]">
+                <FiPackage className="text-[#1E3A8A]" />
                 {isFullOrder ? "All Items in Order" : "Selected Items to Ship"}
               </h4>
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToShip.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                       ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
-                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
+                        <span className="block truncate text-sm font-semibold text-[#3A4668]">{item.productName}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2563EB]">Ref: {item.itemReferenceId || "N/A"}</span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#9AA29C]">Qty: {item.quantity} • SKU: {item.sku}</span>
+                    <span className="shrink-0 text-xs text-[#8C97B2]">Qty: {item.quantity} • SKU: {item.sku}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-[#163F20]/10 pt-5 sm:flex-row">
+            <div className="flex flex-col gap-3 border-t border-[#1E3A8A]/10 pt-5 sm:flex-row">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#163F20]/20 bg-white px-4 py-3 text-sm font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                className="flex-1 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 py-3 text-sm font-semibold text-[#4A5778] transition hover:border-[#1E3A8A]/30 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                 disabled={loading}
               >
                 Cancel
@@ -1221,7 +1227,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiSend size={17} />}
                 {loading
@@ -1239,7 +1245,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
 };
 
 // =====================================================
-// DELIVER POPUP
+// DELIVER POPUP — NAVY THEME
 // =====================================================
 
 interface DeliverPopupProps {
@@ -1311,20 +1317,20 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
-      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
-        <div className="sticky top-0 z-10 border-b border-[#163F20]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
+        <div className="sticky top-0 z-10 border-b border-[#1E3A8A]/10 bg-white/95 px-6 py-4 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">Delivery</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2563EB]">Delivery</span>
               </div>
-              <h2 className="flex items-center gap-2 text-xl font-bold text-[#202721]">
-                <FiCheckCircle className="text-[#163F20]" />
+              <h2 className="flex items-center gap-2 text-xl font-bold text-[#0F1B3D]">
+                <FiCheckCircle className="text-[#1E3A8A]" />
                 {isFullOrder ? "Deliver Entire Order" : `Deliver ${itemsToDeliver.length} Items`}
               </h2>
-              <p className="mt-1 text-sm text-[#9AA29C]">
+              <p className="mt-1 text-sm text-[#8C97B2]">
                 {order.id} • {order.customer}
                 {!isFullOrder && ` • ${itemsToDeliver.length} item(s) selected`}
                 {isFullOrder && ` • All ${itemsToDeliver.length} item(s)`}
@@ -1333,7 +1339,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
             >
               <FiX size={19} />
             </button>
@@ -1348,61 +1354,61 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                 {error}
               </div>
             )}
-            <div className="relative overflow-hidden rounded-2xl border border-[#163F20]/15 bg-[#F5F7F5] p-5">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#4C8A57]/20" />
+            <div className="relative overflow-hidden rounded-2xl border border-[#1E3A8A]/15 bg-[#F5F8FF] p-5">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2563EB]/20" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Order Total</span>
-                  <p className="mt-1 text-lg font-bold text-[#202721]">{order.total}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Order Total</span>
+                  <p className="mt-1 text-lg font-bold text-[#0F1B3D]">{order.total}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Items</span>
-                  <p className="mt-1 text-lg font-bold text-[#163F20]">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Items</span>
+                  <p className="mt-1 text-lg font-bold text-[#1E3A8A]">
                     {itemsToDeliver.length}{" "}
-                    <span className="text-xs font-semibold text-[#9AA29C]">
+                    <span className="text-xs font-semibold text-[#8C97B2]">
                       {isFullOrder ? "(All)" : "(Selected)"}
                     </span>
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">Shipping Address</span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3F4A41]">{order.shippingAddress || "N/A"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">Shipping Address</span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#3A4668]">{order.shippingAddress || "N/A"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#163F20]/15 bg-[#EAF3EA] p-5">
-              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#202721]">
-                <FiPackage className="text-[#163F20]" />
+            <div className="rounded-2xl border border-[#1E3A8A]/15 bg-[#EAF1FF] p-5">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F1B3D]">
+                <FiPackage className="text-[#1E3A8A]" />
                 {isFullOrder ? "All Items in Order" : "Selected Items to Deliver"}
               </h4>
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToDeliver.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#163F20]/10 bg-white p-3">
+                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                       ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-[#3F4A41]">{item.productName}</span>
-                        <span className="block truncate text-[10px] font-semibold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</span>
+                        <span className="block truncate text-sm font-semibold text-[#3A4668]">{item.productName}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2563EB]">Ref: {item.itemReferenceId || "N/A"}</span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#9AA29C]">Qty: {item.quantity} • SKU: {item.sku}</span>
+                    <span className="shrink-0 text-xs text-[#8C97B2]">Qty: {item.quantity} • SKU: {item.sku}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-[#163F20]/10 pt-5 sm:flex-row">
+            <div className="flex flex-col gap-3 border-t border-[#1E3A8A]/10 pt-5 sm:flex-row">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#163F20]/20 bg-white px-4 py-3 text-sm font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                className="flex-1 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 py-3 text-sm font-semibold text-[#4A5778] transition hover:border-[#1E3A8A]/30 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                 disabled={loading}
               >
                 Cancel
@@ -1410,7 +1416,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiCheckCircle size={17} />}
                 {loading
@@ -1428,7 +1434,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
 };
 
 // =====================================================
-// ORDERS TABLE
+// ORDERS TABLE — NAVY THEME + PERMISSIONS
 // =====================================================
 
 interface OrdersTableProps {
@@ -1442,6 +1448,75 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   selectedOrderId,
   onFilteredChange,
 }) => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewOrders = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("order") ||
+      hasPermission("order.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canDispatch = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.dispatch"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canShip = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.shipped") ||
+      hasPermission("order.ship"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeliver = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.delivered") ||
+      hasPermission("order.deliver"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canMarkUndelivered = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.undelivered") ||
+      hasPermission("order.delivered"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canToggleCancelReturn = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.update") ||
+      hasPermission("order.details"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canViewInvoice = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("order.details") ||
+      hasPermission("order.invoice"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Status: All");
   const [categoryFilter, setCategoryFilter] = useState("Category: All");
@@ -1543,22 +1618,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     switch (lowerStatus) {
       case "delivered":
       case "partial_delivered":
-        return "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]";
+        return "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]";
       case "cancelled":
         return "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
       case "confirmed":
       case "processing":
       case "dispatched":
       case "shipped":
-        return "border-[#4C8A57]/30 bg-[#F0F6F0] text-[#4C8A57]";
+        return "border-[#2563EB]/30 bg-[#EAF1FF] text-[#2563EB]";
       case "pending":
       case "partial_return":
       case "partial_dispatched":
       case "partial_shipped":
       case "undelivered":
-        return "border-[#D9A900]/30 bg-[#FBF3DC] text-[#8A6D16]";
+        return "border-[#FACC15]/40 bg-[#FEF9C3] text-[#8A6D16]";
       default:
-        return "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
+        return "border-[#D8E2F0] bg-[#F3F6FB] text-[#4A5778]";
     }
   };
 
@@ -2130,7 +2205,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  // ✅ FIXED: Mark undelivered with immediate optimistic UI + API + refetch
   const handleMarkUndelivered = async (order: Order, item: OrderItem) => {
     const lineId = item.lineId || parseInt(item.id);
     if (!lineId || isNaN(lineId)) {
@@ -2146,7 +2220,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       return next;
     });
 
-    // Optimistic UI update — status changes instantly
     setOrders((prevOrders) =>
       prevOrders.map((o) => {
         if (o.order_reference !== order.orderReference) return o;
@@ -2212,15 +2285,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setIsFullOrderDeliver(false);
   };
 
+
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[#E5EAE5] bg-white p-10 shadow-sm">
+      <div className="rounded-2xl border border-[#E3E9F5] bg-white p-10 shadow-sm">
         <div className="flex flex-col items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
             <FiLoader size={28} className="animate-spin" />
           </div>
-          <p className="mt-4 text-sm font-bold text-[#202721]">Loading orders...</p>
-          <p className="mt-1 text-xs text-[#9AA29C]">
+          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">Loading orders...</p>
+          <p className="mt-1 text-xs text-[#8C97B2]">
             Please wait while we fetch your orders.
           </p>
         </div>
@@ -2239,7 +2313,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           <button
             type="button"
             onClick={fetchOrders}
-            className="mt-5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+            className="mt-5 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
           >
             Retry
           </button>
@@ -2252,15 +2326,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     <>
       <div className="space-y-5">
         {/* FILTER BAR */}
-        <div className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-4 shadow-sm sm:p-5">
-          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#4C8A57] to-[#0F3219]" />
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#4C8A57]/20" />
+        <div className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-4 shadow-sm sm:p-5">
+          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#2563EB]/20" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1 lg:flex-[2]">
               <FiSearch
                 size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
               <input
                 type="text"
@@ -2270,13 +2344,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setCurrentPage(1);
                 }}
                 placeholder="Search by Order ID, Mobile, Invoice, Tracking No., Product, SKU..."
-                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-9 text-xs text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-9 text-xs text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C] transition hover:text-[#163F20]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2] transition hover:text-[#1E3A8A]"
                 >
                   <FiX size={14} />
                 </button>
@@ -2291,7 +2365,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 pr-8 text-xs text-[#3A4668] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                 >
                   <option>Status: All</option>
                   {availableStatuses.map((status) => (
@@ -2301,7 +2375,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C97B2]"
                   size={14}
                 />
               </div>
@@ -2313,14 +2387,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setOrderTypeFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 pr-8 text-xs text-[#3A4668] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                 >
                   <option>Order Type: All</option>
                   <option value="Order Type: retail">Customer</option>
                   <option value="Order Type: distributor">Distributor</option>
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C97B2]"
                   size={14}
                 />
               </div>
@@ -2332,7 +2406,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setCategoryFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 pr-8 text-xs text-[#3A4668] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                 >
                   <option>Category: All</option>
                   {categories.map((c) => (
@@ -2342,7 +2416,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C97B2]"
                   size={14}
                 />
               </div>
@@ -2354,7 +2428,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setBrandFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-3 pr-8 text-xs text-[#3F4A41] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/15"
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 pr-8 text-xs text-[#3A4668] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
                 >
                   <option>Brand: All</option>
                   {brands.map((b) => (
@@ -2364,7 +2438,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   ))}
                 </select>
                 <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9AA29C]"
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C97B2]"
                   size={14}
                 />
               </div>
@@ -2374,8 +2448,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 onClick={clearFilters}
                 className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
                   hasActiveFilters
-                    ? "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
-                    : "text-[#9AA29C] hover:text-[#163F20]"
+                    ? "bg-[#EAF1FF] text-[#1E3A8A] hover:bg-[#DBEAFE]"
+                    : "text-[#8C97B2] hover:text-[#1E3A8A]"
                 }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
@@ -2385,12 +2459,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] px-3 text-xs font-semibold text-[#59645C] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] hover:text-[#163F20] lg:hidden"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-3 text-xs font-semibold text-[#4A5778] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] hover:text-[#1E3A8A] lg:hidden"
               >
                 <FiFilter size={14} />
                 Filters
                 {hasActiveFilters && (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#163F20] text-[10px] font-bold text-white">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1E3A8A] text-[10px] font-bold text-white">
                     !
                   </span>
                 )}
@@ -2399,7 +2473,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           </div>
 
           {showMobileFilters && (
-            <div className="relative z-10 mt-4 space-y-3 border-t border-[#163F20]/10 pt-4 lg:hidden">
+            <div className="relative z-10 mt-4 space-y-3 border-t border-[#1E3A8A]/10 pt-4 lg:hidden">
               <div className="relative">
                 <select
                   value={statusFilter}
@@ -2407,7 +2481,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setStatusFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none focus:border-[#163F20]"
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-10 text-sm text-[#3A4668] outline-none focus:border-[#1E3A8A]"
                 >
                   <option>Status: All</option>
                   {availableStatuses.map((status) => (
@@ -2416,7 +2490,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2]" size={16} />
               </div>
               <div className="relative">
                 <select
@@ -2425,13 +2499,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setOrderTypeFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none focus:border-[#163F20]"
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-10 text-sm text-[#3A4668] outline-none focus:border-[#1E3A8A]"
                 >
                   <option>Order Type: All</option>
                   <option value="Order Type: retail">Customer</option>
                   <option value="Order Type: distributor">Distributor</option>
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2]" size={16} />
               </div>
               <div className="relative">
                 <select
@@ -2440,7 +2514,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setCategoryFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none focus:border-[#163F20]"
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-10 text-sm text-[#3A4668] outline-none focus:border-[#1E3A8A]"
                 >
                   <option>Category: All</option>
                   {categories.map((c) => (
@@ -2449,7 +2523,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2]" size={16} />
               </div>
               <div className="relative">
                 <select
@@ -2458,7 +2532,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     setBrandFilter(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-10 text-sm text-[#3F4A41] outline-none focus:border-[#163F20]"
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-10 text-sm text-[#3A4668] outline-none focus:border-[#1E3A8A]"
                 >
                   <option>Brand: All</option>
                   {brands.map((b) => (
@@ -2467,12 +2541,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9AA29C]" size={16} />
+                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2]" size={16} />
               </div>
               <button
                 type="button"
                 onClick={clearFilters}
-                className="h-11 w-full rounded-xl bg-[#EAF3EA] text-sm font-semibold text-[#163F20] transition hover:bg-[#D5E5D6]"
+                className="h-11 w-full rounded-xl bg-[#EAF1FF] text-sm font-semibold text-[#1E3A8A] transition hover:bg-[#DBEAFE]"
               >
                 Clear All Filters
               </button>
@@ -2481,44 +2555,44 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         </div>
 
         {/* ORDER TABLE */}
-        <div className="overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-sm">
-          <div className="h-1 w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-sm">
+          <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1180px] border-collapse">
               <thead>
-                <tr className="bg-[#163F20]">
-                  <th className="w-[45px] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                <tr className="bg-[#1E3A8A]">
+                  <th className="w-[45px] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? <span className="opacity-50">—</span> : <FiChevronDown size={16} className="mx-auto opacity-50" />}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Item Reference" : "Order ID"}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Product" : "Date"}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "SKU" : "Buyer"}
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Qty" : "Total"}
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Price" : ""}
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Total" : ""}
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Tracking No." : "Status"}
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Status" : "Actions"}
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Action" : ""}
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     {isItemWiseView ? "Invoice" : ""}
                   </th>
                 </tr>
@@ -2532,29 +2606,29 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       if (!item) return null;
                       const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
 
-                      const isDispatchable = canItemDispatch(item);
-                      const isShipable = canItemShip(item);
-                      const isDeliverable = canItemDeliver(item);
-                      const isUndeliverable = canItemMarkUndelivered(item);
+                      const isDispatchable = canItemDispatch(item) && canDispatch;
+                      const isShipable = canItemShip(item) && canShip;
+                      const isDeliverable = canItemDeliver(item) && canDeliver;
+                      const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
                       const isDelivered = isFullyDelivered(item);
                       const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
 
                       return (
                         <tr
                           key={`${order.id}-${item.id}-${index}`}
-                          className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                          className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
                         >
                           <td className="px-4 py-4 text-center">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                               <FiPackage size={14} />
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#163F20]">
+                            <span className="inline-flex rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#1E3A8A]">
                               {item.itemReferenceId || "N/A"}
                             </span>
-                            <p className="mt-1 text-[11px] text-[#9AA29C]">{order.id}</p>
-                            <p className="mt-0.5 text-[11px] font-semibold text-[#59645C]">{order.customer}</p>
+                            <p className="mt-1 text-[11px] text-[#8C97B2]">{order.id}</p>
+                            <p className="mt-0.5 text-[11px] font-semibold text-[#4A5778]">{order.customer}</p>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -2562,40 +2636,40 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 <img
                                   src={item.image}
                                   alt={item.productName}
-                                  className="h-9 w-9 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0"
+                                  className="h-9 w-9 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0"
                                 />
                               ) : (
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                                   <FiPackage size={14} />
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-[#202721]">{item.productName}</p>
+                                <p className="truncate text-sm font-bold text-[#0F1B3D]">{item.productName}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3F4A41]">
+                            <span className="inline-flex rounded-lg bg-[#F5F8FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#3A4668]">
                               {item.sku}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-[#3F4A41]">
+                          <td className="px-6 py-4 text-center text-sm font-semibold text-[#3A4668]">
                             {item.quantity}
                           </td>
-                          <td className="px-6 py-4 text-right text-sm text-[#59645C]">
+                          <td className="px-6 py-4 text-right text-sm text-[#4A5778]">
                             {item.price}
                           </td>
-                          <td className="px-6 py-4 text-right text-sm font-bold text-[#163F20]">
+                          <td className="px-6 py-4 text-right text-sm font-bold text-[#1E3A8A]">
                             {item.total}
                           </td>
                           <td className="px-6 py-4">
                             {item.courier_tracking_number ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[11px] font-bold text-[#1E3A8A]">
                                 <FiTruck size={11} />
                                 {item.courier_tracking_number}
                               </span>
                             ) : (
-                              <span className="text-xs text-[#9AA29C]">—</span>
+                              <span className="text-xs text-[#8C97B2]">—</span>
                             )}
                           </td>
                           <td className="px-6 py-4 text-center">
@@ -2611,7 +2685,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleViewOrder(order.id)}
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                 title="View Order"
                               >
                                 <FiEye size={16} />
@@ -2626,7 +2700,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     setSelectedItemsForDispatch([item]);
                                     setShowDispatchPopup(true);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
                                   title="Dispatch Item"
                                 >
                                   <FiTruck size={16} />
@@ -2642,7 +2716,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     setSelectedItemsForShip([item]);
                                     setShowShipPopup(true);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
                                   title="Ship Item"
                                 >
                                   <FiSend size={16} />
@@ -2658,7 +2732,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     setSelectedItemsForDeliver([item]);
                                     setShowDeliverPopup(true);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4C8A57]/30 bg-[#EAF3EA] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2563EB]/30 bg-[#EAF1FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
                                   title="Deliver Item"
                                 >
                                   <FiCheckCircle size={16} />
@@ -2683,11 +2757,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            {isDelivered && order.orderId && (
+                            {isDelivered && order.orderId && canViewInvoice && (
                               <button
                                 type="button"
                                 onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3EA] px-3 py-1.5 text-[11px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF1FF] px-3 py-1.5 text-[11px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                               >
                                 <FiFileText size={13} />
                                 Invoice
@@ -2702,8 +2776,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <React.Fragment key={order.id}>
                         <tr
                           onClick={() => toggleRow(order.id)}
-                          className={`group cursor-pointer border-b border-[#163F20]/10 transition-colors ${
-                            selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                          className={`group cursor-pointer border-b border-[#1E3A8A]/10 transition-colors ${
+                            selectedOrderId === order.id ? "bg-[#EAF1FF]" : "bg-white hover:bg-[#FAFBFF]"
                           }`}
                         >
                           <td className="px-4 py-4 text-center">
@@ -2713,23 +2787,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 e.stopPropagation();
                                 toggleRow(order.id);
                               }}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF]"
                             >
                               {expandedRows.has(order.id) ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
                             </button>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3F4A41]">
+                            <span className="inline-flex rounded-lg bg-[#F5F8FF] px-3 py-1.5 text-xs font-bold tracking-wide text-[#3A4668]">
                               {order.id}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-xs font-medium text-[#59645C]">{order.date}</td>
+                          <td className="px-6 py-4 text-xs font-medium text-[#4A5778]">{order.date}</td>
                           <td className="px-6 py-4">
-                            <p className="text-sm font-bold text-[#202721]">{order.customer}</p>
-                            <p className="mt-0.5 text-xs text-[#9AA29C]">{formatOrderType(order.orderType)}</p>
+                            <p className="text-sm font-bold text-[#0F1B3D]">{order.customer}</p>
+                            <p className="mt-0.5 text-xs text-[#8C97B2]">{formatOrderType(order.orderType)}</p>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="text-sm font-bold text-[#163F20]">{order.total}</span>
+                            <span className="text-sm font-bold text-[#1E3A8A]">{order.total}</span>
                           </td>
                           <td className="px-6 py-4 text-right"></td>
                           <td className="px-6 py-4 text-right"></td>
@@ -2749,58 +2823,58 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                   e.stopPropagation();
                                   handleViewOrder(order.id);
                                 }}
-                                className="group/view relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                className="group/view relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                 title="View Order"
                               >
                                 <FiEye size={16} />
                               </button>
-                              {hasDispatchableItems(order) && (
+                              {hasDispatchableItems(order) && canDispatch && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDispatchFullOrder(order);
                                   }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                   title="Dispatch Order"
                                 >
                                   <FiTruck size={16} />
                                 </button>
                               )}
-                              {hasShipableItems(order) && (
+                              {hasShipableItems(order) && canShip && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleShipFullOrder(order);
                                   }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                   title="Ship Order"
                                 >
                                   <FiSend size={16} />
                                 </button>
                               )}
-                              {hasDeliverableItems(order) && (
+                              {hasDeliverableItems(order) && canDeliver && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeliverFullOrder(order);
                                   }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                   title="Deliver Order"
                                 >
                                   <FiCheckCircle size={16} />
                                 </button>
                               )}
-                              {order.orderStatus === "delivered" && order.orderId && (
+                              {order.orderStatus === "delivered" && order.orderId && canViewInvoice && (
                                 <button
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleOpenInvoicePdf(order.orderId!);
                                   }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/20 bg-[#F5F7F5] text-[#163F20] transition-all hover:border-transparent hover:bg-[#163F20] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/20 bg-[#F5F8FF] text-[#1E3A8A] transition-all hover:border-transparent hover:bg-[#1E3A8A] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
                                   title="View Invoice PDF"
                                 >
                                   <FiFileText size={16} />
@@ -2813,32 +2887,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
                         {expandedRows.has(order.id) && (
                           <tr>
-                            <td colSpan={10} className="bg-[#F5F7F5] px-6 py-0">
+                            <td colSpan={10} className="bg-[#F5F8FF] px-6 py-0">
                               <div className="overflow-hidden">
                                 <div className="animate-slideDown py-5">
                                   <div className="space-y-4">
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                       <div className="flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                                           <FiPackage size={16} />
                                         </div>
                                         <div>
-                                          <h4 className="text-sm font-bold text-[#202721]">Order Items</h4>
-                                          <p className="text-xs text-[#9AA29C]">
+                                          <h4 className="text-sm font-bold text-[#0F1B3D]">Order Items</h4>
+                                          <p className="text-xs text-[#8C97B2]">
                                             {order.items?.length || 0} items in this order
                                           </p>
                                         </div>
                                       </div>
 
                                       <div className="flex flex-wrap items-center gap-2">
-                                        {hasDispatchableItems(order) && (
+                                        {hasDispatchableItems(order) && canDispatch && (
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleDispatchFromSelection(order);
                                             }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
                                           >
                                             <FiTruck size={14} />
                                             {getSelectedDispatchableCount(order) > 0
@@ -2848,27 +2922,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                 : `Dispatch ${getDispatchableItemsCount(order)}`}
                                           </button>
                                         )}
-                                        {hasShipableItems(order) && (
+                                        {hasShipableItems(order) && canShip && (
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleShipFullOrder(order);
                                             }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
                                           >
                                             <FiSend size={14} />
                                             {allItemsShipable(order) ? "Ship All" : `Ship ${getShipableItemsCount(order)}`}
                                           </button>
                                         )}
-                                        {hasDeliverableItems(order) && (
+                                        {hasDeliverableItems(order) && canDeliver && (
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               handleDeliverFullOrder(order);
                                             }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
                                           >
                                             <FiCheckCircle size={14} />
                                             {allItemsDeliverable(order) ? "Deliver All" : `Deliver ${getDeliverableItemsCount(order)}`}
@@ -2880,17 +2954,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             e.stopPropagation();
                                             toggleAllItems(order.id, order.items || []);
                                           }}
-                                          className="text-xs font-bold text-[#163F20]"
+                                          className="text-xs font-bold text-[#1E3A8A]"
                                         >
                                           {allSelectableSelected(order.id, order.items || []) ? "Deselect All" : "Select All"}
                                         </button>
                                       </div>
                                     </div>
 
-                                    <div className="overflow-x-auto rounded-2xl border border-[#163F20]/15 bg-white">
+                                    <div className="overflow-x-auto rounded-2xl border border-[#1E3A8A]/15 bg-white">
                                       <table className="w-full min-w-[1350px] border-collapse">
                                         <thead>
-                                          <tr className="border-b border-[#163F20]/10 bg-[#FAFBFA]">
+                                          <tr className="border-b border-[#1E3A8A]/10 bg-[#FAFBFF]">
                                             <th className="w-[45px] px-4 py-3 text-center">
                                               <button
                                                 type="button"
@@ -2898,33 +2972,35 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                   e.stopPropagation();
                                                   toggleAllItems(order.id, order.items || []);
                                                 }}
-                                                className="text-[#163F20] hover:text-[#4C8A57]"
+                                                className="text-[#1E3A8A] hover:text-[#2563EB]"
                                               >
                                                 {allSelectableSelected(order.id, order.items || []) ? <FiCheck size={16} /> : <FiSquare size={16} />}
                                               </button>
                                             </th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Item Reference</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Product</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">SKU</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Qty</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Price</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Total</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Tracking No.</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Status</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Action</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Invoice</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#9AA29C]">Cancel/Return</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Item Reference</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Product</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">SKU</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Qty</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Price</th>
+                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Total</th>
+                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Tracking No.</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Status</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Action</th>
+                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Invoice</th>
+                                            {canToggleCancelReturn && (
+                                              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">Cancel/Return</th>
+                                            )}
                                           </tr>
                                         </thead>
                                         <tbody>
                                           {(order.items || []).map((item) => {
                                             const isSelected = selectedItemsMap.get(`${order.id}-${item.id}`);
-                                            const isDispatchable = canItemDispatch(item);
-                                            const isShipable = canItemShip(item);
-                                            const isDeliverable = canItemDeliver(item);
-                                            const isUndeliverable = canItemMarkUndelivered(item);
+                                            const isDispatchable = canItemDispatch(item) && canDispatch;
+                                            const isShipable = canItemShip(item) && canShip;
+                                            const isDeliverable = canItemDeliver(item) && canDeliver;
+                                            const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
                                             const isDelivered = isFullyDelivered(item);
-                                            const isSelectable = isItemSelectable(item);
+                                            const isSelectable = isItemSelectable(item) && (canDispatch || canShip || canDeliver);
                                             const toggleKey = `${order.id}-${item.id}`;
                                             const isToggling = togglingCancelReturn.has(toggleKey);
                                             const isCancelReturnAllowed = Boolean(item.is_cancel_return_allowed);
@@ -2933,8 +3009,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             return (
                                               <tr
                                                 key={item.id}
-                                                className={`border-b border-[#163F20]/10 last:border-0 ${
-                                                  isSelected ? "bg-[#EAF3EA]" : "hover:bg-[#FAFBFA]"
+                                                className={`border-b border-[#1E3A8A]/10 last:border-0 ${
+                                                  isSelected ? "bg-[#EAF1FF]" : "hover:bg-[#FAFBFF]"
                                                 } ${!isSelectable ? "opacity-60" : ""}`}
                                               >
                                                 <td className="px-4 py-3 text-center">
@@ -2944,7 +3020,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       e.stopPropagation();
                                                       if (isSelectable) toggleItemSelection(order.id, item.id);
                                                     }}
-                                                    className={`text-[#163F20] hover:text-[#4C8A57] ${
+                                                    className={`text-[#1E3A8A] hover:text-[#2563EB] ${
                                                       !isSelectable ? "cursor-not-allowed opacity-40" : ""
                                                     }`}
                                                     disabled={!isSelectable}
@@ -2953,36 +3029,36 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                   </button>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                  <span className="inline-flex rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#163F20]">
+                                                  <span className="inline-flex rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#1E3A8A]">
                                                     {item.itemReferenceId || "N/A"}
                                                   </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                   <div className="flex items-center gap-3">
                                                     {item.image ? (
-                                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                                                     ) : (
-                                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                                                         <FiPackage size={12} />
                                                       </div>
                                                     )}
-                                                    <span className="text-sm font-medium text-[#3F4A41]">{item.productName}</span>
+                                                    <span className="text-sm font-medium text-[#3A4668]">{item.productName}</span>
                                                   </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                  <span className="text-xs text-[#9AA29C]">{item.sku}</span>
+                                                  <span className="text-xs text-[#8C97B2]">{item.sku}</span>
                                                 </td>
-                                                <td className="px-4 py-3 text-center text-sm text-[#3F4A41]">{item.quantity}</td>
-                                                <td className="px-4 py-3 text-right text-sm text-[#59645C]">{item.price}</td>
-                                                <td className="px-4 py-3 text-right text-sm font-bold text-[#202721]">{item.total}</td>
+                                                <td className="px-4 py-3 text-center text-sm text-[#3A4668]">{item.quantity}</td>
+                                                <td className="px-4 py-3 text-right text-sm text-[#4A5778]">{item.price}</td>
+                                                <td className="px-4 py-3 text-right text-sm font-bold text-[#0F1B3D]">{item.total}</td>
                                                 <td className="px-4 py-3">
                                                   {item.courier_tracking_number ? (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[11px] font-bold text-[#163F20]">
+                                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[11px] font-bold text-[#1E3A8A]">
                                                       <FiTruck size={11} />
                                                       {item.courier_tracking_number}
                                                     </span>
                                                   ) : (
-                                                    <span className="text-xs text-[#9AA29C]">—</span>
+                                                    <span className="text-xs text-[#8C97B2]">—</span>
                                                   )}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
@@ -3002,7 +3078,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                           setSelectedItemsForDispatch([item]);
                                                           setShowDispatchPopup(true);
                                                         }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                                                         title="Dispatch this item"
                                                       >
                                                         <FiTruck size={13} />
@@ -3018,7 +3094,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                           setSelectedItemsForShip([item]);
                                                           setShowShipPopup(true);
                                                         }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                                                         title="Ship this item"
                                                       >
                                                         <FiSend size={13} />
@@ -3034,7 +3110,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                           setSelectedItemsForDeliver([item]);
                                                           setShowDeliverPopup(true);
                                                         }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                                                         title="Deliver this item"
                                                       >
                                                         <FiCheckCircle size={13} />
@@ -3059,50 +3135,52 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                                       </button>
                                                     )}
                                                     {isDelivered && (
-                                                      <span className="text-[10px] font-bold text-[#163F20]">✓</span>
+                                                      <span className="text-[10px] font-bold text-[#1E3A8A]">✓</span>
                                                     )}
                                                   </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                  {isDelivered && order.orderId && (
+                                                  {isDelivered && order.orderId && canViewInvoice && (
                                                     <button
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
                                                       }}
-                                                      className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                                                      className="inline-flex items-center gap-1 rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                                                     >
                                                       <FiFileText size={11} />
                                                       Invoice
                                                     </button>
                                                   )}
                                                 </td>
-                                                <td className="px-4 py-3 text-center">
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (!isToggling) handleToggleCancelReturn(order, item);
-                                                    }}
-                                                    disabled={isToggling}
-                                                    title={isCancelReturnAllowed ? "Deactivate cancel/return" : "Activate cancel/return"}
-                                                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-                                                      isCancelReturnAllowed
-                                                        ? "bg-[#163F20] text-white hover:bg-[#0F3219]"
-                                                        : "bg-[#EAF3EA] text-[#163F20] hover:bg-[#D5E5D6]"
-                                                    }`}
-                                                  >
-                                                    {isToggling ? (
-                                                      <FiLoader size={12} className="animate-spin" />
-                                                    ) : isCancelReturnAllowed ? (
-                                                      <FiCheckCircle size={12} />
-                                                    ) : (
-                                                      <FiAlertCircle size={12} />
-                                                    )}
-                                                    {isToggling ? "Saving..." : isCancelReturnAllowed ? "Allowed" : "Not Allowed"}
-                                                  </button>
-                                                </td>
+                                                {canToggleCancelReturn && (
+                                                  <td className="px-4 py-3 text-center">
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!isToggling) handleToggleCancelReturn(order, item);
+                                                      }}
+                                                      disabled={isToggling}
+                                                      title={isCancelReturnAllowed ? "Deactivate cancel/return" : "Activate cancel/return"}
+                                                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                                                        isCancelReturnAllowed
+                                                          ? "bg-[#1E3A8A] text-white hover:bg-[#172554]"
+                                                          : "bg-[#EAF1FF] text-[#1E3A8A] hover:bg-[#DBEAFE]"
+                                                      }`}
+                                                    >
+                                                      {isToggling ? (
+                                                        <FiLoader size={12} className="animate-spin" />
+                                                      ) : isCancelReturnAllowed ? (
+                                                        <FiCheckCircle size={12} />
+                                                      ) : (
+                                                        <FiAlertCircle size={12} />
+                                                      )}
+                                                      {isToggling ? "Saving..." : isCancelReturnAllowed ? "Allowed" : "Not Allowed"}
+                                                    </button>
+                                                  </td>
+                                                )}
                                               </tr>
                                             );
                                           })}
@@ -3110,9 +3188,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       </table>
                                     </div>
 
-                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#163F20]/10 pt-4">
-                                      <div className="flex min-w-0 items-center gap-2 text-xs text-[#59645C]">
-                                        <FiMapPin size={14} className="shrink-0 text-[#163F20]" />
+                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#1E3A8A]/10 pt-4">
+                                      <div className="flex min-w-0 items-center gap-2 text-xs text-[#4A5778]">
+                                        <FiMapPin size={14} className="shrink-0 text-[#1E3A8A]" />
                                         <span className="truncate">{order.shippingAddress || "No address"}</span>
                                       </div>
                                       <div className="flex flex-wrap items-center gap-2">
@@ -3122,7 +3200,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                             e.stopPropagation();
                                             handleViewOrder(order.id);
                                           }}
-                                          className="rounded-xl border border-[#163F20]/20 bg-white px-4 py-2 text-xs font-semibold text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA]"
+                                          className="rounded-xl border border-[#1E3A8A]/20 bg-white px-4 py-2 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
                                         >
                                           <FiEye size={14} className="mr-1.5 inline" />
                                           View Details
@@ -3142,11 +3220,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <tr>
                     <td colSpan={10} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                           <FiSearch size={24} />
                         </div>
-                        <p className="mt-4 text-sm font-bold text-[#202721]">No orders found</p>
-                        <p className="mt-1 text-xs text-[#9AA29C]">
+                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">No orders found</p>
+                        <p className="mt-1 text-xs text-[#8C97B2]">
                           Try adjusting your filters or search criteria.
                         </p>
                       </div>
@@ -3164,25 +3242,25 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 if (isItemWiseView) {
                   const item = order.items && order.items[0];
                   if (!item) return null;
-                  const isDispatchable = canItemDispatch(item);
-                  const isShipable = canItemShip(item);
-                  const isDeliverable = canItemDeliver(item);
-                  const isUndeliverable = canItemMarkUndelivered(item);
+                  const isDispatchable = canItemDispatch(item) && canDispatch;
+                  const isShipable = canItemShip(item) && canShip;
+                  const isDeliverable = canItemDeliver(item) && canDeliver;
+                  const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
                   const isDelivered = isFullyDelivered(item);
                   const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
 
                   return (
                     <div
                       key={`${order.id}-${item.id}-${index}`}
-                      className="border-b border-[#163F20]/10 bg-white p-5"
+                      className="border-b border-[#1E3A8A]/10 bg-white p-5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-bold text-[#3F4A41]">
+                          <span className="inline-flex rounded-lg bg-[#F5F8FF] px-2.5 py-1 text-xs font-bold text-[#3A4668]">
                             {order.id}
                           </span>
-                          <p className="mt-2 text-xs text-[#9AA29C]">{order.date}</p>
-                          <p className="mt-0.5 text-xs font-semibold text-[#59645C]">{order.customer}</p>
+                          <p className="mt-2 text-xs text-[#8C97B2]">{order.date}</p>
+                          <p className="mt-0.5 text-xs font-semibold text-[#4A5778]">{order.customer}</p>
                         </div>
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
@@ -3193,27 +3271,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         </span>
                       </div>
 
-                      <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+                      <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#1E3A8A]/10 bg-[#FAFBFF] p-3">
                         {item.image ? (
-                          <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                          <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                         ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20] flex-shrink-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A] flex-shrink-0">
                             <FiPackage size={14} />
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202721]">{item.productName}</p>
-                          <p className="truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
-                          <p className="truncate text-[11px] text-[#9AA29C]">SKU: {item.sku} • Qty: {item.quantity}</p>
+                          <p className="truncate text-sm font-bold text-[#0F1B3D]">{item.productName}</p>
+                          <p className="truncate text-[11px] font-bold text-[#2563EB]">Ref: {item.itemReferenceId || "N/A"}</p>
+                          <p className="truncate text-[11px] text-[#8C97B2]">SKU: {item.sku} • Qty: {item.quantity}</p>
                         </div>
-                        <span className="ml-auto shrink-0 text-sm font-bold text-[#163F20]">{item.total}</span>
+                        <span className="ml-auto shrink-0 text-sm font-bold text-[#1E3A8A]">{item.total}</span>
                       </div>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleViewOrder(order.id)}
-                          className="flex-1 rounded-lg border border-[#163F20]/20 bg-white px-3 py-2 text-xs font-bold text-[#163F20]"
+                          className="flex-1 rounded-lg border border-[#1E3A8A]/20 bg-white px-3 py-2 text-xs font-bold text-[#1E3A8A]"
                         >
                           View Order
                         </button>
@@ -3226,7 +3304,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               setSelectedItemsForDispatch([item]);
                               setShowDispatchPopup(true);
                             }}
-                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                            className="flex-1 rounded-lg bg-[#1E3A8A] px-3 py-2 text-xs font-bold text-white"
                           >
                             Dispatch
                           </button>
@@ -3240,7 +3318,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               setSelectedItemsForShip([item]);
                               setShowShipPopup(true);
                             }}
-                            className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                            className="flex-1 rounded-lg bg-[#1E3A8A] px-3 py-2 text-xs font-bold text-white"
                           >
                             Ship
                           </button>
@@ -3254,7 +3332,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               setSelectedItemsForDeliver([item]);
                               setShowDeliverPopup(true);
                             }}
-                            className="flex-1 rounded-lg bg-[#4C8A57] px-3 py-2 text-xs font-bold text-white"
+                            className="flex-1 rounded-lg bg-[#2563EB] px-3 py-2 text-xs font-bold text-white"
                           >
                             Delivered
                           </button>
@@ -3269,35 +3347,37 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             {isMarking ? "Saving..." : "Undelivered"}
                           </button>
                         )}
-                        {isDelivered && order.orderId && (
+                        {isDelivered && order.orderId && canViewInvoice && (
                           <button
                             type="button"
                             onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
-                            className="flex-1 rounded-lg bg-[#EAF3EA] px-3 py-2 text-xs font-bold text-[#163F20]"
+                            className="flex-1 rounded-lg bg-[#EAF1FF] px-3 py-2 text-xs font-bold text-[#1E3A8A]"
                           >
                             Invoice PDF
                           </button>
                         )}
                       </div>
 
-                      <div className="mt-2">
-                        <button
-                          type="button"
-                          disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
-                          onClick={() => handleToggleCancelReturn(order, item)}
-                          className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
-                            item.is_cancel_return_allowed
-                              ? "bg-[#163F20] text-white"
-                              : "bg-[#EAF3EA] text-[#163F20]"
-                          }`}
-                        >
-                          {togglingCancelReturn.has(`${order.id}-${item.id}`)
-                            ? "Saving..."
-                            : item.is_cancel_return_allowed
-                              ? "Cancel/Return: Allowed"
-                              : "Cancel/Return: Not Allowed"}
-                        </button>
-                      </div>
+                      {canToggleCancelReturn && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
+                            onClick={() => handleToggleCancelReturn(order, item)}
+                            className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
+                              item.is_cancel_return_allowed
+                                ? "bg-[#1E3A8A] text-white"
+                                : "bg-[#EAF1FF] text-[#1E3A8A]"
+                            }`}
+                          >
+                            {togglingCancelReturn.has(`${order.id}-${item.id}`)
+                              ? "Saving..."
+                              : item.is_cancel_return_allowed
+                                ? "Cancel/Return: Allowed"
+                                : "Cancel/Return: Not Allowed"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 }
@@ -3306,16 +3386,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <div
                     key={order.id}
                     onClick={() => toggleRow(order.id)}
-                    className={`cursor-pointer border-b border-[#163F20]/10 p-5 transition-colors ${
-                      selectedOrderId === order.id ? "bg-[#EAF3EA]" : "bg-white hover:bg-[#FAFBFA]"
+                    className={`cursor-pointer border-b border-[#1E3A8A]/10 p-5 transition-colors ${
+                      selectedOrderId === order.id ? "bg-[#EAF1FF]" : "bg-white hover:bg-[#FAFBFF]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <span className="inline-flex rounded-lg bg-[#F5F7F5] px-2.5 py-1 text-xs font-bold text-[#3F4A41]">
+                        <span className="inline-flex rounded-lg bg-[#F5F8FF] px-2.5 py-1 text-xs font-bold text-[#3A4668]">
                           {order.id}
                         </span>
-                        <p className="mt-2 text-xs text-[#9AA29C]">{order.date}</p>
+                        <p className="mt-2 text-xs text-[#8C97B2]">{order.date}</p>
                       </div>
                       <div className="flex items-center gap-1">
                         <button
@@ -3324,7 +3404,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             e.stopPropagation();
                             handleViewOrder(order.id);
                           }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20]"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A]"
                         >
                           <FiEye size={15} />
                         </button>
@@ -3334,7 +3414,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             e.stopPropagation();
                             toggleRow(order.id);
                           }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#59645C]"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#4A5778]"
                         >
                           {expandedRows.has(order.id) ? <FiChevronUp size={15} /> : <FiChevronDown size={15} />}
                         </button>
@@ -3342,41 +3422,41 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </div>
 
                     <div className="mt-4">
-                      <p className="text-sm font-bold text-[#202721]">{order.customer}</p>
-                      <p className="mt-0.5 text-xs text-[#9AA29C]">{formatOrderType(order.orderType)}</p>
+                      <p className="text-sm font-bold text-[#0F1B3D]">{order.customer}</p>
+                      <p className="mt-0.5 text-xs text-[#8C97B2]">{formatOrderType(order.orderType)}</p>
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="text-base font-bold text-[#163F20]">{order.total}</span>
+                      <span className="text-base font-bold text-[#1E3A8A]">{order.total}</span>
                       <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}>
                         {formatStatus(order.orderStatus)}
                       </span>
                     </div>
 
                     {expandedRows.has(order.id) && (
-                      <div className="mt-4 animate-slideDown border-t border-[#163F20]/10 pt-4">
+                      <div className="mt-4 animate-slideDown border-t border-[#1E3A8A]/10 pt-4">
                         <div className="space-y-2">
                           {(order.items || []).map((item) => {
-                            const isDispatchable = canItemDispatch(item);
-                            const isShipable = canItemShip(item);
-                            const isDeliverable = canItemDeliver(item);
-                            const isUndeliverable = canItemMarkUndelivered(item);
+                            const isDispatchable = canItemDispatch(item) && canDispatch;
+                            const isShipable = canItemShip(item) && canShip;
+                            const isDeliverable = canItemDeliver(item) && canDeliver;
+                            const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
                             const isDelivered = isFullyDelivered(item);
                             const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
 
                             return (
                               <div
                                 key={item.id}
-                                className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3"
+                                className="rounded-xl border border-[#1E3A8A]/10 bg-[#FAFBFF] p-3"
                               >
                                 <div className="flex items-center justify-between gap-2">
                                   <div className="flex items-center gap-2 min-w-0">
                                     {item.image && (
-                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#163F20]/10 object-cover flex-shrink-0" />
+                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#1E3A8A]/10 object-cover flex-shrink-0" />
                                     )}
                                     <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-[#202721]">{item.productName}</p>
-                                      <p className="mt-0.5 truncate text-[11px] font-bold text-[#4C8A57]">Ref: {item.itemReferenceId || "N/A"}</p>
+                                      <p className="truncate text-sm font-semibold text-[#0F1B3D]">{item.productName}</p>
+                                      <p className="mt-0.5 truncate text-[11px] font-bold text-[#2563EB]">Ref: {item.itemReferenceId || "N/A"}</p>
                                     </div>
                                   </div>
                                 </div>
@@ -3392,7 +3472,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         setSelectedItemsForDispatch([item]);
                                         setShowDispatchPopup(true);
                                       }}
-                                      className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                                      className="flex-1 rounded-lg bg-[#1E3A8A] px-3 py-2 text-xs font-bold text-white"
                                     >
                                       Dispatch
                                     </button>
@@ -3407,7 +3487,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         setSelectedItemsForShip([item]);
                                         setShowShipPopup(true);
                                       }}
-                                      className="flex-1 rounded-lg bg-[#163F20] px-3 py-2 text-xs font-bold text-white"
+                                      className="flex-1 rounded-lg bg-[#1E3A8A] px-3 py-2 text-xs font-bold text-white"
                                     >
                                       Ship
                                     </button>
@@ -3422,7 +3502,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                         setSelectedItemsForDeliver([item]);
                                         setShowDeliverPopup(true);
                                       }}
-                                      className="flex-1 rounded-lg bg-[#4C8A57] px-3 py-2 text-xs font-bold text-white"
+                                      className="flex-1 rounded-lg bg-[#2563EB] px-3 py-2 text-xs font-bold text-white"
                                     >
                                       Delivered
                                     </button>
@@ -3440,41 +3520,43 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       {isMarking ? "Saving..." : "Undelivered"}
                                     </button>
                                   )}
-                                  {isDelivered && order.orderId && (
+                                  {isDelivered && order.orderId && canViewInvoice && (
                                     <button
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
                                       }}
-                                      className="flex-1 rounded-lg bg-[#EAF3EA] px-3 py-2 text-xs font-bold text-[#163F20]"
+                                      className="flex-1 rounded-lg bg-[#EAF1FF] px-3 py-2 text-xs font-bold text-[#1E3A8A]"
                                     >
                                       Invoice PDF
                                     </button>
                                   )}
                                 </div>
 
-                                <div className="mt-2">
-                                  <button
-                                    type="button"
-                                    disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleToggleCancelReturn(order, item);
-                                    }}
-                                    className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
-                                      item.is_cancel_return_allowed
-                                        ? "bg-[#163F20] text-white"
-                                        : "bg-[#EAF3EA] text-[#163F20]"
-                                    }`}
-                                  >
-                                    {togglingCancelReturn.has(`${order.id}-${item.id}`)
-                                      ? "Saving..."
-                                      : item.is_cancel_return_allowed
-                                        ? "Cancel/Return: Allowed"
-                                        : "Cancel/Return: Not Allowed"}
-                                  </button>
-                                </div>
+                                {canToggleCancelReturn && (
+                                  <div className="mt-2">
+                                    <button
+                                      type="button"
+                                      disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleCancelReturn(order, item);
+                                      }}
+                                      className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${
+                                        item.is_cancel_return_allowed
+                                          ? "bg-[#1E3A8A] text-white"
+                                          : "bg-[#EAF1FF] text-[#1E3A8A]"
+                                      }`}
+                                    >
+                                      {togglingCancelReturn.has(`${order.id}-${item.id}`)
+                                        ? "Saving..."
+                                        : item.is_cancel_return_allowed
+                                          ? "Cancel/Return: Allowed"
+                                          : "Cancel/Return: Not Allowed"}
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -3486,30 +3568,30 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               })
             ) : (
               <div className="flex flex-col items-center px-6 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                   <FiSearch size={24} />
                 </div>
-                <p className="mt-4 text-sm font-bold text-[#202721]">No orders found</p>
-                <p className="mt-1 text-xs text-[#9AA29C]">Try adjusting your filters.</p>
+                <p className="mt-4 text-sm font-bold text-[#0F1B3D]">No orders found</p>
+                <p className="mt-1 text-xs text-[#8C97B2]">Try adjusting your filters.</p>
               </div>
             )}
           </div>
 
           {/* PAGINATION */}
           {filteredOrders.length > 0 && (
-            <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4">
+            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-[#89918B]">
+                <p className="text-xs text-[#8C97B2]">
                   Showing{" "}
-                  <span className="font-bold text-[#3F4A41]">
+                  <span className="font-bold text-[#3A4668]">
                     {(currentPage - 1) * itemsPerPage + 1}
                   </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3F4A41]">
+                  <span className="font-bold text-[#3A4668]">
                     {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
                   </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#3F4A41]">{filteredOrders.length}</span> entries
+                  <span className="font-bold text-[#3A4668]">{filteredOrders.length}</span> entries
                 </p>
 
                 <div className="flex items-center justify-center gap-1.5">
@@ -3517,7 +3599,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     type="button"
                     onClick={() => changePage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
@@ -3530,8 +3612,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         onClick={() => changePage(page)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
                           currentPage === page
-                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                            ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                            : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                         }`}
                       >
                         {page}
@@ -3540,14 +3622,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   })}
                   {totalPages > 3 && (
                     <>
-                      <span className="px-1 text-xs text-[#9AA29C]">...</span>
+                      <span className="px-1 text-xs text-[#8C97B2]">...</span>
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
                           currentPage === totalPages
-                            ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white"
-                            : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                            ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white"
+                            : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                         }`}
                       >
                         {totalPages}
@@ -3558,7 +3640,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     type="button"
                     onClick={() => changePage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>
@@ -3624,6 +3706,32 @@ const Orders: React.FC = () => {
 
   const [filteredForExport, setFilteredForExport] = useState<Order[]>([]);
   const [filterLabel, setFilterLabel] = useState<string>("All Orders");
+
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewOrders = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("order") ||
+      hasPermission("order.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canExport = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("order") ||
+      hasPermission("order.details"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
 
   useEffect(() => {
     fetchOrders();
@@ -3732,49 +3840,49 @@ const Orders: React.FC = () => {
         title: "Total Orders",
         value: total,
         icon: (
-          <span className="text-[#163F20]">
+          <span className="text-[#1E3A8A]">
             <ClipboardIcon />
           </span>
         ),
-        barColor: "bg-[#163F20]",
-        textColor: "text-[#163F20]",
-        valueColor: "text-[#0F3219]",
+        barColor: "bg-[#1E3A8A]",
+        textColor: "text-[#1E3A8A]",
+        valueColor: "text-[#172554]",
       },
       {
         title: "Total Earnings",
         value: `₹${totalEarnings.toLocaleString("en-IN")}`,
         icon: (
-          <span className="text-[#4C8A57]">
+          <span className="text-[#2563EB]">
             <DollarIcon />
           </span>
         ),
-        barColor: "bg-[#4C8A57]",
-        textColor: "text-[#4C8A57]",
-        valueColor: "text-[#163F20]",
+        barColor: "bg-[#2563EB]",
+        textColor: "text-[#2563EB]",
+        valueColor: "text-[#1E3A8A]",
       },
       {
         title: "Confirmed Orders",
         value: confirmed,
         icon: (
-          <span className="text-[#163F20]">
+          <span className="text-[#1E3A8A]">
             <CreditCardIcon />
           </span>
         ),
-        barColor: "bg-[#163F20]",
-        textColor: "text-[#163F20]",
-        valueColor: "text-[#0F3219]",
+        barColor: "bg-[#1E3A8A]",
+        textColor: "text-[#1E3A8A]",
+        valueColor: "text-[#172554]",
       },
       {
         title: "Delivered Orders",
         value: delivered,
         icon: (
-          <span className="text-[#0F3219]">
+          <span className="text-[#172554]">
             <CheckCircleIcon />
           </span>
         ),
-        barColor: "bg-[#0F3219]",
-        textColor: "text-[#0F3219]",
-        valueColor: "text-[#0F3219]",
+        barColor: "bg-[#172554]",
+        textColor: "text-[#172554]",
+        valueColor: "text-[#172554]",
       },
     ];
   }, [uiOrders, totalEarnings]);
@@ -3795,40 +3903,64 @@ const Orders: React.FC = () => {
     downloadOrdersCsv(filteredForExport, `orders-${slug || "filtered"}`);
   };
 
+  // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewOrders && !loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F5F7F5] p-4">
+    <div className="min-h-screen bg-[#F5F8FF] p-4 font-poppins">
       <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <div className="mb-1 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-[#163F20]" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+            <div className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
+            <div className="h-2 w-2 rounded-full bg-[#FACC15]" />
+            <div className="h-2 w-2 rounded-full bg-[#2563EB]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
               Order Management
             </span>
           </div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[30px]">Orders</h1>
-          <p className="mt-1 text-sm text-[#59645C]">
+          <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[30px]">Orders</h1>
+          <p className="mt-1 text-sm text-[#4A5778]">
             Manage orders, dispatch, shipping, and delivery from one place.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleDownloadFilteredCsv}
-          disabled={filteredForExport.length === 0 || loading}
-          title={`Export ${filterLabel} as CSV`}
-          className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#163F20]/20 bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.6)] disabled:cursor-not-allowed disabled:opacity-60 md:self-auto"
-        >
-          <FiDownload size={15} />
-          Download CSV
-          <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
-            {filterLabel}
-          </span>
-          {filteredForExport.length > 0 && (
+        {canExport && (
+          <button
+            type="button"
+            onClick={handleDownloadFilteredCsv}
+            disabled={filteredForExport.length === 0 || loading}
+            title={`Export ${filterLabel} as CSV`}
+            className="flex h-11 items-center justify-center gap-2 self-start rounded-xl border border-[#1E3A8A]/20 bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.6)] disabled:cursor-not-allowed disabled:opacity-60 md:self-auto"
+          >
+            <FiDownload size={15} />
+            Download CSV
             <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
-              {filteredForExport.length}
+              {filterLabel}
             </span>
-          )}
-        </button>
+            {filteredForExport.length > 0 && (
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+                {filteredForExport.length}
+              </span>
+            )}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -3836,7 +3968,7 @@ const Orders: React.FC = () => {
           {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
-              className="h-[135px] animate-pulse rounded-2xl border border-[#163F20]/10 bg-white"
+              className="h-[135px] animate-pulse rounded-2xl border border-[#1E3A8A]/10 bg-white"
             />
           ))}
         </div>

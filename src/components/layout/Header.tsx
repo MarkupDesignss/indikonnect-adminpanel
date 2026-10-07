@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 
 import { adminApi, AdminProfile } from "../../api/endpoints/Auth";
@@ -35,14 +36,10 @@ import {
 } from "react-icons/io5";
 
 import { HiOutlineChevronDown } from "react-icons/hi";
-
 import { Link, useNavigate } from "react-router-dom";
-
-// =====================================================
-// DYNAMIC PORTAL CONFIG
-// =====================================================
-
 import { getPortalLoginUrl } from "@/config/portalConfig";
+import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
+import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
 // TYPES
@@ -82,6 +79,17 @@ const getInitials = (name?: string) => {
   return parts[0].slice(0, 2).toUpperCase();
 };
 
+/**
+ * Role slug ko readable label me convert karo
+ * e.g. "warehouse-manager" => "Warehouse Manager"
+ */
+const formatRoleLabel = (slug: string): string => {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+};
+
 // =====================================================
 // HEADER
 // =====================================================
@@ -93,6 +101,57 @@ const Header = ({
   onToggleMobileSidebar,
 }: HeaderProps) => {
   const navigate = useNavigate();
+
+  // ===================================================
+  // ✅ PORTAL INFO (URL + API combined)
+  // ===================================================
+
+  const {
+    portalName,
+    warehouseName,
+    warehouseCode,
+    isWarehousePortal,
+  } = usePortalInfo();
+
+  // ===================================================
+  // ✅ PERMISSIONS (role ke liye)
+  // ===================================================
+
+  const { primaryRole, roles: adminRoles } = usePermissions();
+
+  // ===================================================
+  // ✅ DYNAMIC ROLE LABEL
+  // Priority:
+  // 1. API roles me match karo → "Warehouse Manager"
+  // 2. primaryRole ko format karo → "Warehouse Manager"
+  // 3. Portal name → "Warehouse Portal"
+  // 4. Fallback → "Administrator"
+  // ===================================================
+
+  const roleLabel = useMemo(() => {
+    // API roles me match karo
+    if (primaryRole && adminRoles.length > 0) {
+      const matched = adminRoles.find(
+        (r) => r.slug === primaryRole,
+      );
+
+      if (matched?.name) {
+        return matched.name;
+      }
+    }
+
+    // primaryRole ko format karo
+    if (primaryRole) {
+      return formatRoleLabel(primaryRole);
+    }
+
+    // Fallback: portal name
+    if (portalName) {
+      return portalName;
+    }
+
+    return "Administrator";
+  }, [primaryRole, adminRoles, portalName]);
 
   // ===================================================
   // ADMIN
@@ -143,10 +202,6 @@ const Header = ({
       if (adminData) {
         setAdmin(adminData);
 
-        // =================================================
-        // LOCAL STORAGE
-        // =================================================
-
         localStorage.setItem(
           "adminData",
           JSON.stringify(adminData),
@@ -157,10 +212,6 @@ const Header = ({
         "Failed to fetch admin profile:",
         error,
       );
-
-      // =================================================
-      // FALLBACK FROM LOCAL STORAGE
-      // =================================================
 
       const storedAdmin =
         localStorage.getItem("adminData");
@@ -247,11 +298,7 @@ const Header = ({
         return first;
       }
 
-      return (
-        first?.image ||
-        first?.url ||
-        null
-      );
+      return first?.image || first?.url || null;
     }
 
     return null;
@@ -300,8 +347,7 @@ const Header = ({
         return;
       }
 
-      const requestId =
-        ++searchRequestRef.current;
+      const requestId = ++searchRequestRef.current;
 
       try {
         setIsSearchLoading(true);
@@ -312,31 +358,20 @@ const Header = ({
             search: trimmedValue,
           });
 
-        if (
-          requestId !==
-          searchRequestRef.current
-        ) {
+        if (requestId !== searchRequestRef.current) {
           return;
         }
 
-        const data =
-          response.data?.data;
+        const data = response.data?.data;
 
         setSearchResults({
-          products:
-            data?.products || [],
-          admins:
-            data?.admins || [],
-          users:
-            data?.users || [],
-          total_results:
-            data?.total_results || 0,
+          products: data?.products || [],
+          admins: data?.admins || [],
+          users: data?.users || [],
+          total_results: data?.total_results || 0,
         });
       } catch (error) {
-        console.error(
-          "Global search failed:",
-          error,
-        );
+        console.error("Global search failed:", error);
 
         setSearchResults({
           products: [],
@@ -345,10 +380,7 @@ const Header = ({
           total_results: 0,
         });
       } finally {
-        if (
-          requestId ===
-          searchRequestRef.current
-        ) {
+        if (requestId === searchRequestRef.current) {
           setIsSearchLoading(false);
         }
       }
@@ -415,55 +447,31 @@ const Header = ({
     setSearch("");
     setIsSearchOpen(false);
 
-    // =================================================
-    // PRODUCT
-    // =================================================
-
     if (type === "product") {
-      const product =
-        item as GlobalSearchProduct;
+      const product = item as GlobalSearchProduct;
 
       navigate("/inventory/products", {
-        state: {
-          product,
-        },
+        state: { product },
       });
 
       return;
     }
 
-    // =================================================
-    // ADMIN
-    // =================================================
-
     if (type === "admin") {
-      const searchAdmin =
-        item as GlobalSearchAdmin;
+      const searchAdmin = item as GlobalSearchAdmin;
 
-      navigate(
-        "/RoleManagement/addmember",
-        {
-          state: {
-            admin: searchAdmin,
-          },
-        },
-      );
+      navigate("/RoleManagement/addmember", {
+        state: { admin: searchAdmin },
+      });
 
       return;
     }
 
-    // =================================================
-    // USER
-    // =================================================
-
     if (type === "user") {
-      const user =
-        item as GlobalSearchUser;
+      const user = item as GlobalSearchUser;
 
       navigate("/UserManagement", {
-        state: {
-          user,
-        },
+        state: { user },
       });
     }
   };
@@ -474,76 +482,38 @@ const Header = ({
 
   const handleLogout = async () => {
     try {
-      // =================================================
-      // GET CURRENT PORTAL LOGIN URL
-      // BEFORE CLEARING STORAGE
-      // =================================================
-
-      const loginUrl =
-        getPortalLoginUrl();
+      const loginUrl = getPortalLoginUrl();
 
       console.log(
         "Current path:",
         window.location.pathname,
       );
 
-      console.log(
-        "Logout redirect:",
-        loginUrl,
-      );
-
-      // =================================================
-      // LOGOUT API
-      // =================================================
+      console.log("Logout redirect:", loginUrl);
 
       try {
         await adminApi.logout();
       } catch (error) {
-        console.error(
-          "Logout API failed:",
-          error,
-        );
+        console.error("Logout API failed:", error);
       }
 
-      // =================================================
-      // CLEAR ALL LOCAL STORAGE
-      // =================================================
-
       localStorage.clear();
-
-      // =================================================
-      // CLEAR ALL SESSION STORAGE
-      // =================================================
-
       sessionStorage.clear();
-
-      // =================================================
-      // CLEAR ACCESSIBLE COOKIES
-      // =================================================
 
       document.cookie
         .split(";")
         .forEach((cookie) => {
-          const cookieName =
-            cookie.split("=")[0].trim();
+          const cookieName = cookie
+            .split("=")[0]
+            .trim();
 
           if (cookieName) {
             document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-
-            // Also try current path
             document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${window.location.pathname}`;
           }
         });
 
-      // =================================================
-      // CLOSE DROPDOWN
-      // =================================================
-
       setIsDropdownOpen(false);
-
-      // =================================================
-      // CLEAR SEARCH
-      // =================================================
 
       setSearch("");
       setIsSearchOpen(false);
@@ -555,32 +525,14 @@ const Header = ({
         total_results: 0,
       });
 
-      // =================================================
-      // REDIRECT TO CURRENT PORTAL LOGIN
-      // =================================================
-
       window.location.href = loginUrl;
     } catch (error) {
-      console.error(
-        "Logout failed:",
-        error,
-      );
-
-      // =================================================
-      // FORCE CLEAR STORAGE
-      // =================================================
+      console.error("Logout failed:", error);
 
       localStorage.clear();
       sessionStorage.clear();
 
-      // =================================================
-      // DYNAMIC FALLBACK LOGIN URL
-      // =================================================
-
-      const loginUrl =
-        getPortalLoginUrl();
-
-      window.location.href = loginUrl;
+      window.location.href = getPortalLoginUrl();
     }
   };
 
@@ -589,9 +541,7 @@ const Header = ({
   // ===================================================
 
   const toggleDropdown = () => {
-    setIsDropdownOpen(
-      (previous) => !previous,
-    );
+    setIsDropdownOpen((previous) => !previous);
   };
 
   // ===================================================
@@ -683,9 +633,7 @@ const Header = ({
 
         <button
           type="button"
-          onClick={
-            onToggleMobileSidebar
-          }
+          onClick={onToggleMobileSidebar}
           className="
             flex
             h-10
@@ -833,32 +781,31 @@ const Header = ({
 
           {/* CLEAR */}
 
-          {!isSearchLoading &&
-            search && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                className="
-                  absolute
-                  right-3
-                  top-1/2
-                  flex
-                  h-7
-                  w-7
-                  -translate-y-1/2
-                  items-center
-                  justify-center
-                  rounded-lg
-                  text-gray-400
-                  transition
-                  hover:bg-gray-100
-                  hover:text-gray-700
-                "
-                aria-label="Clear search"
-              >
-                <IoCloseOutline size={18} />
-              </button>
-            )}
+          {!isSearchLoading && search && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="
+                absolute
+                right-3
+                top-1/2
+                flex
+                h-7
+                w-7
+                -translate-y-1/2
+                items-center
+                justify-center
+                rounded-lg
+                text-gray-400
+                transition
+                hover:bg-gray-100
+                hover:text-gray-700
+              "
+              aria-label="Clear search"
+            >
+              <IoCloseOutline size={18} />
+            </button>
+          )}
         </div>
 
         {/* ===================================================
@@ -883,38 +830,37 @@ const Header = ({
           >
             {/* LOADING */}
 
-            {isSearchLoading &&
-              !hasResults && (
-                <div className="px-5 py-8 text-center">
-                  <div
-                    className="
-                      mx-auto
-                      mb-3
-                      flex
-                      h-11
-                      w-11
-                      items-center
-                      justify-center
-                      rounded-xl
-                      bg-primary/10
-                      text-primary
-                    "
-                  >
-                    <FiLoader
-                      size={20}
-                      className="animate-spin"
-                    />
-                  </div>
-
-                  <p className="text-sm font-semibold text-gray-800">
-                    Searching...
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-400">
-                    Looking across products, users and admins
-                  </p>
+            {isSearchLoading && !hasResults && (
+              <div className="px-5 py-8 text-center">
+                <div
+                  className="
+                    mx-auto
+                    mb-3
+                    flex
+                    h-11
+                    w-11
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-primary/10
+                    text-primary
+                  "
+                >
+                  <FiLoader
+                    size={20}
+                    className="animate-spin"
+                  />
                 </div>
-              )}
+
+                <p className="text-sm font-semibold text-gray-800">
+                  Searching...
+                </p>
+
+                <p className="mt-1 text-xs text-gray-400">
+                  Looking across products, users and admins
+                </p>
+              </div>
+            )}
 
             {/* NO RESULTS */}
 
@@ -981,9 +927,7 @@ const Header = ({
 
                     <p className="mt-0.5 text-[11px] text-gray-400">
                       {totalSearchItems} matching result
-                      {totalSearchItems !== 1
-                        ? "s"
-                        : ""}
+                      {totalSearchItems !== 1 ? "s" : ""}
                     </p>
                   </div>
 
@@ -1004,22 +948,11 @@ const Header = ({
                   </div>
                 </div>
 
-                {/* =================================================
-                    PRODUCTS
-                ================================================= */}
+                {/* PRODUCTS */}
 
-                {searchResults.products.length >
-                  0 && (
+                {searchResults.products.length > 0 && (
                   <section className="border-b border-gray-100 py-2">
-                    <div
-                      className="
-                        flex
-                        items-center
-                        justify-between
-                        px-4
-                        py-2
-                      "
-                    >
+                    <div className="flex items-center justify-between px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div
                           className="
@@ -1044,10 +977,7 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {
-                          searchResults
-                            .products.length
-                        }
+                        {searchResults.products.length}
                       </span>
                     </div>
 
@@ -1055,9 +985,7 @@ const Header = ({
                       {searchResults.products.map(
                         (product) => {
                           const image =
-                            getProductImage(
-                              product,
-                            );
+                            getProductImage(product);
 
                           const name =
                             product.name ||
@@ -1169,22 +1097,11 @@ const Header = ({
                   </section>
                 )}
 
-                {/* =================================================
-                    ADMINS
-                ================================================= */}
+                {/* ADMINS */}
 
-                {searchResults.admins.length >
-                  0 && (
+                {searchResults.admins.length > 0 && (
                   <section className="border-b border-gray-100 py-2">
-                    <div
-                      className="
-                        flex
-                        items-center
-                        justify-between
-                        px-4
-                        py-2
-                      "
-                    >
+                    <div className="flex items-center justify-between px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div
                           className="
@@ -1207,10 +1124,7 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {
-                          searchResults
-                            .admins.length
-                        }
+                        {searchResults.admins.length}
                       </span>
                     </div>
 
@@ -1218,25 +1132,17 @@ const Header = ({
                       {searchResults.admins.map(
                         (searchAdmin) => {
                           const image =
-                            getProfileImage(
-                              searchAdmin,
-                            );
+                            getProfileImage(searchAdmin);
 
                           const roles =
-                            searchAdmin.roles ||
-                            [];
+                            searchAdmin.roles || [];
 
                           const permissionCount =
                             roles.reduce(
-                              (
-                                total,
-                                role,
-                              ) =>
+                              (total, role) =>
                                 total +
-                                (role
-                                  .permissions
-                                  ?.length ||
-                                  0),
+                                (role.permissions
+                                  ?.length || 0),
                               0,
                             );
 
@@ -1281,9 +1187,7 @@ const Header = ({
                                 {image ? (
                                   <img
                                     src={image}
-                                    alt={
-                                      searchAdmin.name
-                                    }
+                                    alt={searchAdmin.name}
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
@@ -1306,9 +1210,7 @@ const Header = ({
                                       group-hover:text-primary
                                     "
                                   >
-                                    {
-                                      searchAdmin.name
-                                    }
+                                    {searchAdmin.name}
                                   </p>
 
                                   <span
@@ -1335,73 +1237,44 @@ const Header = ({
                                     className="shrink-0 text-gray-400"
                                   />
 
-                                  <p
-                                    className="
-                                      truncate
-                                      text-[11px]
-                                      text-gray-400
-                                    "
-                                  >
-                                    {
-                                      searchAdmin.email
-                                    }
+                                  <p className="truncate text-[11px] text-gray-400">
+                                    {searchAdmin.email}
                                   </p>
                                 </div>
 
-                                {roles.length >
-                                  0 && (
+                                {roles.length > 0 && (
                                   <div className="mt-1.5 flex flex-wrap gap-1">
                                     {roles
-                                      .slice(
-                                        0,
-                                        3,
-                                      )
-                                      .map(
-                                        (
-                                          role,
-                                        ) => (
-                                          <span
-                                            key={
-                                              role.id
-                                            }
-                                            className="
-                                              rounded-md
-                                              bg-gray-100
-                                              px-1.5
-                                              py-0.5
-                                              text-[8px]
-                                              font-medium
-                                              text-gray-500
-                                            "
-                                          >
-                                            {
-                                              role.name
-                                            }
-                                          </span>
-                                        ),
-                                      )}
+                                      .slice(0, 3)
+                                      .map((role) => (
+                                        <span
+                                          key={role.id}
+                                          className="
+                                            rounded-md
+                                            bg-gray-100
+                                            px-1.5
+                                            py-0.5
+                                            text-[8px]
+                                            font-medium
+                                            text-gray-500
+                                          "
+                                        >
+                                          {role.name}
+                                        </span>
+                                      ))}
 
-                                    {roles.length >
-                                      3 && (
+                                    {roles.length > 3 && (
                                       <span className="px-1 text-[8px] font-medium text-gray-400">
-                                        +
-                                        {roles.length -
-                                          3}{" "}
-                                        more
+                                        +{roles.length - 3} more
                                       </span>
                                     )}
                                   </div>
                                 )}
 
-                                {permissionCount >
-                                  0 && (
+                                {permissionCount > 0 && (
                                   <p className="mt-1 text-[9px] font-medium text-gray-400">
-                                    {
-                                      permissionCount
-                                    }{" "}
-                                    permission
-                                    {permissionCount !==
-                                    1
+                                    {permissionCount} permission
+                                    {permissionCount !== 1
                                       ? "s"
                                       : ""}
                                   </p>
@@ -1434,22 +1307,11 @@ const Header = ({
                   </section>
                 )}
 
-                {/* =================================================
-                    USERS
-                ================================================= */}
+                {/* USERS */}
 
-                {searchResults.users.length >
-                  0 && (
+                {searchResults.users.length > 0 && (
                   <section className="py-2">
-                    <div
-                      className="
-                        flex
-                        items-center
-                        justify-between
-                        px-4
-                        py-2
-                      "
-                    >
+                    <div className="flex items-center justify-between px-4 py-2">
                       <div className="flex items-center gap-2">
                         <div
                           className="
@@ -1472,10 +1334,7 @@ const Header = ({
                       </div>
 
                       <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
-                        {
-                          searchResults
-                            .users.length
-                        }
+                        {searchResults.users.length}
                       </span>
                     </div>
 
@@ -1483,9 +1342,7 @@ const Header = ({
                       {searchResults.users.map(
                         (user) => {
                           const image =
-                            getProfileImage(
-                              user,
-                            );
+                            getProfileImage(user);
 
                           return (
                             <button
@@ -1525,16 +1382,12 @@ const Header = ({
                                 {image ? (
                                   <img
                                     src={image}
-                                    alt={
-                                      user.name
-                                    }
+                                    alt={user.name}
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
-                                    {getInitials(
-                                      user.name,
-                                    )}
+                                    {getInitials(user.name)}
                                   </div>
                                 )}
                               </div>
@@ -1558,13 +1411,7 @@ const Header = ({
                                     className="shrink-0 text-gray-400"
                                   />
 
-                                  <p
-                                    className="
-                                      truncate
-                                      text-[11px]
-                                      text-gray-400
-                                    "
-                                  >
+                                  <p className="truncate text-[11px] text-gray-400">
                                     {user.email}
                                   </p>
                                 </div>
@@ -1703,10 +1550,7 @@ const Header = ({
             PROFILE
         ================================================= */}
 
-        <div
-          ref={dropdownRef}
-          className="relative"
-        >
+        <div ref={dropdownRef} className="relative">
           <button
             type="button"
             onClick={toggleDropdown}
@@ -1763,7 +1607,7 @@ const Header = ({
               )}
             </div>
 
-            {/* NAME */}
+            {/* NAME + ROLE */}
 
             <div
               className="
@@ -1786,9 +1630,10 @@ const Header = ({
               >
                 {isLoading
                   ? "Loading..."
-                  : admin?.name ||
-                    "Administrator"}
+                  : admin?.name || "Administrator"}
               </p>
+
+              {/* ✅ DYNAMIC ROLE LABEL */}
 
               <p
                 className="
@@ -1799,8 +1644,9 @@ const Header = ({
                   text-gray-400
                   lg:block
                 "
+                title={roleLabel}
               >
-                Administrator
+                {roleLabel}
               </p>
             </div>
 
@@ -1813,11 +1659,7 @@ const Header = ({
                 text-gray-400
                 transition-transform
                 duration-200
-                ${
-                  isDropdownOpen
-                    ? "rotate-180"
-                    : ""
-                }
+                ${isDropdownOpen ? "rotate-180" : ""}
               `}
             />
           </button>
@@ -1856,8 +1698,6 @@ const Header = ({
                 "
               >
                 <div className="flex items-center gap-3">
-                  {/* IMAGE */}
-
                   <div
                     className="
                       h-12
@@ -1880,52 +1720,79 @@ const Header = ({
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
-                        {getInitials(
-                          admin?.name,
-                        )}
+                        {getInitials(admin?.name)}
                       </div>
                     )}
                   </div>
 
-                  {/* ADMIN */}
-
                   <div className="min-w-0 flex-1">
-                    <p
-                      className="
-                        truncate
-                        text-sm
-                        font-bold
-                        text-gray-900
-                      "
-                    >
-                      {admin?.name ||
-                        "Administrator"}
+                    <p className="truncate text-sm font-bold text-gray-900">
+                      {admin?.name || "Administrator"}
                     </p>
 
-                    <p
-                      className="
-                        mt-0.5
-                        truncate
-                        text-[11px]
-                        text-gray-400
-                      "
-                    >
-                      {admin?.email ||
-                        "admin@example.com"}
+                    <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                      {admin?.email || "admin@example.com"}
                     </p>
+
+                    {/* ✅ DYNAMIC ROLE + PORTAL */}
+
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="
+                          inline-flex
+                          items-center
+                          gap-1
+                          rounded-md
+                          bg-primary/10
+                          px-2
+                          py-0.5
+                          text-[9px]
+                          font-bold
+                          uppercase
+                          tracking-wide
+                          text-primary
+                        "
+                      >
+                        <FiShield size={9} />
+                        {roleLabel}
+                      </span>
+
+                      {isWarehousePortal &&
+                        warehouseName && (
+                          <span
+                            className="
+                              inline-flex
+                              items-center
+                              gap-1
+                              truncate
+                              rounded-md
+                              bg-emerald-50
+                              px-2
+                              py-0.5
+                              text-[9px]
+                              font-semibold
+                              text-emerald-700
+                            "
+                            title={`${warehouseName}${
+                              warehouseCode
+                                ? ` (${warehouseCode})`
+                                : ""
+                            }`}
+                          >
+                            {warehouseName}
+                            {warehouseCode &&
+                              ` (${warehouseCode})`}
+                          </span>
+                        )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* =================================================
-                  ROLES
-              ================================================= */}
+              {/* ROLES */}
 
-              {Array.isArray(
-                (admin as any)?.roles,
-              ) &&
-                (admin as any).roles
-                  .length > 0 && (
+              {Array.isArray((admin as any)?.roles) &&
+                (admin as any).roles.length > 0 && (
                   <div className="border-t border-gray-100 px-4 py-3">
                     <div className="mb-2 flex items-center gap-2">
                       <div
@@ -1956,15 +1823,9 @@ const Header = ({
 
                     <div className="space-y-2">
                       {(admin as any).roles.map(
-                        (
-                          role: any,
-                          index: number,
-                        ) => (
+                        (role: any, index: number) => (
                           <div
-                            key={
-                              role.id ??
-                              index
-                            }
+                            key={role.id ?? index}
                             className="
                               rounded-xl
                               border
@@ -1995,20 +1856,13 @@ const Header = ({
                             {Array.isArray(
                               role.permissions,
                             ) &&
-                              role
-                                .permissions
-                                .length >
+                              role.permissions.length >
                                 0 && (
                                 <div className="mt-2 flex flex-wrap gap-1">
                                   {role.permissions
-                                    .slice(
-                                      0,
-                                      5,
-                                    )
+                                    .slice(0, 5)
                                     .map(
-                                      (
-                                        permission: any,
-                                      ) => (
+                                      (permission: any) => (
                                         <span
                                           key={
                                             permission.id
@@ -2025,16 +1879,12 @@ const Header = ({
                                             ring-gray-200
                                           "
                                         >
-                                          {
-                                            permission.name
-                                          }
+                                          {permission.name}
                                         </span>
                                       ),
                                     )}
 
-                                  {role
-                                    .permissions
-                                    .length >
+                                  {role.permissions.length >
                                     5 && (
                                     <span
                                       className="
@@ -2048,10 +1898,8 @@ const Header = ({
                                       "
                                     >
                                       +
-                                      {role
-                                        .permissions
-                                        .length -
-                                        5}{" "}
+                                      {role.permissions
+                                        .length - 5}{" "}
                                       more
                                     </span>
                                   )}
@@ -2064,20 +1912,14 @@ const Header = ({
                   </div>
                 )}
 
-              {/* =================================================
-                  MENU
-              ================================================= */}
+              {/* MENU */}
 
               <div className="border-t border-gray-100 p-1.5">
-                {/* PROFILE */}
-
                 <Link to="/UpdateProfile">
                   <button
                     type="button"
                     onClick={() =>
-                      setIsDropdownOpen(
-                        false,
-                      )
+                      setIsDropdownOpen(false)
                     }
                     className="
                       flex
@@ -2121,15 +1963,11 @@ const Header = ({
                   </button>
                 </Link>
 
-                {/* SETTINGS */}
-
                 <Link to="/SettingsManagement">
                   <button
                     type="button"
                     onClick={() =>
-                      setIsDropdownOpen(
-                        false,
-                      )
+                      setIsDropdownOpen(false)
                     }
                     className="
                       flex
@@ -2173,17 +2011,12 @@ const Header = ({
                   </button>
                 </Link>
 
-                {/* LOGOUT */}
-
                 <div className="my-1 border-t border-gray-100" />
 
                 <button
                   type="button"
                   onClick={() => {
-                    setIsDropdownOpen(
-                      false,
-                    );
-
+                    setIsDropdownOpen(false);
                     handleLogout();
                   }}
                   className="
@@ -2215,9 +2048,7 @@ const Header = ({
                     <IoLogOutOutline size={16} />
                   </span>
 
-                  <span className="flex-1">
-                    Logout
-                  </span>
+                  <span className="flex-1">Logout</span>
                 </button>
               </div>
             </div>

@@ -1,15 +1,15 @@
+// src/layouts/MainLayout.tsx
+
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { menuItems } from "@/config/menu";
+import { useMenuItems } from "../../pages/permissions/useMenuItems";
+import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
 import Header from "./Header";
 import { useState, useEffect, useRef } from "react";
 import type { ReactNode, RefObject } from "react";
 import { adminApi } from "../../api/endpoints/Auth";
 import { FiX, FiLogOut } from "react-icons/fi";
 
-import {
-  getPortalName,
-  getPortalLoginUrl,
-} from "../../config/portalConfig";
+import { getPortalLoginUrl } from "../../config/portalConfig";
 
 // =====================================================
 // TYPES
@@ -38,20 +38,15 @@ const SidebarContent = ({
 }: SidebarContentProps) => {
   const showLabels = isMobile || isSidebarOpen;
 
-  // ===================================================
-  // DYNAMIC PORTAL NAME
-  // ===================================================
-
-  const portalName = getPortalName();
+  // ✅ Portal info (URL + API combined)
+  const { portalName, warehouseName, warehouseCode } = usePortalInfo();
 
   return (
     <>
-      {/* =====================================================
-          AMBIENT BACKGROUND LAYER
-      ===================================================== */}
+      {/* AMBIENT BACKGROUND LAYER — NAVY + YELLOW */}
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Top green glow */}
+        {/* Top navy glow */}
         <div
           className="
             absolute
@@ -59,14 +54,15 @@ const SidebarContent = ({
             left-1/2
             h-72
             w-72
+            -translate-x-1/2
             rounded-full
-            bg-[#163F20]
-            opacity-[0.04]
+            bg-[#1E3A8A]
+            opacity-[0.06]
             blur-3xl
           "
         />
 
-        {/* Bottom soft mint glow */}
+        {/* Bottom yellow glow */}
         <div
           className="
             absolute
@@ -76,16 +72,14 @@ const SidebarContent = ({
             w-64
             -translate-x-1/2
             rounded-full
-            bg-[#4C8A57]
-            opacity-[0.03]
+            bg-[#FACC15]
+            opacity-[0.08]
             blur-3xl
           "
         />
       </div>
 
-      {/* =====================================================
-          LOGO
-      ===================================================== */}
+      {/* LOGO */}
 
       <div
         className={`
@@ -108,8 +102,7 @@ const SidebarContent = ({
             ${!isMobile && !isSidebarOpen ? "justify-center" : ""}
           `}
         >
-          {/* LOGO IMAGE */}
-
+          {/* LOGO IMAGE — navy ring */}
           <div
             className="
               relative
@@ -121,9 +114,10 @@ const SidebarContent = ({
               justify-center
               rounded-2xl
               border
-              border-[#163F20]/10
+              border-[#1E3A8A]/15
               bg-white
               p-1.5
+              shadow-[0_4px_14px_rgba(30,58,138,0.10)]
             "
           >
             <img
@@ -133,8 +127,6 @@ const SidebarContent = ({
             />
           </div>
 
-          {/* BRAND */}
-
           {showLabels && (
             <div className="min-w-0">
               <h1
@@ -143,12 +135,13 @@ const SidebarContent = ({
                   font-bold
                   leading-tight
                   tracking-tight
-                  text-[#163F20]
+                  text-[#0F1B3D]
                 "
               >
                 IndieKonnect
               </h1>
 
+              {/* PORTAL NAME — yellow accent */}
               <p
                 className="
                   mt-0.5
@@ -156,19 +149,36 @@ const SidebarContent = ({
                   font-bold
                   uppercase
                   tracking-[0.25em]
-                  text-[#4C8A57]
+                  text-[#EAB308]
                 "
               >
                 {portalName}
               </p>
+
+              {/* WAREHOUSE NAME — navy accent */}
+              {warehouseName && (
+                <p
+                  className="
+                    mt-0.5
+                    truncate
+                    text-[10px]
+                    font-semibold
+                    text-[#1E40AF]
+                  "
+                  title={`${warehouseName}${
+                    warehouseCode ? ` (${warehouseCode})` : ""
+                  }`}
+                >
+                  {warehouseName}
+                  {warehouseCode && ` (${warehouseCode})`}
+                </p>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* =====================================================
-          DIVIDER
-      ===================================================== */}
+      {/* DIVIDER — navy tint */}
 
       <div
         className="
@@ -177,13 +187,11 @@ const SidebarContent = ({
           h-px
           w-full
           flex-shrink-0
-          bg-[#163F20]/10
+          bg-[#1E3A8A]/10
         "
       />
 
-      {/* =====================================================
-          NAVIGATION
-      ===================================================== */}
+      {/* NAVIGATION */}
 
       <div
         ref={navRef}
@@ -202,43 +210,23 @@ const SidebarContent = ({
 
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb]:bg-[#163F20]/20
+          [&::-webkit-scrollbar-thumb]:bg-[#1E3A8A]/20
           [&::-webkit-scrollbar-track]:bg-transparent
         `}
       >
         {navContent}
       </div>
 
-      {/* =====================================================
-          LOGOUT
-      ===================================================== */}
+      {/* LOGOUT */}
 
-      <div
-        className="
-          relative
-          mt-2
-          flex-shrink-0
-          pt-5
-        "
-      >
-        <div
-          className="
-            mb-5
-            h-px
-            w-full
-            bg-[#163F20]/10
-          "
-        />
+      <div className="relative mt-2 flex-shrink-0 pt-5">
+        <div className="mb-5 h-px w-full bg-[#1E3A8A]/10" />
 
         <button
           type="button"
           onClick={onLogout}
           disabled={isLoggingOut}
-          title={
-            !isMobile && !isSidebarOpen
-              ? "Logout"
-              : undefined
-          }
+          title={!isMobile && !isSidebarOpen ? "Logout" : undefined}
           className={`
             group
             relative
@@ -249,16 +237,16 @@ const SidebarContent = ({
             gap-3
             rounded-xl
             border
-            border-[#163F20]/15
+            border-[#1E3A8A]/15
             bg-white
             px-4
             py-3
-            text-[#163F20]
+            text-[#1E3A8A]
             transition-all
             duration-200
 
-            hover:border-[#163F20]/30
-            hover:bg-[#EAF3EA]
+            hover:border-[#1E3A8A]/30
+            hover:bg-[#EAF1FF]
 
             active:scale-[0.98]
 
@@ -276,21 +264,14 @@ const SidebarContent = ({
                   w-4
                   rounded-full
                   border-2
-                  border-[#163F20]
+                  border-[#1E3A8A]
                   border-t-transparent
                   animate-spin
                 "
               />
 
               {showLabels && (
-                <span
-                  className="
-                    text-[12px]
-                    font-bold
-                    uppercase
-                    tracking-[0.15em]
-                  "
-                >
+                <span className="text-[12px] font-bold uppercase tracking-[0.15em]">
                   Logging out...
                 </span>
               )}
@@ -300,14 +281,7 @@ const SidebarContent = ({
               <FiLogOut className="text-lg" />
 
               {showLabels && (
-                <span
-                  className="
-                    text-[12px]
-                    font-bold
-                    uppercase
-                    tracking-[0.15em]
-                  "
-                >
+                <span className="text-[12px] font-bold uppercase tracking-[0.15em]">
                   Logout
                 </span>
               )}
@@ -324,6 +298,12 @@ const SidebarContent = ({
 // =====================================================
 
 const MainLayout = () => {
+  // ✅ PERMISSION-FILTERED MENU ITEMS
+  const menuItems = useMenuItems();
+
+  // ✅ PORTAL INFO (URL + API combined)
+  const { portalName } = usePortalInfo();
+
   // =====================================================
   // STATES
   // =====================================================
@@ -332,16 +312,9 @@ const MainLayout = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] =
-    useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const location = useLocation();
-
-  // =====================================================
-  // DYNAMIC PORTAL NAME
-  // =====================================================
-
-  const portalName = getPortalName();
 
   // =====================================================
   // MOBILE SCROLL REFS
@@ -364,10 +337,8 @@ const MainLayout = () => {
 
   const toggleMobileSidebar = () => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current =
-        mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
     }
-
     setIsMobileSidebarOpen((prev) => !prev);
   };
 
@@ -377,10 +348,8 @@ const MainLayout = () => {
 
   useEffect(() => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current =
-        mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
     }
-
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
 
@@ -412,17 +381,11 @@ const MainLayout = () => {
 
     const frame = requestAnimationFrame(() => {
       if (!mobileNavRef.current) return;
-
-      mobileNavRef.current.scrollTop =
-        mobileScrollTopRef.current;
+      mobileNavRef.current.scrollTop = mobileScrollTopRef.current;
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [
-    isMobileSidebarOpen,
-    expandedMenus,
-    location.pathname,
-  ]);
+  }, [isMobileSidebarOpen, expandedMenus, location.pathname]);
 
   // =====================================================
   // MENU TOGGLE
@@ -430,8 +393,7 @@ const MainLayout = () => {
 
   const toggleMenu = (path: string) => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current =
-        mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
     }
 
     setExpandedMenus((prev) =>
@@ -447,13 +409,11 @@ const MainLayout = () => {
 
   const openLogoutModal = () => {
     if (isLoggingOut) return;
-
     setIsLogoutModalOpen(true);
   };
 
   const closeLogoutModal = () => {
     if (isLoggingOut) return;
-
     setIsLogoutModalOpen(false);
   };
 
@@ -467,93 +427,32 @@ const MainLayout = () => {
     try {
       setIsLoggingOut(true);
 
-      // =================================================
-      // IMPORTANT:
-      // Get login URL BEFORE clearing storage
-      // =================================================
-
       const loginUrl = getPortalLoginUrl();
-      const currentPortalName = getPortalName();
-
-      console.log(
-        "Logging out from:",
-        currentPortalName,
-      );
-
-      console.log(
-        "Redirecting to:",
-        loginUrl,
-      );
-
-      // =================================================
-      // LOGOUT API
-      // =================================================
 
       try {
         await adminApi.logout();
       } catch (error) {
-        console.error(
-          "Logout API failed:",
-          error,
-        );
+        console.error("Logout API failed:", error);
       }
 
-      // =================================================
-      // CLEAR ALL LOCAL STORAGE
-      // =================================================
-
       localStorage.clear();
-
-      // =================================================
-      // CLEAR ALL SESSION STORAGE
-      // =================================================
-
       sessionStorage.clear();
 
-      // =================================================
-      // CLEAR ACCESSIBLE COOKIES
-      // =================================================
-
       document.cookie.split(";").forEach((cookie) => {
-        const cookieName =
-          cookie.split("=")[0].trim();
+        const cookieName = cookie.split("=")[0].trim();
 
         if (cookieName) {
           document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         }
       });
 
-      // =================================================
-      // CLOSE MODAL
-      // =================================================
-
       setIsLogoutModalOpen(false);
-
-      // =================================================
-      // REDIRECT TO CURRENT PORTAL LOGIN
-      // =================================================
-
       window.location.href = loginUrl;
     } catch (error) {
-      console.error(
-        "Logout failed:",
-        error,
-      );
-
-      // =================================================
-      // FORCE CLEAR STORAGE
-      // =================================================
-
+      console.error("Logout failed:", error);
       localStorage.clear();
       sessionStorage.clear();
-
-      // =================================================
-      // FALLBACK LOGIN URL
-      // =================================================
-
-      const loginUrl = getPortalLoginUrl();
-
-      window.location.href = loginUrl;
+      window.location.href = getPortalLoginUrl();
     } finally {
       setIsLoggingOut(false);
     }
@@ -569,39 +468,19 @@ const MainLayout = () => {
     isMobile: boolean = false,
   ): ReactNode => {
     const hasChildren =
-      Array.isArray(item.children) &&
-      item.children.length > 0;
+      Array.isArray(item.children) && item.children.length > 0;
 
-    const isExpanded = expandedMenus.includes(
-      item.path,
-    );
+    const isExpanded = expandedMenus.includes(item.path);
 
-    const shouldShowLabels =
-      isMobile ||
-      isSidebarOpen ||
-      depth > 0;
-
-    // ===================================================
-    // PARENT WITH CHILDREN
-    // ===================================================
+    const shouldShowLabels = isMobile || isSidebarOpen || depth > 0;
 
     if (hasChildren) {
       return (
-        <div
-          key={item.path}
-          className="mb-0.5"
-        >
+        <div key={item.path} className="mb-0.5">
           <button
             type="button"
-            onClick={() =>
-              toggleMenu(item.path)
-            }
-            title={
-              !shouldShowLabels &&
-              depth === 0
-                ? item.label
-                : undefined
-            }
+            onClick={() => toggleMenu(item.path)}
+            title={!shouldShowLabels && depth === 0 ? item.label : undefined}
             className={`
               group
               flex
@@ -611,46 +490,25 @@ const MainLayout = () => {
               rounded-lg
               px-4
               py-2.5
-              text-[#59645C]
+              text-[#4A5778]
               transition-colors
               duration-200
 
-              hover:bg-[#EAF3EA]
-              hover:text-[#163F20]
+              hover:bg-[#EAF1FF]
+              hover:text-[#1E3A8A]
 
               ${depth > 0 ? "ml-4" : ""}
 
-              ${
-                !shouldShowLabels &&
-                depth === 0
-                  ? "justify-center px-0"
-                  : ""
-              }
+              ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
             `}
           >
-            <span
-              className="
-                material-symbols-outlined
-                flex-shrink-0
-                text-lg
-                text-[#163F20]
-              "
-            >
+            <span className="material-symbols-outlined flex-shrink-0 text-lg text-[#1E3A8A]">
               {item.icon}
             </span>
 
             {shouldShowLabels && (
               <>
-                <span
-                  className="
-                    flex-1
-                    text-left
-                    text-[11px]
-                    font-bold
-                    uppercase
-                    tracking-[0.15em]
-                  "
-                >
+                <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-[0.15em]">
                   {item.label}
                 </span>
 
@@ -658,7 +516,7 @@ const MainLayout = () => {
                   className={`
                     material-symbols-outlined
                     text-sm
-                    text-[#163F20]/60
+                    text-[#1E3A8A]/60
                     transition-transform
                     duration-300
                     ease-out
@@ -691,17 +549,12 @@ const MainLayout = () => {
                   ml-6
                   space-y-0.5
                   border-l
-                  border-[#163F20]/15
+                  border-[#1E3A8A]/15
                   pl-3
                 "
               >
-                {item.children.map(
-                  (child: any) =>
-                    renderNavItem(
-                      child,
-                      depth + 1,
-                      isMobile,
-                    ),
+                {item.children.map((child: any) =>
+                  renderNavItem(child, depth + 1, isMobile),
                 )}
               </div>
             </div>
@@ -710,27 +563,14 @@ const MainLayout = () => {
       );
     }
 
-    // ===================================================
-    // NORMAL NAVIGATION ITEM
-    // ===================================================
-
     return (
       <NavLink
         key={item.path}
         to={item.path}
-        title={
-          !shouldShowLabels &&
-          depth === 0
-            ? item.label
-            : undefined
-        }
+        title={!shouldShowLabels && depth === 0 ? item.label : undefined}
         onClick={() => {
-          if (
-            isMobile &&
-            mobileNavRef.current
-          ) {
-            mobileScrollTopRef.current =
-              mobileNavRef.current.scrollTop;
+          if (isMobile && mobileNavRef.current) {
+            mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
           }
         }}
         className={({ isActive }) => `
@@ -747,24 +587,17 @@ const MainLayout = () => {
 
           ${
             isActive
-              ? "bg-[#163F20] font-semibold text-white"
-              : "text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+              ? "bg-[#1E3A8A] font-semibold text-white shadow-[0_6px_16px_-6px_rgba(30,58,138,0.55)]"
+              : "text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
           }
 
           ${depth > 0 ? "ml-2" : ""}
 
-          ${
-            !shouldShowLabels &&
-            depth === 0
-              ? "justify-center px-0"
-              : ""
-          }
+          ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
         `}
       >
         {({ isActive }) => (
           <>
-            {/* SUB ITEM DOT / MAIN ICON */}
-
             {depth > 0 ? (
               <span
                 className={`
@@ -777,8 +610,8 @@ const MainLayout = () => {
 
                   ${
                     isActive
-                      ? "bg-white"
-                      : "bg-[#89918B]/50 group-hover:bg-[#163F20]/70"
+                      ? "bg-[#FACC15]"
+                      : "bg-[#8C97B2]/60 group-hover:bg-[#1E3A8A]/70"
                   }
                 `}
               />
@@ -791,8 +624,8 @@ const MainLayout = () => {
 
                   ${
                     isActive
-                      ? "text-white"
-                      : "text-[#59645C] group-hover:text-[#163F20]"
+                      ? "text-[#FACC15]"
+                      : "text-[#4A5778] group-hover:text-[#1E3A8A]"
                   }
                 `}
               >
@@ -823,25 +656,13 @@ const MainLayout = () => {
 
   const desktopNavContent = (
     <>
-      {menuItems.map((item) =>
-        renderNavItem(
-          item,
-          0,
-          false,
-        ),
-      )}
+      {menuItems.map((item) => renderNavItem(item, 0, false))}
     </>
   );
 
   const mobileNavContent = (
     <>
-      {menuItems.map((item) =>
-        renderNavItem(
-          item,
-          0,
-          true,
-        ),
-      )}
+      {menuItems.map((item) => renderNavItem(item, 0, true))}
     </>
   );
 
@@ -850,17 +671,8 @@ const MainLayout = () => {
   // =====================================================
 
   return (
-    <div
-      className="
-        min-h-screen
-        bg-[#F5F7F5]
-        font-sans
-        text-[#202721]
-      "
-    >
-      {/* =====================================================
-          DESKTOP SIDEBAR
-      ===================================================== */}
+    <div className="min-h-screen bg-[#F5F8FF] font-sans text-[#0F1B3D]">
+      {/* DESKTOP SIDEBAR */}
 
       <nav
         className={`
@@ -875,7 +687,7 @@ const MainLayout = () => {
           overflow-hidden
           overscroll-contain
           border-r
-          border-[#163F20]/10
+          border-[#1E3A8A]/10
           bg-white
           px-5
           pt-8
@@ -885,11 +697,7 @@ const MainLayout = () => {
           ease-in-out
           md:flex
 
-          ${
-            isSidebarOpen
-              ? "w-[280px]"
-              : "w-[90px]"
-          }
+          ${isSidebarOpen ? "w-[280px]" : "w-[90px]"}
         `}
       >
         <SidebarContent
@@ -901,27 +709,16 @@ const MainLayout = () => {
         />
       </nav>
 
-      {/* =====================================================
-          MOBILE BACKDROP
-      ===================================================== */}
+      {/* MOBILE BACKDROP */}
 
       {isMobileSidebarOpen && (
         <div
-          className="
-            fixed
-            inset-0
-            z-[99999]
-            touch-none
-            bg-black/40
-            md:hidden
-          "
+          className="fixed inset-0 z-[99999] touch-none bg-black/40 md:hidden"
           onClick={toggleMobileSidebar}
         />
       )}
 
-      {/* =====================================================
-          MOBILE SIDEBAR
-      ===================================================== */}
+      {/* MOBILE SIDEBAR */}
 
       <nav
         className={`
@@ -937,7 +734,7 @@ const MainLayout = () => {
           overflow-hidden
           overscroll-contain
           border-r
-          border-[#163F20]/10
+          border-[#1E3A8A]/10
           bg-white
           px-5
           pt-8
@@ -947,29 +744,13 @@ const MainLayout = () => {
           ease-in-out
           md:hidden
 
-          ${
-            isMobileSidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
+          ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* MOBILE CLOSE */}
-
         <button
           type="button"
           onClick={toggleMobileSidebar}
-          className="
-            absolute
-            right-3
-            top-3
-            z-10
-            rounded-full
-            p-2
-            text-[#59645C]
-            transition-colors
-            hover:bg-[#EAF3EA]
-          "
+          className="absolute right-3 top-3 z-10 rounded-full p-2 text-[#4A5778] transition-colors hover:bg-[#EAF1FF]"
           aria-label="Close sidebar"
         >
           <FiX className="text-[22px]" />
@@ -985,9 +766,7 @@ const MainLayout = () => {
         />
       </nav>
 
-      {/* =====================================================
-          MAIN CONTENT
-      ===================================================== */}
+      {/* MAIN CONTENT */}
 
       <div
         className={`
@@ -1015,12 +794,8 @@ const MainLayout = () => {
         <Header
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
-          isMobileSidebarOpen={
-            isMobileSidebarOpen
-          }
-          onToggleMobileSidebar={
-            toggleMobileSidebar
-          }
+          isMobileSidebarOpen={isMobileSidebarOpen}
+          onToggleMobileSidebar={toggleMobileSidebar}
         />
 
         <main className="flex-1 pt-[72px]">
@@ -1030,59 +805,18 @@ const MainLayout = () => {
         </main>
       </div>
 
-      {/* =====================================================
-          LOGOUT MODAL
-      ===================================================== */}
+      {/* LOGOUT MODAL */}
 
       {isLogoutModalOpen && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[100000]
-            flex
-            items-center
-            justify-center
-            p-4
-          "
-        >
-          {/* BACKDROP */}
-
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
           <div
-            className="
-              absolute
-              inset-0
-              bg-black/40
-            "
+            className="absolute inset-0 bg-black/40"
             onClick={closeLogoutModal}
           />
 
-          {/* MODAL */}
-
-          <div
-            className="
-              relative
-              w-full
-              max-w-[400px]
-              overflow-hidden
-              rounded-2xl
-              border
-              border-[#163F20]/10
-              bg-white
-              shadow-lg
-            "
-          >
-            {/* TOP ACCENT */}
-
-            <div
-              className="
-                h-1
-                w-full
-                bg-[#163F20]
-              "
-            />
-
-            {/* CLOSE */}
+          <div className="relative w-full max-w-[400px] overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-[0_20px_60px_rgba(30,58,138,0.18)]">
+            {/* NAVY → YELLOW top accent */}
+            <div className="h-1 w-full bg-gradient-to-r from-[#1E3A8A] via-[#2563EB] to-[#FACC15]" />
 
             <button
               type="button"
@@ -1098,11 +832,11 @@ const MainLayout = () => {
                 items-center
                 justify-center
                 rounded-full
-                text-[#59645C]
+                text-[#4A5778]
                 transition-colors
 
-                hover:bg-[#EAF3EA]
-                hover:text-[#163F20]
+                hover:bg-[#EAF1FF]
+                hover:text-[#1E3A8A]
 
                 disabled:cursor-not-allowed
                 disabled:opacity-50
@@ -1112,78 +846,29 @@ const MainLayout = () => {
               <FiX className="text-[18px]" />
             </button>
 
-            {/* CONTENT */}
-
             <div className="px-6 pb-6 pt-7">
-              {/* LOGOUT ICON */}
-
-              <div
-                className="
-                  relative
-                  mx-auto
-                  mb-5
-                  flex
-                  h-14
-                  w-14
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#EAF3EA]
-                "
-              >
-                <FiLogOut className="text-[25px] text-[#163F20]" />
+              {/* Navy icon circle with yellow icon */}
+              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF1FF]">
+                <FiLogOut className="text-[25px] text-[#1E3A8A]" />
               </div>
 
-              {/* TITLE */}
-
-              <h2
-                className="
-                  text-center
-                  text-xl
-                  font-bold
-                  text-[#202721]
-                "
-              >
+              <h2 className="text-center text-xl font-bold text-[#0F1B3D]">
                 Are you sure?
               </h2>
 
-              {/* DESCRIPTION */}
-
-              <p
-                className="
-                  mt-2
-                  px-2
-                  text-center
-                  text-sm
-                  leading-6
-                  text-[#59645C]
-                "
-              >
-                Are you sure you want to logout
-                from the{" "}
-                <span className="font-bold text-[#163F20]">
+              <p className="mt-2 px-2 text-center text-sm leading-6 text-[#4A5778]">
+                Are you sure you want to logout from the{" "}
+                <span className="font-bold text-[#1E3A8A]">
                   {portalName}
                 </span>
                 ?
               </p>
 
-              <p
-                className="
-                  mt-1
-                  text-center
-                  text-xs
-                  text-[#89918B]
-                "
-              >
-                You will need to login again to
-                access your account.
+              <p className="mt-1 text-center text-xs text-[#8C97B2]">
+                You will need to login again to access your account.
               </p>
 
-              {/* BUTTONS */}
-
               <div className="mt-7 flex items-center gap-3">
-                {/* CANCEL */}
-
                 <button
                   type="button"
                   onClick={closeLogoutModal}
@@ -1192,18 +877,18 @@ const MainLayout = () => {
                     flex-1
                     rounded-xl
                     border
-                    border-[#163F20]/15
+                    border-[#1E3A8A]/15
                     bg-white
                     px-4
                     py-3
                     text-sm
                     font-bold
-                    text-[#59645C]
+                    text-[#4A5778]
                     transition-colors
                     duration-200
 
-                    hover:bg-[#F5F7F5]
-                    hover:text-[#163F20]
+                    hover:bg-[#F5F8FF]
+                    hover:text-[#1E3A8A]
 
                     disabled:cursor-not-allowed
                     disabled:opacity-50
@@ -1211,8 +896,6 @@ const MainLayout = () => {
                 >
                   Cancel
                 </button>
-
-                {/* CONFIRM */}
 
                 <button
                   type="button"
@@ -1225,7 +908,7 @@ const MainLayout = () => {
                     justify-center
                     gap-2
                     rounded-xl
-                    bg-[#163F20]
+                    bg-[#1E3A8A]
                     px-4
                     py-3
                     text-sm
@@ -1234,7 +917,7 @@ const MainLayout = () => {
                     transition-colors
                     duration-200
 
-                    hover:bg-[#0F3219]
+                    hover:bg-[#172554]
 
                     active:scale-[0.98]
 
@@ -1244,18 +927,7 @@ const MainLayout = () => {
                 >
                   {isLoggingOut ? (
                     <>
-                      <span
-                        className="
-                          h-4
-                          w-4
-                          rounded-full
-                          border-2
-                          border-white/80
-                          border-t-transparent
-                          animate-spin
-                        "
-                      />
-
+                      <span className="h-4 w-4 rounded-full border-2 border-white/80 border-t-transparent animate-spin" />
                       Logging out...
                     </>
                   ) : (

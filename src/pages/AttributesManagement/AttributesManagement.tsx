@@ -15,6 +15,7 @@ import {
   FiTrash2,
   FiX,
   FiTag,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -30,17 +31,13 @@ import attributesApi, {
 } from "../../api/endpoints/attributes";
 
 // =====================================================
-// THEME (GREEN)
+// ✅ PERMISSIONS
 // =====================================================
 
-const PAGE_BG = "#f5f7f5";
-const GREEN = "#163F20";
-const GREEN_DARK = "#0F3219";
-const GREEN_SOFT = "#4C8A57";
-const GREEN_LIGHT = "#EAF3EA";
+import { usePermissions } from "../permissions/usePermissions";
 
 // =====================================================
-// ANIMATION (simplified)
+// ANIMATION
 // =====================================================
 
 const containerVariants = {
@@ -96,7 +93,7 @@ const getInitials = (value: string) => {
 };
 
 // =====================================================
-// DELETE MODAL
+// DELETE MODAL — NAVY THEME
 // =====================================================
 
 interface DeleteModalProps {
@@ -120,17 +117,19 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#C23B32] to-[#8B1F1A]" />
+
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#FBEAEA] text-[#C23B32]">
               <FiAlertTriangle size={21} />
             </div>
 
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+              <h2 className="text-lg font-semibold text-[#0F1B3D]">{title}</h2>
 
-              <p className="mt-1 text-sm leading-6 text-gray-500">
+              <p className="mt-1 text-sm leading-6 text-[#4A5778]">
                 {description}
               </p>
             </div>
@@ -141,7 +140,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -150,7 +149,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-lg bg-red-500 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#C23B32] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#A32E26] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -168,7 +167,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 };
 
 // =====================================================
-// EDIT ATTRIBUTE MODAL
+// EDIT ATTRIBUTE MODAL — NAVY THEME
 // =====================================================
 
 interface EditAttributeModalProps {
@@ -218,24 +217,26 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-5">
+      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiEdit2 size={16} />
               </div>
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#2563EB]">
                 Attribute Settings
               </span>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-[#0F1B3D]">
               Edit Attribute
             </h2>
 
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[#8C97B2]">
               Update the attribute name.
             </p>
           </div>
@@ -244,7 +245,7 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -252,7 +253,7 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className="p-5">
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-gray-600">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Attribute Key
             </label>
 
@@ -261,16 +262,16 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
               value={attributeKey}
               onChange={(event) => setAttributeKey(event.target.value)}
               placeholder="color"
-              className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition focus:border-[#163F20] focus:bg-white"
+              className="h-11 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
             />
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -278,7 +279,7 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#163F20] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0F3219] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -296,7 +297,7 @@ const EditAttributeModal: React.FC<EditAttributeModalProps> = ({
 };
 
 // =====================================================
-// ADD VALUES MODAL
+// ADD VALUES MODAL — NAVY THEME
 // =====================================================
 
 interface AddValuesModalProps {
@@ -354,24 +355,26 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-5">
+      <div className="w-full max-w-[520px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiPlus size={17} />
               </div>
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#2563EB]">
                 Attribute Values
               </span>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">Add Values</h2>
+            <h2 className="text-xl font-semibold text-[#0F1B3D]">Add Values</h2>
 
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[#8C97B2]">
               Add values for{" "}
-              <span className="font-semibold text-[#163F20]">
+              <span className="font-semibold text-[#1E3A8A]">
                 {attribute.attribute_key}
               </span>
               .
@@ -382,7 +385,7 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -390,7 +393,7 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
 
         <form onSubmit={handleSubmit}>
           <div className="p-5">
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-gray-600">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Values
             </label>
 
@@ -398,21 +401,21 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
               value={valueText}
               onChange={(event) => setValueText(event.target.value)}
               rows={5}
-              className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm leading-6 text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#163F20] focus:bg-white"
+              className="w-full resize-none rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 py-3 font-mono text-sm leading-6 text-[#0F1B3D] outline-none placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
             />
 
-            <p className="mt-2 text-[10px] leading-5 text-gray-500">
+            <p className="mt-2 text-[10px] leading-5 text-[#8C97B2]">
               Enter one value per line or separate values with commas. Duplicate
               values are automatically removed.
             </p>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -420,7 +423,7 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#163F20] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0F3219] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -438,7 +441,7 @@ const AddValuesModal: React.FC<AddValuesModalProps> = ({
 };
 
 // =====================================================
-// EDIT VALUE MODAL
+// EDIT VALUE MODAL — NAVY THEME
 // =====================================================
 
 interface EditValueModalProps {
@@ -487,27 +490,29 @@ const EditValueModal: React.FC<EditValueModalProps> = ({
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[450px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-5">
+      <div className="w-full max-w-[450px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiEdit2 size={16} />
               </div>
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#2563EB]">
                 Value Settings
               </span>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">Edit Value</h2>
+            <h2 className="text-xl font-semibold text-[#0F1B3D]">Edit Value</h2>
           </div>
 
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -516,7 +521,7 @@ const EditValueModal: React.FC<EditValueModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="space-y-5 p-5">
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-gray-600">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
                 Value
               </label>
 
@@ -525,17 +530,17 @@ const EditValueModal: React.FC<EditValueModalProps> = ({
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
                 placeholder="Black"
-                className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none focus:border-[#163F20] focus:bg-white"
+                className="h-11 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -543,7 +548,7 @@ const EditValueModal: React.FC<EditValueModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#163F20] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0F3219] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -561,7 +566,7 @@ const EditValueModal: React.FC<EditValueModalProps> = ({
 };
 
 // =====================================================
-// ADD ATTRIBUTE MODAL
+// ADD ATTRIBUTE MODAL — NAVY THEME
 // =====================================================
 
 interface AddAttributeModalProps {
@@ -619,24 +624,26 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <div className="flex items-start justify-between border-b border-gray-100 px-6 py-5">
+      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-6 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiPlus size={17} />
               </div>
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#2563EB]">
                 New Attribute
               </span>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-[#0F1B3D]">
               Create New Attribute
             </h2>
 
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-[#8C97B2]">
               Define a new product attribute to organize your inventory.
             </p>
           </div>
@@ -645,7 +652,7 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-50 text-gray-500 transition hover:bg-gray-100 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -654,10 +661,10 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="p-6">
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-600">
-                Attribute Key <span className="text-red-500">*</span>
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+                Attribute Key <span className="text-[#C23B32]">*</span>
               </label>
-              <span className="text-[9px] text-gray-400">
+              <span className="text-[9px] text-[#8C97B2]">
                 {attributeKey.length}/50
               </span>
             </div>
@@ -665,7 +672,7 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
             <div className="relative">
               <FiTag
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
               <input
                 type="text"
@@ -673,13 +680,13 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
                 onChange={(event) => setAttributeKey(event.target.value)}
                 placeholder="Enter attribute name (e.g., color, size)"
                 maxLength={50}
-                className="h-11 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#163F20] focus:bg-white"
+                className="h-11 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
             </div>
 
             {/* Quick Suggestions */}
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="mr-1.5 text-[9px] text-gray-500">
+              <span className="mr-1.5 text-[9px] text-[#8C97B2]">
                 Suggestions:
               </span>
               {suggestions.map((suggestion) => (
@@ -687,7 +694,7 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
                   key={suggestion}
                   type="button"
                   onClick={() => setAttributeKey(suggestion)}
-                  className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-medium text-gray-600 transition hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
+                  className="rounded-lg border border-[#1E3A8A]/15 bg-[#F5F8FF] px-2.5 py-1 text-[9px] font-medium text-[#4A5778] transition hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
                 >
                   {suggestion}
                 </button>
@@ -695,22 +702,22 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
             </div>
 
             {/* Preview Section */}
-            <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="mt-5 rounded-lg border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4">
               <div className="mb-2 flex items-center gap-2">
-                <FiTag size={14} className="text-[#163F20]" />
-                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-gray-600">
+                <FiTag size={14} className="text-[#1E3A8A]" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
                   Preview
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3EA] text-sm font-bold text-[#163F20]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF1FF] text-sm font-bold text-[#1E3A8A]">
                   {attributeKey ? getInitials(attributeKey) : "?"}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-[#0F1B3D]">
                     {attributeKey || "Attribute Name"}
                   </p>
-                  <p className="mt-0.5 text-[9px] text-gray-400">
+                  <p className="mt-0.5 text-[9px] text-[#8C97B2]">
                     No values configured yet
                   </p>
                 </div>
@@ -718,12 +725,12 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-6 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              className="rounded-lg border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -731,7 +738,7 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#163F20] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0F3219] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -753,6 +760,50 @@ const AddAttributeModal: React.FC<AddAttributeModalProps> = ({
 // =====================================================
 
 const AttributesManagement: React.FC = () => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewAttributes = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("attribute") ||
+      hasPermission("attribute.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateAttribute = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("attribute.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateAttribute = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("attribute.update") ||
+      hasPermission("attribute.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteAttribute = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("attribute.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [attributes, setAttributes] = useState<AttributeMaster[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -815,8 +866,10 @@ const AttributesManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchAttributes();
-  }, []);
+    if (canViewAttributes) {
+      fetchAttributes();
+    }
+  }, [canViewAttributes]);
 
   // =================================================
   // SELECTED ATTRIBUTE
@@ -1104,6 +1157,26 @@ const AttributesManagement: React.FC = () => {
     (_, index) => index + 1,
   ).slice(Math.max(0, valueCurrentPage - 3), Math.max(5, valueCurrentPage + 2));
 
+  // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewAttributes) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // =================================================
   // UI
   // =================================================
@@ -1114,7 +1187,7 @@ const AttributesManagement: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#f5f7f5] p-4 sm:p-5 lg:p-6"
+        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
       >
         {/* HEADER */}
         <motion.div
@@ -1123,38 +1196,43 @@ const AttributesManagement: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
                 Product Configuration
               </span>
             </div>
 
-            <h1 className="text-[28px] font-semibold tracking-tight text-gray-900 sm:text-[32px]">
+            <h1 className="text-[28px] font-semibold tracking-tight text-[#0F1B3D] sm:text-[32px]">
               Attributes
             </h1>
 
-            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-gray-500">
+            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
               Manage product attributes and their selectable values from one
               place.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setAddAttributeOpen(true)}
-              className="flex h-10 items-center gap-2 rounded-lg bg-[#163F20] px-4 text-xs font-semibold text-white transition hover:bg-[#0F3219]"
-            >
-              <FiPlus size={16} />
-              Add Attribute
-            </button>
+            {/* ✅ ADD ATTRIBUTE — permission based */}
+            {canCreateAttribute && (
+              <button
+                type="button"
+                onClick={() => setAddAttributeOpen(true)}
+                className="flex h-10 items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-xs font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
+              >
+                <FiPlus size={16} />
+                Add Attribute
+              </button>
+            )}
 
             <button
               type="button"
               onClick={() => fetchAttributes()}
               disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 self-start rounded-lg border border-gray-200 bg-white px-4 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 self-start rounded-lg border border-[#1E3A8A]/15 bg-white px-4 text-xs font-semibold text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={15}
@@ -1168,24 +1246,24 @@ const AttributesManagement: React.FC = () => {
         {/* MAIN MASTER DETAIL */}
         <motion.div
           variants={itemVariants}
-          className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+          className="overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
         >
           <div className="grid min-h-[650px] grid-cols-1 xl:grid-cols-[360px_1fr]">
             {/* LEFT: ATTRIBUTE LIST */}
-            <aside className="border-b border-gray-100 bg-[#FAFBFA] xl:border-b-0 xl:border-r">
-              <div className="border-b border-gray-100 p-4 sm:p-5">
+            <aside className="border-b border-[#1E3A8A]/10 bg-[#FAFBFF] xl:border-b-0 xl:border-r">
+              <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <h2 className="text-base font-semibold text-gray-900">
+                    <h2 className="text-base font-semibold text-[#0F1B3D]">
                       Attributes
                     </h2>
 
-                    <p className="mt-1 text-[10px] text-gray-500">
+                    <p className="mt-1 text-[10px] text-[#8C97B2]">
                       Select an attribute to manage its values.
                     </p>
                   </div>
 
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#163F20]">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiSettings size={16} />
                   </div>
                 </div>
@@ -1193,7 +1271,7 @@ const AttributesManagement: React.FC = () => {
                 <div className="relative">
                   <FiSearch
                     size={16}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                   />
 
                   <input
@@ -1204,7 +1282,7 @@ const AttributesManagement: React.FC = () => {
                       setCurrentPage(1);
                     }}
                     placeholder="Search attributes..."
-                    className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#163F20]"
+                    className="h-11 w-full rounded-lg border border-[#D8E2F0] bg-white pl-10 pr-4 text-xs text-[#0F1B3D] outline-none placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                   />
                 </div>
               </div>
@@ -1212,15 +1290,15 @@ const AttributesManagement: React.FC = () => {
               <div className="max-h-[550px] overflow-y-auto">
                 {visibleAttributes.length === 0 ? (
                   <div className="flex flex-col items-center px-5 py-14 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#163F20]">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                       <FiList size={21} />
                     </div>
 
-                    <p className="mt-4 text-sm font-semibold text-gray-900">
+                    <p className="mt-4 text-sm font-semibold text-[#0F1B3D]">
                       No attributes found
                     </p>
 
-                    <p className="mt-1 text-[10px] text-gray-500">
+                    <p className="mt-1 text-[10px] text-[#8C97B2]">
                       Try another search.
                     </p>
                   </div>
@@ -1237,30 +1315,28 @@ const AttributesManagement: React.FC = () => {
                           setValueSearch("");
                           setValueCurrentPage(1);
                         }}
-                        className={`w-full border-b border-gray-100 px-4 py-4 text-left transition sm:px-5 ${
-                          selected
-                            ? "border-l-4 border-l-[#163F20] bg-white"
+                        className={`w-full border-b border-[#1E3A8A]/10 px-4 py-4 text-left transition sm:px-5 ${selected
+                            ? "border-l-4 border-l-[#1E3A8A] bg-white"
                             : "hover:bg-white/70"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
-                              selected
-                                ? "bg-[#163F20] text-white"
-                                : "bg-white text-[#163F20]"
-                            }`}
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold transition ${selected
+                                ? "bg-[#1E3A8A] text-white"
+                                : "bg-[#EAF1FF] text-[#1E3A8A]"
+                              }`}
                           >
                             {getInitials(attribute.attribute_key)}
                           </div>
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="truncate text-sm font-semibold text-gray-900">
+                              <p className="truncate text-sm font-semibold text-[#0F1B3D]">
                                 {attribute.attribute_key}
                               </p>
 
-                              <span className="shrink-0 rounded-lg bg-gray-100 px-2 py-1 text-[9px] font-bold text-gray-600">
+                              <span className="shrink-0 rounded-lg bg-[#EAF1FF] px-2 py-1 text-[9px] font-bold text-[#1E3A8A]">
                                 {attribute.values?.length || 0}
                               </span>
                             </div>
@@ -1274,9 +1350,9 @@ const AttributesManagement: React.FC = () => {
 
               {/* LEFT PAGINATION */}
               {filteredAttributes.length > 0 && (
-                <div className="border-t border-gray-100 px-4 py-3">
+                <div className="border-t border-[#1E3A8A]/10 px-4 py-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] text-gray-500">
+                    <span className="text-[9px] text-[#8C97B2]">
                       {filteredAttributes.length} total
                     </span>
 
@@ -1287,7 +1363,7 @@ const AttributesManagement: React.FC = () => {
                           setCurrentPage((page) => Math.max(1, page - 1))
                         }
                         disabled={currentPage === 1}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-gray-600 disabled:opacity-30"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-[#1E3A8A] disabled:opacity-30"
                       >
                         <FiChevronLeft size={13} />
                       </button>
@@ -1297,11 +1373,10 @@ const AttributesManagement: React.FC = () => {
                           type="button"
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[9px] font-bold ${
-                            page === currentPage
-                              ? "bg-[#163F20] text-white"
-                              : "text-gray-600 hover:bg-white"
-                          }`}
+                          className={`flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[9px] font-bold transition ${page === currentPage
+                              ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white"
+                              : "text-[#4A5778] hover:bg-white"
+                            }`}
                         >
                           {page}
                         </button>
@@ -1315,7 +1390,7 @@ const AttributesManagement: React.FC = () => {
                           )
                         }
                         disabled={currentPage === attributeTotalPages}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-gray-600 disabled:opacity-30"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-[#1E3A8A] disabled:opacity-30"
                       >
                         <FiChevronRight size={13} />
                       </button>
@@ -1329,36 +1404,36 @@ const AttributesManagement: React.FC = () => {
             <section className="min-w-0 bg-white">
               {!selectedAttributeData ? (
                 <div className="flex min-h-[650px] flex-col items-center justify-center px-6 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiList size={27} />
                   </div>
 
-                  <h3 className="mt-5 text-lg font-semibold text-gray-900">
+                  <h3 className="mt-5 text-lg font-semibold text-[#0F1B3D]">
                     Select an Attribute
                   </h3>
 
-                  <p className="mt-1 max-w-sm text-xs leading-5 text-gray-500">
+                  <p className="mt-1 max-w-sm text-xs leading-5 text-[#4A5778]">
                     Select an attribute from the left side to manage its values.
                   </p>
                 </div>
               ) : (
                 <>
                   {/* DETAIL HEADER */}
-                  <div className="border-b border-gray-100 p-5 sm:p-6">
+                  <div className="border-b border-[#1E3A8A]/10 p-5 sm:p-6">
                     <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                       <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#163F20] text-sm font-bold text-white">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-sm font-bold text-white">
                           {getInitials(selectedAttributeData.attribute_key)}
                         </div>
 
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="truncate text-xl font-semibold text-gray-900">
+                            <h2 className="truncate text-xl font-semibold text-[#0F1B3D]">
                               {selectedAttributeData.attribute_key}
                             </h2>
                           </div>
 
-                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-gray-500">
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] text-[#8C97B2]">
                             <span>
                               {selectedAttributeData.values?.length || 0} values
                             </span>
@@ -1367,43 +1442,52 @@ const AttributesManagement: React.FC = () => {
                       </div>
 
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setEditAttributeOpen(true)}
-                          className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 text-[10px] font-semibold text-gray-700 transition hover:bg-gray-100"
-                        >
-                          <FiEdit2 size={14} />
-                          Edit
-                        </button>
+                        {/* ✅ EDIT — permission based */}
+                        {canUpdateAttribute && (
+                          <button
+                            type="button"
+                            onClick={() => setEditAttributeOpen(true)}
+                            className="flex h-9 items-center gap-2 rounded-lg border border-[#1E3A8A]/15 bg-[#F5F8FF] px-3.5 text-[10px] font-semibold text-[#1E3A8A] transition hover:bg-[#EAF1FF]"
+                          >
+                            <FiEdit2 size={14} />
+                            Edit
+                          </button>
+                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => setDeleteAttributeOpen(true)}
-                          className="flex h-9 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 text-[10px] font-semibold text-red-600 transition hover:bg-red-100"
-                        >
-                          <FiTrash2 size={14} />
-                          Delete
-                        </button>
+                        {/* ✅ DELETE — permission based */}
+                        {canDeleteAttribute && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteAttributeOpen(true)}
+                            className="flex h-9 items-center gap-2 rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] px-3.5 text-[10px] font-semibold text-[#C23B32] transition hover:bg-[#F8D9D9]"
+                          >
+                            <FiTrash2 size={14} />
+                            Delete
+                          </button>
+                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => setAddValuesOpen(true)}
-                          className="flex h-9 items-center gap-2 rounded-lg bg-[#163F20] px-4 text-[10px] font-semibold text-white transition hover:bg-[#0F3219]"
-                        >
-                          <FiPlus size={14} />
-                          Add Values
-                        </button>
+                        {/* ✅ ADD VALUES — permission based */}
+                        {canUpdateAttribute && (
+                          <button
+                            type="button"
+                            onClick={() => setAddValuesOpen(true)}
+                            className="flex h-9 items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-[10px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
+                          >
+                            <FiPlus size={14} />
+                            Add Values
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* VALUE TOOLBAR */}
-                  <div className="border-b border-gray-100 p-4 sm:p-5">
+                  <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div className="relative w-full md:max-w-[400px]">
                         <FiSearch
                           size={16}
-                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                         />
 
                         <input
@@ -1413,11 +1497,11 @@ const AttributesManagement: React.FC = () => {
                             setValueSearch(event.target.value)
                           }
                           placeholder="Search values..."
-                          className="h-10 w-full rounded-lg border border-gray-200 bg-gray-50 pl-10 pr-4 text-xs text-gray-900 outline-none placeholder:text-gray-400 focus:border-[#163F20] focus:bg-white"
+                          className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                         />
                       </div>
 
-                      <div className="rounded-lg bg-gray-100 px-3 py-2 text-[10px] font-semibold text-gray-600">
+                      <div className="rounded-lg bg-[#EAF1FF] px-3 py-2 text-[10px] font-semibold text-[#1E3A8A]">
                         {filteredValues.length} value
                         {filteredValues.length !== 1 ? "s" : ""}
                       </div>
@@ -1428,48 +1512,52 @@ const AttributesManagement: React.FC = () => {
                   <div className="p-4 sm:p-5">
                     {visibleValues.length === 0 ? (
                       <div className="flex min-h-[350px] flex-col items-center justify-center text-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                           <FiHash size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-semibold text-gray-900">
+                        <p className="mt-4 text-sm font-semibold text-[#0F1B3D]">
                           No values found
                         </p>
 
-                        <p className="mt-1 max-w-sm text-[10px] text-gray-500">
+                        <p className="mt-1 max-w-sm text-[10px] text-[#8C97B2]">
                           Add values to this attribute using the Add Values
                           button.
                         </p>
 
-                        <button
-                          type="button"
-                          onClick={() => setAddValuesOpen(true)}
-                          className="mt-4 flex h-9 items-center gap-2 rounded-lg bg-[#163F20] px-4 text-[10px] font-semibold text-white hover:bg-[#0F3219]"
-                        >
-                          <FiPlus size={14} />
-                          Add Values
-                        </button>
+                        {canUpdateAttribute && (
+                          <button
+                            type="button"
+                            onClick={() => setAddValuesOpen(true)}
+                            className="mt-4 flex h-9 items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-[10px] font-semibold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
+                          >
+                            <FiPlus size={14} />
+                            Add Values
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[650px] border-collapse">
                           <thead>
-                            <tr className="bg-gray-100">
-                              <th className="w-[80px] px-4 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-gray-600">
+                            <tr className="bg-[#1E3A8A]">
+                              <th className="w-[80px] px-4 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                                 S.No.
                               </th>
 
-                              <th className="px-4 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-gray-600">
+                              <th className="px-4 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                                 Value
                               </th>
 
-                              <th className="w-[170px] px-4 py-3.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-gray-600">
+                              <th className="w-[170px] px-4 py-3.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                                 Updated
                               </th>
 
-                              <th className="w-[130px] px-4 py-3.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-gray-600">
-                                Actions
-                              </th>
+                              {(canUpdateAttribute || canDeleteAttribute) && (
+                                <th className="w-[130px] px-4 py-3.5 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                                  Actions
+                                </th>
+                              )}
                             </tr>
                           </thead>
 
@@ -1480,22 +1568,22 @@ const AttributesManagement: React.FC = () => {
                                 initial={{ opacity: 0, y: 5 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.03 }}
-                                className="border-b border-gray-100 bg-white transition hover:bg-gray-50"
+                                className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
                               >
                                 <td className="px-4 py-4">
-                                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold text-gray-600">
+                                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
                                     {valueStart + index + 1}
                                   </span>
                                 </td>
 
                                 <td className="px-4 py-4">
                                   <div className="flex items-center gap-3">
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                                       <FiHash size={14} />
                                     </div>
 
                                     <div>
-                                      <p className="text-sm font-semibold text-gray-900">
+                                      <p className="text-sm font-semibold text-[#0F1B3D]">
                                         {value.value}
                                       </p>
                                     </div>
@@ -1503,38 +1591,45 @@ const AttributesManagement: React.FC = () => {
                                 </td>
 
                                 <td className="px-4 py-4 text-center">
-                                  <span className="text-[10px] font-semibold text-gray-600">
+                                  <span className="text-[10px] font-semibold text-[#4A5778]">
                                     {formatDate(value.updated_at)}
                                   </span>
                                 </td>
 
-                                <td className="px-4 py-4">
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedValue(value);
-                                        setEditValueOpen(true);
-                                      }}
-                                      title="Edit value"
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 transition hover:bg-gray-100"
-                                    >
-                                      <FiEdit2 size={13} />
-                                    </button>
+                                {(canUpdateAttribute ||
+                                  canDeleteAttribute) && (
+                                    <td className="px-4 py-4">
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        {canUpdateAttribute && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedValue(value);
+                                              setEditValueOpen(true);
+                                            }}
+                                            title="Edit value"
+                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                                          >
+                                            <FiEdit2 size={13} />
+                                          </button>
+                                        )}
 
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedValue(value);
-                                        setDeleteValueOpen(true);
-                                      }}
-                                      title="Delete value"
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
-                                    >
-                                      <FiTrash2 size={13} />
-                                    </button>
-                                  </div>
-                                </td>
+                                        {canDeleteAttribute && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedValue(value);
+                                              setDeleteValueOpen(true);
+                                            }}
+                                            title="Delete value"
+                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
+                                          >
+                                            <FiTrash2 size={13} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  )}
                               </motion.tr>
                             ))}
                           </tbody>
@@ -1544,21 +1639,21 @@ const AttributesManagement: React.FC = () => {
 
                     {/* VALUE PAGINATION */}
                     {filteredValues.length > 0 && (
-                      <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-gray-100 pt-4 sm:flex-row">
-                        <p className="text-[10px] text-gray-500">
+                      <div className="mt-5 flex flex-col items-center justify-between gap-3 border-t border-[#1E3A8A]/10 pt-4 sm:flex-row">
+                        <p className="text-[10px] text-[#8C97B2]">
                           Showing{" "}
-                          <span className="font-bold text-gray-700">
+                          <span className="font-bold text-[#3A4668]">
                             {valueStart + 1}
                           </span>{" "}
                           to{" "}
-                          <span className="font-bold text-gray-700">
+                          <span className="font-bold text-[#3A4668]">
                             {Math.min(
                               valueStart + VALUE_ITEMS,
                               filteredValues.length,
                             )}
                           </span>{" "}
                           of{" "}
-                          <span className="font-bold text-gray-700">
+                          <span className="font-bold text-[#3A4668]">
                             {filteredValues.length}
                           </span>
                         </p>
@@ -1572,7 +1667,7 @@ const AttributesManagement: React.FC = () => {
                               )
                             }
                             disabled={valueCurrentPage === 1}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-30"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] disabled:opacity-30"
                           >
                             <FiChevronLeft size={14} />
                           </button>
@@ -1582,11 +1677,10 @@ const AttributesManagement: React.FC = () => {
                               type="button"
                               key={page}
                               onClick={() => setValueCurrentPage(page)}
-                              className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[9px] font-bold ${
-                                valueCurrentPage === page
-                                  ? "bg-[#163F20] text-white"
-                                  : "text-gray-600 hover:bg-gray-50"
-                              }`}
+                              className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[9px] font-bold transition ${valueCurrentPage === page
+                                  ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white"
+                                  : "text-[#4A5778] hover:bg-[#F5F8FF]"
+                                }`}
                             >
                               {page}
                             </button>
@@ -1600,7 +1694,7 @@ const AttributesManagement: React.FC = () => {
                               )
                             }
                             disabled={valueCurrentPage === valueTotalPages}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-30"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] disabled:opacity-30"
                           >
                             <FiChevronRight size={14} />
                           </button>
@@ -1610,10 +1704,10 @@ const AttributesManagement: React.FC = () => {
                   </div>
 
                   {/* FOOTER INFO */}
-                  <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 sm:px-6">
+                  <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:px-6">
                     <div className="flex flex-col justify-between gap-2 text-[10px] sm:flex-row sm:items-center">
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <FiSettings size={12} className="text-[#163F20]" />
+                      <div className="flex items-center gap-2 text-[#8C97B2]">
+                        <FiSettings size={12} className="text-[#1E3A8A]" />
 
                         <span>
                           Last updated{" "}
@@ -1621,7 +1715,7 @@ const AttributesManagement: React.FC = () => {
                         </span>
                       </div>
 
-                      <span className="rounded-lg bg-white px-3 py-1.5 font-bold text-gray-600">
+                      <span className="rounded-lg bg-white px-3 py-1.5 font-bold text-[#4A5778]">
                         {selectedAttributeData.values?.length || 0} configured
                         values
                       </span>
@@ -1636,73 +1730,86 @@ const AttributesManagement: React.FC = () => {
         <div className="h-5" />
       </motion.div>
 
-      {/* MODALS */}
-      <AddAttributeModal
-        open={addAttributeOpen}
-        loading={actionLoading}
-        onClose={() => {
-          if (!actionLoading) setAddAttributeOpen(false);
-        }}
-        onSubmit={handleAddAttribute}
-      />
+      {/* MODALS — permission based */}
 
-      <EditAttributeModal
-        open={editAttributeOpen}
-        loading={actionLoading}
-        attribute={selectedAttributeData}
-        onClose={() => {
-          if (!actionLoading) setEditAttributeOpen(false);
-        }}
-        onSubmit={handleUpdateAttribute}
-      />
+      {canCreateAttribute && (
+        <AddAttributeModal
+          open={addAttributeOpen}
+          loading={actionLoading}
+          onClose={() => {
+            if (!actionLoading) setAddAttributeOpen(false);
+          }}
+          onSubmit={handleAddAttribute}
+        />
+      )}
 
-      <AddValuesModal
-        open={addValuesOpen}
-        loading={actionLoading}
-        attribute={selectedAttributeData}
-        onClose={() => {
-          if (!actionLoading) setAddValuesOpen(false);
-        }}
-        onSubmit={handleAddValues}
-      />
+      {canUpdateAttribute && (
+        <EditAttributeModal
+          open={editAttributeOpen}
+          loading={actionLoading}
+          attribute={selectedAttributeData}
+          onClose={() => {
+            if (!actionLoading) setEditAttributeOpen(false);
+          }}
+          onSubmit={handleUpdateAttribute}
+        />
+      )}
 
-      <EditValueModal
-        open={editValueOpen}
-        loading={actionLoading}
-        valueItem={selectedValue}
-        onClose={() => {
-          if (!actionLoading) {
-            setEditValueOpen(false);
-            setSelectedValue(null);
-          }
-        }}
-        onSubmit={handleUpdateValue}
-      />
+      {canUpdateAttribute && (
+        <AddValuesModal
+          open={addValuesOpen}
+          loading={actionLoading}
+          attribute={selectedAttributeData}
+          onClose={() => {
+            if (!actionLoading) setAddValuesOpen(false);
+          }}
+          onSubmit={handleAddValues}
+        />
+      )}
 
-      <DeleteModal
-        open={deleteAttributeOpen}
-        loading={deleteLoading}
-        title="Delete Attribute"
-        description={`Are you sure you want to delete "${selectedAttributeData?.attribute_key || "this attribute"}"? Its configured values may also be affected.`}
-        onClose={() => {
-          if (!deleteLoading) setDeleteAttributeOpen(false);
-        }}
-        onConfirm={handleDeleteAttribute}
-      />
+      {canUpdateAttribute && (
+        <EditValueModal
+          open={editValueOpen}
+          loading={actionLoading}
+          valueItem={selectedValue}
+          onClose={() => {
+            if (!actionLoading) {
+              setEditValueOpen(false);
+              setSelectedValue(null);
+            }
+          }}
+          onSubmit={handleUpdateValue}
+        />
+      )}
 
-      <DeleteModal
-        open={deleteValueOpen}
-        loading={deleteLoading}
-        title="Delete Attribute Value"
-        description={`Are you sure you want to delete "${selectedValue?.value || "this value"}"? This action cannot be undone.`}
-        onClose={() => {
-          if (!deleteLoading) {
-            setDeleteValueOpen(false);
-            setSelectedValue(null);
-          }
-        }}
-        onConfirm={handleDeleteValue}
-      />
+      {canDeleteAttribute && (
+        <>
+          <DeleteModal
+            open={deleteAttributeOpen}
+            loading={deleteLoading}
+            title="Delete Attribute"
+            description={`Are you sure you want to delete "${selectedAttributeData?.attribute_key || "this attribute"}"? Its configured values may also be affected.`}
+            onClose={() => {
+              if (!deleteLoading) setDeleteAttributeOpen(false);
+            }}
+            onConfirm={handleDeleteAttribute}
+          />
+
+          <DeleteModal
+            open={deleteValueOpen}
+            loading={deleteLoading}
+            title="Delete Attribute Value"
+            description={`Are you sure you want to delete "${selectedValue?.value || "this value"}"? This action cannot be undone.`}
+            onClose={() => {
+              if (!deleteLoading) {
+                setDeleteValueOpen(false);
+                setSelectedValue(null);
+              }
+            }}
+            onConfirm={handleDeleteValue}
+          />
+        </>
+      )}
     </>
   );
 };

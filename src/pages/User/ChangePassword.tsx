@@ -23,7 +23,7 @@ interface PasswordForm {
 }
 
 // =====================================================
-// SELF-CONTAINED ANIMATION STYLES
+// SELF-CONTAINED ANIMATION STYLES — NAVY THEME
 // =====================================================
 
 const LocalStyles = () => (
@@ -85,14 +85,14 @@ const PasswordField: FC<PasswordFieldProps> = ({
 }) => {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#59645C]">
+      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
         {label}
       </label>
 
       <div className="relative">
         <FiLock
           size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
         />
 
         <input
@@ -102,10 +102,10 @@ const PasswordField: FC<PasswordFieldProps> = ({
           placeholder={placeholder}
           className="
             h-12 w-full rounded-xl
-            border border-[#D8E2D8] bg-white
-            pl-10 pr-11 text-sm text-[#202721]
-            outline-none transition placeholder:text-[#9AA29C]
-            focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/15
+            border border-[#D8E2F0] bg-white
+            pl-10 pr-11 text-sm text-[#0F1B3D]
+            outline-none transition placeholder:text-[#8C97B2]
+            focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/15
           "
         />
 
@@ -115,8 +115,8 @@ const PasswordField: FC<PasswordFieldProps> = ({
           className="
             absolute right-3 top-1/2 flex -translate-y-1/2
             items-center justify-center
-            text-[#89918B] transition
-            hover:text-[#163F20]
+            text-[#8C97B2] transition
+            hover:text-[#1E3A8A]
           "
           aria-label={visible ? "Hide password" : "Show password"}
         >
@@ -262,15 +262,15 @@ const ChangePassword: FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-7"
+        className="relative min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-7"
       >
         {/* =================================================
             AMBIENT BACKGROUND
         ================================================= */}
 
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="cp-ambient absolute -top-32 left-1/2 h-72 w-72 rounded-full bg-[#163F20] blur-3xl" />
-          <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-[#4C8A57] opacity-[0.05] blur-3xl" />
+          <div className="cp-ambient absolute -top-32 left-1/2 h-72 w-72 rounded-full bg-[#1E3A8A] blur-3xl" />
+          <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-[#1E40AF] opacity-[0.05] blur-3xl" />
         </div>
 
         {/* =================================================
@@ -279,18 +279,18 @@ const ChangePassword: FC = () => {
 
         <motion.div variants={itemVariants} className="relative mb-6">
           <div className="mb-2 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
 
-            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#59645C]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4A5778]">
               Account Security
             </span>
           </div>
 
-          <h1 className="text-[30px] font-bold tracking-tight text-[#202721] sm:text-[34px]">
+          <h1 className="text-[30px] font-bold tracking-tight text-[#0F1B3D] sm:text-[34px]">
             Change Password
           </h1>
 
-          <p className="mt-1.5 max-w-xl text-sm leading-6 text-[#89918B]">
+          <p className="mt-1.5 max-w-xl text-sm leading-6 text-[#8C97B2]">
             Update your account password and keep your administrator account
             secure.
           </p>
@@ -309,13 +309,13 @@ const ChangePassword: FC = () => {
             variants={itemVariants}
             className="
               relative overflow-hidden rounded-[22px]
-              border border-[#E5EAE5]
+              border border-[#E3E9F5]
               bg-white
-              shadow-[0_18px_50px_-20px_rgba(22,63,32,0.22)]
+              shadow-[0_18px_50px_-20px_rgba(30,58,138,0.22)]
             "
           >
             {/* Top accent */}
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] via-[#1E3A8A] to-[#172554]" />
 
             {/* Shimmer sweep */}
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -323,14 +323,14 @@ const ChangePassword: FC = () => {
             </div>
 
             {/* FORM HEADER */}
-            <div className="relative border-b border-[#163F20]/10 px-5 py-5 sm:px-6">
+            <div className="relative border-b border-[#1E3A8A]/10 px-5 py-5 sm:px-6">
               <div className="flex items-center gap-3">
                 <div
                   className="
                     flex h-11 w-11 items-center justify-center
                     rounded-xl
-                    bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6]
-                    text-[#163F20]
+                    bg-gradient-to-br from-[#EAF1FF] to-[#D8E2F0]
+                    text-[#1E3A8A]
                     shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]
                   "
                 >
@@ -338,11 +338,11 @@ const ChangePassword: FC = () => {
                 </div>
 
                 <div>
-                  <h2 className="text-[17px] font-bold text-[#202721]">
+                  <h2 className="text-[17px] font-bold text-[#0F1B3D]">
                     Password Settings
                   </h2>
 
-                  <p className="mt-0.5 text-xs text-[#9AA29C]">
+                  <p className="mt-0.5 text-xs text-[#8C97B2]">
                     Enter your current password and choose a new secure
                     password.
                   </p>
@@ -351,7 +351,7 @@ const ChangePassword: FC = () => {
             </div>
 
             {/* FORM BODY */}
-            <div className="relative space-y-5 bg-[#F5F7F5] p-5 sm:p-6">
+            <div className="relative space-y-5 bg-[#F5F8FF] p-5 sm:p-6">
               <PasswordField
                 label="Current Password *"
                 value={form.current_password}
@@ -387,20 +387,21 @@ const ChangePassword: FC = () => {
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="overflow-hidden rounded-xl border border-[#163F20]/10 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]"
+                  className="overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]"
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#4A5778]">
                       Password Strength
                     </span>
 
                     <span
-                      className={`text-[10px] font-bold ${passwordScore <= 2
+                      className={`text-[10px] font-bold ${
+                        passwordScore <= 2
                           ? "text-[#C23B32]"
                           : passwordScore <= 4
                             ? "text-[#8A6D16]"
-                            : "text-[#1F7A3D]"
-                        }`}
+                            : "text-[#1E3A8A]"
+                      }`}
                     >
                       {passwordScore <= 2
                         ? "Weak"
@@ -414,14 +415,15 @@ const ChangePassword: FC = () => {
                     {[1, 2, 3, 4, 5].map((item) => (
                       <div
                         key={item}
-                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${item <= passwordScore
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                          item <= passwordScore
                             ? passwordScore <= 2
                               ? "bg-[#C23B32]"
                               : passwordScore <= 4
                                 ? "bg-[#D9A900]"
-                                : "bg-[#163F20]"
-                            : "bg-[#EAF3EA]"
-                          }`}
+                                : "bg-[#1E3A8A]"
+                            : "bg-[#EAF1FF]"
+                        }`}
                       />
                     ))}
                   </div>
@@ -442,9 +444,10 @@ const ChangePassword: FC = () => {
                           className={`
                             flex h-5 w-5 items-center justify-center rounded-md
                             transition-all duration-300
-                            ${valid
-                              ? "bg-[#163F20] text-white shadow-[0_2px_6px_-2px_rgba(22,63,32,0.45)]"
-                              : "bg-[#EAF3EA] text-[#9AA29C]"
+                            ${
+                              valid
+                                ? "bg-[#1E3A8A] text-white shadow-[0_2px_6px_-2px_rgba(30,58,138,0.45)]"
+                                : "bg-[#EAF1FF] text-[#8C97B2]"
                             }
                           `}
                         >
@@ -452,8 +455,9 @@ const ChangePassword: FC = () => {
                         </span>
 
                         <span
-                          className={`text-[10px] ${valid ? "text-[#163F20]" : "text-[#89918B]"
-                            }`}
+                          className={`text-[10px] ${
+                            valid ? "text-[#1E3A8A]" : "text-[#8C97B2]"
+                          }`}
                         >
                           {String(label)}
                         </span>
@@ -482,9 +486,10 @@ const ChangePassword: FC = () => {
                   className={`
                     rounded-xl border px-3 py-2.5 text-xs font-semibold
                     transition-all duration-300
-                    ${form.new_password === form.new_password_confirmation
-                      ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#1F7A3D]"
-                      : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
+                    ${
+                      form.new_password === form.new_password_confirmation
+                        ? "border-[#1E3A8A]/20 bg-[#EAF1FF] text-[#1E3A8A]"
+                        : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
                     }
                   `}
                 >
@@ -496,7 +501,7 @@ const ChangePassword: FC = () => {
             </div>
 
             {/* FOOTER */}
-            <div className="relative flex items-center justify-between border-t border-[#163F20]/10 bg-white px-5 py-4 sm:px-6">
+            <div className="relative flex items-center justify-between border-t border-[#1E3A8A]/10 bg-white px-5 py-4 sm:px-6">
               {/* API Message Display */}
               <AnimatePresence>
                 {apiMessage && (
@@ -507,9 +512,10 @@ const ChangePassword: FC = () => {
                     transition={{ duration: 0.3 }}
                     className={`
                       text-sm font-bold
-                      ${apiMessage.type === "success"
-                        ? "text-[#1F7A3D]"
-                        : "text-[#C23B32]"
+                      ${
+                        apiMessage.type === "success"
+                          ? "text-[#1E3A8A]"
+                          : "text-[#C23B32]"
                       }
                     `}
                   >
@@ -525,12 +531,12 @@ const ChangePassword: FC = () => {
                 className="
                   group ml-auto flex items-center gap-2
                   rounded-xl
-                  bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219]
+                  bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554]
                   px-6 py-2.5 text-sm font-bold text-white
-                  shadow-[0_10px_22px_-8px_rgba(22,63,32,0.6),inset_0_1px_0_rgba(255,255,255,0.18)]
+                  shadow-[0_10px_22px_-8px_rgba(30,58,138,0.6),inset_0_1px_0_rgba(255,255,255,0.18)]
                   transition-all duration-300
                   hover:-translate-y-0.5
-                  hover:shadow-[0_14px_28px_-8px_rgba(22,63,32,0.7),inset_0_1px_0_rgba(255,255,255,0.28)]
+                  hover:shadow-[0_14px_28px_-8px_rgba(30,58,138,0.7),inset_0_1px_0_rgba(255,255,255,0.28)]
                   active:scale-[0.98]
                   disabled:cursor-not-allowed disabled:opacity-50
                 "
@@ -553,32 +559,32 @@ const ChangePassword: FC = () => {
             variants={itemVariants}
             className="
               relative h-fit overflow-hidden rounded-[22px]
-              border border-[#E5EAE5]
+              border border-[#E3E9F5]
               bg-white
-              shadow-[0_18px_50px_-20px_rgba(22,63,32,0.22)]
+              shadow-[0_18px_50px_-20px_rgba(30,58,138,0.22)]
             "
           >
             {/* Top accent */}
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4C8A57] to-[#0F3219]" />
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] to-[#172554]" />
 
             <div className="p-5">
               <div
                 className="
                   flex h-11 w-11 items-center justify-center
                   rounded-xl
-                  bg-gradient-to-br from-[#EAF3EA] to-[#D5E5D6]
-                  text-[#163F20]
+                  bg-gradient-to-br from-[#EAF1FF] to-[#D8E2F0]
+                  text-[#1E3A8A]
                   shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]
                 "
               >
                 <FiShield size={19} />
               </div>
 
-              <h3 className="mt-4 text-[16px] font-bold text-[#202721]">
+              <h3 className="mt-4 text-[16px] font-bold text-[#0F1B3D]">
                 Account Security
               </h3>
 
-              <p className="mt-1.5 text-xs leading-5 text-[#89918B]">
+              <p className="mt-1.5 text-xs leading-5 text-[#8C97B2]">
                 Use a strong password that is difficult to guess and avoid
                 reusing passwords.
               </p>
@@ -595,19 +601,19 @@ const ChangePassword: FC = () => {
                     className="
                       flex items-start gap-2.5
                       rounded-xl
-                      border border-[#163F20]/10
-                      bg-[#F5F7F5]
+                      border border-[#1E3A8A]/10
+                      bg-[#F5F8FF]
                       p-3
                       transition
-                      hover:bg-[#EAF3EA]
+                      hover:bg-[#EAF1FF]
                     "
                   >
                     <FiCheck
                       size={14}
-                      className="mt-0.5 shrink-0 text-[#163F20]"
+                      className="mt-0.5 shrink-0 text-[#1E3A8A]"
                     />
 
-                    <span className="text-[11px] leading-4 text-[#59645C]">
+                    <span className="text-[11px] leading-4 text-[#4A5778]">
                       {item}
                     </span>
                   </div>

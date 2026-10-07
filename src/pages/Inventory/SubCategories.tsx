@@ -11,6 +11,7 @@ import {
   FiSearch,
   FiX,
   FiLayers,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -24,18 +25,10 @@ import { categoryApi, Category } from "../../api/endpoints/category";
 import { subcategoryApi, Subcategory } from "../../api/endpoints/subcategory";
 
 // =====================================================
-// THEME
+// ✅ PERMISSIONS
 // =====================================================
 
-const GREEN = "#163F20";
-const DARK_GREEN = "#0F3219";
-const LIGHT_GREEN = "#EAF3EA";
-const PAGE_BG = "#F5F7F5";
-const TEXT_PRIMARY = "#202721";
-const TEXT_SECONDARY = "#59645C";
-const MUTED = "#9AA29C";
-const BORDER = "#D8E2D8";
-const RED = "#C23B32";
+import { usePermissions } from "../permissions/usePermissions";
 
 // =====================================================
 // TYPES
@@ -123,7 +116,7 @@ const formatDate = (value?: string | null) => {
 };
 
 // =====================================================
-// ADD / EDIT MODAL
+// ADD / EDIT MODAL — NAVY THEME
 // =====================================================
 
 interface SubcategoryFormModalProps {
@@ -273,29 +266,29 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
   }
 
   return (
-    <div className="w-full max-w-[590px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
+    <div className="w-full max-w-[590px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
       {/* TOP ACCENT */}
 
-      <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+      <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
       {/* HEADER */}
 
-      <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 bg-white px-5 py-5 sm:px-6">
+      <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 bg-white px-5 py-5 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
             <FiLayers size={18} />
           </div>
 
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
               Catalog Management
             </p>
 
-            <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#202721]">
+            <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#0F1B3D]">
               {mode === "add" ? "Add Sub Category" : "Update Sub Category"}
             </h2>
 
-            <p className="mt-1 text-[10px] text-[#9AA29C]">
+            <p className="mt-1 text-[10px] text-[#8C97B2]">
               {mode === "add"
                 ? "Create a sub category under a parent category."
                 : "Update sub category details."}
@@ -307,7 +300,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
         >
           <FiX size={18} />
         </button>
@@ -315,12 +308,12 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
       {/* BODY */}
 
-      <div className="max-h-[72vh] overflow-y-auto bg-[#FAFBFA] px-5 py-5 sm:px-6">
+      <div className="max-h-[72vh] overflow-y-auto bg-[#FAFBFF] px-5 py-5 sm:px-6">
         <div className="space-y-4">
           {/* NAME */}
 
           <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Sub Category Name
               <span className="ml-1 text-[#C23B32]">*</span>
             </label>
@@ -331,14 +324,14 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
               disabled={loading}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Enter sub category"
-              className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10 disabled:cursor-not-allowed disabled:bg-[#F5F7F5]"
+              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF]"
             />
           </div>
 
           {/* CATEGORY */}
 
           <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Parent Category
               <span className="ml-1 text-[#C23B32]">*</span>
             </label>
@@ -346,14 +339,14 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
             <div className="relative">
               <FiLayers
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
 
               <select
                 value={categoryId}
                 disabled={loading || categories.length === 0}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-white pl-10 pr-10 text-sm text-[#202721] outline-none transition focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10 disabled:cursor-not-allowed disabled:bg-[#F5F7F5]"
+                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-10 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF]"
               >
                 <option value="">
                   {categories.length === 0
@@ -370,7 +363,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
               <FiChevronDown
                 size={16}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
             </div>
           </div>
@@ -378,16 +371,16 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
           {/* SLUG */}
 
           <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Slug
               <span className="ml-1 text-[#C23B32]">*</span>
               {mode === "add" && (
-                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#9AA29C]">
+                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#8C97B2]">
                   Auto-generated from name
                 </span>
               )}
               {mode === "edit" && (
-                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#9AA29C]">
+                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#8C97B2]">
                   Read-only
                 </span>
               )}
@@ -397,14 +390,14 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
               type="text"
               value={slug}
               disabled
-              className="h-11 w-full cursor-not-allowed rounded-xl border border-[#D8E2D8] bg-[#F0F2F0] px-4 font-mono text-xs text-[#59645C] outline-none"
+              className="h-11 w-full cursor-not-allowed rounded-xl border border-[#D8E2F0] bg-[#F0F3F9] px-4 font-mono text-xs text-[#4A5778] outline-none"
             />
           </div>
 
           {/* STATUS */}
 
           <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Status
             </label>
 
@@ -417,8 +410,8 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
                 onClick={() => setStatus(true)}
                 className={`h-11 rounded-xl border text-sm font-bold transition ${
                   status
-                    ? "border-[#163F20]/30 bg-[#EAF3EA] text-[#163F20]"
-                    : "border-[#D8E2D8] bg-white text-[#59645C] hover:border-[#163F20]/20 hover:bg-[#F5F7F5]"
+                    ? "border-[#1E3A8A]/30 bg-[#EAF1FF] text-[#1E3A8A]"
+                    : "border-[#D8E2F0] bg-white text-[#4A5778] hover:border-[#1E3A8A]/20 hover:bg-[#F5F8FF]"
                 }`}
               >
                 <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
@@ -434,7 +427,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
                 className={`h-11 rounded-xl border text-sm font-bold transition ${
                   !status
                     ? "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
-                    : "border-[#D8E2D8] bg-white text-[#59645C] hover:border-[#163F20]/20 hover:bg-[#F5F7F5]"
+                    : "border-[#D8E2F0] bg-white text-[#4A5778] hover:border-[#1E3A8A]/20 hover:bg-[#F5F8FF]"
                 }`}
               >
                 <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
@@ -447,11 +440,11 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
                 Sub Category Image
               </label>
 
-              <span className="text-[9px] text-[#9AA29C]">Max 5MB</span>
+              <span className="text-[9px] text-[#8C97B2]">Max 5MB</span>
             </div>
 
             <input
@@ -467,26 +460,26 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
             {!preview ? (
               <label
                 htmlFor="subcategory-image"
-                className="flex cursor-pointer items-center justify-center gap-4 rounded-xl border border-dashed border-[#163F20]/25 bg-white px-5 py-7 transition hover:border-[#163F20]/45 hover:bg-[#EAF3EA]"
+                className="flex cursor-pointer items-center justify-center gap-4 rounded-xl border border-dashed border-[#1E3A8A]/25 bg-white px-5 py-7 transition hover:border-[#1E3A8A]/45 hover:bg-[#EAF1FF]"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                   <FiImage size={19} />
                 </div>
 
                 <div>
-                  <p className="text-sm font-bold text-[#202721]">
+                  <p className="text-sm font-bold text-[#0F1B3D]">
                     Upload Image
                   </p>
 
-                  <p className="mt-0.5 text-[9px] text-[#9AA29C]">
+                  <p className="mt-0.5 text-[9px] text-[#8C97B2]">
                     PNG, JPG, JPEG or WEBP
                   </p>
                 </div>
               </label>
             ) : (
-              <div className="rounded-xl border border-[#163F20]/10 bg-white p-3">
+              <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#163F20]/10 bg-[#F5F7F5]">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF]">
                     <img
                       src={preview}
                       alt={name || "Sub category"}
@@ -495,17 +488,17 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#202721]">
+                    <p className="truncate text-sm font-semibold text-[#0F1B3D]">
                       {image?.name || "Current image"}
                     </p>
 
-                    <p className="mt-0.5 text-[9px] text-[#9AA29C]">
+                    <p className="mt-0.5 text-[9px] text-[#8C97B2]">
                       {image ? "New image selected" : "Current uploaded image"}
                     </p>
 
                     <label
                       htmlFor="subcategory-image"
-                      className="mt-2 inline-block cursor-pointer text-xs font-bold text-[#163F20] hover:text-[#0F3219]"
+                      className="mt-2 inline-block cursor-pointer text-xs font-bold text-[#1E3A8A] hover:text-[#172554]"
                     >
                       Change Image
                     </label>
@@ -530,12 +523,12 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
       {/* FOOTER */}
 
-      <div className="flex flex-col-reverse gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+      <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
         <button
           type="button"
           onClick={onClose}
           disabled={loading}
-          className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50"
+          className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
         >
           Cancel
         </button>
@@ -544,7 +537,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
           type="button"
           onClick={handleSubmit}
           disabled={loading}
-          className="flex min-w-[155px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-w-[155px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading && <FiRefreshCw size={14} className="animate-spin" />}
 
@@ -566,6 +559,46 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 // =====================================================
 
 const SubCategories: React.FC = () => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewSubCategories = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("category") ||
+      hasModuleAccess("sub_category") ||
+      hasPermission("category.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateSubCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.create") ||
+      hasPermission("sub_category.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateSubCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.update") ||
+      hasPermission("category.edit") ||
+      hasPermission("sub_category.update"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
@@ -643,9 +676,11 @@ const SubCategories: React.FC = () => {
   // ===================================================
 
   useEffect(() => {
-    fetchSubcategories();
-    fetchCategories();
-  }, []);
+    if (canViewSubCategories) {
+      fetchSubcategories();
+      fetchCategories();
+    }
+  }, [canViewSubCategories]);
 
   // ===================================================
   // FILTER
@@ -839,7 +874,6 @@ const SubCategories: React.FC = () => {
 
   // ===================================================
   // STATUS TOGGLE (INLINE DROPDOWN)
-  // Uses the same Edit API (subcategoryApi.update)
   // ===================================================
 
   const handleStatusToggle = async (
@@ -848,7 +882,6 @@ const SubCategories: React.FC = () => {
   ) => {
     const currentStatus = subcategory.status ? "active" : "inactive";
 
-    // Prevent unnecessary API call
     if (currentStatus === nextStatus) {
       return;
     }
@@ -858,7 +891,6 @@ const SubCategories: React.FC = () => {
 
       const formData = new FormData();
 
-      // Send the same fields as the Edit API expects
       formData.append("category_id", String(subcategory.category_id));
       formData.append("name", subcategory.name);
       formData.append("slug", subcategory.slug);
@@ -896,22 +928,42 @@ const SubCategories: React.FC = () => {
   };
 
   // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewSubCategories) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================
   // LOADING SCREEN
   // ===================================================
 
   if (loading && subcategories.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F7F5]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
         <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#163F20] shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
             <FiRefreshCw size={23} className="animate-spin" />
           </div>
 
-          <p className="mt-4 text-sm font-bold text-[#202721]">
+          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
             Loading sub categories...
           </p>
 
-          <p className="mt-1 text-xs text-[#9AA29C]">
+          <p className="mt-1 text-xs text-[#8C97B2]">
             Please wait while we fetch your sub categories.
           </p>
         </div>
@@ -929,7 +981,7 @@ const SubCategories: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
       >
         {/* HEADER */}
 
@@ -939,18 +991,20 @@ const SubCategories: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
                 Catalog Management
               </span>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[32px]">
+            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
               Sub Categories
             </h1>
 
-            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
+            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
               Manage product sub categories and their parent categories from one
               place.
             </p>
@@ -963,7 +1017,7 @@ const SubCategories: React.FC = () => {
               type="button"
               onClick={handleRefresh}
               disabled={loading || categoryLoading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-white px-4 text-xs font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={14}
@@ -973,16 +1027,20 @@ const SubCategories: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            <motion.button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-            >
-              <FiPlus size={15} />
-              Add Sub Category
-            </motion.button>
+            {/* ✅ ADD — permission based */}
+
+            {canCreateSubCategory && (
+              <motion.button
+                type="button"
+                onClick={() => setAddOpen(true)}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+              >
+                <FiPlus size={15} />
+                Add Sub Category
+              </motion.button>
+            )}
           </div>
         </motion.div>
 
@@ -990,13 +1048,13 @@ const SubCategories: React.FC = () => {
 
         <motion.div
           variants={itemVariants}
-          className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
+          className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
-          <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#163F20]/10" />
-          <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#163F20]/10" />
+          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
+          <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
+          <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             {/* SEARCH */}
@@ -1004,7 +1062,7 @@ const SubCategories: React.FC = () => {
             <div className="relative w-full lg:max-w-[560px]">
               <FiSearch
                 size={17}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
 
               <input
@@ -1015,7 +1073,7 @@ const SubCategories: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 placeholder="Search sub category, slug or parent category..."
-                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
             </div>
 
@@ -1024,7 +1082,7 @@ const SubCategories: React.FC = () => {
             <div className="relative w-full lg:w-[290px]">
               <FiLayers
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
 
               <select
@@ -1034,7 +1092,7 @@ const SubCategories: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 disabled={categoryLoading}
-                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-10 text-xs font-semibold text-[#202721] outline-none transition focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-10 text-xs font-semibold text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="">All Parent Categories</option>
 
@@ -1047,7 +1105,7 @@ const SubCategories: React.FC = () => {
 
               <FiChevronDown
                 size={15}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
             </div>
           </div>
@@ -1057,54 +1115,59 @@ const SubCategories: React.FC = () => {
 
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+          className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           <div className="overflow-x-auto pt-[3px]">
             <table className="w-full min-w-[950px] border-collapse">
               <thead>
-                <tr className="bg-[#163F20]">
-                  <th className="w-[80px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <tr className="bg-[#1E3A8A]">
+                  <th className="w-[80px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Sub Category
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Parent Category
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Slug
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Status
                   </th>
 
-                  <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
-                    Actions
-                  </th>
+                  {canUpdateSubCategory && (
+                    <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={canUpdateSubCategory ? 6 : 5}
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center justify-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                           <FiRefreshCw size={23} className="animate-spin" />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#202721]">
+                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
                           Loading sub categories...
                         </p>
 
-                        <p className="mt-1 text-xs text-[#9AA29C]">
+                        <p className="mt-1 text-xs text-[#8C97B2]">
                           Please wait while we fetch your sub categories.
                         </p>
                       </div>
@@ -1112,17 +1175,20 @@ const SubCategories: React.FC = () => {
                   </tr>
                 ) : visibleSubcategories.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={canUpdateSubCategory ? 6 : 5}
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center justify-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#163F20]/10 bg-[#EAF3EA] text-[#163F20]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1E3A8A]/10 bg-[#EAF1FF] text-[#1E3A8A]">
                           <FiLayers size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#202721]">
+                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
                           No sub categories found
                         </p>
 
-                        <p className="mt-1 max-w-sm text-xs text-[#9AA29C]">
+                        <p className="mt-1 max-w-sm text-xs text-[#8C97B2]">
                           Create a sub category or change the selected filter.
                         </p>
                       </div>
@@ -1147,12 +1213,12 @@ const SubCategories: React.FC = () => {
                         initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.03 }}
-                        className="group border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                        className="group border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
                       >
                         {/* S.NO */}
 
                         <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
                             {serialNumber}
                           </span>
                         </td>
@@ -1161,7 +1227,7 @@ const SubCategories: React.FC = () => {
 
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] transition group-hover:border-[#163F20]/25">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] transition group-hover:border-[#1E3A8A]/25">
                               {image ? (
                                 <img
                                   src={image}
@@ -1171,17 +1237,17 @@ const SubCategories: React.FC = () => {
                               ) : (
                                 <FiLayers
                                   size={17}
-                                  className="text-[#163F20]"
+                                  className="text-[#1E3A8A]"
                                 />
                               )}
                             </div>
 
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#202721]">
+                              <p className="truncate text-sm font-bold text-[#0F1B3D]">
                                 {subcategory.name}
                               </p>
 
-                              <p className="mt-1 text-[9px] text-[#9AA29C]">
+                              <p className="mt-1 text-[9px] text-[#8C97B2]">
                                 ID: {subcategory.id}
                               </p>
                             </div>
@@ -1192,11 +1258,11 @@ const SubCategories: React.FC = () => {
 
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                               <FiLayers size={13} />
                             </span>
 
-                            <span className="rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] px-3 py-1.5 text-[10px] font-bold text-[#59645C]">
+                            <span className="rounded-lg border border-[#1E3A8A]/10 bg-[#F5F8FF] px-3 py-1.5 text-[10px] font-bold text-[#4A5778]">
                               {parentTitle}
                             </span>
                           </div>
@@ -1205,74 +1271,91 @@ const SubCategories: React.FC = () => {
                         {/* SLUG */}
 
                         <td className="px-5 py-4">
-                          <span className="rounded-lg bg-[#F5F7F5] px-3 py-1.5 font-mono text-[10px] font-semibold text-[#59645C]">
+                          <span className="rounded-lg bg-[#F5F8FF] px-3 py-1.5 font-mono text-[10px] font-semibold text-[#4A5778]">
                             {subcategory.slug}
                           </span>
                         </td>
 
-                        {/* STATUS DROPDOWN */}
+                        {/* STATUS — permission based */}
 
                         <td className="px-5 py-4">
-                          <div className="relative inline-block">
-                            <select
-                              value={isActive ? "active" : "inactive"}
-                              disabled={isStatusLoading}
-                              onChange={(e) =>
-                                handleStatusToggle(
-                                  subcategory,
-                                  e.target.value as "active" | "inactive",
-                                )
-                              }
-                              className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                          {canUpdateSubCategory ? (
+                            <div className="relative inline-block">
+                              <select
+                                value={isActive ? "active" : "inactive"}
+                                disabled={isStatusLoading}
+                                onChange={(e) =>
+                                  handleStatusToggle(
+                                    subcategory,
+                                    e.target.value as "active" | "inactive",
+                                  )
+                                }
+                                className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                                  isActive
+                                    ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
+                                    : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
+                                }`}
+                              >
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                              </select>
+
+                              <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                                {isStatusLoading ? (
+                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                ) : (
+                                  <svg
+                                    width="10"
+                                    height="10"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <polyline points="6 9 12 15 18 9" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
                                 isActive
-                                  ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
-                                  : "border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                                  ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
+                                  : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
                               }`}
                             >
-                              <option value="active">Active</option>
-                              <option value="inactive">Inactive</option>
-                            </select>
-
-                            {/* DROPDOWN ARROW / SPINNER */}
-
-                            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
-                              {isStatusLoading ? (
-                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              ) : (
-                                <svg
-                                  width="10"
-                                  height="10"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="3"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <polyline points="6 9 12 15 18 9" />
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* ACTIONS */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(subcategory)}
-                              title="Edit"
-                              className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition-all duration-200 hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                            >
-                              <FiEdit2
-                                size={15}
-                                className="transition-transform group-hover/edit:scale-110"
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  isActive ? "bg-[#1E3A8A]" : "bg-[#C23B32]"
+                                }`}
                               />
-                            </button>
-                          </div>
+                              {isActive ? "Active" : "Inactive"}
+                            </span>
+                          )}
                         </td>
+
+                        {/* ACTIONS — permission based */}
+
+                        {canUpdateSubCategory && (
+                          <td className="px-5 py-4">
+                            <div className="flex justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(subcategory)}
+                                title="Edit"
+                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition-all duration-200 hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
+                              >
+                                <FiEdit2
+                                  size={15}
+                                  className="transition-transform group-hover/edit:scale-110"
+                                />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </motion.tr>
                     );
                   })
@@ -1284,34 +1367,29 @@ const SubCategories: React.FC = () => {
           {/* PAGINATION */}
 
           {filteredSubCategories.length > 0 && (
-            <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#89918B]">
+                <p className="text-xs text-[#8C97B2]">
                   Showing{" "}
-                  <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#3A4668]">{startEntry}</span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#3F4A41]">
+                  <span className="font-bold text-[#3A4668]">{endEntry}</span> of{" "}
+                  <span className="font-bold text-[#3A4668]">
                     {filteredSubCategories.length}
                   </span>{" "}
                   sub categories
                 </p>
 
                 <div className="flex items-center gap-1.5">
-                  {/* PREVIOUS */}
-
                   <button
                     type="button"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((page) => page - 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                     title="Previous page"
                   >
                     <FiChevronLeft size={17} />
                   </button>
-
-                  {/* PAGE NUMBERS */}
 
                   {paginationPages.map((page) => (
                     <button
@@ -1320,21 +1398,19 @@ const SubCategories: React.FC = () => {
                       onClick={() => setCurrentPage(page)}
                       className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
                         currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                          : "border border-transparent text-[#59645C] hover:border-[#163F20]/15 hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                          : "border border-transparent text-[#4A5778] hover:border-[#1E3A8A]/15 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                       }`}
                     >
                       {page}
                     </button>
                   ))}
 
-                  {/* NEXT */}
-
                   <button
                     type="button"
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage((page) => page + 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                     title="Next page"
                   >
                     <FiChevronRight size={17} />
@@ -1350,57 +1426,61 @@ const SubCategories: React.FC = () => {
 
       {/* ADD MODAL */}
 
-      <GlobalModal
-        isOpen={addOpen}
-        onClose={() => {
-          if (!saveLoading) {
-            setAddOpen(false);
-          }
-        }}
-        closeOnOverlayClick={!saveLoading}
-      >
-        <SubcategoryFormModal
-          open={addOpen}
-          loading={saveLoading}
-          mode="add"
-          subcategory={null}
-          categories={categories}
+      {canCreateSubCategory && (
+        <GlobalModal
+          isOpen={addOpen}
           onClose={() => {
             if (!saveLoading) {
               setAddOpen(false);
             }
           }}
-          onSubmit={handleAdd}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!saveLoading}
+        >
+          <SubcategoryFormModal
+            open={addOpen}
+            loading={saveLoading}
+            mode="add"
+            subcategory={null}
+            categories={categories}
+            onClose={() => {
+              if (!saveLoading) {
+                setAddOpen(false);
+              }
+            }}
+            onSubmit={handleAdd}
+          />
+        </GlobalModal>
+      )}
 
       {/* EDIT MODAL */}
 
-      <GlobalModal
-        isOpen={editOpen}
-        onClose={() => {
-          if (!saveLoading) {
-            setEditOpen(false);
-            setSelectedSubcategory(null);
-          }
-        }}
-        closeOnOverlayClick={!saveLoading}
-      >
-        <SubcategoryFormModal
-          open={editOpen}
-          loading={saveLoading}
-          mode="edit"
-          subcategory={selectedSubcategory}
-          categories={categories}
+      {canUpdateSubCategory && (
+        <GlobalModal
+          isOpen={editOpen}
           onClose={() => {
             if (!saveLoading) {
               setEditOpen(false);
               setSelectedSubcategory(null);
             }
           }}
-          onSubmit={handleUpdate}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!saveLoading}
+        >
+          <SubcategoryFormModal
+            open={editOpen}
+            loading={saveLoading}
+            mode="edit"
+            subcategory={selectedSubcategory}
+            categories={categories}
+            onClose={() => {
+              if (!saveLoading) {
+                setEditOpen(false);
+                setSelectedSubcategory(null);
+              }
+            }}
+            onSubmit={handleUpdate}
+          />
+        </GlobalModal>
+      )}
     </>
   );
 };

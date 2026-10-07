@@ -1,4 +1,3 @@
-
 import React, {
   useEffect,
   useMemo,
@@ -21,12 +20,13 @@ import {
   FiTrash2,
   FiUpload,
   FiX,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
-// ✅ React 19 compatible editor
+// React 19 compatible editor
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 
@@ -38,12 +38,79 @@ import contentsApi, {
   ContentPayload,
 } from "../../api/endpoints/contents";
 
+import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
+// THEME - BLUE / NAVY
+// =====================================================
+
+const PRIMARY = "#1E3A8A";
+const DARK_PRIMARY = "#172554";
+const BLUE = "#1E40AF";
+const ACCENT = "#2563EB";
+
+const LIGHT_BLUE = "#EAF1FF";
+const SOFT_BLUE = "#DBEAFE";
+const PAGE_BG = "#F5F8FF";
+
+const TEXT_PRIMARY = "#0F1B3D";
+const TEXT_SECONDARY = "#4A5778";
+const MUTED = "#8C97B2";
+
+const BORDER = "#D8E2F0";
+const WHITE = "#FFFFFF";
+
+const DANGER = "#C23B32";
+const DANGER_BG = "#FBEAEA";
+
+// =====================================================
+// PERMISSION KEY COMPATIBILITY
+// =====================================================
+
+/**
+ * Backend permission JSON shared earlier did not include
+ * Content/Contents explicitly.
+ *
+ * These candidates support common backend naming styles.
+ * If backend uses one of these, permission checks work.
+ */
+
+const VIEW_PERMISSION_KEYS = [
+  "contents.view",
+  "content.view",
+  "Contents.view",
+  "Content.view",
+];
+
+const CREATE_PERMISSION_KEYS = [
+  "contents.create",
+  "content.create",
+  "Contents.create",
+  "Content.create",
+];
+
+const UPDATE_PERMISSION_KEYS = [
+  "contents.update",
+  "content.update",
+  "Contents.update",
+  "Content.update",
+];
+
+const DELETE_PERMISSION_KEYS = [
+  "contents.delete",
+  "content.delete",
+  "Contents.delete",
+  "Content.delete",
+];
+
 // =====================================================
 // ANIMATION
 // =====================================================
 
 const containerVariants = {
-  hidden: { opacity: 0 },
+  hidden: {
+    opacity: 0,
+  },
 
   visible: {
     opacity: 1,
@@ -97,7 +164,7 @@ interface FormBlock {
 }
 
 // =====================================================
-// SK QUILL CONFIG
+// QUILL CONFIG
 // =====================================================
 
 const SK_EDITOR_MODULES = {
@@ -135,7 +202,9 @@ const SK_EDITOR_FORMATS = [
 const formatDate = (
   value?: string | null,
 ) => {
-  if (!value) return "—";
+  if (!value) {
+    return "—";
+  }
 
   const date = new Date(value);
 
@@ -161,7 +230,10 @@ const formatDate = (
 
 const versionNumber = (
   version?: string,
-) => Number(version || "0");
+) =>
+  Number(
+    version || "0",
+  );
 
 const initials = (
   title: string,
@@ -207,7 +279,7 @@ const NewImagePreview: React.FC<
   }, [previewUrl]);
 
   return (
-    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#163F20]/20 bg-white">
+    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/20 bg-white">
       <img
         src={previewUrl}
         alt={file.name}
@@ -229,7 +301,7 @@ const NewImagePreview: React.FC<
         <FiX size={13} />
       </button>
 
-      <span className="absolute left-2 top-2 rounded-full bg-[#163F20] px-2 py-1 text-[7px] font-bold uppercase text-white">
+      <span className="absolute left-2 top-2 rounded-full bg-[#1E3A8A] px-2 py-1 text-[7px] font-bold uppercase text-white">
         New
       </span>
     </div>
@@ -260,6 +332,7 @@ interface BlockEditorProps {
     imageIndex: number,
   ) => void;
   canRemove: boolean;
+  canUpdate: boolean;
 }
 
 const BlockEditor: React.FC<
@@ -272,6 +345,7 @@ const BlockEditor: React.FC<
   onRemoveNewImage,
   onRemoveExistingImage,
   canRemove,
+  canUpdate,
 }) => {
   const fileInputRef =
     useRef<HTMLInputElement | null>(
@@ -279,26 +353,26 @@ const BlockEditor: React.FC<
     );
 
   return (
-    <div className="rounded-[18px] border border-[#163F20]/10 bg-[#FAFBFA] p-4 sm:p-5">
+    <div className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4 font-poppins sm:p-5">
       {/* BLOCK HEADER */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
             <FiList size={16} />
           </div>
 
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
               Content Block
             </p>
 
-            <h4 className="mt-0.5 text-sm font-bold text-[#202721]">
+            <h4 className="mt-0.5 text-sm font-bold text-[#0F1B3D]">
               Block {index + 1}
             </h4>
           </div>
         </div>
 
-        {canRemove && (
+        {canRemove && canUpdate && (
           <button
             type="button"
             onClick={() =>
@@ -313,18 +387,16 @@ const BlockEditor: React.FC<
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {/* =================================================
-            HEADING
-        ================================================= */}
-
+        {/* HEADING */}
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
             Heading
           </label>
 
           <input
             type="text"
             value={block.heading}
+            disabled={!canUpdate}
             onChange={(event) =>
               onChange(
                 index,
@@ -333,16 +405,13 @@ const BlockEditor: React.FC<
               )
             }
             placeholder="<h1>Your heading</h1>"
-            className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+            className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF] disabled:opacity-70"
           />
         </div>
 
-        {/* =================================================
-            SHORT DESCRIPTION
-        ================================================= */}
-
+        {/* SHORT DESCRIPTION */}
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
             Short Description
           </label>
 
@@ -350,6 +419,7 @@ const BlockEditor: React.FC<
             value={
               block.short_description
             }
+            disabled={!canUpdate}
             onChange={(event) =>
               onChange(
                 index,
@@ -359,21 +429,18 @@ const BlockEditor: React.FC<
             }
             rows={3}
             placeholder="<p>Short description...</p>"
-            className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-white px-4 py-3 text-sm leading-6 text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+            className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-white px-4 py-3 text-sm leading-6 text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF] disabled:opacity-70"
           />
         </div>
 
-        {/* =================================================
-            DESCRIPTION - SK EDITOR
-        ================================================= */}
-
+        {/* DESCRIPTION */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Description
             </label>
 
-            <span className="text-[9px] text-[#9AA29C]">
+            <span className="text-[9px] text-[#8C97B2]">
               HTML supported
             </span>
           </div>
@@ -381,7 +448,10 @@ const BlockEditor: React.FC<
           <div className="sk-editor-wrapper">
             <ReactQuill
               theme="snow"
-              value={block.description}
+              value={
+                block.description
+              }
+              readOnly={!canUpdate}
               onChange={(value) =>
                 onChange(
                   index,
@@ -400,17 +470,14 @@ const BlockEditor: React.FC<
           </div>
         </div>
 
-        {/* =================================================
-            IMAGES
-        ================================================= */}
-
+        {/* IMAGES */}
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
+            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
               Block {index + 1} Images
             </label>
 
-            <span className="text-[9px] text-[#9AA29C]">
+            <span className="text-[9px] text-[#8C97B2]">
               {block.existingImages.length +
                 block.imageFiles.length}{" "}
               image
@@ -427,6 +494,7 @@ const BlockEditor: React.FC<
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp,image/avif"
             multiple
+            disabled={!canUpdate}
             className="hidden"
             onChange={(event) => {
               const files =
@@ -436,7 +504,8 @@ const BlockEditor: React.FC<
                 );
 
               if (
-                files.length === 0
+                files.length ===
+                0
               ) {
                 return;
               }
@@ -450,16 +519,18 @@ const BlockEditor: React.FC<
                 ],
               );
 
-              event.target.value = "";
+              event.target.value =
+                "";
             }}
           />
 
           <button
             type="button"
+            disabled={!canUpdate}
             onClick={() =>
               fileInputRef.current?.click()
             }
-            className="flex min-h-[80px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#163F20]/30 bg-white px-4 text-xs font-semibold text-[#163F20] transition hover:border-[#163F20]/50 hover:bg-[#EAF3EA]"
+            className="flex min-h-[80px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#1E3A8A]/30 bg-white px-4 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#1E3A8A]/50 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiUpload size={18} />
 
@@ -468,7 +539,7 @@ const BlockEditor: React.FC<
                 Upload images
               </p>
 
-              <p className="mt-0.5 text-[9px] font-normal text-[#9AA29C]">
+              <p className="mt-0.5 text-[9px] font-normal text-[#8C97B2]">
                 Images will belong to Block{" "}
                 {index + 1}
               </p>
@@ -479,7 +550,7 @@ const BlockEditor: React.FC<
           {block.existingImages
             .length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                 Existing Images
               </p>
 
@@ -494,7 +565,7 @@ const BlockEditor: React.FC<
                         image.id ??
                         `${index}-existing-${imageIndex}`
                       }
-                      className="group relative aspect-video overflow-hidden rounded-xl border border-[#163F20]/10 bg-white"
+                      className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
                     >
                       <img
                         src={
@@ -515,19 +586,21 @@ const BlockEditor: React.FC<
                         </span>
                       )}
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onRemoveExistingImage(
-                            index,
-                            imageIndex,
-                          )
-                        }
-                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white opacity-100 shadow-lg transition hover:bg-[#C23B32]"
-                        title="Remove image"
-                      >
-                        <FiX size={13} />
-                      </button>
+                      {canUpdate && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRemoveExistingImage(
+                              index,
+                              imageIndex,
+                            )
+                          }
+                          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white shadow-lg transition hover:bg-[#C23B32]"
+                          title="Remove image"
+                        >
+                          <FiX size={13} />
+                        </button>
+                      )}
                     </div>
                   ),
                 )}
@@ -539,7 +612,7 @@ const BlockEditor: React.FC<
           {block.imageFiles
             .length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                 New Images
               </p>
 
@@ -575,21 +648,21 @@ const BlockEditor: React.FC<
             </div>
           )}
 
-          {/* IMAGE INDEX INFO */}
+          {/* IMAGE INFO */}
           {(block.imageFiles.length >
             0 ||
             block.existingImages
-              .length > 0) && (
-            <div className="mt-3 rounded-xl border border-[#163F20]/10 bg-[#EAF3EA] px-3 py-2.5">
-              <p className="text-[9px] leading-4 text-[#59645C]">
-                <span className="font-bold text-[#163F20]">
+              .length >
+              0) && (
+            <div className="mt-3 rounded-xl border border-[#1E3A8A]/10 bg-[#EAF1FF] px-3 py-2.5">
+              <p className="text-[9px] leading-4 text-[#4A5778]">
+                <span className="font-bold text-[#1E3A8A]">
                   Block {index + 1}
                 </span>{" "}
-                images will be submitted
-                separately as:
+                images will be submitted separately as:
               </p>
 
-              <p className="mt-1 font-mono text-[8px] leading-4 text-[#9AA29C]">
+              <p className="mt-1 font-mono text-[8px] leading-4 text-[#8C97B2]">
                 blocks[{index}][images][0],
                 blocks[{index}][images][1]...
               </p>
@@ -631,7 +704,9 @@ const ViewPageModal: React.FC<
     );
   }, [page]);
 
-  if (!open || !page) return null;
+  if (!open || !page) {
+    return null;
+  }
 
   const activePage =
     page.versions.find(
@@ -646,28 +721,26 @@ const ViewPageModal: React.FC<
       onClose={onClose}
       closeOnOverlayClick
     >
-      <div className="w-full max-w-[1000px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-[1000px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#60A5FA] via-[#1E3A8A] to-[#172554]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 px-5 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2F0] px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-sm font-bold text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-sm font-bold text-white">
               {initials(
                 page.title,
               )}
             </div>
 
             <div className="min-w-0">
-              <h2 className="truncate text-[20px] font-bold text-[#202721]">
+              <h2 className="truncate text-[20px] font-bold text-[#0F1B3D]">
                 {page.title}
               </h2>
 
-              <p className="mt-1 truncate text-xs text-[#9AA29C]">
+              <p className="mt-1 truncate text-xs text-[#8C97B2]">
                 /{page.slug} • Version{" "}
-                {
-                  activePage.version
-                }
+                {activePage.version}
               </p>
             </div>
           </div>
@@ -675,7 +748,7 @@ const ViewPageModal: React.FC<
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF]"
           >
             <FiX size={18} />
           </button>
@@ -684,13 +757,13 @@ const ViewPageModal: React.FC<
         <div className="max-h-[78vh] overflow-y-auto">
           <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr]">
             {/* VERSION SIDEBAR */}
-            <aside className="border-b border-[#163F20]/10 bg-[#FAFBFA] p-4 xl:border-b-0 xl:border-r">
+            <aside className="border-b border-[#D8E2F0] bg-[#FAFBFF] p-4 xl:border-b-0 xl:border-r">
               <div className="mb-3">
-                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                   Version History
                 </p>
 
-                <p className="mt-1 text-xs text-[#59645C]">
+                <p className="mt-1 text-xs text-[#4A5778]">
                   {
                     page.versions
                       .length
@@ -708,7 +781,10 @@ const ViewPageModal: React.FC<
               <div className="space-y-2">
                 {[...page.versions]
                   .sort(
-                    (a, b) =>
+                    (
+                      a,
+                      b,
+                    ) =>
                       versionNumber(
                         b.version,
                       ) -
@@ -737,12 +813,12 @@ const ViewPageModal: React.FC<
                           }
                           className={`w-full rounded-xl border p-3 text-left transition ${
                             selected
-                              ? "border-[#163F20]/30 bg-white shadow-sm"
-                              : "border-[#163F20]/10 bg-transparent hover:bg-white"
+                              ? "border-[#1E3A8A]/30 bg-white shadow-sm"
+                              : "border-[#D8E2F0] bg-transparent hover:bg-white"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-[#202721]">
+                            <span className="text-xs font-bold text-[#0F1B3D]">
                               v
                               {
                                 version.version
@@ -750,10 +826,11 @@ const ViewPageModal: React.FC<
                             </span>
                           </div>
 
-                          <p className="mt-2 flex items-center gap-1 text-[9px] text-[#9AA29C]">
+                          <p className="mt-2 flex items-center gap-1 text-[9px] text-[#8C97B2]">
                             <FiClock
                               size={10}
                             />
+
                             {formatDate(
                               version.created_at,
                             )}
@@ -769,11 +846,11 @@ const ViewPageModal: React.FC<
             <div className="p-5 sm:p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                     Page Content
                   </p>
 
-                  <p className="mt-1 text-xs text-[#59645C]">
+                  <p className="mt-1 text-xs text-[#4A5778]">
                     Updated{" "}
                     {formatDate(
                       activePage.updated_at,
@@ -781,7 +858,7 @@ const ViewPageModal: React.FC<
                   </p>
                 </div>
 
-                <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold text-[#163F20]">
+                <span className="rounded-lg bg-[#EAF1FF] px-3 py-2 text-[10px] font-bold text-[#1E3A8A]">
                   {
                     activePage
                       .blocks
@@ -800,13 +877,13 @@ const ViewPageModal: React.FC<
                 {activePage.blocks
                   .length ===
                 0 ? (
-                  <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-8 text-center">
+                  <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-8 text-center">
                     <FiFileText
                       size={28}
-                      className="mx-auto text-[#163F20]"
+                      className="mx-auto text-[#1E3A8A]"
                     />
 
-                    <p className="mt-3 text-sm font-bold text-[#202721]">
+                    <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
                       No content blocks
                     </p>
                   </div>
@@ -821,25 +898,24 @@ const ViewPageModal: React.FC<
                           block.id ??
                           index
                         }
-                        className="rounded-[18px] border border-[#163F20]/10 bg-[#FAFBFA] p-4 sm:p-5"
+                        className="rounded-[18px] border border-[#D8E2F0] bg-[#FAFBFF] p-4 sm:p-5"
                       >
                         <div className="mb-4">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                             Block{" "}
                             {index +
                               1}
                           </p>
                         </div>
 
-                        {/* HEADING */}
                         {block.heading && (
                           <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Heading
                             </p>
 
                             <div
-                              className="prose prose-sm max-w-none text-[#202721]"
+                              className="prose prose-sm max-w-none text-[#0F1B3D]"
                               dangerouslySetInnerHTML={{
                                 __html:
                                   block.heading,
@@ -848,16 +924,15 @@ const ViewPageModal: React.FC<
                           </div>
                         )}
 
-                        {/* SHORT DESCRIPTION */}
                         {block.short_description && (
                           <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Short
                               Description
                             </p>
 
                             <div
-                              className="prose prose-sm max-w-none text-[#3F4A41]"
+                              className="prose prose-sm max-w-none text-[#4A5778]"
                               dangerouslySetInnerHTML={{
                                 __html:
                                   block.short_description,
@@ -866,15 +941,14 @@ const ViewPageModal: React.FC<
                           </div>
                         )}
 
-                        {/* DESCRIPTION */}
                         {block.description && (
                           <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Description
                             </p>
 
                             <div
-                              className="sk-answer-preview prose prose-sm max-w-none text-[#3F4A41]"
+                              className="sk-answer-preview prose prose-sm max-w-none text-[#4A5778]"
                               dangerouslySetInnerHTML={{
                                 __html:
                                   block.description,
@@ -883,12 +957,11 @@ const ViewPageModal: React.FC<
                           </div>
                         )}
 
-                        {/* IMAGES */}
                         {block.images
                           .length >
                           0 && (
                           <div>
-                            <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                            <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Images
                             </p>
 
@@ -903,7 +976,7 @@ const ViewPageModal: React.FC<
                                       image.id ??
                                       imageIndex
                                     }
-                                    className="group relative aspect-video overflow-hidden rounded-xl border border-[#163F20]/10 bg-white"
+                                    className="group relative aspect-video overflow-hidden rounded-xl border border-[#D8E2F0] bg-white"
                                   >
                                     <img
                                       src={
@@ -939,11 +1012,11 @@ const ViewPageModal: React.FC<
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:px-6">
+        <div className="flex justify-end border-t border-[#D8E2F0] bg-[#FAFBFF] px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20]"
+            className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
           >
             Close
           </button>
@@ -962,6 +1035,7 @@ interface PageFormModalProps {
   loading: boolean;
   mode: "add" | "edit";
   page: ContentPage | null;
+  canUpdate: boolean;
   onClose: () => void;
   onSubmit: (
     payload: ContentPayload,
@@ -975,6 +1049,7 @@ const PageFormModal: React.FC<
   loading,
   mode,
   page,
+  canUpdate,
   onClose,
   onSubmit,
 }) => {
@@ -982,10 +1057,14 @@ const PageFormModal: React.FC<
     useState("");
 
   const [blocks, setBlocks] =
-    useState<FormBlock[]>([]);
+    useState<FormBlock[]>(
+      [],
+    );
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     if (page) {
       setTitle(
@@ -1000,7 +1079,8 @@ const PageFormModal: React.FC<
             block,
           ): FormBlock => ({
             heading:
-              block.heading || "",
+              block.heading ||
+              "",
 
             short_description:
               block.short_description ||
@@ -1012,7 +1092,8 @@ const PageFormModal: React.FC<
 
             existingImages:
               (
-                block.images || []
+                block.images ||
+                []
               ).map(
                 (
                   image,
@@ -1060,7 +1141,10 @@ const PageFormModal: React.FC<
         },
       ]);
     }
-  }, [open, page]);
+  }, [
+    open,
+    page,
+  ]);
 
   const updateBlock = (
     index: number,
@@ -1068,7 +1152,9 @@ const PageFormModal: React.FC<
     value: any,
   ) => {
     setBlocks(
-      (previous) =>
+      (
+        previous,
+      ) =>
         previous.map(
           (
             block,
@@ -1087,7 +1173,9 @@ const PageFormModal: React.FC<
 
   const addBlock = () => {
     setBlocks(
-      (previous) => [
+      (
+        previous,
+      ) => [
         ...previous,
         {
           heading: "",
@@ -1104,8 +1192,17 @@ const PageFormModal: React.FC<
   const removeBlock = (
     index: number,
   ) => {
+    if (!canUpdate) {
+      toast.error(
+        "You do not have permission to update content.",
+      );
+      return;
+    }
+
     setBlocks(
-      (previous) =>
+      (
+        previous,
+      ) =>
         previous.filter(
           (
             _,
@@ -1121,8 +1218,17 @@ const PageFormModal: React.FC<
     blockIndex: number,
     imageIndex: number,
   ) => {
+    if (!canUpdate) {
+      toast.error(
+        "You do not have permission to update content.",
+      );
+      return;
+    }
+
     setBlocks(
-      (previous) =>
+      (
+        previous,
+      ) =>
         previous.map(
           (
             block,
@@ -1157,6 +1263,13 @@ const PageFormModal: React.FC<
       blockIndex: number,
       imageIndex: number,
     ) => {
+      if (!canUpdate) {
+        toast.error(
+          "You do not have permission to update content.",
+        );
+        return;
+      }
+
       const block =
         blocks[blockIndex];
 
@@ -1174,7 +1287,9 @@ const PageFormModal: React.FC<
 
       if (!image.id) {
         setBlocks(
-          (previous) =>
+          (
+            previous,
+          ) =>
             previous.map(
               (
                 currentBlock,
@@ -1268,7 +1383,8 @@ const PageFormModal: React.FC<
 
         toast.error(
           error?.response
-            ?.data?.message ||
+            ?.data
+            ?.message ||
             "Unable to delete image.",
         );
       }
@@ -1278,6 +1394,13 @@ const PageFormModal: React.FC<
     event: React.FormEvent,
   ) => {
     event.preventDefault();
+
+    if (!canUpdate) {
+      toast.error(
+        "You do not have permission to update content.",
+      );
+      return;
+    }
 
     if (!title.trim()) {
       toast.error(
@@ -1293,43 +1416,49 @@ const PageFormModal: React.FC<
       return;
     }
 
-    const payload:
-      ContentPayload = {
-      title: title.trim(),
+    const payload: ContentPayload =
+      {
+        title:
+          title.trim(),
 
-      status:
-        mode === "edit" &&
-        page?.status
-          ? page.status
-          : "published",
+        status:
+          mode === "edit" &&
+          page?.status
+            ? page.status
+            : "published",
 
-      blocks: blocks.map(
-        (
-          block,
-        ) =>
-          ({
-            heading:
-              block.heading,
+        blocks:
+          blocks.map(
+            (
+              block,
+            ) =>
+              ({
+                heading:
+                  block.heading,
 
-            short_description:
-              block.short_description,
+                short_description:
+                  block.short_description,
 
-            description:
-              block.description,
+                description:
+                  block.description,
 
-            imageFiles:
-              block.imageFiles,
+                imageFiles:
+                  block.imageFiles,
 
-            existingImages:
-              block.existingImages,
-          }) as ContentBlockPayload,
-      ),
-    };
+                existingImages:
+                  block.existingImages,
+              }) as ContentBlockPayload,
+          ),
+      };
 
-    onSubmit(payload);
+    onSubmit(
+      payload,
+    );
   };
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <GlobalModal
@@ -1343,13 +1472,13 @@ const PageFormModal: React.FC<
         !loading
       }
     >
-      <div className="w-full max-w-[980px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-[980px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#60A5FA] via-[#1E3A8A] to-[#172554]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 bg-white px-5 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2F0] bg-white px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
               {mode ===
               "add" ? (
                 <FiPlus
@@ -1363,16 +1492,16 @@ const PageFormModal: React.FC<
             </div>
 
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
                 Content Management
               </p>
 
-              <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#202721]">
+              <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#0F1B3D]">
                 Page Editor
               </h2>
 
               {page && (
-                <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
+                <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
                   {
                     page.title
                   }{" "}
@@ -1389,7 +1518,7 @@ const PageFormModal: React.FC<
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-50"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -1401,69 +1530,65 @@ const PageFormModal: React.FC<
             handleSubmit
           }
         >
-          <div className="max-h-[75vh] overflow-y-auto bg-[#FAFBFA] p-5 sm:p-6">
+          <div className="max-h-[75vh] overflow-y-auto bg-[#FAFBFF] p-5 sm:p-6">
             {/* BASIC INFO */}
-            <div className="rounded-[18px] border border-[#163F20]/12 bg-[#FAFBFA] p-4 sm:p-5">
+            <div className="rounded-[18px] border border-[#D8E2F0] bg-[#FAFBFF] p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                   <FiFileText
                     size={16}
                   />
                 </div>
 
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                     Page Settings
                   </p>
 
-                  <p className="mt-0.5 text-sm font-bold text-[#202721]">
+                  <p className="mt-0.5 text-sm font-bold text-[#0F1B3D]">
                     Basic Information
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#59645C]">
-                    Page Title
-                  </label>
+              <div>
+                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+                  Page Title
+                </label>
 
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(
-                      event,
-                    ) =>
-                      setTitle(
-                        event.target
-                          .value,
-                      )
-                    }
-                    placeholder="Home"
-                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={title}
+                  disabled={!canUpdate}
+                  onChange={(
+                    event,
+                  ) =>
+                    setTitle(
+                      event
+                        .target
+                        .value,
+                    )
+                  }
+                  placeholder="Home"
+                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF] disabled:opacity-70"
+                />
               </div>
             </div>
 
             {/* CONTENT BLOCKS */}
             <div className="mt-5">
               <div className="mb-3">
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
-                    Page Builder
-                  </p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                  Page Builder
+                </p>
 
-                  <h3 className="mt-0.5 text-base font-bold text-[#202721]">
-                    Content Blocks
-                  </h3>
+                <h3 className="mt-0.5 text-base font-bold text-[#0F1B3D]">
+                  Content Blocks
+                </h3>
 
-                  <p className="mt-1 text-[10px] text-[#9AA29C]">
-                    Each block
-                    manages its own
-                    text and images.
-                  </p>
-                </div>
+                <p className="mt-1 text-[10px] text-[#8C97B2]">
+                  Each block manages its own text and images.
+                </p>
               </div>
 
               <div className="space-y-4">
@@ -1474,7 +1599,9 @@ const PageFormModal: React.FC<
                   ) => (
                     <BlockEditor
                       key={`block-${index}`}
-                      block={block}
+                      block={
+                        block
+                      }
                       index={
                         index
                       }
@@ -1494,60 +1621,69 @@ const PageFormModal: React.FC<
                         blocks.length >
                         1
                       }
+                      canUpdate={
+                        canUpdate
+                      }
                     />
                   ),
                 )}
               </div>
 
               {/* ADD BLOCK */}
-              <div className="mt-5 flex justify-end">
-                <button
-                  type="button"
-                  onClick={
-                    addBlock
-                  }
-                  className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#EAF3EA] px-4 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                >
-                  <FiPlus
-                    size={14}
-                  />
-                  Add Block
-                </button>
-              </div>
+              {canUpdate && (
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={
+                      addBlock
+                    }
+                    className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] px-4 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                  >
+                    <FiPlus
+                      size={14}
+                    />
+                    Add Block
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
           {/* FOOTER */}
-          <div className="flex flex-col-reverse gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#D8E2F0] bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50"
+              className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? (
-                <FiRefreshCw
-                  size={15}
-                  className="animate-spin"
-                />
-              ) : (
-                <FiSave
-                  size={15}
-                />
-              )}
+            {canUpdate && (
+              <button
+                type="submit"
+                disabled={
+                  loading
+                }
+                className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] via-[#1E3A8A] to-[#172554] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? (
+                  <FiRefreshCw
+                    size={15}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <FiSave
+                    size={15}
+                  />
+                )}
 
-              {loading
-                ? "Saving..."
-                : "Save Page"}
-            </button>
+                {loading
+                  ? "Saving..."
+                  : "Save Page"}
+              </button>
+            )}
           </div>
         </form>
       </div>
@@ -1588,8 +1724,8 @@ const DeletePageModal: React.FC<
         !loading
       }
     >
-      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] to-[#C23B32]" />
+      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#2563EB] to-[#C23B32]" />
 
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
@@ -1600,32 +1736,30 @@ const DeletePageModal: React.FC<
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#202721]">
+              <h2 className="text-lg font-bold text-[#0F1B3D]">
                 Delete Page
               </h2>
 
-              <p className="mt-1 text-sm leading-6 text-[#59645C]">
-                Are you sure you
-                want to delete this
-                page version?
+              <p className="mt-1 text-sm leading-6 text-[#4A5778]">
+                Are you sure you want to delete this page version?
               </p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-4">
+          <div className="mt-5 rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-bold text-[#163F20]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-bold text-[#1E3A8A]">
                 {initials(
                   page.title,
                 )}
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#202721]">
+                <p className="truncate text-sm font-bold text-[#0F1B3D]">
                   {page.title}
                 </p>
 
-                <p className="mt-1 truncate text-[10px] text-[#9AA29C]">
+                <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
                   /{page.slug} •
                   Version{" "}
                   {
@@ -1641,7 +1775,7 @@ const DeletePageModal: React.FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] transition hover:bg-[#F5F7F5] disabled:opacity-50"
+              className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1682,13 +1816,64 @@ const DeletePageModal: React.FC<
 
 const ContentsManagement: React.FC =
   () => {
-    const [pages, setPages] =
-      useState<
-        ContentPage[]
-      >([]);
+    // =================================================
+    // PERMISSIONS
+    // =================================================
 
-    const [loading, setLoading] =
-      useState(false);
+    const {
+      hasPermission,
+      isSuperAdmin,
+      loading:
+        permissionsLoading,
+    } = usePermissions();
+
+    const hasAnyPermission = (
+      permissionKeys: string[],
+    ) =>
+      permissionKeys.some(
+        (key) =>
+          hasPermission(key),
+      );
+
+    const canViewContents =
+      isSuperAdmin ||
+      hasAnyPermission(
+        VIEW_PERMISSION_KEYS,
+      );
+
+    const canCreateContents =
+      isSuperAdmin ||
+      hasAnyPermission(
+        CREATE_PERMISSION_KEYS,
+      );
+
+    const canUpdateContents =
+      isSuperAdmin ||
+      hasAnyPermission(
+        UPDATE_PERMISSION_KEYS,
+      );
+
+    const canDeleteContents =
+      isSuperAdmin ||
+      hasAnyPermission(
+        DELETE_PERMISSION_KEYS,
+      );
+
+    // =================================================
+    // STATE
+    // =================================================
+
+    const [
+      pages,
+      setPages,
+    ] = useState<
+      ContentPage[]
+    >([]);
+
+    const [
+      loading,
+      setLoading,
+    ] = useState(false);
 
     const [
       saveLoading,
@@ -1700,16 +1885,20 @@ const ContentsManagement: React.FC =
       setDeleteLoading,
     ] = useState(false);
 
-    const [search, setSearch] =
-      useState("");
+    const [
+      search,
+      setSearch,
+    ] = useState("");
 
     const [
       currentPage,
       setCurrentPage,
     ] = useState(1);
 
-    const [viewOpen, setViewOpen] =
-      useState(false);
+    const [
+      viewOpen,
+      setViewOpen,
+    ] = useState(false);
 
     const [
       addEditOpen,
@@ -1747,51 +1936,108 @@ const ContentsManagement: React.FC =
     const ITEMS_PER_PAGE = 10;
 
     // =================================================
+    // DUPLICATE API PROTECTION
+    // =================================================
+
+    const fetchInFlightRef =
+      useRef<Promise<void> | null>(
+        null,
+      );
+
+    const hasInitialFetchRef =
+      useRef(false);
+
+    // =================================================
     // FETCH
     // =================================================
 
     const fetchContents =
-      async () => {
+      async (
+        force = false,
+      ) => {
+        if (
+          fetchInFlightRef.current
+        ) {
+          return fetchInFlightRef.current;
+        }
+
+        if (
+          !force &&
+          hasInitialFetchRef.current
+        ) {
+          return;
+        }
+
+        const requestPromise =
+          (async () => {
+            try {
+              setLoading(true);
+
+              const response =
+                await contentsApi.getAll();
+
+              if (
+                response.data
+                  .success
+              ) {
+                setPages(
+                  response.data
+                    .data || [],
+                );
+
+                hasInitialFetchRef.current =
+                  true;
+              } else {
+                toast.error(
+                  response.data
+                    .message ||
+                    "Unable to fetch pages.",
+                );
+              }
+            } catch (error: any) {
+              console.error(
+                "Fetch contents error:",
+                error,
+              );
+
+              toast.error(
+                error?.response
+                  ?.data
+                  ?.message ||
+                  "Unable to fetch pages.",
+              );
+            } finally {
+              setLoading(false);
+            }
+          })();
+
+        fetchInFlightRef.current =
+          requestPromise;
+
         try {
-          setLoading(true);
-
-          const response =
-            await contentsApi.getAll();
-
-          if (
-            response.data
-              .success
-          ) {
-            setPages(
-              response.data
-                .data || [],
-            );
-          } else {
-            toast.error(
-              response.data
-                .message ||
-                "Unable to fetch pages.",
-            );
-          }
-        } catch (error: any) {
-          console.error(
-            "Fetch contents error:",
-            error,
-          );
-
-          toast.error(
-            error?.response
-              ?.data?.message ||
-              "Unable to fetch pages.",
-          );
+          await requestPromise;
         } finally {
-          setLoading(false);
+          fetchInFlightRef.current =
+            null;
         }
       };
 
+    // =================================================
+    // INITIAL FETCH
+    // =================================================
+
     useEffect(() => {
-      fetchContents();
-    }, []);
+      if (
+        !permissionsLoading &&
+        canViewContents &&
+        !hasInitialFetchRef.current
+      ) {
+        fetchContents();
+      }
+    }, [
+      permissionsLoading,
+      canViewContents,
+    ]);
 
     // =================================================
     // GROUP PAGES
@@ -1821,7 +2067,8 @@ const ContentsManagement: React.FC =
               map.set(
                 key,
                 {
-                  slug: page.slug,
+                  slug:
+                    page.slug,
                   title:
                     page.title,
                   latest: page,
@@ -1895,9 +2142,10 @@ const ContentsManagement: React.FC =
 
     const filteredGroups =
       useMemo(() => {
-        const query = search
-          .trim()
-          .toLowerCase();
+        const query =
+          search
+            .trim()
+            .toLowerCase();
 
         return groupedPages.filter(
           (group) => {
@@ -1990,7 +2238,11 @@ const ContentsManagement: React.FC =
           currentPage <= 3
         ) {
           return [
-            1, 2, 3, 4, 5,
+            1,
+            2,
+            3,
+            4,
+            5,
           ];
         }
 
@@ -2026,6 +2278,13 @@ const ContentsManagement: React.FC =
     const handleView = (
       group: PageGroup,
     ) => {
+      if (!canViewContents) {
+        toast.error(
+          "You do not have permission to view content pages.",
+        );
+        return;
+      }
+
       setSelectedGroup(
         group,
       );
@@ -2034,19 +2293,43 @@ const ContentsManagement: React.FC =
     };
 
     // =================================================
-    // ADD / EDIT
+    // ADD
     // =================================================
 
     const openAdd = () => {
-      setSelectedPage(null);
+      if (!canCreateContents) {
+        toast.error(
+          "You do not have permission to create content pages.",
+        );
+        return;
+      }
+
+      setSelectedPage(
+        null,
+      );
+
       setModalMode("add");
       setAddEditOpen(true);
     };
 
+    // =================================================
+    // EDIT
+    // =================================================
+
     const openEdit = (
       page: ContentPage,
     ) => {
-      setSelectedPage(page);
+      if (!canUpdateContents) {
+        toast.error(
+          "You do not have permission to update content pages.",
+        );
+        return;
+      }
+
+      setSelectedPage(
+        page,
+      );
+
       setModalMode("edit");
       setAddEditOpen(true);
     };
@@ -2059,6 +2342,30 @@ const ContentsManagement: React.FC =
       async (
         payload: ContentPayload,
       ) => {
+        const allowed =
+          modalMode ===
+          "add"
+            ? canCreateContents
+            : canUpdateContents;
+
+        if (!allowed) {
+          toast.error(
+            `You do not have permission to ${
+              modalMode ===
+              "add"
+                ? "create"
+                : "update"
+            } content pages.`,
+          );
+          return;
+        }
+
+        if (
+          saveLoading
+        ) {
+          return;
+        }
+
         try {
           setSaveLoading(
             true,
@@ -2093,7 +2400,9 @@ const ContentsManagement: React.FC =
                 null,
               );
 
-              await fetchContents();
+              await fetchContents(
+                true,
+              );
             } else {
               toast.error(
                 response.data
@@ -2121,7 +2430,13 @@ const ContentsManagement: React.FC =
                 false,
               );
 
-              await fetchContents();
+              setSelectedPage(
+                null,
+              );
+
+              await fetchContents(
+                true,
+              );
             } else {
               toast.error(
                 response.data
@@ -2138,7 +2453,8 @@ const ContentsManagement: React.FC =
 
           toast.error(
             error?.response
-              ?.data?.message ||
+              ?.data
+              ?.message ||
               "Unable to save page.",
           );
         } finally {
@@ -2155,17 +2471,37 @@ const ContentsManagement: React.FC =
     const openDelete = (
       page: ContentPage,
     ) => {
+      if (!canDeleteContents) {
+        toast.error(
+          "You do not have permission to delete content pages.",
+        );
+        return;
+      }
+
       setSelectedPage(
         page,
       );
 
-      setDeleteOpen(true);
+      setDeleteOpen(
+        true,
+      );
     };
 
     const handleDelete =
       async () => {
-        if (!selectedPage)
+        if (!canDeleteContents) {
+          toast.error(
+            "You do not have permission to delete content pages.",
+          );
           return;
+        }
+
+        if (
+          deleteLoading ||
+          !selectedPage
+        ) {
+          return;
+        }
 
         try {
           setDeleteLoading(
@@ -2195,7 +2531,9 @@ const ContentsManagement: React.FC =
               null,
             );
 
-            await fetchContents();
+            await fetchContents(
+              true,
+            );
           } else {
             toast.error(
               response.data
@@ -2211,7 +2549,8 @@ const ContentsManagement: React.FC =
 
           toast.error(
             error?.response
-              ?.data?.message ||
+              ?.data
+              ?.message ||
               "Unable to delete page.",
           );
         } finally {
@@ -2222,7 +2561,69 @@ const ContentsManagement: React.FC =
       };
 
     // =================================================
-    // LOADING
+    // PERMISSION LOADING
+    // =================================================
+
+    if (
+      permissionsLoading
+    ) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
+          <div className="text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+              <FiRefreshCw
+                size={27}
+                className="animate-spin"
+              />
+            </div>
+
+            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+              Checking permissions...
+            </p>
+
+            <p className="mt-1 text-xs text-[#8C97B2]">
+              Please wait while we verify your access.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // =================================================
+    // ACCESS DENIED
+    // =================================================
+
+    if (!canViewContents) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
+          <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+              <FiAlertCircle
+                size={30}
+              />
+            </div>
+
+            <h2 className="mt-5 text-xl font-bold text-[#0F1B3D]">
+              Access Denied
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-[#4A5778]">
+              You do not have permission to view Content Pages.
+            </p>
+
+            <p className="mt-3 text-xs text-[#8C97B2]">
+              Required permission:
+              <span className="ml-1 font-bold text-[#1E3A8A]">
+                content.view
+              </span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // =================================================
+    // DATA LOADING
     // =================================================
 
     if (
@@ -2230,20 +2631,18 @@ const ContentsManagement: React.FC =
       pages.length === 0
     ) {
       return (
-        <div className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6">
-          <div className="flex min-h-[450px] items-center justify-center">
-            <div className="flex flex-col items-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#163F20] shadow-sm">
-                <FiRefreshCw
-                  size={23}
-                  className="animate-spin"
-                />
-              </div>
-
-              <p className="mt-4 text-sm font-bold text-[#202721]">
-                Loading pages...
-              </p>
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+          <div className="flex flex-col items-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
+              <FiRefreshCw
+                size={23}
+                className="animate-spin"
+              />
             </div>
+
+            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+              Loading pages...
+            </p>
           </div>
         </div>
       );
@@ -2256,25 +2655,26 @@ const ContentsManagement: React.FC =
     return (
       <>
         {/* =================================================
-            SK EDITOR STYLES
+            QUILL STYLES
         ================================================= */}
 
         <style>{`
           .sk-editor-wrapper .ql-toolbar.ql-snow {
-            border: 1px solid #D8E2D8;
+            border: 1px solid #D8E2F0;
             border-bottom: none;
             border-top-left-radius: 12px;
             border-top-right-radius: 12px;
-            background: #F5F7F5;
+            background: #F5F8FF;
             padding: 8px 10px;
+            font-family: Poppins, sans-serif;
           }
 
           .sk-editor-wrapper .ql-container.ql-snow {
-            border: 1px solid #D8E2D8;
+            border: 1px solid #D8E2F0;
             border-bottom-left-radius: 12px;
             border-bottom-right-radius: 12px;
             background: #FFFFFF;
-            font-family: inherit;
+            font-family: Poppins, sans-serif;
             font-size: 14px;
           }
 
@@ -2283,55 +2683,58 @@ const ContentsManagement: React.FC =
             max-height: 360px;
             overflow-y: auto;
             line-height: 1.6;
-            color: #202721;
+            color: #0F1B3D;
+            font-family: Poppins, sans-serif;
           }
 
           .sk-editor-wrapper .ql-editor.ql-blank::before {
-            color: #9AA29C;
+            color: #8C97B2;
             font-style: normal;
             font-size: 13px;
+            font-family: Poppins, sans-serif;
           }
 
           .sk-editor-wrapper .ql-snow .ql-stroke {
-            stroke: #163F20;
+            stroke: #1E3A8A;
           }
 
           .sk-editor-wrapper .ql-snow .ql-fill {
-            fill: #163F20;
+            fill: #1E3A8A;
           }
 
           .sk-editor-wrapper .ql-snow .ql-picker {
-            color: #163F20;
+            color: #1E3A8A;
           }
 
           .sk-editor-wrapper .ql-snow .ql-picker-options {
             background: #FFFFFF;
-            border: 1px solid #D8E2D8;
+            border: 1px solid #D8E2F0;
             border-radius: 8px;
-            box-shadow: 0 8px 20px rgba(22, 63, 32, 0.12);
+            box-shadow: 0 8px 20px rgba(30,58,138,0.12);
           }
 
           .sk-editor-wrapper .ql-snow.ql-toolbar button:hover,
           .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active {
-            background: #EAF3EA;
+            background: #EAF1FF;
             border-radius: 6px;
           }
 
           .sk-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
           .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke {
-            stroke: #163F20;
+            stroke: #1E3A8A;
           }
 
           .sk-editor-wrapper .ql-snow .ql-tooltip {
             border-radius: 8px;
-            border: 1px solid #D8E2D8;
-            box-shadow: 0 8px 20px rgba(22, 63, 32, 0.12);
+            border: 1px solid #D8E2F0;
+            box-shadow: 0 8px 20px rgba(30,58,138,0.12);
+            font-family: Poppins, sans-serif;
           }
 
           .sk-editor-wrapper .ql-editor h1,
           .sk-editor-wrapper .ql-editor h2,
           .sk-editor-wrapper .ql-editor h3 {
-            color: #202721;
+            color: #0F1B3D;
           }
 
           .sk-editor-wrapper .ql-editor ul,
@@ -2340,14 +2743,18 @@ const ContentsManagement: React.FC =
           }
 
           .sk-editor-wrapper .ql-editor blockquote {
-            border-left: 3px solid #4C8A57;
+            border-left: 3px solid #2563EB;
             padding-left: 12px;
-            color: #59645C;
+            color: #4A5778;
           }
 
           .sk-editor-wrapper .ql-editor a {
-            color: #4C8A57;
+            color: #2563EB;
             text-decoration: underline;
+          }
+
+          .sk-answer-preview {
+            font-family: Poppins, sans-serif;
           }
 
           .sk-answer-preview ul,
@@ -2369,20 +2776,20 @@ const ContentsManagement: React.FC =
           }
 
           .sk-answer-preview a {
-            color: #4C8A57;
+            color: #2563EB;
             text-decoration: underline;
           }
 
           .sk-answer-preview blockquote {
-            border-left: 3px solid #4C8A57;
+            border-left: 3px solid #2563EB;
             margin: 10px 0;
             padding-left: 12px;
-            color: #59645C;
+            color: #4A5778;
           }
 
           .sk-answer-preview pre,
           .sk-answer-preview code {
-            background: #F5F7F5;
+            background: #F5F8FF;
             border-radius: 6px;
             padding: 2px 6px;
             font-size: 12px;
@@ -2391,7 +2798,7 @@ const ContentsManagement: React.FC =
           .sk-answer-preview h1,
           .sk-answer-preview h2,
           .sk-answer-preview h3 {
-            color: #202721;
+            color: #0F1B3D;
             font-weight: 700;
             margin: 10px 0 5px;
           }
@@ -2407,7 +2814,7 @@ const ContentsManagement: React.FC =
           }
           initial="hidden"
           animate="visible"
-          className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+          className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
         >
           {/* HEADER */}
           <motion.div
@@ -2418,34 +2825,35 @@ const ContentsManagement: React.FC =
           >
             <div>
               <div className="mb-1.5 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#1E3A8A]">
                   Website Content
                 </span>
               </div>
 
-              <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[32px]">
+              <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
                 Pages
               </h1>
 
-              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
-                Manage website pages,
-                content blocks,
-                images and
-                published versions
-                from one place.
+              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
+                Manage website pages, content blocks, images and published
+                versions from one place.
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={
-                  fetchContents
+                onClick={() =>
+                  fetchContents(
+                    true,
+                  )
                 }
-                disabled={loading}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 text-xs font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={
+                  loading
+                }
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D8E2F0] bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FiRefreshCw
                   size={15}
@@ -2459,45 +2867,52 @@ const ContentsManagement: React.FC =
                 Refresh
               </button>
 
-              <button
-                type="button"
-                onClick={openAdd}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-              >
-                <FiPlus
-                  size={15}
-                />
-                Add Page
-              </button>
+              {canCreateContents && (
+                <button
+                  type="button"
+                  onClick={
+                    openAdd
+                  }
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+                >
+                  <FiPlus
+                    size={15}
+                  />
+                  Add Page
+                </button>
+              )}
             </div>
           </motion.div>
 
-          {/* MAIN TABLE CARD */}
+          {/* MAIN CARD */}
           <motion.div
             variants={
               itemVariants
             }
-            className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+            className="relative overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
           >
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#60A5FA] via-[#1E3A8A] to-[#172554]" />
 
             {/* TOOLBAR */}
-            <div className="border-b border-[#163F20]/10 p-4 sm:p-5">
+            <div className="border-b border-[#D8E2F0] p-4 sm:p-5">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="relative w-full lg:max-w-[440px]">
                   <FiSearch
                     size={17}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                   />
 
                   <input
                     type="text"
-                    value={search}
+                    value={
+                      search
+                    }
                     onChange={(
                       event,
                     ) => {
                       setSearch(
-                        event.target
+                        event
+                          .target
                           .value,
                       );
 
@@ -2506,7 +2921,7 @@ const ContentsManagement: React.FC =
                       );
                     }}
                     placeholder="Search title, slug or version..."
-                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                    className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                   />
                 </div>
               </div>
@@ -2516,28 +2931,28 @@ const ContentsManagement: React.FC =
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[950px] border-collapse">
                 <thead>
-                  <tr className="bg-[#163F20]">
-                    <th className="w-[75px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <tr className="bg-[#172554]">
+                    <th className="w-[75px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       S.No.
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       Page
                     </th>
 
-                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       Slug
                     </th>
 
-                    <th className="w-[140px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    <th className="w-[140px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       Latest Version
                     </th>
 
-                    <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       Versions
                     </th>
 
-                    <th className="w-[150px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                    <th className="w-[150px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                       Actions
                     </th>
                   </tr>
@@ -2554,7 +2969,7 @@ const ContentsManagement: React.FC =
                         className="px-5 py-16 text-center"
                       >
                         <div className="flex flex-col items-center">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                             <FiFileText
                               size={
                                 24
@@ -2562,15 +2977,12 @@ const ContentsManagement: React.FC =
                             />
                           </div>
 
-                          <p className="mt-4 text-sm font-bold text-[#202721]">
+                          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
                             No pages found
                           </p>
 
-                          <p className="mt-1 text-xs text-[#9AA29C]">
-                            Try another
-                            search or
-                            create a new
-                            page.
+                          <p className="mt-1 text-xs text-[#8C97B2]">
+                            Try another search or create a new page.
                           </p>
                         </div>
                       </td>
@@ -2602,10 +3014,10 @@ const ContentsManagement: React.FC =
                                 index *
                                 0.03,
                             }}
-                            className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                            className="border-b border-[#D8E2F0] bg-white transition hover:bg-[#F9FBFF]"
                           >
                             <td className="px-5 py-4">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
                                 {startIndex +
                                   index +
                                   1}
@@ -2614,25 +3026,26 @@ const ContentsManagement: React.FC =
 
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-[11px] font-bold text-white shadow-sm">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-[11px] font-bold text-white shadow-sm">
                                   {initials(
                                     page.title,
                                   )}
                                 </div>
 
                                 <div className="min-w-0">
-                                  <p className="max-w-[240px] truncate text-sm font-bold text-[#202721]">
+                                  <p className="max-w-[240px] truncate text-sm font-bold text-[#0F1B3D]">
                                     {
                                       page.title
                                     }
                                   </p>
 
-                                  <p className="mt-1 flex items-center gap-1 text-[10px] text-[#9AA29C]">
+                                  <p className="mt-1 flex items-center gap-1 text-[10px] text-[#8C97B2]">
                                     <FiClock
                                       size={
                                         10
                                       }
                                     />
+
                                     Updated{" "}
                                     {formatDate(
                                       page.updated_at,
@@ -2643,7 +3056,7 @@ const ContentsManagement: React.FC =
                             </td>
 
                             <td className="px-5 py-4">
-                              <span className="rounded-lg bg-[#F5F7F5] px-3 py-2 font-mono text-[10px] font-semibold text-[#59645C]">
+                              <span className="rounded-lg bg-[#F5F8FF] px-3 py-2 font-mono text-[10px] font-semibold text-[#4A5778]">
                                 /
                                 {
                                   page.slug
@@ -2652,7 +3065,7 @@ const ContentsManagement: React.FC =
                             </td>
 
                             <td className="px-5 py-4 text-center">
-                              <span className="inline-flex items-center rounded-lg border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1.5 text-[10px] font-bold text-[#163F20]">
+                              <span className="inline-flex items-center rounded-lg border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1.5 text-[10px] font-bold text-[#1E3A8A]">
                                 v
                                 {
                                   page.version
@@ -2661,12 +3074,13 @@ const ContentsManagement: React.FC =
                             </td>
 
                             <td className="px-5 py-4 text-center">
-                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F7F5] px-3 py-1.5 text-[10px] font-bold text-[#59645C]">
+                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F8FF] px-3 py-1.5 text-[10px] font-bold text-[#4A5778]">
                                 <FiList
                                   size={
                                     12
                                   }
                                 />
+
                                 {
                                   group
                                     .versions
@@ -2677,56 +3091,65 @@ const ContentsManagement: React.FC =
 
                             <td className="px-5 py-4">
                               <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  title="View page"
-                                  onClick={() =>
-                                    handleView(
-                                      group,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                                >
-                                  <FiEye
-                                    size={
-                                      15
+                                {/* VIEW */}
+                                {canViewContents && (
+                                  <button
+                                    type="button"
+                                    title="View page"
+                                    onClick={() =>
+                                      handleView(
+                                        group,
+                                      )
                                     }
-                                  />
-                                </button>
+                                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                                  >
+                                    <FiEye
+                                      size={
+                                        15
+                                      }
+                                    />
+                                  </button>
+                                )}
 
-                                <button
-                                  type="button"
-                                  title="Edit page"
-                                  onClick={() =>
-                                    openEdit(
-                                      page,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                                >
-                                  <FiEdit2
-                                    size={
-                                      15
+                                {/* EDIT */}
+                                {canUpdateContents && (
+                                  <button
+                                    type="button"
+                                    title="Edit page"
+                                    onClick={() =>
+                                      openEdit(
+                                        page,
+                                      )
                                     }
-                                  />
-                                </button>
+                                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                                  >
+                                    <FiEdit2
+                                      size={
+                                        15
+                                      }
+                                    />
+                                  </button>
+                                )}
 
-                                <button
-                                  type="button"
-                                  title="Delete latest version"
-                                  onClick={() =>
-                                    openDelete(
-                                      page,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiTrash2
-                                    size={
-                                      15
+                                {/* DELETE */}
+                                {canDeleteContents && (
+                                  <button
+                                    type="button"
+                                    title="Delete latest version"
+                                    onClick={() =>
+                                      openDelete(
+                                        page,
+                                      )
                                     }
-                                  />
-                                </button>
+                                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                                  >
+                                    <FiTrash2
+                                      size={
+                                        15
+                                      }
+                                    />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </motion.tr>
@@ -2758,41 +3181,39 @@ const ContentsManagement: React.FC =
                         variants={
                           itemVariants
                         }
-                        className="border-b border-[#163F20]/10 p-4"
+                        className="border-b border-[#D8E2F0] bg-white p-4"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-[11px] font-bold text-white">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-[11px] font-bold text-white">
                             {initials(
                               page.title,
                             )}
                           </div>
 
                           <div className="min-w-0 flex-1">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#202721]">
-                                {
-                                  page.title
-                                }
-                              </p>
+                            <p className="truncate text-sm font-bold text-[#0F1B3D]">
+                              {
+                                page.title
+                              }
+                            </p>
 
-                              <p className="mt-1 truncate font-mono text-[10px] text-[#9AA29C]">
-                                /
-                                {
-                                  page.slug
-                                }
-                              </p>
-                            </div>
+                            <p className="mt-1 truncate font-mono text-[10px] text-[#8C97B2]">
+                              /
+                              {
+                                page.slug
+                              }
+                            </p>
                           </div>
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3">
-                          <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Latest
                               Version
                             </p>
 
-                            <p className="mt-1 text-sm font-bold text-[#163F20]">
+                            <p className="mt-1 text-sm font-bold text-[#1E3A8A]">
                               v
                               {
                                 page.version
@@ -2800,12 +3221,12 @@ const ContentsManagement: React.FC =
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3">
-                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                          <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                               Versions
                             </p>
 
-                            <p className="mt-1 text-sm font-bold text-[#202721]">
+                            <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
                               {
                                 group
                                   .versions
@@ -2816,14 +3237,14 @@ const ContentsManagement: React.FC =
                         </div>
 
                         <div className="mt-3 flex items-center justify-between">
-                          <p className="text-[10px] text-[#9AA29C]">
+                          <p className="text-[10px] text-[#8C97B2]">
                             Updated{" "}
                             {formatDate(
                               page.updated_at,
                             )}
                           </p>
 
-                          <span className="text-[9px] font-bold text-[#9AA29C]">
+                          <span className="text-[9px] font-bold text-[#8C97B2]">
                             #
                             {startIndex +
                               index +
@@ -2832,64 +3253,70 @@ const ContentsManagement: React.FC =
                         </div>
 
                         <div className="mt-3 flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleView(
-                                group,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20]"
-                            title="View"
-                          >
-                            <FiEye
-                              size={
-                                14
+                          {canViewContents && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleView(
+                                  group,
+                                )
                               }
-                            />
-                          </button>
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#1E3A8A]"
+                              title="View"
+                            >
+                              <FiEye
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEdit(
-                                page,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-white text-[#163F20]"
-                            title="Edit"
-                          >
-                            <FiEdit2
-                              size={
-                                14
+                          {canUpdateContents && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEdit(
+                                  page,
+                                )
                               }
-                            />
-                          </button>
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-white text-[#1E3A8A]"
+                              title="Edit"
+                            >
+                              <FiEdit2
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openDelete(
-                                page,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
-                            title="Delete"
-                          >
-                            <FiTrash2
-                              size={
-                                14
+                          {canDeleteContents && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDelete(
+                                  page,
+                                )
                               }
-                            />
-                          </button>
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                              title="Delete"
+                            >
+                              <FiTrash2
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
                         </div>
                       </motion.div>
                     );
                   },
                 )
               ) : (
-                <div className="flex flex-col items-center px-5 py-16 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex flex-col items-center bg-white px-5 py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiFileText
                       size={
                         24
@@ -2897,13 +3324,12 @@ const ContentsManagement: React.FC =
                     />
                   </div>
 
-                  <p className="mt-4 text-sm font-bold text-[#202721]">
+                  <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
                     No pages found
                   </p>
 
-                  <p className="mt-1 text-xs text-[#9AA29C]">
-                    Try another
-                    search.
+                  <p className="mt-1 text-xs text-[#8C97B2]">
+                    Try another search.
                   </p>
                 </div>
               )}
@@ -2912,23 +3338,23 @@ const ContentsManagement: React.FC =
             {/* PAGINATION */}
             {filteredGroups.length >
               0 && (
-              <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#D8E2F0] bg-[#FAFBFF] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <p className="text-xs text-[#89918B]">
+                  <p className="text-xs text-[#7E89A4]">
                     Showing{" "}
-                    <span className="font-bold text-[#3F4A41]">
+                    <span className="font-bold text-[#0F1B3D]">
                       {
                         startEntry
                       }
                     </span>{" "}
                     to{" "}
-                    <span className="font-bold text-[#3F4A41]">
+                    <span className="font-bold text-[#0F1B3D]">
                       {
                         endEntry
                       }
                     </span>{" "}
                     of{" "}
-                    <span className="font-bold text-[#3F4A41]">
+                    <span className="font-bold text-[#0F1B3D]">
                       {
                         filteredGroups.length
                       }
@@ -2944,15 +3370,14 @@ const ContentsManagement: React.FC =
                           (
                             page,
                           ) =>
-                            page -
-                            1,
+                            page - 1,
                         )
                       }
                       disabled={
                         currentPage ===
                         1
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronLeft
                         size={
@@ -2978,8 +3403,8 @@ const ContentsManagement: React.FC =
                           className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
                             currentPage ===
                             page
-                              ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                              : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                              ? "bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                              : "text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
                           }`}
                         >
                           {
@@ -2996,15 +3421,14 @@ const ContentsManagement: React.FC =
                           (
                             page,
                           ) =>
-                            page +
-                            1,
+                            page + 1,
                         )
                       }
                       disabled={
                         currentPage ===
                         totalPages
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronRight
                         size={
@@ -3021,10 +3445,14 @@ const ContentsManagement: React.FC =
           <div className="h-5" />
         </motion.div>
 
-        {/* MODALS */}
+        {/* =================================================
+            VIEW MODAL
+        ================================================= */}
 
         <ViewPageModal
-          open={viewOpen}
+          open={
+            viewOpen
+          }
           page={
             selectedGroup
           }
@@ -3039,6 +3467,10 @@ const ContentsManagement: React.FC =
           }}
         />
 
+        {/* =================================================
+            ADD / EDIT MODAL
+        ================================================= */}
+
         <PageFormModal
           open={
             addEditOpen
@@ -3051,6 +3483,12 @@ const ContentsManagement: React.FC =
           }
           page={
             selectedPage
+          }
+          canUpdate={
+            modalMode ===
+            "add"
+              ? canCreateContents
+              : canUpdateContents
           }
           onClose={() => {
             if (
@@ -3069,6 +3507,10 @@ const ContentsManagement: React.FC =
             handleSave
           }
         />
+
+        {/* =================================================
+            DELETE MODAL
+        ================================================= */}
 
         <DeletePageModal
           open={
@@ -3102,4 +3544,3 @@ const ContentsManagement: React.FC =
   };
 
 export default ContentsManagement;
-

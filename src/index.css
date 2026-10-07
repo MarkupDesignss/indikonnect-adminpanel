@@ -1,17 +1,17 @@
 @import "tailwindcss" source(none);
 @config "../tailwind.config.js";
 @source "./**/*.{js,jsx,ts,tsx}";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
 
+/* =====================================================
+   POPPINS FONT — GLOBAL
+   ===================================================== */
 
-/* Apply fonts globally */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Apply Poppins globally */
 * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* Serif font for headings and brand */
-.font-serif {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
 }
 
 #root {
@@ -22,15 +22,24 @@ body {
   margin: 0;
   background: inherit;
   color: inherit;
-  /* background: theme(colors.surface-subtle);
-  color: theme(colors.on-surface); */
-  font-family: Outfit, system-ui, sans-serif;
+  font-family: 'Poppins', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button,
 a,
 select {
   cursor: pointer;
+  font-family: inherit;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
 }
 
 a {
@@ -38,14 +47,18 @@ a {
   text-decoration: none;
 }
 
+/* =====================================================
+   MATERIAL SYMBOLS
+   ===================================================== */
+
 .material-symbols-outlined {
   display: inline-block;
   direction: ltr;
-  font-family: 'Material Symbols Outlined';
+  font-family: 'Material Symbols Outlined' !important;
   font-feature-settings: 'liga';
   font-size: 22px;
   font-style: normal;
-  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   font-weight: normal;
   letter-spacing: 0;
   line-height: 1;
@@ -55,6 +68,10 @@ a {
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
 
 @keyframes fade-in {
   from {
@@ -71,7 +88,10 @@ a {
   animation: fade-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Enhanced scrollbar */
+/* =====================================================
+   SCROLLBAR
+   ===================================================== */
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -89,7 +109,6 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
 }
-
 
 /* =====================================================
    DISPATCH STATUS CARD — GLITTER / RIPPLE ANIMATIONS
@@ -138,9 +157,4 @@ a {
 
 .dispatch-glow {
   animation: dispatch-glow 3s ease-in-out infinite;
-}
-
-/* Material Icons refinement */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }

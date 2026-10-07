@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { FiPlus, FiSearch, FiRefreshCw } from "react-icons/fi";
+import { FiPlus, FiSearch, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
 
 import { motion } from "framer-motion";
 
@@ -18,6 +18,9 @@ import {
   Category,
 } from "../../../api/endpoints/category";
 
+
+import { usePermissions } from "../../permissions/usePermissions";
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -29,20 +32,6 @@ interface CategoryPayload {
   image?: File | string | null;
   parentCategory?: string | number | null;
 }
-
-// =====================================================
-// THEME
-// =====================================================
-
-const GREEN = "#163F20";
-const DARK_GREEN = "#0F3219";
-const LIGHT_GREEN = "#EAF3EA";
-const PAGE_BG = "#F5F7F5";
-const CARD_BG = "#FFFFFF";
-const TEXT_PRIMARY = "#202721";
-const TEXT_SECONDARY = "#59645C";
-const MUTED = "#9AA29C";
-const BORDER = "#D8E2D8";
 
 // =====================================================
 // ANIMATION
@@ -70,6 +59,46 @@ const itemVariants = {
 // =====================================================
 
 const Addcategories: React.FC = () => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewCategories = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("category") ||
+      hasPermission("category.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.update") ||
+      hasPermission("category.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
   // ===================================================
   // CATEGORIES
   // ===================================================
@@ -132,8 +161,10 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    if (canViewCategories) {
+      fetchCategories();
+    }
+  }, [canViewCategories]);
 
   // ===================================================
   // STATUS COUNTS
@@ -372,12 +403,34 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewCategories) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================
   // RENDER
   // ===================================================
 
   return (
     <motion.div
-      className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+      className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -392,17 +445,19 @@ const Addcategories: React.FC = () => {
       >
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
               Catalog Management
             </span>
           </div>
 
-          <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[32px]">
+          <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
             Categories
           </h1>
 
-          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
+          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
             Manage your product categories, hierarchy, and classification from
             one place.
           </p>
@@ -411,20 +466,20 @@ const Addcategories: React.FC = () => {
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
               Total Categories
             </div>
-            <div className="mt-0.5 text-lg font-bold text-[#202721]">
+            <div className="mt-0.5 text-lg font-bold text-[#0F1B3D]">
               {categories.length}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4C8A57]">
+          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">
               Active
             </div>
-            <div className="mt-0.5 text-lg font-bold text-[#163F20]">
+            <div className="mt-0.5 text-lg font-bold text-[#1E3A8A]">
               {activeCount}
             </div>
           </div>
@@ -446,13 +501,13 @@ const Addcategories: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
+        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
-        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#163F20]/10" />
-        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#163F20]/10" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
+        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
+        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* SEARCH */}
@@ -460,7 +515,7 @@ const Addcategories: React.FC = () => {
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
               size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
             />
 
             <input
@@ -468,7 +523,7 @@ const Addcategories: React.FC = () => {
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search categories..."
-              className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition-all placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
             />
           </div>
 
@@ -481,25 +536,28 @@ const Addcategories: React.FC = () => {
               disabled={loading}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] px-4 text-xs font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Refresh
             </motion.button>
 
-            <motion.button
-              type="button"
-              onClick={() => setAddModalOpen(true)}
-              whileHover={{
-                y: -2,
-                boxShadow: "0 10px 22px rgba(22,63,32,0.18)",
-              }}
-              whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition"
-            >
-              <FiPlus size={15} />
-              <span>Add Category</span>
-            </motion.button>
+            {/* ✅ ADD CATEGORY — permission based */}
+            {canCreateCategory && (
+              <motion.button
+                type="button"
+                onClick={() => setAddModalOpen(true)}
+                whileHover={{
+                  y: -2,
+                  boxShadow: "0 10px 22px rgba(30,58,138,0.18)",
+                }}
+                whileTap={{ scale: 0.97 }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition"
+              >
+                <FiPlus size={15} />
+                <span>Add Category</span>
+              </motion.button>
+            )}
           </div>
         </div>
       </motion.div>
@@ -510,9 +568,9 @@ const Addcategories: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+        className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
         <div className="pt-[3px]">
           <CategoryTable
@@ -528,6 +586,9 @@ const Addcategories: React.FC = () => {
             onDelete={handleDelete}
             onStatusToggle={handleStatusToggle}
             statusLoadingId={statusLoadingId}
+            canEdit={canUpdateCategory}
+            canDelete={canDeleteCategory}
+            canToggleStatus={canUpdateCategory}
           />
         </div>
       </motion.div>
@@ -536,76 +597,82 @@ const Addcategories: React.FC = () => {
           ADD CATEGORY MODAL
       ================================================= */}
 
-      <GlobalModal
-        isOpen={addModalOpen}
-        onClose={() => !addLoading && setAddModalOpen(false)}
-        closeOnOverlayClick={!addLoading}
-      >
-        <AddCategoryModal
-          open={addModalOpen}
-          loading={addLoading}
-          onClose={() => {
-            if (!addLoading) setAddModalOpen(false);
-          }}
-          onSubmit={handleAddCategory}
-        />
-      </GlobalModal>
+      {canCreateCategory && (
+        <GlobalModal
+          isOpen={addModalOpen}
+          onClose={() => !addLoading && setAddModalOpen(false)}
+          closeOnOverlayClick={!addLoading}
+        >
+          <AddCategoryModal
+            open={addModalOpen}
+            loading={addLoading}
+            onClose={() => {
+              if (!addLoading) setAddModalOpen(false);
+            }}
+            onSubmit={handleAddCategory}
+          />
+        </GlobalModal>
+      )}
 
       {/* =================================================
           EDIT CATEGORY MODAL
       ================================================= */}
 
-      <GlobalModal
-        isOpen={editModalOpen}
-        onClose={() => {
-          if (!editLoading) {
-            setEditModalOpen(false);
-            setSelectedCategory(null);
-          }
-        }}
-        closeOnOverlayClick={!editLoading}
-      >
-        <EditCategoryModal
-          open={editModalOpen}
-          loading={editLoading}
-          category={selectedCategory}
+      {canUpdateCategory && (
+        <GlobalModal
+          isOpen={editModalOpen}
           onClose={() => {
             if (!editLoading) {
               setEditModalOpen(false);
               setSelectedCategory(null);
             }
           }}
-          onSubmit={handleUpdateCategory}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!editLoading}
+        >
+          <EditCategoryModal
+            open={editModalOpen}
+            loading={editLoading}
+            category={selectedCategory}
+            onClose={() => {
+              if (!editLoading) {
+                setEditModalOpen(false);
+                setSelectedCategory(null);
+              }
+            }}
+            onSubmit={handleUpdateCategory}
+          />
+        </GlobalModal>
+      )}
 
       {/* =================================================
           DELETE CATEGORY MODAL
       ================================================= */}
 
-      <GlobalModal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          if (!deleteLoading) {
-            setDeleteModalOpen(false);
-            setSelectedCategory(null);
-          }
-        }}
-        closeOnOverlayClick={!deleteLoading}
-      >
-        <DeleteCategoryModal
-          open={deleteModalOpen}
-          loading={deleteLoading}
-          categoryName={selectedCategory?.title || ""}
+      {canDeleteCategory && (
+        <GlobalModal
+          isOpen={deleteModalOpen}
           onClose={() => {
             if (!deleteLoading) {
               setDeleteModalOpen(false);
               setSelectedCategory(null);
             }
           }}
-          onConfirm={handleConfirmDelete}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!deleteLoading}
+        >
+          <DeleteCategoryModal
+            open={deleteModalOpen}
+            loading={deleteLoading}
+            categoryName={selectedCategory?.title || ""}
+            onClose={() => {
+              if (!deleteLoading) {
+                setDeleteModalOpen(false);
+                setSelectedCategory(null);
+              }
+            }}
+            onConfirm={handleConfirmDelete}
+          />
+        </GlobalModal>
+      )}
 
       <div className="h-5" />
     </motion.div>

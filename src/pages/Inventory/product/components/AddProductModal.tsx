@@ -3,6 +3,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 
 import {
@@ -33,6 +34,9 @@ import attributesApi, {
 import brandsApi from "../../../../api/endpoints/brands";
 import { subcategoryApi } from "../../../../api/endpoints/subcategory";
 import { productApi } from "../../../../api/endpoints/product";
+
+// ✅ PERMISSIONS
+import { usePermissions } from "../../../permissions/usePermissions";
 
 /* =========================================================
    UPLOAD PROGRESS
@@ -620,7 +624,7 @@ const generateVariantsFromProduct = (
 };
 
 /* =========================================================
-   ATTRIBUTE SELECTOR
+   ATTRIBUTE SELECTOR — NAVY THEME
 ========================================================= */
 
 const AttributeSelector: React.FC<{
@@ -717,13 +721,13 @@ const AttributeSelector: React.FC<{
           (attr, index) => (
             <span
               key={`${attr.key}-${attr.value}-${index}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/15 bg-[#EAF3EA] px-3 py-1 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1 text-xs font-medium"
             >
-              <span className="font-semibold text-[#163F20]">
+              <span className="font-semibold text-[#1E3A8A]">
                 {attr.key}:
               </span>
 
-              <span className="text-[#4C8A57]">
+              <span className="text-[#2563EB]">
                 {attr.value}
               </span>
 
@@ -746,7 +750,7 @@ const AttributeSelector: React.FC<{
 
         {selectedAttributes.length ===
           0 && (
-          <span className="text-xs text-[#9AA29C]">
+          <span className="text-xs text-[#8C97B2]">
             No attributes selected
           </span>
         )}
@@ -758,17 +762,17 @@ const AttributeSelector: React.FC<{
           onClick={() =>
             setIsOpen(!isOpen)
           }
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#4C8A57] transition-colors hover:bg-[#EAF3EA] hover:text-[#163F20]"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#2563EB] transition-colors hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
         >
           <FiPlus size={14} />
           Add Attribute
         </button>
 
         {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E5EAE5] bg-white p-4 shadow-xl">
+          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E3E9F5] bg-white p-4 shadow-xl">
             <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-[#202721]">
+                <label className="mb-1 block text-xs font-semibold text-[#0F1B3D]">
                   Select Attribute
                 </label>
 
@@ -780,7 +784,7 @@ const AttributeSelector: React.FC<{
                     );
                     setSelectedValue("");
                   }}
-                  className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                  className="h-9 w-full rounded-lg border border-[#D8E2F0] px-3 text-sm outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 >
                   <option value="">
                     Choose attribute...
@@ -805,7 +809,7 @@ const AttributeSelector: React.FC<{
 
               {selectedKey && (
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-[#202721]">
+                  <label className="mb-1 block text-xs font-semibold text-[#0F1B3D]">
                     Select Value
                   </label>
 
@@ -818,7 +822,7 @@ const AttributeSelector: React.FC<{
                         e.target.value
                       )
                     }
-                    className="h-9 w-full rounded-lg border border-[#D8E2D8] px-3 text-sm outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                    className="h-9 w-full rounded-lg border border-[#D8E2F0] px-3 text-sm outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                   >
                     <option value="">
                       Choose value...
@@ -846,7 +850,7 @@ const AttributeSelector: React.FC<{
                     setSelectedKey("");
                     setSelectedValue("");
                   }}
-                  className="h-8 flex-1 rounded-lg border border-[#D8E2D8] text-xs font-semibold text-[#59645C] transition-colors hover:bg-[#F5F7F5]"
+                  className="h-8 flex-1 rounded-lg border border-[#D8E2F0] text-xs font-semibold text-[#4A5778] transition-colors hover:bg-[#F5F8FF]"
                 >
                   Cancel
                 </button>
@@ -858,7 +862,7 @@ const AttributeSelector: React.FC<{
                     !selectedKey ||
                     !selectedValue
                   }
-                  className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Add
                 </button>
@@ -886,6 +890,27 @@ const AddProductModal: React.FC<
   isEdit = false,
   uploadProgress,
 }) => {
+  // ===================================================
+  // ✅ PERMISSIONS (safety check)
+  // ===================================================
+
+  const { hasPermission, isSuperAdmin } = usePermissions();
+
+  const canSubmit = useMemo(() => {
+    if (isSuperAdmin) return true;
+    if (isEdit) {
+      return (
+        hasPermission("product.update") ||
+        hasPermission("product.edit")
+      );
+    }
+    return hasPermission("product.create");
+  }, [isSuperAdmin, hasPermission, isEdit]);
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [categories, setCategories] =
     useState<SelectOption[]>([]);
 
@@ -990,9 +1015,7 @@ const AddProductModal: React.FC<
     setHydratedEditKey,
   ] = useState<string | null>(null);
 
-  /* =========================================================
-     IMAGE ARRANGE STATE
-  ========================================================= */
+  /* IMAGE ARRANGE STATE */
 
   const draggedImageIdRef =
     useRef<number | null>(null);
@@ -1007,15 +1030,141 @@ const AddProductModal: React.FC<
     setArrangingImageIds,
   ] = useState<number[]>([]);
 
-  /* =========================================================
-     DRAG & DROP UPLOAD STATE
-  ========================================================= */
+  /* DRAG & DROP UPLOAD STATE */
 
   const [isDragging, setIsDragging] =
     useState(false);
 
   const dragCounterRef =
     useRef(0);
+
+  /* =========================================================
+     ✅ CLEANUP OBJECT URLs (memory leak se bachne ke liye)
+  ========================================================= */
+
+  const revokeAllObjectUrls = useCallback(
+    (
+      imageList: ImageItem[],
+      variantList: VariantFormData[]
+    ) => {
+      // Product images
+      imageList.forEach((img) => {
+        if (
+          !img.is_existing &&
+          img.preview &&
+          img.preview.startsWith("blob:")
+        ) {
+          try {
+            URL.revokeObjectURL(img.preview);
+          } catch (err) {
+            console.warn(
+              "Failed to revoke product image URL:",
+              err
+            );
+          }
+        }
+      });
+
+      // Variant images
+      variantList.forEach((variant) => {
+        variant.images.forEach((img) => {
+          if (
+            !img.is_existing &&
+            img.preview &&
+            img.preview.startsWith("blob:")
+          ) {
+            try {
+              URL.revokeObjectURL(img.preview);
+            } catch (err) {
+              console.warn(
+                "Failed to revoke variant image URL:",
+                err
+              );
+            }
+          }
+        });
+      });
+    },
+    []
+  );
+
+  /* =========================================================
+     ✅ FULL RESET (close hone par sab kuch saaf)
+  ========================================================= */
+
+  const resetEverything = useCallback(() => {
+    // Revoke object URLs first
+    revokeAllObjectUrls(images, variants);
+
+    // Reset product states
+    setProductCode("");
+    setName("");
+    setSlug("");
+    setDescription("");
+
+    setSpecification([
+      {
+        key: "",
+        value: "",
+      },
+    ]);
+
+    setCategoryId("");
+    setSubcategoryId("");
+    setBrandId("");
+    setTaxCategoryId("");
+
+    setRetailMrp("");
+    setRetailDiscountValue("");
+    setDistributorMrp("");
+    setDistributorDiscountValue("");
+
+    setCommissionValue("");
+    setShippingCharge("");
+
+    setStockQuantity("");
+    setLowStockThreshold("10");
+
+    setIsPublished(true);
+
+    setImages([]);
+    setVariants([]);
+    setErrors({});
+    setIsDragging(false);
+
+    setDeletingImageIds([]);
+    setHydratedEditKey(null);
+
+    dragCounterRef.current = 0;
+
+    draggedImageIdRef.current = null;
+
+    setDragOverImageId(null);
+    setArrangingImageIds([]);
+  }, [images, variants, revokeAllObjectUrls]);
+
+  /* =========================================================
+     ✅ HANDLE CLOSE (confirm if uploading)
+  ========================================================= */
+
+  const handleClose = useCallback(() => {
+    // Agar loading/upload chal raha hai → confirm
+    if (loading) {
+      const confirmed = window.confirm(
+        "Upload/processing is in progress. If you close now, all progress will be lost. Do you want to close?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Reset everything
+    resetEverything();
+
+    // Call parent onClose
+    onClose();
+  }, [loading, resetEverything, onClose]);
 
   /* =========================================================
      FETCH OPTIONS
@@ -1458,7 +1607,7 @@ const AddProductModal: React.FC<
   }, [open]);
 
   /* =========================================================
-     RESET FORM
+     RESET FORM ON CLOSE (fallback)
   ========================================================= */
 
   useEffect(() => {
@@ -1509,6 +1658,43 @@ const AddProductModal: React.FC<
     setDragOverImageId(null);
     setArrangingImageIds([]);
   }, [open]);
+
+  /* =========================================================
+     ✅ BODY SCROLL LOCK + ESC KEY HANDLER
+  ========================================================= */
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
+
+    const handleEscKey = (
+      e: KeyboardEvent
+    ) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleEscKey
+    );
+
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+
+      window.removeEventListener(
+        "keydown",
+        handleEscKey
+      );
+    };
+  }, [open, handleClose]);
 
   if (!open) {
     return null;
@@ -1617,9 +1803,7 @@ const AddProductModal: React.FC<
     });
   };
 
-  /* =========================================================
-     ADD IMAGE FILES
-  ========================================================= */
+  /* ADD IMAGE FILES */
 
   const addImageFiles =
     useCallback(
@@ -1707,9 +1891,7 @@ const AddProductModal: React.FC<
     e.target.value = "";
   };
 
-  /* =========================================================
-     FILE DRAG / DROP
-  ========================================================= */
+  /* FILE DRAG / DROP */
 
   const handleDragEnter =
     useCallback(
@@ -1793,9 +1975,7 @@ const AddProductModal: React.FC<
       [addImageFiles]
     );
 
-  /* =========================================================
-     PRODUCT IMAGE DELETE
-  ========================================================= */
+  /* PRODUCT IMAGE DELETE */
 
   const removeImage = async (
     id: number
@@ -1981,9 +2161,7 @@ const AddProductModal: React.FC<
     });
   };
 
-  /* =========================================================
-     IMAGE ARRANGE / MOVE
-  ========================================================= */
+  /* IMAGE ARRANGE / MOVE */
 
   const reorderImageItems = (
     sourceId: number,
@@ -2173,10 +2351,6 @@ const AddProductModal: React.FC<
       ...images,
     ];
 
-    /* ---------------------------------------------------------
-       LOCAL REORDER
-    --------------------------------------------------------- */
-
     const reorderedImages =
       reorderImageItems(
         sourceImageId,
@@ -2189,11 +2363,6 @@ const AddProductModal: React.FC<
 
     draggedImageIdRef.current =
       null;
-
-    /* ---------------------------------------------------------
-       API MOVE / SWAP
-       Only existing backend images can be moved by API.
-    --------------------------------------------------------- */
 
     const canCallMoveApi =
       isEdit &&
@@ -2268,9 +2437,7 @@ const AddProductModal: React.FC<
     }
   };
 
-  /* =========================================================
-     VARIANTS
-  ========================================================= */
+  /* VARIANTS */
 
   const addVariant = () => {
     const newVariant:
@@ -2575,9 +2742,7 @@ const AddProductModal: React.FC<
     );
   };
 
-  /* =========================================================
-     VALIDATE
-  ========================================================= */
+  /* VALIDATE */
 
   const validate = (): boolean => {
     const newErrors:
@@ -2665,9 +2830,7 @@ const AddProductModal: React.FC<
     );
   };
 
-  /* =========================================================
-     BUILD FORM DATA
-  ========================================================= */
+  /* BUILD FORM DATA */
 
   const buildFormData =
     (): FormData => {
@@ -3091,9 +3254,7 @@ const AddProductModal: React.FC<
       return formData;
     };
 
-  /* =========================================================
-     SUBMIT
-  ========================================================= */
+  /* SUBMIT */
 
   const handleSubmit = (
     e: React.FormEvent
@@ -3148,34 +3309,34 @@ const AddProductModal: React.FC<
       {/* BACKDROP */}
       <div
         className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-poppins">
         <div
           className="relative flex max-h-[90vh] w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
           onClick={(e) =>
             e.stopPropagation()
           }
         >
-          {/* TOP GRADIENT BAR */}
-          <div className="h-[3px] w-full flex-shrink-0 bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          {/* TOP GRADIENT BAR — NAVY */}
+          <div className="h-[3px] w-full flex-shrink-0 bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           {/* =====================================================
               HEADER
           ===================================================== */}
 
-          <div className="flex flex-shrink-0 items-center justify-between border-b border-[#E5EAE5] bg-white px-6 py-5">
+          <div className="flex flex-shrink-0 items-center justify-between border-b border-[#E3E9F5] bg-white px-6 py-5">
             <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold text-[#202721]">
+              <h2 className="flex items-center gap-2 text-2xl font-bold text-[#0F1B3D]">
                 {isEdit ? (
                   <FiEdit2
-                    className="text-[#4C8A57]"
+                    className="text-[#2563EB]"
                     size={24}
                   />
                 ) : (
                   <FiPlus
-                    className="text-[#4C8A57]"
+                    className="text-[#2563EB]"
                     size={24}
                   />
                 )}
@@ -3185,7 +3346,7 @@ const AddProductModal: React.FC<
                   : "Add New Product"}
               </h2>
 
-              <p className="mt-0.5 text-sm text-[#59645C]">
+              <p className="mt-0.5 text-sm text-[#4A5778]">
                 {isEdit
                   ? `Editing: ${
                       getProductObject(
@@ -3200,8 +3361,9 @@ const AddProductModal: React.FC<
 
             <button
               type="button"
-              onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#59645C] transition-colors hover:bg-[#F5F7F5] hover:text-[#163F20]"
+              onClick={handleClose}
+              disabled={false}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#4A5778] transition-colors hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiX size={21} />
             </button>
@@ -3211,7 +3373,7 @@ const AddProductModal: React.FC<
               BODY
           ===================================================== */}
 
-          <div className="flex-1 overflow-y-auto bg-[#F5F7F5] p-6">
+          <div className="flex-1 overflow-y-auto bg-[#F5F8FF] p-6">
             <form
               onSubmit={handleSubmit}
               id="product-form"
@@ -3224,18 +3386,16 @@ const AddProductModal: React.FC<
 
                 <div className="space-y-6">
 
-                  {/* =================================================
-                      BASIC INFORMATION
-                  ================================================= */}
+                  {/* BASIC INFORMATION */}
 
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
                       <FiInfo
-                        className="text-[#4C8A57]"
+                        className="text-[#2563EB]"
                         size={20}
                       />
 
-                      <h3 className="text-lg font-bold text-[#202721]">
+                      <h3 className="text-lg font-bold text-[#0F1B3D]">
                         Basic Information
                       </h3>
                     </div>
@@ -3244,7 +3404,7 @@ const AddProductModal: React.FC<
 
                       {/* PRODUCT NAME */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Product Name{" "}
                           <span className="text-[#C23B32]">
                             *
@@ -3263,8 +3423,8 @@ const AddProductModal: React.FC<
                           className={`h-12 w-full rounded-lg border ${
                             errors.name
                               ? "border-[#C23B32]"
-                              : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              : "border-[#D8E2F0]"
+                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                         />
 
                         {errors.name && (
@@ -3277,7 +3437,7 @@ const AddProductModal: React.FC<
 
                       {/* PRODUCT CODE */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           SKU / Product Code{" "}
                           <span className="text-[#C23B32]">
                             *
@@ -3296,8 +3456,8 @@ const AddProductModal: React.FC<
                           className={`h-12 w-full rounded-lg border ${
                             errors.product_code
                               ? "border-[#C23B32]"
-                              : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              : "border-[#D8E2F0]"
+                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                         />
 
                         {errors.product_code && (
@@ -3312,7 +3472,7 @@ const AddProductModal: React.FC<
 
                       {/* SLUG */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Slug
                         </label>
 
@@ -3320,10 +3480,10 @@ const AddProductModal: React.FC<
                           type="text"
                           value={slug}
                           readOnly
-                          className="h-12 w-full cursor-not-allowed rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#59645C] outline-none"
+                          className="h-12 w-full cursor-not-allowed rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#4A5778] outline-none"
                         />
 
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#9AA29C]">
+                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
                           <FiInfo size={12} />
                           Auto-generated from product name
                         </p>
@@ -3334,7 +3494,7 @@ const AddProductModal: React.FC<
 
                         {/* CATEGORY */}
                         <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                             Category{" "}
                             <span className="text-[#C23B32]">
                               *
@@ -3354,8 +3514,8 @@ const AddProductModal: React.FC<
                               className={`h-12 w-full appearance-none rounded-lg border ${
                                 errors.category_id
                                   ? "border-[#C23B32]"
-                                  : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                  : "border-[#D8E2F0]"
+                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                             >
                               <option value="">
                                 Select category...
@@ -3403,7 +3563,7 @@ const AddProductModal: React.FC<
                             </select>
 
                             <FiTag
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#4C8A57]"
+                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
                               size={18}
                             />
                           </div>
@@ -3420,7 +3580,7 @@ const AddProductModal: React.FC<
 
                         {/* SUBCATEGORY */}
                         <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                             Sub Category{" "}
                             <span className="text-[#C23B32]">
                               *
@@ -3440,8 +3600,8 @@ const AddProductModal: React.FC<
                               className={`h-12 w-full appearance-none rounded-lg border ${
                                 errors.subcategory_id
                                   ? "border-[#C23B32]"
-                                  : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                  : "border-[#D8E2F0]"
+                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                             >
                               <option value="">
                                 Select subcategory...
@@ -3489,7 +3649,7 @@ const AddProductModal: React.FC<
                             </select>
 
                             <FiLayers
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#4C8A57]"
+                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
                               size={18}
                             />
                           </div>
@@ -3506,7 +3666,7 @@ const AddProductModal: React.FC<
 
                         {/* BRAND */}
                         <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                             Brand{" "}
                             <span className="text-[#C23B32]">
                               *
@@ -3536,8 +3696,8 @@ const AddProductModal: React.FC<
                               className={`h-12 w-full appearance-none rounded-lg border ${
                                 errors.brand_id
                                   ? "border-[#C23B32]"
-                                  : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                  : "border-[#D8E2F0]"
+                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                             >
                               <option value="">
                                 Select brand...
@@ -3570,7 +3730,8 @@ const AddProductModal: React.FC<
                                 ) => (
                                   <option
                                     key={
-                                      brand.id                                    }
+                                      brand.id
+                                    }
                                     value={String(
                                       brand.id
                                     )}
@@ -3584,7 +3745,7 @@ const AddProductModal: React.FC<
                             </select>
 
                             <FiAward
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#4C8A57]"
+                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
                               size={18}
                             />
                           </div>
@@ -3601,7 +3762,7 @@ const AddProductModal: React.FC<
 
                         {/* TAX */}
                         <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                             Tax Category{" "}
                             <span className="text-[#C23B32]">
                               *
@@ -3631,8 +3792,8 @@ const AddProductModal: React.FC<
                               className={`h-12 w-full appearance-none rounded-lg border ${
                                 errors.tax_category_id
                                   ? "border-[#C23B32]"
-                                  : "border-[#D8E2D8]"
-                              } bg-[#F5F7F5] px-4 pr-10 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                  : "border-[#D8E2F0]"
+                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                             >
                               <option value="">
                                 Select tax...
@@ -3680,7 +3841,7 @@ const AddProductModal: React.FC<
                             </select>
 
                             <FiTag
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#4C8A57]"
+                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
                               size={18}
                             />
                           </div>
@@ -3703,14 +3864,14 @@ const AddProductModal: React.FC<
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                     {/* DESCRIPTION */}
-                    <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                    <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                       <div className="mb-4 flex items-center gap-2">
                         <FiAlignLeft
-                          className="text-[#4C8A57]"
+                          className="text-[#2563EB]"
                           size={20}
                         />
 
-                        <h3 className="text-lg font-bold text-[#202721]">
+                        <h3 className="text-lg font-bold text-[#0F1B3D]">
                           Description
                         </h3>
                       </div>
@@ -3726,20 +3887,20 @@ const AddProductModal: React.FC<
                           )
                         }
                         placeholder="Enter product description..."
-                        className="w-full resize-none rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                        className="w-full resize-none rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 py-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                       />
                     </div>
 
                     {/* SPECIFICATION */}
-                    <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                    <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <FiGrid
-                            className="text-[#4C8A57]"
+                            className="text-[#2563EB]"
                             size={20}
                           />
 
-                          <h3 className="text-lg font-bold text-[#202721]">
+                          <h3 className="text-lg font-bold text-[#0F1B3D]">
                             Specification
                           </h3>
                         </div>
@@ -3749,7 +3910,7 @@ const AddProductModal: React.FC<
                           onClick={
                             addSpecificationField
                           }
-                          className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                          className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
                         >
                           <FiPlus
                             size={14}
@@ -3787,7 +3948,7 @@ const AddProductModal: React.FC<
                                     )
                                   }
                                   placeholder="Key (e.g., Display)"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                                 />
                               </div>
 
@@ -3808,7 +3969,7 @@ const AddProductModal: React.FC<
                                     )
                                   }
                                   placeholder="Value (e.g., 6.7-inch AMOLED)"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                                 />
                               </div>
 
@@ -3826,7 +3987,7 @@ const AddProductModal: React.FC<
                                 className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${
                                   specification.length <=
                                   1
-                                    ? "cursor-not-allowed border-[#E5EAE5] text-[#9AA29C]"
+                                    ? "cursor-not-allowed border-[#E3E9F5] text-[#8C97B2]"
                                     : "border-[#C23B32]/20 text-[#C23B32] hover:border-[#C23B32]/40 hover:bg-[#C23B32]/5"
                                 } transition-colors`}
                               >
@@ -3841,20 +4002,18 @@ const AddProductModal: React.FC<
                     </div>
                   </div>
 
-                  {/* =================================================
-                      PRODUCT IMAGES
-                  ================================================= */}
+                  {/* PRODUCT IMAGES */}
 
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
 
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FiUploadCloud
-                          className="text-[#4C8A57]"
+                          className="text-[#2563EB]"
                           size={20}
                         />
 
-                        <h3 className="text-lg font-bold text-[#202721]">
+                        <h3 className="text-lg font-bold text-[#0F1B3D]">
                           Product Images
                         </h3>
 
@@ -3863,7 +4022,7 @@ const AddProductModal: React.FC<
                         </span>
                       </div>
 
-                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90">
+                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90">
                         <FiPlus
                           size={16}
                         />
@@ -3882,13 +4041,12 @@ const AddProductModal: React.FC<
                       </label>
                     </div>
 
-                    {/* ARRANGE HELP */}
                     {images.length >
                       1 && (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-3 py-2 text-xs text-[#59645C]">
+                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2 text-xs text-[#4A5778]">
                         <FiMove
                           size={14}
-                          className="text-[#4C8A57]"
+                          className="text-[#2563EB]"
                         />
 
                         <span>
@@ -3897,7 +4055,7 @@ const AddProductModal: React.FC<
                         </span>
 
                         {isEdit && (
-                          <span className="font-semibold text-[#163F20]">
+                          <span className="font-semibold text-[#1E3A8A]">
                             Existing images are
                             updated instantly.
                           </span>
@@ -3934,26 +4092,26 @@ const AddProductModal: React.FC<
                         <label
                           className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
                             isDragging
-                              ? "border-[#163F20] bg-[#EAF3EA]"
-                              : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
+                              ? "border-[#1E3A8A] bg-[#EAF1FF]"
+                              : "border-[#D8E2F0] bg-[#F5F8FF] hover:bg-[#EAF1FF]"
                           }`}
                         >
                           <FiUploadCloud
                             size={40}
                             className={
                               isDragging
-                                ? "text-[#163F20]"
-                                : "text-[#9AA29C]"
+                                ? "text-[#1E3A8A]"
+                                : "text-[#8C97B2]"
                             }
                           />
 
-                          <p className="mt-2 text-sm font-semibold text-[#202721]">
+                          <p className="mt-2 text-sm font-semibold text-[#0F1B3D]">
                             {isDragging
                               ? "Drop images here"
                               : "Upload Product Images"}
                           </p>
 
-                          <p className="mt-0.5 text-xs text-[#9AA29C]">
+                          <p className="mt-0.5 text-xs text-[#8C97B2]">
                             Drag & drop or click
                             to select multiple
                             images
@@ -3973,7 +4131,7 @@ const AddProductModal: React.FC<
                         <div
                           className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${
                             isDragging
-                              ? "border-dashed border-[#163F20] bg-[#EAF3EA]"
+                              ? "border-dashed border-[#1E3A8A] bg-[#EAF1FF]"
                               : ""
                           }`}
                         >
@@ -4031,8 +4189,8 @@ const AddProductModal: React.FC<
                                   className={`group relative cursor-grab overflow-hidden rounded-lg border bg-white shadow-sm transition-all active:cursor-grabbing ${
                                     dragOverImageId ===
                                     item.id
-                                      ? "border-[#163F20] ring-2 ring-[#4C8A57]/30 scale-[1.02]"
-                                      : "border-[#E5EAE5]"
+                                      ? "border-[#1E3A8A] ring-2 ring-[#2563EB]/30 scale-[1.02]"
+                                      : "border-[#E3E9F5]"
                                   } ${
                                     isArranging
                                       ? "opacity-70"
@@ -4062,11 +4220,9 @@ const AddProductModal: React.FC<
                                   {/* ARRANGE LOADER */}
                                   {isArranging && (
                                     <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55 backdrop-blur-[1px]">
-                                      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#163F20]/20 border-t-[#163F20]" />
+                                      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#1E3A8A]/20 border-t-[#1E3A8A]" />
                                     </div>
                                   )}
-
-                               
 
                                   {/* DELETE */}
                                   <button
@@ -4093,8 +4249,6 @@ const AddProductModal: React.FC<
                                       }
                                     />
                                   </button>
-
-        
                                 </div>
                               );
                             }
@@ -4104,16 +4258,16 @@ const AddProductModal: React.FC<
                           <label
                             className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
                               isDragging
-                                ? "border-[#163F20] bg-[#EAF3EA]"
-                                : "border-[#D8E2D8] bg-[#F5F7F5] hover:bg-[#EAF3EA]"
+                                ? "border-[#1E3A8A] bg-[#EAF1FF]"
+                                : "border-[#D8E2F0] bg-[#F5F8FF] hover:bg-[#EAF1FF]"
                             }`}
                           >
                             <FiPlus
                               size={24}
-                              className="text-[#4C8A57]"
+                              className="text-[#2563EB]"
                             />
 
-                            <span className="mt-1 text-xs font-semibold text-[#59645C]">
+                            <span className="mt-1 text-xs font-semibold text-[#4A5778]">
                               Add More
                             </span>
 
@@ -4132,8 +4286,8 @@ const AddProductModal: React.FC<
 
                       {/* FILE DROP OVERLAY */}
                       {isDragging && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-[#163F20] bg-[#EAF3EA]/80 backdrop-blur-[1px]">
-                          <div className="flex flex-col items-center text-[#163F20]">
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-[#1E3A8A] bg-[#EAF1FF]/80 backdrop-blur-[1px]">
+                          <div className="flex flex-col items-center text-[#1E3A8A]">
                             <FiUploadCloud
                               size={36}
                             />
@@ -4147,23 +4301,21 @@ const AddProductModal: React.FC<
                     </div>
                   </div>
 
-                  {/* =================================================
-                      VARIANTS
-                  ================================================= */}
+                  {/* VARIANTS */}
 
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FiPackage
-                          className="text-[#4C8A57]"
+                          className="text-[#2563EB]"
                           size={20}
                         />
 
-                        <h3 className="text-lg font-bold text-[#202721]">
+                        <h3 className="text-lg font-bold text-[#0F1B3D]">
                           Variants
                         </h3>
 
-                        <span className="text-xs text-[#9AA29C]">
+                        <span className="text-xs text-[#8C97B2]">
                           (
                           {
                             variants.length
@@ -4182,7 +4334,7 @@ const AddProductModal: React.FC<
                         onClick={
                           addVariant
                         }
-                        className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                        className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90"
                       >
                         <FiPlus
                           size={16}
@@ -4193,7 +4345,7 @@ const AddProductModal: React.FC<
 
                     {variants.length ===
                     0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-[#D8E2D8] bg-[#F5F7F5] py-10 text-center text-sm text-[#9AA29C]">
+                      <div className="rounded-xl border-2 border-dashed border-[#D8E2F0] bg-[#F5F8FF] py-10 text-center text-sm text-[#8C97B2]">
                         No variants added. Click
                         "Add Variant" to create one.
                       </div>
@@ -4208,12 +4360,12 @@ const AddProductModal: React.FC<
                               key={
                                 variant.id
                               }
-                              className="rounded-lg border border-[#E5EAE5] bg-[#F5F7F5] p-4 transition-colors hover:bg-[#EAF3EA]/40"
+                              className="rounded-lg border border-[#E3E9F5] bg-[#F5F8FF] p-4 transition-colors hover:bg-[#EAF1FF]/40"
                             >
                               <div className="mb-3 flex items-center justify-between">
-                                <h4 className="flex items-center gap-2 font-bold text-[#202721]">
+                                <h4 className="flex items-center gap-2 font-bold text-[#0F1B3D]">
                                   <FiPackage
-                                    className="text-[#4C8A57]"
+                                    className="text-[#2563EB]"
                                     size={
                                       16
                                     }
@@ -4224,7 +4376,7 @@ const AddProductModal: React.FC<
                                     1}
 
                                   {variant.is_existing && (
-                                    <span className="rounded-full bg-[#EAF3EA] px-2 py-0.5 text-xs text-[#4C8A57]">
+                                    <span className="rounded-full bg-[#EAF1FF] px-2 py-0.5 text-xs text-[#2563EB]">
                                       Existing
                                     </span>
                                   )}
@@ -4251,7 +4403,7 @@ const AddProductModal: React.FC<
 
                                 {/* SKU */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     SKU
                                   </label>
 
@@ -4271,13 +4423,13 @@ const AddProductModal: React.FC<
                                       )
                                     }
                                     placeholder="e.g. SMP5G-BLACK-128"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
                                 </div>
 
                                 {/* ATTRIBUTE */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Attributes
                                   </label>
 
@@ -4302,12 +4454,12 @@ const AddProductModal: React.FC<
 
                                 {/* RETAIL MRP */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Retail MRP
                                   </label>
 
                                   <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
                                       ₹
                                     </span>
 
@@ -4336,14 +4488,14 @@ const AddProductModal: React.FC<
                                         }
                                       }}
                                       placeholder="100000"
-                                      className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                      className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white pl-7 pr-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                     />
                                   </div>
                                 </div>
 
                                 {/* RETAIL DISCOUNT */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Discount (%)
                                   </label>
 
@@ -4372,18 +4524,18 @@ const AddProductModal: React.FC<
                                       }
                                     }}
                                     placeholder="40"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
                                 </div>
 
                                 {/* DISTRIBUTOR MRP */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Distributor MRP
                                   </label>
 
                                   <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#4C8A57]">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
                                       ₹
                                     </span>
 
@@ -4412,14 +4564,14 @@ const AddProductModal: React.FC<
                                         }
                                       }}
                                       placeholder="90000"
-                                      className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white pl-7 pr-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                      className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white pl-7 pr-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                     />
                                   </div>
                                 </div>
 
                                 {/* DISTRIBUTOR DISCOUNT */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Distributor Discount (%)
                                   </label>
 
@@ -4448,13 +4600,13 @@ const AddProductModal: React.FC<
                                       }
                                     }}
                                     placeholder="35"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
                                 </div>
 
                                 {/* STOCK */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Stock
                                   </label>
 
@@ -4483,13 +4635,13 @@ const AddProductModal: React.FC<
                                       }
                                     }}
                                     placeholder="20"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
                                 </div>
 
                                 {/* LOW STOCK */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Low Stock Alert
                                   </label>
 
@@ -4518,13 +4670,13 @@ const AddProductModal: React.FC<
                                       }
                                     }}
                                     placeholder="5"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
                                 </div>
 
                                 {/* STATUS */}
                                 <div>
-                                  <label className="text-xs font-semibold text-[#59645C]">
+                                  <label className="text-xs font-semibold text-[#4A5778]">
                                     Status
                                   </label>
 
@@ -4544,7 +4696,7 @@ const AddProductModal: React.FC<
                                         )
                                       )
                                     }
-                                    className="h-10 w-full appearance-none rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                                    className="h-10 w-full appearance-none rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   >
                                     <option value={1}>
                                       Active
@@ -4558,9 +4710,9 @@ const AddProductModal: React.FC<
                               </div>
 
                               {/* VARIANT IMAGES */}
-                              <div className="mt-3 border-t border-[#E5EAE5] pt-3">
+                              <div className="mt-3 border-t border-[#E3E9F5] pt-3">
                                 <div className="mb-2 flex items-center justify-between">
-                                  <label className="flex items-center gap-1 text-xs font-semibold text-[#59645C]">
+                                  <label className="flex items-center gap-1 text-xs font-semibold text-[#4A5778]">
                                     <FiUploadCloud
                                       size={
                                         14
@@ -4569,7 +4721,7 @@ const AddProductModal: React.FC<
                                     Variant Images
                                   </label>
 
-                                  <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-[#EAF3EA] px-3 py-1 text-xs font-semibold text-[#163F20] transition-colors hover:bg-[#8FC199]/40">
+                                  <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-[#EAF1FF] px-3 py-1 text-xs font-semibold text-[#1E3A8A] transition-colors hover:bg-[#DBEAFE]">
                                     <FiPlus
                                       size={
                                         12
@@ -4606,7 +4758,7 @@ const AddProductModal: React.FC<
                                           key={
                                             img.id
                                           }
-                                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#E5EAE5] shadow-sm"
+                                          className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#E3E9F5] shadow-sm"
                                         >
                                           <img
                                             src={
@@ -4622,8 +4774,8 @@ const AddProductModal: React.FC<
                                           <div
                                             className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${
                                               img.is_primary
-                                                ? "bg-[#163F20] text-white"
-                                                : "bg-white/90 text-[#59645C]"
+                                                ? "bg-[#1E3A8A] text-white"
+                                                : "bg-white/90 text-[#4A5778]"
                                             }`}
                                           >
                                             {img.is_primary
@@ -4649,7 +4801,7 @@ const AddProductModal: React.FC<
                                           </button>
 
                                           {img.is_existing && (
-                                            <span className="absolute bottom-0 left-0 right-0 bg-[#4C8A57] text-center text-[6px] text-white">
+                                            <span className="absolute bottom-0 left-0 right-0 bg-[#2563EB] text-center text-[6px] text-white">
                                               Existing
                                             </span>
                                           )}
@@ -4674,14 +4826,14 @@ const AddProductModal: React.FC<
                 <div className="space-y-6">
 
                   {/* PRICING */}
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
                       <FaRupeeSign
-                        className="text-[#4C8A57]"
+                        className="text-[#2563EB]"
                         size={20}
                       />
 
-                      <h3 className="text-lg font-bold text-[#202721]">
+                      <h3 className="text-lg font-bold text-[#0F1B3D]">
                         Pricing
                       </h3>
                     </div>
@@ -4690,7 +4842,7 @@ const AddProductModal: React.FC<
 
                       {/* RETAIL MRP */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Retail MRP{" "}
                           <span className="text-[#C23B32]">
                             *
@@ -4698,7 +4850,7 @@ const AddProductModal: React.FC<
                         </label>
 
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#4C8A57]">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
                             ₹
                           </span>
 
@@ -4738,8 +4890,8 @@ const AddProductModal: React.FC<
                             className={`h-12 w-full rounded-lg border ${
                               errors.retail_mrp
                                 ? "border-[#C23B32]"
-                                : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                : "border-[#D8E2F0]"
+                            } bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                           />
                         </div>
 
@@ -4755,7 +4907,7 @@ const AddProductModal: React.FC<
 
                       {/* RETAIL DISCOUNT */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Discount (%)
                         </label>
 
@@ -4783,10 +4935,10 @@ const AddProductModal: React.FC<
                               }
                             }}
                             placeholder="40"
-                            className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-12 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-12 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
 
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#9AA29C]">
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8C97B2]">
                             %
                           </span>
                         </div>
@@ -4794,12 +4946,12 @@ const AddProductModal: React.FC<
 
                       {/* DISTRIBUTOR MRP */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Distributor MRP
                         </label>
 
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#4C8A57]">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
                             ₹
                           </span>
 
@@ -4826,14 +4978,14 @@ const AddProductModal: React.FC<
                               }
                             }}
                             placeholder="90000"
-                            className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
                         </div>
                       </div>
 
                       {/* DISTRIBUTOR DISCOUNT */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Distributor Discount (%)
                         </label>
 
@@ -4861,10 +5013,10 @@ const AddProductModal: React.FC<
                               }
                             }}
                             placeholder="35"
-                            className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 pr-12 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-12 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
 
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#9AA29C]">
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8C97B2]">
                             %
                           </span>
                         </div>
@@ -4872,7 +5024,7 @@ const AddProductModal: React.FC<
 
                       {/* COMMISSION */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Commission Value
                         </label>
 
@@ -4897,22 +5049,22 @@ const AddProductModal: React.FC<
                             }
                           }}
                           placeholder="0"
-                          className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                          className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                         />
                       </div>
 
                       {/* SHIPPING */}
                       <div>
-                        <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#0F1B3D]">
                           <FiTruck
                             size={14}
-                            className="text-[#4C8A57]"
+                            className="text-[#2563EB]"
                           />
                           Shipping Charge
                         </label>
 
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#4C8A57]">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
                             ₹
                           </span>
 
@@ -4952,8 +5104,8 @@ const AddProductModal: React.FC<
                             className={`h-12 w-full rounded-lg border ${
                               errors.shipping_charge
                                 ? "border-[#C23B32]"
-                                : "border-[#D8E2D8]"
-                            } bg-[#F5F7F5] pl-8 pr-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                                : "border-[#D8E2F0]"
+                            } bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                           />
                         </div>
 
@@ -4966,7 +5118,7 @@ const AddProductModal: React.FC<
                           </p>
                         )}
 
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#9AA29C]">
+                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
                           <FiInfo size={12} />
                           Enter 0 for free shipping
                         </p>
@@ -4975,14 +5127,14 @@ const AddProductModal: React.FC<
                   </div>
 
                   {/* INVENTORY */}
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
                       <FiPackage
-                        className="text-[#4C8A57]"
+                        className="text-[#2563EB]"
                         size={20}
                       />
 
-                      <h3 className="text-lg font-bold text-[#202721]">
+                      <h3 className="text-lg font-bold text-[#0F1B3D]">
                         Inventory
                       </h3>
                     </div>
@@ -4991,7 +5143,7 @@ const AddProductModal: React.FC<
 
                       {/* STOCK */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Stock Quantity{" "}
                           <span className="text-[#C23B32]">
                             *
@@ -5034,8 +5186,8 @@ const AddProductModal: React.FC<
                           className={`h-12 w-full rounded-lg border ${
                             errors.stock_quantity
                               ? "border-[#C23B32]"
-                              : "border-[#D8E2D8]"
-                          } bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10`}
+                              : "border-[#D8E2F0]"
+                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                         />
 
                         {errors.stock_quantity && (
@@ -5050,7 +5202,7 @@ const AddProductModal: React.FC<
 
                       {/* LOW STOCK */}
                       <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#202721]">
+                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
                           Low Stock Threshold
                         </label>
 
@@ -5077,10 +5229,10 @@ const AddProductModal: React.FC<
                             }
                           }}
                           placeholder="10"
-                          className="h-12 w-full rounded-lg border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none transition-all focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                          className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                         />
 
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#9AA29C]">
+                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
                           <FiInfo size={12} />
                           You'll be notified when stock falls below this number
                         </p>
@@ -5089,25 +5241,25 @@ const AddProductModal: React.FC<
                   </div>
 
                   {/* PUBLISHING */}
-                  <div className="rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
                     <div className="mb-4 flex items-center gap-2">
                       <FiTag
-                        className="text-[#4C8A57]"
+                        className="text-[#2563EB]"
                         size={20}
                       />
 
-                      <h3 className="text-lg font-bold text-[#202721]">
+                      <h3 className="text-lg font-bold text-[#0F1B3D]">
                         Publishing
                       </h3>
                     </div>
 
-                    <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E5EAE5] bg-[#F5F7F5] p-3 transition-colors hover:bg-[#EAF3EA]/50">
+                    <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E3E9F5] bg-[#F5F8FF] p-3 transition-colors hover:bg-[#EAF1FF]/50">
                       <div>
-                        <p className="text-sm font-bold text-[#202721]">
+                        <p className="text-sm font-bold text-[#0F1B3D]">
                           Publish Product
                         </p>
 
-                        <p className="text-xs text-[#59645C]">
+                        <p className="text-xs text-[#4A5778]">
                           Visible to customers
                         </p>
                       </div>
@@ -5125,7 +5277,7 @@ const AddProductModal: React.FC<
                               .checked
                           )
                         }
-                        className="h-5 w-5 cursor-pointer rounded border-[#D8E2D8] accent-[#163F20]"
+                        className="h-5 w-5 cursor-pointer rounded border-[#D8E2F0] accent-[#1E3A8A]"
                       />
                     </label>
                   </div>
@@ -5138,7 +5290,7 @@ const AddProductModal: React.FC<
               FOOTER
           ===================================================== */}
 
-          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-[#E5EAE5] bg-white px-6 py-4">
+          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-[#E3E9F5] bg-white px-6 py-4">
 
             {/* UPLOAD PROGRESS */}
             {loading &&
@@ -5168,19 +5320,31 @@ const AddProductModal: React.FC<
               )}
 
             <div className="flex justify-end gap-3">
-           
+
+              {/* CANCEL */}
+              <button
+                type="button"
+                onClick={handleClose}
+                disabled={false}
+                className="flex h-11 items-center gap-2 rounded-lg border border-[#D8E2F0] bg-white px-6 text-sm font-semibold text-[#4A5778] transition-colors hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              {/* ✅ SUBMIT — permission based */}
               <button
                 type="submit"
                 disabled={
                   loading ||
                   fetchingOptions ||
                   arrangingImageIds.length >
-                    0
+                    0 ||
+                  !canSubmit
                 }
                 onClick={
                   handleSubmit
                 }
-                className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50"
+                className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <>

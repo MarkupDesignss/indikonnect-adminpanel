@@ -1,4 +1,12 @@
-import React, { ChangeEvent, FC, useEffect, useMemo, useState } from "react";
+import React, {
+  ChangeEvent,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   FiCheck,
@@ -28,6 +36,82 @@ import adminManagementApi, {
   PermissionGroups,
 } from "@/api/endpoints/rolemanagement";
 
+import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
+// THEME
+// =====================================================
+
+const PRIMARY = "#1E3A8A";
+const DARK_PRIMARY = "#172554";
+const BLUE = "#1E40AF";
+const ACCENT = "#2563EB";
+
+const LIGHT_BLUE = "#EAF1FF";
+const SOFT_BLUE = "#DBEAFE";
+const PAGE_BG = "#F5F8FF";
+
+const TEXT_PRIMARY = "#0F1B3D";
+const TEXT_SECONDARY = "#4A5778";
+const MUTED = "#8C97B2";
+
+const BORDER = "#D8E2F0";
+const WHITE = "#FFFFFF";
+
+const DANGER = "#C23B32";
+const DANGER_BG = "#FBEAEA";
+
+// =====================================================
+// PERMISSION KEYS
+// =====================================================
+
+const VIEW_PERMISSION_KEYS = [
+  "role.view",
+  "roles.view",
+  "Role.view",
+  "Roles.view",
+  "role_management.view",
+  "Role Management.view",
+];
+
+const CREATE_PERMISSION_KEYS = [
+  "role.create",
+  "roles.create",
+  "Role.create",
+  "Roles.create",
+  "role_management.create",
+  "Role Management.create",
+];
+
+const UPDATE_PERMISSION_KEYS = [
+  "role.update",
+  "roles.update",
+  "Role.update",
+  "Roles.update",
+  "role_management.update",
+  "Role Management.update",
+  "role.edit",
+  "roles.edit",
+  "Role.edit",
+  "Roles.edit",
+];
+
+const DELETE_PERMISSION_KEYS = [
+  "role.delete",
+  "roles.delete",
+  "Role.delete",
+  "Roles.delete",
+  "role_management.delete",
+  "Role Management.delete",
+];
+
+const PERMISSION_VIEW_KEYS = [
+  "permission.view",
+  "permissions.view",
+  "Permission.view",
+  "Permissions.view",
+];
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -48,26 +132,41 @@ interface DeleteTarget {
 // HELPERS
 // =====================================================
 
-const formatModuleName = (module: string): string =>
+const formatModuleName = (
+  module: string
+): string =>
   module
     .replace(/_/g, " ")
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(
+      /\b\w/g,
+      (char) => char.toUpperCase()
+    );
 
-const formatActionName = (action?: string): string => {
+const formatActionName = (
+  action?: string
+): string => {
   if (!action) return "-";
 
   return action
     .replace(/_/g, " ")
     .replace(/-/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+    .replace(
+      /\b\w/g,
+      (char) => char.toUpperCase()
+    );
 };
 
-const formatDate = (value?: string | null): string => {
+const formatDate = (
+  value?: string | null
+): string => {
   if (!value) return "—";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
   return date.toLocaleString("en-IN", {
     day: "2-digit",
@@ -78,11 +177,16 @@ const formatDate = (value?: string | null): string => {
   });
 };
 
-const generateSlug = (name: string): string =>
+const generateSlug = (
+  name: string
+): string =>
   name
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
+    .replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )
     .replace(/^-+|-+$/g, "");
 
 // =====================================================
@@ -97,34 +201,66 @@ interface DeleteRoleModalProps {
   onConfirm: () => void;
 }
 
-const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
+const DeleteRoleModal: FC<
+  DeleteRoleModalProps
+> = ({
   open,
   loading,
   target,
   onClose,
   onConfirm,
 }) => {
-  if (!open || !target) return null;
+  if (!open || !target) {
+    return null;
+  }
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] bg-gradient-to-r from-[#4C8A57] to-[#C23B32]" />
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
+      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border bg-white shadow-2xl">
+        <div
+          className="h-[3px]"
+          style={{
+            background:
+              `linear-gradient(to right, ${ACCENT}, ${DANGER})`,
+          }}
+        />
 
         <div className="p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
+              style={{
+                backgroundColor:
+                  DANGER_BG,
+                color: DANGER,
+              }}
+            >
               <FiTrash2 size={21} />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#C23B32]">
+                  <p
+                    className="text-[9px] font-bold uppercase tracking-[0.18em]"
+                    style={{
+                      color: DANGER,
+                    }}
+                  >
                     Confirmation
                   </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-[#202721]">
+                  <h2
+                    className="mt-1 text-xl font-bold"
+                    style={{
+                      color:
+                        TEXT_PRIMARY,
+                    }}
+                  >
                     Delete Role
                   </h2>
                 </div>
@@ -133,29 +269,65 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
                   type="button"
                   onClick={onClose}
                   disabled={loading}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] disabled:opacity-40"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl transition disabled:opacity-40"
+                  style={{
+                    backgroundColor:
+                      PAGE_BG,
+                    color: PRIMARY,
+                  }}
                 >
                   <FiX size={17} />
                 </button>
               </div>
 
-              <p className="mt-2 text-sm leading-6 text-[#59645C]">
-                Are you sure you want to delete this role? This action cannot be
-                undone.
+              <p
+                className="mt-2 text-sm leading-6"
+                style={{
+                  color:
+                    TEXT_SECONDARY,
+                }}
+              >
+                Are you sure you want to
+                delete this role? This action
+                cannot be undone.
               </p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-4">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+          <div
+            className="mt-5 rounded-xl border p-4"
+            style={{
+              borderColor:
+                "rgba(30,58,138,0.10)",
+              backgroundColor:
+                PAGE_BG,
+            }}
+          >
+            <p
+              className="text-[9px] font-bold uppercase tracking-[0.14em]"
+              style={{
+                color: MUTED,
+              }}
+            >
               Selected Role
             </p>
 
-            <p className="mt-1.5 text-base font-bold text-[#202721]">
+            <p
+              className="mt-1.5 text-base font-bold"
+              style={{
+                color:
+                  TEXT_PRIMARY,
+              }}
+            >
               {target.name}
             </p>
 
-            <p className="mt-1 text-[10px] text-[#9AA29C]">
+            <p
+              className="mt-1 text-[10px]"
+              style={{
+                color: MUTED,
+              }}
+            >
               Role ID #{target.id}
             </p>
           </div>
@@ -165,7 +337,13 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="h-10 rounded-xl border border-[#163F20]/15 bg-white px-5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] disabled:opacity-50"
+              className="h-10 rounded-xl border bg-white px-5 text-sm font-bold transition disabled:opacity-50"
+              style={{
+                borderColor:
+                  BORDER,
+                color:
+                  TEXT_SECONDARY,
+              }}
             >
               Cancel
             </button>
@@ -174,14 +352,24 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
+              className="flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
+              style={{
+                background:
+                  `linear-gradient(135deg, ${DANGER}, #A62F27)`,
+              }}
             >
               {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
+                <FiRefreshCw
+                  size={15}
+                  className="animate-spin"
+                />
               ) : (
                 <FiTrash2 size={15} />
               )}
-              {loading ? "Deleting..." : "Delete Role"}
+
+              {loading
+                ? "Deleting..."
+                : "Delete Role"}
             </button>
           </div>
         </div>
@@ -200,7 +388,9 @@ interface RoleModalProps {
   editingRole: Role | null;
   permissions: Permission[];
   form: RoleFormState;
-  setForm: React.Dispatch<React.SetStateAction<RoleFormState>>;
+  setForm: React.Dispatch<
+    React.SetStateAction<RoleFormState>
+  >;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -215,32 +405,67 @@ const RoleModal: FC<RoleModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [selectedModule, setSelectedModule] = useState("");
+  const [selectedModule, setSelectedModule] =
+    useState("");
 
+  // ===================================================
   // MODULE LIST
+  // ===================================================
+
   const moduleList = useMemo(() => {
     return Array.from(
-      new Set(permissions.map((p) => p.module).filter(Boolean)),
-    ).sort((a, b) => a.localeCompare(b));
+      new Set(
+        permissions
+          .map((p) => p.module)
+          .filter(Boolean)
+      )
+    ).sort((a, b) =>
+      a.localeCompare(b)
+    );
   }, [permissions]);
 
-  // MODULE PERMISSIONS
-  const currentModulePermissions = useMemo(() => {
-    if (!selectedModule) return [];
-    return permissions.filter((p) => p.module === selectedModule);
-  }, [permissions, selectedModule]);
+  // ===================================================
+  // CURRENT MODULE PERMISSIONS
+  // ===================================================
 
-  const selectedCountInModule = currentModulePermissions.filter((p) =>
-    form.permissions.includes(p.id),
-  ).length;
+  const currentModulePermissions =
+    useMemo(() => {
+      if (!selectedModule) {
+        return [];
+      }
+
+      return permissions.filter(
+        (p) =>
+          p.module ===
+          selectedModule
+      );
+    }, [
+      permissions,
+      selectedModule,
+    ]);
+
+  const selectedCountInModule =
+    currentModulePermissions.filter(
+      (p) =>
+        form.permissions.includes(
+          p.id
+        )
+    ).length;
 
   const allCurrentModuleSelected =
-    currentModulePermissions.length > 0 &&
-    selectedCountInModule === currentModulePermissions.length;
+    currentModulePermissions.length >
+      0 &&
+    selectedCountInModule ===
+      currentModulePermissions.length;
 
+  // ===================================================
   // AUTO SELECT MODULE
+  // ===================================================
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
 
     if (moduleList.length === 0) {
       setSelectedModule("");
@@ -252,71 +477,162 @@ const RoleModal: FC<RoleModalProps> = ({
       editingRole.permissions &&
       editingRole.permissions.length
     ) {
-      const existingModule = moduleList.find((m) =>
-        editingRole.permissions?.some((p) => p.module === m),
+      const existingModule =
+        moduleList.find(
+          (module) =>
+            editingRole.permissions?.some(
+              (permission) =>
+                permission.module ===
+                module
+            )
+        );
+
+      setSelectedModule(
+        existingModule ||
+          moduleList[0]
       );
-      setSelectedModule(existingModule || moduleList[0]);
+
       return;
     }
 
-    setSelectedModule(moduleList[0]);
-  }, [open, editingRole, moduleList]);
+    setSelectedModule(
+      moduleList[0]
+    );
+  }, [
+    open,
+    editingRole,
+    moduleList,
+  ]);
 
+  // ===================================================
   // TOGGLE PERMISSION
-  const togglePermission = (permissionId: number) => {
+  // ===================================================
+
+  const togglePermission = (
+    permissionId: number
+  ) => {
     setForm((previous) => ({
       ...previous,
-      permissions: previous.permissions.includes(permissionId)
-        ? previous.permissions.filter((id) => id !== permissionId)
-        : [...previous.permissions, permissionId],
+
+      permissions:
+        previous.permissions.includes(
+          permissionId
+        )
+          ? previous.permissions.filter(
+              (id) =>
+                id !== permissionId
+            )
+          : [
+              ...previous.permissions,
+              permissionId,
+            ],
     }));
   };
 
+  // ===================================================
   // SELECT ALL
-  const toggleCurrentModule = () => {
-    if (!selectedModule) return;
+  // ===================================================
 
-    const moduleIds = currentModulePermissions.map((p) => p.id);
+  const toggleCurrentModule = () => {
+    if (!selectedModule) {
+      return;
+    }
+
+    const moduleIds =
+      currentModulePermissions.map(
+        (p) => p.id
+      );
 
     setForm((previous) => ({
       ...previous,
-      permissions: allCurrentModuleSelected
-        ? previous.permissions.filter((id) => !moduleIds.includes(id))
-        : Array.from(new Set([...previous.permissions, ...moduleIds])),
+
+      permissions:
+        allCurrentModuleSelected
+          ? previous.permissions.filter(
+              (id) =>
+                !moduleIds.includes(id)
+            )
+          : Array.from(
+              new Set([
+                ...previous.permissions,
+                ...moduleIds,
+              ])
+            ),
     }));
   };
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return (
     <GlobalModal
       isOpen={open}
       onClose={() => {
-        if (!loading) onClose();
+        if (!loading) {
+          onClose();
+        }
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[700px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_25px_70px_rgba(22,63,32,0.18)]">
+      <div className="w-full max-w-[700px] overflow-hidden rounded-[22px] border bg-white shadow-[0_25px_70px_rgba(30,58,138,0.18)]">
         {/* TOP ACCENT */}
-        <div className="h-[3px] bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+        <div
+          className="h-[3px]"
+          style={{
+            background:
+              `linear-gradient(to right, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+          }}
+        />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#163F20]/10 px-6 py-5">
+        <div
+          className="flex items-start justify-between gap-4 border-b px-6 py-5"
+          style={{
+            borderColor:
+              "rgba(30,58,138,0.10)",
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+            <div
+              className="flex h-11 w-11 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor:
+                  LIGHT_BLUE,
+                color: PRIMARY,
+              }}
+            >
               <FiShield size={20} />
             </div>
 
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#4C8A57]">
+              <p
+                className="text-[9px] font-bold uppercase tracking-[0.18em]"
+                style={{
+                  color: ACCENT,
+                }}
+              >
                 Access Control
               </p>
 
-              <h2 className="mt-1 text-[21px] font-bold text-[#202721]">
-                {editingRole ? "Edit Role" : "Create Role"}
+              <h2
+                className="mt-1 text-[21px] font-bold"
+                style={{
+                  color:
+                    TEXT_PRIMARY,
+                }}
+              >
+                {editingRole
+                  ? "Edit Role"
+                  : "Create Role"}
               </h2>
 
-              <p className="mt-0.5 text-xs text-[#9AA29C]">
+              <p
+                className="mt-0.5 text-xs"
+                style={{
+                  color: MUTED,
+                }}
+              >
                 {editingRole
                   ? "Update role details and permissions."
                   : "Create a role and assign required permissions."}
@@ -328,29 +644,64 @@ const RoleModal: FC<RoleModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-xl transition disabled:opacity-40"
+            style={{
+              backgroundColor:
+                PAGE_BG,
+              color: PRIMARY,
+            }}
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* BODY */}
-        <div className="max-h-[68vh] overflow-y-auto bg-[#F5F7F5] p-5">
+        <div
+          className="max-h-[68vh] overflow-y-auto p-5"
+          style={{
+            backgroundColor:
+              PAGE_BG,
+          }}
+        >
           <div className="space-y-4">
             {/* ROLE DETAILS */}
-            <div className="rounded-2xl border border-[#163F20]/10 bg-white p-5">
+            <div className="rounded-2xl border bg-white p-5"
+              style={{
+                borderColor:
+                  "rgba(30,58,138,0.10)",
+              }}
+            >
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{
+                    backgroundColor:
+                      LIGHT_BLUE,
+                    color: PRIMARY,
+                  }}
+                >
                   <FiShield size={16} />
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-[#202721]">
+                  <h3
+                    className="text-sm font-bold"
+                    style={{
+                      color:
+                        TEXT_PRIMARY,
+                    }}
+                  >
                     Role Information
                   </h3>
 
-                  <p className="mt-0.5 text-[10px] text-[#9AA29C]">
-                    Enter the basic information for this role.
+                  <p
+                    className="mt-0.5 text-[10px]"
+                    style={{
+                      color: MUTED,
+                    }}
+                  >
+                    Enter the basic information
+                    for this role.
                   </p>
                 </div>
               </div>
@@ -358,140 +709,312 @@ const RoleModal: FC<RoleModalProps> = ({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {/* NAME */}
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                  <label
+                    className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
+                    style={{
+                      color:
+                        TEXT_SECONDARY,
+                    }}
+                  >
                     Role Name *
                   </label>
 
                   <input
                     type="text"
                     value={form.name}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      const value = event.target.value;
+                    disabled={loading}
+                    onChange={(
+                      event: ChangeEvent<HTMLInputElement>
+                    ) => {
+                      const value =
+                        event.target
+                          .value;
 
-                      setForm((previous) => ({
-                        ...previous,
-                        name: value,
-                        slug:
-                          !previous.slug ||
-                          previous.slug === generateSlug(previous.name)
-                            ? generateSlug(value)
-                            : previous.slug,
-                      }));
+                      setForm(
+                        (previous) => ({
+                          ...previous,
+                          name: value,
+                          slug:
+                            !previous.slug ||
+                            previous.slug ===
+                              generateSlug(
+                                previous.name
+                              )
+                              ? generateSlug(
+                                  value
+                                )
+                              : previous.slug,
+                        })
+                      );
                     }}
                     placeholder="Order Manager"
-                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                    className="h-11 w-full rounded-xl px-4 text-sm outline-none placeholder:text-[#8C97B2] disabled:opacity-60"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor:
+                        loading
+                          ? "#EEF3FA"
+                          : PAGE_BG,
+                      color:
+                        TEXT_PRIMARY,
+                    }}
                   />
                 </div>
 
                 {/* SLUG */}
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                  <label
+                    className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
+                    style={{
+                      color:
+                        TEXT_SECONDARY,
+                    }}
+                  >
                     Role Slug *
                   </label>
 
                   <input
                     type="text"
                     value={form.slug}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setForm((previous) => ({
-                        ...previous,
-                        slug: event.target.value,
-                      }))
+                    disabled={loading}
+                    onChange={(
+                      event: ChangeEvent<HTMLInputElement>
+                    ) =>
+                      setForm(
+                        (previous) => ({
+                          ...previous,
+                          slug: event
+                            .target
+                            .value,
+                        })
+                      )
                     }
                     placeholder="order-manager"
-                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 font-mono text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                    className="h-11 w-full rounded-xl px-4 font-mono text-sm outline-none placeholder:text-[#8C97B2] disabled:opacity-60"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor:
+                        loading
+                          ? "#EEF3FA"
+                          : PAGE_BG,
+                      color:
+                        TEXT_PRIMARY,
+                    }}
                   />
                 </div>
               </div>
 
               {/* DESCRIPTION */}
               <div className="mt-4">
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                <label
+                  className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
                   Description
                 </label>
 
                 <textarea
                   rows={2}
-                  value={form.description}
+                  value={
+                    form.description
+                  }
+                  disabled={loading}
                   onChange={(event) =>
-                    setForm((previous) => ({
-                      ...previous,
-                      description: event.target.value,
-                    }))
+                    setForm(
+                      (previous) => ({
+                        ...previous,
+                        description:
+                          event.target
+                            .value,
+                      })
+                    )
                   }
                   placeholder="Role for managing orders"
-                  className="w-full resize-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 py-3 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                  className="w-full resize-none rounded-xl px-4 py-3 text-sm outline-none placeholder:text-[#8C97B2] disabled:opacity-60"
+                  style={{
+                    border: `1px solid ${BORDER}`,
+                    backgroundColor:
+                      loading
+                        ? "#EEF3FA"
+                        : PAGE_BG,
+                    color:
+                      TEXT_PRIMARY,
+                  }}
                 />
               </div>
             </div>
 
             {/* PERMISSIONS */}
-            <div className="overflow-hidden rounded-2xl border border-[#163F20]/10 bg-white">
+            <div
+              className="overflow-hidden rounded-2xl border bg-white"
+              style={{
+                borderColor:
+                  "rgba(30,58,138,0.10)",
+              }}
+            >
               {/* HEADER */}
-              <div className="border-b border-[#163F20]/10 px-5 py-4">
+              <div
+                className="border-b px-5 py-4"
+                style={{
+                  borderColor:
+                    "rgba(30,58,138,0.10)",
+                }}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-xl"
+                      style={{
+                        backgroundColor:
+                          LIGHT_BLUE,
+                        color:
+                          PRIMARY,
+                      }}
+                    >
                       <FiKey size={16} />
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-[#202721]">
+                      <h3
+                        className="text-sm font-bold"
+                        style={{
+                          color:
+                            TEXT_PRIMARY,
+                        }}
+                      >
                         Role Permissions
                       </h3>
 
-                      <p className="mt-0.5 text-[10px] text-[#9AA29C]">
-                        Select a module first, then assign its permissions.
+                      <p
+                        className="mt-0.5 text-[10px]"
+                        style={{
+                          color: MUTED,
+                        }}
+                      >
+                        Select a module first,
+                        then assign its
+                        permissions.
                       </p>
                     </div>
                   </div>
 
-                  <span className="rounded-full bg-[#EAF3EA] px-3 py-1.5 text-[10px] font-bold text-[#163F20]">
-                    {form.permissions.length} Selected
+                  <span
+                    className="rounded-full px-3 py-1.5 text-[10px] font-bold"
+                    style={{
+                      backgroundColor:
+                        LIGHT_BLUE,
+                      color: PRIMARY,
+                    }}
+                  >
+                    {
+                      form.permissions
+                        .length
+                    }{" "}
+                    Selected
                   </span>
                 </div>
               </div>
 
               {/* MODULE DROPDOWN */}
               <div className="px-5 pt-4">
-                <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+                <label
+                  className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
                   Select Module
                 </label>
 
                 <div className="relative">
                   <FiLayers
                     size={16}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                    className="absolute left-4 top-1/2 -translate-y-1/2"
+                    style={{
+                      color: PRIMARY,
+                    }}
                   />
 
                   <select
-                    value={selectedModule}
-                    onChange={(event) => setSelectedModule(event.target.value)}
-                    className="h-12 w-full appearance-none rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-11 text-sm font-semibold text-[#202721] outline-none transition focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                    value={
+                      selectedModule
+                    }
+                    onChange={(event) =>
+                      setSelectedModule(
+                        event.target
+                          .value
+                      )
+                    }
+                    disabled={loading}
+                    className="h-12 w-full appearance-none rounded-xl pl-11 pr-11 text-sm font-semibold outline-none disabled:opacity-60"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor:
+                        loading
+                          ? "#EEF3FA"
+                          : PAGE_BG,
+                      color:
+                        TEXT_PRIMARY,
+                    }}
                   >
-                    <option value="">Select a module...</option>
+                    <option value="">
+                      Select a module...
+                    </option>
 
-                    {moduleList.map((module) => {
-                      const modulePermissions = permissions.filter(
-                        (p) => p.module === module,
-                      );
+                    {moduleList.map(
+                      (module) => {
+                        const modulePermissions =
+                          permissions.filter(
+                            (p) =>
+                              p.module ===
+                              module
+                          );
 
-                      const selectedCount = modulePermissions.filter((p) =>
-                        form.permissions.includes(p.id),
-                      ).length;
+                        const selectedCount =
+                          modulePermissions.filter(
+                            (p) =>
+                              form.permissions.includes(
+                                p.id
+                              )
+                          ).length;
 
-                      return (
-                        <option key={module} value={module}>
-                          {formatModuleName(module)} — {selectedCount}/
-                          {modulePermissions.length} selected
-                        </option>
-                      );
-                    })}
+                        return (
+                          <option
+                            key={
+                              module
+                            }
+                            value={
+                              module
+                            }
+                          >
+                            {formatModuleName(
+                              module
+                            )}{" "}
+                            —{" "}
+                            {
+                              selectedCount
+                            }
+                            /
+                            {
+                              modulePermissions.length
+                            }{" "}
+                            selected
+                          </option>
+                        );
+                      }
+                    )}
                   </select>
 
                   <FiChevronDown
                     size={17}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2"
+                    style={{
+                      color: PRIMARY,
+                    }}
                   />
                 </div>
               </div>
@@ -499,37 +1022,100 @@ const RoleModal: FC<RoleModalProps> = ({
               {/* EMPTY */}
               {!selectedModule ? (
                 <div className="p-5">
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#D8E2D8] bg-[#F5F7F5] px-5 py-10 text-center">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#163F20] shadow-sm">
-                      <FiLayers size={20} />
+                  <div
+                    className="flex flex-col items-center justify-center rounded-xl border border-dashed px-5 py-10 text-center"
+                    style={{
+                      borderColor:
+                        BORDER,
+                      backgroundColor:
+                        PAGE_BG,
+                    }}
+                  >
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm"
+                      style={{
+                        color: PRIMARY,
+                      }}
+                    >
+                      <FiLayers
+                        size={20}
+                      />
                     </div>
 
-                    <p className="mt-4 text-sm font-bold text-[#202721]">
+                    <p
+                      className="mt-4 text-sm font-bold"
+                      style={{
+                        color:
+                          TEXT_PRIMARY,
+                      }}
+                    >
                       Select a module
                     </p>
 
-                    <p className="mt-1 max-w-[340px] text-[11px] leading-5 text-[#9AA29C]">
-                      Choose a module from the dropdown above to view all
+                    <p
+                      className="mt-1 max-w-[340px] text-[11px] leading-5"
+                      style={{
+                        color: MUTED,
+                      }}
+                    >
+                      Choose a module from the
+                      dropdown above to view all
                       available permissions.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 border-t border-[#163F20]/10">
+                <div
+                  className="mt-4 border-t"
+                  style={{
+                    borderColor:
+                      "rgba(30,58,138,0.10)",
+                  }}
+                >
                   {/* MODULE HEADER */}
-                  <div className="flex items-center justify-between gap-3 bg-[#F5F7F5] px-5 py-3.5">
+                  <div
+                    className="flex items-center justify-between gap-3 px-5 py-3.5"
+                    style={{
+                      backgroundColor:
+                        PAGE_BG,
+                    }}
+                  >
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-lg"
+                        style={{
+                          backgroundColor:
+                            LIGHT_BLUE,
+                          color: PRIMARY,
+                        }}
+                      >
                         <FiLayers size={14} />
                       </div>
 
                       <div>
-                        <p className="text-sm font-bold text-[#202721]">
-                          {formatModuleName(selectedModule)}
+                        <p
+                          className="text-sm font-bold"
+                          style={{
+                            color:
+                              TEXT_PRIMARY,
+                          }}
+                        >
+                          {formatModuleName(
+                            selectedModule
+                          )}
                         </p>
 
-                        <p className="mt-0.5 text-[9px] text-[#9AA29C]">
-                          {currentModulePermissions.length} permissions
+                        <p
+                          className="mt-0.5 text-[9px]"
+                          style={{
+                            color:
+                              MUTED,
+                          }}
+                        >
+                          {
+                            currentModulePermissions.length
+                          }{" "}
+                          permissions
                           available
                         </p>
                       </div>
@@ -537,89 +1123,188 @@ const RoleModal: FC<RoleModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={toggleCurrentModule}
-                      className="rounded-lg border border-[#163F20]/20 bg-white px-3 py-2 text-[10px] font-bold text-[#163F20] transition hover:bg-[#EAF3EA]"
+                      onClick={
+                        toggleCurrentModule
+                      }
+                      disabled={loading}
+                      className="rounded-lg border bg-white px-3 py-2 text-[10px] font-bold transition disabled:opacity-50"
+                      style={{
+                        borderColor:
+                          "rgba(30,58,138,0.20)",
+                        color: PRIMARY,
+                      }}
                     >
-                      {allCurrentModuleSelected ? "Unselect All" : "Select All"}
+                      {allCurrentModuleSelected
+                        ? "Unselect All"
+                        : "Select All"}
                     </button>
                   </div>
 
                   {/* CHECKBOX LIST */}
                   <div className="max-h-[300px] overflow-y-auto p-4">
                     <div className="space-y-2">
-                      {currentModulePermissions.map((permission) => {
-                        const checked = form.permissions.includes(
-                          permission.id,
-                        );
+                      {currentModulePermissions.map(
+                        (permission) => {
+                          const checked =
+                            form.permissions.includes(
+                              permission.id
+                            );
 
-                        return (
-                          <label
-                            key={permission.id}
-                            className={`flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition ${
-                              checked
-                                ? "border-[#163F20]/35 bg-[#EAF3EA]"
-                                : "border-[#D8E2D8] bg-white hover:border-[#163F20]/25 hover:bg-[#FAFBFA]"
-                            }`}
-                          >
-                            <div className="flex min-w-0 items-center gap-3">
-                              <div
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          return (
+                            <label
+                              key={
+                                permission.id
+                              }
+                              className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition"
+                              style={{
+                                borderColor:
                                   checked
-                                    ? "border-[#163F20] bg-[#163F20] text-white"
-                                    : "border-[#D8E2D8] bg-white text-transparent"
-                                }`}
-                              >
-                                {checked && <FiCheck size={12} />}
-                              </div>
-
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-[#202721]">
-                                  {permission.name}
-                                </p>
-
-                                <p className="mt-1 truncate font-mono text-[10px] text-[#9AA29C]">
-                                  {permission.slug}
-                                </p>
-                              </div>
-                            </div>
-
-                            <span
-                              className={`shrink-0 rounded-full px-3 py-1.5 text-[9px] font-bold ${
-                                checked
-                                  ? "bg-[#163F20]/10 text-[#163F20]"
-                                  : "bg-[#F3F6F3] text-[#59645C]"
-                              }`}
+                                    ? "rgba(37,99,235,0.30)"
+                                    : BORDER,
+                                backgroundColor:
+                                  checked
+                                    ? LIGHT_BLUE
+                                    : WHITE,
+                              }}
                             >
-                              {formatActionName(permission.action)}
-                            </span>
+                              <div className="flex min-w-0 items-center gap-3">
+                                <div
+                                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border"
+                                  style={{
+                                    borderColor:
+                                      checked
+                                        ? PRIMARY
+                                        : BORDER,
+                                    backgroundColor:
+                                      checked
+                                        ? PRIMARY
+                                        : WHITE,
+                                    color:
+                                      WHITE,
+                                  }}
+                                >
+                                  {checked && (
+                                    <FiCheck
+                                      size={
+                                        12
+                                      }
+                                    />
+                                  )}
+                                </div>
 
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => togglePermission(permission.id)}
-                              className="sr-only"
-                            />
-                          </label>
-                        );
-                      })}
+                                <div className="min-w-0">
+                                  <p
+                                    className="text-sm font-semibold"
+                                    style={{
+                                      color:
+                                        TEXT_PRIMARY,
+                                    }}
+                                  >
+                                    {
+                                      permission.name
+                                    }
+                                  </p>
+
+                                  <p
+                                    className="mt-1 truncate font-mono text-[10px]"
+                                    style={{
+                                      color:
+                                        MUTED,
+                                    }}
+                                  >
+                                    {
+                                      permission.slug
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span
+                                className="shrink-0 rounded-full px-3 py-1.5 text-[9px] font-bold"
+                                style={{
+                                  backgroundColor:
+                                    checked
+                                      ? SOFT_BLUE
+                                      : "#F3F6FB",
+                                  color:
+                                    checked
+                                      ? PRIMARY
+                                      : TEXT_SECONDARY,
+                                }}
+                              >
+                                {formatActionName(
+                                  permission.action
+                                )}
+                              </span>
+
+                              <input
+                                type="checkbox"
+                                checked={
+                                  checked
+                                }
+                                onChange={() =>
+                                  togglePermission(
+                                    permission.id
+                                  )
+                                }
+                                className="sr-only"
+                                disabled={
+                                  loading
+                                }
+                              />
+                            </label>
+                          );
+                        }
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
               {/* SUMMARY */}
-              <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-3">
+              <div
+                className="border-t px-5 py-3"
+                style={{
+                  borderColor:
+                    "rgba(30,58,138,0.10)",
+                  backgroundColor:
+                    "#FAFBFE",
+                }}
+              >
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#9AA29C]">
+                  <span
+                    className="text-[9px] font-bold uppercase tracking-wider"
+                    style={{
+                      color: MUTED,
+                    }}
+                  >
                     Selected Permissions
                   </span>
 
-                  {form.permissions.length > 0 ? (
-                    <span className="rounded-full bg-[#EAF3EA] px-3 py-1 text-[9px] font-bold text-[#163F20]">
-                      {form.permissions.length} permissions selected
+                  {form.permissions
+                    .length > 0 ? (
+                    <span
+                      className="rounded-full px-3 py-1 text-[9px] font-bold"
+                      style={{
+                        backgroundColor:
+                          LIGHT_BLUE,
+                        color: PRIMARY,
+                      }}
+                    >
+                      {
+                        form
+                          .permissions
+                          .length
+                      }{" "}
+                      permissions selected
                     </span>
                   ) : (
-                    <span className="text-[9px] text-[#9AA29C]">
+                    <span
+                      className="text-[9px]"
+                      style={{
+                        color: MUTED,
+                      }}
+                    >
                       None selected
                     </span>
                   )}
@@ -630,12 +1315,23 @@ const RoleModal: FC<RoleModalProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-white px-6 py-4">
+        <div
+          className="flex justify-end gap-2 border-t bg-white px-6 py-4"
+          style={{
+            borderColor:
+              "rgba(30,58,138,0.10)",
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="h-10 rounded-xl border border-[#163F20]/15 bg-white px-5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] disabled:opacity-50"
+            className="h-10 rounded-xl border bg-white px-5 text-sm font-bold transition disabled:opacity-50"
+            style={{
+              borderColor: BORDER,
+              color:
+                TEXT_SECONDARY,
+            }}
           >
             Cancel
           </button>
@@ -644,10 +1340,17 @@ const RoleModal: FC<RoleModalProps> = ({
             type="button"
             onClick={onSubmit}
             disabled={loading}
-            className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
+            className="flex h-10 items-center gap-2 rounded-xl px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
+            style={{
+              background:
+                `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+            }}
           >
             {loading ? (
-              <FiRefreshCw size={14} className="animate-spin" />
+              <FiRefreshCw
+                size={14}
+                className="animate-spin"
+              />
             ) : (
               <FiCheck size={14} />
             )}
@@ -671,87 +1374,355 @@ const RoleModal: FC<RoleModalProps> = ({
 // =====================================================
 
 const RoleManagement: FC = () => {
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroups>(
-    {},
+  // ===================================================
+  // PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  const hasAnyPermission =
+    useCallback(
+      (permissionKeys: string[]) =>
+        permissionKeys.some(
+          (permission) =>
+            hasPermission(permission)
+        ),
+      [hasPermission]
+    );
+
+  const canViewRoles = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess(
+        "Role Management"
+      ) ||
+      hasModuleAccess("Role") ||
+      hasModuleAccess("Roles") ||
+      hasModuleAccess(
+        "role_management"
+      ) ||
+      hasModuleAccess("role") ||
+      hasModuleAccess("roles") ||
+      hasAnyPermission(
+        VIEW_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasModuleAccess,
+      hasAnyPermission,
+    ]
   );
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [permissionFilter, setPermissionFilter] = useState<
+
+  const canCreateRole = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasAnyPermission(
+        CREATE_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasAnyPermission,
+    ]
+  );
+
+  const canUpdateRole = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasAnyPermission(
+        UPDATE_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasAnyPermission,
+    ]
+  );
+
+  const canDeleteRole = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasAnyPermission(
+        DELETE_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasAnyPermission,
+    ]
+  );
+
+  const canViewPermissions =
+    useMemo(
+      () =>
+        isSuperAdmin ||
+        hasAnyPermission(
+          PERMISSION_VIEW_KEYS
+        ) ||
+        canViewRoles,
+      [
+        isSuperAdmin,
+        hasAnyPermission,
+        canViewRoles,
+      ]
+    );
+
+  // ===================================================
+  // STATES
+  // ===================================================
+
+  const [roles, setRoles] =
+    useState<Role[]>([]);
+
+  const [permissions, setPermissions] =
+    useState<Permission[]>([]);
+
+  const [
+    permissionGroups,
+    setPermissionGroups,
+  ] = useState<PermissionGroups>(
+    {}
+  );
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [actionLoading, setActionLoading] =
+    useState(false);
+
+  const [deleteLoading, setDeleteLoading] =
+    useState(false);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [
+    permissionFilter,
+    setPermissionFilter,
+  ] = useState<
     "all" | "assigned" | "empty"
   >("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [roleModalOpen, setRoleModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [roleForm, setRoleForm] = useState<RoleFormState>({
-    name: "",
-    slug: "",
-    description: "",
-    permissions: [],
-  });
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
+  const [roleModalOpen, setRoleModalOpen] =
+    useState(false);
+
+  const [editingRole, setEditingRole] =
+    useState<Role | null>(null);
+
+  const [
+    deleteModalOpen,
+    setDeleteModalOpen,
+  ] = useState(false);
+
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState<DeleteTarget | null>(
+    null
+  );
+
+  const [roleForm, setRoleForm] =
+    useState<RoleFormState>({
+      name: "",
+      slug: "",
+      description: "",
+      permissions: [],
+    });
 
   const ITEMS_PER_PAGE = 10;
+
+  // ===================================================
+  // FETCH PROTECTION
+  // ===================================================
+
+  const fetchInFlightRef =
+    useRef<Promise<void> | null>(
+      null
+    );
+
+  const hasInitialFetchRef =
+    useRef(false);
 
   // ===================================================
   // FETCH ALL
   // ===================================================
 
-  const fetchAll = async () => {
-    try {
-      setLoading(true);
+  const fetchAll = useCallback(
+    async (force = false) => {
+      if (!canViewRoles) {
+        return;
+      }
 
-      const [rolesResponse, permissionsResponse] = await Promise.all([
-        adminManagementApi.getRoles(),
-        adminManagementApi.getPermissions(),
-      ]);
+      if (fetchInFlightRef.current) {
+        return fetchInFlightRef.current;
+      }
 
-      // ROLES
-      const rawRoles = rolesResponse.data;
-      const rolesData = Array.isArray(rawRoles)
-        ? rawRoles
-        : rawRoles &&
-            typeof rawRoles === "object" &&
-            "data" in rawRoles &&
-            Array.isArray(rawRoles.data)
-          ? rawRoles.data
-          : [];
+      if (
+        !force &&
+        hasInitialFetchRef.current
+      ) {
+        return;
+      }
 
-      // PERMISSIONS
-      const permissionResponseData = permissionsResponse.data;
-      const groups: PermissionGroups = permissionResponseData?.data || {};
+      const requestPromise =
+        (async () => {
+          try {
+            setLoading(true);
 
-      setPermissionGroups(groups);
+            const requests =
+              [
+                adminManagementApi.getRoles(),
+              ];
 
-      const flattenedPermissions = Object.values(groups).flat();
-      setPermissions(flattenedPermissions);
-      setRoles(rolesData);
-    } catch (error: any) {
-      console.error("Role management fetch error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Unable to load roles and permissions.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+            if (
+              canViewPermissions
+            ) {
+              requests.push(
+                adminManagementApi.getPermissions()
+              );
+            }
+
+            const responses =
+              await Promise.all(
+                requests
+              );
+
+            // ------------------------------------------------
+            // ROLES
+            // ------------------------------------------------
+
+            const rolesResponse =
+              responses[0];
+
+            const rawRoles =
+              rolesResponse.data;
+
+            const rolesData =
+              Array.isArray(rawRoles)
+                ? rawRoles
+                : rawRoles &&
+                    typeof rawRoles ===
+                      "object" &&
+                    "data" in
+                      rawRoles &&
+                    Array.isArray(
+                      (
+                        rawRoles as {
+                          data?: unknown;
+                        }
+                      ).data
+                    )
+                  ? (
+                      rawRoles as {
+                        data: Role[];
+                      }
+                    ).data
+                  : [];
+
+            setRoles(
+              rolesData
+            );
+
+            // ------------------------------------------------
+            // PERMISSIONS
+            // ------------------------------------------------
+
+            if (
+              canViewPermissions &&
+              responses[1]
+            ) {
+              const permissionsResponse =
+                responses[1];
+
+              const permissionResponseData =
+                permissionsResponse
+                  .data;
+
+              const groups: PermissionGroups =
+                permissionResponseData?.data ||
+                {};
+
+              setPermissionGroups(
+                groups
+              );
+
+              const flattenedPermissions =
+                Object.values(
+                  groups
+                ).flat();
+
+              setPermissions(
+                flattenedPermissions
+              );
+            }
+
+            hasInitialFetchRef.current =
+              true;
+          } catch (error: any) {
+            console.error(
+              "Role management fetch error:",
+              error
+            );
+
+            toast.error(
+              error?.response
+                ?.data?.message ||
+                "Unable to load roles and permissions."
+            );
+          } finally {
+            setLoading(false);
+          }
+        })();
+
+      fetchInFlightRef.current =
+        requestPromise;
+
+      try {
+        await requestPromise;
+      } finally {
+        fetchInFlightRef.current =
+          null;
+      }
+    },
+    [
+      canViewRoles,
+      canViewPermissions,
+    ]
+  );
+
+  // ===================================================
+  // INITIAL LOAD
+  // ===================================================
 
   useEffect(() => {
-    fetchAll();
-  }, []);
+    if (
+      !permissionsLoading &&
+      canViewRoles &&
+      !hasInitialFetchRef.current
+    ) {
+      fetchAll();
+    }
+  }, [
+    permissionsLoading,
+    canViewRoles,
+    fetchAll,
+  ]);
 
   // ===================================================
   // MODULE COUNT
   // ===================================================
 
   const moduleCount = useMemo(
-    () => Object.keys(permissionGroups).length,
-    [permissionGroups],
+    () =>
+      Object.keys(
+        permissionGroups
+      ).length,
+    [permissionGroups]
   );
 
   // ===================================================
@@ -759,28 +1730,46 @@ const RoleManagement: FC = () => {
   // ===================================================
 
   const filteredRoles = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
     return roles.filter((role) => {
-      const permissionCount = role.permissions?.length || 0;
+      const permissionCount =
+        role.permissions?.length ||
+        0;
 
       const matchesSearch =
         !query ||
-        [role.name, role.slug, role.description || ""]
+        [
+          role.name,
+          role.slug,
+          role.description || "",
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query);
 
       const matchesPermission =
-        permissionFilter === "all"
+        permissionFilter ===
+        "all"
           ? true
-          : permissionFilter === "assigned"
-            ? permissionCount > 0
-            : permissionCount === 0;
+          : permissionFilter ===
+              "assigned"
+            ? permissionCount >
+              0
+            : permissionCount ===
+              0;
 
-      return matchesSearch && matchesPermission;
+      return (
+        matchesSearch &&
+        matchesPermission
+      );
     });
-  }, [roles, search, permissionFilter]);
+  }, [
+    roles,
+    search,
+    permissionFilter,
+  ]);
 
   // ===================================================
   // PAGINATION
@@ -788,56 +1777,125 @@ const RoleManagement: FC = () => {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredRoles.length / ITEMS_PER_PAGE),
+    Math.ceil(
+      filteredRoles.length /
+        ITEMS_PER_PAGE
+    )
   );
 
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedRoles = filteredRoles.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
+  const startIndex =
+    (currentPage - 1) *
+    ITEMS_PER_PAGE;
+
+  const paginatedRoles =
+    filteredRoles.slice(
+      startIndex,
+      startIndex +
+        ITEMS_PER_PAGE
+    );
+
+  const startEntry =
+    filteredRoles.length === 0
+      ? 0
+      : startIndex + 1;
+
+  const endEntry = Math.min(
+    startIndex +
+      ITEMS_PER_PAGE,
+    filteredRoles.length
   );
-  const startEntry = filteredRoles.length === 0 ? 0 : startIndex + 1;
-  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredRoles.length);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, permissionFilter]);
+  }, [
+    search,
+    permissionFilter,
+  ]);
 
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
+    if (
+      currentPage > totalPages
+    ) {
+      setCurrentPage(
+        totalPages
+      );
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
 
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5)
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const paginationPages =
+    useMemo(() => {
+      if (totalPages <= 5) {
+        return Array.from(
+          {
+            length: totalPages,
+          },
+          (_, index) =>
+            index + 1
+        );
+      }
 
-    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+      if (currentPage <= 3) {
+        return [
+          1, 2, 3, 4, 5,
+        ];
+      }
 
-    if (currentPage >= totalPages - 2)
+      if (
+        currentPage >=
+        totalPages - 2
+      ) {
+        return [
+          totalPages - 4,
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        ];
+      }
+
       return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
+        currentPage - 2,
+        currentPage - 1,
+        currentPage,
+        currentPage + 1,
+        currentPage + 2,
       ];
-
-    return [
-      currentPage - 2,
-      currentPage - 1,
+    }, [
       currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
-  }, [currentPage, totalPages]);
+      totalPages,
+    ]);
 
   // ===================================================
   // CREATE
   // ===================================================
 
   const openCreateRole = () => {
+    if (!canCreateRole) {
+      toast.error(
+        "You do not have permission to create roles."
+      );
+      return;
+    }
+
+    if (!canViewPermissions) {
+      toast.error(
+        "You do not have permission to view role permissions."
+      );
+      return;
+    }
+
     setEditingRole(null);
-    setRoleForm({ name: "", slug: "", description: "", permissions: [] });
+
+    setRoleForm({
+      name: "",
+      slug: "",
+      description: "",
+      permissions: [],
+    });
+
     setRoleModalOpen(true);
   };
 
@@ -845,14 +1903,34 @@ const RoleManagement: FC = () => {
   // EDIT
   // ===================================================
 
-  const openEditRole = (role: Role) => {
+  const openEditRole = (
+    role: Role
+  ) => {
+    if (!canUpdateRole) {
+      toast.error(
+        "You do not have permission to update roles."
+      );
+      return;
+    }
+
+    if (!canViewPermissions) {
+      toast.error(
+        "You do not have permission to view role permissions."
+      );
+      return;
+    }
+
     setEditingRole(role);
 
     setRoleForm({
       name: role.name || "",
       slug: role.slug || "",
-      description: role.description || "",
-      permissions: role.permissions?.map((p) => p.id) || [],
+      description:
+        role.description || "",
+      permissions:
+        role.permissions?.map(
+          (p) => p.id
+        ) || [],
     });
 
     setRoleModalOpen(true);
@@ -862,97 +1940,273 @@ const RoleManagement: FC = () => {
   // SUBMIT
   // ===================================================
 
-  const handleSubmitRole = async () => {
-    if (!roleForm.name.trim()) {
-      toast.error("Please enter role name.");
-      return;
-    }
+  const handleSubmitRole =
+    async () => {
+      const hasSavePermission =
+        editingRole
+          ? canUpdateRole
+          : canCreateRole;
 
-    const slug = roleForm.slug.trim() || generateSlug(roleForm.name);
-
-    try {
-      setActionLoading(true);
-
-      const payload: RolePayload = {
-        name: roleForm.name.trim(),
-        slug,
-        description: roleForm.description.trim(),
-        permissions: roleForm.permissions,
-      };
-
-      if (editingRole) {
-        const response = await adminManagementApi.updateRole(
-          editingRole.id,
-          payload,
+      if (!hasSavePermission) {
+        toast.error(
+          editingRole
+            ? "You do not have permission to update roles."
+            : "You do not have permission to create roles."
         );
-
-        toast.success(response.data?.message || "Role updated successfully.");
-      } else {
-        const response = await adminManagementApi.createRole(payload);
-
-        toast.success(response.data?.message || "Role created successfully.");
+        return;
       }
 
-      setRoleModalOpen(false);
-      setEditingRole(null);
-      setRoleForm({ name: "", slug: "", description: "", permissions: [] });
+      if (!roleForm.name.trim()) {
+        toast.error(
+          "Please enter role name."
+        );
+        return;
+      }
 
-      await fetchAll();
-    } catch (error: any) {
-      console.error("Save role error:", error);
-      toast.error(error?.response?.data?.message || "Unable to save role.");
-    } finally {
-      setActionLoading(false);
-    }
-  };
+      if (
+        !canViewPermissions
+      ) {
+        toast.error(
+          "You do not have permission to manage role permissions."
+        );
+        return;
+      }
+
+      const slug =
+        roleForm.slug.trim() ||
+        generateSlug(
+          roleForm.name
+        );
+
+      try {
+        setActionLoading(true);
+
+        const payload: RolePayload =
+          {
+            name:
+              roleForm.name.trim(),
+            slug,
+            description:
+              roleForm.description.trim(),
+            permissions:
+              roleForm.permissions,
+          };
+
+        if (editingRole) {
+          const response =
+            await adminManagementApi.updateRole(
+              editingRole.id,
+              payload
+            );
+
+          toast.success(
+            response.data
+              ?.message ||
+              "Role updated successfully."
+          );
+        } else {
+          const response =
+            await adminManagementApi.createRole(
+              payload
+            );
+
+          toast.success(
+            response.data
+              ?.message ||
+              "Role created successfully."
+          );
+        }
+
+        setRoleModalOpen(false);
+        setEditingRole(null);
+
+        setRoleForm({
+          name: "",
+          slug: "",
+          description: "",
+          permissions: [],
+        });
+
+        await fetchAll(true);
+      } catch (error: any) {
+        console.error(
+          "Save role error:",
+          error
+        );
+
+        toast.error(
+          error?.response
+            ?.data?.message ||
+            "Unable to save role."
+        );
+      } finally {
+        setActionLoading(false);
+      }
+    };
 
   // ===================================================
   // DELETE
   // ===================================================
 
-  const openDeleteRole = (role: Role) => {
-    setDeleteTarget({ id: role.id, name: role.name });
+  const openDeleteRole = (
+    role: Role
+  ) => {
+    if (!canDeleteRole) {
+      toast.error(
+        "You do not have permission to delete roles."
+      );
+      return;
+    }
+
+    setDeleteTarget({
+      id: role.id,
+      name: role.name,
+    });
+
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteRole = async () => {
-    if (!deleteTarget) return;
+  const handleDeleteRole =
+    async () => {
+      if (!deleteTarget) {
+        return;
+      }
 
-    try {
-      setDeleteLoading(true);
+      if (!canDeleteRole) {
+        toast.error(
+          "You do not have permission to delete roles."
+        );
+        return;
+      }
 
-      const response = await adminManagementApi.deleteRole(deleteTarget.id);
+      try {
+        setDeleteLoading(true);
 
-      toast.success(response.data?.message || "Role deleted successfully.");
+        const response =
+          await adminManagementApi.deleteRole(
+            deleteTarget.id
+          );
 
-      setDeleteModalOpen(false);
-      setDeleteTarget(null);
-      await fetchAll();
-    } catch (error: any) {
-      console.error("Delete role error:", error);
-      toast.error(error?.response?.data?.message || "Unable to delete role.");
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
+        toast.success(
+          response.data
+            ?.message ||
+            "Role deleted successfully."
+        );
+
+        setDeleteModalOpen(
+          false
+        );
+
+        setDeleteTarget(null);
+
+        await fetchAll(true);
+      } catch (error: any) {
+        console.error(
+          "Delete role error:",
+          error
+        );
+
+        toast.error(
+          error?.response
+            ?.data?.message ||
+            "Unable to delete role."
+        );
+      } finally {
+        setDeleteLoading(false);
+      }
+    };
 
   // ===================================================
-  // LOADING
+  // PERMISSION LOADING
   // ===================================================
 
-  if (loading && roles.length === 0) {
+  if (permissionsLoading) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center bg-[#F5F7F5]">
+      <div
+        className="flex min-h-[500px] items-center justify-center p-6 font-poppins"
+        style={{
+          backgroundColor:
+            PAGE_BG,
+        }}
+      >
         <div className="flex flex-col items-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
-            <FiRefreshCw size={23} className="animate-spin" />
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
+            style={{
+              color: PRIMARY,
+            }}
+          >
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
           </div>
 
-          <p className="mt-4 text-base font-bold text-[#202721]">
+          <p
+            className="mt-4 text-sm font-bold"
+            style={{
+              color:
+                TEXT_PRIMARY,
+            }}
+          >
+            Checking permissions...
+          </p>
+
+          <p
+            className="mt-1 text-[10px]"
+            style={{
+              color: MUTED,
+            }}
+          >
+            Verifying role management access.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (
+    loading &&
+    roles.length === 0
+  ) {
+    return (
+      <div
+        className="flex min-h-[500px] items-center justify-center p-6 font-poppins"
+        style={{
+          backgroundColor:
+            PAGE_BG,
+        }}
+      >
+        <div className="flex flex-col items-center">
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
+            style={{
+              color: PRIMARY,
+            }}
+          >
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
+          </div>
+
+          <p
+            className="mt-4 text-sm font-bold"
+            style={{
+              color:
+                TEXT_PRIMARY,
+            }}
+          >
             Loading roles...
           </p>
 
-          <p className="mt-1 text-xs text-[#9AA29C]">
+          <p
+            className="mt-1 text-[10px]"
+            style={{
+              color: MUTED,
+            }}
+          >
             Fetching roles and permissions.
           </p>
         </div>
@@ -967,129 +2221,295 @@ const RoleManagement: FC = () => {
   return (
     <>
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+        initial={{
+          opacity: 0,
+        }}
+        animate={{
+          opacity: 1,
+        }}
+        className="min-h-screen p-4 font-poppins sm:p-5 lg:p-6"
+        style={{
+          backgroundColor:
+            PAGE_BG,
+        }}
       >
         {/* HEADER */}
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-[#163F20]" />
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor:
+                    PRIMARY,
+                }}
+              />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4C8A57]">
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.2em]"
+                style={{
+                  color: ACCENT,
+                }}
+              >
                 Access Control
               </span>
             </div>
 
-            <h1 className="text-[30px] font-bold tracking-tight text-[#202721] sm:text-[34px]">
+            <h1
+              className="text-[30px] font-bold tracking-tight sm:text-[34px]"
+              style={{
+                color:
+                  TEXT_PRIMARY,
+              }}
+            >
               Role Management
             </h1>
 
-            <p className="mt-1.5 text-sm text-[#59645C]">
-              Create roles and manage module-based permissions for admin access.
+            <p
+              className="mt-1.5 text-sm"
+              style={{
+                color:
+                  TEXT_SECONDARY,
+              }}
+            >
+              Create roles and manage module-based
+              permissions for admin access.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* REFRESH */}
             <button
               type="button"
-              onClick={fetchAll}
+              onClick={() =>
+                fetchAll(true)
+              }
               disabled={loading}
-              className="flex h-11 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-5 text-sm font-bold text-[#163F20] shadow-sm transition hover:bg-[#EAF3EA] disabled:opacity-50"
+              className="flex h-11 items-center gap-2 rounded-xl border bg-white px-5 text-sm font-bold shadow-sm transition disabled:opacity-50"
+              style={{
+                borderColor: BORDER,
+                color: PRIMARY,
+              }}
             >
               <FiRefreshCw
                 size={16}
-                className={loading ? "animate-spin" : ""}
+                className={
+                  loading
+                    ? "animate-spin"
+                    : ""
+                }
               />
+
               Refresh
             </button>
 
-            <button
-              type="button"
-              onClick={openCreateRole}
-              className="flex h-11 items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-            >
-              <FiPlus size={17} />
-              Add Role
-            </button>
+            {/* CREATE */}
+            {canCreateRole && (
+              <button
+                type="button"
+                onClick={
+                  openCreateRole
+                }
+                className="flex h-11 items-center gap-2 rounded-xl px-6 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5"
+                style={{
+                  background:
+                    `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+                }}
+              >
+                <FiPlus size={17} />
+                Add Role
+              </button>
+            )}
           </div>
         </div>
 
         {/* MAIN TABLE */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+          initial={{
+            opacity: 0,
+            y: 10,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          className="relative overflow-hidden rounded-[22px] border bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+          style={{
+            borderColor:
+              "#E0E7F2",
+          }}
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          <div
+            className="absolute left-0 right-0 top-0 h-[3px]"
+            style={{
+              background:
+                `linear-gradient(to right, #6EA0FF, ${PRIMARY}, ${DARK_PRIMARY})`,
+            }}
+          />
 
           {/* SEARCH / FILTER */}
-          <div className="border-b border-[#163F20]/10 p-5">
+          <div
+            className="border-b p-5"
+            style={{
+              borderColor:
+                "rgba(30,58,138,0.10)",
+            }}
+          >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[500px]">
                 <FiSearch
                   size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2"
+                  style={{
+                    color: PRIMARY,
+                  }}
                 />
 
                 <input
                   type="text"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) =>
+                    setSearch(
+                      event.target
+                        .value
+                    )
+                  }
                   placeholder="Search role, slug or description..."
-                  className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-sm text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                  className="h-12 w-full rounded-xl pl-11 pr-4 text-sm outline-none placeholder:text-[#8C97B2]"
+                  style={{
+                    border:
+                      `1px solid ${BORDER}`,
+                    backgroundColor:
+                      PAGE_BG,
+                    color:
+                      TEXT_PRIMARY,
+                  }}
                 />
               </div>
 
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: "all" as const, label: "All" },
-                  { key: "assigned" as const, label: "Assigned" },
-                  { key: "empty" as const, label: "No Permissions" },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setPermissionFilter(item.key)}
-                    className={`rounded-xl px-5 py-2.5 text-xs font-bold transition ${
-                      permissionFilter === item.key
-                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                        : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                  {
+                    key: "all" as const,
+                    label: "All",
+                  },
+                  {
+                    key: "assigned" as const,
+                    label: "Assigned",
+                  },
+                  {
+                    key: "empty" as const,
+                    label: "No Permissions",
+                  },
+                ].map(
+                  (item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() =>
+                        setPermissionFilter(
+                          item.key
+                        )
+                      }
+                      className="rounded-xl px-5 py-2.5 text-xs font-bold transition"
+                      style={{
+                        background:
+                          permissionFilter ===
+                          item.key
+                            ? `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`
+                            : PAGE_BG,
+                        color:
+                          permissionFilter ===
+                          item.key
+                            ? WHITE
+                            : TEXT_SECONDARY,
+                        border:
+                          permissionFilter ===
+                          item.key
+                            ? "none"
+                            : `1px solid ${BORDER}`,
+                        boxShadow:
+                          permissionFilter ===
+                          item.key
+                            ? "0 6px 14px -6px rgba(30,58,138,0.5)"
+                            : "none",
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  )
+                )}
               </div>
             </div>
           </div>
 
           {/* DIRECTORY HEADER */}
-          <div className="flex flex-col justify-between gap-3 border-b border-[#163F20]/10 px-5 py-4 sm:flex-row sm:items-center">
+          <div
+            className="flex flex-col justify-between gap-3 border-b px-5 py-4 sm:flex-row sm:items-center"
+            style={{
+              borderColor:
+                "rgba(30,58,138,0.10)",
+            }}
+          >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor:
+                    LIGHT_BLUE,
+                  color: PRIMARY,
+                }}
+              >
                 <FiShield size={18} />
               </div>
 
               <div>
-                <h2 className="text-base font-bold text-[#202721]">
+                <h2
+                  className="text-base font-bold"
+                  style={{
+                    color:
+                      TEXT_PRIMARY,
+                  }}
+                >
                   Roles Directory
                 </h2>
 
-                <p className="mt-1 text-xs text-[#9AA29C]">
+                <p
+                  className="mt-1 text-xs"
+                  style={{
+                    color: MUTED,
+                  }}
+                >
                   {filteredRoles.length} role
-                  {filteredRoles.length === 1 ? "" : "s"} found
+                  {filteredRoles.length ===
+                  1
+                    ? ""
+                    : "s"}{" "}
+                  found
                 </p>
               </div>
             </div>
 
             <div className="flex gap-2">
-              <span className="rounded-lg bg-[#F5F7F5] px-3 py-2 text-[10px] font-bold text-[#163F20]">
+              <span
+                className="rounded-lg px-3 py-2 text-[10px] font-bold"
+                style={{
+                  backgroundColor:
+                    PAGE_BG,
+                  color: PRIMARY,
+                }}
+              >
                 {moduleCount} Modules
               </span>
 
-              <span className="rounded-lg bg-[#EAF3EA] px-3 py-2 text-[10px] font-bold text-[#163F20]">
+              <span
+                className="rounded-lg px-3 py-2 text-[10px] font-bold"
+                style={{
+                  backgroundColor:
+                    LIGHT_BLUE,
+                  color: PRIMARY,
+                }}
+              >
                 {permissions.length} Permissions
               </span>
             </div>
@@ -1099,148 +2519,317 @@ const RoleManagement: FC = () => {
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1050px] border-collapse">
               <thead>
-                <tr className="bg-[#163F20]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+                <tr
+                  style={{
+                    backgroundColor:
+                      PRIMARY,
+                  }}
+                >
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     S.No.
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Role
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Slug
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Description
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Permissions
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Updated
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF3EA]">
+
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
                     Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {loading ? (
+                {paginatedRoles.length ===
+                0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center">
-                      <FiRefreshCw
-                        size={26}
-                        className="mx-auto animate-spin text-[#163F20]"
-                      />
-
-                      <p className="mt-4 text-sm font-bold text-[#202721]">
-                        Loading roles...
-                      </p>
-                    </td>
-                  </tr>
-                ) : paginatedRoles.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center">
+                    <td
+                      colSpan={7}
+                      className="px-5 py-16 text-center"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
-                          <FiShield size={25} />
+                        <div
+                          className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                          style={{
+                            backgroundColor:
+                              LIGHT_BLUE,
+                            color: PRIMARY,
+                          }}
+                        >
+                          <FiShield
+                            size={25}
+                          />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#202721]">
+                        <p
+                          className="mt-4 text-sm font-bold"
+                          style={{
+                            color:
+                              TEXT_PRIMARY,
+                          }}
+                        >
                           No roles found
                         </p>
 
-                        <p className="mt-1 text-xs text-[#9AA29C]">
-                          Try another search or create a new role.
+                        <p
+                          className="mt-1 text-xs"
+                          style={{
+                            color:
+                              MUTED,
+                          }}
+                        >
+                          Try another search or
+                          create a new role.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedRoles.map((role, index) => {
-                    const permissionCount = role.permissions?.length || 0;
+                  paginatedRoles.map(
+                    (
+                      role,
+                      index
+                    ) => {
+                      const permissionCount =
+                        role.permissions
+                          ?.length ||
+                        0;
 
-                    return (
-                      <tr
-                        key={role.id}
-                        className="border-b border-[#163F20]/10 transition hover:bg-[#FAFBFA]"
-                      >
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                              <FiShield size={16} />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#202721]">
-                                {role.name}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="rounded-md bg-[#F5F7F5] px-2.5 py-1.5 font-mono text-[10px] text-[#163F20]">
-                            {role.slug}
-                          </span>
-                        </td>
-
-                        <td className="max-w-[300px] px-5 py-4">
-                          <p className="line-clamp-2 text-xs leading-5 text-[#59645C]">
-                            {role.description || "No description provided."}
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
-                              permissionCount > 0
-                                ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
-                                : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]"
-                            }`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {permissionCount} permission
-                            {permissionCount === 1 ? "" : "s"}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span className="text-[10px] font-semibold text-[#59645C]">
-                            {formatDate(role.updated_at)}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openEditRole(role)}
-                              title="Edit Role"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
+                      return (
+                        <tr
+                          key={
+                            role.id
+                          }
+                          className="border-b transition hover:bg-[#F9FBFF]"
+                          style={{
+                            borderColor:
+                              "#EEF2F8",
+                          }}
+                        >
+                          {/* S.NO */}
+                          <td className="px-5 py-4">
+                            <span
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
+                              style={{
+                                backgroundColor:
+                                  LIGHT_BLUE,
+                                color:
+                                  PRIMARY,
+                              }}
                             >
-                              <FiEdit2 size={14} />
-                            </button>
+                              {startIndex +
+                                index +
+                                1}
+                            </span>
+                          </td>
 
-                            <button
-                              type="button"
-                              onClick={() => openDeleteRole(role)}
-                              title="Delete Role"
-                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
+                          {/* ROLE */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+                                style={{
+                                  background:
+                                    `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`,
+                                }}
+                              >
+                                <FiShield
+                                  size={16}
+                                />
+                              </div>
+
+                              <div className="min-w-0">
+                                <p
+                                  className="truncate text-sm font-bold"
+                                  style={{
+                                    color:
+                                      TEXT_PRIMARY,
+                                  }}
+                                >
+                                  {
+                                    role.name
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* SLUG */}
+                          <td className="px-5 py-4">
+                            <span
+                              className="rounded-md px-2.5 py-1.5 font-mono text-[10px]"
+                              style={{
+                                backgroundColor:
+                                  PAGE_BG,
+                                color:
+                                  PRIMARY,
+                              }}
                             >
-                              <FiTrash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                              {
+                                role.slug
+                              }
+                            </span>
+                          </td>
+
+                          {/* DESCRIPTION */}
+                          <td className="max-w-[300px] px-5 py-4">
+                            <p
+                              className="line-clamp-2 text-xs leading-5"
+                              style={{
+                                color:
+                                  TEXT_SECONDARY,
+                              }}
+                            >
+                              {role.description ||
+                                "No description provided."}
+                            </p>
+                          </td>
+
+                          {/* PERMISSIONS */}
+                          <td className="px-5 py-4 text-center">
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold"
+                              style={{
+                                borderColor:
+                                  permissionCount >
+                                  0
+                                    ? "#C9D9F4"
+                                    : BORDER,
+                                backgroundColor:
+                                  permissionCount >
+                                  0
+                                    ? LIGHT_BLUE
+                                    : "#F3F6FB",
+                                color:
+                                  permissionCount >
+                                  0
+                                    ? PRIMARY
+                                    : TEXT_SECONDARY,
+                              }}
+                            >
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+
+                              {
+                                permissionCount
+                              }{" "}
+                              permission
+                              {permissionCount ===
+                              1
+                                ? ""
+                                : "s"}
+                            </span>
+                          </td>
+
+                          {/* UPDATED */}
+                          <td className="px-5 py-4 text-center">
+                            <span
+                              className="text-[10px] font-semibold"
+                              style={{
+                                color:
+                                  TEXT_SECONDARY,
+                              }}
+                            >
+                              {formatDate(
+                                role.updated_at
+                              )}
+                            </span>
+                          </td>
+
+                          {/* ACTIONS */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-center gap-2">
+                              {canUpdateRole && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openEditRole(
+                                      role
+                                    )
+                                  }
+                                  title="Edit Role"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border transition hover:bg-[#1E3A8A] hover:text-white"
+                                  style={{
+                                    borderColor:
+                                      BORDER,
+                                    backgroundColor:
+                                      PAGE_BG,
+                                    color:
+                                      PRIMARY,
+                                  }}
+                                >
+                                  <FiEdit2
+                                    size={
+                                      14
+                                    }
+                                  />
+                                </button>
+                              )}
+
+                              {canDeleteRole && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openDeleteRole(
+                                      role
+                                    )
+                                  }
+                                  title="Delete Role"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                                  style={{
+                                    borderColor:
+                                      "rgba(194,59,50,0.20)",
+                                    backgroundColor:
+                                      DANGER_BG,
+                                    color:
+                                      DANGER,
+                                  }}
+                                >
+                                  <FiTrash2
+                                    size={
+                                      14
+                                    }
+                                  />
+                                </button>
+                              )}
+
+                              {!canUpdateRole &&
+                                !canDeleteRole && (
+                                  <span
+                                    className="rounded-lg border px-3 py-2 text-[9px] font-semibold"
+                                    style={{
+                                      borderColor:
+                                        BORDER,
+                                      backgroundColor:
+                                        "#F7F9FD",
+                                      color:
+                                        MUTED,
+                                    }}
+                                  >
+                                    View Only
+                                  </span>
+                                )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )
                 )}
               </tbody>
             </table>
@@ -1248,80 +2837,207 @@ const RoleManagement: FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {paginatedRoles.length > 0 ? (
-              paginatedRoles.map((role, index) => {
-                const permissionCount = role.permissions?.length || 0;
+            {paginatedRoles.length >
+            0 ? (
+              paginatedRoles.map(
+                (
+                  role,
+                  index
+                ) => {
+                  const permissionCount =
+                    role.permissions
+                      ?.length ||
+                    0;
 
-                return (
-                  <div
-                    key={role.id}
-                    className="border-b border-[#163F20]/10 p-5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
-                          <FiShield size={17} />
+                  return (
+                    <div
+                      key={
+                        role.id
+                      }
+                      className="border-b p-5"
+                      style={{
+                        borderColor:
+                          "#EEF2F8",
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white"
+                            style={{
+                              background:
+                                `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`,
+                            }}
+                          >
+                            <FiShield
+                              size={17}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p
+                              className="truncate text-sm font-bold"
+                              style={{
+                                color:
+                                  TEXT_PRIMARY,
+                              }}
+                            >
+                              {
+                                role.name
+                              }
+                            </p>
+
+                            <p
+                              className="mt-1 truncate font-mono text-[10px]"
+                              style={{
+                                color:
+                                  PRIMARY,
+                              }}
+                            >
+                              {
+                                role.slug
+                              }
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202721]">
-                            {role.name}
-                          </p>
+                        <span
+                          className="text-[10px] font-bold"
+                          style={{
+                            color:
+                              MUTED,
+                          }}
+                        >
+                          #
+                          {startIndex +
+                            index +
+                            1}
+                        </span>
+                      </div>
 
-                          <p className="mt-1 truncate font-mono text-[10px] text-[#163F20]">
-                            {role.slug}
-                          </p>
+                      <div
+                        className="mt-4 rounded-xl border p-3.5"
+                        style={{
+                          borderColor:
+                            "rgba(30,58,138,0.10)",
+                          backgroundColor:
+                            PAGE_BG,
+                        }}
+                      >
+                        <p
+                          className="text-[9px] font-bold uppercase tracking-wide"
+                          style={{
+                            color:
+                              MUTED,
+                          }}
+                        >
+                          Description
+                        </p>
+
+                        <p
+                          className="mt-1.5 text-xs leading-5"
+                          style={{
+                            color:
+                              TEXT_SECONDARY,
+                          }}
+                        >
+                          {role.description ||
+                            "No description provided."}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-3">
+                        <span
+                          className="rounded-full px-3 py-1.5 text-[9px] font-bold"
+                          style={{
+                            backgroundColor:
+                              LIGHT_BLUE,
+                            color:
+                              PRIMARY,
+                          }}
+                        >
+                          {
+                            permissionCount
+                          }{" "}
+                          permissions
+                        </span>
+
+                        <div className="flex gap-2">
+                          {canUpdateRole && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEditRole(
+                                  role
+                                )
+                              }
+                              className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[10px] font-bold"
+                              style={{
+                                borderColor:
+                                  BORDER,
+                                backgroundColor:
+                                  PAGE_BG,
+                                color:
+                                  PRIMARY,
+                              }}
+                            >
+                              <FiEdit2
+                                size={
+                                  13
+                                }
+                              />
+                              Edit
+                            </button>
+                          )}
+
+                          {canDeleteRole && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDeleteRole(
+                                  role
+                                )
+                              }
+                              className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-[10px] font-bold"
+                              style={{
+                                borderColor:
+                                  "rgba(194,59,50,0.20)",
+                                backgroundColor:
+                                  DANGER_BG,
+                                color:
+                                  DANGER,
+                              }}
+                            >
+                              <FiTrash2
+                                size={
+                                  13
+                                }
+                              />
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </div>
-
-                      <span className="text-[10px] font-bold text-[#9AA29C]">
-                        #{startIndex + index + 1}
-                      </span>
                     </div>
-
-                    <div className="mt-4 rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] p-3.5">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
-                        Description
-                      </p>
-
-                      <p className="mt-1.5 text-xs leading-5 text-[#59645C]">
-                        {role.description || "No description provided."}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="rounded-full bg-[#EAF3EA] px-3 py-1.5 text-[9px] font-bold text-[#163F20]">
-                        {permissionCount} permissions
-                      </span>
-
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openEditRole(role)}
-                          className="flex h-9 items-center gap-1.5 rounded-lg border border-[#163F20]/15 bg-[#F5F7F5] px-3 text-[10px] font-bold text-[#163F20]"
-                        >
-                          <FiEdit2 size={13} />
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => openDeleteRole(role)}
-                          className="flex h-9 items-center gap-1.5 rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] px-3 text-[10px] font-bold text-[#C23B32]"
-                        >
-                          <FiTrash2 size={13} />
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                }
+              )
             ) : (
               <div className="flex flex-col items-center py-16 text-center">
-                <FiShield size={26} className="text-[#163F20]" />
+                <FiShield
+                  size={26}
+                  style={{
+                    color: PRIMARY,
+                  }}
+                />
 
-                <p className="mt-4 text-sm font-bold text-[#202721]">
+                <p
+                  className="mt-4 text-sm font-bold"
+                  style={{
+                    color:
+                      TEXT_PRIMARY,
+                  }}
+                >
                   No roles found
                 </p>
               </div>
@@ -1329,55 +3045,152 @@ const RoleManagement: FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredRoles.length > 0 && (
-            <div className="flex flex-col items-center justify-between gap-4 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row">
-              <p className="text-xs text-[#89918B]">
+          {filteredRoles.length >
+            0 && (
+            <div
+              className="flex flex-col items-center justify-between gap-4 border-t px-5 py-4 sm:flex-row"
+              style={{
+                borderColor:
+                  "rgba(30,58,138,0.10)",
+                backgroundColor:
+                  "#FAFBFE",
+              }}
+            >
+              <p
+                className="text-xs"
+                style={{
+                  color: MUTED,
+                }}
+              >
                 Showing{" "}
-                <span className="font-bold text-[#3F4A41]">{startEntry}</span>{" "}
-                to <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
+                <span
+                  className="font-bold"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
+                  {startEntry}
+                </span>{" "}
+                to{" "}
+                <span
+                  className="font-bold"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
+                  {endEntry}
+                </span>{" "}
                 of{" "}
-                <span className="font-bold text-[#3F4A41]">
+                <span
+                  className="font-bold"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
                   {filteredRoles.length}
                 </span>{" "}
                 roles
               </p>
 
               <div className="flex items-center gap-1.5">
+                {/* PREVIOUS */}
                 <button
                   type="button"
                   onClick={() =>
-                    setCurrentPage((page) => Math.max(1, page - 1))
+                    setCurrentPage(
+                      (page) =>
+                        Math.max(
+                          1,
+                          page - 1
+                        )
+                    )
                   }
-                  disabled={currentPage === 1}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-30"
+                  disabled={
+                    currentPage ===
+                    1
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF1FF] disabled:opacity-30"
+                  style={{
+                    borderColor:
+                      BORDER,
+                    color:
+                      PRIMARY,
+                  }}
                 >
-                  <FiChevronLeft size={16} />
+                  <FiChevronLeft
+                    size={16}
+                  />
                 </button>
 
-                {paginationPages.map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2.5 text-xs font-bold ${
-                      currentPage === page
-                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                        : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {paginationPages.map(
+                  (page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(
+                          page
+                        )
+                      }
+                      className="flex h-9 min-w-9 items-center justify-center rounded-lg px-2.5 text-xs font-bold"
+                      style={{
+                        background:
+                          currentPage ===
+                          page
+                            ? `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`
+                            : WHITE,
+                        color:
+                          currentPage ===
+                          page
+                            ? WHITE
+                            : TEXT_SECONDARY,
+                        border:
+                          currentPage ===
+                          page
+                            ? "none"
+                            : `1px solid ${BORDER}`,
+                        boxShadow:
+                          currentPage ===
+                          page
+                            ? "0 6px 14px -6px rgba(30,58,138,0.5)"
+                            : "none",
+                      }}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
 
+                {/* NEXT */}
                 <button
                   type="button"
                   onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                    setCurrentPage(
+                      (page) =>
+                        Math.min(
+                          totalPages,
+                          page + 1
+                        )
+                    )
                   }
-                  disabled={currentPage === totalPages}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-30"
+                  disabled={
+                    currentPage ===
+                    totalPages
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF1FF] disabled:opacity-30"
+                  style={{
+                    borderColor:
+                      BORDER,
+                    color:
+                      PRIMARY,
+                  }}
                 >
-                  <FiChevronRight size={16} />
+                  <FiChevronRight
+                    size={16}
+                  />
                 </button>
               </div>
             </div>
@@ -1389,31 +3202,48 @@ const RoleManagement: FC = () => {
       <RoleModal
         open={roleModalOpen}
         loading={actionLoading}
-        editingRole={editingRole}
-        permissions={permissions}
+        editingRole={
+          editingRole
+        }
+        permissions={
+          permissions
+        }
         form={roleForm}
-        setForm={setRoleForm}
+        setForm={
+          setRoleForm
+        }
         onClose={() => {
           if (!actionLoading) {
             setRoleModalOpen(false);
             setEditingRole(null);
           }
         }}
-        onSubmit={handleSubmitRole}
+        onSubmit={
+          handleSubmitRole
+        }
       />
 
       {/* DELETE MODAL */}
       <DeleteRoleModal
         open={deleteModalOpen}
         loading={deleteLoading}
-        target={deleteTarget}
+        target={
+          deleteTarget
+        }
         onClose={() => {
           if (!deleteLoading) {
-            setDeleteModalOpen(false);
-            setDeleteTarget(null);
+            setDeleteModalOpen(
+              false
+            );
+
+            setDeleteTarget(
+              null
+            );
           }
         }}
-        onConfirm={handleDeleteRole}
+        onConfirm={
+          handleDeleteRole
+        }
       />
     </>
   );

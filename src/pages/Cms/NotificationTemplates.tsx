@@ -1,15 +1,18 @@
 "use client";
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+
 import {
   motion,
   AnimatePresence,
 } from "framer-motion";
+
 import toast from "react-hot-toast";
 
 import {
@@ -31,6 +34,59 @@ import { notificationTemplateApi } from "../../api/endpoints/notificationTemplat
 import type {
   NotificationTemplate,
 } from "../../api/endpoints/notificationTemplates";
+
+import { usePermissions } from "../../pages/permissions/usePermissions";
+
+/* =========================================================
+   THEME
+========================================================= */
+
+const PRIMARY = "#1E3A8A";
+const DARK_PRIMARY = "#172554";
+const BLUE = "#1E40AF";
+const ACCENT = "#2563EB";
+
+const LIGHT_BLUE = "#EAF1FF";
+const SOFT_BLUE = "#DBEAFE";
+const PAGE_BG = "#F5F8FF";
+
+const TEXT_PRIMARY = "#0F1B3D";
+const TEXT_SECONDARY = "#4A5778";
+const MUTED = "#8C97B2";
+
+const BORDER = "#D8E2F0";
+const WHITE = "#FFFFFF";
+
+const DANGER = "#C23B32";
+const DANGER_BG = "#FBEAEA";
+
+/* =========================================================
+   PERMISSIONS
+========================================================= */
+
+const VIEW_PERMISSION_KEYS = [
+  "notification_template.view",
+  "notification_templates.view",
+  "Notification Template.view",
+  "Notification Templates.view",
+  "notification.view",
+  "Notification.view",
+];
+
+const UPDATE_PERMISSION_KEYS = [
+  "notification_template.update",
+  "notification_templates.update",
+  "Notification Template.update",
+  "Notification Templates.update",
+  "notification_template.edit",
+  "notification_templates.edit",
+  "Notification Template.edit",
+  "Notification Templates.edit",
+  "notification.update",
+  "Notification.update",
+  "notification.edit",
+  "Notification.edit",
+];
 
 /* =========================================================
    CONSTANTS
@@ -66,7 +122,10 @@ const formatChannel = (channel: string) => {
 const getChannelIcon = (channel: string) => {
   const value = channel?.toLowerCase();
 
-  if (value === "mail" || value === "email") {
+  if (
+    value === "mail" ||
+    value === "email"
+  ) {
     return <FiMail size={14} />;
   }
 
@@ -107,6 +166,7 @@ interface EditTemplateModalProps {
   template: NotificationTemplate | null;
   open: boolean;
   loading: boolean;
+  canUpdate: boolean;
   onClose: () => void;
   onSave: (
     id: number,
@@ -119,6 +179,7 @@ const EditTemplateModal = ({
   template,
   open,
   loading,
+  canUpdate,
   onClose,
   onSave,
 }: EditTemplateModalProps) => {
@@ -132,7 +193,7 @@ const EditTemplateModal = ({
     }
   }, [template]);
 
-  if (!open || !template) {
+  if (!open || !template || !canUpdate) {
     return null;
   }
 
@@ -140,6 +201,13 @@ const EditTemplateModal = ({
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
+
+    if (!canUpdate) {
+      toast.error(
+        "You do not have permission to update notification templates."
+      );
+      return;
+    }
 
     if (!subject.trim()) {
       toast.error("Subject is required");
@@ -160,7 +228,12 @@ const EditTemplateModal = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-[3px]">
+      <div
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 backdrop-blur-[3px]"
+        style={{
+          backgroundColor: "rgba(15, 27, 61, 0.52)",
+        }}
+      >
         <motion.div
           initial={{
             opacity: 0,
@@ -178,32 +251,57 @@ const EditTemplateModal = ({
             scale: 0.97,
           }}
           transition={{ duration: 0.2 }}
-          className="flex max-h-[92vh] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border border-[#D8E2D8] bg-white shadow-[0_25px_70px_rgba(22,63,32,0.14)]"
+          className="flex max-h-[92vh] w-full max-w-[820px] flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_25px_70px_rgba(30,58,138,0.16)]"
+          style={{ borderColor: BORDER }}
         >
           {/* HEADER */}
-          <div className="flex items-start justify-between border-b border-[#E5EAE5] px-5 py-5 sm:px-6">
+          <div
+            className="flex items-start justify-between border-b px-5 py-5 sm:px-6"
+            style={{ borderColor: "#E4EAF3" }}
+          >
             <div className="min-w-0 pr-4">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#4C8A57]">
+              <p
+                className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em]"
+                style={{ color: ACCENT }}
+              >
                 Notification Template
               </p>
 
-              <h2 className="text-xl font-semibold text-[#202721]">
+              <h2
+                className="text-xl font-semibold"
+                style={{ color: TEXT_PRIMARY }}
+              >
                 Edit Template
               </h2>
 
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-[#EAF3EA] px-2.5 py-1 text-xs font-semibold text-[#163F20]">
+                <span
+                  className="rounded-md px-2.5 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: LIGHT_BLUE,
+                    color: PRIMARY,
+                  }}
+                >
                   {formatEventType(
                     template.event_type
                   )}
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-[#D8E2D8] bg-white px-2.5 py-1 text-xs font-medium text-[#59645C]">
-                  {getChannelIcon(template.channel)}
-                  {formatChannel(template.channel)}
-                </span>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-white px-2.5 py-1 text-xs font-medium"
+                  style={{
+                    borderColor: BORDER,
+                    color: TEXT_SECONDARY,
+                  }}
+                >
+                  {getChannelIcon(
+                    template.channel
+                  )}
 
-              
+                  {formatChannel(
+                    template.channel
+                  )}
+                </span>
               </div>
             </div>
 
@@ -211,7 +309,22 @@ const EditTemplateModal = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ color: TEXT_SECONDARY }}
+              onMouseEnter={(event) => {
+                if (!loading) {
+                  event.currentTarget.style.backgroundColor =
+                    LIGHT_BLUE;
+                  event.currentTarget.style.color =
+                    PRIMARY;
+                }
+              }}
+              onMouseLeave={(event) => {
+                event.currentTarget.style.backgroundColor =
+                  "transparent";
+                event.currentTarget.style.color =
+                  TEXT_SECONDARY;
+              }}
             >
               <FiX size={19} />
             </button>
@@ -226,47 +339,119 @@ const EditTemplateModal = ({
               <div className="space-y-5">
                 {/* SUBJECT */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#202721]">
+                  <label
+                    className="mb-2 block text-sm font-semibold"
+                    style={{ color: TEXT_PRIMARY }}
+                  >
                     Subject
                   </label>
 
                   <input
                     type="text"
                     value={subject}
+                    disabled={loading}
                     onChange={(e) =>
-                      setSubject(e.target.value)
+                      setSubject(
+                        e.target.value
+                      )
                     }
                     placeholder="Enter notification subject"
-                    className="h-12 w-full rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm text-[#202721] outline-none transition placeholder:text-[#89918B] focus:border-[#4C8A57] focus:ring-4 focus:ring-[#4C8A57]/10"
+                    className="h-12 w-full rounded-xl px-4 text-sm outline-none transition disabled:cursor-not-allowed disabled:bg-[#EEF3FA] placeholder:text-[#8C97B2]"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor: loading
+                        ? "#EEF3FA"
+                        : WHITE,
+                      color: TEXT_PRIMARY,
+                    }}
+                    onFocus={(event) => {
+                      if (!loading) {
+                        event.currentTarget.style.borderColor =
+                          ACCENT;
+                        event.currentTarget.style.boxShadow =
+                          "0 0 0 4px rgba(37,99,235,0.10)";
+                      }
+                    }}
+                    onBlur={(event) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.boxShadow =
+                        "none";
+                    }}
                   />
                 </div>
 
                 {/* BODY */}
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#202721]">
+                  <label
+                    className="mb-2 block text-sm font-semibold"
+                    style={{ color: TEXT_PRIMARY }}
+                  >
                     Body
                   </label>
 
                   <textarea
                     rows={9}
                     value={body}
+                    disabled={loading}
                     onChange={(e) =>
-                      setBody(e.target.value)
+                      setBody(
+                        e.target.value
+                      )
                     }
                     placeholder="Enter notification body"
-                    className="w-full resize-y rounded-xl border border-[#D8E2D8] bg-white px-4 py-3 text-sm leading-6 text-[#202721] outline-none transition placeholder:text-[#89918B] focus:border-[#4C8A57] focus:ring-4 focus:ring-[#4C8A57]/10"
+                    className="w-full resize-y rounded-xl px-4 py-3 text-sm leading-6 outline-none transition disabled:cursor-not-allowed disabled:bg-[#EEF3FA] placeholder:text-[#8C97B2]"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor: loading
+                        ? "#EEF3FA"
+                        : WHITE,
+                      color: TEXT_PRIMARY,
+                    }}
+                    onFocus={(event) => {
+                      if (!loading) {
+                        event.currentTarget.style.borderColor =
+                          ACCENT;
+                        event.currentTarget.style.boxShadow =
+                          "0 0 0 4px rgba(37,99,235,0.10)";
+                      }
+                    }}
+                    onBlur={(event) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.boxShadow =
+                        "none";
+                    }}
                   />
                 </div>
 
                 {/* PLACEHOLDERS */}
-                {template.placeholders?.length > 0 && (
-                  <div className="rounded-xl border border-[#D5E5D6] bg-[#EAF3EA] p-4 sm:p-5">
+                {template.placeholders?.length >
+                  0 && (
+                  <div
+                    className="rounded-xl border p-4 sm:p-5"
+                    style={{
+                      borderColor:
+                        "rgba(37,99,235,0.14)",
+                      backgroundColor: LIGHT_BLUE,
+                    }}
+                  >
                     <div className="mb-3">
-                      <p className="text-sm font-semibold text-[#202721]">
+                      <p
+                        className="text-sm font-semibold"
+                        style={{
+                          color: TEXT_PRIMARY,
+                        }}
+                      >
                         Available Placeholders
                       </p>
 
-                      <p className="mt-1 text-xs text-[#59645C]">
+                      <p
+                        className="mt-1 text-xs"
+                        style={{
+                          color: TEXT_SECONDARY,
+                        }}
+                      >
                         Use these dynamic values inside
                         subject or body.
                       </p>
@@ -277,7 +462,12 @@ const EditTemplateModal = ({
                         (placeholder) => (
                           <span
                             key={placeholder}
-                            className="rounded-lg border border-[#D5E5D6] bg-white px-2.5 py-1.5 font-mono text-[11px] font-medium text-[#163F20]"
+                            className="rounded-lg border bg-white px-2.5 py-1.5 font-mono text-[11px] font-medium"
+                            style={{
+                              borderColor:
+                                "#C9D9F4",
+                              color: PRIMARY,
+                            }}
                           >
                             {`{{${placeholder}}}`}
                           </span>
@@ -288,24 +478,45 @@ const EditTemplateModal = ({
                 )}
 
                 {/* INFO */}
-                <div className="rounded-xl border border-[#D5E5D6] bg-[#EAF3EA] px-4 py-3.5">
-                  <p className="text-xs leading-5 text-[#163F20]">
+                <div
+                  className="rounded-xl border px-4 py-3.5"
+                  style={{
+                    borderColor:
+                      "rgba(37,99,235,0.14)",
+                    backgroundColor: LIGHT_BLUE,
+                  }}
+                >
+                  <p
+                    className="text-xs leading-5"
+                    style={{ color: PRIMARY }}
+                  >
                     Only <strong>Subject</strong> and{" "}
-                    <strong>Body</strong> will be updated.
-                    Event type, channel and placeholders
-                    are managed by the system.
+                    <strong>Body</strong> will be
+                    updated. Event type, channel and
+                    placeholders are managed by the
+                    system.
                   </p>
                 </div>
               </div>
             </div>
 
             {/* FOOTER */}
-            <div className="flex flex-col-reverse gap-3 border-t border-[#E5EAE5] bg-[#F5F7F5] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+            <div
+              className="flex flex-col-reverse gap-3 border-t px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
+              style={{
+                borderColor: "#E4EAF3",
+                backgroundColor: PAGE_BG,
+              }}
+            >
               <button
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="h-11 rounded-xl border border-[#D8E2D8] bg-white px-5 text-sm font-semibold text-[#3F4A41] transition hover:bg-[#FAFBFA] disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 rounded-xl border bg-white px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  borderColor: BORDER,
+                  color: TEXT_SECONDARY,
+                }}
               >
                 Cancel
               </button>
@@ -313,7 +524,10 @@ const EditTemplateModal = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  background: `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+                }}
               >
                 {loading ? (
                   <>
@@ -344,6 +558,62 @@ const EditTemplateModal = ({
 
 const NotificationTemplates = () => {
   /* =======================================================
+     PERMISSIONS
+  ======================================================= */
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  const hasAnyPermission = useCallback(
+    (permissions: string[]) =>
+      permissions.some((permission) =>
+        hasPermission(permission)
+      ),
+    [hasPermission]
+  );
+
+  const canViewTemplates = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess(
+        "Notification Templates"
+      ) ||
+      hasModuleAccess(
+        "Notification Template"
+      ) ||
+      hasModuleAccess(
+        "notification_templates"
+      ) ||
+      hasModuleAccess(
+        "notification_template"
+      ) ||
+      hasAnyPermission(
+        VIEW_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasModuleAccess,
+      hasAnyPermission,
+    ]
+  );
+
+  const canUpdateTemplates = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasAnyPermission(
+        UPDATE_PERMISSION_KEYS
+      ),
+    [
+      isSuperAdmin,
+      hasAnyPermission,
+    ]
+  );
+
+  /* =======================================================
      CURRENT API PAGE DATA
   ======================================================= */
 
@@ -353,13 +623,15 @@ const NotificationTemplates = () => {
 
   /* =======================================================
      COMPLETE DATA
-     Loaded only when search/filter is activated.
   ======================================================= */
 
   const [allTemplates, setAllTemplates] =
-    useState<NotificationTemplate[] | null>(null);
+    useState<
+      NotificationTemplate[] | null
+    >(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
   const [refreshing, setRefreshing] =
     useState(false);
@@ -370,7 +642,8 @@ const NotificationTemplates = () => {
   const [updating, setUpdating] =
     useState(false);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] =
+    useState("");
 
   const [selectedEvent, setSelectedEvent] =
     useState("all");
@@ -378,7 +651,8 @@ const NotificationTemplates = () => {
   const [selectedChannel, setSelectedChannel] =
     useState("all");
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] =
+    useState(1);
 
   const [meta, setMeta] = useState({
     current_page: 1,
@@ -397,9 +671,21 @@ const NotificationTemplates = () => {
     useState(false);
 
   const [selectedTemplate, setSelectedTemplate] =
-    useState<NotificationTemplate | null>(null);
+    useState<
+      NotificationTemplate | null
+    >(null);
 
-  const filterRequestRunning =
+  /* =======================================================
+     REQUEST REFS
+  ======================================================= */
+
+  const pageFetchInFlightRef =
+    useRef<Promise<void> | null>(null);
+
+  const filterFetchInFlightRef =
+    useRef<Promise<void> | null>(null);
+
+  const hasInitialFetchRef =
     useRef(false);
 
   /* =======================================================
@@ -415,201 +701,296 @@ const NotificationTemplates = () => {
      FETCH SINGLE API PAGE
   ======================================================= */
 
-  const fetchPage = async (
-    page: number,
-    isRefresh = false
-  ) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const response =
-        await notificationTemplateApi.getAll(page);
-
-      if (response.data?.success) {
-        const result = response.data;
-
-        setTemplates(result.data || []);
-
-        if (result.meta) {
-          setMeta({
-            current_page:
-              result.meta.current_page,
-            per_page:
-              result.meta.per_page || PER_PAGE,
-            total:
-              result.meta.total,
-            last_page:
-              result.meta.last_page,
-          });
-
-          setCurrentPage(
-            result.meta.current_page
-          );
-        }
-
-        if (result.filters) {
-          setAvailableEvents(
-            result.filters.event_types || []
-          );
-
-          setAvailableChannels(
-            result.filters.channels || []
-          );
-        }
-      } else {
-        toast.error(
-          response.data?.message ||
-            "Failed to load templates"
-        );
-      }
-    } catch (error: any) {
-      console.error(
-        "Notification template GET error:",
-        error
-      );
-
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to load notification templates"
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  /* =======================================================
-     FETCH ALL API PAGES
-     Used for complete-data filtering
-  ======================================================= */
-
-  const fetchAllTemplates = async (
-    isRefresh = false
-  ) => {
-    if (filterRequestRunning.current) {
-      return;
-    }
-
-    try {
-      filterRequestRunning.current = true;
-
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setFilterLoading(true);
-      }
-
-      const firstResponse =
-        await notificationTemplateApi.getAll(1);
-
-      if (!firstResponse.data?.success) {
-        toast.error(
-          firstResponse.data?.message ||
-            "Failed to load templates"
-        );
-
+  const fetchPage = useCallback(
+    async (
+      page: number,
+      isRefresh = false,
+      force = false
+    ) => {
+      if (!canViewTemplates) {
         return;
       }
 
-      const firstResult = firstResponse.data;
-
-      let combined =
-        firstResult.data || [];
-
-      const lastPage =
-        firstResult.meta?.last_page || 1;
-
-      if (firstResult.meta) {
-        setMeta({
-          current_page:
-            firstResult.meta.current_page,
-          per_page:
-            firstResult.meta.per_page ||
-            PER_PAGE,
-          total:
-            firstResult.meta.total,
-          last_page:
-            firstResult.meta.last_page,
-        });
+      if (pageFetchInFlightRef.current) {
+        return pageFetchInFlightRef.current;
       }
 
-      if (firstResult.filters) {
-        setAvailableEvents(
-          firstResult.filters.event_types || []
-        );
-
-        setAvailableChannels(
-          firstResult.filters.channels || []
-        );
+      if (
+        !force &&
+        !isRefresh &&
+        hasInitialFetchRef.current &&
+        page === 1
+      ) {
+        return;
       }
 
-      /* -----------------------------------------------
-         FETCH REMAINING PAGES
-      ------------------------------------------------ */
+      const requestPromise = (async () => {
+        try {
+          if (isRefresh) {
+            setRefreshing(true);
+          } else {
+            setLoading(true);
+          }
 
-      if (lastPage > 1) {
-        const pages = Array.from(
-          { length: lastPage - 1 },
-          (_, index) => index + 2
-        );
+          const response =
+            await notificationTemplateApi.getAll(
+              page
+            );
 
-        const responses =
-          await Promise.all(
-            pages.map((page) =>
-              notificationTemplateApi.getAll(
-                page
-              )
-            )
+          if (response.data?.success) {
+            const result = response.data;
+
+            setTemplates(
+              result.data || []
+            );
+
+            if (result.meta) {
+              setMeta({
+                current_page:
+                  result.meta.current_page,
+                per_page:
+                  result.meta.per_page ||
+                  PER_PAGE,
+                total:
+                  result.meta.total,
+                last_page:
+                  result.meta.last_page,
+              });
+
+              setCurrentPage(
+                result.meta.current_page
+              );
+            }
+
+            if (result.filters) {
+              setAvailableEvents(
+                result.filters
+                  .event_types || []
+              );
+
+              setAvailableChannels(
+                result.filters.channels || []
+              );
+            }
+
+            if (page === 1) {
+              hasInitialFetchRef.current =
+                true;
+            }
+          } else {
+            toast.error(
+              result?.message ||
+                "Failed to load templates"
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Notification template GET error:",
+            error
           );
 
-        responses.forEach((response) => {
-          if (response.data?.success) {
-            combined = [
-              ...combined,
-              ...(response.data.data || []),
-            ];
-          }
-        });
+          toast.error(
+            error?.response?.data
+              ?.message ||
+              "Failed to load notification templates"
+          );
+        } finally {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      })();
+
+      pageFetchInFlightRef.current =
+        requestPromise;
+
+      try {
+        await requestPromise;
+      } finally {
+        pageFetchInFlightRef.current =
+          null;
+      }
+    },
+    [canViewTemplates]
+  );
+
+  /* =======================================================
+     FETCH ALL API PAGES
+  ======================================================= */
+
+  const fetchAllTemplates = useCallback(
+    async (isRefresh = false) => {
+      if (!canViewTemplates) {
+        return;
       }
 
-      setAllTemplates(combined);
-      setCurrentPage(1);
-    } catch (error: any) {
-      console.error(
-        "Notification template ALL pages error:",
-        error
-      );
+      if (
+        filterFetchInFlightRef.current
+      ) {
+        return filterFetchInFlightRef.current;
+      }
 
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to load notification templates"
-      );
-    } finally {
-      filterRequestRunning.current = false;
-      setFilterLoading(false);
-      setRefreshing(false);
-    }
-  };
+      const requestPromise = (async () => {
+        try {
+          if (isRefresh) {
+            setRefreshing(true);
+          } else {
+            setFilterLoading(true);
+          }
+
+          const firstResponse =
+            await notificationTemplateApi.getAll(
+              1
+            );
+
+          if (
+            !firstResponse.data?.success
+          ) {
+            toast.error(
+              firstResponse.data?.message ||
+                "Failed to load templates"
+            );
+
+            return;
+          }
+
+          const firstResult =
+            firstResponse.data;
+
+          let combined =
+            firstResult.data || [];
+
+          const lastPage =
+            firstResult.meta?.last_page ||
+            1;
+
+          if (firstResult.meta) {
+            setMeta({
+              current_page:
+                firstResult.meta.current_page,
+              per_page:
+                firstResult.meta.per_page ||
+                PER_PAGE,
+              total:
+                firstResult.meta.total,
+              last_page:
+                firstResult.meta.last_page,
+            });
+          }
+
+          if (firstResult.filters) {
+            setAvailableEvents(
+              firstResult.filters
+                .event_types || []
+            );
+
+            setAvailableChannels(
+              firstResult.filters
+                .channels || []
+            );
+          }
+
+          /* -----------------------------------------------
+             FETCH REMAINING PAGES
+          ------------------------------------------------ */
+
+          if (lastPage > 1) {
+            const pages = Array.from(
+              {
+                length: lastPage - 1,
+              },
+              (_, index) =>
+                index + 2
+            );
+
+            const responses =
+              await Promise.all(
+                pages.map((page) =>
+                  notificationTemplateApi.getAll(
+                    page
+                  )
+                )
+              );
+
+            responses.forEach(
+              (response) => {
+                if (
+                  response.data?.success
+                ) {
+                  combined = [
+                    ...combined,
+                    ...(response.data
+                      .data || []),
+                  ];
+                }
+              }
+            );
+          }
+
+          setAllTemplates(
+            combined
+          );
+
+          setCurrentPage(1);
+        } catch (error: any) {
+          console.error(
+            "Notification template ALL pages error:",
+            error
+          );
+
+          toast.error(
+            error?.response?.data
+              ?.message ||
+              "Failed to load notification templates"
+          );
+        } finally {
+          setFilterLoading(false);
+          setRefreshing(false);
+        }
+      })();
+
+      filterFetchInFlightRef.current =
+        requestPromise;
+
+      try {
+        await requestPromise;
+      } finally {
+        filterFetchInFlightRef.current =
+          null;
+      }
+    },
+    [canViewTemplates]
+  );
 
   /* =======================================================
      INITIAL LOAD
   ======================================================= */
 
   useEffect(() => {
-    fetchPage(1);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (
+      !permissionsLoading &&
+      canViewTemplates &&
+      !hasInitialFetchRef.current
+    ) {
+      fetchPage(1);
+    }
+  }, [
+    permissionsLoading,
+    canViewTemplates,
+    fetchPage,
+  ]);
 
   /* =======================================================
      LOAD COMPLETE DATA WHEN FILTER IS USED
   ======================================================= */
 
   useEffect(() => {
+    if (
+      permissionsLoading ||
+      !canViewTemplates
+    ) {
+      return;
+    }
+
     if (!isFilterActive) {
       return;
     }
@@ -619,25 +1000,24 @@ const NotificationTemplates = () => {
     if (!allTemplates) {
       fetchAllTemplates();
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    permissionsLoading,
+    canViewTemplates,
     isFilterActive,
     allTemplates,
+    fetchAllTemplates,
   ]);
 
   /* =======================================================
      AVAILABLE EVENTS
-     
-     API filters are used so values can come even when
-     current page doesn't contain them.
   ======================================================= */
 
   const eventOptions = useMemo(() => {
-    return [...availableEvents].sort((a, b) =>
-      formatEventType(a).localeCompare(
-        formatEventType(b)
-      )
+    return [...availableEvents].sort(
+      (a, b) =>
+        formatEventType(a).localeCompare(
+          formatEventType(b)
+        )
     );
   }, [availableEvents]);
 
@@ -646,10 +1026,11 @@ const NotificationTemplates = () => {
   ======================================================= */
 
   const channelOptions = useMemo(() => {
-    return [...availableChannels].sort((a, b) =>
-      formatChannel(a).localeCompare(
-        formatChannel(b)
-      )
+    return [...availableChannels].sort(
+      (a, b) =>
+        formatChannel(a).localeCompare(
+          formatChannel(b)
+        )
     );
   }, [availableChannels]);
 
@@ -669,59 +1050,67 @@ const NotificationTemplates = () => {
     const searchValue =
       search.trim().toLowerCase();
 
-    return allTemplates.filter((template) => {
-      /* EVENT */
-      const eventMatch =
-        selectedEvent === "all" ||
-        template.event_type === selectedEvent;
+    return allTemplates.filter(
+      (template) => {
+        /* EVENT */
+        const eventMatch =
+          selectedEvent === "all" ||
+          template.event_type ===
+            selectedEvent;
 
-      /* CHANNEL */
-      const normalizedTemplateChannel =
-        template.channel?.toLowerCase() === "mail"
-          ? "email"
-          : template.channel?.toLowerCase();
+        /* CHANNEL */
+        const normalizedTemplateChannel =
+          template.channel
+            ?.toLowerCase() === "mail"
+            ? "email"
+            : template.channel?.toLowerCase();
 
-      const normalizedSelectedChannel =
-        selectedChannel === "mail"
-          ? "email"
-          : selectedChannel.toLowerCase();
+        const normalizedSelectedChannel =
+          selectedChannel === "mail"
+            ? "email"
+            : selectedChannel.toLowerCase();
 
-      const channelMatch =
-        selectedChannel === "all" ||
-        normalizedTemplateChannel ===
-          normalizedSelectedChannel;
+        const channelMatch =
+          selectedChannel === "all" ||
+          normalizedTemplateChannel ===
+            normalizedSelectedChannel;
 
-      /* SEARCH */
-      const searchMatch =
-        !searchValue ||
-        template.event_type
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        template.subject
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        template.body
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        template.channel
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        formatChannel(template.channel)
-          .toLowerCase()
-          .includes(searchValue) ||
-        formatEventType(template.event_type)
-          .toLowerCase()
-          .includes(searchValue) ||
-        template.id
-          ?.toString()
-          .includes(searchValue);
+        /* SEARCH */
+        const searchMatch =
+          !searchValue ||
+          template.event_type
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          template.subject
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          template.body
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          template.channel
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          formatChannel(
+            template.channel
+          )
+            .toLowerCase()
+            .includes(searchValue) ||
+          formatEventType(
+            template.event_type
+          )
+            .toLowerCase()
+            .includes(searchValue) ||
+          template.id
+            ?.toString()
+            .includes(searchValue);
 
-      return (
-        eventMatch &&
-        channelMatch &&
-        searchMatch
-      );
-    });
+        return (
+          eventMatch &&
+          channelMatch &&
+          searchMatch
+        );
+      }
+    );
   }, [
     allTemplates,
     isFilterActive,
@@ -854,14 +1243,21 @@ const NotificationTemplates = () => {
      RESET FILTERS
   ======================================================= */
 
-  const resetFilters = () => {
+  const resetFilters = async () => {
     setSearch("");
     setSelectedEvent("all");
     setSelectedChannel("all");
     setCurrentPage(1);
 
-    // Go back to API pagination.
-    fetchPage(1);
+    // Clear local filtered data so the next filter
+    // activation always loads fresh complete data.
+    setAllTemplates(null);
+
+    await fetchPage(
+      1,
+      false,
+      true
+    );
   };
 
   /* =======================================================
@@ -871,6 +1267,13 @@ const NotificationTemplates = () => {
   const handleEdit = (
     template: NotificationTemplate
   ) => {
+    if (!canUpdateTemplates) {
+      toast.error(
+        "You do not have permission to edit notification templates."
+      );
+      return;
+    }
+
     setSelectedTemplate(template);
     setEditOpen(true);
   };
@@ -884,6 +1287,13 @@ const NotificationTemplates = () => {
     subject: string,
     body: string
   ) => {
+    if (!canUpdateTemplates) {
+      toast.error(
+        "You do not have permission to update notification templates."
+      );
+      return;
+    }
+
     try {
       setUpdating(true);
 
@@ -904,15 +1314,14 @@ const NotificationTemplates = () => {
         setEditOpen(false);
         setSelectedTemplate(null);
 
-        /* ---------------------------------------------
-           Refresh according to current state
-        --------------------------------------------- */
-
         if (isFilterActive) {
+          // Refresh complete filtered dataset.
           await fetchAllTemplates(true);
         } else {
+          // Refresh current API page.
           await fetchPage(
             currentPage,
+            true,
             true
           );
         }
@@ -929,7 +1338,8 @@ const NotificationTemplates = () => {
       );
 
       toast.error(
-        error?.response?.data?.message ||
+        error?.response?.data
+          ?.message ||
           "Failed to update template"
       );
     } finally {
@@ -941,7 +1351,9 @@ const NotificationTemplates = () => {
      PAGE CHANGE
   ======================================================= */
 
-  const goToPage = (page: number) => {
+  const goToPage = (
+    page: number
+  ) => {
     if (
       page < 1 ||
       page > totalPages ||
@@ -975,23 +1387,78 @@ const NotificationTemplates = () => {
   };
 
   /* =======================================================
-     LOADING
+     PERMISSION LOADING
   ======================================================= */
 
-  if (loading) {
+  if (permissionsLoading) {
     return (
-      <div className="min-h-full bg-[#F5F7F5] p-4 sm:p-6 lg:p-8">
+      <div
+        className="min-h-full p-4 font-poppins sm:p-6 lg:p-8"
+        style={{
+          backgroundColor: PAGE_BG,
+        }}
+      >
         <div className="mx-auto max-w-[1550px]">
           <div className="flex min-h-[500px] items-center justify-center">
             <div className="flex flex-col items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(22,63,32,0.05)]">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(30,58,138,0.05)]"
+                style={{ color: ACCENT }}
+              >
                 <FiRefreshCw
                   size={22}
-                  className="animate-spin text-[#4C8A57]"
+                  className="animate-spin"
                 />
               </div>
 
-              <p className="mt-4 text-sm font-medium text-[#59645C]">
+              <p
+                className="mt-4 text-sm font-medium"
+                style={{ color: TEXT_SECONDARY }}
+              >
+                Checking permissions...
+              </p>
+
+              <p
+                className="mt-1 text-[10px]"
+                style={{ color: MUTED }}
+              >
+                Verifying notification template access.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-full p-4 font-poppins sm:p-6 lg:p-8"
+        style={{
+          backgroundColor: PAGE_BG,
+        }}
+      >
+        <div className="mx-auto max-w-[1550px]">
+          <div className="flex min-h-[500px] items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_6px_24px_rgba(30,58,138,0.05)]"
+                style={{ color: ACCENT }}
+              >
+                <FiRefreshCw
+                  size={22}
+                  className="animate-spin"
+                />
+              </div>
+
+              <p
+                className="mt-4 text-sm font-medium"
+                style={{
+                  color: TEXT_SECONDARY,
+                }}
+              >
                 Loading notification templates...
               </p>
             </div>
@@ -1006,7 +1473,12 @@ const NotificationTemplates = () => {
   ======================================================= */
 
   return (
-    <div className="min-h-full bg-[#F5F7F5] p-4 sm:p-6 lg:p-8">
+    <div
+      className="min-h-full p-4 font-poppins sm:p-6 lg:p-8"
+      style={{
+        backgroundColor: PAGE_BG,
+      }}
+    >
       <div className="mx-auto max-w-[1550px]">
         {/* =================================================
             PAGE HEADER
@@ -1014,18 +1486,31 @@ const NotificationTemplates = () => {
 
         <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+            <p
+              className="text-[10px] font-bold uppercase tracking-[0.22em]"
+              style={{ color: ACCENT }}
+            >
               System Configuration
             </p>
 
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#202721] sm:text-3xl">
+            <h1
+              className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl"
+              style={{
+                color: TEXT_PRIMARY,
+              }}
+            >
               Notification Templates
             </h1>
 
-            <p className="mt-1.5 max-w-[700px] text-sm leading-6 text-[#59645C]">
-              Manage the subject and body content used
-              for system notifications across different
-              channels.
+            <p
+              className="mt-1.5 max-w-[700px] text-sm leading-6"
+              style={{
+                color: TEXT_SECONDARY,
+              }}
+            >
+              Manage the subject and body content
+              used for system notifications across
+              different channels.
             </p>
           </div>
 
@@ -1037,6 +1522,7 @@ const NotificationTemplates = () => {
               } else {
                 fetchPage(
                   currentPage,
+                  true,
                   true
                 );
               }
@@ -1045,7 +1531,28 @@ const NotificationTemplates = () => {
               refreshing ||
               filterLoading
             }
-            className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#D5E5D6] bg-white px-4 text-sm font-semibold text-[#163F20] shadow-[0_6px_24px_rgba(22,63,32,0.05)] transition hover:border-[#4C8A57] hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold shadow-[0_6px_24px_rgba(30,58,138,0.05)] transition disabled:cursor-not-allowed disabled:opacity-60"
+            style={{
+              borderColor: BORDER,
+              color: PRIMARY,
+            }}
+            onMouseEnter={(event) => {
+              if (
+                !refreshing &&
+                !filterLoading
+              ) {
+                event.currentTarget.style.backgroundColor =
+                  LIGHT_BLUE;
+                event.currentTarget.style.borderColor =
+                  ACCENT;
+              }
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.backgroundColor =
+                WHITE;
+              event.currentTarget.style.borderColor =
+                BORDER;
+            }}
           >
             <FiRefreshCw
               size={16}
@@ -1063,19 +1570,37 @@ const NotificationTemplates = () => {
             MAIN CARD
         ================================================= */}
 
-        <div className="overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]">
+        <div
+          className="overflow-hidden rounded-2xl border bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+          style={{
+            borderColor: "#E0E7F2",
+          }}
+        >
           {/* TOP ACCENT */}
-          <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+          <div
+            className="h-[3px] w-full"
+            style={{
+              background: `linear-gradient(to right, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+            }}
+          />
 
           {/* FILTER HEADER */}
-          <div className="border-b border-[#E5EAE5] p-4 sm:p-5">
+          <div
+            className="border-b p-4 sm:p-5"
+            style={{
+              borderColor: "#E4EAF3",
+            }}
+          >
             <div className="flex flex-col gap-4">
               {/* SEARCH */}
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div className="relative w-full xl:max-w-[430px]">
                   <FiSearch
                     size={17}
-                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#89918B]"
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                    style={{
+                      color: MUTED,
+                    }}
                   />
 
                   <input
@@ -1087,23 +1612,63 @@ const NotificationTemplates = () => {
                       )
                     }
                     placeholder="Search event, subject, body or ID..."
-                    className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#FAFBFA] pl-10 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#89918B] focus:border-[#4C8A57] focus:bg-white focus:ring-4 focus:ring-[#4C8A57]/10"
+                    className="h-11 w-full rounded-xl pl-10 pr-4 text-sm outline-none transition placeholder:text-[#8C97B2]"
+                    style={{
+                      border: `1px solid ${BORDER}`,
+                      backgroundColor:
+                        PAGE_BG,
+                      color: TEXT_PRIMARY,
+                    }}
+                    onFocus={(event) => {
+                      event.currentTarget.style.borderColor =
+                        ACCENT;
+                      event.currentTarget.style.backgroundColor =
+                        WHITE;
+                      event.currentTarget.style.boxShadow =
+                        "0 0 0 4px rgba(37,99,235,0.08)";
+                    }}
+                    onBlur={(event) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.backgroundColor =
+                        PAGE_BG;
+                      event.currentTarget.style.boxShadow =
+                        "none";
+                    }}
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#59645C]">
+                <div
+                  className="flex flex-wrap items-center gap-2 text-xs"
+                  style={{
+                    color: TEXT_SECONDARY,
+                  }}
+                >
                   <span>
                     Page{" "}
-                    <strong className="text-[#202721]">
+                    <strong
+                      style={{
+                        color: TEXT_PRIMARY,
+                      }}
+                    >
                       {currentPage}
                     </strong>{" "}
                     of{" "}
-                    <strong className="text-[#202721]">
+                    <strong
+                      style={{
+                        color: TEXT_PRIMARY,
+                      }}
+                    >
                       {totalPages}
                     </strong>
                   </span>
 
-                  <span className="hidden text-[#D8E2D8] sm:inline">
+                  <span
+                    className="hidden sm:inline"
+                    style={{
+                      color: BORDER,
+                    }}
+                  >
                     |
                   </span>
 
@@ -1120,7 +1685,10 @@ const NotificationTemplates = () => {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 {/* EVENT */}
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#89918B]">
+                  <label
+                    className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider"
+                    style={{ color: MUTED }}
+                  >
                     Event Type
                   </label>
 
@@ -1131,7 +1699,23 @@ const NotificationTemplates = () => {
                         e.target.value
                       )
                     }
-                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#3F4A41] outline-none transition focus:border-[#4C8A57] focus:ring-4 focus:ring-[#4C8A57]/10"
+                    className="h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none transition"
+                    style={{
+                      borderColor: BORDER,
+                      color: TEXT_SECONDARY,
+                    }}
+                    onFocus={(event) => {
+                      event.currentTarget.style.borderColor =
+                        ACCENT;
+                      event.currentTarget.style.boxShadow =
+                        "0 0 0 4px rgba(37,99,235,0.08)";
+                    }}
+                    onBlur={(event) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.boxShadow =
+                        "none";
+                    }}
                   >
                     <option value="all">
                       All Events
@@ -1154,7 +1738,10 @@ const NotificationTemplates = () => {
 
                 {/* CHANNEL */}
                 <div>
-                  <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#89918B]">
+                  <label
+                    className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider"
+                    style={{ color: MUTED }}
+                  >
                     Channel
                   </label>
 
@@ -1165,7 +1752,23 @@ const NotificationTemplates = () => {
                         e.target.value
                       )
                     }
-                    className="h-10 w-full rounded-lg border border-[#D8E2D8] bg-white px-3 text-sm text-[#3F4A41] outline-none transition focus:border-[#4C8A57] focus:ring-4 focus:ring-[#4C8A57]/10"
+                    className="h-10 w-full rounded-lg border bg-white px-3 text-sm outline-none transition"
+                    style={{
+                      borderColor: BORDER,
+                      color: TEXT_SECONDARY,
+                    }}
+                    onFocus={(event) => {
+                      event.currentTarget.style.borderColor =
+                        ACCENT;
+                      event.currentTarget.style.boxShadow =
+                        "0 0 0 4px rgba(37,99,235,0.08)";
+                    }}
+                    onBlur={(event) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.boxShadow =
+                        "none";
+                    }}
                   >
                     <option value="all">
                       All Channels
@@ -1191,7 +1794,26 @@ const NotificationTemplates = () => {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="h-10 w-full rounded-lg border border-[#D5E5D6] bg-[#EAF3EA] px-4 text-sm font-semibold text-[#163F20] transition hover:border-[#4C8A57] hover:bg-[#D5E5D6]"
+                    className="h-10 w-full rounded-lg border px-4 text-sm font-semibold transition"
+                    style={{
+                      borderColor:
+                        "#C9D9F4",
+                      backgroundColor:
+                        LIGHT_BLUE,
+                      color: PRIMARY,
+                    }}
+                    onMouseEnter={(event) => {
+                      event.currentTarget.style.backgroundColor =
+                        SOFT_BLUE;
+                      event.currentTarget.style.borderColor =
+                        ACCENT;
+                    }}
+                    onMouseLeave={(event) => {
+                      event.currentTarget.style.backgroundColor =
+                        LIGHT_BLUE;
+                      event.currentTarget.style.borderColor =
+                        "#C9D9F4";
+                    }}
                   >
                     Reset Filters
                   </button>
@@ -1206,12 +1828,29 @@ const NotificationTemplates = () => {
 
           {isFilterActive &&
             filterLoading && (
-              <div className="border-b border-[#E5EAE5] bg-[#FAFBFA] px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-medium text-[#59645C]">
+              <div
+                className="border-b px-4 py-3"
+                style={{
+                  borderColor:
+                    "#E4EAF3",
+                  backgroundColor:
+                    "#FAFBFE",
+                }}
+              >
+                <div
+                  className="flex items-center gap-2 text-xs font-medium"
+                  style={{
+                    color: TEXT_SECONDARY,
+                  }}
+                >
                   <FiRefreshCw
                     size={13}
-                    className="animate-spin text-[#4C8A57]"
+                    className="animate-spin"
+                    style={{
+                      color: ACCENT,
+                    }}
                   />
+
                   Loading all templates for
                   filtering...
                 </div>
@@ -1225,46 +1864,91 @@ const NotificationTemplates = () => {
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1080px]">
               <thead>
-                <tr className="border-b border-[#E5EAE5] bg-[#FAFBFA]">
-                  <th className="w-[230px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-[#89918B]">
+                <tr
+                  className="border-b"
+                  style={{
+                    borderColor:
+                      "#E4EAF3",
+                    backgroundColor:
+                      "#FAFBFE",
+                  }}
+                >
+                  <th
+                    className="w-[230px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em]"
+                    style={{ color: MUTED }}
+                  >
                     Event
                   </th>
 
-                  <th className="w-[120px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-[#89918B]">
+                  <th
+                    className="w-[120px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em]"
+                    style={{ color: MUTED }}
+                  >
                     Channel
                   </th>
 
-                  <th className="w-[270px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-[#89918B]">
+                  <th
+                    className="w-[270px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em]"
+                    style={{ color: MUTED }}
+                  >
                     Subject
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em] text-[#89918B]">
+                  <th
+                    className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.13em]"
+                    style={{ color: MUTED }}
+                  >
                     Body
                   </th>
 
-                  <th className="w-[120px] px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.13em] text-[#89918B]">
+                  <th
+                    className="w-[150px] px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.13em]"
+                    style={{ color: MUTED }}
+                  >
                     Action
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {displayTemplates.length === 0 ? (
+                {displayTemplates.length ===
+                0 ? (
                   <tr>
                     <td
                       colSpan={5}
                       className="px-6 py-20 text-center"
                     >
                       <div className="mx-auto max-w-sm">
-                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3EA] text-[#4C8A57]">
-                          <FiSearch size={20} />
+                        <div
+                          className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+                          style={{
+                            backgroundColor:
+                              LIGHT_BLUE,
+                            color: ACCENT,
+                          }}
+                        >
+                          <FiSearch
+                            size={20}
+                          />
                         </div>
 
-                        <p className="mt-4 text-sm font-semibold text-[#202721]">
+                        <p
+                          className="mt-4 text-sm font-semibold"
+                          style={{
+                            color:
+                              TEXT_PRIMARY,
+                          }}
+                        >
                           No templates found
                         </p>
 
-                        <p className="mt-1 text-xs leading-5 text-[#59645C]">
+                        <p
+                          className="mt-1 text-xs leading-5"
+                          style={{
+                            color:
+                              TEXT_SECONDARY,
+                          }}
+                        >
                           Change your search or
                           filter to find another
                           template.
@@ -1277,18 +1961,32 @@ const NotificationTemplates = () => {
                     (template) => (
                       <tr
                         key={template.id}
-                        className="border-b border-[#EEF2EE] transition hover:bg-[#FAFBFA]"
+                        className="border-b transition hover:bg-[#F9FBFF]"
+                        style={{
+                          borderColor:
+                            "#EEF2F8",
+                        }}
                       >
                         {/* EVENT */}
                         <td className="px-5 py-5 align-top">
-                          <p className="text-sm font-semibold leading-5 text-[#202721]">
+                          <p
+                            className="text-sm font-semibold leading-5"
+                            style={{
+                              color:
+                                TEXT_PRIMARY,
+                            }}
+                          >
                             {formatEventType(
                               template.event_type
                             )}
                           </p>
 
-                          
-                          <p className="mt-2 text-[10px] text-[#89918B]">
+                          <p
+                            className="mt-2 text-[10px]"
+                            style={{
+                              color: MUTED,
+                            }}
+                          >
                             Updated{" "}
                             {formatDate(
                               template.updated_at
@@ -1298,10 +1996,20 @@ const NotificationTemplates = () => {
 
                         {/* CHANNEL */}
                         <td className="px-5 py-5 align-top">
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#D5E5D6] bg-[#EAF3EA] px-2.5 py-1.5 text-xs font-semibold text-[#163F20]">
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold"
+                            style={{
+                              borderColor:
+                                "#C9D9F4",
+                              backgroundColor:
+                                LIGHT_BLUE,
+                              color: PRIMARY,
+                            }}
+                          >
                             {getChannelIcon(
                               template.channel
                             )}
+
                             {formatChannel(
                               template.channel
                             )}
@@ -1310,32 +2018,84 @@ const NotificationTemplates = () => {
 
                         {/* SUBJECT */}
                         <td className="px-5 py-5 align-top">
-                          <p className="line-clamp-3 text-sm font-medium leading-5 text-[#303830]">
+                          <p
+                            className="line-clamp-3 text-sm font-medium leading-5"
+                            style={{
+                              color:
+                                "#25345E",
+                            }}
+                          >
                             {template.subject}
                           </p>
                         </td>
 
                         {/* BODY */}
                         <td className="px-5 py-5 align-top">
-                          <p className="line-clamp-3 max-w-[470px] text-sm leading-5 text-[#59645C]">
+                          <p
+                            className="line-clamp-3 max-w-[470px] text-sm leading-5"
+                            style={{
+                              color:
+                                TEXT_SECONDARY,
+                            }}
+                          >
                             {template.body}
                           </p>
                         </td>
 
                         {/* ACTION */}
                         <td className="px-5 py-5 text-right align-top">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEdit(
-                                template
-                              )
-                            }
-                            className="inline-flex items-center gap-2 rounded-lg border border-[#D5E5D6] bg-white px-3.5 py-2 text-xs font-semibold text-[#163F20] transition hover:border-[#4C8A57] hover:bg-[#EAF3EA]"
-                          >
-                            <FiEdit3 size={14} />
-                            Edit
-                          </button>
+                          {canUpdateTemplates ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleEdit(
+                                  template
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg border bg-white px-3.5 py-2 text-xs font-semibold transition"
+                              style={{
+                                borderColor:
+                                  "#C9D9F4",
+                                color:
+                                  PRIMARY,
+                              }}
+                              onMouseEnter={(
+                                event
+                              ) => {
+                                event.currentTarget.style.backgroundColor =
+                                  LIGHT_BLUE;
+                                event.currentTarget.style.borderColor =
+                                  ACCENT;
+                              }}
+                              onMouseLeave={(
+                                event
+                              ) => {
+                                event.currentTarget.style.backgroundColor =
+                                  WHITE;
+                                event.currentTarget.style.borderColor =
+                                  "#C9D9F4";
+                              }}
+                            >
+                              <FiEdit3
+                                size={14}
+                              />
+                              Edit
+                            </button>
+                          ) : (
+                            <span
+                              className="inline-flex items-center rounded-lg border px-3 py-2 text-[10px] font-semibold"
+                              style={{
+                                borderColor:
+                                  BORDER,
+                                backgroundColor:
+                                  "#F7F9FD",
+                                color:
+                                  MUTED,
+                              }}
+                            >
+                              View Only
+                            </span>
+                          )}
                         </td>
                       </tr>
                     )
@@ -1349,18 +2109,44 @@ const NotificationTemplates = () => {
               MOBILE CARDS
           ================================================= */}
 
-          <div className="divide-y divide-[#EEF2EE] lg:hidden">
-            {displayTemplates.length === 0 ? (
+          <div
+            className="divide-y lg:hidden"
+            style={{
+              borderColor: "#EEF2F8",
+            }}
+          >
+            {displayTemplates.length ===
+            0 ? (
               <div className="px-5 py-16 text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3EA] text-[#4C8A57]">
-                  <FiSearch size={20} />
+                <div
+                  className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor:
+                      LIGHT_BLUE,
+                    color: ACCENT,
+                  }}
+                >
+                  <FiSearch
+                    size={20}
+                  />
                 </div>
 
-                <p className="mt-4 text-sm font-semibold text-[#202721]">
+                <p
+                  className="mt-4 text-sm font-semibold"
+                  style={{
+                    color: TEXT_PRIMARY,
+                  }}
+                >
                   No templates found
                 </p>
 
-                <p className="mt-1 text-xs text-[#59645C]">
+                <p
+                  className="mt-1 text-xs"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
                   Try changing your search or
                   filters.
                 </p>
@@ -1375,25 +2161,44 @@ const NotificationTemplates = () => {
                     {/* TOP */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4C8A57]">
+                        <p
+                          className="text-[10px] font-bold uppercase tracking-[0.12em]"
+                          style={{
+                            color: ACCENT,
+                          }}
+                        >
                           {formatChannel(
                             template.channel
                           )}
                         </p>
 
-                        <h3 className="mt-1 text-sm font-semibold leading-5 text-[#202721]">
+                        <h3
+                          className="mt-1 text-sm font-semibold leading-5"
+                          style={{
+                            color:
+                              TEXT_PRIMARY,
+                          }}
+                        >
                           {formatEventType(
                             template.event_type
                           )}
                         </h3>
-
-                       
                       </div>
 
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#D5E5D6] bg-[#EAF3EA] px-2.5 py-1 text-[10px] font-semibold text-[#163F20]">
+                      <span
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold"
+                        style={{
+                          borderColor:
+                            "#C9D9F4",
+                          backgroundColor:
+                            LIGHT_BLUE,
+                          color: PRIMARY,
+                        }}
+                      >
                         {getChannelIcon(
                           template.channel
                         )}
+
                         {formatChannel(
                           template.channel
                         )}
@@ -1401,23 +2206,59 @@ const NotificationTemplates = () => {
                     </div>
 
                     {/* SUBJECT */}
-                    <div className="mt-4 rounded-xl border border-[#E5EAE5] bg-[#EAF3EA] p-3.5">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#89918B]">
+                    <div
+                      className="mt-4 rounded-xl border p-3.5"
+                      style={{
+                        borderColor:
+                          "#DCE6F4",
+                        backgroundColor:
+                          LIGHT_BLUE,
+                      }}
+                    >
+                      <p
+                        className="mb-1 text-[10px] font-bold uppercase tracking-wider"
+                        style={{
+                          color: MUTED,
+                        }}
+                      >
                         Subject
                       </p>
 
-                      <p className="text-sm font-medium leading-5 text-[#303830]">
+                      <p
+                        className="text-sm font-medium leading-5"
+                        style={{
+                          color:
+                            "#25345E",
+                        }}
+                      >
                         {template.subject}
                       </p>
                     </div>
 
                     {/* BODY */}
-                    <div className="mt-3 rounded-xl border border-[#E5EAE5] bg-white p-3.5">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#89918B]">
+                    <div
+                      className="mt-3 rounded-xl border bg-white p-3.5"
+                      style={{
+                        borderColor:
+                          "#E0E7F2",
+                      }}
+                    >
+                      <p
+                        className="mb-1 text-[10px] font-bold uppercase tracking-wider"
+                        style={{
+                          color: MUTED,
+                        }}
+                      >
                         Body
                       </p>
 
-                      <p className="text-sm leading-5 text-[#59645C]">
+                      <p
+                        className="text-sm leading-5"
+                        style={{
+                          color:
+                            TEXT_SECONDARY,
+                        }}
+                      >
                         {template.body}
                       </p>
                     </div>
@@ -1426,7 +2267,12 @@ const NotificationTemplates = () => {
                     {template.placeholders?.length >
                       0 && (
                       <div className="mt-3">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[#89918B]">
+                        <p
+                          className="mb-2 text-[10px] font-bold uppercase tracking-wider"
+                          style={{
+                            color: MUTED,
+                          }}
+                        >
                           Placeholders
                         </p>
 
@@ -1441,7 +2287,15 @@ const NotificationTemplates = () => {
                                   key={
                                     placeholder
                                   }
-                                  className="rounded-md border border-[#D5E5D6] bg-[#EAF3EA] px-2 py-1 font-mono text-[10px] text-[#163F20]"
+                                  className="rounded-md border px-2 py-1 font-mono text-[10px]"
+                                  style={{
+                                    borderColor:
+                                      "#C9D9F4",
+                                    backgroundColor:
+                                      LIGHT_BLUE,
+                                    color:
+                                      PRIMARY,
+                                  }}
                                 >
                                   {`{{${placeholder}}}`}
                                 </span>
@@ -1450,8 +2304,17 @@ const NotificationTemplates = () => {
 
                           {template
                             .placeholders
-                            .length > 5 && (
-                            <span className="rounded-md bg-[#F5F7F5] px-2 py-1 text-[10px] text-[#59645C]">
+                            .length >
+                            5 && (
+                            <span
+                              className="rounded-md px-2 py-1 text-[10px]"
+                              style={{
+                                backgroundColor:
+                                  PAGE_BG,
+                                color:
+                                  TEXT_SECONDARY,
+                              }}
+                            >
                               +
                               {template
                                 .placeholders
@@ -1466,25 +2329,50 @@ const NotificationTemplates = () => {
 
                     {/* BOTTOM */}
                     <div className="mt-4 flex items-center justify-between gap-3">
-                      <p className="text-[10px] text-[#89918B]">
+                      <p
+                        className="text-[10px]"
+                        style={{
+                          color: MUTED,
+                        }}
+                      >
                         Updated{" "}
                         {formatDate(
                           template.updated_at
                         )}
                       </p>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleEdit(
-                            template
-                          )
-                        }
-                        className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-3.5 py-2 text-xs font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-                      >
-                        <FiEdit3 size={14} />
-                        Edit
-                      </button>
+                      {canUpdateTemplates ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleEdit(
+                              template
+                            )
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition"
+                          style={{
+                            background: `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+                          }}
+                        >
+                          <FiEdit3
+                            size={14}
+                          />
+                          Edit
+                        </button>
+                      ) : (
+                        <span
+                          className="rounded-lg border px-3.5 py-2 text-[10px] font-semibold"
+                          style={{
+                            borderColor:
+                              BORDER,
+                            backgroundColor:
+                              "#F7F9FD",
+                            color: MUTED,
+                          }}
+                        >
+                          View Only
+                        </span>
+                      )}
                     </div>
                   </div>
                 )
@@ -1498,18 +2386,50 @@ const NotificationTemplates = () => {
 
           {resultTotal > 0 &&
             totalPages > 1 && (
-              <div className="flex flex-col gap-3 border-t border-[#E5EAE5] bg-[#FAFBFA] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <div className="text-xs text-[#59645C]">
+              <div
+                className="flex flex-col gap-3 border-t px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+                style={{
+                  borderColor:
+                    "#E4EAF3",
+                  backgroundColor:
+                    "#FAFBFE",
+                }}
+              >
+                <div
+                  className="text-xs"
+                  style={{
+                    color:
+                      TEXT_SECONDARY,
+                  }}
+                >
                   Showing{" "}
-                  <span className="font-semibold text-[#202721]">
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color:
+                        TEXT_PRIMARY,
+                    }}
+                  >
                     {showingFrom}
                   </span>{" "}
                   -{" "}
-                  <span className="font-semibold text-[#202721]">
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color:
+                        TEXT_PRIMARY,
+                    }}
+                  >
                     {showingTo}
                   </span>{" "}
                   of{" "}
-                  <span className="font-semibold text-[#202721]">
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color:
+                        TEXT_PRIMARY,
+                    }}
+                  >
                     {resultTotal}
                   </span>
                 </div>
@@ -1528,9 +2448,43 @@ const NotificationTemplates = () => {
                         currentPage - 1
                       )
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#59645C] transition hover:border-[#4C8A57] hover:text-[#163F20] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{
+                      borderColor: BORDER,
+                      color:
+                        TEXT_SECONDARY,
+                    }}
+                    onMouseEnter={(
+                      event
+                    ) => {
+                      if (
+                        currentPage !==
+                          1 &&
+                        !refreshing &&
+                        !filterLoading
+                      ) {
+                        event.currentTarget.style.borderColor =
+                          ACCENT;
+                        event.currentTarget.style.color =
+                          PRIMARY;
+                        event.currentTarget.style.backgroundColor =
+                          LIGHT_BLUE;
+                      }
+                    }}
+                    onMouseLeave={(
+                      event
+                    ) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.color =
+                        TEXT_SECONDARY;
+                      event.currentTarget.style.backgroundColor =
+                        WHITE;
+                    }}
                   >
-                    <FiChevronLeft size={16} />
+                    <FiChevronLeft
+                      size={16}
+                    />
                   </button>
 
                   {/* PAGE NUMBERS */}
@@ -1544,14 +2498,65 @@ const NotificationTemplates = () => {
                           filterLoading
                         }
                         onClick={() =>
-                          goToPage(page)
+                          goToPage(
+                            page
+                          )
                         }
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-semibold transition ${
-                          currentPage ===
-                          page
-                            ? "bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)]"
-                            : "border border-[#D8E2D8] bg-white text-[#59645C] hover:border-[#4C8A57] hover:bg-[#EAF3EA] hover:text-[#163F20]"
-                        }`}
+                        className="flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{
+                          background:
+                            currentPage ===
+                            page
+                              ? `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`
+                              : WHITE,
+                          color:
+                            currentPage ===
+                            page
+                              ? WHITE
+                              : TEXT_SECONDARY,
+                          border:
+                            currentPage ===
+                            page
+                              ? "none"
+                              : `1px solid ${BORDER}`,
+                          boxShadow:
+                            currentPage ===
+                            page
+                              ? "0 8px 18px -8px rgba(30,58,138,0.6)"
+                              : "none",
+                        }}
+                        onMouseEnter={(
+                          event
+                        ) => {
+                          if (
+                            currentPage !==
+                              page &&
+                            !refreshing &&
+                            !filterLoading
+                          ) {
+                            event.currentTarget.style.borderColor =
+                              ACCENT;
+                            event.currentTarget.style.backgroundColor =
+                              LIGHT_BLUE;
+                            event.currentTarget.style.color =
+                              PRIMARY;
+                          }
+                        }}
+                        onMouseLeave={(
+                          event
+                        ) => {
+                          if (
+                            currentPage !==
+                            page
+                          ) {
+                            event.currentTarget.style.borderColor =
+                              BORDER;
+                            event.currentTarget.style.backgroundColor =
+                              WHITE;
+                            event.currentTarget.style.color =
+                              TEXT_SECONDARY;
+                          }
+                        }}
                       >
                         {page}
                       </button>
@@ -1572,9 +2577,43 @@ const NotificationTemplates = () => {
                         currentPage + 1
                       )
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#59645C] transition hover:border-[#4C8A57] hover:text-[#163F20] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition disabled:cursor-not-allowed disabled:opacity-40"
+                    style={{
+                      borderColor: BORDER,
+                      color:
+                        TEXT_SECONDARY,
+                    }}
+                    onMouseEnter={(
+                      event
+                    ) => {
+                      if (
+                        currentPage !==
+                          totalPages &&
+                        !refreshing &&
+                        !filterLoading
+                      ) {
+                        event.currentTarget.style.borderColor =
+                          ACCENT;
+                        event.currentTarget.style.color =
+                          PRIMARY;
+                        event.currentTarget.style.backgroundColor =
+                          LIGHT_BLUE;
+                      }
+                    }}
+                    onMouseLeave={(
+                      event
+                    ) => {
+                      event.currentTarget.style.borderColor =
+                        BORDER;
+                      event.currentTarget.style.color =
+                        TEXT_SECONDARY;
+                      event.currentTarget.style.backgroundColor =
+                        WHITE;
+                    }}
                   >
-                    <FiChevronRight size={16} />
+                    <FiChevronRight
+                      size={16}
+                    />
                   </button>
                 </div>
               </div>
@@ -1590,10 +2629,13 @@ const NotificationTemplates = () => {
         template={selectedTemplate}
         open={editOpen}
         loading={updating}
+        canUpdate={canUpdateTemplates}
         onClose={() => {
           if (!updating) {
             setEditOpen(false);
-            setSelectedTemplate(null);
+            setSelectedTemplate(
+              null
+            );
           }
         }}
         onSave={handleUpdate}

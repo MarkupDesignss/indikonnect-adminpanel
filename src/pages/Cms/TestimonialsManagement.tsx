@@ -24,12 +24,14 @@ import {
   FiStar,
   FiUser,
   FiMessageSquare,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import testimonialsApi, { Testimonial } from "../../api/endpoints/testimonials";
 
-const PAGE_BG = "#F5F7F5";
+// ✅ PERMISSIONS
+import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
 // ANIMATIONS
@@ -73,7 +75,7 @@ const formatDate = (value?: string | null) => {
 };
 
 // =====================================================
-// STAR RATING DISPLAY (GREEN)
+// STAR RATING DISPLAY — NAVY THEME
 // =====================================================
 
 const StarRatingDisplay: React.FC<{ rating: string | number }> = ({
@@ -89,22 +91,25 @@ const StarRatingDisplay: React.FC<{ rating: string | number }> = ({
       {[...Array(totalStars)].map((_, i) => {
         if (i < fullStars) {
           return (
-            <FiStar key={i} className="h-3 w-3 fill-[#4C8A57] text-[#163F20]" />
+            <FiStar
+              key={i}
+              className="h-3 w-3 fill-[#FACC15] text-[#FACC15]"
+            />
           );
         } else if (i === fullStars && hasHalfStar) {
           return (
             <div key={i} className="relative">
-              <FiStar className="h-3 w-3 text-[#D8E2D8]" />
+              <FiStar className="h-3 w-3 text-[#D8E2F0]" />
               <div className="absolute inset-0 overflow-hidden w-1/2">
-                <FiStar className="h-3 w-3 fill-[#4C8A57] text-[#163F20]" />
+                <FiStar className="h-3 w-3 fill-[#FACC15] text-[#FACC15]" />
               </div>
             </div>
           );
         } else {
-          return <FiStar key={i} className="h-3 w-3 text-[#D8E2D8]" />;
+          return <FiStar key={i} className="h-3 w-3 text-[#D8E2F0]" />;
         }
       })}
-      <span className="ml-1 text-xs font-semibold text-[#3F4A41]">
+      <span className="ml-1 text-xs font-semibold text-[#3A4668]">
         {typeof rating === "string"
           ? parseFloat(rating).toFixed(1)
           : rating.toFixed(1)}
@@ -114,7 +119,7 @@ const StarRatingDisplay: React.FC<{ rating: string | number }> = ({
 };
 
 // =====================================================
-// FORM MODAL
+// FORM MODAL — NAVY THEME
 // =====================================================
 
 interface TestimonialFormModalProps {
@@ -284,23 +289,23 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             return (
               <FiStar
                 key={i}
-                className="h-4 w-4 fill-[#4C8A57] text-[#163F20]"
+                className="h-4 w-4 fill-[#FACC15] text-[#FACC15]"
               />
             );
           } else if (i === fullStars && hasHalfStar) {
             return (
               <div key={i} className="relative">
-                <FiStar className="h-4 w-4 text-[#D8E2D8]" />
+                <FiStar className="h-4 w-4 text-[#D8E2F0]" />
                 <div className="absolute inset-0 overflow-hidden w-1/2">
-                  <FiStar className="h-4 w-4 fill-[#4C8A57] text-[#163F20]" />
+                  <FiStar className="h-4 w-4 fill-[#FACC15] text-[#FACC15]" />
                 </div>
               </div>
             );
           } else {
-            return <FiStar key={i} className="h-4 w-4 text-[#D8E2D8]" />;
+            return <FiStar key={i} className="h-4 w-4 text-[#D8E2F0]" />;
           }
         })}
-        <span className="ml-1 text-sm font-semibold text-[#3F4A41]">
+        <span className="ml-1 text-sm font-semibold text-[#3A4668]">
           {rating ? parseFloat(rating).toFixed(1) : "0.0"} / 10
         </span>
       </div>
@@ -314,23 +319,23 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
       closeOnOverlayClick={!loading}
       title=""
     >
-      <div className="w-full max-w-[650px] overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-2xl">
-        {/* TOP LINE */}
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-[650px] overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
+        {/* TOP LINE — NAVY */}
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between border-b border-[#163F20]/10 px-5 py-4">
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
               <FiMessageSquare size={18} />
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-lg font-semibold text-[#202721]">
+              <h2 className="text-lg font-semibold text-[#0F1B3D]">
                 {mode === "add" ? "Add Testimonial" : "Update Testimonial"}
               </h2>
 
-              <p className="mt-0.5 text-xs text-[#59645C]">
+              <p className="mt-0.5 text-xs text-[#4A5778]">
                 {mode === "add"
                   ? "Create a new customer testimonial."
                   : "Update testimonial content and details."}
@@ -342,7 +347,7 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             type="button"
             onClick={handleClose}
             disabled={loading}
-            className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#59645C] transition hover:bg-[#EAF3EA] hover:text-[#163F20] disabled:opacity-50"
+            className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#4A5778] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
@@ -353,14 +358,14 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
           <div className="space-y-4">
             {/* PERSON NAME */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#3F4A41]">
+              <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
                 Person Name <span className="ml-1 text-[#C23B32]">*</span>
               </label>
 
               <div className="relative">
                 <FiUser
                   size={15}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                 />
 
                 <input
@@ -369,21 +374,21 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                   onChange={(e) => setPersonName(e.target.value)}
                   disabled={loading}
                   placeholder="Enter person name"
-                  className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-white pl-10 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
               </div>
             </div>
 
             {/* RATING */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#3F4A41]">
+              <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
                 Rating (0-10) <span className="ml-1 text-[#C23B32]">*</span>
               </label>
 
               <div className="relative">
                 <FiStar
                   size={15}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                 />
 
                 <input
@@ -395,13 +400,13 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                   onChange={(e) => setRating(e.target.value)}
                   disabled={loading}
                   placeholder="Enter rating (e.g., 8.5)"
-                  className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-white pl-10 pr-4 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
               </div>
 
               <div className="mt-2 flex items-center gap-3">
                 {renderStarPreview()}
-                <span className="text-[10px] text-[#9AA29C]">
+                <span className="text-[10px] text-[#8C97B2]">
                   Rating out of 10
                 </span>
               </div>
@@ -409,7 +414,7 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
             {/* TEXT */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#3F4A41]">
+              <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
                 Testimonial Text <span className="ml-1 text-[#C23B32]">*</span>
               </label>
 
@@ -419,21 +424,21 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                 disabled={loading}
                 rows={4}
                 placeholder="Write the testimonial text here..."
-                className="w-full rounded-xl border border-[#D8E2D8] bg-white px-4 py-3 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10"
+                className="w-full rounded-xl border border-[#D8E2F0] bg-white px-4 py-3 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
             </div>
 
             {/* VIDEO */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label className="block text-xs font-semibold text-[#3F4A41]">
+                <label className="block text-xs font-semibold text-[#3A4668]">
                   Video File
                   {mode === "add" && (
                     <span className="ml-1 text-[#C23B32]">*</span>
                   )}
                 </label>
 
-                <span className="text-[10px] text-[#9AA29C]">Max 50MB</span>
+                <span className="text-[10px] text-[#8C97B2]">Max 50MB</span>
               </div>
 
               <input
@@ -450,23 +455,23 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                   type="button"
                   onClick={() => videoInputRef.current?.click()}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-4 rounded-xl border border-dashed border-[#D8E2D8] bg-[#F5F7F5] px-5 py-7 transition hover:border-[#163F20] hover:bg-[#EAF3EA]"
+                  className="flex w-full items-center justify-center gap-4 rounded-xl border border-dashed border-[#D8E2F0] bg-[#F5F8FF] px-5 py-7 transition hover:border-[#1E3A8A] hover:bg-[#EAF1FF]"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                     <FiUpload size={19} />
                   </div>
 
                   <div className="text-left">
-                    <p className="text-sm font-semibold text-[#3F4A41]">
+                    <p className="text-sm font-semibold text-[#3A4668]">
                       Upload Testimonial Video
                     </p>
-                    <p className="mt-0.5 text-[10px] text-[#9AA29C]">
+                    <p className="mt-0.5 text-[10px] text-[#8C97B2]">
                       MP4, MOV, WEBM or other supported video
                     </p>
                   </div>
                 </button>
               ) : (
-                <div className="overflow-hidden rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+                <div className="overflow-hidden rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
                   <div className="flex gap-3">
                     <div className="h-[90px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-black">
                       <video
@@ -478,10 +483,10 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-[#202721]">
+                      <p className="truncate text-sm font-semibold text-[#0F1B3D]">
                         {videoFile?.name || "Current video"}
                       </p>
-                      <p className="mt-1 text-[10px] text-[#9AA29C]">
+                      <p className="mt-1 text-[10px] text-[#8C97B2]">
                         {videoFile
                           ? "New video selected"
                           : "Current uploaded video"}
@@ -492,7 +497,7 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                           type="button"
                           onClick={() => videoInputRef.current?.click()}
                           disabled={loading}
-                          className="text-xs font-semibold text-[#163F20] hover:underline"
+                          className="text-xs font-semibold text-[#1E3A8A] hover:underline"
                         >
                           Change Video
                         </button>
@@ -517,12 +522,12 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-white px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-[#1E3A8A]/10 bg-white px-5 py-4">
           <button
             type="button"
             onClick={handleClose}
             disabled={loading}
-            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-medium text-[#3F4A41] transition hover:bg-[#F5F7F5] disabled:opacity-50"
+            className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-medium text-[#3A4668] transition hover:bg-[#F5F8FF] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -531,7 +536,7 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="flex min-w-[125px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-w-[125px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -557,7 +562,7 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 };
 
 // =====================================================
-// DELETE MODAL
+// DELETE MODAL — NAVY THEME
 // =====================================================
 
 interface DeleteTestimonialModalProps {
@@ -584,8 +589,8 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
       closeOnOverlayClick={!loading}
       title=""
     >
-      <div className="w-full max-w-[430px] overflow-hidden rounded-[20px] border border-[#C23B32]/15 bg-white shadow-2xl">
-        <div className="h-[3px] bg-gradient-to-r from-[#4C8A57] to-[#C23B32]" />
+      <div className="w-full max-w-[430px] overflow-hidden rounded-[20px] border border-[#C23B32]/15 bg-white shadow-2xl font-poppins">
+        <div className="h-[3px] bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
 
         <div className="p-5">
           <div className="flex items-start gap-4">
@@ -594,11 +599,11 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold text-[#202721]">
+              <h2 className="text-lg font-semibold text-[#0F1B3D]">
                 Delete Testimonial?
               </h2>
 
-              <p className="mt-1.5 text-xs leading-5 text-[#59645C]">
+              <p className="mt-1.5 text-xs leading-5 text-[#4A5778]">
                 This action will permanently remove the selected testimonial.
               </p>
             </div>
@@ -607,13 +612,13 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#59645C] hover:bg-[#EAF3EA]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#4A5778] hover:bg-[#EAF1FF]"
             >
               <FiX size={17} />
             </button>
           </div>
 
-          <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] p-3">
+          <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded-xl bg-black">
               {testimonial?.video_path ? (
                 <video
@@ -622,30 +627,30 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
                   muted
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-[#8FC199]">
+                <div className="flex h-full items-center justify-center text-[#2563EB]">
                   <FiFilm size={18} />
                 </div>
               )}
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#202721]">
+              <p className="truncate text-sm font-semibold text-[#0F1B3D]">
                 {testimonial?.person_name || "Selected Testimonial"}
               </p>
 
-              <p className="mt-0.5 text-xs text-[#59645C]">
+              <p className="mt-0.5 text-xs text-[#4A5778]">
                 Rating: {testimonial?.rating || "N/A"}/10
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4">
+        <div className="flex justify-end gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-[#D8E2D8] bg-white px-5 py-2.5 text-sm font-medium text-[#3F4A41] transition hover:bg-[#F5F7F5] disabled:opacity-50"
+            className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-medium text-[#3A4668] transition hover:bg-[#F5F8FF] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -675,7 +680,7 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
 };
 
 // =====================================================
-// TESTIMONIAL CARD
+// TESTIMONIAL CARD — NAVY THEME
 // =====================================================
 
 interface TestimonialCardProps {
@@ -683,6 +688,8 @@ interface TestimonialCardProps {
   serialNumber: number;
   onEdit: (testimonial: Testimonial) => void;
   onDelete: (testimonial: Testimonial) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 const TestimonialCard: React.FC<TestimonialCardProps> = ({
@@ -690,17 +697,21 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
   serialNumber,
   onEdit,
   onDelete,
+  canEdit = false,
+  canDelete = false,
 }) => {
   const videoUrl = getVideoUrl(testimonial);
+
+  const hasAnyAction = canEdit || canDelete;
 
   return (
     <motion.div
       variants={itemVariants}
       whileHover={{ y: -3 }}
-      className="group overflow-hidden rounded-[18px] border border-[#E5EAE5] bg-white shadow-sm transition-all duration-300 hover:border-[#163F20]/30 hover:shadow-[0_15px_35px_rgba(22,63,32,0.08)]"
+      className="group overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white shadow-sm transition-all duration-300 hover:border-[#1E3A8A]/30 hover:shadow-[0_15px_35px_rgba(30,58,138,0.08)]"
     >
       {/* VIDEO */}
-      <div className="relative aspect-[9/11] overflow-hidden bg-[#161412]">
+      <div className="relative aspect-[9/11] overflow-hidden bg-[#0F1B3D]">
         {videoUrl ? (
           <video
             src={videoUrl}
@@ -711,7 +722,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <FiMessageSquare size={35} className="text-[#8FC199]" />
+            <FiMessageSquare size={35} className="text-[#60A5FA]" />
           </div>
         )}
 
@@ -747,17 +758,17 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
       <div className="p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
               Person
             </p>
 
-            <p className="mt-1 truncate text-xs font-semibold text-[#202721]">
+            <p className="mt-1 truncate text-xs font-semibold text-[#0F1B3D]">
               {testimonial.person_name}
             </p>
           </div>
 
-          <div className="flex items-center gap-1 text-[10px] text-[#163F20]">
-            <FiStar size={12} className="fill-[#4C8A57] text-[#163F20]" />
+          <div className="flex items-center gap-1 text-[10px] text-[#1E3A8A]">
+            <FiStar size={12} className="fill-[#FACC15] text-[#FACC15]" />
 
             <span className="font-semibold">
               {parseFloat(testimonial.rating).toFixed(1)}
@@ -765,30 +776,36 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-[#163F20]/10 pt-3">
-          <div className="text-[10px] text-[#9AA29C]">
+        <div className="mt-4 flex items-center justify-between border-t border-[#1E3A8A]/10 pt-3">
+          <div className="text-[10px] text-[#8C97B2]">
             {formatDate(testimonial.created_at)}
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onEdit(testimonial)}
-              title="Edit Testimonial"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#59645C] transition hover:border-[#163F20] hover:text-[#163F20]"
-            >
-              <FiEdit2 size={14} />
-            </button>
+          {hasAnyAction && (
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(testimonial)}
+                  title="Edit Testimonial"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
+                >
+                  <FiEdit2 size={14} />
+                </button>
+              )}
 
-            <button
-              type="button"
-              onClick={() => onDelete(testimonial)}
-              title="Delete Testimonial"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2D8] bg-white text-[#59645C] transition hover:border-[#C23B32] hover:text-[#C23B32]"
-            >
-              <FiTrash2 size={14} />
-            </button>
-          </div>
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => onDelete(testimonial)}
+                  title="Delete Testimonial"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#C23B32] hover:text-[#C23B32]"
+                >
+                  <FiTrash2 size={14} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -800,6 +817,55 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
 // =====================================================
 
 const TestimonialsManagement: React.FC = () => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewTestimonials = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("content") ||
+      hasModuleAccess("testimonial") ||
+      hasPermission("content.view") ||
+      hasPermission("testimonial.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateTestimonial = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("content.create") ||
+      hasPermission("testimonial.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateTestimonial = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("content.edit") ||
+      hasPermission("content.update") ||
+      hasPermission("testimonial.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteTestimonial = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("content.delete") ||
+      hasPermission("testimonial.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
@@ -824,7 +890,9 @@ const TestimonialsManagement: React.FC = () => {
         setTestimonials(response.data.data.data);
       } else {
         setTestimonials([]);
-        toast.error(response.data?.message || "Unable to fetch testimonials.");
+        toast.error(
+          response.data?.message || "Unable to fetch testimonials.",
+        );
       }
     } catch (error: any) {
       console.error("Fetch testimonials error:", error);
@@ -837,8 +905,10 @@ const TestimonialsManagement: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTestimonials();
-  }, []);
+    if (canViewTestimonials) {
+      fetchTestimonials();
+    }
+  }, [canViewTestimonials]);
 
   // =================================================
   // SEARCH
@@ -906,7 +976,9 @@ const TestimonialsManagement: React.FC = () => {
         setSelectedTestimonial(null);
         await fetchTestimonials();
       } else {
-        toast.error(response.data?.message || "Unable to save testimonial.");
+        toast.error(
+          response.data?.message || "Unable to save testimonial.",
+        );
       }
     } catch (error: any) {
       console.error("Save testimonial error:", error);
@@ -935,7 +1007,9 @@ const TestimonialsManagement: React.FC = () => {
         setSelectedTestimonial(null);
         await fetchTestimonials();
       } else {
-        toast.error(response.data?.message || "Unable to delete testimonial.");
+        toast.error(
+          response.data?.message || "Unable to delete testimonial.",
+        );
       }
     } catch (error: any) {
       console.error("Delete testimonial error:", error);
@@ -948,20 +1022,39 @@ const TestimonialsManagement: React.FC = () => {
     }
   };
 
+  // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewTestimonials) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // =================================================
   // LOADING
   // =================================================
 
   if (loading && testimonials.length === 0) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: PAGE_BG }}
-      >
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
         <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#EAF3EA] border-t-[#163F20]" />
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#D8E2F0] border-t-[#1E3A8A]" />
 
-          <p className="mt-3 text-sm text-[#59645C]">Loading testimonials...</p>
+          <p className="mt-3 text-sm text-[#4A5778]">
+            Loading testimonials...
+          </p>
         </div>
       </div>
     );
@@ -976,8 +1069,7 @@ const TestimonialsManagement: React.FC = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="min-h-screen px-4 py-5 sm:px-6 lg:px-8"
-      style={{ backgroundColor: PAGE_BG }}
+      className="min-h-screen bg-[#F5F8FF] px-4 py-5 font-poppins sm:px-6 lg:px-8"
     >
       <div className="mx-auto max-w-[1500px]">
         {/* HEADER */}
@@ -987,18 +1079,20 @@ const TestimonialsManagement: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#4C8A57]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]">
                 Content Management
               </span>
             </div>
 
-            <h1 className="text-[29px] font-semibold tracking-tight text-[#202721] sm:text-[32px]">
+            <h1 className="text-[29px] font-semibold tracking-tight text-[#0F1B3D] sm:text-[32px]">
               Testimonials
             </h1>
 
-            <p className="mt-1 text-sm text-[#59645C]">
+            <p className="mt-1 text-sm text-[#4A5778]">
               Manage customer testimonials, videos, and ratings.
             </p>
           </div>
@@ -1008,7 +1102,7 @@ const TestimonialsManagement: React.FC = () => {
               type="button"
               onClick={fetchTestimonials}
               disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D8E2D8] bg-white px-4 text-sm font-medium text-[#3F4A41] shadow-sm transition hover:bg-[#EAF3EA] hover:text-[#163F20] disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm font-medium text-[#3A4668] shadow-sm transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={15}
@@ -1017,14 +1111,17 @@ const TestimonialsManagement: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            <button
-              type="button"
-              onClick={openAdd}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-            >
-              <FiPlus size={16} />
-              Add Testimonial
-            </button>
+            {/* ✅ ADD — permission based */}
+            {canCreateTestimonial && (
+              <button
+                type="button"
+                onClick={openAdd}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+              >
+                <FiPlus size={16} />
+                Add Testimonial
+              </button>
+            )}
           </div>
         </motion.div>
 
@@ -1035,26 +1132,26 @@ const TestimonialsManagement: React.FC = () => {
         >
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_24px_rgba(22,63,32,0.05)]"
+            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
           >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                   Total Testimonials
                 </p>
 
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#202721]">
+                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
                   {totalTestimonials}
                 </p>
 
-                <p className="mt-1 text-[11px] text-[#59645C]">
+                <p className="mt-1 text-[11px] text-[#4A5778]">
                   All customer testimonials
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiMessageSquare size={21} />
               </div>
             </div>
@@ -1062,26 +1159,26 @@ const TestimonialsManagement: React.FC = () => {
 
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_24px_rgba(22,63,32,0.05)]"
+            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
           >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#8FC199] to-[#163F20]" />
+            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
 
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                   With Videos
                 </p>
 
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#202721]">
+                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
                   {testimonials.filter((t) => t.video_path).length}
                 </p>
 
-                <p className="mt-1 text-[11px] text-[#59645C]">
+                <p className="mt-1 text-[11px] text-[#4A5778]">
                   Video testimonials uploaded
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#DBEAFE] text-[#1E40AF]">
                 <FiFilm size={21} />
               </div>
             </div>
@@ -1089,34 +1186,35 @@ const TestimonialsManagement: React.FC = () => {
 
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E5EAE5] bg-white p-5 shadow-[0_8px_24px_rgba(22,63,32,0.05)]"
+            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
           >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#163F20] to-[#4C8A57]" />
+            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
 
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9AA29C]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
                   Average Rating
                 </p>
 
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#202721]">
+                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
                   {testimonials.length > 0
                     ? (
                         testimonials.reduce(
-                          (sum, t) => sum + parseFloat(String(t.rating || 0)),
+                          (sum, t) =>
+                            sum + parseFloat(String(t.rating || 0)),
                           0,
                         ) / testimonials.length
                       ).toFixed(1)
                     : "0.0"}
                 </p>
 
-                <p className="mt-1 text-[11px] text-[#59645C]">
+                <p className="mt-1 text-[11px] text-[#4A5778]">
                   Out of 10 average
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF3EA] text-[#163F20]">
-                <FiStar size={21} className="fill-[#4C8A57]" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#FEF9C3] text-[#1E293B]">
+                <FiStar size={21} className="fill-[#FACC15]" />
               </div>
             </div>
           </motion.div>
@@ -1125,18 +1223,18 @@ const TestimonialsManagement: React.FC = () => {
         {/* MAIN CARD */}
         <motion.div
           variants={itemVariants}
-          className="overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+          className="overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
         >
-          <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           {/* TOOLBAR */}
-          <div className="flex flex-col gap-4 border-b border-[#163F20]/10 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 border-b border-[#1E3A8A]/10 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-[#202721]">
+              <h2 className="text-base font-semibold text-[#0F1B3D]">
                 Testimonial Directory
               </h2>
 
-              <p className="mt-1 text-xs text-[#59645C]">
+              <p className="mt-1 text-xs text-[#4A5778]">
                 {filteredTestimonials.length}{" "}
                 {filteredTestimonials.length === 1
                   ? "testimonial"
@@ -1148,7 +1246,7 @@ const TestimonialsManagement: React.FC = () => {
             <div className="relative w-full md:max-w-sm">
               <FiSearch
                 size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#163F20]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
               />
 
               <input
@@ -1156,14 +1254,14 @@ const TestimonialsManagement: React.FC = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search testimonials, person or ID..."
-                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-10 text-sm text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-10 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
 
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[#9AA29C] hover:text-[#163F20]"
+                  className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[#8C97B2] hover:text-[#1E3A8A]"
                 >
                   <FiX size={16} />
                 </button>
@@ -1174,25 +1272,25 @@ const TestimonialsManagement: React.FC = () => {
           {/* CONTENT */}
           {filteredTestimonials.length === 0 ? (
             <div className="px-5 py-20 text-center sm:px-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EAF3EA] text-[#163F20]">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiMessageSquare size={27} />
               </div>
 
-              <h3 className="mt-5 text-base font-semibold text-[#202721]">
+              <h3 className="mt-5 text-base font-semibold text-[#0F1B3D]">
                 {search ? "No testimonials found" : "No testimonials available"}
               </h3>
 
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#59645C]">
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#4A5778]">
                 {search
                   ? "Try searching with another person name or ID."
                   : "Add your first testimonial to start managing customer feedback."}
               </p>
 
-              {!search && (
+              {!search && canCreateTestimonial && (
                 <button
                   type="button"
                   onClick={openAdd}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.5)] transition hover:-translate-y-0.5"
+                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
                 >
                   <FiPlus size={16} />
                   Add Testimonial
@@ -1214,6 +1312,8 @@ const TestimonialsManagement: React.FC = () => {
                     serialNumber={index + 1}
                     onEdit={openEdit}
                     onDelete={openDelete}
+                    canEdit={canUpdateTestimonial}
+                    canDelete={canDeleteTestimonial}
                   />
                 ))}
               </motion.div>
@@ -1222,33 +1322,38 @@ const TestimonialsManagement: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* MODALS */}
-      <TestimonialFormModal
-        open={addEditOpen}
-        loading={saveLoading}
-        mode={modalMode}
-        testimonial={selectedTestimonial}
-        onClose={() => {
-          if (!saveLoading) {
-            setAddEditOpen(false);
-            setSelectedTestimonial(null);
-          }
-        }}
-        onSubmit={handleSave}
-      />
+      {/* MODALS — permission based */}
 
-      <DeleteTestimonialModal
-        open={deleteOpen}
-        loading={deleteLoading}
-        testimonial={selectedTestimonial}
-        onClose={() => {
-          if (!deleteLoading) {
-            setDeleteOpen(false);
-            setSelectedTestimonial(null);
-          }
-        }}
-        onConfirm={handleDelete}
-      />
+      {(canCreateTestimonial || canUpdateTestimonial) && (
+        <TestimonialFormModal
+          open={addEditOpen}
+          loading={saveLoading}
+          mode={modalMode}
+          testimonial={selectedTestimonial}
+          onClose={() => {
+            if (!saveLoading) {
+              setAddEditOpen(false);
+              setSelectedTestimonial(null);
+            }
+          }}
+          onSubmit={handleSave}
+        />
+      )}
+
+      {canDeleteTestimonial && (
+        <DeleteTestimonialModal
+          open={deleteOpen}
+          loading={deleteLoading}
+          testimonial={selectedTestimonial}
+          onClose={() => {
+            if (!deleteLoading) {
+              setDeleteOpen(false);
+              setSelectedTestimonial(null);
+            }
+          }}
+          onConfirm={handleDelete}
+        />
+      )}
     </motion.div>
   );
 };

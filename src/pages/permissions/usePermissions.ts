@@ -1,3 +1,5 @@
+// src/hooks/usePermissions.ts
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import adminApi from "../../api/endpoints/Auth";
 
@@ -19,7 +21,6 @@ export const ROLES = {
 } as const;
 
 export type RoleSlug = (typeof ROLES)[keyof typeof ROLES];
-
 
 export interface AdminRole {
   id: number;
@@ -79,22 +80,14 @@ export interface AdminDetails {
   name: string;
   email: string;
   profile_image?: string | null;
+  warehouse_name?: string | null;
+  warehouse_code?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
 
 /* ============================================================
    PERMISSIONS DATA
-   ------------------------------------------------------------
-   IMPORTANT:
-   permissions_details REMOVED
-
-   Current API response:
-   - admin
-   - permissions_grouped
-   - roles
-   - warehouse_assignments
-   - has_warehouse_access
    ============================================================ */
 
 export interface PermissionsData {
@@ -124,8 +117,8 @@ export interface PermissionsResponse {
 /* ============================================================
    ROLE BASED FALLBACK PERMISSIONS
    ------------------------------------------------------------
-   API permissions_grouped ko priority milegi.
-   Role permissions fallback ke liye use hongi.
+   ⚠️ Ye fallback use NAHI hoga (hasPermission me).
+   Sirf reference ke liye rakha hai.
    ============================================================ */
 
 export const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -156,91 +149,73 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 
   [ROLES.FINANCE]: [
-    "finance.view",
-    "finance.create",
-    "finance.update",
-    "finance.details",
+    "payout.view",
+    "payout.details",
+    "payout.release",
+    "payout.hold",
 
-    "payment.view",
-    "payment.update",
-
-    "refund.view",
-    "refund.create",
-    "refund.update",
+    "return_refund.view",
+    "return_refund.details",
+    "return_refund.approve",
+    "return_refund.reject",
   ],
 
   [ROLES.FINANCE_MANAGER]: [
-    "finance.view",
-    "finance.create",
-    "finance.update",
-    "finance.details",
+    "payout.view",
+    "payout.details",
+    "payout.release",
+    "payout.hold",
+    "payout.notify",
+    "payout.export",
 
-    "payment.view",
-    "payment.create",
-    "payment.update",
-
-    "refund.view",
-    "refund.create",
-    "refund.update",
+    "return_refund.view",
+    "return_refund.details",
+    "return_refund.approve",
+    "return_refund.reject",
+    "return_refund.received",
+    "return_refund.completed",
   ],
 
   [ROLES.SALES]: [
-    "sales.view",
-    "sales.create",
-    "sales.update",
-    "sales.details",
-
     "order.view",
     "order.details",
   ],
 
   [ROLES.SALES_MANAGER]: [
-    "sales.view",
-    "sales.create",
-    "sales.update",
-    "sales.delete",
-    "sales.details",
-
     "order.view",
     "order.details",
+    "order.dispatch",
+    "order.shipped",
+    "order.delivered",
   ],
 
   [ROLES.SALES_EXECUTIVE]: [
-    "sales.view",
-    "sales.create",
-    "sales.details",
-
     "order.view",
     "order.details",
   ],
 
   [ROLES.WAREHOUSE]: [
-    "warehouse.view",
-    "warehouse.update",
-    "warehouse.details",
-
-    "warehouse.stock.view",
-    "warehouse.stock.update",
+    "stock.view",
+    "stock.update",
   ],
 
   [ROLES.WAREHOUSE_MANAGER]: [
-    "warehouse.view",
-    "warehouse.update",
-    "warehouse.details",
+    "stock.view",
+    "stock.update",
 
-    "warehouse.stock.view",
-    "warehouse.stock.update",
+    "product.view",
+    "product.details",
 
-    "warehouse.transfer",
-    "warehouse.dispatch",
+    "category.view",
+    "category.details",
+
+    "attribute.view",
+    "attribute.details",
   ],
 
   [ROLES.WAREHOUSE_EXECUTIVE]: [
-    "warehouse.view",
-    "warehouse.details",
-
-    "warehouse.stock.view",
-    "warehouse.stock.update",
+    "stock.view",
+    "stock.update",
   ],
 };
 
@@ -281,7 +256,6 @@ export const WAREHOUSE_ROLE_ACCESS: Record<
     dispatch: false,
   },
 };
-
 
 export const usePermissions = () => {
   const [data, setData] = useState<PermissionsData | null>(null);
@@ -330,10 +304,8 @@ export const usePermissions = () => {
     return data?.roles ?? [];
   }, [data]);
 
-
   const roleSlugs = useMemo<string[]>(() => {
     const roleSet = new Set<string>();
-
 
     roles.forEach((role) => {
       if (role.slug) {
@@ -354,14 +326,10 @@ export const usePermissions = () => {
     return Array.from(roleSet);
   }, [roles, data]);
 
-
-
   const primaryRole = useMemo<string | null>(() => {
- 
     const primaryAssignment =
       data?.warehouse_assignments?.find(
-        (assignment) =>
-          assignment.is_primary === true,
+        (assignment) => assignment.is_primary === true,
       );
 
     if (primaryAssignment?.role_slug) {
@@ -377,12 +345,7 @@ export const usePermissions = () => {
     }
 
     return roleSlugs[0] ?? null;
-  }, [
-    data,
-    roles,
-    roleSlugs,
-  ]);
-
+  }, [data, roles, roleSlugs]);
 
   const permissionsGrouped = useMemo(() => {
     return data?.permissions_grouped ?? {};
@@ -402,9 +365,12 @@ export const usePermissions = () => {
     return slugs;
   }, [permissionsGrouped]);
 
+  /* ============================================================
+     ✅ hasPermission — sirf API permissions valid
+     ============================================================ */
+
   const hasPermission = useCallback(
     (slug: string): boolean => {
-
       if (roleSlugs.includes(ROLES.SUPER_ADMIN)) {
         return true;
       }
@@ -417,19 +383,6 @@ export const usePermissions = () => {
         return true;
       }
 
-      for (const roleSlug of roleSlugs) {
-        const rolePermissions =
-          ROLE_PERMISSIONS[roleSlug] ?? [];
-
-        if (rolePermissions.includes("*")) {
-          return true;
-        }
-
-        if (rolePermissions.includes(slug)) {
-          return true;
-        }
-      }
-
       return false;
     },
     [roleSlugs, allSlugs],
@@ -437,68 +390,42 @@ export const usePermissions = () => {
 
   const hasAnyPermission = useCallback(
     (slugs: string[]): boolean => {
-      return slugs.some((slug) =>
-        hasPermission(slug),
-      );
+      return slugs.some((slug) => hasPermission(slug));
     },
     [hasPermission],
   );
 
   const hasAllPermissions = useCallback(
     (slugs: string[]): boolean => {
-      return slugs.every((slug) =>
-        hasPermission(slug),
-      );
+      return slugs.every((slug) => hasPermission(slug));
     },
     [hasPermission],
   );
 
+  /* ============================================================
+     ✅ hasModuleAccess — sirf API modules valid
+     ============================================================ */
 
   const hasModuleAccess = useCallback(
     (module: string): boolean => {
-
       if (roleSlugs.includes(ROLES.SUPER_ADMIN)) {
         return true;
       }
 
-      const actions =
-        permissionsGrouped[module];
+      const actions = permissionsGrouped[module];
 
-      if (
-        Array.isArray(actions) &&
-        actions.length > 0
-      ) {
+      if (Array.isArray(actions) && actions.length > 0) {
         return true;
       }
-      return roleSlugs.some((roleSlug) => {
-        const rolePermissions =
-          ROLE_PERMISSIONS[roleSlug] ?? [];
 
-        if (rolePermissions.includes("*")) {
-          return true;
-        }
-
-        return rolePermissions.some(
-          (permission) =>
-            permission.startsWith(`${module}.`),
-        );
-      });
+      return false;
     },
-    [
-      permissionsGrouped,
-      roleSlugs,
-    ],
+    [permissionsGrouped, roleSlugs],
   );
 
-
   const can = useCallback(
-    (
-      module: string,
-      action: string,
-    ): boolean => {
-      return hasPermission(
-        `${module}.${action}`,
-      );
+    (module: string, action: string): boolean => {
+      return hasPermission(`${module}.${action}`);
     },
     [hasPermission],
   );
@@ -511,23 +438,17 @@ export const usePermissions = () => {
   );
 
   const isSuperAdmin = useMemo(() => {
-    return roleSlugs.includes(
-      ROLES.SUPER_ADMIN,
-    );
+    return roleSlugs.includes(ROLES.SUPER_ADMIN);
   }, [roleSlugs]);
 
   const isFinance = useMemo(() => {
     return (
       hasRole(ROLES.FINANCE) ||
       hasRole(ROLES.FINANCE_MANAGER) ||
-      hasModuleAccess("finance") ||
-      hasModuleAccess("payment") ||
-      hasModuleAccess("refund")
+      hasModuleAccess("payout") ||
+      hasModuleAccess("return_refund")
     );
-  }, [
-    hasRole,
-    hasModuleAccess,
-  ]);
+  }, [hasRole, hasModuleAccess]);
 
   const isSales = useMemo(() => {
     return (
@@ -536,59 +457,34 @@ export const usePermissions = () => {
       hasRole(ROLES.SALES_EXECUTIVE) ||
       hasModuleAccess("sales")
     );
-  }, [
-    hasRole,
-    hasModuleAccess,
-  ]);
+  }, [hasRole, hasModuleAccess]);
 
   const isWarehouse = useMemo(() => {
     return (
       data?.has_warehouse_access === true ||
       data?.warehouse_assignments?.some(
-        (assignment) =>
-          assignment.is_active === true,
+        (assignment) => assignment.is_active === true,
       ) === true ||
       hasRole(ROLES.WAREHOUSE) ||
       hasRole(ROLES.WAREHOUSE_MANAGER) ||
       hasRole(ROLES.WAREHOUSE_EXECUTIVE) ||
-      hasModuleAccess("warehouse")
+      hasModuleAccess("warehouse") ||
+      hasModuleAccess("stock")
     );
-  }, [
-    data,
-    hasRole,
-    hasModuleAccess,
-  ]);
-
-  /* ============================================================
-     HAS WAREHOUSE ACCESS
-     ============================================================ */
+  }, [data, hasRole, hasModuleAccess]);
 
   const hasWarehouseAccess = useMemo(() => {
     return (
       data?.has_warehouse_access === true ||
       data?.warehouse_assignments?.some(
-        (assignment) =>
-          assignment.is_active === true,
+        (assignment) => assignment.is_active === true,
       ) === true
     );
   }, [data]);
 
-  /* ============================================================
-     WAREHOUSE ASSIGNMENTS
-     ============================================================ */
-
   const warehouseAssignments = useMemo(() => {
-    return (
-      data?.warehouse_assignments ?? []
-    );
+    return data?.warehouse_assignments ?? [];
   }, [data]);
-
-  /* ============================================================
-     GET WAREHOUSE ASSIGNMENTS BY ROLE
-     ------------------------------------------------------------
-     New API doesn't have warehouses_by_role.
-     So assignments are filtered from warehouse_assignments.
-     ============================================================ */
 
   const getWarehousesByRole = useCallback(
     (roleSlug: string): WarehouseAssignment[] => {
@@ -601,209 +497,100 @@ export const usePermissions = () => {
     [warehouseAssignments],
   );
 
-  /* ============================================================
-     CHECK WAREHOUSE ID
-     ============================================================ */
-
   const hasWarehouseId = useCallback(
     (warehouseId: number): boolean => {
       return warehouseAssignments.some(
         (assignment) =>
-          assignment.warehouse?.id ===
-            warehouseId &&
+          assignment.warehouse?.id === warehouseId &&
           assignment.is_active === true,
       );
     },
     [warehouseAssignments],
   );
 
-  /* ============================================================
-     ACCESSIBLE WAREHOUSES
-     ============================================================ */
-
   const accessibleWarehouses = useMemo(() => {
-    const map = new Map<
-      number,
-      Warehouse
-    >();
+    const map = new Map<number, Warehouse>();
 
-    warehouseAssignments.forEach(
-      (assignment) => {
-        if (
-          assignment.is_active === true &&
-          assignment.warehouse
-        ) {
-          map.set(
-            assignment.warehouse.id,
-            assignment.warehouse,
-          );
-        }
-      },
-    );
+    warehouseAssignments.forEach((assignment) => {
+      if (
+        assignment.is_active === true &&
+        assignment.warehouse
+      ) {
+        map.set(assignment.warehouse.id, assignment.warehouse);
+      }
+    });
 
     return Array.from(map.values());
   }, [warehouseAssignments]);
 
-  /* ============================================================
-     CURRENT WAREHOUSE
-     ============================================================ */
-
   const currentWarehouse = useMemo(() => {
-    const current =
-      warehouseAssignments.find(
-        (assignment) =>
-          assignment.is_current === true &&
-          assignment.is_active === true,
-      );
+    const current = warehouseAssignments.find(
+      (assignment) =>
+        assignment.is_current === true &&
+        assignment.is_active === true,
+    );
 
     return current?.warehouse ?? null;
   }, [warehouseAssignments]);
 
-  /* ============================================================
-     PRIMARY WAREHOUSE
-     ============================================================ */
-
   const primaryWarehouse = useMemo(() => {
-    const primary =
-      warehouseAssignments.find(
-        (assignment) =>
-          assignment.is_primary === true &&
-          assignment.is_active === true,
-      );
+    const primary = warehouseAssignments.find(
+      (assignment) =>
+        assignment.is_primary === true &&
+        assignment.is_active === true,
+    );
 
     return primary?.warehouse ?? null;
   }, [warehouseAssignments]);
 
-  /* ============================================================
-     WAREHOUSE ACTION ACCESS
-     ============================================================ */
-
   const canInWarehouse = useCallback(
     (
-      action:
-        | "view"
-        | "update"
-        | "transfer"
-        | "dispatch",
+      action: "view" | "update" | "transfer" | "dispatch",
     ): boolean => {
-      /* ---------------------------------------------
-         Super Admin
-      --------------------------------------------- */
-
       if (isSuperAdmin) {
         return true;
       }
 
-      /* ---------------------------------------------
-         Actual API permission
-      --------------------------------------------- */
-
-      if (
-        hasPermission(
-          `warehouse.${action}`,
-        )
-      ) {
+      if (hasPermission(`warehouse.${action}`)) {
         return true;
-      }
-
-      /* ---------------------------------------------
-         Role fallback
-      --------------------------------------------- */
-
-      for (const roleSlug of roleSlugs) {
-        if (
-          WAREHOUSE_ROLE_ACCESS[
-            roleSlug
-          ]?.[action]
-        ) {
-          return true;
-        }
       }
 
       return false;
     },
-    [
-      isSuperAdmin,
-      hasPermission,
-      roleSlugs,
-    ],
+    [isSuperAdmin, hasPermission],
   );
 
-  /* ============================================================
-     RETURN
-     ============================================================ */
-
   return {
-    /* ---------------------------------------------
-       API DATA
-    --------------------------------------------- */
-
     data,
-
     admin,
-
     loading,
-
     error,
-
     refetch: fetchAll,
 
-    /* ---------------------------------------------
-       ROLES
-    --------------------------------------------- */
-
     roles,
-
     roleSlugs,
-
     primaryRole,
-
     hasRole,
-
     isSuperAdmin,
-
     isFinance,
-
     isSales,
-
     isWarehouse,
 
-    /* ---------------------------------------------
-       PERMISSIONS
-    --------------------------------------------- */
-
     permissionsGrouped,
-
     allSlugs,
-
     hasPermission,
-
     hasAnyPermission,
-
     hasAllPermissions,
-
     hasModuleAccess,
-
     can,
 
-    /* ---------------------------------------------
-       WAREHOUSE
-    --------------------------------------------- */
-
     hasWarehouseAccess,
-
     warehouseAssignments,
-
     accessibleWarehouses,
-
     currentWarehouse,
-
     primaryWarehouse,
-
     getWarehousesByRole,
-
     hasWarehouseId,
-
     canInWarehouse,
   };
 };

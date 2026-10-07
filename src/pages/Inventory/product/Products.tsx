@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-import { FiPlus, FiSearch } from "react-icons/fi";
+import { FiPlus, FiSearch, FiAlertCircle } from "react-icons/fi";
 
 import { motion } from "framer-motion";
 
@@ -22,6 +22,16 @@ import {
 import trendingProductsApi from "../../../api/endpoints/today";
 
 import { Product, SelectOption } from "@/types/product";
+
+// =====================================================
+// ✅ PERMISSIONS
+// =====================================================
+
+import { usePermissions } from "../../permissions/usePermissions";
+
+// =====================================================
+// ANIMATIONS
+// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -50,6 +60,62 @@ const itemVariants = {
 
 const Products: React.FC = () => {
   const location = useLocation();
+
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewProducts = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("product") ||
+      hasPermission("product.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateProduct = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateProduct = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.update") ||
+      hasPermission("product.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteProduct = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canPublishProduct = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.publish") ||
+      hasPermission("product.update"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canToggleTrending = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.trending") ||
+      hasPermission("product.update"),
+    [isSuperAdmin, hasPermission],
+  );
 
   // ===================================================
   // STATE
@@ -204,8 +270,10 @@ const Products: React.FC = () => {
   // ===================================================
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (canViewProducts) {
+      fetchProducts();
+    }
+  }, [canViewProducts]);
 
   // ===================================================
   // HEADER PRODUCT
@@ -559,12 +627,32 @@ const Products: React.FC = () => {
   };
 
   // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewProducts) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ===================================================
   // RENDER
   // ===================================================
 
   return (
     <motion.div
-      className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+      className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -579,18 +667,20 @@ const Products: React.FC = () => {
       >
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
               Catalog Management
             </span>
           </div>
 
-          <h1 className="text-[28px] font-bold tracking-tight text-[#202721] sm:text-[32px]">
+          <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
             Products
           </h1>
 
-          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#59645C]">
+          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
             Manage your products, pricing, inventory, and product information
             from one place.
           </p>
@@ -599,22 +689,22 @@ const Products: React.FC = () => {
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
               Total Products
             </div>
 
-            <div className="mt-0.5 text-lg font-bold text-[#202721]">
+            <div className="mt-0.5 text-lg font-bold text-[#0F1B3D]">
               {products.length}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#163F20]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#4C8A57]">
+          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">
               Published
             </div>
 
-            <div className="mt-0.5 text-lg font-bold text-[#163F20]">
+            <div className="mt-0.5 text-lg font-bold text-[#1E3A8A]">
               {publishedCount}
             </div>
           </div>
@@ -637,15 +727,15 @@ const Products: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white p-4 shadow-[0_8px_30px_rgba(22,63,32,0.06)] sm:p-5"
+        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#163F20]/10" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
 
-        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#163F20]/10" />
+        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
 
-        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#163F20]/10" />
+        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           {/* SEARCH */}
@@ -653,7 +743,7 @@ const Products: React.FC = () => {
           <div className="relative w-full lg:max-w-[620px]">
             <FiSearch
               size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
             />
 
             <input
@@ -665,29 +755,31 @@ const Products: React.FC = () => {
                 setHighlightedProductId(null);
               }}
               placeholder="Search by ID, name, code, slug, SKU, price, status..."
-              className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-10 pr-4 text-xs text-[#202721] outline-none transition placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
             />
 
             {search && (
-              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-[#EAF3EA] px-2 py-1 text-[9px] font-bold text-[#163F20]">
+              <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-[#EAF1FF] px-2 py-1 text-[9px] font-bold text-[#1E3A8A]">
                 {filteredProducts.length} result
                 {filteredProducts.length !== 1 ? "s" : ""}
               </div>
             )}
           </div>
 
-          {/* ADD PRODUCT */}
+          {/* ✅ ADD PRODUCT — permission based */}
 
-          <motion.button
-            type="button"
-            onClick={() => setAddModalOpen(true)}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.97 }}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-          >
-            <FiPlus size={15} />
-            Add Product
-          </motion.button>
+          {canCreateProduct && (
+            <motion.button
+              type="button"
+              onClick={() => setAddModalOpen(true)}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+            >
+              <FiPlus size={15} />
+              Add Product
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
@@ -697,9 +789,9 @@ const Products: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+        className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
         <div className="pt-[3px]">
           <ProductTable
@@ -718,67 +810,78 @@ const Products: React.FC = () => {
             highlightedProductId={highlightedProductId}
             onPublishToggle={handlePublishToggle}
             publishLoadingId={publishLoadingId}
+
+            // ✅ Permission props
+            canView={canViewProducts}
+            canEdit={canUpdateProduct}
+            canDelete={canDeleteProduct}
+            canPublish={canPublishProduct}
+            canToggleTrending={canToggleTrending}
           />
         </div>
       </motion.div>
 
       {/* =================================================
-          ADD PRODUCT MODAL
+          ADD PRODUCT MODAL — permission based
       ================================================= */}
 
-      <GlobalModal
-        isOpen={addModalOpen}
-        onClose={() => {
-          if (!addLoading) {
-            setAddModalOpen(false);
-          }
-        }}
-        closeOnOverlayClick={!addLoading}
-      >
-        <AddProductModal
-          open={addModalOpen}
-          loading={addLoading}
-          uploadProgress={uploadProgress}
+      {canCreateProduct && (
+        <GlobalModal
+          isOpen={addModalOpen}
           onClose={() => {
             if (!addLoading) {
               setAddModalOpen(false);
             }
           }}
-          onSubmit={handleAddProduct}
-          isEdit={false}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!addLoading}
+        >
+          <AddProductModal
+            open={addModalOpen}
+            loading={addLoading}
+            uploadProgress={uploadProgress}
+            onClose={() => {
+              if (!addLoading) {
+                setAddModalOpen(false);
+              }
+            }}
+            onSubmit={handleAddProduct}
+            isEdit={false}
+          />
+        </GlobalModal>
+      )}
 
       {/* =================================================
-          EDIT PRODUCT MODAL
+          EDIT PRODUCT MODAL — permission based
       ================================================= */}
 
-      <GlobalModal
-        isOpen={editModalOpen}
-        onClose={() => {
-          if (!editLoading) {
-            setEditModalOpen(false);
-            setSelectedProduct(null);
-          }
-        }}
-        closeOnOverlayClick={!editLoading}
-      >
-        <AddProductModal
-          key={`edit-product-${selectedProduct?.id ?? "new"}`}
-          open={editModalOpen}
-          loading={editLoading}
-          uploadProgress={uploadProgress}
+      {canUpdateProduct && (
+        <GlobalModal
+          isOpen={editModalOpen}
           onClose={() => {
             if (!editLoading) {
               setEditModalOpen(false);
               setSelectedProduct(null);
             }
           }}
-          onSubmit={handleEditProduct}
-          editData={selectedProduct}
-          isEdit={true}
-        />
-      </GlobalModal>
+          closeOnOverlayClick={!editLoading}
+        >
+          <AddProductModal
+            key={`edit-product-${selectedProduct?.id ?? "new"}`}
+            open={editModalOpen}
+            loading={editLoading}
+            uploadProgress={uploadProgress}
+            onClose={() => {
+              if (!editLoading) {
+                setEditModalOpen(false);
+                setSelectedProduct(null);
+              }
+            }}
+            onSubmit={handleEditProduct}
+            editData={selectedProduct}
+            isEdit={true}
+          />
+        </GlobalModal>
+      )}
 
       {/* =================================================
           VIEW PRODUCT MODAL

@@ -47,11 +47,16 @@ import adminDashboardApi, {
   WeeklyBreakdown,
 } from "../../api/endpoints/adminDashboard";
 import { Link, useNavigate } from "react-router-dom";
-import { getPortalName } from "../../utils/getPortalName";
-
 
 // =====================================================
-// BRAND PALETTE  (Blue + Yellow — no gold)
+// ✅ PORTAL + PERMISSIONS HOOKS
+// =====================================================
+
+import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
+import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
+// BRAND PALETTE (SAME FOR ALL PORTALS — Blue + Yellow)
 // =====================================================
 
 const CHART_NAVY = "#1E3A8A";
@@ -70,6 +75,10 @@ const CHART_BLUE_DARK = "#1E40AF";
 const CHART_BLUE_LIGHT = "#BFDBFE";
 
 const CHART_RED = "#D1453B";
+
+// =====================================================
+// ANIMATIONS
+// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -137,7 +146,6 @@ const trendIconMap: Record<string, React.ElementType> = {
   trending_flat: FaMinus,
 };
 
-// KPI cards alternate navy / yellow / blue / yellow / sky
 const metricTheme: Record<
   string,
   { tile: string; iconColor: string; spark: string; bar: string }
@@ -405,16 +413,61 @@ const Dashboard = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [salesPeriod, setSalesPeriod] = useState<SalesPeriodType>("this_week");
-  const portalName = getPortalName();
-
 
   const navigate = useNavigate();
+
+  // ===================================================
+  // ✅ PORTAL + PERMISSIONS
+  // ===================================================
+
+  const { portalName, warehouseName, warehouseCode } = usePortalInfo();
+  const { hasModuleAccess, hasPermission } = usePermissions();
+
+  // ===================================================
+  // ✅ PERMISSION-BASED MODULE VISIBILITY
+  // ===================================================
+
+  const canSeeKyc = useMemo(
+    () => hasModuleAccess("user") || hasPermission("user.view"),
+    [hasModuleAccess, hasPermission],
+  );
+
+  const canSeeInventory = useMemo(
+    () =>
+      hasModuleAccess("stock") ||
+      hasModuleAccess("product") ||
+      hasPermission("stock.view"),
+    [hasModuleAccess, hasPermission],
+  );
+
+  const canSeeSupport = useMemo(
+    () =>
+      hasModuleAccess("contact_us") ||
+      hasPermission("contact_us.view"),
+    [hasModuleAccess, hasPermission],
+  );
+
+  const canSeeSales = useMemo(
+    () =>
+      hasModuleAccess("order") ||
+      hasModuleAccess("payout") ||
+      hasPermission("order.view"),
+    [hasModuleAccess, hasPermission],
+  );
+
+  // ===================================================
+  // HANDLE REVIEW
+  // ===================================================
 
   const handleReview = (review: any) => {
     navigate("/UserManagement", {
       state: { kycUserName: review.user_name },
     });
   };
+
+  // ===================================================
+  // FETCH DASHBOARD
+  // ===================================================
 
   const fetchDashboard = useCallback(async (showRefreshing = false) => {
     try {
@@ -544,10 +597,11 @@ const Dashboard = () => {
               ? index === new Date().getDay() - 1
               : false,
           orders,
-          date: `${item.start_date}${item.end_date && item.end_date !== item.start_date
-            ? ` - ${item.end_date}`
-            : ""
-            }`,
+          date: `${item.start_date}${
+            item.end_date && item.end_date !== item.start_date
+              ? ` - ${item.end_date}`
+              : ""
+          }`,
         };
       },
     );
@@ -570,7 +624,6 @@ const Dashboard = () => {
   // TOP CATEGORIES
   // ===================================================
 
-  // Pie slice colors: navy / yellow / blue
   const PIE_COLORS = [CHART_NAVY, CHART_YELLOW, CHART_BLUE];
 
   const pieData = useMemo(() => {
@@ -641,6 +694,9 @@ const Dashboard = () => {
 
     const rows = [
       ["Metric", "Value"],
+      ["Portal", portalName],
+      ["Warehouse", warehouseName || "N/A"],
+      ["Warehouse Code", warehouseCode || "N/A"],
       ["Total Revenue", dashboard.total_revenue],
       ["Total Orders", dashboard.total_orders],
       ["Total Customers", dashboard.total_customers],
@@ -687,7 +743,7 @@ const Dashboard = () => {
     URL.revokeObjectURL(url);
 
     setTimeout(() => setIsExporting(false), 700);
-  }, [dashboard, isExporting]);
+  }, [dashboard, isExporting, portalName, warehouseName, warehouseCode]);
 
   // ===================================================
   // LOADING / ERROR
@@ -765,9 +821,24 @@ const Dashboard = () => {
                 <h1 className="text-[24px] font-extrabold tracking-[-0.035em] text-[#0F1B3D] sm:text-[28px]">
                   Dashboard
                 </h1>
+
+                {/* ✅ Portal Name Badge */}
                 <span className="mb-1 hidden rounded-full border border-[#FACC15]/50 bg-[#FEF9C3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E293B] sm:inline-flex">
-                 {portalName}
+                  {portalName}
                 </span>
+
+                {/* ✅ Warehouse Name Badge (agar hai) */}
+                {warehouseName && (
+                  <span
+                    className="mb-1 hidden truncate rounded-full border border-[#2563EB]/30 bg-[#EAF1FF] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E40AF] sm:inline-flex"
+                    title={`${warehouseName}${
+                      warehouseCode ? ` (${warehouseCode})` : ""
+                    }`}
+                  >
+                    {warehouseName}
+                    {warehouseCode && ` (${warehouseCode})`}
+                  </span>
+                )}
               </div>
 
               <p className="mt-1 max-w-2xl text-[11px] leading-5 text-[#6B7896] sm:text-xs">
@@ -791,9 +862,9 @@ const Dashboard = () => {
                   <div className="text-[8px] text-[#8C97B2]">
                     {lastUpdated
                       ? `Updated ${lastUpdated.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}`
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}`
                       : "Fetching data..."}
                   </div>
                 </div>
@@ -810,17 +881,17 @@ const Dashboard = () => {
                   transition={
                     isRefreshing
                       ? {
-                        rotate: {
-                          repeat: Infinity,
-                          duration: 2,
-                          ease: "linear",
-                        },
-                        scale: {
-                          repeat: Infinity,
-                          duration: 1,
-                          ease: "easeInOut",
-                        },
-                      }
+                          rotate: {
+                            repeat: Infinity,
+                            duration: 2,
+                            ease: "linear",
+                          },
+                          scale: {
+                            repeat: Infinity,
+                            duration: 1,
+                            ease: "easeInOut",
+                          },
+                        }
                       : { duration: 0.3 }
                   }
                 >
@@ -855,7 +926,7 @@ const Dashboard = () => {
                 </span>
               </motion.button>
 
-              {/* Export — bright yellow */}
+              {/* Export */}
               <motion.button
                 type="button"
                 onClick={handleExport}
@@ -902,7 +973,6 @@ const Dashboard = () => {
                 whileHover={{ y: -3, transition: { duration: 0.18 } }}
                 className="group relative overflow-hidden rounded-[17px] border border-[#E3E9F5] bg-white px-4 py-4 shadow-[0_3px_14px_rgba(30,58,138,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#2563EB]/25 hover:shadow-[0_10px_24px_rgba(30,58,138,0.10)]"
               >
-                {/* Colored top accent bar per card */}
                 <div
                   className={`absolute left-0 right-0 top-0 h-[3px] ${theme.bar}`}
                 />
@@ -916,8 +986,6 @@ const Dashboard = () => {
                       className="h-[16px] w-[16px]"
                     />
                   </div>
-
-               
                 </div>
 
                 <div className="mt-3">
@@ -936,8 +1004,9 @@ const Dashboard = () => {
                 </div>
 
                 <div
-                  className={`mt-2.5 flex items-center text-[10px] font-bold ${metric.toneClass || "text-[#1E3A8A]"
-                    }`}
+                  className={`mt-2.5 flex items-center text-[10px] font-bold ${
+                    metric.toneClass || "text-[#1E3A8A]"
+                  }`}
                 >
                   <TrendIcon name={metric.trendIcon} className="h-2.5 w-2.5" />
                   <span className="ml-1.5">{metric.change}</span>
@@ -965,7 +1034,6 @@ const Dashboard = () => {
             variants={itemVariants}
             className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5 xl:col-span-2"
           >
-            {/* Blue → yellow accent on top */}
             <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] via-[#2563EB] to-[#FACC15]" />
 
             <div className="mb-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -1014,7 +1082,6 @@ const Dashboard = () => {
                   margin={{ top: 18, right: 8, left: -20, bottom: 2 }}
                 >
                   <defs>
-                    {/* Bars rotate: navy → yellow → blue */}
                     <linearGradient
                       id="salesGreen"
                       x1="0"
@@ -1042,7 +1109,6 @@ const Dashboard = () => {
                       <stop offset="100%" stopColor="#2563EB" />
                     </linearGradient>
 
-                    {/* Blue line for trend */}
                     <linearGradient
                       id="salesLineGradient"
                       x1="0"
@@ -1081,9 +1147,10 @@ const Dashboard = () => {
                     tickLine={false}
                     width={45}
                     tickFormatter={(value) =>
-                      `₹${Number(value) >= 1000
-                        ? `${(Number(value) / 1000).toFixed(0)}k`
-                        : value
+                      `₹${
+                        Number(value) >= 1000
+                          ? `${(Number(value) / 1000).toFixed(0)}k`
+                          : value
                       }`
                     }
                   />
@@ -1117,8 +1184,8 @@ const Dashboard = () => {
                           salesPeriod === "this_month"
                             ? "This month"
                             : salesPeriod === "last_week"
-                              ? "Last week"
-                              : "This week",
+                            ? "Last week"
+                            : "This week",
                         type: "circle",
                         color: CHART_BLUE,
                       },
@@ -1151,7 +1218,6 @@ const Dashboard = () => {
                     })}
                   </Bar>
 
-                  {/* Blue trend line */}
                   <Line
                     type="monotone"
                     dataKey="lineValue"
@@ -1207,7 +1273,6 @@ const Dashboard = () => {
             variants={itemVariants}
             className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5"
           >
-            {/* Yellow accent */}
             <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#FACC15] via-[#FDE047] to-[#FEF08A]" />
 
             <div className="flex items-start justify-between gap-3">
@@ -1295,7 +1360,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Legend */}
             <div className="space-y-2 border-t border-[#E3E9F5] pt-3">
               {pieData.map((item, index) => {
                 const percentage =
@@ -1352,15 +1416,198 @@ const Dashboard = () => {
             variants={itemVariants}
             className="space-y-5 xl:col-span-2"
           >
-            {/* KYC — navy accent */}
-            <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
-              <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] to-[#1E3A8A]" />
+            {/* KYC — sirf tab dikhao jab permission ho */}
+            {canSeeKyc && (
+              <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
+                <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] to-[#1E3A8A]" />
+
+                <SectionHeader
+                  icon={<FiCheckCircle size={17} />}
+                  title="Pending KYC Reviews"
+                  subtitle="Applications waiting for review"
+                  accent="navy"
+                  action={
+                    <motion.span
+                      animate={
+                        isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
+                      }
+                      transition={
+                        isRefreshing
+                          ? { duration: 0.4, ease: "easeInOut" }
+                          : {}
+                      }
+                      className="shrink-0 rounded-full border border-[#1E3A8A]/15 bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E3A8A]"
+                    >
+                      {totalPending} Pending
+                    </motion.span>
+                  }
+                />
+
+                <div className="space-y-2">
+                  {kycReviews.slice(0, 4).map((review, idx) => (
+                    <motion.div
+                      key={review.id}
+                      whileHover={{ x: 3 }}
+                      animate={
+                        isRefreshing
+                          ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
+                          : { opacity: 1, x: 0 }
+                      }
+                      transition={
+                        isRefreshing
+                          ? { duration: 0.4, delay: idx * 0.06 }
+                          : {}
+                      }
+                      className="flex items-center justify-between gap-3 rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] px-3 py-2.5 transition hover:border-[#2563EB]/30 hover:bg-white"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FEF9C3] text-[10px] font-extrabold text-[#1E3A8A] ring-1 ring-[#FACC15]/50">
+                          {String(review.user_name || "?")
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-[11px] font-bold text-[#0F1B3D] sm:text-xs">
+                            {review.user_name}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1 text-[8px] text-[#8C97B2] sm:text-[9px]">
+                            <FiClock size={9} />
+                            {getRelativeTime(review.created_at)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleReview(review)}
+                        className="shrink-0 rounded-lg border border-[#1E3A8A]/20 bg-white px-3 py-1.5 text-[9px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                      >
+                        Review
+                      </button>
+                    </motion.div>
+                  ))}
+
+                  {kycReviews.length === 0 && (
+                    <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
+                      No pending KYC reviews.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* INVENTORY — sirf tab dikhao jab permission ho */}
+            {canSeeInventory && (
+              <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
+                <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
+
+                <SectionHeader
+                  icon={<FiPackage size={17} />}
+                  title="Inventory Alerts"
+                  subtitle="Products requiring attention"
+                  accent="yellow"
+                  action={
+                    <motion.span
+                      animate={
+                        isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
+                      }
+                      transition={
+                        isRefreshing
+                          ? { duration: 0.4, ease: "easeInOut" }
+                          : {}
+                      }
+                      className="rounded-full bg-[#FEF9C3] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E293B]"
+                    >
+                      {totalAlerts} Alerts
+                    </motion.span>
+                  }
+                />
+
+                <div className="divide-y divide-[#E3E9F5]">
+                  {inventoryAlerts.slice(0, 5).map((item: any, idx: number) => (
+                    <motion.div
+                      key={`${getInventoryName(item)}-${idx}`}
+                      whileHover={{ x: 3 }}
+                      animate={
+                        isRefreshing
+                          ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
+                          : { opacity: 1, x: 0 }
+                      }
+                      transition={
+                        isRefreshing
+                          ? { duration: 0.4, delay: idx * 0.05 }
+                          : {}
+                      }
+                      className="flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                            item.tileClass ||
+                            "bg-[#FEF9C3] text-[#1E293B]"
+                          }`}
+                        >
+                          <FiAlertCircle size={15} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="truncate text-[11px] font-semibold text-[#0F1B3D]">
+                            {getInventoryName(item)}
+                          </div>
+                          <div className="mt-0.5 text-[8px] text-[#8C97B2]">
+                            {item.stock_quantity || "Stock level"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full bg-[#FAFBFF] px-2.5 py-1 text-[9px] font-bold ${
+                          item.toneClass || "text-[#1E3A8A]"
+                        }`}
+                      >
+                        {item.stock_quantity || "Stock level"}
+                      </span>
+                    </motion.div>
+                  ))}
+
+                  {inventoryAlerts.length === 0 && (
+                    <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
+                      No inventory alerts.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Agar dono hide hain toh empty state */}
+            {!canSeeKyc && !canSeeInventory && (
+              <div className="rounded-[18px] border border-[#E3E9F5] bg-white p-8 text-center shadow-sm">
+                <FiAlertCircle
+                  size={28}
+                  className="mx-auto text-[#8C97B2]"
+                />
+                <h3 className="mt-3 text-sm font-bold text-[#0F1B3D]">
+                  No modules available
+                </h3>
+                <p className="mt-1 text-[11px] text-[#6B7896]">
+                  Aapke paas in sections ke liye permission nahi hai.
+                </p>
+              </div>
+            )}
+          </motion.div>
+
+          {/* SUPPORT — sirf tab dikhao jab permission ho */}
+          {canSeeSupport && (
+            <motion.div
+              variants={itemVariants}
+              className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5"
+            >
+              <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
 
               <SectionHeader
-                icon={<FiCheckCircle size={17} />}
-                title="Pending KYC Reviews"
-                subtitle="Applications waiting for review"
-                accent="navy"
+                icon={<FiActivity size={17} />}
+                title="Contact Requests"
+                subtitle="Latest customer support activity"
+                accent="blue"
                 action={
                   <motion.span
                     animate={
@@ -1371,234 +1618,82 @@ const Dashboard = () => {
                         ? { duration: 0.4, ease: "easeInOut" }
                         : {}
                     }
-                    className="shrink-0 rounded-full border border-[#1E3A8A]/15 bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E3A8A]"
+                    className="rounded-full bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E40AF]"
                   >
-                    {totalPending} Pending
+                    {totalTickets} Open
                   </motion.span>
                 }
               />
 
               <div className="space-y-2">
-                {kycReviews.slice(0, 4).map((review, idx) => (
-                  <motion.div
-                    key={review.id}
-                    whileHover={{ x: 3 }}
-                    animate={
-                      isRefreshing
-                        ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
-                        : { opacity: 1, x: 0 }
-                    }
-                    transition={
-                      isRefreshing ? { duration: 0.4, delay: idx * 0.06 } : {}
-                    }
-                    className="flex items-center justify-between gap-3 rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] px-3 py-2.5 transition hover:border-[#2563EB]/30 hover:bg-white"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FEF9C3] text-[10px] font-extrabold text-[#1E3A8A] ring-1 ring-[#FACC15]/50">
-                        {String(review.user_name || "?")
-                          .charAt(0)
-                          .toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-[11px] font-bold text-[#0F1B3D] sm:text-xs">
-                          {review.user_name}
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-1 text-[8px] text-[#8C97B2] sm:text-[9px]">
-                          <FiClock size={9} />
-                          {getRelativeTime(review.created_at)}
-                        </div>
-                      </div>
-                    </div>
+                {tickets.slice(0, 5).map((ticket, idx) => {
+                  const status = ticket.is_read ? "Read" : "Unread";
+                  const badgeClass = ticket.is_read
+                    ? "bg-[#EEF1F8] text-[#6B7896]"
+                    : "bg-[#FEF9C3] text-[#1E293B]";
 
-                    <button
-                      type="button"
-                      onClick={() => handleReview(review)}
-                      className="shrink-0 rounded-lg border border-[#1E3A8A]/20 bg-white px-3 py-1.5 text-[9px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                  return (
+                    <motion.div
+                      key={ticket.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{
+                        opacity: isRefreshing ? 0.8 : 1,
+                        y: isRefreshing ? 2 : 0,
+                      }}
+                      transition={{
+                        delay: idx * 0.045,
+                        duration: isRefreshing ? 0.3 : 0.4,
+                      }}
+                      whileHover={{ x: 3 }}
+                      className="rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] p-3 transition hover:border-[#2563EB]/30 hover:bg-white"
                     >
-                      Review
-                    </button>
-                  </motion.div>
-                ))}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate text-[10px] font-bold text-[#0F1B3D] sm:text-[11px]">
+                            {ticket.name}
+                          </div>
+                          <div className="mt-1 truncate text-[8px] text-[#8C97B2] sm:text-[9px]">
+                            {ticket.message}
+                          </div>
+                        </div>
+                        <span className="shrink-0 text-[8px] text-[#8C97B2]">
+                          {getRelativeTime(ticket.created_at)}
+                        </span>
+                      </div>
 
-                {kycReviews.length === 0 && (
+                      <div className="mt-2">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-1 text-[7px] font-bold uppercase tracking-[0.12em] ${badgeClass}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {tickets.length === 0 && (
                   <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
-                    No pending KYC reviews.
+                    No support tickets found.
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* INVENTORY — yellow accent */}
-            <div className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5">
-              <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
-
-              <SectionHeader
-                icon={<FiPackage size={17} />}
-                title="Inventory Alerts"
-                subtitle="Products requiring attention"
-                accent="yellow"
-                action={
-                  <motion.span
-                    animate={
-                      isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
-                    }
-                    transition={
-                      isRefreshing
-                        ? { duration: 0.4, ease: "easeInOut" }
-                        : {}
-                    }
-                    className="rounded-full bg-[#FEF9C3] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E293B]"
-                  >
-                    {totalAlerts} Alerts
-                  </motion.span>
-                }
-              />
-
-              <div className="divide-y divide-[#E3E9F5]">
-                {inventoryAlerts.slice(0, 5).map((item: any, idx: number) => (
-                  <motion.div
-                    key={`${getInventoryName(item)}-${idx}`}
-                    whileHover={{ x: 3 }}
-                    animate={
-                      isRefreshing
-                        ? { opacity: [1, 0.6, 1], x: [0, 2, 0] }
-                        : { opacity: 1, x: 0 }
-                    }
-                    transition={
-                      isRefreshing ? { duration: 0.4, delay: idx * 0.05 } : {}
-                    }
-                    className="flex items-center justify-between gap-3 py-2.5"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div
-                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.tileClass || "bg-[#FEF9C3] text-[#1E293B]"
-                          }`}
-                      >
-                        <FiAlertCircle size={15} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-[11px] font-semibold text-[#0F1B3D]">
-                          {getInventoryName(item)}
-                        </div>
-                        <div className="mt-0.5 text-[8px] text-[#8C97B2]">
-                          {item.stock_quantity || "Stock level"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`shrink-0 rounded-full bg-[#FAFBFF] px-2.5 py-1 text-[9px] font-bold ${item.toneClass || "text-[#1E3A8A]"
-                        }`}
-                    >
-                      {item.stock_quantity || "Stock level"}
-                    </span>
-                  </motion.div>
-                ))}
-
-                {inventoryAlerts.length === 0 && (
-                  <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
-                    No inventory alerts.
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* SUPPORT — blue accent */}
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white p-4 shadow-[0_3px_16px_rgba(30,58,138,0.05)] sm:p-5"
-          >
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
-
-            <SectionHeader
-              icon={<FiActivity size={17} />}
-              title="Contact Requests"
-              subtitle="Latest customer support activity"
-              accent="blue"
-              action={
-                <motion.span
-                  animate={
-                    isRefreshing ? { scale: [1, 1.1, 1] } : { scale: 1 }
-                  }
-                  transition={
-                    isRefreshing ? { duration: 0.4, ease: "easeInOut" } : {}
-                  }
-                  className="rounded-full bg-[#EAF1FF] px-2.5 py-1.5 text-[8px] font-bold uppercase tracking-wide text-[#1E40AF]"
+              <Link to="/contact">
+                <button
+                  type="button"
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EAF1FF] py-2.5 text-[9px] font-bold uppercase tracking-wide text-[#1E40AF] transition hover:border-[#2563EB]/35 hover:bg-[#DBEAFE]"
                 >
-                  {totalTickets} Open
-                </motion.span>
-              }
-            />
-
-            <div className="space-y-2">
-              {tickets.slice(0, 5).map((ticket, idx) => {
-                const status = ticket.is_read ? "Read" : "Unread";
-                const badgeClass = ticket.is_read
-                  ? "bg-[#EEF1F8] text-[#6B7896]"
-                  : "bg-[#FEF9C3] text-[#1E293B]";
-
-                return (
-                  <motion.div
-                    key={ticket.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{
-                      opacity: isRefreshing ? 0.8 : 1,
-                      y: isRefreshing ? 2 : 0,
-                    }}
-                    transition={{
-                      delay: idx * 0.045,
-                      duration: isRefreshing ? 0.3 : 0.4,
-                    }}
-                    whileHover={{ x: 3 }}
-                    className="rounded-xl border border-[#E3E9F5] bg-[#FAFBFF] p-3 transition hover:border-[#2563EB]/30 hover:bg-white"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-[10px] font-bold text-[#0F1B3D] sm:text-[11px]">
-                          {ticket.name}
-                        </div>
-                        <div className="mt-1 truncate text-[8px] text-[#8C97B2] sm:text-[9px]">
-                          {ticket.message}
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-[8px] text-[#8C97B2]">
-                        {getRelativeTime(ticket.created_at)}
-                      </span>
-                    </div>
-
-                    <div className="mt-2">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-[7px] font-bold uppercase tracking-[0.12em] ${badgeClass}`}
-                      >
-                        {status}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-
-              {tickets.length === 0 && (
-                <div className="rounded-xl bg-[#FAFBFF] p-5 text-center text-[10px] text-[#6B7896]">
-                  No support tickets found.
-                </div>
-              )}
-            </div>
-
-            <Link to="/contact">
-              <button
-                type="button"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EAF1FF] py-2.5 text-[9px] font-bold uppercase tracking-wide text-[#1E40AF] transition hover:border-[#2563EB]/35 hover:bg-[#DBEAFE]"
-              >
-                View All Requests
-                <FiChevronRight size={11} />
-              </button>
-            </Link>
-          </motion.div>
+                  View All Requests
+                  <FiChevronRight size={11} />
+                </button>
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* =================================================
-            BOTTOM SUMMARY — navy / yellow / blue
+            BOTTOM SUMMARY
         ================================================= */}
 
         <motion.div
@@ -1613,6 +1708,7 @@ const Dashboard = () => {
               icon: FiUsersIcon,
               tile: "bg-[#EAF1FF] text-[#1E3A8A]",
               bar: "bg-[#1E3A8A]",
+              visible: canSeeKyc,
             },
             {
               title: "Inventory",
@@ -1621,6 +1717,7 @@ const Dashboard = () => {
               icon: FiPackage,
               tile: "bg-[#FEF9C3] text-[#1E293B]",
               bar: "bg-[#FACC15]",
+              visible: canSeeInventory,
             },
             {
               title: "Contact Requests",
@@ -1629,60 +1726,62 @@ const Dashboard = () => {
               icon: FiActivity,
               tile: "bg-[#EAF1FF] text-[#1E40AF]",
               bar: "bg-[#2563EB]",
+              visible: canSeeSupport,
             },
-          ].map((item, idx) => {
-            const Icon = item.icon;
+          ]
+            .filter((item) => item.visible)
+            .map((item, idx) => {
+              const Icon = item.icon;
 
-            return (
-              <motion.div
-                key={item.title}
-                variants={itemVariants}
-                whileHover={{ y: -2 }}
-                animate={
-                  isRefreshing
-                    ? { opacity: [1, 0.5, 1] }
-                    : { opacity: 1 }
-                }
-                transition={
-                  isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
-                }
-                className="relative flex items-center justify-between overflow-hidden rounded-[16px] border border-[#E3E9F5] bg-white px-4 py-3 shadow-[0_4px_14px_rgba(30,58,138,0.04)]"
-              >
-                {/* Colored left accent */}
-                <div
-                  className={`absolute bottom-0 left-0 top-0 w-[3px] ${item.bar}`}
-                />
-
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tile}`}
-                  >
-                    <Icon size={15} />
-                  </div>
-                  <div>
-                    <div className="text-[9px] font-bold uppercase tracking-wide text-[#4A5778]">
-                      {item.title}
-                    </div>
-                    <div className="mt-0.5 text-[8px] text-[#8C97B2]">
-                      {item.subtitle}
-                    </div>
-                  </div>
-                </div>
-
+              return (
                 <motion.div
+                  key={item.title}
+                  variants={itemVariants}
+                  whileHover={{ y: -2 }}
                   animate={
-                    isRefreshing ? { scale: [1, 1.15, 1] } : { scale: 1 }
+                    isRefreshing
+                      ? { opacity: [1, 0.5, 1] }
+                      : { opacity: 1 }
                   }
                   transition={
                     isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
                   }
-                  className="text-lg font-extrabold tracking-tight text-[#0F1B3D]"
+                  className="relative flex items-center justify-between overflow-hidden rounded-[16px] border border-[#E3E9F5] bg-white px-4 py-3 shadow-[0_4px_14px_rgba(30,58,138,0.04)]"
                 >
-                  {item.value}
+                  <div
+                    className={`absolute bottom-0 left-0 top-0 w-[3px] ${item.bar}`}
+                  />
+
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-xl ${item.tile}`}
+                    >
+                      <Icon size={15} />
+                    </div>
+                    <div>
+                      <div className="text-[9px] font-bold uppercase tracking-wide text-[#4A5778]">
+                        {item.title}
+                      </div>
+                      <div className="mt-0.5 text-[8px] text-[#8C97B2]">
+                        {item.subtitle}
+                      </div>
+                    </div>
+                  </div>
+
+                  <motion.div
+                    animate={
+                      isRefreshing ? { scale: [1, 1.15, 1] } : { scale: 1 }
+                    }
+                    transition={
+                      isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
+                    }
+                    className="text-lg font-extrabold tracking-tight text-[#0F1B3D]"
+                  >
+                    {item.value}
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            );
-          })}
+              );
+            })}
         </motion.div>
 
         <div className="h-3" />

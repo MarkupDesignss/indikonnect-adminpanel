@@ -8,6 +8,7 @@ import {
   FiEye,
   FiImage,
   FiPackage,
+  FiTrash2,
   FiX,
   FiZoomIn,
 } from "react-icons/fi";
@@ -50,15 +51,22 @@ interface ProductTableProps {
   publishLoadingId: number | null;
 
   onDelete?: (product: Product) => void;
+
+  // ✅ Permission props
+  canView?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canPublish?: boolean;
+  canToggleTrending?: boolean;
 }
 
 // =====================================================
-// STATUS HELPERS
+// STATUS HELPERS — NAVY THEME
 // =====================================================
 
 const getPublishStatusClass = (published: boolean) => {
   return published
-    ? "border-[#163F20]/20 bg-[#EAF3EA] text-[#163F20]"
+    ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
     : "border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]";
 };
 
@@ -68,10 +76,10 @@ const getStockClass = (isLowStock: boolean, stock: number) => {
   }
 
   if (isLowStock) {
-    return "border-[#A06F13]/20 bg-[#FFF6E8] text-[#A06F13]";
+    return "border-[#FACC15]/40 bg-[#FEF9C3] text-[#8A6D16]";
   }
 
-  return "border-[#163F20]/15 bg-[#EAF3EA] text-[#163F20]";
+  return "border-[#1E3A8A]/20 bg-[#EAF1FF] text-[#1E3A8A]";
 };
 
 // =====================================================
@@ -93,8 +101,21 @@ const ProductTable: React.FC<ProductTableProps> = ({
   trendingLoadingId,
   onPublishToggle,
   publishLoadingId,
+
+  // ✅ Permission defaults
+  canView = true,
+  canEdit = false,
+  canDelete = false,
+  canPublish = false,
+  canToggleTrending = false,
 }) => {
   const ITEMS_PER_PAGE = 10;
+
+  // ===================================================
+  // ✅ ANY ACTION AVAILABLE
+  // ===================================================
+
+  const hasAnyAction = canView || canEdit || canDelete;
 
   // ===================================================
   // IMAGE ZOOM STATE
@@ -194,127 +215,111 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
   return (
     <>
-      {/* =================================================
-          TABLE CARD
-      ================================================= */}
+      {/* TABLE CARD */}
 
-      <div className="overflow-hidden bg-white">
-        {/* TOP ACCENT */}
+      <div className="overflow-hidden bg-white font-poppins">
+        {/* TOP ACCENT — NAVY */}
 
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-        {/* =================================================
-            TABLE
-        ================================================= */}
+        {/* TABLE */}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] border-collapse">
-            {/* =================================================
-                TABLE HEADER
-            ================================================= */}
-
             <thead>
-              <tr className="bg-[#163F20] text-left">
-                {/* S.NO */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+              <tr className="bg-[#1E3A8A] text-left">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   S.No
                 </th>
 
-                {/* IMAGE */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   Image
                 </th>
 
-                {/* PRODUCT */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   Product
                 </th>
 
-                {/* SKU */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   SKU
                 </th>
 
-                {/* RETAIL PRICE */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   Retail Price
                 </th>
 
-                {/* STOCK */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   Stock
                 </th>
 
-                {/* STATUS */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <th className="whitespace-nowrap px-5 py-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                   Status
                 </th>
 
-                {/* TRENDING */}
+                {canToggleTrending && (
+                  <th className="whitespace-nowrap px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                    Trending
+                  </th>
+                )}
 
-                <th className="whitespace-nowrap px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
-                  Trending
-                </th>
-
-                {/* ACTIONS */}
-
-                <th className="whitespace-nowrap px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
-                  Actions
-                </th>
+                {hasAnyAction && (
+                  <th className="whitespace-nowrap px-5 py-4 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                    Actions
+                  </th>
+                )}
               </tr>
             </thead>
 
-            {/* =================================================
-                TABLE BODY
-            ================================================= */}
-
             <tbody>
-              {/* =================================================
-                  LOADING
-              ================================================= */}
+              {/* LOADING */}
 
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td
+                    colSpan={
+                      7 +
+                      (canToggleTrending ? 1 : 0) +
+                      (hasAnyAction ? 1 : 0)
+                    }
+                    className="px-5 py-16 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="mb-4 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-[#EAF3EA] text-[#163F20]">
+                      <div className="mb-4 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
                         <FiPackage size={22} />
                       </div>
 
-                      <p className="text-sm font-bold text-[#202721]">
+                      <p className="text-sm font-bold text-[#0F1B3D]">
                         Loading products...
                       </p>
 
-                      <p className="mt-1 text-xs text-[#9AA29C]">
+                      <p className="mt-1 text-xs text-[#8C97B2]">
                         Please wait while we fetch your product inventory.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
-                /* =================================================
-                   EMPTY
-                ================================================= */
+                /* EMPTY */
 
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td
+                    colSpan={
+                      7 +
+                      (canToggleTrending ? 1 : 0) +
+                      (hasAnyAction ? 1 : 0)
+                    }
+                    className="px-5 py-16 text-center"
+                  >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#163F20]/10 bg-[#EAF3EA] text-[#163F20]">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1E3A8A]/10 bg-[#EAF1FF] text-[#1E3A8A]">
                         <FiPackage size={24} />
                       </div>
 
-                      <p className="text-sm font-bold text-[#202721]">
+                      <p className="text-sm font-bold text-[#0F1B3D]">
                         No products found
                       </p>
 
-                      <p className="mt-1 max-w-sm text-xs text-[#9AA29C]">
+                      <p className="mt-1 max-w-sm text-xs text-[#8C97B2]">
                         There are no products matching your current search or
                         filter.
                       </p>
@@ -322,30 +327,16 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </td>
                 </tr>
               ) : (
-                /* =================================================
-                   PRODUCTS
-                ================================================= */
+                /* PRODUCTS */
 
                 products.map((product, index) => {
-                  // =================================================
-                  // SERIAL NUMBER
-                  // =================================================
-
                   const serialNumber =
                     (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
-
-                  // =================================================
-                  // PRIMARY IMAGE
-                  // =================================================
 
                   const primaryImage =
                     product.images?.find(
                       (image) => image.is_primary === true
                     ) || product.images?.[0];
-
-                  // =================================================
-                  // STOCK
-                  // =================================================
 
                   const stock = Number(product.stock_quantity || 0);
 
@@ -354,10 +345,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   );
 
                   const isLowStock = stock <= lowStockThreshold;
-
-                  // =================================================
-                  // PUBLISH STATUS
-                  // =================================================
 
                   const rawPublished = (
                     product as Product & {
@@ -372,10 +359,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                   const isPublishLoading =
                     publishLoadingId === product.id;
-
-                  // =================================================
-                  // TRENDING
-                  // =================================================
 
                   const rawTrending = (
                     product as Product & {
@@ -394,26 +377,22 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   return (
                     <tr
                       key={product.id}
-                      className="group border-b border-[#163F20]/10 bg-white transition-all duration-200 hover:bg-[#FAFBFA]"
+                      className="group border-b border-[#1E3A8A]/10 bg-white transition-all duration-200 hover:bg-[#FAFBFF]"
                     >
-                      {/* =================================================
-                          S.NO
-                      ================================================= */}
+                      {/* S.NO */}
 
                       <td className="px-5 py-4">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
                           {serialNumber}
                         </span>
                       </td>
 
-                      {/* =================================================
-                          IMAGE
-                      ================================================= */}
+                      {/* IMAGE */}
 
                       <td className="px-5 py-4">
                         {primaryImage ? (
                           <div
-                            className="relative h-[58px] w-[58px] cursor-pointer overflow-hidden rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] p-0.5 transition-all duration-200 group-hover:border-[#163F20]/35 group-hover:shadow-lg"
+                            className="relative h-[58px] w-[58px] cursor-pointer overflow-hidden rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] p-0.5 transition-all duration-200 group-hover:border-[#1E3A8A]/35 group-hover:shadow-lg"
                             onClick={() =>
                               handleImageClick(
                                 primaryImage.image_url,
@@ -444,49 +423,43 @@ const ProductTable: React.FC<ProductTableProps> = ({
                             </div>
                           </div>
                         ) : (
-                          <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#163F20]/10 bg-[#F5F7F5] text-[#163F20]">
+                          <div className="flex h-[58px] w-[58px] items-center justify-center rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] text-[#1E3A8A]">
                             <FiImage size={21} />
                           </div>
                         )}
                       </td>
 
-                      {/* =================================================
-                          PRODUCT
-                      ================================================= */}
+                      {/* PRODUCT */}
 
                       <td className="px-5 py-4">
                         <div className="max-w-[250px]">
-                          <p className="truncate text-sm font-bold text-[#202721]">
+                          <p className="truncate text-sm font-bold text-[#0F1B3D]">
                             {product.name}
                           </p>
 
-                          <p className="mt-1 truncate text-[10px] leading-5 text-[#9AA29C]">
+                          <p className="mt-1 truncate text-[10px] leading-5 text-[#8C97B2]">
                             {product.description || "No description available"}
                           </p>
                         </div>
                       </td>
 
-                      {/* =================================================
-                          SKU
-                      ================================================= */}
+                      {/* SKU */}
 
                       <td className="px-5 py-4">
-                        <span className="inline-flex rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#59645C]">
+                        <span className="inline-flex rounded-lg border border-[#1E3A8A]/10 bg-[#F5F8FF] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#4A5778]">
                           {product.product_code || "-"}
                         </span>
                       </td>
 
-                      {/* =================================================
-                          RETAIL PRICE
-                      ================================================= */}
+                      {/* RETAIL PRICE */}
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1">
-                          <span className="text-[11px] font-bold text-[#163F20]">
+                          <span className="text-[11px] font-bold text-[#1E3A8A]">
                             ₹
                           </span>
 
-                          <span className="text-sm font-bold text-[#202721]">
+                          <span className="text-sm font-bold text-[#0F1B3D]">
                             {Number(
                               product.retail_price || 0
                             ).toLocaleString("en-IN")}
@@ -494,9 +467,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         </div>
                       </td>
 
-                      {/* =================================================
-                          STOCK
-                      ================================================= */}
+                      {/* STOCK */}
 
                       <td className="px-5 py-4">
                         <span
@@ -509,137 +480,175 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         </span>
                       </td>
 
-                      {/* =================================================
-                          PUBLISH STATUS
-                      ================================================= */}
-
-                      {/* =================================================
-    PUBLISH STATUS
-================================================= */}
+                      {/* PUBLISH STATUS */}
 
                       <td className="px-5 py-4">
-                        <div className="relative inline-block">
-                          <select
-                            value={isPublished ? "published" : "unpublished"}
-                            disabled={isPublishLoading}
-                            onChange={(event) => {
-                              const nextPublished =
-                                event.target.value === "published";
-
-                              if (nextPublished !== isPublished) {
-                                onPublishToggle(product, nextPublished);
+                        {canPublish ? (
+                          <div className="relative inline-block">
+                            <select
+                              value={
+                                isPublished ? "published" : "unpublished"
                               }
-                            }}
-                            className={`h-9 min-w-[130px] max-w-[130px] cursor-pointer appearance-none rounded-full border py-1.5 pl-3 pr-9 text-[10px] font-bold outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
-                              isPublished
-                            )} focus:border-[#163F20] focus:ring-2 focus:ring-[#163F20]/10`}
-                          >
-                            <option value="published">Published</option>
-                            <option value="unpublished">Unpublished</option>
-                          </select>
+                              disabled={isPublishLoading}
+                              onChange={(event) => {
+                                const nextPublished =
+                                  event.target.value === "published";
 
-                          {/* DROPDOWN ICON */}
-
-                          <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center">
-                            {isPublishLoading ? (
-                              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
-                            ) : (
-                              <FiChevronDown size={14} strokeWidth={2.5} />
-                            )}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* =================================================
-                          TRENDING
-                      ================================================= */}
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-center">
-                          <label
-                            className={`relative inline-flex items-center ${isTrendingLoading
-                                ? "cursor-wait"
-                                : "cursor-pointer"
-                              }`}
-                            title={
-                              isTrending
-                                ? "Remove from Trending"
-                                : "Add to Trending"
-                            }
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isTrending}
-                              disabled={isTrendingLoading}
-                              onChange={(event) =>
-                                onTrendingToggle(
-                                  product,
-                                  event.target.checked
-                                )
-                              }
-                              className="peer sr-only"
-                            />
-
-                            {/* TOGGLE */}
-
-                            <div
-                              className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${isTrending
-                                  ? "border-[#163F20] bg-gradient-to-r from-[#4C8A57] to-[#163F20]"
-                                  : "border-[#D8E2D8] bg-[#EEF2EE]"
-                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#163F20]/20`}
+                                if (nextPublished !== isPublished) {
+                                  onPublishToggle(
+                                    product,
+                                    nextPublished
+                                  );
+                                }
+                              }}
+                              className={`h-9 min-w-[130px] max-w-[130px] cursor-pointer appearance-none rounded-full border py-1.5 pl-3 pr-9 text-[10px] font-bold outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
+                                isPublished
+                              )} focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10`}
                             >
-                              <span
-                                className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${isTrending ? "left-[23px]" : "left-[3px]"
-                                  }`}
+                              <option value="published">Published</option>
+                              <option value="unpublished">Unpublished</option>
+                            </select>
+
+                            {/* DROPDOWN ICON */}
+
+                            <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center">
+                              {isPublishLoading ? (
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
+                              ) : (
+                                <FiChevronDown
+                                  size={14}
+                                  strokeWidth={2.5}
+                                />
+                              )}
+                            </span>
+                          </div>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getPublishStatusClass(
+                              isPublished
+                            )}`}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {isPublished ? "Published" : "Unpublished"}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* TRENDING */}
+
+                      {canToggleTrending && (
+                        <td className="px-5 py-4">
+                          <div className="flex justify-center">
+                            <label
+                              className={`relative inline-flex items-center ${
+                                isTrendingLoading
+                                  ? "cursor-wait"
+                                  : "cursor-pointer"
+                              }`}
+                              title={
+                                isTrending
+                                  ? "Remove from Trending"
+                                  : "Add to Trending"
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isTrending}
+                                disabled={isTrendingLoading}
+                                onChange={(event) =>
+                                  onTrendingToggle(
+                                    product,
+                                    event.target.checked
+                                  )
+                                }
+                                className="peer sr-only"
                               />
-                            </div>
 
-                            {/* LOADING */}
+                              {/* TOGGLE */}
 
-                            {isTrendingLoading && (
-                              <span className="absolute inset-0 flex items-center justify-center">
-                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#163F20]/25 border-t-[#163F20]" />
-                              </span>
+                              <div
+                                className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
+                                  isTrending
+                                    ? "border-[#1E3A8A] bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A]"
+                                    : "border-[#D8E2F0] bg-[#EEF2F9]"
+                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#1E3A8A]/20`}
+                              >
+                                <span
+                                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                                    isTrending
+                                      ? "left-[23px]"
+                                      : "left-[3px]"
+                                  }`}
+                                />
+                              </div>
+
+                              {/* LOADING */}
+
+                              {isTrendingLoading && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#1E3A8A]/25 border-t-[#1E3A8A]" />
+                                </span>
+                              )}
+                            </label>
+                          </div>
+                        </td>
+                      )}
+
+                      {/* ACTIONS */}
+
+                      {hasAnyAction && (
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-1.5">
+                            {/* VIEW */}
+
+                            {canView && (
+                              <button
+                                type="button"
+                                onClick={() => onView(product)}
+                                className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition-all duration-200 hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
+                                title="View Product"
+                              >
+                                <FiEye
+                                  size={15}
+                                  className="transition-transform group-hover/view:scale-110"
+                                />
+                              </button>
                             )}
-                          </label>
-                        </div>
-                      </td>
 
-                      {/* =================================================
-                          ACTIONS
-                      ================================================= */}
+                            {/* EDIT */}
 
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-1.5">
-                          {/* VIEW */}
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => onEdit(product)}
+                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition-all duration-200 hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
+                                title="Edit Product"
+                              >
+                                <FiEdit2
+                                  size={15}
+                                  className="transition-transform group-hover/edit:scale-110"
+                                />
+                              </button>
+                            )}
 
-                          <button
-                            type="button"
-                            onClick={() => onView(product)}
-                            className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#F5F7F5] text-[#163F20] transition-all duration-200 hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                            title="View Product"
-                          >
-                            <FiEye
-                              size={15}
-                              className="transition-transform group-hover/view:scale-110"
-                            />
-                          </button>
+                            {/* DELETE */}
 
-                          {/* EDIT */}
-
-                          <button
-                            type="button"
-                            onClick={() => onEdit(product)}
-                            className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-white text-[#163F20] transition-all duration-200 hover:border-[#163F20] hover:bg-[#163F20] hover:text-white"
-                            title="Edit Product"
-                          >
-                            <FiEdit2
-                              size={15}
-                              className="transition-transform group-hover/edit:scale-110"
-                            />
-                          </button>
-                        </div>
-                      </td>
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => onDelete?.(product)}
+                                className="group/delete flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition-all duration-200 hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                title="Delete Product"
+                              >
+                                <FiTrash2
+                                  size={15}
+                                  className="transition-transform group-hover/delete:scale-110"
+                                />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })
@@ -648,32 +657,28 @@ const ProductTable: React.FC<ProductTableProps> = ({
           </table>
         </div>
 
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
+        {/* PAGINATION */}
 
         {totalEntries > 0 && (
-          <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4 sm:px-5">
+          <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-              {/* ENTRY INFO */}
-
               <div className="text-center sm:text-left">
-                <p className="text-xs text-[#89918B]">
+                <p className="text-xs text-[#8C97B2]">
                   Showing{" "}
-                  <span className="font-bold text-[#3F4A41]">
+                  <span className="font-bold text-[#3A4668]">
                     {startEntry}
                   </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3F4A41]">{endEntry}</span>{" "}
+                  <span className="font-bold text-[#3A4668]">
+                    {endEntry}
+                  </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#3F4A41]">
+                  <span className="font-bold text-[#3A4668]">
                     {totalEntries}
                   </span>{" "}
                   entries
                 </p>
               </div>
-
-              {/* PAGINATION */}
 
               <div className="flex items-center gap-1.5">
                 {/* PREVIOUS */}
@@ -682,7 +687,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   type="button"
                   disabled={currentPage === 1}
                   onClick={() => onPageChange(currentPage - 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Previous page"
                 >
                   <FiChevronLeft size={17} />
@@ -695,10 +700,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     key={page}
                     type="button"
                     onClick={() => onPageChange(page)}
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                        ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                        : "border border-transparent text-[#59645C] hover:border-[#163F20]/15 hover:bg-[#F5F7F5] hover:text-[#163F20]"
-                      }`}
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                      currentPage === page
+                        ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                        : "border border-transparent text-[#4A5778] hover:border-[#1E3A8A]/15 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+                    }`}
                   >
                     {page}
                   </button>
@@ -710,7 +716,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   type="button"
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => onPageChange(currentPage + 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:border-[#163F20]/30 hover:bg-[#EAF3EA] disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Next page"
                 >
                   <FiChevronRight size={17} />
@@ -721,9 +727,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
         )}
       </div>
 
-      {/* =================================================
-          IMAGE ZOOM MODAL
-      ================================================= */}
+      {/* IMAGE ZOOM MODAL */}
 
       <GlobalModal
         isOpen={!!zoomedImage}
@@ -732,7 +736,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
         className="!max-h-[90vh] !max-w-[90vw] !bg-transparent !shadow-none"
       >
         {zoomedImage && (
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex items-center justify-center font-poppins">
             {/* CLOSE BUTTON */}
 
             <button

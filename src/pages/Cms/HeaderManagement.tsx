@@ -15,6 +15,7 @@ import {
   FiTrash2,
   FiUploadCloud,
   FiX,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -22,6 +23,9 @@ import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import headerApi, { HeaderMenu } from "../../api/endpoints/cmsheader";
+
+// ✅ PERMISSIONS
+import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
 // TYPES
@@ -70,13 +74,14 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+// ✅ NAVY THEME
 const getStatusClass = (status: boolean) =>
   status
-    ? "border-[#163F20]/25 bg-[#EAF3EA] text-[#163F20]"
-    : "border-[#D8E2D8] bg-[#F3F6F3] text-[#59645C]";
+    ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
+    : "border-[#D8E2F0] bg-[#F3F6FB] text-[#4A5778]";
 
 // =====================================================
-// IMAGE SELECTOR
+// IMAGE SELECTOR — NAVY THEME
 // =====================================================
 
 interface ImageSelectorProps {
@@ -116,21 +121,22 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
 
   return (
     <div
-      className={`rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] ${compact ? "p-3" : "p-4"
-        }`}
+      className={`rounded-xl border border-[#1E3A8A]/10 bg-[#FAFBFF] ${
+        compact ? "p-3" : "p-4"
+      }`}
     >
       <div className="mb-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[#163F20] shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[#1E3A8A] shadow-sm">
             {icon}
           </div>
 
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA29C]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
               {label}
             </p>
 
-            <p className="text-xs font-bold text-[#3F4A41]">
+            <p className="text-xs font-bold text-[#3A4668]">
               {file
                 ? "New image selected"
                 : existingUrl
@@ -152,8 +158,9 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
       </div>
 
       <div
-        className={`flex items-center justify-center overflow-hidden rounded-xl border border-[#163F20]/10 bg-white ${compact ? "h-[96px] p-3" : "h-[120px] p-4"
-          }`}
+        className={`flex items-center justify-center overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white ${
+          compact ? "h-[96px] p-3" : "h-[120px] p-4"
+        }`}
       >
         {imageUrl ? (
           <img
@@ -166,14 +173,14 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
             }
           />
         ) : (
-          <div className="flex flex-col items-center text-center text-[#9AA29C]">
+          <div className="flex flex-col items-center text-center text-[#8C97B2]">
             <FiImage size={24} />
             <span className="mt-2 text-[10px]">Not uploaded</span>
           </div>
         )}
       </div>
 
-      <label className="mt-2.5 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#163F20]/15 bg-white px-3 py-2 text-[10px] font-bold text-[#163F20] transition hover:bg-[#EAF3EA]">
+      <label className="mt-2.5 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#1E3A8A]/15 bg-white px-3 py-2 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#EAF1FF]">
         <FiUploadCloud size={14} />
 
         {file ? "Change Image" : "Choose Image"}
@@ -194,7 +201,7 @@ const ImageSelector: React.FC<ImageSelectorProps> = ({
 };
 
 // =====================================================
-// BRANDING UPDATE MODAL
+// BRANDING UPDATE MODAL — NAVY THEME
 // =====================================================
 
 interface BrandingModalProps {
@@ -239,26 +246,26 @@ const BrandingModal: React.FC<BrandingModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-        <div className="flex items-center justify-between border-b border-[#163F20]/10 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[#1E3A8A]/10 px-5 py-4">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiImage size={16} />
               </div>
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#4C8A57]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2563EB]">
                 Header Branding
               </span>
             </div>
 
-            <h2 className="mt-1 text-lg font-bold text-[#202721]">
+            <h2 className="mt-1 text-lg font-bold text-[#0F1B3D]">
               Update Logo & Favicon
             </h2>
 
-            <p className="mt-0.5 text-[11px] text-[#9AA29C]">
+            <p className="mt-0.5 text-[11px] text-[#8C97B2]">
               Update the branding used by the header.
             </p>
           </div>
@@ -267,7 +274,7 @@ const BrandingModal: React.FC<BrandingModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] hover:bg-[#EAF3EA]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] hover:bg-[#EAF1FF]"
           >
             <FiX size={16} />
           </button>
@@ -293,12 +300,12 @@ const BrandingModal: React.FC<BrandingModalProps> = ({
             />
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20] disabled:opacity-50"
+              className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -306,7 +313,7 @@ const BrandingModal: React.FC<BrandingModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)] disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -324,7 +331,7 @@ const BrandingModal: React.FC<BrandingModalProps> = ({
 };
 
 // =====================================================
-// MENU ADD / EDIT MODAL
+// MENU ADD / EDIT MODAL — NAVY THEME
 // =====================================================
 
 interface MenuModalProps {
@@ -373,22 +380,22 @@ const MenuModal: React.FC<MenuModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[480px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+      <div className="w-full max-w-[480px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-        <div className="flex items-start justify-between border-b border-[#163F20]/10 px-5 py-5">
+        <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
                 {editingMenu ? <FiEdit3 size={15} /> : <FiPlus size={15} />}
               </div>
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#2563EB]">
                 Header Menu
               </span>
             </div>
 
-            <h2 className="text-lg font-bold text-[#202721]">
+            <h2 className="text-lg font-bold text-[#0F1B3D]">
               {editingMenu ? "Edit Menu" : "Add Menu"}
             </h2>
           </div>
@@ -397,7 +404,7 @@ const MenuModal: React.FC<MenuModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F7F5] text-[#163F20] hover:bg-[#EAF3EA]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A] hover:bg-[#EAF1FF]"
           >
             <FiX size={16} />
           </button>
@@ -406,7 +413,7 @@ const MenuModal: React.FC<MenuModalProps> = ({
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 p-5">
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#4A5778]">
                 Menu Title *
               </label>
 
@@ -414,33 +421,33 @@ const MenuModal: React.FC<MenuModalProps> = ({
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="e.g. Contact Us"
-                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm font-medium text-[#202721] outline-none focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm font-medium text-[#0F1B3D] outline-none focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
               />
             </div>
 
-            <div className="rounded-xl border border-[#163F20]/10 bg-[#FAFBFA] p-3">
+            <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#FAFBFF] p-3">
               <div className="flex items-center gap-2">
-                <FiLink size={14} className="text-[#163F20]" />
+                <FiLink size={14} className="text-[#1E3A8A]" />
 
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
                   Generated Slug
                 </span>
               </div>
 
-              <div className="mt-2 rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#163F20]">
+              <div className="mt-2 rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#1E3A8A]">
                 {slugify(title) || "menu-slug"}
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#4A5778]">
                 Type
               </label>
 
               <select
                 value={type}
                 onChange={(event) => setType(event.target.value)}
-                className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] px-4 text-sm font-medium text-[#202721] outline-none focus:border-[#163F20] focus:bg-white"
+                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm font-medium text-[#0F1B3D] outline-none focus:border-[#1E3A8A] focus:bg-white"
               >
                 <option value="menu">Menu</option>
                 <option value="link">Link</option>
@@ -449,42 +456,44 @@ const MenuModal: React.FC<MenuModalProps> = ({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#59645C]">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#4A5778]">
                 Status
               </label>
 
               <button
                 type="button"
                 onClick={() => setStatus((current) => !current)}
-                className={`flex h-11 w-full items-center justify-between rounded-xl border px-4 ${status
-                    ? "border-[#163F20]/25 bg-[#EAF3EA]"
-                    : "border-[#D8E2D8] bg-[#F5F7F5]"
-                  }`}
+                className={`flex h-11 w-full items-center justify-between rounded-xl border px-4 ${
+                  status
+                    ? "border-[#1E3A8A]/25 bg-[#EAF1FF]"
+                    : "border-[#D8E2F0] bg-[#F5F8FF]"
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${status ? "bg-[#163F20]" : "bg-[#89918B]"
-                      }`}
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      status ? "bg-[#1E3A8A]" : "bg-[#8C97B2]"
+                    }`}
                   />
 
-                  <span className="text-sm font-semibold text-[#3F4A41]">
+                  <span className="text-sm font-semibold text-[#3A4668]">
                     {status ? "Enabled" : "Disabled"}
                   </span>
                 </div>
 
-                <span className="text-[9px] font-bold uppercase text-[#163F20]">
+                <span className="text-[9px] font-bold uppercase text-[#1E3A8A]">
                   {status ? "Enabled" : "Disabled"}
                 </span>
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col-reverse gap-2 border-t border-[#163F20]/10 bg-[#FAFBFA] px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+              className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
             >
               Cancel
             </button>
@@ -492,7 +501,7 @@ const MenuModal: React.FC<MenuModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] hover:-translate-y-0.5"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] hover:-translate-y-0.5"
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
@@ -516,7 +525,7 @@ const MenuModal: React.FC<MenuModalProps> = ({
 };
 
 // =====================================================
-// DELETE MODAL
+// DELETE MODAL — NAVY THEME
 // =====================================================
 
 interface DeleteModalProps {
@@ -538,8 +547,8 @@ const DeleteMenuModal: React.FC<DeleteModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[420px] overflow-hidden rounded-[22px] border border-[#E5EAE5] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] to-[#C23B32]" />
+      <div className="w-full max-w-[420px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
 
         <div className="p-5">
           <div className="flex items-start gap-4">
@@ -548,9 +557,9 @@ const DeleteMenuModal: React.FC<DeleteModalProps> = ({
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#202721]">Delete Menu</h2>
+              <h2 className="text-lg font-bold text-[#0F1B3D]">Delete Menu</h2>
 
-              <p className="mt-1 text-sm leading-6 text-[#59645C]">
+              <p className="mt-1 text-sm leading-6 text-[#4A5778]">
                 Are you sure you want to delete <strong>{menu.title}</strong>?
               </p>
             </div>
@@ -561,7 +570,7 @@ const DeleteMenuModal: React.FC<DeleteModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#163F20]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+              className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
             >
               Cancel
             </button>
@@ -592,6 +601,58 @@ const DeleteMenuModal: React.FC<DeleteModalProps> = ({
 // =====================================================
 
 const HeaderManagement: React.FC = () => {
+  // ===================================================
+  // ✅ PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+  } = usePermissions();
+
+  const canViewHeader = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("header") ||
+      hasPermission("header.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateMenu = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("header.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateMenu = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("header.edit") ||
+      hasPermission("header.update"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteMenu = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("header.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateBranding = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("header.edit") ||
+      hasPermission("header.update"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
   const [menus, setMenus] = useState<HeaderMenu[]>([]);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
@@ -635,15 +696,19 @@ const HeaderManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Fetch header error:", error);
-      toast.error(error?.response?.data?.message || "Unable to fetch header.");
+      toast.error(
+        error?.response?.data?.message || "Unable to fetch header.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHeader();
-  }, []);
+    if (canViewHeader) {
+      fetchHeader();
+    }
+  }, [canViewHeader]);
 
   // =================================================
   // HOME / OTHER MENUS
@@ -751,7 +816,9 @@ const HeaderManagement: React.FC = () => {
 
   const openEditMenu = (menu: HeaderMenu) => {
     if (menu.title.trim().toLowerCase() === "home") {
-      setBrandingModalOpen(true);
+      if (canUpdateBranding) {
+        setBrandingModalOpen(true);
+      }
       return;
     }
 
@@ -874,11 +941,33 @@ const HeaderManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Delete menu error:", error);
-      toast.error(error?.response?.data?.message || "Unable to delete menu.");
+      toast.error(
+        error?.response?.data?.message || "Unable to delete menu.",
+      );
     } finally {
       setDeleteLoading(false);
     }
   };
+
+  // ===================================================
+  // ✅ ACCESS DENIED
+  // ===================================================
+
+  if (!canViewHeader) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission to access this section.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // =================================================
   // RENDER
@@ -890,7 +979,7 @@ const HeaderManagement: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F5F7F5] p-4 sm:p-5 lg:p-6"
+        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
       >
         {/* HEADER */}
         <motion.div
@@ -899,24 +988,26 @@ const HeaderManagement: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4C8A57]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
                 Website Configuration
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[27px] font-bold tracking-tight text-[#202721] sm:text-[30px]">
+              <h1 className="text-[27px] font-bold tracking-tight text-[#0F1B3D] sm:text-[30px]">
                 Header Management
               </h1>
 
-              <span className="rounded-full border border-[#163F20]/15 bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#163F20]">
+              <span className="rounded-full border border-[#1E3A8A]/15 bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E3A8A]">
                 Home + Navigation
               </span>
             </div>
 
-            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#89918B]">
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#8C97B2]">
               Manage your permanent Home header, website branding and navigation
               menus.
             </p>
@@ -927,7 +1018,7 @@ const HeaderManagement: React.FC = () => {
               type="button"
               onClick={fetchHeader}
               disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-4 text-xs font-bold text-[#163F20] shadow-sm hover:bg-[#EAF3EA] disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm hover:bg-[#EAF1FF] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={15}
@@ -936,54 +1027,60 @@ const HeaderManagement: React.FC = () => {
               Refresh
             </button>
 
-            <button
-              type="button"
-              onClick={openAddMenu}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4C8A57] via-[#163F20] to-[#0F3219] px-4 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(22,63,32,0.6)] hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(22,63,32,0.7)]"
-            >
-              <FiPlus size={15} />
-              Add Menu
-            </button>
+            {/* ✅ ADD MENU — permission based */}
+            {canCreateMenu && (
+              <button
+                type="button"
+                onClick={openAddMenu}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-4 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+              >
+                <FiPlus size={15} />
+                Add Menu
+              </button>
+            )}
           </div>
         </motion.div>
 
         {/* BRANDING */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-[0_6px_24px_rgba(22,63,32,0.05)]"
+          className="mb-5 overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-[0_6px_24px_rgba(30,58,138,0.05)]"
         >
-          <div className="h-[3px] w-full bg-gradient-to-r from-[#4C8A57] via-[#163F20] to-[#0F3219]" />
+          <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           <div className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                 <FiImage size={17} />
               </div>
 
               <div>
-                <h2 className="text-sm font-bold text-[#202721]">
+                <h2 className="text-sm font-bold text-[#0F1B3D]">
                   Header Branding
                 </h2>
 
-                <p className="text-[10px] text-[#9AA29C]">
+                <p className="text-[10px] text-[#8C97B2]">
                   Current website logo and favicon
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setBrandingModalOpen(true)}
-              className="flex h-9 items-center justify-center gap-2 rounded-xl border border-[#163F20]/20 bg-[#EAF3EA] px-4 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-            >
-              <FiEdit3 size={13} />
-              Update Branding
-            </button>
+            {/* ✅ UPDATE BRANDING — permission based */}
+            {canUpdateBranding && (
+              <button
+                type="button"
+                onClick={() => setBrandingModalOpen(true)}
+                className="flex h-9 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] px-4 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+              >
+                <FiEdit3 size={13} />
+                Update Branding
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 border-t border-[#163F20]/10 bg-[#FAFBFA] p-3 sm:grid-cols-2">
-            <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <div className="flex h-[70px] w-[130px] items-center justify-center overflow-hidden rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] p-2">
+          <div className="grid grid-cols-1 gap-3 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] p-3 sm:grid-cols-2">
+            <div className="flex items-center gap-3 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+              <div className="flex h-[70px] w-[130px] items-center justify-center overflow-hidden rounded-lg border border-[#1E3A8A]/10 bg-[#F5F8FF] p-2">
                 {logoUrl ? (
                   <img
                     src={logoUrl}
@@ -991,27 +1088,27 @@ const HeaderManagement: React.FC = () => {
                     className="max-h-full max-w-full object-contain"
                   />
                 ) : (
-                  <FiImage size={22} className="text-[#9AA29C]" />
+                  <FiImage size={22} className="text-[#8C97B2]" />
                 )}
               </div>
 
               <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                   Website Logo
                 </p>
 
-                <p className="mt-1 text-xs font-bold text-[#3F4A41]">
+                <p className="mt-1 text-xs font-bold text-[#3A4668]">
                   Main Header Logo
                 </p>
 
-                <span className="mt-2 inline-flex rounded-full bg-[#EAF3EA] px-2 py-1 text-[8px] font-bold text-[#163F20]">
+                <span className="mt-2 inline-flex rounded-full bg-[#EAF1FF] px-2 py-1 text-[8px] font-bold text-[#1E3A8A]">
                   Enabled
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-[#163F20]/10 bg-white p-3">
-              <div className="flex h-[70px] w-[70px] items-center justify-center overflow-hidden rounded-lg border border-[#163F20]/10 bg-[#F5F7F5] p-3">
+            <div className="flex items-center gap-3 rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
+              <div className="flex h-[70px] w-[70px] items-center justify-center overflow-hidden rounded-lg border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
                 {faviconUrl ? (
                   <img
                     src={faviconUrl}
@@ -1019,20 +1116,20 @@ const HeaderManagement: React.FC = () => {
                     className="h-full w-full object-contain"
                   />
                 ) : (
-                  <FiGlobe size={22} className="text-[#9AA29C]" />
+                  <FiGlobe size={22} className="text-[#8C97B2]" />
                 )}
               </div>
 
               <div className="min-w-0">
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[#9AA29C]">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                   Website Favicon
                 </p>
 
-                <p className="mt-1 text-xs font-bold text-[#3F4A41]">
+                <p className="mt-1 text-xs font-bold text-[#3A4668]">
                   Browser Tab Icon
                 </p>
 
-                <span className="mt-2 inline-flex rounded-full bg-[#EAF3EA] px-2 py-1 text-[8px] font-bold text-[#163F20]">
+                <span className="mt-2 inline-flex rounded-full bg-[#EAF1FF] px-2 py-1 text-[8px] font-bold text-[#1E3A8A]">
                   Enabled
                 </span>
               </div>
@@ -1043,17 +1140,17 @@ const HeaderManagement: React.FC = () => {
         {/* MENU CARD */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-[20px] border border-[#E5EAE5] bg-white shadow-[0_8px_30px_rgba(22,63,32,0.06)]"
+          className="relative overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#8FC199] via-[#163F20] to-[#0F3219]" />
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
           {/* TOOLBAR */}
-          <div className="border-b border-[#163F20]/10 p-4">
+          <div className="border-b border-[#1E3A8A]/10 p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-[480px]">
                 <FiSearch
                   size={17}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#163F20]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
                 />
 
                 <input
@@ -1064,7 +1161,7 @@ const HeaderManagement: React.FC = () => {
                     setCurrentPage(1);
                   }}
                   placeholder="Search menu title, slug or ID..."
-                  className="h-11 w-full rounded-xl border border-[#D8E2D8] bg-[#F5F7F5] pl-11 pr-4 text-xs text-[#202721] outline-none placeholder:text-[#9AA29C] focus:border-[#163F20] focus:bg-white focus:ring-2 focus:ring-[#163F20]/10"
+                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-11 pr-4 text-xs text-[#0F1B3D] outline-none placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
               </div>
 
@@ -1083,8 +1180,8 @@ const HeaderManagement: React.FC = () => {
                     }}
                     className={`rounded-xl px-4 py-2.5 text-[10px] font-bold ${
                       statusFilter === item.key
-                        ? "bg-gradient-to-r from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                        : "border border-[#163F20]/15 bg-[#F5F7F5] text-[#59645C] hover:bg-[#EAF3EA] hover:text-[#163F20]"
+                        ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                        : "border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
                     }`}
                   >
                     {item.label}
@@ -1095,7 +1192,7 @@ const HeaderManagement: React.FC = () => {
 
             {/* STATUS SUMMARY */}
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-[#163F20]/25 bg-[#EAF3EA] px-3 py-1.5 text-[9px] font-bold text-[#163F20]">
+              <span className="rounded-full border border-[#1E3A8A]/25 bg-[#EAF1FF] px-3 py-1.5 text-[9px] font-bold text-[#1E3A8A]">
                 Enabled: {enabledCount}
               </span>
 
@@ -1109,22 +1206,24 @@ const HeaderManagement: React.FC = () => {
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[850px] border-collapse">
               <thead>
-                <tr className="bg-[#163F20]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                <tr className="bg-[#1E3A8A]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     #
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Menu
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Slug
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
                     Status
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF3EA]">
-                    Actions
-                  </th>
+                  {(canUpdateMenu || canDeleteMenu) && (
+                    <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
 
@@ -1134,32 +1233,32 @@ const HeaderManagement: React.FC = () => {
                   <motion.tr
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="border-b border-[#163F20]/10 bg-[#EAF3EA]"
+                    className="border-b border-[#1E3A8A]/10 bg-[#EAF1FF]"
                   >
                     <td className="px-5 py-4">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#D5E5D6] text-xs font-bold text-[#163F20]">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DBEAFE] text-xs font-bold text-[#1E3A8A]">
                         1
                       </span>
                     </td>
 
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white">
                           <FiMenu size={17} />
                         </div>
 
                         <div>
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold text-[#202721]">
+                            <p className="text-sm font-bold text-[#0F1B3D]">
                               Home
                             </p>
 
-                            <span className="rounded-full bg-[#D5E5D6] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#163F20]">
+                            <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#1E3A8A]">
                               Permanent
                             </span>
                           </div>
 
-                          <p className="mt-1 text-[10px] text-[#9AA29C]">
+                          <p className="mt-1 text-[10px] text-[#8C97B2]">
                             Main website home navigation
                           </p>
                         </div>
@@ -1167,7 +1266,7 @@ const HeaderManagement: React.FC = () => {
                     </td>
 
                     <td className="px-5 py-4">
-                      <span className="rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#3F4A41]">
+                      <span className="rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#3A4668]">
                         {homeMenu.slug}
                       </span>
                     </td>
@@ -1183,49 +1282,59 @@ const HeaderManagement: React.FC = () => {
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-center">
-                        <button
-                          type="button"
-                          title="Update Home Branding"
-                          onClick={() => setBrandingModalOpen(true)}
-                          className="flex h-9 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-3 text-[10px] font-bold text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                        >
-                          <FiEdit3 size={14} />
-                          Update Branding
-                        </button>
-                      </div>
-                    </td>
+                    {(canUpdateMenu || canDeleteMenu) && (
+                      <td className="px-5 py-4">
+                        <div className="flex items-center justify-center">
+                          {canUpdateBranding && (
+                            <button
+                              type="button"
+                              title="Update Home Branding"
+                              onClick={() => setBrandingModalOpen(true)}
+                              className="flex h-9 items-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-3 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                            >
+                              <FiEdit3 size={14} />
+                              Update Branding
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </motion.tr>
                 )}
 
                 {/* OTHER MENUS */}
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-14 text-center">
+                    <td
+                      colSpan={canUpdateMenu || canDeleteMenu ? 5 : 4}
+                      className="px-5 py-14 text-center"
+                    >
                       <FiRefreshCw
                         size={22}
-                        className="mx-auto animate-spin text-[#163F20]"
+                        className="mx-auto animate-spin text-[#1E3A8A]"
                       />
 
-                      <p className="mt-3 text-sm font-bold text-[#202721]">
+                      <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
                         Loading menus...
                       </p>
                     </td>
                   </tr>
                 ) : paginatedMenus.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-14 text-center">
+                    <td
+                      colSpan={canUpdateMenu || canDeleteMenu ? 5 : 4}
+                      className="px-5 py-14 text-center"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                           <FiMenu size={21} />
                         </div>
 
-                        <p className="mt-3 text-sm font-bold text-[#202721]">
+                        <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
                           No other menus found
                         </p>
 
-                        <p className="mt-1 text-[10px] text-[#9AA29C]">
+                        <p className="mt-1 text-[10px] text-[#8C97B2]">
                           Add a new header menu to get started.
                         </p>
                       </div>
@@ -1238,26 +1347,26 @@ const HeaderManagement: React.FC = () => {
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.03 }}
-                      className="border-b border-[#163F20]/10 bg-white transition hover:bg-[#FAFBFA]"
+                      className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
                     >
                       <td className="px-5 py-4">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3EA] text-xs font-bold text-[#163F20]">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
                           {startIndex + index + 2}
                         </span>
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                             <FiMenu size={17} />
                           </div>
 
                           <div>
-                            <p className="text-sm font-bold text-[#202721]">
+                            <p className="text-sm font-bold text-[#0F1B3D]">
                               {menu.title}
                             </p>
 
-                            <p className="mt-1 text-[10px] text-[#9AA29C]">
+                            <p className="mt-1 text-[10px] text-[#8C97B2]">
                               Menu #{menu.id}
                             </p>
                           </div>
@@ -1266,9 +1375,9 @@ const HeaderManagement: React.FC = () => {
 
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <FiLink size={14} className="text-[#163F20]" />
+                          <FiLink size={14} className="text-[#1E3A8A]" />
 
-                          <span className="rounded-lg bg-[#F5F7F5] px-3 py-2 font-mono text-xs font-semibold text-[#3F4A41]">
+                          <span className="rounded-lg bg-[#F5F8FF] px-3 py-2 font-mono text-xs font-semibold text-[#3A4668]">
                             {menu.slug}
                           </span>
                         </div>
@@ -1285,27 +1394,35 @@ const HeaderManagement: React.FC = () => {
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            title="Edit menu"
-                            onClick={() => openEditMenu(menu)}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] text-[#163F20] transition hover:bg-[#163F20] hover:text-white"
-                          >
-                            <FiEdit3 size={15} />
-                          </button>
+                      {(canUpdateMenu || canDeleteMenu) && (
+                        <td className="px-5 py-4">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* ✅ EDIT — permission based */}
+                            {canUpdateMenu && (
+                              <button
+                                type="button"
+                                title="Edit menu"
+                                onClick={() => openEditMenu(menu)}
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#EAF1FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                              >
+                                <FiEdit3 size={15} />
+                              </button>
+                            )}
 
-                          <button
-                            type="button"
-                            title="Delete menu"
-                            onClick={() => openDelete(menu)}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                          >
-                            <FiTrash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
+                            {/* ✅ DELETE — permission based */}
+                            {canDeleteMenu && (
+                              <button
+                                type="button"
+                                title="Delete menu"
+                                onClick={() => openDelete(menu)}
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                              >
+                                <FiTrash2 size={15} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </motion.tr>
                   ))
                 )}
@@ -1316,23 +1433,23 @@ const HeaderManagement: React.FC = () => {
           {/* MOBILE */}
           <div className="block lg:hidden">
             {homeMenu && (
-              <div className="border-b border-[#163F20]/10 bg-[#EAF3EA] p-4">
+              <div className="border-b border-[#1E3A8A]/10 bg-[#EAF1FF] p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white">
                       <FiMenu size={17} />
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold text-[#202721]">Home</p>
+                        <p className="text-sm font-bold text-[#0F1B3D]">Home</p>
 
-                        <span className="rounded-full bg-[#D5E5D6] px-2 py-0.5 text-[8px] font-bold uppercase text-[#163F20]">
+                        <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[8px] font-bold uppercase text-[#1E3A8A]">
                           Permanent
                         </span>
                       </div>
 
-                      <p className="mt-1 font-mono text-[10px] text-[#9AA29C]">
+                      <p className="mt-1 font-mono text-[10px] text-[#8C97B2]">
                         {homeMenu.slug}
                       </p>
                     </div>
@@ -1340,19 +1457,21 @@ const HeaderManagement: React.FC = () => {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#163F20]/25 bg-white px-3 py-1.5 text-[10px] font-bold text-[#163F20]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#163F20]" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A8A]/25 bg-white px-3 py-1.5 text-[10px] font-bold text-[#1E3A8A]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
                     Enabled
                   </span>
 
-                  <button
-                    type="button"
-                    onClick={() => setBrandingModalOpen(true)}
-                    className="flex h-9 items-center gap-2 rounded-xl border border-[#163F20]/20 bg-white px-3 text-[10px] font-bold text-[#163F20]"
-                  >
-                    <FiEdit3 size={14} />
-                    Update Branding
-                  </button>
+                  {canUpdateBranding && (
+                    <button
+                      type="button"
+                      onClick={() => setBrandingModalOpen(true)}
+                      className="flex h-9 items-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-3 text-[10px] font-bold text-[#1E3A8A]"
+                    >
+                      <FiEdit3 size={14} />
+                      Update Branding
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1362,26 +1481,26 @@ const HeaderManagement: React.FC = () => {
                 <motion.div
                   key={menu.id}
                   variants={itemVariants}
-                  className="border-b border-[#163F20]/10 p-4"
+                  className="border-b border-[#1E3A8A]/10 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                         <FiMenu size={17} />
                       </div>
 
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-[#202721]">
+                        <p className="truncate text-sm font-bold text-[#0F1B3D]">
                           {menu.title}
                         </p>
 
-                        <p className="mt-1 truncate font-mono text-[10px] text-[#9AA29C]">
+                        <p className="mt-1 truncate font-mono text-[10px] text-[#8C97B2]">
                           {menu.slug}
                         </p>
                       </div>
                     </div>
 
-                    <span className="text-[9px] font-bold text-[#9AA29C]">
+                    <span className="text-[9px] font-bold text-[#8C97B2]">
                       #{startIndex + index + 2}
                     </span>
                   </div>
@@ -1397,36 +1516,40 @@ const HeaderManagement: React.FC = () => {
                     </span>
 
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditMenu(menu)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#163F20]/15 bg-[#EAF3EA] text-[#163F20]"
-                      >
-                        <FiEdit3 size={14} />
-                      </button>
+                      {canUpdateMenu && (
+                        <button
+                          type="button"
+                          onClick={() => openEditMenu(menu)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#EAF1FF] text-[#1E3A8A]"
+                        >
+                          <FiEdit3 size={14} />
+                        </button>
+                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => openDelete(menu)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
+                      {canDeleteMenu && (
+                        <button
+                          type="button"
+                          onClick={() => openDelete(menu)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </motion.div>
               ))
             ) : (
               <div className="flex flex-col items-center px-5 py-14 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3EA] text-[#163F20]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
                   <FiMenu size={22} />
                 </div>
 
-                <p className="mt-3 text-sm font-bold text-[#202721]">
+                <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
                   No other menus found
                 </p>
 
-                <p className="mt-1 text-[10px] text-[#9AA29C]">
+                <p className="mt-1 text-[10px] text-[#8C97B2]">
                   Add a menu from the button above.
                 </p>
               </div>
@@ -1435,13 +1558,13 @@ const HeaderManagement: React.FC = () => {
 
           {/* PAGINATION */}
           {filteredMenus.length > 0 && (
-            <div className="border-t border-[#163F20]/10 bg-[#FAFBFA] px-4 py-4">
+            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4">
               <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <p className="text-[10px] text-[#89918B]">
+                <p className="text-[10px] text-[#8C97B2]">
                   Showing{" "}
-                  <strong className="text-[#3F4A41]">{startEntry}</strong> to{" "}
-                  <strong className="text-[#3F4A41]">{endEntry}</strong> of{" "}
-                  <strong className="text-[#3F4A41]">
+                  <strong className="text-[#3A4668]">{startEntry}</strong> to{" "}
+                  <strong className="text-[#3A4668]">{endEntry}</strong> of{" "}
+                  <strong className="text-[#3A4668]">
                     {filteredMenus.length}
                   </strong>
                 </p>
@@ -1451,7 +1574,7 @@ const HeaderManagement: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage((page) => page - 1)}
                     disabled={currentPage === 1}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-30"
                   >
                     <FiChevronLeft size={15} />
                   </button>
@@ -1463,8 +1586,8 @@ const HeaderManagement: React.FC = () => {
                       onClick={() => setCurrentPage(page)}
                       className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-[10px] font-bold ${
                         currentPage === page
-                          ? "bg-gradient-to-br from-[#4C8A57] to-[#163F20] text-white shadow-[0_6px_14px_-6px_rgba(22,63,32,0.5)]"
-                          : "text-[#59645C] hover:bg-[#F5F7F5] hover:text-[#163F20]"
+                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                          : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
                       }`}
                     >
                       {page}
@@ -1475,7 +1598,7 @@ const HeaderManagement: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage((page) => page + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#163F20]/15 bg-white text-[#163F20] transition hover:bg-[#EAF3EA] disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-30"
                   >
                     <FiChevronRight size={15} />
                   </button>
@@ -1488,42 +1611,49 @@ const HeaderManagement: React.FC = () => {
         <div className="h-4" />
       </motion.div>
 
-      {/* MODALS */}
-      <BrandingModal
-        open={brandingModalOpen}
-        loading={brandingLoading}
-        logoUrl={logoUrl}
-        faviconUrl={faviconUrl}
-        onClose={() => {
-          if (brandingLoading) return;
-          setBrandingModalOpen(false);
-        }}
-        onSubmit={handleBrandingUpdate}
-      />
+      {/* MODALS — permission based */}
 
-      <MenuModal
-        open={menuModalOpen}
-        editingMenu={editingMenu}
-        loading={savingMenu}
-        onClose={() => {
-          if (savingMenu) return;
-          setMenuModalOpen(false);
-          setEditingMenu(null);
-        }}
-        onSubmit={handleSaveMenu}
-      />
+      {canUpdateBranding && (
+        <BrandingModal
+          open={brandingModalOpen}
+          loading={brandingLoading}
+          logoUrl={logoUrl}
+          faviconUrl={faviconUrl}
+          onClose={() => {
+            if (brandingLoading) return;
+            setBrandingModalOpen(false);
+          }}
+          onSubmit={handleBrandingUpdate}
+        />
+      )}
 
-      <DeleteMenuModal
-        open={deleteOpen}
-        loading={deleteLoading}
-        menu={selectedMenu}
-        onClose={() => {
-          if (deleteLoading) return;
-          setDeleteOpen(false);
-          setSelectedMenu(null);
-        }}
-        onConfirm={handleDelete}
-      />
+      {(canCreateMenu || canUpdateMenu) && (
+        <MenuModal
+          open={menuModalOpen}
+          editingMenu={editingMenu}
+          loading={savingMenu}
+          onClose={() => {
+            if (savingMenu) return;
+            setMenuModalOpen(false);
+            setEditingMenu(null);
+          }}
+          onSubmit={handleSaveMenu}
+        />
+      )}
+
+      {canDeleteMenu && (
+        <DeleteMenuModal
+          open={deleteOpen}
+          loading={deleteLoading}
+          menu={selectedMenu}
+          onClose={() => {
+            if (deleteLoading) return;
+            setDeleteOpen(false);
+            setSelectedMenu(null);
+          }}
+          onConfirm={handleDelete}
+        />
+      )}
     </>
   );
 };
