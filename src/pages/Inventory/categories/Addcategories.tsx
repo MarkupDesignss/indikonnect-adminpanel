@@ -1,6 +1,12 @@
+
 import React, { useEffect, useMemo, useState } from "react";
 
-import { FiPlus, FiSearch, FiRefreshCw, FiAlertCircle } from "react-icons/fi";
+import {
+  FiPlus,
+  FiSearch,
+  FiRefreshCw,
+  FiAlertCircle,
+} from "react-icons/fi";
 
 import { motion } from "framer-motion";
 
@@ -17,7 +23,6 @@ import {
   categoryApi,
   Category,
 } from "../../../api/endpoints/category";
-
 
 import { usePermissions } from "../../permissions/usePermissions";
 
@@ -50,7 +55,11 @@ const itemVariants = {
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 110, damping: 16 },
+    transition: {
+      type: "spring",
+      stiffness: 110,
+      damping: 16,
+    },
   },
 };
 
@@ -60,17 +69,17 @@ const itemVariants = {
 
 const PermissionLoadingState: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#D6E2F0] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
           <FiRefreshCw size={24} className="animate-spin" />
         </div>
 
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+        <h2 className="mt-5 text-base font-bold text-[#111827]">
           Checking permissions...
         </h2>
 
-        <p className="mt-2 text-sm text-[#8C97B2]">
+        <p className="mt-2 text-sm text-[#6B7280]">
           Please wait while we verify your access.
         </p>
       </div>
@@ -84,7 +93,7 @@ const PermissionLoadingState: React.FC = () => {
 
 const Addcategories: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
 
   const {
@@ -103,9 +112,7 @@ const Addcategories: React.FC = () => {
   );
 
   const canCreateCategory = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("category.create"),
+    () => isSuperAdmin || hasPermission("category.create"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -118,9 +125,7 @@ const Addcategories: React.FC = () => {
   );
 
   const canDeleteCategory = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("category.delete"),
+    () => isSuperAdmin || hasPermission("category.delete"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -132,6 +137,7 @@ const Addcategories: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
@@ -147,7 +153,9 @@ const Addcategories: React.FC = () => {
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+
+  const [selectedCategory, setSelectedCategory] =
+    useState<Category | null>(null);
 
   // ===================================================
   // DELETE MODAL
@@ -157,10 +165,12 @@ const Addcategories: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ===================================================
-  // STATUS LOADING (for inline dropdown)
+  // STATUS LOADING
   // ===================================================
 
-  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(
+    null,
+  );
 
   // ===================================================
   // GET CATEGORIES
@@ -169,12 +179,16 @@ const Addcategories: React.FC = () => {
   const fetchCategories = async () => {
     try {
       setLoading(true);
+
       const response = await categoryApi.getAll();
+
       setCategories(response.data?.data || []);
     } catch (error: any) {
       console.error("Get categories error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to fetch categories."
+        error?.response?.data?.message ||
+          "Unable to fetch categories.",
       );
     } finally {
       setLoading(false);
@@ -197,13 +211,15 @@ const Addcategories: React.FC = () => {
 
   const activeCount = useMemo(() => {
     return categories.filter(
-      (item: any) => String(item.status).toLowerCase() === "active"
+      (item: any) =>
+        String(item.status).toLowerCase() === "active",
     ).length;
   }, [categories]);
 
   const inactiveCount = useMemo(() => {
     return categories.filter(
-      (item: any) => String(item.status).toLowerCase() === "inactive"
+      (item: any) =>
+        String(item.status).toLowerCase() === "inactive",
     ).length;
   }, [categories]);
 
@@ -213,13 +229,19 @@ const Addcategories: React.FC = () => {
 
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     if (!query) return categories;
 
     return categories.filter((item: any) =>
-      [item.title, item.description, item.status, item.parentCategory || ""]
+      [
+        item.title,
+        item.description,
+        item.status,
+        item.parentCategory || "",
+      ]
         .join(" ")
         .toLowerCase()
-        .includes(query)
+        .includes(query),
     );
   }, [categories, search]);
 
@@ -227,19 +249,25 @@ const Addcategories: React.FC = () => {
   // PAGINATION
   // ===================================================
 
-  const totalPages = Math.ceil(filteredCategories.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(
+    filteredCategories.length / ITEMS_PER_PAGE,
+  );
+
   const safeTotalPages = Math.max(totalPages, 1);
+
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const paginatedCategories = filteredCategories.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + ITEMS_PER_PAGE,
   );
 
-  const startEntry = filteredCategories.length === 0 ? 0 : startIndex + 1;
+  const startEntry =
+    filteredCategories.length === 0 ? 0 : startIndex + 1;
+
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
-    filteredCategories.length
+    filteredCategories.length,
   );
 
   // ===================================================
@@ -265,7 +293,9 @@ const Addcategories: React.FC = () => {
   // FORM DATA BUILDER
   // ===================================================
 
-  const buildFormData = (payload: Partial<CategoryPayload>) => {
+  const buildFormData = (
+    payload: Partial<CategoryPayload>,
+  ) => {
     const formData = new FormData();
 
     Object.entries(payload).forEach(([key, value]) => {
@@ -289,20 +319,30 @@ const Addcategories: React.FC = () => {
   // ADD CATEGORY
   // ===================================================
 
-  const handleAddCategory = async (payload: CategoryPayload) => {
+  const handleAddCategory = async (
+    payload: CategoryPayload,
+  ) => {
     try {
       setAddLoading(true);
+
       const formData = buildFormData(payload);
+
       const response = await categoryApi.add(formData);
+
       await fetchCategories();
+
       setAddModalOpen(false);
+
       toast.success(
-        response?.data?.message || "Category added successfully."
+        response?.data?.message ||
+          "Category added successfully.",
       );
     } catch (error: any) {
       console.error("Add category error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to add category."
+        error?.response?.data?.message ||
+          "Unable to add category.",
       );
     } finally {
       setAddLoading(false);
@@ -319,26 +359,39 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
-  // UPDATE CATEGORY (Edit Modal)
+  // UPDATE CATEGORY
   // ===================================================
 
-  const handleUpdateCategory = async (payload: CategoryPayload) => {
+  const handleUpdateCategory = async (
+    payload: CategoryPayload,
+  ) => {
     if (!selectedCategory) return;
 
     try {
       setEditLoading(true);
+
       const formData = buildFormData(payload);
-      const response = await categoryApi.update(selectedCategory.id, formData);
+
+      const response = await categoryApi.update(
+        selectedCategory.id,
+        formData,
+      );
+
       await fetchCategories();
+
       setEditModalOpen(false);
       setSelectedCategory(null);
+
       toast.success(
-        response?.data?.message || "Category updated successfully."
+        response?.data?.message ||
+          "Category updated successfully.",
       );
     } catch (error: any) {
       console.error("Update category error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to update category."
+        error?.response?.data?.message ||
+          "Unable to update category.",
       );
     } finally {
       setEditLoading(false);
@@ -346,23 +399,31 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
-  // STATUS CHANGE (Inline Dropdown -> uses same Edit API)
+  // STATUS CHANGE
   // ===================================================
 
   const handleStatusToggle = async (
     category: Category,
-    nextStatus: "active" | "inactive"
+    nextStatus: "active" | "inactive",
   ) => {
-    // Prevent unnecessary API call if status is same
-    if (String(category.status).toLowerCase() === nextStatus) return;
+    if (
+      String(category.status).toLowerCase() ===
+      nextStatus
+    ) {
+      return;
+    }
 
     try {
       setStatusLoadingId(category.id);
 
       const formData = new FormData();
+
       formData.append("status", nextStatus);
 
-      const response = await categoryApi.update(category.id, formData);
+      const response = await categoryApi.update(
+        category.id,
+        formData,
+      );
 
       await fetchCategories();
 
@@ -370,12 +431,17 @@ const Addcategories: React.FC = () => {
         response?.data?.message ||
           (nextStatus === "active"
             ? "Category activated successfully."
-            : "Category deactivated successfully.")
+            : "Category deactivated successfully."),
       );
     } catch (error: any) {
-      console.error("Category status update error:", error);
+      console.error(
+        "Category status update error:",
+        error,
+      );
+
       toast.error(
-        error?.response?.data?.message || "Unable to update category status."
+        error?.response?.data?.message ||
+          "Unable to update category status.",
       );
     } finally {
       setStatusLoadingId(null);
@@ -400,17 +466,26 @@ const Addcategories: React.FC = () => {
 
     try {
       setDeleteLoading(true);
-      const response = await categoryApi.delete(selectedCategory.id);
+
+      const response = await categoryApi.delete(
+        selectedCategory.id,
+      );
+
       await fetchCategories();
+
       setDeleteModalOpen(false);
       setSelectedCategory(null);
+
       toast.success(
-        response?.data?.message || "Category deleted successfully."
+        response?.data?.message ||
+          "Category deleted successfully.",
       );
     } catch (error: any) {
       console.error("Delete category error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to delete category."
+        error?.response?.data?.message ||
+          "Unable to delete category.",
       );
     } finally {
       setDeleteLoading(false);
@@ -423,12 +498,14 @@ const Addcategories: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     if (page < 1) return;
+
     if (totalPages > 0 && page > totalPages) return;
+
     setCurrentPage(page);
   };
 
   // ===================================================
-  // ✅ LOADING STATE (only once, at top level)
+  // LOADING STATE
   // ===================================================
 
   if (permissionsLoading) {
@@ -436,20 +513,22 @@ const Addcategories: React.FC = () => {
   }
 
   // ===================================================
-  // ✅ ACCESS DENIED
+  // ACCESS DENIED
   // ===================================================
 
   if (!canViewCategories) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">
+
+          <h2 className="text-lg font-bold text-[#111827]">
             Access Denied
           </h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
+
+          <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
         </div>
@@ -463,7 +542,7 @@ const Addcategories: React.FC = () => {
 
   return (
     <motion.div
-      className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
+      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -478,50 +557,57 @@ const Addcategories: React.FC = () => {
       >
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
             <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+
+            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
               Catalog Management
             </span>
           </div>
 
-          <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+          <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
             Categories
           </h1>
 
-          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
-            Manage your product categories, hierarchy, and classification from
-            one place.
+          <p className="mt-0.5 text-sm text-[#111827]">
+            Manage your product categories, hierarchy, and
+            classification from one place.
           </p>
         </div>
 
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
+          {/* TOTAL */}
+          <div className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Total Categories
             </div>
-            <div className="mt-0.5 text-lg font-bold text-[#0F1B3D]">
+
+            <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {categories.length}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">
+          {/* ACTIVE */}
+          <div className="rounded-xl border border-[#2D6FE8]/15 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
               Active
             </div>
-            <div className="mt-0.5 text-lg font-bold text-[#1E3A8A]">
+
+            <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {activeCount}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#C23B32]/15 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C23B32]">
+          {/* INACTIVE */}
+          <div className="rounded-xl border border-[#D6E2F0] bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Inactive
             </div>
-            <div className="mt-0.5 text-lg font-bold text-[#C23B32]">
+
+            <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {inactiveCount}
             </div>
           </div>
@@ -534,12 +620,14 @@ const Addcategories: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
+        className="relative mb-5 overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 shadow-[0_10px_35px_-24px_rgba(42,65,104,0.35)] sm:p-5"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+   
 
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
-        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#2D6FE8]/10" />
+
+        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#2D6FE8]/10" />
+
         <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -548,46 +636,61 @@ const Addcategories: React.FC = () => {
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
               size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#111827]"
             />
 
             <input
               type="text"
               value={search}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={(e) =>
+                handleSearch(e.target.value)
+              }
               placeholder="Search categories..."
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+              className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
           </div>
 
           {/* ACTIONS */}
 
           <div className="flex items-center gap-2">
+            {/* REFRESH */}
+
             <motion.button
               type="button"
               onClick={fetchCategories}
               disabled={loading}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] px-4 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <FiRefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              <FiRefreshCw
+                size={14}
+                className={
+                  loading ? "animate-spin" : ""
+                }
+              />
+
               Refresh
             </motion.button>
 
-            {/* ✅ ADD CATEGORY — permission based */}
+            {/* ADD CATEGORY */}
+
             {canCreateCategory && (
               <motion.button
                 type="button"
-                onClick={() => setAddModalOpen(true)}
+                onClick={() =>
+                  setAddModalOpen(true)
+                }
                 whileHover={{
                   y: -2,
-                  boxShadow: "0 10px 22px rgba(30,58,138,0.18)",
+                  boxShadow:
+                    "0 10px 22px rgba(45,111,232,0.18)",
                 }}
                 whileTap={{ scale: 0.97 }}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white transition"
               >
                 <FiPlus size={15} />
+
                 <span>Add Category</span>
               </motion.button>
             )}
@@ -601,11 +704,10 @@ const Addcategories: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+        className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white "
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-        <div className="pt-[3px]">
+  
+ 
           <CategoryTable
             categories={paginatedCategories}
             loading={loading}
@@ -623,7 +725,7 @@ const Addcategories: React.FC = () => {
             canDelete={canDeleteCategory}
             canToggleStatus={canUpdateCategory}
           />
-        </div>
+      
       </motion.div>
 
       {/* =================================================
@@ -633,14 +735,19 @@ const Addcategories: React.FC = () => {
       {canCreateCategory && (
         <GlobalModal
           isOpen={addModalOpen}
-          onClose={() => !addLoading && setAddModalOpen(false)}
+          onClose={() =>
+            !addLoading &&
+            setAddModalOpen(false)
+          }
           closeOnOverlayClick={!addLoading}
         >
           <AddCategoryModal
             open={addModalOpen}
             loading={addLoading}
             onClose={() => {
-              if (!addLoading) setAddModalOpen(false);
+              if (!addLoading) {
+                setAddModalOpen(false);
+              }
             }}
             onSubmit={handleAddCategory}
           />
@@ -695,7 +802,9 @@ const Addcategories: React.FC = () => {
           <DeleteCategoryModal
             open={deleteModalOpen}
             loading={deleteLoading}
-            categoryName={selectedCategory?.title || ""}
+            categoryName={
+              selectedCategory?.title || ""
+            }
             onClose={() => {
               if (!deleteLoading) {
                 setDeleteModalOpen(false);

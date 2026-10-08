@@ -30,11 +30,10 @@ import warehouseStocksApi, {
   WarehouseProduct,
 } from "@/api/endpoints/warehouseStocks";
 
-// ✅ PERMISSIONS
 import { usePermissions } from "@/pages/permissions/usePermissions";
 
 // =====================================================
-// STOCK STATUS META — NAVY THEME
+// STOCK STATUS META
 // =====================================================
 
 const STOCK_STATUS_META = {
@@ -67,7 +66,7 @@ type StockStatus =
   keyof typeof STOCK_STATUS_META;
 
 // =====================================================
-// EDITED ROW STATE
+// EDITED ROW
 // =====================================================
 
 interface EditedRow {
@@ -116,7 +115,7 @@ const itemVariants = {
 };
 
 // =====================================================
-// ✅ PERMISSION LOADING
+// PERMISSION LOADING
 // =====================================================
 
 const PermissionLoading: React.FC =
@@ -145,7 +144,7 @@ const PermissionLoading: React.FC =
   };
 
 // =====================================================
-// ✅ ACCESS DENIED
+// ACCESS DENIED
 // =====================================================
 
 const AccessDenied: React.FC =
@@ -154,9 +153,7 @@ const AccessDenied: React.FC =
       <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
-            <FiAlertCircle
-              size={26}
-            />
+            <FiAlertCircle size={26} />
           </div>
 
           <h2 className="text-lg font-bold text-[#0F1B3D]">
@@ -184,58 +181,63 @@ const AccessDenied: React.FC =
 
 const Inventorywarehouse =
   () => {
+    // =================================================
+    // WAREHOUSE
+    // =================================================
+
     const warehouseId = 1;
 
-    // ===================================================
-    // ✅ PERMISSIONS
-    // ===================================================
+    // =================================================
+    // PERMISSIONS
+    //
+    // API:
+    //
+    // warehouse_inventory:
+    // [
+    //   "view",
+    //   "update"
+    // ]
+    //
+    // Therefore:
+    //
+    // warehouse_inventory.view
+    // warehouse_inventory.update
+    // =================================================
 
     const {
       hasPermission,
-      hasModuleAccess,
       isSuperAdmin,
       loading:
         permissionsLoading,
     } = usePermissions();
 
+    // =================================================
+    // VIEW PERMISSION
+    // =================================================
+
     const canViewInventory =
       useMemo(
         () =>
           isSuperAdmin ||
-          hasModuleAccess(
-            "warehouse",
-          ) ||
-          hasModuleAccess(
-            "inventory",
-          ) ||
           hasPermission(
-            "warehouse.view",
-          ) ||
-          hasPermission(
-            "inventory.view",
+            "warehouse_inventory.view",
           ),
         [
           isSuperAdmin,
-          hasModuleAccess,
           hasPermission,
         ],
       );
+
+    // =================================================
+    // UPDATE PERMISSION
+    // =================================================
 
     const canUpdateInventory =
       useMemo(
         () =>
           isSuperAdmin ||
           hasPermission(
-            "warehouse.update",
-          ) ||
-          hasPermission(
-            "warehouse.edit",
-          ) ||
-          hasPermission(
-            "inventory.update",
-          ) ||
-          hasPermission(
-            "inventory.edit",
+            "warehouse_inventory.update",
           ),
         [
           isSuperAdmin,
@@ -243,9 +245,9 @@ const Inventorywarehouse =
         ],
       );
 
-    // ===================================================
+    // =================================================
     // STATE
-    // ===================================================
+    // =================================================
 
     const [
       products,
@@ -269,53 +271,57 @@ const Inventorywarehouse =
       setIsSaving,
     ] = useState(false);
 
-    const [page, setPage] =
-      useState(1);
+    const [
+      page,
+      setPage,
+    ] = useState(1);
 
-    const [perPage] =
-      useState(25);
+    const [
+      perPage,
+    ] = useState(25);
 
     const [
       totalPages,
       setTotalPages,
     ] = useState(1);
 
-    const [total, setTotal] =
-      useState(0);
+    const [
+      total,
+      setTotal,
+    ] = useState(0);
 
-    const [search, setSearch] =
-      useState("");
+    const [
+      search,
+      setSearch,
+    ] = useState("");
 
     const [
       editedQty,
       setEditedQty,
-    ] =
-      useState<EditedQty>({});
+    ] = useState<EditedQty>({});
 
-    // ===================================================
-    // FETCH
-    // ===================================================
+    // =================================================
+    // FETCH PRODUCTS
+    // =================================================
 
     const fetchProducts =
       async () => {
         try {
-          setIsLoading(
-            true,
-          );
+          setIsLoading(true);
 
           const res =
             await warehouseStocksApi.getByWarehouse(
               warehouseId,
               {
                 page,
-                per_page: perPage,
+                per_page:
+                  perPage,
               },
             );
 
           if (res.data) {
             setProducts(
-              res.data.data ??
-                [],
+              res.data.data ?? [],
             );
 
             setWarehouseName(
@@ -336,9 +342,7 @@ const Inventorywarehouse =
                 ?.last_page ?? 1,
             );
 
-            setEditedQty(
-              {},
-            );
+            setEditedQty({});
           }
         } catch (err: any) {
           console.error(
@@ -352,20 +356,16 @@ const Inventorywarehouse =
               "Failed to load warehouse inventory",
           );
         } finally {
-          setIsLoading(
-            false,
-          );
+          setIsLoading(false);
         }
       };
 
-    // ===================================================
-    // ✅ FETCH ONLY AFTER PERMISSION CHECK
-    // ===================================================
+    // =================================================
+    // FETCH ONLY AFTER PERMISSION CHECK
+    // =================================================
 
     useEffect(() => {
-      if (
-        permissionsLoading
-      ) {
+      if (permissionsLoading) {
         return;
       }
 
@@ -384,9 +384,9 @@ const Inventorywarehouse =
       perPage,
     ]);
 
-    // ===================================================
+    // =================================================
     // SEARCH
-    // ===================================================
+    // =================================================
 
     const filteredProducts =
       useMemo(() => {
@@ -402,10 +402,10 @@ const Inventorywarehouse =
         return products.filter(
           (p) =>
             p.name
-              .toLowerCase()
+              ?.toLowerCase()
               .includes(q) ||
             p.product_code
-              .toLowerCase()
+              ?.toLowerCase()
               .includes(q) ||
             p.brand?.title
               ?.toLowerCase()
@@ -422,9 +422,9 @@ const Inventorywarehouse =
         search,
       ]);
 
-    // ===================================================
+    // =================================================
     // STATUS COUNTS
-    // ===================================================
+    // =================================================
 
     const inStockCount =
       useMemo(
@@ -462,9 +462,9 @@ const Inventorywarehouse =
         [products],
       );
 
-    // ===================================================
-    // HELPERS
-    // ===================================================
+    // =================================================
+    // STOCK STATUS
+    // =================================================
 
     const getStockStatus = (
       product: WarehouseProduct,
@@ -475,18 +475,19 @@ const Inventorywarehouse =
           ?.stock_status;
 
       if (
-        status ===
-          "in_stock" ||
-        status ===
-          "low_stock" ||
-        status ===
-          "out_of_stock"
+        status === "in_stock" ||
+        status === "low_stock" ||
+        status === "out_of_stock"
       ) {
         return status;
       }
 
       return "out_of_stock";
     };
+
+    // =================================================
+    // CURRENCY
+    // =================================================
 
     const formatCurrency = (
       value: string | number,
@@ -506,9 +507,9 @@ const Inventorywarehouse =
       )}`;
     };
 
-    // ===================================================
-    // EDIT HANDLERS
-    // ===================================================
+    // =================================================
+    // OPERATION CHANGE
+    // =================================================
 
     const handleOperationChange =
       (
@@ -529,12 +530,11 @@ const Inventorywarehouse =
         setEditedQty(
           (prev) => {
             const current =
-              prev[
-                productId
-              ];
+              prev[productId];
 
             return {
               ...prev,
+
               [productId]: {
                 operation,
                 quantity:
@@ -544,6 +544,10 @@ const Inventorywarehouse =
           },
         );
       };
+
+    // =================================================
+    // QUANTITY CHANGE
+    // =================================================
 
     const handleQtyChange = (
       productId: number,
@@ -569,9 +573,7 @@ const Inventorywarehouse =
       setEditedQty(
         (prev) => {
           const current =
-            prev[
-              productId
-            ];
+            prev[productId];
 
           if (
             !current &&
@@ -590,10 +592,12 @@ const Inventorywarehouse =
 
           return {
             ...prev,
+
             [productId]: {
               operation:
                 current?.operation ??
                 "add",
+
               quantity: num,
             },
           };
@@ -601,33 +605,32 @@ const Inventorywarehouse =
       );
     };
 
-    // ===================================================
+    // =================================================
     // VALID EDITS
-    // ===================================================
+    // =================================================
 
     const validEdits =
       useMemo(() => {
         return Object.entries(
           editedQty,
         ).filter(
-          ([, v]) =>
-            v &&
-            v.quantity !==
+          ([, value]) =>
+            value &&
+            value.quantity !==
               undefined &&
-            v.quantity > 0,
+            value.quantity > 0,
         );
       }, [editedQty]);
 
     const hasEdits =
-      validEdits.length >
-      0;
+      validEdits.length > 0;
 
     const editCount =
       validEdits.length;
 
-    // ===================================================
-    // SAVE
-    // ===================================================
+    // =================================================
+    // SAVE ALL
+    // =================================================
 
     const handleSaveAll =
       async () => {
@@ -651,7 +654,9 @@ const Inventorywarehouse =
           ,
           row,
         ] of validEdits) {
-          if (!row) continue;
+          if (!row) {
+            continue;
+          }
 
           if (
             !row.quantity ||
@@ -664,9 +669,7 @@ const Inventorywarehouse =
           }
         }
 
-        setIsSaving(
-          true,
-        );
+        setIsSaving(true);
 
         let successCount = 0;
         let failCount = 0;
@@ -690,8 +693,10 @@ const Inventorywarehouse =
                   {
                     product_id:
                       pid,
+
                     operation:
                       row.operation,
+
                     quantity:
                       row.quantity ??
                       0,
@@ -714,13 +719,11 @@ const Inventorywarehouse =
           }
 
           if (
-            successCount >
-            0
+            successCount > 0
           ) {
             toast.success(
               `${successCount} product${
-                successCount >
-                1
+                successCount > 1
                   ? "s"
                   : ""
               } updated successfully!`,
@@ -728,22 +731,18 @@ const Inventorywarehouse =
           }
 
           if (
-            failCount >
-            0
+            failCount > 0
           ) {
             toast.error(
               `${failCount} product${
-                failCount >
-                1
+                failCount > 1
                   ? "s"
                   : ""
               } failed to update.`,
             );
           }
 
-          setEditedQty(
-            {},
-          );
+          setEditedQty({});
 
           await fetchProducts();
         } catch (err: any) {
@@ -758,15 +757,13 @@ const Inventorywarehouse =
               "Failed to update inventory",
           );
         } finally {
-          setIsSaving(
-            false,
-          );
+          setIsSaving(false);
         }
       };
 
-    // ===================================================
+    // =================================================
     // RESET
-    // ===================================================
+    // =================================================
 
     const handleReset = () => {
       if (
@@ -775,34 +772,32 @@ const Inventorywarehouse =
         return;
       }
 
-      setEditedQty(
-        {},
-      );
+      setEditedQty({});
 
       toast.success(
         "Changes discarded",
       );
     };
 
-    // ===================================================
+    // =================================================
     // PAGINATION
-    // ===================================================
+    // =================================================
 
     const handlePageChange =
-      (p: number) => {
+      (nextPage: number) => {
         if (
-          p < 1 ||
-          p > totalPages
+          nextPage < 1 ||
+          nextPage > totalPages
         ) {
           return;
         }
 
-        setPage(p);
+        setPage(nextPage);
       };
 
-    // ===================================================
-    // ✅ PERMISSION LOADING
-    // ===================================================
+    // =================================================
+    // PERMISSION LOADING
+    // =================================================
 
     if (
       permissionsLoading
@@ -812,9 +807,9 @@ const Inventorywarehouse =
       );
     }
 
-    // ===================================================
-    // ✅ ACCESS DENIED
-    // ===================================================
+    // =================================================
+    // ACCESS DENIED
+    // =================================================
 
     if (
       !canViewInventory
@@ -824,9 +819,9 @@ const Inventorywarehouse =
       );
     }
 
-    // ===================================================
+    // =================================================
     // RENDER
-    // ===================================================
+    // =================================================
 
     return (
       <motion.div
@@ -869,7 +864,7 @@ const Inventorywarehouse =
             </p>
           </div>
 
-          {/* STATUS SUMMARY */}
+          {/* STATUS */}
 
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
@@ -915,7 +910,7 @@ const Inventorywarehouse =
         </motion.div>
 
         {/* =================================================
-            SEARCH + ACTIONS
+            SEARCH
         ================================================= */}
 
         <motion.div
@@ -925,12 +920,6 @@ const Inventorywarehouse =
           className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
         >
           <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#60A5FA] via-[#2563EB] to-[#1E3A8A]" />
-
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
-
-          <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
-
-          <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]" />
 
           <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-[560px]">
@@ -1056,8 +1045,6 @@ const Inventorywarehouse =
                     }
                     whileHover={{
                       y: -2,
-                      boxShadow:
-                        "0 10px 22px rgba(30,58,138,0.18)",
                     }}
                     whileTap={{
                       scale: 0.97,
@@ -1086,7 +1073,7 @@ const Inventorywarehouse =
         </AnimatePresence>
 
         {/* =================================================
-            INVENTORY TABLE
+            TABLE
         ================================================= */}
 
         <motion.div
@@ -1353,7 +1340,7 @@ const Inventorywarehouse =
                                 </span>
                               </td>
 
-                              {/* CURRENT STOCK */}
+                              {/* CURRENT */}
 
                               <td className="px-3 py-2.5 text-center">
                                 <span
@@ -1365,13 +1352,11 @@ const Inventorywarehouse =
                                 </span>
                               </td>
 
-                              {/* UPDATE STOCK */}
+                              {/* UPDATE */}
 
                               <td className="px-3 py-2.5">
                                 {canUpdateInventory ? (
                                   <div className="flex items-center justify-center gap-1.5">
-                                    {/* ADD / SUBTRACT */}
-
                                     <div className="flex items-center rounded-lg border border-[#D8E2F0] bg-white p-0.5">
                                       <button
                                         type="button"
@@ -1420,8 +1405,6 @@ const Inventorywarehouse =
                                       </button>
                                     </div>
 
-                                    {/* Quantity */}
-
                                     <input
                                       type="number"
                                       min={0}
@@ -1434,7 +1417,9 @@ const Inventorywarehouse =
                                       ) =>
                                         handleQtyChange(
                                           product.id,
-                                          e.target.value,
+                                          e
+                                            .target
+                                            .value,
                                         )
                                       }
                                       placeholder="0"

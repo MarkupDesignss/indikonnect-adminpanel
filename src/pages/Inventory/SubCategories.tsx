@@ -1,4 +1,9 @@
-import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
+import React, {
+  ChangeEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   FiChevronDown,
@@ -22,10 +27,13 @@ import GlobalModal from "@/components/common/GlobalModal";
 
 import { categoryApi, Category } from "../../api/endpoints/category";
 
-import { subcategoryApi, Subcategory } from "../../api/endpoints/subcategory";
+import {
+  subcategoryApi,
+  Subcategory,
+} from "../../api/endpoints/subcategory";
 
 // =====================================================
-// ✅ PERMISSIONS
+// PERMISSIONS
 // =====================================================
 
 import { usePermissions } from "../permissions/usePermissions";
@@ -59,7 +67,11 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 110, damping: 15 },
+    transition: {
+      type: "spring",
+      stiffness: 110,
+      damping: 15,
+    },
   },
 };
 
@@ -80,7 +92,11 @@ const getCategoryTitle = (
   categoryId: number | string | null | undefined,
   categories: Category[],
 ) => {
-  if (categoryId === null || categoryId === undefined || categoryId === "") {
+  if (
+    categoryId === null ||
+    categoryId === undefined ||
+    categoryId === ""
+  ) {
     return "—";
   }
 
@@ -121,17 +137,20 @@ const formatDate = (value?: string | null) => {
 
 const PermissionLoadingState: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-          <FiRefreshCw size={24} className="animate-spin" />
+    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#D6E2F0] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+          <FiRefreshCw
+            size={24}
+            className="animate-spin"
+          />
         </div>
 
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+        <h2 className="mt-5 text-base font-bold text-[#111827]">
           Checking permissions...
         </h2>
 
-        <p className="mt-2 text-sm text-[#8C97B2]">
+        <p className="mt-2 text-sm text-[#6B7280]">
           Please wait while we verify your access.
         </p>
       </div>
@@ -140,7 +159,7 @@ const PermissionLoadingState: React.FC = () => {
 };
 
 // =====================================================
-// ADD / EDIT MODAL — NAVY THEME
+// ADD / EDIT MODAL
 // =====================================================
 
 interface SubcategoryFormModalProps {
@@ -153,7 +172,9 @@ interface SubcategoryFormModalProps {
   onSubmit: (payload: SubcategoryPayload) => void;
 }
 
-const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
+const SubcategoryFormModal: React.FC<
+  SubcategoryFormModalProps
+> = ({
   open,
   loading,
   mode,
@@ -162,421 +183,459 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [slug, setSlug] = useState("");
-  const [status, setStatus] = useState<boolean>(true);
-  const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState("");
-  const [imageKey, setImageKey] = useState(0);
+    const [name, setName] = useState("");
+    const [categoryId, setCategoryId] = useState("");
+    const [slug, setSlug] = useState("");
+    const [status, setStatus] = useState<boolean>(true);
+    const [image, setImage] = useState<File | null>(null);
+    const [preview, setPreview] = useState("");
+    const [imageKey, setImageKey] = useState(0);
 
-  // ===================================================
-  // INITIALIZE
-  // ===================================================
+    // ===================================================
+    // INITIALIZE
+    // ===================================================
 
-  useEffect(() => {
+    useEffect(() => {
+      if (!open) {
+        return;
+      }
+
+      if (mode === "edit" && subcategory) {
+        setName(subcategory.name || "");
+        setSlug(subcategory.slug || "");
+
+        setCategoryId(
+          subcategory.category_id
+            ? String(subcategory.category_id)
+            : "",
+        );
+
+        setStatus(Boolean(subcategory.status));
+
+        setPreview(getSubcategoryImage(subcategory));
+      } else {
+        setName("");
+        setSlug("");
+        setCategoryId("");
+        setStatus(true);
+        setPreview("");
+      }
+
+      setImage(null);
+      setImageKey((prev) => prev + 1);
+    }, [open, mode, subcategory]);
+
+    // ===================================================
+    // NAME CHANGE
+    // ===================================================
+
+    const handleNameChange = (value: string) => {
+      setName(value);
+
+      if (mode === "add") {
+        setSlug(createSlug(value));
+      }
+    };
+
+    // ===================================================
+    // IMAGE
+    // ===================================================
+
+    const handleImageChange = (
+      e: ChangeEvent<HTMLInputElement>,
+    ) => {
+      const file = e.target.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image.");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB.");
+        return;
+      }
+
+      setImage(file);
+
+      const url = URL.createObjectURL(file);
+
+      setPreview(url);
+    };
+
+    // ===================================================
+    // REMOVE IMAGE
+    // ===================================================
+
+    const removeImage = () => {
+      setImage(null);
+
+      if (mode === "edit" && subcategory) {
+        setPreview(getSubcategoryImage(subcategory));
+      } else {
+        setPreview("");
+      }
+
+      setImageKey((prev) => prev + 1);
+    };
+
+    // ===================================================
+    // SUBMIT
+    // ===================================================
+
+    const handleSubmit = () => {
+      if (!name.trim()) {
+        toast.error("Please enter sub category name.");
+        return;
+      }
+
+      if (!categoryId) {
+        toast.error("Please select a parent category.");
+        return;
+      }
+
+      const finalSlug =
+        slug.trim() || createSlug(name);
+
+      if (!finalSlug) {
+        toast.error(
+          "Please enter a valid sub category name.",
+        );
+        return;
+      }
+
+      onSubmit({
+        category_id: Number(categoryId),
+        name: name.trim(),
+        slug: finalSlug,
+        status,
+        ...(image ? { image } : {}),
+      });
+    };
+
     if (!open) {
-      return;
+      return null;
     }
 
-    if (mode === "edit" && subcategory) {
-      setName(subcategory.name || "");
-      setSlug(subcategory.slug || "");
-      setCategoryId(
-        subcategory.category_id ? String(subcategory.category_id) : "",
-      );
-      setStatus(Boolean(subcategory.status));
-      setPreview(getSubcategoryImage(subcategory));
-    } else {
-      setName("");
-      setSlug("");
-      setCategoryId("");
-      setStatus(true);
-      setPreview("");
-    }
+    return (
+      <div className="w-full max-w-[590px] overflow-hidden rounded-[20px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        {/* TOP ACCENT */}
 
-    setImage(null);
-    setImageKey((prev) => prev + 1);
-  }, [open, mode, subcategory]);
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
-  // ===================================================
-  // NAME CHANGE
-  // ===================================================
+        {/* HEADER */}
 
-  const handleNameChange = (value: string) => {
-    setName(value);
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] bg-white px-5 py-5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+              <FiLayers size={18} />
+            </div>
 
-    if (mode === "add") {
-      setSlug(createSlug(value));
-    }
-  };
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
+                Catalog Management
+              </p>
 
-  // ===================================================
-  // IMAGE
-  // ===================================================
+              <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#111827]">
+                {mode === "add"
+                  ? "Add Sub Category"
+                  : "Update Sub Category"}
+              </h2>
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select a valid image.");
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size should be less than 5MB.");
-      return;
-    }
-
-    setImage(file);
-
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-  };
-
-  // ===================================================
-  // REMOVE IMAGE
-  // ===================================================
-
-  const removeImage = () => {
-    setImage(null);
-
-    if (mode === "edit" && subcategory) {
-      setPreview(getSubcategoryImage(subcategory));
-    } else {
-      setPreview("");
-    }
-
-    setImageKey((prev) => prev + 1);
-  };
-
-  // ===================================================
-  // SUBMIT
-  // ===================================================
-
-  const handleSubmit = () => {
-    if (!name.trim()) {
-      toast.error("Please enter sub category name.");
-      return;
-    }
-
-    if (!categoryId) {
-      toast.error("Please select a parent category.");
-      return;
-    }
-
-    const finalSlug = slug.trim() || createSlug(name);
-
-    if (!finalSlug) {
-      toast.error("Please enter a valid sub category name.");
-      return;
-    }
-
-    onSubmit({
-      category_id: Number(categoryId),
-      name: name.trim(),
-      slug: finalSlug,
-      status,
-      ...(image ? { image } : {}),
-    });
-  };
-
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <div className="w-full max-w-[590px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
-      {/* TOP ACCENT */}
-
-      <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-      {/* HEADER */}
-
-      <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 bg-white px-5 py-5 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-            <FiLayers size={18} />
+              <p className="mt-1 text-[10px] text-[#6B7280]">
+                {mode === "add"
+                  ? "Create a sub category under a parent category."
+                  : "Update sub category details."}
+              </p>
+            </div>
           </div>
 
-          <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
-              Catalog Management
-            </p>
-
-            <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#0F1B3D]">
-              {mode === "add" ? "Add Sub Category" : "Update Sub Category"}
-            </h2>
-
-            <p className="mt-1 text-[10px] text-[#8C97B2]">
-              {mode === "add"
-                ? "Create a sub category under a parent category."
-                : "Update sub category details."}
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#111827] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:opacity-50"
+          >
+            <FiX size={18} />
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={loading}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
-        >
-          <FiX size={18} />
-        </button>
-      </div>
+        {/* BODY */}
 
-      {/* BODY */}
+        <div className="max-h-[72vh] overflow-y-auto bg-[#F8FBFF] px-5 py-5 sm:px-6">
+          <div className="space-y-4">
+            {/* NAME */}
 
-      <div className="max-h-[72vh] overflow-y-auto bg-[#FAFBFF] px-5 py-5 sm:px-6">
-        <div className="space-y-4">
-          {/* NAME */}
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+                Sub Category Name
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
+              </label>
 
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-              Sub Category Name
-              <span className="ml-1 text-[#C23B32]">*</span>
-            </label>
-
-            <input
-              type="text"
-              value={name}
-              disabled={loading}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Enter sub category"
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF]"
-            />
-          </div>
-
-          {/* CATEGORY */}
-
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-              Parent Category
-              <span className="ml-1 text-[#C23B32]">*</span>
-            </label>
-
-            <div className="relative">
-              <FiLayers
-                size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+              <input
+                type="text"
+                value={name}
+                disabled={loading}
+                onChange={(e) =>
+                  handleNameChange(e.target.value)
+                }
+                placeholder="Enter sub category"
+                className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:cursor-not-allowed disabled:bg-[#F4F8FD]"
               />
+            </div>
 
-              <select
-                value={categoryId}
-                disabled={loading || categories.length === 0}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-10 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:bg-[#F5F8FF]"
-              >
-                <option value="">
-                  {categories.length === 0
-                    ? "No categories available"
-                    : "Select Parent Category"}
-                </option>
+            {/* CATEGORY */}
 
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+                Parent Category
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
+              </label>
+
+              <div className="relative">
+                <FiLayers
+                  size={15}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
+                />
+
+                <select
+                  value={categoryId}
+                  disabled={
+                    loading || categories.length === 0
+                  }
+                  onChange={(e) =>
+                    setCategoryId(e.target.value)
+                  }
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-white pl-10 pr-10 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:cursor-not-allowed disabled:bg-[#F4F8FD]"
+                >
+                  <option value="">
+                    {categories.length === 0
+                      ? "No categories available"
+                      : "Select Parent Category"}
                   </option>
-                ))}
-              </select>
 
-              <FiChevronDown
-                size={16}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                  {categories.map((category) => (
+                    <option
+                      key={category.id}
+                      value={category.id}
+                    >
+                      {category.title}
+                    </option>
+                  ))}
+                </select>
+
+                <FiChevronDown
+                  size={16}
+                  className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
+                />
+              </div>
+            </div>
+
+            {/* SLUG */}
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+                Slug
+
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
+
+                {mode === "add" && (
+                  <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#6B7280]">
+                    Auto-generated from name
+                  </span>
+                )}
+
+                {mode === "edit" && (
+                  <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#6B7280]">
+                    Read-only
+                  </span>
+                )}
+              </label>
+
+              <input
+                type="text"
+                value={slug}
+                disabled
+                className="h-11 w-full cursor-not-allowed rounded-xl border border-[#D6E2F0] bg-[#F1F5F9] px-4 font-mono text-xs text-[#6B7280] outline-none"
               />
             </div>
-          </div>
 
-          {/* SLUG */}
+            {/* STATUS */}
 
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-              Slug
-              <span className="ml-1 text-[#C23B32]">*</span>
-              {mode === "add" && (
-                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#8C97B2]">
-                  Auto-generated from name
-                </span>
-              )}
-              {mode === "edit" && (
-                <span className="ml-2 text-[9px] font-normal normal-case tracking-normal text-[#8C97B2]">
-                  Read-only
-                </span>
-              )}
-            </label>
-
-            <input
-              type="text"
-              value={slug}
-              disabled
-              className="h-11 w-full cursor-not-allowed rounded-xl border border-[#D8E2F0] bg-[#F0F3F9] px-4 font-mono text-xs text-[#4A5778] outline-none"
-            />
-          </div>
-
-          {/* STATUS */}
-
-          <div>
-            <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-              Status
-            </label>
-
-            <div className="grid grid-cols-2 gap-2">
-              {/* ACTIVE */}
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => setStatus(true)}
-                className={`h-11 rounded-xl border text-sm font-bold transition ${
-                  status
-                    ? "border-[#1E3A8A]/30 bg-[#EAF1FF] text-[#1E3A8A]"
-                    : "border-[#D8E2F0] bg-white text-[#4A5778] hover:border-[#1E3A8A]/20 hover:bg-[#F5F8FF]"
-                }`}
-              >
-                <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                Active
-              </button>
-
-              {/* INACTIVE */}
-
-              <button
-                type="button"
-                disabled={loading}
-                onClick={() => setStatus(false)}
-                className={`h-11 rounded-xl border text-sm font-bold transition ${
-                  !status
-                    ? "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
-                    : "border-[#D8E2F0] bg-white text-[#4A5778] hover:border-[#1E3A8A]/20 hover:bg-[#F5F8FF]"
-                }`}
-              >
-                <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                Inactive
-              </button>
-            </div>
-          </div>
-
-          {/* IMAGE */}
-
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-                Sub Category Image
+            <div>
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+                Status
               </label>
 
-              <span className="text-[9px] text-[#8C97B2]">Max 5MB</span>
-            </div>
+              <div className="grid grid-cols-2 gap-2">
+                {/* ACTIVE */}
 
-            <input
-              key={imageKey}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={handleImageChange}
-              disabled={loading}
-              className="hidden"
-              id="subcategory-image"
-            />
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setStatus(true)}
+                  className={`h-11 rounded-xl border text-sm font-bold transition ${status
+                      ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+                      : "border-[#D6E2F0] bg-white text-[#111827] hover:border-[#2D6FE8]/20 hover:bg-[#F4F8FD]"
+                    }`}
+                >
+                  <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                  Active
+                </button>
 
-            {!preview ? (
-              <label
-                htmlFor="subcategory-image"
-                className="flex cursor-pointer items-center justify-center gap-4 rounded-xl border border-dashed border-[#1E3A8A]/25 bg-white px-5 py-7 transition hover:border-[#1E3A8A]/45 hover:bg-[#EAF1FF]"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiImage size={19} />
-                </div>
+                {/* INACTIVE */}
 
-                <div>
-                  <p className="text-sm font-bold text-[#0F1B3D]">
-                    Upload Image
-                  </p>
-
-                  <p className="mt-0.5 text-[9px] text-[#8C97B2]">
-                    PNG, JPG, JPEG or WEBP
-                  </p>
-                </div>
-              </label>
-            ) : (
-              <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF]">
-                    <img
-                      src={preview}
-                      alt={name || "Sub category"}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#0F1B3D]">
-                      {image?.name || "Current image"}
-                    </p>
-
-                    <p className="mt-0.5 text-[9px] text-[#8C97B2]">
-                      {image ? "New image selected" : "Current uploaded image"}
-                    </p>
-
-                    <label
-                      htmlFor="subcategory-image"
-                      className="mt-2 inline-block cursor-pointer text-xs font-bold text-[#1E3A8A] hover:text-[#172554]"
-                    >
-                      Change Image
-                    </label>
-                  </div>
-
-                  {image && (
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      disabled={loading}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
-                    >
-                      <FiX size={16} />
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setStatus(false)}
+                  className={`h-11 rounded-xl border text-sm font-bold transition ${!status
+                      ? "border-[#D6E2F0] bg-[#F3F6FB] text-[#6B7280]"
+                      : "border-[#D6E2F0] bg-white text-[#111827] hover:border-[#2D6FE8]/20 hover:bg-[#F4F8FD]"
+                    }`}
+                >
+                  <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-current" />
+                  Inactive
+                </button>
               </div>
-            )}
+            </div>
+
+            {/* IMAGE */}
+
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+                  Sub Category Image
+                </label>
+
+                <span className="text-[9px] text-[#6B7280]">
+                  Max 5MB
+                </span>
+              </div>
+
+              <input
+                key={imageKey}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={handleImageChange}
+                disabled={loading}
+                className="hidden"
+                id="subcategory-image"
+              />
+
+              {!preview ? (
+                <label
+                  htmlFor="subcategory-image"
+                  className="flex cursor-pointer items-center justify-center gap-4 rounded-xl border border-dashed border-[#2D6FE8]/25 bg-white px-5 py-7 transition hover:border-[#2D6FE8]/45 hover:bg-[#EAF3FF]"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiImage size={19} />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-bold text-[#111827]">
+                      Upload Image
+                    </p>
+
+                    <p className="mt-0.5 text-[9px] text-[#6B7280]">
+                      PNG, JPG, JPEG or WEBP
+                    </p>
+                  </div>
+                </label>
+              ) : (
+                <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD]">
+                      <img
+                        src={preview}
+                        alt={name || "Sub category"}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-[#111827]">
+                        {image?.name || "Current image"}
+                      </p>
+
+                      <p className="mt-0.5 text-[9px] text-[#6B7280]">
+                        {image
+                          ? "New image selected"
+                          : "Current uploaded image"}
+                      </p>
+
+                      <label
+                        htmlFor="subcategory-image"
+                        className="mt-2 inline-block cursor-pointer text-xs font-bold text-[#2D6FE8] hover:text-[#1D4ED8]"
+                      >
+                        Change Image
+                      </label>
+                    </div>
+
+                    {image && (
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        disabled={loading}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FEF2F2] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                      >
+                        <FiX size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* FOOTER */}
+
+        <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#111827] transition hover:border-[#2D6FE8]/20 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex min-w-[155px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading && (
+              <FiRefreshCw
+                size={14}
+                className="animate-spin"
+              />
+            )}
+
+            {loading
+              ? mode === "add"
+                ? "Creating..."
+                : "Updating..."
+              : mode === "add"
+                ? "Create Sub Category"
+                : "Update Sub Category"}
+          </button>
+        </div>
       </div>
-
-      {/* FOOTER */}
-
-      <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={loading}
-          className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={loading}
-          className="flex min-w-[155px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading && <FiRefreshCw size={14} className="animate-spin" />}
-
-          {loading
-            ? mode === "add"
-              ? "Creating..."
-              : "Updating..."
-            : mode === "add"
-              ? "Create Sub Category"
-              : "Update Sub Category"}
-        </button>
-      </div>
-    </div>
-  );
-};
+    );
+  };
 
 // =====================================================
 // MAIN PAGE
@@ -584,7 +643,7 @@ const SubcategoryFormModal: React.FC<SubcategoryFormModalProps> = ({
 
 const SubCategories: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
 
   const {
@@ -600,7 +659,11 @@ const SubCategories: React.FC = () => {
       hasModuleAccess("category") ||
       hasModuleAccess("sub_category") ||
       hasPermission("category.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
+    [
+      isSuperAdmin,
+      hasModuleAccess,
+      hasPermission,
+    ],
   );
 
   const canCreateSubCategory = useMemo(
@@ -624,13 +687,22 @@ const SubCategories: React.FC = () => {
   // STATE
   // ===================================================
 
-  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] =
+    useState<Subcategory[]>([]);
+
+  const [categories, setCategories] = useState<Category[]>(
+    [],
+  );
+
   const [loading, setLoading] = useState(false);
-  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryLoading, setCategoryLoading] =
+    useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+
   const [search, setSearch] = useState("");
-  const [parentFilter, setParentFilter] = useState("");
+  const [parentFilter, setParentFilter] =
+    useState("");
+
   const [currentPage, setCurrentPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
@@ -641,14 +713,16 @@ const SubCategories: React.FC = () => {
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+
   const [selectedSubcategory, setSelectedSubcategory] =
     useState<Subcategory | null>(null);
 
   // ===================================================
-  // STATUS LOADING (inline dropdown)
+  // STATUS LOADING
   // ===================================================
 
-  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+  const [statusLoadingId, setStatusLoadingId] =
+    useState<number | null>(null);
 
   // ===================================================
   // FETCH SUBCATEGORIES
@@ -664,10 +738,14 @@ const SubCategories: React.FC = () => {
 
       setSubcategories(responseData?.data || []);
     } catch (error: any) {
-      console.error("Fetch subcategories error:", error);
+      console.error(
+        "Fetch subcategories error:",
+        error,
+      );
 
       toast.error(
-        error?.response?.data?.message || "Unable to fetch sub categories.",
+        error?.response?.data?.message ||
+        "Unable to fetch sub categories.",
       );
     } finally {
       setLoading(false);
@@ -686,10 +764,14 @@ const SubCategories: React.FC = () => {
 
       setCategories(response.data?.data || []);
     } catch (error: any) {
-      console.error("Fetch categories error:", error);
+      console.error(
+        "Fetch categories error:",
+        error,
+      );
 
       toast.error(
-        error?.response?.data?.message || "Unable to fetch categories.",
+        error?.response?.data?.message ||
+        "Unable to fetch categories.",
       );
     } finally {
       setCategoryLoading(false);
@@ -701,11 +783,17 @@ const SubCategories: React.FC = () => {
   // ===================================================
 
   useEffect(() => {
-    if (!permissionsLoading && canViewSubCategories) {
+    if (
+      !permissionsLoading &&
+      canViewSubCategories
+    ) {
       fetchSubcategories();
       fetchCategories();
     }
-  }, [permissionsLoading, canViewSubCategories]);
+  }, [
+    permissionsLoading,
+    canViewSubCategories,
+  ]);
 
   // ===================================================
   // FILTER
@@ -734,26 +822,46 @@ const SubCategories: React.FC = () => {
 
       const matchesParent =
         !parentFilter ||
-        String(subcategory.category_id) === String(parentFilter);
+        String(subcategory.category_id) ===
+        String(parentFilter);
 
       return matchesSearch && matchesParent;
     });
-  }, [subcategories, categories, search, parentFilter]);
+  }, [
+    subcategories,
+    categories,
+    search,
+    parentFilter,
+  ]);
 
   // ===================================================
   // PAGINATION
   // ===================================================
 
-  const totalPages = Math.ceil(filteredSubCategories.length / ITEMS_PER_PAGE);
-  const safeTotalPages = Math.max(totalPages, 1);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const visibleSubcategories = filteredSubCategories.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
+  const totalPages = Math.ceil(
+    filteredSubCategories.length /
+    ITEMS_PER_PAGE,
   );
 
-  const startEntry = filteredSubCategories.length === 0 ? 0 : startIndex + 1;
+  const safeTotalPages = Math.max(
+    totalPages,
+    1,
+  );
+
+  const startIndex =
+    (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const visibleSubcategories =
+    filteredSubCategories.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE,
+    );
+
+  const startEntry =
+    filteredSubCategories.length === 0
+      ? 0
+      : startIndex + 1;
+
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredSubCategories.length,
@@ -775,14 +883,19 @@ const SubCategories: React.FC = () => {
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
+      return Array.from(
+        { length: totalPages },
+        (_, index) => index + 1,
+      );
     }
 
     if (currentPage <= 3) {
       return [1, 2, 3, 4, 5];
     }
 
-    if (currentPage >= totalPages - 2) {
+    if (
+      currentPage >= totalPages - 2
+    ) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -805,22 +918,43 @@ const SubCategories: React.FC = () => {
   // ADD
   // ===================================================
 
-  const handleAdd = async (payload: SubcategoryPayload) => {
+  const handleAdd = async (
+    payload: SubcategoryPayload,
+  ) => {
     try {
       setSaveLoading(true);
 
       const formData = new FormData();
 
-      formData.append("category_id", String(payload.category_id));
-      formData.append("name", payload.name);
-      formData.append("slug", payload.slug);
-      formData.append("status", payload.status ? "1" : "0");
+      formData.append(
+        "category_id",
+        String(payload.category_id),
+      );
+
+      formData.append(
+        "name",
+        payload.name,
+      );
+
+      formData.append(
+        "slug",
+        payload.slug,
+      );
+
+      formData.append(
+        "status",
+        payload.status ? "1" : "0",
+      );
 
       if (payload.image instanceof File) {
-        formData.append("image", payload.image);
+        formData.append(
+          "image",
+          payload.image,
+        );
       }
 
-      const response = await subcategoryApi.add(formData);
+      const response =
+        await subcategoryApi.add(formData);
 
       await fetchSubcategories();
 
@@ -828,13 +962,18 @@ const SubCategories: React.FC = () => {
       setAddOpen(false);
 
       toast.success(
-        response.data?.message || "Sub category created successfully.",
+        response.data?.message ||
+        "Sub category created successfully.",
       );
     } catch (error: any) {
-      console.error("Create sub category error:", error);
+      console.error(
+        "Create sub category error:",
+        error,
+      );
 
       toast.error(
-        error?.response?.data?.message || "Unable to create sub category.",
+        error?.response?.data?.message ||
+        "Unable to create sub category.",
       );
     } finally {
       setSaveLoading(false);
@@ -845,7 +984,9 @@ const SubCategories: React.FC = () => {
   // EDIT OPEN
   // ===================================================
 
-  const openEdit = (subcategory: Subcategory) => {
+  const openEdit = (
+    subcategory: Subcategory,
+  ) => {
     setSelectedSubcategory(subcategory);
     setEditOpen(true);
   };
@@ -854,7 +995,9 @@ const SubCategories: React.FC = () => {
   // UPDATE
   // ===================================================
 
-  const handleUpdate = async (payload: SubcategoryPayload) => {
+  const handleUpdate = async (
+    payload: SubcategoryPayload,
+  ) => {
     if (!selectedSubcategory) {
       return;
     }
@@ -864,19 +1007,38 @@ const SubCategories: React.FC = () => {
 
       const formData = new FormData();
 
-      formData.append("category_id", String(payload.category_id));
-      formData.append("name", payload.name);
-      formData.append("slug", payload.slug);
-      formData.append("status", payload.status ? "1" : "0");
+      formData.append(
+        "category_id",
+        String(payload.category_id),
+      );
+
+      formData.append(
+        "name",
+        payload.name,
+      );
+
+      formData.append(
+        "slug",
+        payload.slug,
+      );
+
+      formData.append(
+        "status",
+        payload.status ? "1" : "0",
+      );
 
       if (payload.image instanceof File) {
-        formData.append("image", payload.image);
+        formData.append(
+          "image",
+          payload.image,
+        );
       }
 
-      const response = await subcategoryApi.update(
-        selectedSubcategory.id,
-        formData,
-      );
+      const response =
+        await subcategoryApi.update(
+          selectedSubcategory.id,
+          formData,
+        );
 
       await fetchSubcategories();
 
@@ -884,13 +1046,18 @@ const SubCategories: React.FC = () => {
       setSelectedSubcategory(null);
 
       toast.success(
-        response.data?.message || "Sub category updated successfully.",
+        response.data?.message ||
+        "Sub category updated successfully.",
       );
     } catch (error: any) {
-      console.error("Update sub category error:", error);
+      console.error(
+        "Update sub category error:",
+        error,
+      );
 
       toast.error(
-        error?.response?.data?.message || "Unable to update sub category.",
+        error?.response?.data?.message ||
+        "Unable to update sub category.",
       );
     } finally {
       setSaveLoading(false);
@@ -898,45 +1065,73 @@ const SubCategories: React.FC = () => {
   };
 
   // ===================================================
-  // STATUS TOGGLE (INLINE DROPDOWN)
+  // STATUS TOGGLE
   // ===================================================
 
   const handleStatusToggle = async (
     subcategory: Subcategory,
     nextStatus: "active" | "inactive",
   ) => {
-    const currentStatus = subcategory.status ? "active" : "inactive";
+    const currentStatus = subcategory.status
+      ? "active"
+      : "inactive";
 
     if (currentStatus === nextStatus) {
       return;
     }
 
     try {
-      setStatusLoadingId(subcategory.id);
+      setStatusLoadingId(
+        subcategory.id,
+      );
 
       const formData = new FormData();
 
-      formData.append("category_id", String(subcategory.category_id));
-      formData.append("name", subcategory.name);
-      formData.append("slug", subcategory.slug);
-      formData.append("status", nextStatus === "active" ? "1" : "0");
+      formData.append(
+        "category_id",
+        String(subcategory.category_id),
+      );
 
-      const response = await subcategoryApi.update(subcategory.id, formData);
+      formData.append(
+        "name",
+        subcategory.name,
+      );
+
+      formData.append(
+        "slug",
+        subcategory.slug,
+      );
+
+      formData.append(
+        "status",
+        nextStatus === "active"
+          ? "1"
+          : "0",
+      );
+
+      const response =
+        await subcategoryApi.update(
+          subcategory.id,
+          formData,
+        );
 
       await fetchSubcategories();
 
       toast.success(
         response.data?.message ||
-          (nextStatus === "active"
-            ? "Sub category activated successfully."
-            : "Sub category deactivated successfully."),
+        (nextStatus === "active"
+          ? "Sub category activated successfully."
+          : "Sub category deactivated successfully."),
       );
     } catch (error: any) {
-      console.error("Sub category status update error:", error);
+      console.error(
+        "Sub category status update error:",
+        error,
+      );
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to update sub category status.",
+        "Unable to update sub category status.",
       );
     } finally {
       setStatusLoadingId(null);
@@ -948,12 +1143,16 @@ const SubCategories: React.FC = () => {
   // ===================================================
 
   const handleRefresh = async () => {
-    await Promise.all([fetchSubcategories(), fetchCategories()]);
+    await Promise.all([
+      fetchSubcategories(),
+      fetchCategories(),
+    ]);
+
     setCurrentPage(1);
   };
 
   // ===================================================
-  // ✅ LOADING STATE (only once, at top level)
+  // LOADING STATE
   // ===================================================
 
   if (permissionsLoading) {
@@ -961,19 +1160,24 @@ const SubCategories: React.FC = () => {
   }
 
   // ===================================================
-  // ✅ ACCESS DENIED
+  // ACCESS DENIED
   // ===================================================
 
   if (!canViewSubCategories) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
-            You don't have permission to access this section.
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access
+            this section.
           </p>
         </div>
       </div>
@@ -984,20 +1188,27 @@ const SubCategories: React.FC = () => {
   // LOADING SCREEN
   // ===================================================
 
-  if (loading && subcategories.length === 0) {
+  if (
+    loading &&
+    subcategories.length === 0
+  ) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
         <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
-            <FiRefreshCw size={23} className="animate-spin" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2D6FE8] shadow-sm">
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
           </div>
 
-          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+          <p className="mt-4 text-sm font-bold text-[#111827]">
             Loading sub categories...
           </p>
 
-          <p className="mt-1 text-xs text-[#8C97B2]">
-            Please wait while we fetch your sub categories.
+          <p className="mt-1 text-xs text-[#6B7280]">
+            Please wait while we fetch your sub
+            categories.
           </p>
         </div>
       </div>
@@ -1014,7 +1225,7 @@ const SubCategories: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
+        className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
       >
         {/* HEADER */}
 
@@ -1024,21 +1235,24 @@ const SubCategories: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Catalog Management
               </span>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Sub Categories
             </h1>
 
-            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
-              Manage product sub categories and their parent categories from one
+            <p className="mt-0.5 text-sm text-[#111827]">
+              Manage product sub categories and
+              their parent categories from one
               place.
             </p>
           </div>
@@ -1049,28 +1263,43 @@ const SubCategories: React.FC = () => {
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={loading || categoryLoading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={
+                loading ||
+                categoryLoading
+              }
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={14}
-                className={loading || categoryLoading ? "animate-spin" : ""}
+                className={
+                  loading ||
+                    categoryLoading
+                    ? "animate-spin"
+                    : ""
+                }
               />
 
-              <span className="hidden sm:inline">Refresh</span>
+              <span className="hidden sm:inline">
+                Refresh
+              </span>
             </button>
 
-            {/* ✅ ADD — permission based */}
+            {/* ADD */}
 
             {canCreateSubCategory && (
               <motion.button
                 type="button"
-                onClick={() => setAddOpen(true)}
+                onClick={() =>
+                  setAddOpen(true)
+                }
                 whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.97 }}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+                whileTap={{
+                  scale: 0.97,
+                }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white  transition hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
               >
                 <FiPlus size={15} />
+
                 Add Sub Category
               </motion.button>
             )}
@@ -1081,12 +1310,13 @@ const SubCategories: React.FC = () => {
 
         <motion.div
           variants={itemVariants}
-          className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
+          className="relative mb-5 overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 sm:p-5"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+      
+          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#2D6FE8]/10" />
 
-          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
-          <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
+          <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#2D6FE8]/10" />
+
           <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1095,18 +1325,20 @@ const SubCategories: React.FC = () => {
             <div className="relative w-full lg:max-w-[560px]">
               <FiSearch
                 size={17}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#111827]"
               />
 
               <input
                 type="text"
                 value={search}
                 onChange={(e) => {
-                  setSearch(e.target.value);
+                  setSearch(
+                    e.target.value,
+                  );
                   setCurrentPage(1);
                 }}
                 placeholder="Search sub category, slug or parent category..."
-                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
             </div>
 
@@ -1115,30 +1347,39 @@ const SubCategories: React.FC = () => {
             <div className="relative w-full lg:w-[290px]">
               <FiLayers
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
 
               <select
                 value={parentFilter}
                 onChange={(e) => {
-                  setParentFilter(e.target.value);
+                  setParentFilter(
+                    e.target.value,
+                  );
                   setCurrentPage(1);
                 }}
                 disabled={categoryLoading}
-                className="h-11 w-full appearance-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-10 text-xs font-semibold text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-10 text-xs font-semibold text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="">All Parent Categories</option>
+                <option value="">
+                  All Parent Categories
+                </option>
 
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
-                  </option>
-                ))}
+                {categories.map(
+                  (category) => (
+                    <option
+                      key={category.id}
+                      value={category.id}
+                    >
+                      {category.title}
+                    </option>
+                  ),
+                )}
               </select>
 
               <FiChevronDown
                 size={15}
-                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
             </div>
           </div>
@@ -1148,36 +1389,35 @@ const SubCategories: React.FC = () => {
 
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+          className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white shadow-[0_10px_35px_-24px_rgba(42,65,104,0.35)]"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-          <div className="overflow-x-auto pt-[3px]">
+       
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[950px] border-collapse">
               <thead>
-                <tr className="bg-[#1E3A8A]">
-                  <th className="w-[80px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                <tr className="bg-[#4F8FF7]">
+                  <th className="w-[80px] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Sub Category
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Parent Category
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Slug
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                  <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Status
                   </th>
 
                   {canUpdateSubCategory && (
-                    <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                    <th className="w-[130px] px-4 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                       Actions
                     </th>
                   )}
@@ -1188,210 +1428,287 @@ const SubCategories: React.FC = () => {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={canUpdateSubCategory ? 6 : 5}
+                      colSpan={
+                        canUpdateSubCategory
+                          ? 6
+                          : 5
+                      }
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center justify-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-                          <FiRefreshCw size={23} className="animate-spin" />
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw
+                            size={23}
+                            className="animate-spin"
+                          />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading sub categories...
                         </p>
 
-                        <p className="mt-1 text-xs text-[#8C97B2]">
+                        <p className="mt-1 text-xs text-[#6B7280]">
                           Please wait while we fetch your sub categories.
                         </p>
                       </div>
                     </td>
                   </tr>
-                ) : visibleSubcategories.length === 0 ? (
+                ) : visibleSubcategories.length ===
+                  0 ? (
                   <tr>
                     <td
-                      colSpan={canUpdateSubCategory ? 6 : 5}
+                      colSpan={
+                        canUpdateSubCategory
+                          ? 6
+                          : 5
+                      }
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center justify-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#1E3A8A]/10 bg-[#EAF1FF] text-[#1E3A8A]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiLayers size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
                           No sub categories found
                         </p>
 
-                        <p className="mt-1 max-w-sm text-xs text-[#8C97B2]">
+                        <p className="mt-1 max-w-sm text-xs text-[#6B7280]">
                           Create a sub category or change the selected filter.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  visibleSubcategories.map((subcategory, index) => {
-                    const parentTitle = getCategoryTitle(
-                      subcategory.category_id,
-                      categories,
-                    );
+                  visibleSubcategories.map(
+                    (
+                      subcategory,
+                      index,
+                    ) => {
+                      const parentTitle =
+                        getCategoryTitle(
+                          subcategory.category_id,
+                          categories,
+                        );
 
-                    const image = getSubcategoryImage(subcategory);
-                    const serialNumber = startIndex + index + 1;
+                      const image =
+                        getSubcategoryImage(
+                          subcategory,
+                        );
 
-                    const isActive = Boolean(subcategory.status);
-                    const isStatusLoading = statusLoadingId === subcategory.id;
+                      const serialNumber =
+                        startIndex +
+                        index +
+                        1;
 
-                    return (
-                      <motion.tr
-                        key={subcategory.id}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="group border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
-                      >
-                        {/* S.NO */}
+                      const isActive =
+                        Boolean(
+                          subcategory.status,
+                        );
 
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
-                            {serialNumber}
-                          </span>
-                        </td>
+                      const isStatusLoading =
+                        statusLoadingId ===
+                        subcategory.id;
 
-                        {/* SUB CATEGORY */}
+                      return (
+                        <motion.tr
+                          key={
+                            subcategory.id
+                          }
+                          initial={{
+                            opacity: 0,
+                            y: 5,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          transition={{
+                            delay:
+                              index *
+                              0.03,
+                          }}
+                          className="group border-b border-[#2D6FE8]/10 bg-white transition hover:bg-[#F4F8FD]"
+                        >
+                          {/* S.NO */}
 
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] transition group-hover:border-[#1E3A8A]/25">
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={subcategory.name}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <FiLayers
-                                  size={17}
-                                  className="text-[#1E3A8A]"
-                                />
-                              )}
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[#0F1B3D]">
-                                {subcategory.name}
-                              </p>
-
-                              <p className="mt-1 text-[9px] text-[#8C97B2]">
-                                ID: {subcategory.id}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* PARENT CATEGORY */}
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
-                              <FiLayers size={13} />
+                          <td className="px-4 py-4">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
+                              {serialNumber}
                             </span>
+                          </td>
 
-                            <span className="rounded-lg border border-[#1E3A8A]/10 bg-[#F5F8FF] px-3 py-1.5 text-[10px] font-bold text-[#4A5778]">
-                              {parentTitle}
-                            </span>
-                          </div>
-                        </td>
+                          {/* SUB CATEGORY */}
 
-                        {/* SLUG */}
-
-                        <td className="px-5 py-4">
-                          <span className="rounded-lg bg-[#F5F8FF] px-3 py-1.5 font-mono text-[10px] font-semibold text-[#4A5778]">
-                            {subcategory.slug}
-                          </span>
-                        </td>
-
-                        {/* STATUS — permission based */}
-
-                        <td className="px-5 py-4">
-                          {canUpdateSubCategory ? (
-                            <div className="relative inline-block">
-                              <select
-                                value={isActive ? "active" : "inactive"}
-                                disabled={isStatusLoading}
-                                onChange={(e) =>
-                                  handleStatusToggle(
-                                    subcategory,
-                                    e.target.value as "active" | "inactive",
-                                  )
-                                }
-                                className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                                  isActive
-                                    ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
-                                    : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
-                                }`}
-                              >
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                              </select>
-
-                              <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
-                                {isStatusLoading ? (
-                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] transition group-hover:border-[#2D6FE8]/25">
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      subcategory.name
+                                    }
+                                    className="h-full w-full object-cover"
+                                  />
                                 ) : (
-                                  <svg
-                                    width="10"
-                                    height="10"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  >
-                                    <polyline points="6 9 12 15 18 9" />
-                                  </svg>
+                                  <FiLayers
+                                    size={17}
+                                    className="text-[#2D6FE8]"
+                                  />
                                 )}
                               </div>
-                            </div>
-                          ) : (
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
-                                isActive
-                                  ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
-                                  : "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]"
-                              }`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  isActive ? "bg-[#1E3A8A]" : "bg-[#C23B32]"
-                                }`}
-                              />
-                              {isActive ? "Active" : "Inactive"}
-                            </span>
-                          )}
-                        </td>
 
-                        {/* ACTIONS — permission based */}
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-[#111827]">
+                                  {
+                                    subcategory.name
+                                  }
+                                </p>
 
-                        {canUpdateSubCategory && (
-                          <td className="px-5 py-4">
-                            <div className="flex justify-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => openEdit(subcategory)}
-                                title="Edit"
-                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition-all duration-200 hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
-                              >
-                                <FiEdit2
-                                  size={15}
-                                  className="transition-transform group-hover/edit:scale-110"
-                                />
-                              </button>
+                                <p className="mt-1 text-[9px] text-[#6B7280]">
+                                  ID:{" "}
+                                  {
+                                    subcategory.id
+                                  }
+                                </p>
+                              </div>
                             </div>
                           </td>
-                        )}
-                      </motion.tr>
-                    );
-                  })
+
+                          {/* PARENT CATEGORY */}
+
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                                <FiLayers
+                                  size={13}
+                                />
+                              </span>
+
+                              <span className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 text-[10px] font-bold text-[#111827]">
+                                {parentTitle}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* SLUG */}
+
+                          <td className="px-4 py-4">
+                            <span className="rounded-lg bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold text-[#111827]">
+                              {
+                                subcategory.slug
+                              }
+                            </span>
+                          </td>
+
+                          {/* STATUS */}
+
+                          <td className="px-4 py-4">
+                            {canUpdateSubCategory ? (
+                              <div className="relative inline-block">
+                                <select
+                                  value={
+                                    isActive
+                                      ? "active"
+                                      : "inactive"
+                                  }
+                                  disabled={
+                                    isStatusLoading
+                                  }
+                                  onChange={(
+                                    e,
+                                  ) =>
+                                    handleStatusToggle(
+                                      subcategory,
+                                      e
+                                        .target
+                                        .value as
+                                      | "active"
+                                      | "inactive",
+                                    )
+                                  }
+                                  className={`h-8 cursor-pointer appearance-none rounded-full border pl-3 pr-8 text-[10px] font-bold uppercase tracking-wider outline-none transition disabled:cursor-not-allowed disabled:opacity-60 ${isActive
+                                      ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+                                      : "border-[#D6E2F0] bg-[#F3F6FB] text-[#6B7280]"
+                                    }`}
+                                >
+                                  <option value="active">
+                                    Active
+                                  </option>
+
+                                  <option value="inactive">
+                                    Inactive
+                                  </option>
+                                </select>
+
+                                <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2">
+                                  {isStatusLoading ? (
+                                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                  ) : (
+                                    <svg
+                                      width="10"
+                                      height="10"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="3"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <polyline points="6 9 12 15 18 9" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${isActive
+                                    ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+                                    : "border-[#D6E2F0] bg-[#F3F6FB] text-[#6B7280]"
+                                  }`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${isActive
+                                      ? "bg-[#2D6FE8]"
+                                      : "bg-[#6B7280]"
+                                    }`}
+                                />
+
+                                {isActive
+                                  ? "Active"
+                                  : "Inactive"}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* ACTIONS */}
+
+                          {canUpdateSubCategory && (
+                            <td className="px-4 py-4">
+                              <div className="flex justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openEdit(
+                                      subcategory,
+                                    )
+                                  }
+                                  title="Edit"
+                                  className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                                >
+                                  <FiEdit2
+                                    size={15}
+                                    className="transition-transform group-hover/edit:scale-110"
+                                  />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </motion.tr>
+                      );
+                    },
+                  )
                 )}
               </tbody>
             </table>
@@ -1399,59 +1716,99 @@ const SubCategories: React.FC = () => {
 
           {/* PAGINATION */}
 
-          {filteredSubCategories.length > 0 && (
-            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
-              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8C97B2]">
-                  Showing{" "}
-                  <span className="font-bold text-[#3A4668]">{startEntry}</span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#3A4668]">{endEntry}</span> of{" "}
-                  <span className="font-bold text-[#3A4668]">
-                    {filteredSubCategories.length}
-                  </span>{" "}
-                  sub categories
-                </p>
+          {filteredSubCategories.length >
+            0 && (
+              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                  <p className="text-xs text-[#6B7280]">
+                    Showing{" "}
+                    <span className="font-bold text-[#111827]">
+                      {startEntry}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-bold text-[#111827]">
+                      {endEntry}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-bold text-[#111827]">
+                      {
+                        filteredSubCategories.length
+                      }
+                    </span>{" "}
+                    sub categories
+                  </p>
 
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((page) => page - 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
-                    title="Previous page"
-                  >
-                    <FiChevronLeft size={17} />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {/* PREVIOUS */}
 
-                  {paginationPages.map((page) => (
                     <button
-                      key={page}
                       type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
-                          : "border border-transparent text-[#4A5778] hover:border-[#1E3A8A]/15 hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
-                      }`}
+                      disabled={
+                        currentPage === 1
+                      }
+                      onClick={() =>
+                        setCurrentPage(
+                          (page) =>
+                            page - 1,
+                        )
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
+                      title="Previous page"
                     >
-                      {page}
+                      <FiChevronLeft
+                        size={17}
+                      />
                     </button>
-                  ))}
 
-                  <button
-                    type="button"
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    onClick={() => setCurrentPage((page) => page + 1)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
-                    title="Next page"
-                  >
-                    <FiChevronRight size={17} />
-                  </button>
+                    {/* PAGES */}
+
+                    {paginationPages.map(
+                      (page) => (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() =>
+                            setCurrentPage(
+                              page,
+                            )
+                          }
+                          className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage ===
+                              page
+                              ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
+                              : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                            }`}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+
+                    {/* NEXT */}
+
+                    <button
+                      type="button"
+                      disabled={
+                        currentPage ===
+                        totalPages ||
+                        totalPages === 0
+                      }
+                      onClick={() =>
+                        setCurrentPage(
+                          (page) =>
+                            page + 1,
+                        )
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
+                      title="Next page"
+                    >
+                      <FiChevronRight
+                        size={17}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </motion.div>
 
         <div className="h-5" />
@@ -1467,7 +1824,9 @@ const SubCategories: React.FC = () => {
               setAddOpen(false);
             }
           }}
-          closeOnOverlayClick={!saveLoading}
+          closeOnOverlayClick={
+            !saveLoading
+          }
         >
           <SubcategoryFormModal
             open={addOpen}
@@ -1493,21 +1852,29 @@ const SubCategories: React.FC = () => {
           onClose={() => {
             if (!saveLoading) {
               setEditOpen(false);
-              setSelectedSubcategory(null);
+              setSelectedSubcategory(
+                null,
+              );
             }
           }}
-          closeOnOverlayClick={!saveLoading}
+          closeOnOverlayClick={
+            !saveLoading
+          }
         >
           <SubcategoryFormModal
             open={editOpen}
             loading={saveLoading}
             mode="edit"
-            subcategory={selectedSubcategory}
+            subcategory={
+              selectedSubcategory
+            }
             categories={categories}
             onClose={() => {
               if (!saveLoading) {
                 setEditOpen(false);
-                setSelectedSubcategory(null);
+                setSelectedSubcategory(
+                  null,
+                );
               }
             }}
             onSubmit={handleUpdate}
