@@ -1,4 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   FiSearch,
@@ -26,7 +30,9 @@ import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 
-import subscriberApi, { Subscriber } from "../../api/endpoints/subscribers";
+import subscriberApi, {
+  Subscriber,
+} from "../../api/endpoints/subscribers";
 
 // ✅ PERMISSIONS
 import { usePermissions } from "../../pages/permissions/usePermissions";
@@ -35,26 +41,40 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 // TYPES
 // =====================================================
 
-type SubscriberFilter = "all" | "active" | "inactive";
+type SubscriberFilter =
+  | "all"
+  | "active"
+  | "inactive";
 
 // =====================================================
 // ANIMATION
 // =====================================================
 
 const containerVariants = {
-  hidden: { opacity: 0 },
+  hidden: {
+    opacity: 0,
+  },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.05 },
+    transition: {
+      staggerChildren: 0.05,
+    },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
+  hidden: {
+    opacity: 0,
+    y: 15,
+  },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100, damping: 14 },
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 14,
+    },
   },
 };
 
@@ -62,54 +82,97 @@ const itemVariants = {
 // HELPERS
 // =====================================================
 
-const formatDate = (value?: string | null) => {
+const formatDate = (
+  value?: string | null,
+) => {
   if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  );
 };
 
-const formatDateOnly = (value?: string | null) => {
+const formatDateOnly = (
+  value?: string | null,
+) => {
   if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
 };
 
-const formatTime = (value?: string | null) => {
+const formatTime = (
+  value?: string | null,
+) => {
   if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
 
-  return date.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString(
+    "en-IN",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  );
 };
 
-const getInitials = (email: string) => {
-  const name = email?.split("@")[0]?.trim() || "U";
-  const cleanName = name.replace(/[^a-zA-Z]/g, "");
-  return cleanName.slice(0, 2).toUpperCase() || "U";
+const getInitials = (
+  email: string,
+) => {
+  const name =
+    email?.split("@")[0]?.trim() ||
+    "U";
+
+  const cleanName =
+    name.replace(
+      /[^a-zA-Z]/g,
+      "",
+    );
+
+  return (
+    cleanName
+      .slice(0, 2)
+      .toUpperCase() || "U"
+  );
 };
 
 // =====================================================
 // STATUS BADGE — NAVY THEME
 // =====================================================
 
-const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
+const StatusBadge: React.FC<{
+  active: boolean;
+}> = ({ active }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${
       active
@@ -119,12 +182,78 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   >
     <span
       className={`h-1.5 w-1.5 rounded-full ${
-        active ? "bg-[#1E3A8A]" : "bg-[#8C97B2]"
+        active
+          ? "bg-[#1E3A8A]"
+          : "bg-[#8C97B2]"
       }`}
     />
+
     {active ? "Active" : "Inactive"}
   </span>
 );
+
+// =====================================================
+// ✅ PERMISSION LOADING
+// =====================================================
+
+const PermissionLoading: React.FC =
+  () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="flex flex-col items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
+          </div>
+
+          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+            Checking permissions...
+          </p>
+
+          <p className="mt-1 text-[10px] text-[#8C97B2]">
+            Verifying subscriber management
+            access.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+// =====================================================
+// ✅ ACCESS DENIED
+// =====================================================
+
+const AccessDenied: React.FC =
+  () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle
+              size={26}
+            />
+          </div>
+
+          <h2 className="text-lg font-bold text-[#0F1B3D]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission
+            to access the Subscriber
+            Management module.
+          </p>
+
+          <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FBEAEA] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+            Contact your administrator
+            to request access.
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 // =====================================================
 // DELETE MODAL — NAVY THEME
@@ -138,7 +267,9 @@ interface DeleteModalProps {
   onConfirm: () => void;
 }
 
-const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
+const DeleteSubscriberModal: React.FC<
+  DeleteModalProps
+> = ({
   open,
   loading,
   email,
@@ -148,7 +279,13 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={
+        !loading
+      }
+    >
       <div className="w-full max-w-[470px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
         <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
@@ -164,8 +301,9 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-[#8C97B2]">
-                This subscriber will be permanently removed from the subscriber
-                list.
+                This subscriber will be
+                permanently removed from
+                the subscriber list.
               </p>
             </div>
           </div>
@@ -197,11 +335,17 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(194,59,50,0.7)] disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
+                <FiRefreshCw
+                  size={15}
+                  className="animate-spin"
+                />
               ) : (
                 <FiTrash2 size={15} />
               )}
-              {loading ? "Deleting..." : "Delete Subscriber"}
+
+              {loading
+                ? "Deleting..."
+                : "Delete Subscriber"}
             </button>
           </div>
         </div>
@@ -224,7 +368,9 @@ interface InfoCardProps {
   mono?: boolean;
 }
 
-const InfoCard: React.FC<InfoCardProps> = ({
+const InfoCard: React.FC<
+  InfoCardProps
+> = ({
   label,
   value,
   icon,
@@ -236,6 +382,7 @@ const InfoCard: React.FC<InfoCardProps> = ({
   <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
     <div className="mb-2 flex items-center gap-2 text-[#1E3A8A]">
       {icon}
+
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
         {label}
       </p>
@@ -254,16 +401,19 @@ const InfoCard: React.FC<InfoCardProps> = ({
           {value}
         </p>
 
-        {copyable && onCopy && (
-          <button
-            type="button"
-            onClick={onCopy}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
-            title="Copy"
-          >
-            <FiCopy size={12} />
-          </button>
-        )}
+        {copyable &&
+          onCopy && (
+            <button
+              type="button"
+              onClick={onCopy}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+              title="Copy"
+            >
+              <FiCopy
+                size={12}
+              />
+            </button>
+          )}
       </div>
     )}
   </div>
@@ -276,11 +426,18 @@ const InfoCard: React.FC<InfoCardProps> = ({
 const DetailRow: React.FC<{
   label: string;
   value: string;
-}> = ({ label, value }) => (
+}> = ({
+  label,
+  value,
+}) => (
   <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 pb-3 last:border-0 last:pb-0">
-    <span className="text-xs text-[#8C97B2]">{label}</span>
+    <span className="text-xs text-[#8C97B2]">
+      {label}
+    </span>
 
-    <span className="text-right text-xs font-bold text-[#3A4668]">{value}</span>
+    <span className="text-right text-xs font-bold text-[#3A4668]">
+      {value}
+    </span>
   </div>
 );
 
@@ -294,7 +451,13 @@ const TimelineItem: React.FC<{
   date: string;
   description: string;
   active?: boolean;
-}> = ({ icon, title, date, description, active }) => (
+}> = ({
+  icon,
+  title,
+  date,
+  description,
+  active,
+}) => (
   <div className="flex gap-3">
     <div className="flex flex-col items-center">
       <div
@@ -311,9 +474,17 @@ const TimelineItem: React.FC<{
     </div>
 
     <div className="pb-4">
-      <p className="text-sm font-bold text-[#0F1B3D]">{title}</p>
-      <p className="mt-0.5 text-xs font-semibold text-[#2563EB]">{date}</p>
-      <p className="mt-1 text-xs leading-5 text-[#8C97B2]">{description}</p>
+      <p className="text-sm font-bold text-[#0F1B3D]">
+        {title}
+      </p>
+
+      <p className="mt-0.5 text-xs font-semibold text-[#2563EB]">
+        {date}
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-[#8C97B2]">
+        {description}
+      </p>
     </div>
   </div>
 );
@@ -324,28 +495,41 @@ const TimelineItem: React.FC<{
 
 interface SubscriberDetailProps {
   subscriber: Subscriber;
-  onDelete: (subscriber: Subscriber) => void;
+  onDelete: (
+    subscriber: Subscriber,
+  ) => void;
   canDelete?: boolean;
 }
 
-const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
+const SubscriberDetail: React.FC<
+  SubscriberDetailProps
+> = ({
   subscriber,
   onDelete,
   canDelete = false,
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] =
+    useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(subscriber.email);
+      await navigator.clipboard.writeText(
+        subscriber.email,
+      );
+
       setCopied(true);
-      toast.success("Email copied successfully.");
+
+      toast.success(
+        "Email copied successfully.",
+      );
 
       setTimeout(() => {
         setCopied(false);
       }, 1500);
     } catch {
-      toast.error("Unable to copy email.");
+      toast.error(
+        "Unable to copy email.",
+      );
     }
   };
 
@@ -358,7 +542,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-sm font-bold text-white shadow-[0_10px_22px_-10px_rgba(30,58,138,0.5)]">
-              {getInitials(subscriber.email)}
+              {getInitials(
+                subscriber.email,
+              )}
             </div>
 
             <div className="min-w-0">
@@ -367,11 +553,16 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   {subscriber.email}
                 </h2>
 
-                <StatusBadge active={subscriber.is_active} />
+                <StatusBadge
+                  active={
+                    subscriber.is_active
+                  }
+                />
               </div>
 
               <p className="mt-1 text-xs text-[#8C97B2]">
-                Subscriber #{subscriber.id}
+                Subscriber #
+                {subscriber.id}
               </p>
             </div>
           </div>
@@ -379,18 +570,31 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={handleCopy}
+              onClick={
+                handleCopy
+              }
               className="flex items-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] px-4 py-2.5 text-xs font-bold text-[#1E3A8A] transition hover:border-[#1E3A8A]/35 hover:bg-[#DBEAFE]"
             >
-              {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
-              {copied ? "Copied" : "Copy Email"}
+              {copied ? (
+                <FiCheck size={15} />
+              ) : (
+                <FiCopy size={15} />
+              )}
+
+              {copied
+                ? "Copied"
+                : "Copy Email"}
             </button>
 
             {/* ✅ DELETE — permission based */}
             {canDelete && (
               <button
                 type="button"
-                onClick={() => onDelete(subscriber)}
+                onClick={() =>
+                  onDelete(
+                    subscriber,
+                  )
+                }
                 className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
               >
                 <FiTrash2 size={15} />
@@ -422,17 +626,27 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                 </div>
 
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiMail size={17} />
+                  <FiMail
+                    size={17}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoCard
                   label="Email Address"
-                  value={subscriber.email}
-                  icon={<FiMail size={15} />}
+                  value={
+                    subscriber.email
+                  }
+                  icon={
+                    <FiMail
+                      size={15}
+                    />
+                  }
                   copyable
-                  onCopy={handleCopy}
+                  onCopy={
+                    handleCopy
+                  }
                 />
 
                 <InfoCard
@@ -442,20 +656,40 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                       ? "Active Subscriber"
                       : "Inactive Subscriber"
                   }
-                  icon={<FiActivity size={15} />}
-                  customValue={<StatusBadge active={subscriber.is_active} />}
+                  icon={
+                    <FiActivity
+                      size={15}
+                    />
+                  }
+                  customValue={
+                    <StatusBadge
+                      active={
+                        subscriber.is_active
+                      }
+                    />
+                  }
                 />
 
                 <InfoCard
                   label="Subscriber ID"
                   value={`#${subscriber.id}`}
-                  icon={<FiHash size={15} />}
+                  icon={
+                    <FiHash
+                      size={15}
+                    />
+                  }
                 />
 
                 <InfoCard
                   label="IP Address"
-                  value={subscriber.ip_address}
-                  icon={<FiGlobe size={15} />}
+                  value={
+                    subscriber.ip_address
+                  }
+                  icon={
+                    <FiGlobe
+                      size={15}
+                    />
+                  }
                   mono
                 />
               </div>
@@ -467,7 +701,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
 
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiCalendar size={17} />
+                  <FiCalendar
+                    size={17}
+                  />
                 </div>
 
                 <div>
@@ -483,25 +719,43 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
 
               <div className="space-y-3">
                 <TimelineItem
-                  icon={<FiCheck size={14} />}
+                  icon={
+                    <FiCheck
+                      size={14}
+                    />
+                  }
                   title="Subscribed"
-                  date={formatDate(subscriber.subscribed_at)}
+                  date={formatDate(
+                    subscriber.subscribed_at,
+                  )}
                   description="Subscriber joined the newsletter."
                   active
                 />
 
                 <TimelineItem
-                  icon={<FiClock size={14} />}
+                  icon={
+                    <FiClock
+                      size={14}
+                    />
+                  }
                   title="Created"
-                  date={formatDate(subscriber.created_at)}
+                  date={formatDate(
+                    subscriber.created_at,
+                  )}
                   description="Subscriber record was created."
                   active
                 />
 
                 <TimelineItem
-                  icon={<FiActivity size={14} />}
+                  icon={
+                    <FiActivity
+                      size={14}
+                    />
+                  }
                   title="Last Updated"
-                  date={formatDate(subscriber.updated_at)}
+                  date={formatDate(
+                    subscriber.updated_at,
+                  )}
                   description="Subscriber record was last updated."
                   active
                 />
@@ -529,9 +783,13 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                     }`}
                   >
                     {subscriber.is_active ? (
-                      <FiUserCheck size={19} />
+                      <FiUserCheck
+                        size={19}
+                      />
                     ) : (
-                      <FiUserX size={19} />
+                      <FiUserX
+                        size={19}
+                      />
                     )}
                   </div>
 
@@ -541,7 +799,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                     </p>
 
                     <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
-                      {subscriber.is_active ? "Active" : "Inactive"}
+                      {subscriber.is_active
+                        ? "Active"
+                        : "Inactive"}
                     </p>
                   </div>
                 </div>
@@ -557,22 +817,37 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
               </h4>
 
               <div className="space-y-3">
-                <DetailRow label="Subscriber ID" value={`#${subscriber.id}`} />
+                <DetailRow
+                  label="Subscriber ID"
+                  value={`#${subscriber.id}`}
+                />
+
                 <DetailRow
                   label="Subscribed Date"
-                  value={formatDateOnly(subscriber.subscribed_at)}
+                  value={formatDateOnly(
+                    subscriber.subscribed_at,
+                  )}
                 />
+
                 <DetailRow
                   label="Subscribed Time"
-                  value={formatTime(subscriber.subscribed_at)}
+                  value={formatTime(
+                    subscriber.subscribed_at,
+                  )}
                 />
+
                 <DetailRow
                   label="Created At"
-                  value={formatDateOnly(subscriber.created_at)}
+                  value={formatDateOnly(
+                    subscriber.created_at,
+                  )}
                 />
+
                 <DetailRow
                   label="Updated At"
-                  value={formatDateOnly(subscriber.updated_at)}
+                  value={formatDateOnly(
+                    subscriber.updated_at,
+                  )}
                 />
               </div>
             </div>
@@ -581,7 +856,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
             <div className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-sm">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiShield size={17} />
+                  <FiShield
+                    size={17}
+                  />
                 </div>
 
                 <div>
@@ -590,8 +867,11 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   </h4>
 
                   <p className="mt-1 text-xs leading-5 text-[#8C97B2]">
-                    The subscriber's email and subscription details are stored
-                    for newsletter communication and management.
+                    The subscriber's email
+                    and subscription
+                    details are stored for
+                    newsletter communication
+                    and management.
                   </p>
                 </div>
               </div>
@@ -607,12 +887,16 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
             <span className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
 
             <span className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
-              Subscriber #{subscriber.id}
+              Subscriber #
+              {subscriber.id}
             </span>
           </div>
 
           <span className="text-[10px] text-[#8C97B2]">
-            Last updated {formatDate(subscriber.updated_at)}
+            Last updated{" "}
+            {formatDate(
+              subscriber.updated_at,
+            )}
           </span>
         </div>
       </div>
@@ -627,15 +911,23 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
 interface SubscriberSidebarProps {
   subscribers: Subscriber[];
   selectedId: number | null;
-  onSelect: (subscriber: Subscriber) => void;
+  onSelect: (
+    subscriber: Subscriber,
+  ) => void;
   filter: SubscriberFilter;
-  setFilter: (filter: SubscriberFilter) => void;
+  setFilter: (
+    filter: SubscriberFilter,
+  ) => void;
   search: string;
-  setSearch: (value: string) => void;
+  setSearch: (
+    value: string,
+  ) => void;
   loading: boolean;
 }
 
-const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
+const SubscriberSidebar: React.FC<
+  SubscriberSidebarProps
+> = ({
   subscribers,
   selectedId,
   onSelect,
@@ -655,6 +947,7 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
         <div>
           <h3 className="flex items-center gap-2 text-base font-bold text-[#0F1B3D]">
             Subscribers
+
             <span className="inline-flex items-center justify-center rounded-full bg-[#EAF1FF] px-2.5 py-0.5 text-xs font-semibold text-[#1E3A8A]">
               {subscribers.length}
             </span>
@@ -673,14 +966,27 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
       {/* FILTERS */}
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[
-          { key: "all" as SubscriberFilter, label: "All" },
-          { key: "active" as SubscriberFilter, label: "Active" },
-          { key: "inactive" as SubscriberFilter, label: "Inactive" },
+          {
+            key: "all" as SubscriberFilter,
+            label: "All",
+          },
+          {
+            key: "active" as SubscriberFilter,
+            label: "Active",
+          },
+          {
+            key: "inactive" as SubscriberFilter,
+            label: "Inactive",
+          },
         ].map((item) => (
           <button
             key={item.key}
             type="button"
-            onClick={() => setFilter(item.key)}
+            onClick={() =>
+              setFilter(
+                item.key,
+              )
+            }
             className={`whitespace-nowrap rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition ${
               filter === item.key
                 ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
@@ -702,7 +1008,11 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) =>
+            setSearch(
+              e.target.value,
+            )
+          }
           placeholder="Search subscriber email..."
           className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-3 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
         />
@@ -710,7 +1020,9 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
         {search && (
           <button
             type="button"
-            onClick={() => setSearch("")}
+            onClick={() =>
+              setSearch("")
+            }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2] hover:text-[#1E3A8A]"
           >
             <FiX size={15} />
@@ -737,14 +1049,18 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
       {loading ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-            <FiRefreshCw size={21} className="animate-spin" />
+            <FiRefreshCw
+              size={21}
+              className="animate-spin"
+            />
           </div>
 
           <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
             Loading subscribers...
           </p>
         </div>
-      ) : subscribers.length === 0 ? (
+      ) : subscribers.length ===
+        0 ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
             <FiMail size={23} />
@@ -759,73 +1075,105 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
           </p>
         </div>
       ) : (
-        subscribers.map((subscriber) => {
-          const selected = subscriber.id === selectedId;
+        subscribers.map(
+          (subscriber) => {
+            const selected =
+              subscriber.id ===
+              selectedId;
 
-          return (
-            <motion.div
-              key={subscriber.id}
-              whileHover={{ x: 2 }}
-              onClick={() => onSelect(subscriber)}
-              className={`relative cursor-pointer border-b border-[#1E3A8A]/10 p-4 transition-all ${
-                selected ? "bg-[#EAF1FF]/50" : "bg-white hover:bg-[#FAFBFF]"
-              }`}
-            >
-              {selected && (
-                <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#3B82F6] to-[#1E3A8A]" />
-              )}
+            return (
+              <motion.div
+                key={
+                  subscriber.id
+                }
+                whileHover={{
+                  x: 2,
+                }}
+                onClick={() =>
+                  onSelect(
+                    subscriber,
+                  )
+                }
+                className={`relative cursor-pointer border-b border-[#1E3A8A]/10 p-4 transition-all ${
+                  selected
+                    ? "bg-[#EAF1FF]/50"
+                    : "bg-white hover:bg-[#FAFBFF]"
+                }`}
+              >
+                {selected && (
+                  <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#3B82F6] to-[#1E3A8A]" />
+                )}
 
-              <div className="flex items-start gap-3">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[10px] font-bold text-white ${
-                    selected
-                      ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A]"
-                      : "bg-gradient-to-br from-[#60A5FA] to-[#2563EB]"
-                  }`}
-                >
-                  {getInitials(subscriber.email)}
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[10px] font-bold text-white ${
+                      selected
+                        ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A]"
+                        : "bg-gradient-to-br from-[#60A5FA] to-[#2563EB]"
+                    }`}
+                  >
+                    {getInitials(
+                      subscriber.email,
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <p
+                        className={`truncate text-sm ${
+                          selected
+                            ? "font-bold text-[#0F1B3D]"
+                            : "font-semibold text-[#3A4668]"
+                        }`}
+                      >
+                        {
+                          subscriber.email
+                        }
+                      </p>
+
+                      <FiChevronRight
+                        size={15}
+                        className={`mt-0.5 shrink-0 ${
+                          selected
+                            ? "text-[#1E3A8A]"
+                            : "text-[#C5C8B8]"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-[10px] text-[#8C97B2]">
+                        #
+                        {
+                          subscriber.id
+                        }
+                      </span>
+
+                      <StatusBadge
+                        active={
+                          subscriber.is_active
+                        }
+                      />
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2">
+                      <FiCalendar
+                        size={12}
+                        className="text-[#1E3A8A]"
+                      />
+
+                      <span className="text-[10px] text-[#8C97B2]">
+                        {formatDateOnly(
+                          subscriber.subscribed_at,
+                        )}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <p
-                      className={`truncate text-sm ${
-                        selected
-                          ? "font-bold text-[#0F1B3D]"
-                          : "font-semibold text-[#3A4668]"
-                      }`}
-                    >
-                      {subscriber.email}
-                    </p>
-
-                    <FiChevronRight
-                      size={15}
-                      className={`mt-0.5 shrink-0 ${
-                        selected ? "text-[#1E3A8A]" : "text-[#C5C8B8]"
-                      }`}
-                    />
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[10px] text-[#8C97B2]">
-                      #{subscriber.id}
-                    </span>
-
-                    <StatusBadge active={subscriber.is_active} />
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-2">
-                    <FiCalendar size={12} className="text-[#1E3A8A]" />
-
-                    <span className="text-[10px] text-[#8C97B2]">
-                      {formatDateOnly(subscriber.subscribed_at)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })
+              </motion.div>
+            );
+          },
+        )
       )}
     </div>
 
@@ -833,8 +1181,13 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
     <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[#8C97B2]">
-          Showing {subscribers.length} subscriber
-          {subscribers.length === 1 ? "" : "s"}
+          Showing{" "}
+          {subscribers.length}{" "}
+          subscriber
+          {subscribers.length ===
+          1
+            ? ""
+            : "s"}
         </span>
 
         <span className="flex items-center gap-1 text-[10px] font-bold text-[#1E3A8A]">
@@ -850,275 +1203,532 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
 // MAIN
 // =====================================================
 
-const Subscribers: React.FC = () => {
-  // ===================================================
-  // ✅ PERMISSIONS
-  // ===================================================
+const Subscribers: React.FC =
+  () => {
+    // ===================================================
+    // ✅ PERMISSIONS
+    // ===================================================
 
-  const {
-    hasPermission,
-    hasModuleAccess,
-    isSuperAdmin,
-  } = usePermissions();
+    const {
+      hasPermission,
+      hasModuleAccess,
+      isSuperAdmin,
+      loading:
+        permissionsLoading,
+    } = usePermissions();
 
-  const canViewSubscribers = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("subscriber") ||
-      hasPermission("subscriber.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
-  );
-
-  const canDeleteSubscriber = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("subscriber.delete"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  // ===================================================
-  // STATE
-  // ===================================================
-
-  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<SubscriberFilter>("all");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [selectedDeleteSubscriber, setSelectedDeleteSubscriber] =
-    useState<Subscriber | null>(null);
-
-  // ===================================================
-  // GET SUBSCRIBERS
-  // ===================================================
-
-  const fetchSubscribers = async () => {
-    try {
-      setLoading(true);
-      const response = await subscriberApi.getAll();
-
-      if (response.data.success) {
-        const data = response.data.data || [];
-        setSubscribers(data);
-        setSelectedId((current) => current ?? data[0]?.id ?? null);
-      } else {
-        toast.error(response.data.message || "Unable to fetch subscribers.");
-      }
-    } catch (error: any) {
-      console.error("Fetch subscribers error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch subscribers.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (canViewSubscribers) {
-      fetchSubscribers();
-    }
-  }, [canViewSubscribers]);
-
-  // ===================================================
-  // FILTERED LIST
-  // ===================================================
-
-  const filteredSubscribers = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return subscribers.filter((subscriber) => {
-      const matchesSearch =
-        !query ||
-        [subscriber.email, subscriber.ip_address, String(subscriber.id)]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-
-      if (!matchesSearch) return false;
-      if (filter === "active") return subscriber.is_active;
-      if (filter === "inactive") return !subscriber.is_active;
-
-      return true;
-    });
-  }, [subscribers, search, filter]);
-
-  // ===================================================
-  // KEEP SELECTION VALID
-  // ===================================================
-
-  useEffect(() => {
-    if (filteredSubscribers.length === 0) {
-      setSelectedId(null);
-      return;
-    }
-
-    const currentExists = filteredSubscribers.some(
-      (item) => item.id === selectedId,
-    );
-
-    if (!currentExists) {
-      setSelectedId(filteredSubscribers[0].id);
-    }
-  }, [filteredSubscribers, selectedId]);
-
-  const selectedSubscriber =
-    subscribers.find((subscriber) => subscriber.id === selectedId) ||
-    filteredSubscribers[0] ||
-    null;
-
-  // ===================================================
-  // STATS
-  // ===================================================
-
-  const stats = useMemo(() => {
-    const total = subscribers.length;
-    const active = subscribers.filter((s) => s.is_active).length;
-
-    return { total, active };
-  }, [subscribers]);
-
-  // ===================================================
-  // DELETE
-  // ===================================================
-
-  const openDeleteModal = (subscriber: Subscriber) => {
-    setSelectedDeleteSubscriber(subscriber);
-    setDeleteOpen(true);
-  };
-
-  const closeDeleteModal = () => {
-    if (deleteLoading) return;
-    setDeleteOpen(false);
-    setSelectedDeleteSubscriber(null);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedDeleteSubscriber) return;
-
-    try {
-      setDeleteLoading(true);
-
-      const response = await subscriberApi.delete(
-        selectedDeleteSubscriber.email,
+    const canViewSubscribers =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasModuleAccess(
+            "subscriber",
+          ) ||
+          hasPermission(
+            "subscriber.view",
+          ),
+        [
+          isSuperAdmin,
+          hasModuleAccess,
+          hasPermission,
+        ],
       );
 
-      if (response.data.success) {
-        const deletedId = selectedDeleteSubscriber.id;
+    const canDeleteSubscriber =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "subscriber.delete",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
 
-        setSubscribers((prev) => prev.filter((item) => item.id !== deletedId));
+    // ===================================================
+    // STATE
+    // ===================================================
 
-        if (selectedId === deletedId) {
-          setSelectedId(null);
+    const [
+      subscribers,
+      setSubscribers,
+    ] = useState<
+      Subscriber[]
+    >([]);
+
+    const [loading, setLoading] =
+      useState(false);
+
+    const [search, setSearch] =
+      useState("");
+
+    const [filter, setFilter] =
+      useState<SubscriberFilter>(
+        "all",
+      );
+
+    const [
+      selectedId,
+      setSelectedId,
+    ] =
+      useState<number | null>(
+        null,
+      );
+
+    const [
+      deleteOpen,
+      setDeleteOpen,
+    ] = useState(false);
+
+    const [
+      deleteLoading,
+      setDeleteLoading,
+    ] = useState(false);
+
+    const [
+      selectedDeleteSubscriber,
+      setSelectedDeleteSubscriber,
+    ] =
+      useState<Subscriber | null>(
+        null,
+      );
+
+    // ===================================================
+    // GET SUBSCRIBERS
+    // ===================================================
+
+    const fetchSubscribers =
+      async () => {
+        try {
+          setLoading(true);
+
+          const response =
+            await subscriberApi.getAll();
+
+          if (
+            response.data
+              .success
+          ) {
+            const data =
+              response.data
+                .data || [];
+
+            setSubscribers(
+              data,
+            );
+
+            setSelectedId(
+              (current) =>
+                current ??
+                data[0]
+                  ?.id ??
+                null,
+            );
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to fetch subscribers.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Fetch subscribers error:",
+            error,
+          );
+
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Unable to fetch subscribers.",
+          );
+        } finally {
+          setLoading(false);
         }
+      };
 
-        toast.success(
-          response.data.message || "Subscriber deleted successfully.",
+    // ===================================================
+    // ✅ FETCH ONLY AFTER PERMISSIONS FINISH
+    // ===================================================
+
+    useEffect(() => {
+      if (
+        permissionsLoading
+      ) {
+        return;
+      }
+
+      if (
+        canViewSubscribers
+      ) {
+        fetchSubscribers();
+      }
+    }, [
+      permissionsLoading,
+      canViewSubscribers,
+    ]);
+
+    // ===================================================
+    // FILTERED LIST
+    // ===================================================
+
+    const filteredSubscribers =
+      useMemo(() => {
+        const query =
+          search
+            .trim()
+            .toLowerCase();
+
+        return subscribers.filter(
+          (subscriber) => {
+            const matchesSearch =
+              !query ||
+              [
+                subscriber.email,
+                subscriber.ip_address,
+                String(
+                  subscriber.id,
+                ),
+              ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query);
+
+            if (
+              !matchesSearch
+            ) {
+              return false;
+            }
+
+            if (
+              filter ===
+              "active"
+            ) {
+              return subscriber.is_active;
+            }
+
+            if (
+              filter ===
+              "inactive"
+            ) {
+              return !subscriber.is_active;
+            }
+
+            return true;
+          },
+        );
+      }, [
+        subscribers,
+        search,
+        filter,
+      ]);
+
+    // ===================================================
+    // KEEP SELECTION VALID
+    // ===================================================
+
+    useEffect(() => {
+      if (
+        filteredSubscribers.length ===
+        0
+      ) {
+        setSelectedId(
+          null,
+        );
+        return;
+      }
+
+      const currentExists =
+        filteredSubscribers.some(
+          (item) =>
+            item.id ===
+            selectedId,
         );
 
-        setDeleteOpen(false);
-        setSelectedDeleteSubscriber(null);
-      } else {
-        toast.error(response.data.message || "Unable to delete subscriber.");
+      if (!currentExists) {
+        setSelectedId(
+          filteredSubscribers[0]
+            .id,
+        );
       }
-    } catch (error: any) {
-      console.error("Delete subscriber error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to delete subscriber.",
+    }, [
+      filteredSubscribers,
+      selectedId,
+    ]);
+
+    const selectedSubscriber =
+      subscribers.find(
+        (subscriber) =>
+          subscriber.id ===
+          selectedId,
+      ) ||
+      filteredSubscribers[0] ||
+      null;
+
+    // ===================================================
+    // STATS
+    // ===================================================
+
+    const stats = useMemo(() => {
+      const total =
+        subscribers.length;
+
+      const active =
+        subscribers.filter(
+          (s) =>
+            s.is_active,
+        ).length;
+
+      return {
+        total,
+        active,
+      };
+    }, [subscribers]);
+
+    // ===================================================
+    // DELETE
+    // ===================================================
+
+    const openDeleteModal = (
+      subscriber: Subscriber,
+    ) => {
+      setSelectedDeleteSubscriber(
+        subscriber,
       );
-    } finally {
-      setDeleteLoading(false);
+
+      setDeleteOpen(
+        true,
+      );
+    };
+
+    const closeDeleteModal =
+      () => {
+        if (
+          deleteLoading
+        ) {
+          return;
+        }
+
+        setDeleteOpen(
+          false,
+        );
+
+        setSelectedDeleteSubscriber(
+          null,
+        );
+      };
+
+    const handleDelete =
+      async () => {
+        if (
+          !selectedDeleteSubscriber
+        ) {
+          return;
+        }
+
+        try {
+          setDeleteLoading(
+            true,
+          );
+
+          const response =
+            await subscriberApi.delete(
+              selectedDeleteSubscriber.email,
+            );
+
+          if (
+            response.data
+              .success
+          ) {
+            const deletedId =
+              selectedDeleteSubscriber.id;
+
+            setSubscribers(
+              (prev) =>
+                prev.filter(
+                  (item) =>
+                    item.id !==
+                    deletedId,
+                ),
+            );
+
+            if (
+              selectedId ===
+              deletedId
+            ) {
+              setSelectedId(
+                null,
+              );
+            }
+
+            toast.success(
+              response.data
+                .message ||
+                "Subscriber deleted successfully.",
+            );
+
+            setDeleteOpen(
+              false,
+            );
+
+            setSelectedDeleteSubscriber(
+              null,
+            );
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to delete subscriber.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Delete subscriber error:",
+            error,
+          );
+
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Unable to delete subscriber.",
+          );
+        } finally {
+          setDeleteLoading(
+            false,
+          );
+        }
+      };
+
+    // ===================================================
+    // ✅ PERMISSION LOADING
+    // ===================================================
+
+    if (
+      permissionsLoading
+    ) {
+      return (
+        <PermissionLoading />
+      );
     }
-  };
 
-  // ===================================================
-  // ✅ ACCESS DENIED
-  // ===================================================
+    // ===================================================
+    // ✅ ACCESS DENIED
+    // ===================================================
 
-  if (!canViewSubscribers) {
+    if (
+      !canViewSubscribers
+    ) {
+      return (
+        <AccessDenied />
+      );
+    }
+
+    // ===================================================
+    // UI
+    // ===================================================
+
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
-            <FiAlertCircle size={26} />
-          </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
-            You don't have permission to access this section.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ===================================================
-  // UI
-  // ===================================================
-
-  return (
-    <>
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins"
-      >
-        {/* MASTER DETAIL */}
+      <>
         <motion.div
-          variants={itemVariants}
-          className="flex min-h-[680px] flex-col gap-5 lg:flex-row"
+          initial="hidden"
+          animate="visible"
+          variants={
+            containerVariants
+          }
+          className="min-h-screen bg-[#F5F8FF] p-4 font-poppins"
         >
-          <SubscriberSidebar
-            subscribers={filteredSubscribers}
-            selectedId={selectedId}
-            onSelect={(subscriber) => setSelectedId(subscriber.id)}
-            filter={filter}
-            setFilter={setFilter}
-            search={search}
-            setSearch={setSearch}
-            loading={loading}
-          />
-
-          {selectedSubscriber ? (
-            <SubscriberDetail
-              subscriber={selectedSubscriber}
-              onDelete={openDeleteModal}
-              canDelete={canDeleteSubscriber}
+          {/* MASTER DETAIL */}
+          <motion.div
+            variants={
+              itemVariants
+            }
+            className="flex min-h-[680px] flex-col gap-5 lg:flex-row"
+          >
+            <SubscriberSidebar
+              subscribers={
+                filteredSubscribers
+              }
+              selectedId={
+                selectedId
+              }
+              onSelect={(
+                subscriber,
+              ) =>
+                setSelectedId(
+                  subscriber.id,
+                )
+              }
+              filter={filter}
+              setFilter={
+                setFilter
+              }
+              search={search}
+              setSearch={
+                setSearch
+              }
+              loading={loading}
             />
-          ) : (
-            <section className="flex min-h-[500px] flex-1 items-center justify-center rounded-2xl border border-[#E3E9F5] bg-white shadow-sm">
-              <div className="text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiMail size={27} />
+
+            {selectedSubscriber ? (
+              <SubscriberDetail
+                subscriber={
+                  selectedSubscriber
+                }
+                onDelete={
+                  openDeleteModal
+                }
+                canDelete={
+                  canDeleteSubscriber
+                }
+              />
+            ) : (
+              <section className="flex min-h-[500px] flex-1 items-center justify-center rounded-2xl border border-[#E3E9F5] bg-white shadow-sm">
+                <div className="text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                    <FiMail
+                      size={27}
+                    />
+                  </div>
+
+                  <h3 className="mt-4 text-base font-bold text-[#0F1B3D]">
+                    No subscriber
+                    selected
+                  </h3>
+
+                  <p className="mt-1 text-xs text-[#8C97B2]">
+                    Select a subscriber
+                    from the list to view
+                    details.
+                  </p>
                 </div>
-
-                <h3 className="mt-4 text-base font-bold text-[#0F1B3D]">
-                  No subscriber selected
-                </h3>
-
-                <p className="mt-1 text-xs text-[#8C97B2]">
-                  Select a subscriber from the list to view details.
-                </p>
-              </div>
-            </section>
-          )}
+              </section>
+            )}
+          </motion.div>
         </motion.div>
-      </motion.div>
 
-      {/* DELETE MODAL — permission based */}
-      {canDeleteSubscriber && (
-        <DeleteSubscriberModal
-          open={deleteOpen}
-          loading={deleteLoading}
-          email={selectedDeleteSubscriber?.email || ""}
-          onClose={closeDeleteModal}
-          onConfirm={handleDelete}
-        />
-      )}
-    </>
-  );
-};
+        {/* DELETE MODAL — permission based */}
+        {canDeleteSubscriber && (
+          <DeleteSubscriberModal
+            open={deleteOpen}
+            loading={
+              deleteLoading
+            }
+            email={
+              selectedDeleteSubscriber?.email ||
+              ""
+            }
+            onClose={
+              closeDeleteModal
+            }
+            onConfirm={
+              handleDelete
+            }
+          />
+        )}
+      </>
+    );
+  };
 
 export default Subscribers;

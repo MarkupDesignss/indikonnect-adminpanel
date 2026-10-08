@@ -73,6 +73,30 @@ const getVariantLabel = (variant: ProductVariant) => {
 };
 
 // =====================================================
+// PERMISSION LOADING STATE
+// =====================================================
+
+const PermissionLoadingState: React.FC = () => {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+          <RefreshCw size={24} className="animate-spin" />
+        </div>
+
+        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+          Checking permissions...
+        </h2>
+
+        <p className="mt-2 text-sm text-[#8C97B2]">
+          Please wait while we verify your access.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
 // STATUS BADGE — NAVY THEME
 // =====================================================
 
@@ -167,6 +191,7 @@ const Productsaasignment: React.FC = () => {
     hasPermission,
     hasModuleAccess,
     isSuperAdmin,
+    loading: permissionsLoading,
   } = usePermissions();
 
   const canViewProducts = useMemo(
@@ -269,10 +294,10 @@ const Productsaasignment: React.FC = () => {
   }, [currentPage, search, statusFilter, stockFilter]);
 
   useEffect(() => {
-    if (canViewProducts) {
+    if (!permissionsLoading && canViewProducts) {
       fetchProducts();
     }
-  }, [fetchProducts, canViewProducts]);
+  }, [fetchProducts, canViewProducts, permissionsLoading]);
 
   // =====================================================
   // SEARCH RESET PAGE
@@ -494,6 +519,14 @@ const Productsaasignment: React.FC = () => {
 
     return `${start}-${end} of ${totalProducts} products`;
   }, [currentPage, totalProducts]);
+
+  // ===================================================
+  // ✅ LOADING STATE (only once, at top level)
+  // ===================================================
+
+  if (permissionsLoading) {
+    return <PermissionLoadingState />;
+  }
 
   // ===================================================
   // ✅ ACCESS DENIED

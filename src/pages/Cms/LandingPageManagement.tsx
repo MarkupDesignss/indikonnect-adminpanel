@@ -152,7 +152,8 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const versionNumber = (version?: string) => Number(version || "0");
+const versionNumber = (version?: string) =>
+  Number(version || "0");
 
 // ✅ NAVY THEME
 const statusClass = (status: string) => {
@@ -177,7 +178,9 @@ const initials = (title: string) => {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((item) => item.charAt(0).toUpperCase())
+    .map((item) =>
+      item.charAt(0).toUpperCase(),
+    )
     .join("");
 
   return value || "PG";
@@ -187,7 +190,9 @@ const initials = (title: string) => {
 // STATUS BADGE — NAVY THEME
 // =====================================================
 
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+const StatusBadge: React.FC<{
+  status: string;
+}> = ({ status }) => {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-bold uppercase tracking-wide ${statusClass(
@@ -209,15 +214,23 @@ interface NewImagePreviewProps {
   onRemove: () => void;
 }
 
-const NewImagePreview: React.FC<NewImagePreviewProps> = ({
+const NewImagePreview: React.FC<
+  NewImagePreviewProps
+> = ({
   file,
   onRemove,
 }) => {
-  const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
+  const previewUrl = useMemo(
+    () =>
+      URL.createObjectURL(file),
+    [file],
+  );
 
   useEffect(() => {
     return () => {
-      URL.revokeObjectURL(previewUrl);
+      URL.revokeObjectURL(
+        previewUrl,
+      );
     };
   }, [previewUrl]);
 
@@ -275,7 +288,9 @@ interface BlockEditorProps {
   canRemove: boolean;
 }
 
-const BlockEditor: React.FC<BlockEditorProps> = ({
+const BlockEditor: React.FC<
+  BlockEditorProps
+> = ({
   block,
   index,
   onChange,
@@ -284,10 +299,14 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
   onRemoveExistingImage,
   canRemove,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(
+      null,
+    );
 
   const totalImages =
-    block.existingImages.length + block.imageFiles.length;
+    block.existingImages.length +
+    block.imageFiles.length;
 
   return (
     <div className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4 sm:p-5">
@@ -313,7 +332,9 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
         {canRemove && (
           <button
             type="button"
-            onClick={() => onRemove(index)}
+            onClick={() =>
+              onRemove(index)
+            }
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
             title="Remove block"
           >
@@ -334,7 +355,11 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
             type="text"
             value={block.heading}
             onChange={(event) =>
-              onChange(index, "heading", event.target.value)
+              onChange(
+                index,
+                "heading",
+                event.target.value,
+              )
             }
             placeholder="<h1>Your heading</h1>"
             className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
@@ -349,9 +374,15 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
           </label>
 
           <textarea
-            value={block.short_description}
+            value={
+              block.short_description
+            }
             onChange={(event) =>
-              onChange(index, "short_description", event.target.value)
+              onChange(
+                index,
+                "short_description",
+                event.target.value,
+              )
             }
             rows={3}
             placeholder="<p>Short description...</p>"
@@ -376,9 +407,19 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
             <ReactQuill
               theme="snow"
               value={block.description}
-              onChange={(value) => onChange(index, "description", value)}
-              modules={SK_EDITOR_MODULES}
-              formats={SK_EDITOR_FORMATS}
+              onChange={(value) =>
+                onChange(
+                  index,
+                  "description",
+                  value,
+                )
+              }
+              modules={
+                SK_EDITOR_MODULES
+              }
+              formats={
+                SK_EDITOR_FORMATS
+              }
               placeholder="Write page content here..."
             />
           </div>
@@ -389,11 +430,15 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
-              Block {index + 1} Images
+              Block {index + 1}{" "}
+              Images
             </label>
 
             <span className="text-[9px] text-[#8C97B2]">
-              {totalImages} image{totalImages !== 1 ? "s" : ""}
+              {totalImages} image
+              {totalImages !== 1
+                ? "s"
+                : ""}
             </span>
           </div>
 
@@ -404,95 +449,140 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
             multiple
             className="hidden"
             onChange={(event) => {
-              const files = Array.from(event.target.files || []);
+              const files = Array.from(
+                event.target
+                  .files || [],
+              );
 
-              if (files.length === 0) {
+              if (
+                files.length ===
+                0
+              ) {
                 return;
               }
 
-              onChange(index, "imageFiles", [
-                ...block.imageFiles,
-                ...files,
-              ]);
+              onChange(
+                index,
+                "imageFiles",
+                [
+                  ...block.imageFiles,
+                  ...files,
+                ],
+              );
 
-              event.target.value = "";
+              event.target.value =
+                "";
             }}
           />
 
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
             className="flex min-h-[80px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#1E3A8A]/30 bg-white px-4 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#1E3A8A]/50 hover:bg-[#EAF1FF]"
           >
             <FiUpload size={18} />
 
             <div className="text-left">
-              <p className="font-bold">Upload images</p>
+              <p className="font-bold">
+                Upload images
+              </p>
 
               <p className="mt-0.5 text-[9px] font-normal text-[#8C97B2]">
-                Images will belong to Block {index + 1}
+                Images will belong to
+                Block {index + 1}
               </p>
             </div>
           </button>
 
           {/* EXISTING IMAGES */}
 
-          {block.existingImages.length > 0 && (
+          {block.existingImages
+            .length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                 Existing Images
               </p>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {block.existingImages.map((image, imageIndex) => (
-                  <div
-                    key={image.id ?? `${index}-existing-${imageIndex}`}
-                    className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.alt_text || `Block ${index + 1} image`}
-                      className="h-full w-full object-cover"
-                    />
-
-                    {image.is_primary && (
-                      <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-[8px] font-bold text-white">
-                        Primary
-                      </span>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onRemoveExistingImage(index, imageIndex)
+                {block.existingImages.map(
+                  (
+                    image,
+                    imageIndex,
+                  ) => (
+                    <div
+                      key={
+                        image.id ??
+                        `${index}-existing-${imageIndex}`
                       }
-                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-[#C23B32]"
-                      title="Remove image"
+                      className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
                     >
-                      <FiX size={13} />
-                    </button>
-                  </div>
-                ))}
+                      <img
+                        src={image.url}
+                        alt={
+                          image.alt_text ||
+                          `Block ${
+                            index +
+                            1
+                          } image`
+                        }
+                        className="h-full w-full object-cover"
+                      />
+
+                      {image.is_primary && (
+                        <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-1 text-[8px] font-bold text-white">
+                          Primary
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRemoveExistingImage(
+                            index,
+                            imageIndex,
+                          )
+                        }
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white transition hover:bg-[#C23B32]"
+                        title="Remove image"
+                      >
+                        <FiX size={13} />
+                      </button>
+                    </div>
+                  ),
+                )}
               </div>
             </div>
           )}
 
           {/* NEW IMAGES */}
 
-          {block.imageFiles.length > 0 && (
+          {block.imageFiles
+            .length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
                 New Images
               </p>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {block.imageFiles.map((file, fileIndex) => (
-                  <NewImagePreview
-                    key={`${file.name}-${file.lastModified}-${fileIndex}`}
-                    file={file}
-                    onRemove={() => onRemoveNewImage(index, fileIndex)}
-                  />
-                ))}
+                {block.imageFiles.map(
+                  (
+                    file,
+                    fileIndex,
+                  ) => (
+                    <NewImagePreview
+                      key={`${file.name}-${file.lastModified}-${fileIndex}`}
+                      file={file}
+                      onRemove={() =>
+                        onRemoveNewImage(
+                          index,
+                          fileIndex,
+                        )
+                      }
+                    />
+                  ),
+                )}
               </div>
             </div>
           )}
@@ -505,11 +595,16 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
                 <span className="font-bold text-[#1E3A8A]">
                   Block {index + 1}
                 </span>{" "}
-                images will be submitted separately as:
+                images will be
+                submitted separately
+                as:
               </p>
 
               <p className="mt-1 font-mono text-[8px] leading-4 text-[#8C97B2]">
-                blocks[{index}][images][0], blocks[{index}][images][1]...
+                blocks[{index}]
+                [images][0],
+                blocks[{index}]
+                [images][1]...
               </p>
             </div>
           )}
@@ -529,17 +624,24 @@ interface ViewPageModalProps {
   onClose: () => void;
 }
 
-const ViewPageModal: React.FC<ViewPageModalProps> = ({
+const ViewPageModal: React.FC<
+  ViewPageModalProps
+> = ({
   open,
   page,
   onClose,
 }) => {
-  const [activeVersionId, setActiveVersionId] = useState<number | null>(
+  const [
+    activeVersionId,
+    setActiveVersionId,
+  ] = useState<number | null>(
     page?.latest.id || null,
   );
 
   useEffect(() => {
-    setActiveVersionId(page?.latest.id || null);
+    setActiveVersionId(
+      page?.latest.id || null,
+    );
   }, [page]);
 
   if (!open || !page) {
@@ -547,10 +649,18 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
   }
 
   const activePage =
-    page.versions.find((item) => item.id === activeVersionId) || page.latest;
+    page.versions.find(
+      (item) =>
+        item.id ===
+        activeVersionId,
+    ) || page.latest;
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick>
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick
+    >
       <div className="w-full max-w-[1000px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
@@ -559,7 +669,9 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-sm font-bold text-white">
-              {initials(page.title)}
+              {initials(
+                page.title,
+              )}
             </div>
 
             <div className="min-w-0">
@@ -568,11 +680,19 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
                   {page.title}
                 </h2>
 
-                <StatusBadge status={activePage.status} />
+                <StatusBadge
+                  status={
+                    activePage.status
+                  }
+                />
               </div>
 
               <p className="mt-1 truncate text-xs text-[#8C97B2]">
-                /{page.slug} • Version {activePage.version}
+                /{page.slug} •
+                Version{" "}
+                {
+                  activePage.version
+                }
               </p>
             </div>
           </div>
@@ -597,46 +717,89 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
                 </p>
 
                 <p className="mt-1 text-xs text-[#4A5778]">
-                  {page.versions.length} version
-                  {page.versions.length !== 1 ? "s" : ""} available
+                  {
+                    page.versions
+                      .length
+                  }{" "}
+                  version
+                  {page
+                    .versions
+                    .length !==
+                  1
+                    ? "s"
+                    : ""}{" "}
+                  available
                 </p>
               </div>
 
               <div className="space-y-2">
                 {[...page.versions]
                   .sort(
-                    (a, b) =>
-                      versionNumber(b.version) - versionNumber(a.version),
+                    (
+                      a,
+                      b,
+                    ) =>
+                      versionNumber(
+                        b.version,
+                      ) -
+                      versionNumber(
+                        a.version,
+                      ),
                   )
-                  .map((version) => {
-                    const selected = version.id === activeVersionId;
+                  .map(
+                    (
+                      version,
+                    ) => {
+                      const selected =
+                        version.id ===
+                        activeVersionId;
 
-                    return (
-                      <button
-                        key={version.id}
-                        type="button"
-                        onClick={() => setActiveVersionId(version.id)}
-                        className={`w-full rounded-xl border p-3 text-left transition ${
-                          selected
-                            ? "border-[#1E3A8A]/30 bg-white shadow-sm"
-                            : "border-[#1E3A8A]/10 bg-transparent hover:bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#0F1B3D]">
-                            v{version.version}
-                          </span>
+                      return (
+                        <button
+                          key={
+                            version.id
+                          }
+                          type="button"
+                          onClick={() =>
+                            setActiveVersionId(
+                              version.id,
+                            )
+                          }
+                          className={`w-full rounded-xl border p-3 text-left transition ${
+                            selected
+                              ? "border-[#1E3A8A]/30 bg-white shadow-sm"
+                              : "border-[#1E3A8A]/10 bg-transparent hover:bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-[#0F1B3D]">
+                              v
+                              {
+                                version.version
+                              }
+                            </span>
 
-                          <StatusBadge status={version.status} />
-                        </div>
+                            <StatusBadge
+                              status={
+                                version.status
+                              }
+                            />
+                          </div>
 
-                        <p className="mt-2 flex items-center gap-1 text-[9px] text-[#8C97B2]">
-                          <FiClock size={10} />
-                          {formatDate(version.created_at)}
-                        </p>
-                      </button>
-                    );
-                  })}
+                          <p className="mt-2 flex items-center gap-1 text-[9px] text-[#8C97B2]">
+                            <FiClock
+                              size={
+                                10
+                              }
+                            />
+                            {formatDate(
+                              version.created_at,
+                            )}
+                          </p>
+                        </button>
+                      );
+                    },
+                  )}
               </div>
             </aside>
 
@@ -650,121 +813,173 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
                   </p>
 
                   <p className="mt-1 text-xs text-[#4A5778]">
-                    Updated {formatDate(activePage.updated_at)}
+                    Updated{" "}
+                    {formatDate(
+                      activePage.updated_at,
+                    )}
                   </p>
                 </div>
 
                 <span className="rounded-lg bg-[#EAF1FF] px-3 py-2 text-[10px] font-bold text-[#1E3A8A]">
-                  {activePage.blocks.length} block
-                  {activePage.blocks.length !== 1 ? "s" : ""}
+                  {
+                    activePage
+                      .blocks
+                      .length
+                  }{" "}
+                  block
+                  {activePage
+                    .blocks
+                    .length !==
+                  1
+                    ? "s"
+                    : ""}
                 </span>
               </div>
 
               <div className="space-y-5">
-                {activePage.blocks.length === 0 ? (
+                {activePage.blocks
+                  .length ===
+                0 ? (
                   <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-8 text-center">
-                    <FiFileText size={28} className="mx-auto text-[#1E3A8A]" />
+                    <FiFileText
+                      size={28}
+                      className="mx-auto text-[#1E3A8A]"
+                    />
 
                     <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
-                      No content blocks
+                      No content
+                      blocks
                     </p>
                   </div>
                 ) : (
-                  activePage.blocks.map((block, index) => (
-                    <div
-                      key={block.id ?? index}
-                      className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4 sm:p-5"
-                    >
-                      <div className="mb-4 flex items-center justify-between">
-                        <div>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Block {index + 1}
-                          </p>
+                  activePage.blocks.map(
+                    (
+                      block,
+                      index,
+                    ) => (
+                      <div
+                        key={
+                          block.id ??
+                          index
+                        }
+                        className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4 sm:p-5"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                              Block{" "}
+                              {index +
+                                1}
+                            </p>
 
-                          <p className="mt-1 text-[10px] text-[#1E3A8A]">
-                            Sort order: {block.sort_order}
-                          </p>
-                        </div>
-                      </div>
-
-                      {block.heading && (
-                        <div className="mb-4">
-                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Heading
-                          </p>
-
-                          <div
-                            className="prose prose-sm max-w-none text-[#0F1B3D]"
-                            dangerouslySetInnerHTML={{
-                              __html: block.heading,
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {block.short_description && (
-                        <div className="mb-4">
-                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Short Description
-                          </p>
-
-                          <div
-                            className="prose prose-sm max-w-none text-[#3A4668]"
-                            dangerouslySetInnerHTML={{
-                              __html: block.short_description,
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {block.description && (
-                        <div className="mb-4">
-                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Description
-                          </p>
-
-                          <div
-                            className="sk-answer-preview prose prose-sm max-w-none text-[#3A4668]"
-                            dangerouslySetInnerHTML={{
-                              __html: block.description,
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {block.images.length > 0 && (
-                        <div>
-                          <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Images
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                            {block.images.map((image, imageIndex) => (
-                              <div
-                                key={image.id ?? imageIndex}
-                                className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
-                              >
-                                <img
-                                  src={image.url}
-                                  alt={
-                                    image.alt_text ||
-                                    `Block ${index + 1} image`
-                                  }
-                                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                                />
-
-                                {image.is_primary && (
-                                  <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[8px] font-bold text-white">
-                                    Primary
-                                  </span>
-                                )}
-                              </div>
-                            ))}
+                            <p className="mt-1 text-[10px] text-[#1E3A8A]">
+                              Sort
+                              order:{" "}
+                              {
+                                block.sort_order
+                              }
+                            </p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  ))
+
+                        {block.heading && (
+                          <div className="mb-4">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                              Heading
+                            </p>
+
+                            <div
+                              className="prose prose-sm max-w-none text-[#0F1B3D]"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  block.heading,
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {block.short_description && (
+                          <div className="mb-4">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                              Short
+                              Description
+                            </p>
+
+                            <div
+                              className="prose prose-sm max-w-none text-[#3A4668]"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  block.short_description,
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {block.description && (
+                          <div className="mb-4">
+                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                              Description
+                            </p>
+
+                            <div
+                              className="sk-answer-preview prose prose-sm max-w-none text-[#3A4668]"
+                              dangerouslySetInnerHTML={{
+                                __html:
+                                  block.description,
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {block.images
+                          .length >
+                          0 && (
+                          <div>
+                            <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                              Images
+                            </p>
+
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                              {block.images.map(
+                                (
+                                  image,
+                                  imageIndex,
+                                ) => (
+                                  <div
+                                    key={
+                                      image.id ??
+                                      imageIndex
+                                    }
+                                    className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
+                                  >
+                                    <img
+                                      src={
+                                        image.url
+                                      }
+                                      alt={
+                                        image.alt_text ||
+                                        `Block ${
+                                          index +
+                                          1
+                                        } image`
+                                      }
+                                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                    />
+
+                                    {image.is_primary && (
+                                      <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[8px] font-bold text-white">
+                                        Primary
+                                      </span>
+                                    )}
+                                  </div>
+                                ),
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )
                 )}
               </div>
             </div>
@@ -795,10 +1010,14 @@ interface PageFormModalProps {
   mode: "add" | "edit";
   page: ContentPage | null;
   onClose: () => void;
-  onSubmit: (payload: ContentPayload) => void;
+  onSubmit: (
+    payload: ContentPayload,
+  ) => void;
 }
 
-const PageFormModal: React.FC<PageFormModalProps> = ({
+const PageFormModal: React.FC<
+  PageFormModalProps
+> = ({
   open,
   loading,
   mode,
@@ -806,9 +1025,14 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [title, setTitle] = useState("");
-  const [status, setStatus] = useState("published");
-  const [blocks, setBlocks] = useState<FormBlock[]>([]);
+  const [title, setTitle] =
+    useState("");
+
+  const [status, setStatus] =
+    useState("published");
+
+  const [blocks, setBlocks] =
+    useState<FormBlock[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -816,36 +1040,73 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     }
 
     if (page) {
-      setTitle(page.title || "");
-      setStatus(page.status || "published");
+      setTitle(
+        page.title || "",
+      );
 
-      const mappedBlocks = (page.blocks || [])
+      setStatus(
+        page.status ||
+          "published",
+      );
+
+      const mappedBlocks = (
+        page.blocks || []
+      )
         .sort(
-          (a, b) => Number(a.sort_order) - Number(b.sort_order),
+          (a, b) =>
+            Number(
+              a.sort_order,
+            ) -
+            Number(
+              b.sort_order,
+            ),
         )
         .map(
-          (block): FormBlock => ({
-            heading: block.heading || "",
-            short_description: block.short_description || "",
-            description: block.description || "",
-            sort_order: Number(block.sort_order) || 0,
-            existingImages: (block.images || []).map((image) => ({
-              id: image.id,
-              url: image.url,
-              alt_text: image.alt_text,
-              is_primary: image.is_primary,
-            })),
+          (
+            block,
+          ): FormBlock => ({
+            heading:
+              block.heading ||
+              "",
+            short_description:
+              block.short_description ||
+              "",
+            description:
+              block.description ||
+              "",
+            sort_order:
+              Number(
+                block.sort_order,
+              ) || 0,
+            existingImages:
+              (
+                block.images ||
+                []
+              ).map(
+                (
+                  image,
+                ) => ({
+                  id: image.id,
+                  url: image.url,
+                  alt_text:
+                    image.alt_text,
+                  is_primary:
+                    image.is_primary,
+                }),
+              ),
             imageFiles: [],
           }),
         );
 
       setBlocks(
-        mappedBlocks.length > 0
+        mappedBlocks.length >
+          0
           ? mappedBlocks
           : [
               {
                 heading: "",
-                short_description: "",
+                short_description:
+                  "",
                 description: "",
                 sort_order: 0,
                 imageFiles: [],
@@ -860,7 +1121,8 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
       setBlocks([
         {
           heading: "",
-          short_description: "",
+          short_description:
+            "",
           description: "",
           sort_order: 0,
           imageFiles: [],
@@ -879,15 +1141,22 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     key: keyof FormBlock,
     value: any,
   ) => {
-    setBlocks((previous) =>
-      previous.map((block, blockIndex) =>
-        blockIndex === index
-          ? {
-              ...block,
-              [key]: value,
-            }
-          : block,
-      ),
+    setBlocks(
+      (previous) =>
+        previous.map(
+          (
+            block,
+            blockIndex,
+          ) =>
+            blockIndex ===
+            index
+              ? {
+                  ...block,
+                  [key]:
+                    value,
+                }
+              : block,
+        ),
     );
   };
 
@@ -896,31 +1165,51 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
   // ===================================================
 
   const addBlock = () => {
-    setBlocks((previous) => [
-      ...previous,
-      {
-        heading: "",
-        short_description: "",
-        description: "",
-        sort_order: previous.length,
-        imageFiles: [],
-        existingImages: [],
-      },
-    ]);
+    setBlocks(
+      (previous) => [
+        ...previous,
+        {
+          heading: "",
+          short_description:
+            "",
+          description: "",
+          sort_order:
+            previous.length,
+          imageFiles: [],
+          existingImages: [],
+        },
+      ],
+    );
   };
 
   // ===================================================
   // REMOVE BLOCK
   // ===================================================
 
-  const removeBlock = (index: number) => {
-    setBlocks((previous) =>
-      previous
-        .filter((_, blockIndex) => blockIndex !== index)
-        .map((block, blockIndex) => ({
-          ...block,
-          sort_order: blockIndex,
-        })),
+  const removeBlock = (
+    index: number,
+  ) => {
+    setBlocks(
+      (previous) =>
+        previous
+          .filter(
+            (
+              _,
+              blockIndex,
+            ) =>
+              blockIndex !==
+              index,
+          )
+          .map(
+            (
+              block,
+              blockIndex,
+            ) => ({
+              ...block,
+              sort_order:
+                blockIndex,
+            }),
+          ),
     );
   };
 
@@ -932,19 +1221,34 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     blockIndex: number,
     imageIndex: number,
   ) => {
-    setBlocks((previous) =>
-      previous.map((block, currentIndex) => {
-        if (currentIndex !== blockIndex) {
-          return block;
-        }
+    setBlocks(
+      (previous) =>
+        previous.map(
+          (
+            block,
+            currentIndex,
+          ) => {
+            if (
+              currentIndex !==
+              blockIndex
+            ) {
+              return block;
+            }
 
-        return {
-          ...block,
-          imageFiles: block.imageFiles.filter(
-            (_, currentImageIndex) => currentImageIndex !== imageIndex,
-          ),
-        };
-      }),
+            return {
+              ...block,
+              imageFiles:
+                block.imageFiles.filter(
+                  (
+                    _,
+                    currentImageIndex,
+                  ) =>
+                    currentImageIndex !==
+                    imageIndex,
+                ),
+            };
+          },
+        ),
     );
   };
 
@@ -952,100 +1256,172 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
   // REMOVE EXISTING IMAGE
   // ===================================================
 
-  const removeExistingImage = async (
-    blockIndex: number,
-    imageIndex: number,
-  ) => {
-    const block = blocks[blockIndex];
-    const image = block?.existingImages?.[imageIndex];
+  const removeExistingImage =
+    async (
+      blockIndex: number,
+      imageIndex: number,
+    ) => {
+      const block =
+        blocks[
+          blockIndex
+        ];
 
-    if (!image) {
-      toast.error("Image not found.");
-      return;
-    }
+      const image =
+        block?.existingImages?.[
+          imageIndex
+        ];
 
-    if (!image.id) {
-      setBlocks((previous) =>
-        previous.map((currentBlock, currentIndex) => {
-          if (currentIndex !== blockIndex) {
-            return currentBlock;
-          }
-
-          return {
-            ...currentBlock,
-            existingImages: currentBlock.existingImages.filter(
-              (_, currentImageIndex) => currentImageIndex !== imageIndex,
-            ),
-          };
-        }),
-      );
-
-      return;
-    }
-
-    try {
-      const response = await landingApi.deleteMedia(image.id);
-
-      if (response.data?.success) {
-        setBlocks((previous) =>
-          previous.map((currentBlock, currentIndex) => {
-            if (currentIndex !== blockIndex) {
-              return currentBlock;
-            }
-
-            return {
-              ...currentBlock,
-              existingImages: currentBlock.existingImages.filter(
-                (_, currentImageIndex) => currentImageIndex !== imageIndex,
-              ),
-            };
-          }),
+      if (!image) {
+        toast.error(
+          "Image not found.",
         );
-
-        toast.success(
-          response.data?.message || "Image deleted successfully.",
-        );
-      } else {
-        toast.error(response.data?.message || "Unable to delete image.");
+        return;
       }
-    } catch (error: any) {
-      console.error("Delete image error:", error);
 
-      toast.error(
-        error?.response?.data?.message || "Unable to delete image.",
-      );
-    }
-  };
+      if (!image.id) {
+        setBlocks(
+          (previous) =>
+            previous.map(
+              (
+                currentBlock,
+                currentIndex,
+              ) => {
+                if (
+                  currentIndex !==
+                  blockIndex
+                ) {
+                  return currentBlock;
+                }
+
+                return {
+                  ...currentBlock,
+                  existingImages:
+                    currentBlock.existingImages.filter(
+                      (
+                        _,
+                        currentImageIndex,
+                      ) =>
+                        currentImageIndex !==
+                        imageIndex,
+                    ),
+                };
+              },
+            ),
+        );
+
+        return;
+      }
+
+      try {
+        const response =
+          await landingApi.deleteMedia(
+            image.id,
+          );
+
+        if (
+          response.data
+            ?.success
+        ) {
+          setBlocks(
+            (previous) =>
+              previous.map(
+                (
+                  currentBlock,
+                  currentIndex,
+                ) => {
+                  if (
+                    currentIndex !==
+                    blockIndex
+                  ) {
+                    return currentBlock;
+                  }
+
+                  return {
+                    ...currentBlock,
+                    existingImages:
+                      currentBlock.existingImages.filter(
+                        (
+                          _,
+                          currentImageIndex,
+                        ) =>
+                          currentImageIndex !==
+                          imageIndex,
+                      ),
+                  };
+                },
+              ),
+          );
+
+          toast.success(
+            response.data
+              ?.message ||
+              "Image deleted successfully.",
+          );
+        } else {
+          toast.error(
+            response.data
+              ?.message ||
+              "Unable to delete image.",
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          "Delete image error:",
+          error,
+        );
+
+        toast.error(
+          error?.response
+            ?.data?.message ||
+            "Unable to delete image.",
+        );
+      }
+    };
 
   // ===================================================
   // SUBMIT
   // ===================================================
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (
+    event: React.FormEvent,
+  ) => {
     event.preventDefault();
 
     if (!title.trim()) {
-      toast.error("Page title is required.");
+      toast.error(
+        "Page title is required.",
+      );
       return;
     }
 
     if (blocks.length === 0) {
-      toast.error("At least one content block is required.");
+      toast.error(
+        "At least one content block is required.",
+      );
       return;
     }
 
-    const payload: ContentPayload = {
+    const payload:
+      ContentPayload = {
       title: title.trim(),
       status,
 
       blocks: blocks.map(
-        (block): ContentBlockPayload => ({
-          heading: block.heading,
-          short_description: block.short_description,
-          description: block.description,
-          sort_order: block.sort_order,
-          imageFiles: block.imageFiles,
-          existingImages: block.existingImages,
+        (
+          block,
+        ): ContentBlockPayload => ({
+          heading:
+            block.heading,
+          short_description:
+            block.short_description,
+          description:
+            block.description,
+          sort_order:
+            block.sort_order,
+          imageFiles:
+            block.imageFiles,
+          existingImages:
+            block.existingImages,
         }),
       ),
     };
@@ -1065,7 +1441,9 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
           onClose();
         }
       }}
-      closeOnOverlayClick={!loading}
+      closeOnOverlayClick={
+        !loading
+      }
     >
       <div className="w-full max-w-[980px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
@@ -1075,7 +1453,14 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 bg-white px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-              {mode === "add" ? <FiPlus size={17} /> : <FiEdit2 size={16} />}
+              {mode ===
+              "add" ? (
+                <FiPlus size={17} />
+              ) : (
+                <FiEdit2
+                  size={16}
+                />
+              )}
             </div>
 
             <div className="min-w-0">
@@ -1084,14 +1469,24 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
               </p>
 
               <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#0F1B3D]">
-                {mode === "add" ? "Add Page" : "Edit Page"}
+                {mode ===
+                "add"
+                  ? "Add Page"
+                  : "Edit Page"}
               </h2>
 
-              {mode === "edit" && page && (
-                <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
-                  Editing: {page.title} • v{page.version}
-                </p>
-              )}
+              {mode ===
+                "edit" &&
+                page && (
+                  <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
+                    Editing:{" "}
+                    {page.title}{" "}
+                    • v
+                    {
+                      page.version
+                    }
+                  </p>
+                )}
             </div>
           </div>
 
@@ -1107,14 +1502,18 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 
         {/* FORM */}
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={handleSubmit}
+        >
           <div className="max-h-[75vh] overflow-y-auto bg-[#FAFBFF] p-5 sm:p-6">
             {/* BASIC INFO */}
 
             <div className="rounded-[18px] border border-[#1E3A8A]/12 bg-[#FAFBFF] p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiFileText size={16} />
+                  <FiFileText
+                    size={16}
+                  />
                 </div>
 
                 <div>
@@ -1123,7 +1522,8 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                   </p>
 
                   <p className="mt-0.5 text-sm font-bold text-[#0F1B3D]">
-                    Basic Information
+                    Basic
+                    Information
                   </p>
                 </div>
               </div>
@@ -1136,7 +1536,15 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                 <input
                   type="text"
                   value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  onChange={(
+                    event,
+                  ) =>
+                    setTitle(
+                      event
+                        .target
+                        .value,
+                    )
+                  }
                   placeholder="Home"
                   className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
@@ -1153,28 +1561,47 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                   </p>
 
                   <h3 className="mt-0.5 text-base font-bold text-[#0F1B3D]">
-                    Content Blocks
+                    Content
+                    Blocks
                   </h3>
 
                   <p className="mt-1 text-[10px] text-[#8C97B2]">
-                    Each block manages its own text and images.
+                    Each block
+                    manages its own
+                    text and images.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                {blocks.map((block, index) => (
-                  <BlockEditor
-                    key={`${index}-${block.sort_order}`}
-                    block={block}
-                    index={index}
-                    onChange={updateBlock}
-                    onRemove={removeBlock}
-                    onRemoveNewImage={removeNewImage}
-                    onRemoveExistingImage={removeExistingImage}
-                    canRemove={blocks.length > 1}
-                  />
-                ))}
+                {blocks.map(
+                  (
+                    block,
+                    index,
+                  ) => (
+                    <BlockEditor
+                      key={`${index}-${block.sort_order}`}
+                      block={block}
+                      index={index}
+                      onChange={
+                        updateBlock
+                      }
+                      onRemove={
+                        removeBlock
+                      }
+                      onRemoveNewImage={
+                        removeNewImage
+                      }
+                      onRemoveExistingImage={
+                        removeExistingImage
+                      }
+                      canRemove={
+                        blocks.length >
+                        1
+                      }
+                    />
+                  ),
+                )}
               </div>
 
               {/* ADD BLOCK */}
@@ -1182,10 +1609,14 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
               <div className="mt-4 flex justify-center">
                 <button
                   type="button"
-                  onClick={addBlock}
+                  onClick={
+                    addBlock
+                  }
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] px-6 text-xs font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
                 >
-                  <FiPlus size={15} />
+                  <FiPlus
+                    size={15}
+                  />
                   Add Block
                 </button>
               </div>
@@ -1210,14 +1641,20 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
+                <FiRefreshCw
+                  size={15}
+                  className="animate-spin"
+                />
               ) : (
-                <FiSave size={15} />
+                <FiSave
+                  size={15}
+                />
               )}
 
               {loading
                 ? "Saving..."
-                : mode === "add"
+                : mode ===
+                    "add"
                   ? "Create Page"
                   : "Update Page"}
             </button>
@@ -1240,7 +1677,9 @@ interface DeletePageModalProps {
   onConfirm: () => void;
 }
 
-const DeletePageModal: React.FC<DeletePageModalProps> = ({
+const DeletePageModal: React.FC<
+  DeletePageModalProps
+> = ({
   open,
   loading,
   page,
@@ -1255,7 +1694,9 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
     <GlobalModal
       isOpen={open}
       onClose={onClose}
-      closeOnOverlayClick={!loading}
+      closeOnOverlayClick={
+        !loading
+      }
     >
       <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
@@ -1272,7 +1713,9 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-[#4A5778]">
-                Are you sure you want to delete this page version?
+                Are you sure you
+                want to delete this
+                page version?
               </p>
             </div>
           </div>
@@ -1280,7 +1723,9 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
           <div className="mt-5 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-bold text-[#1E3A8A]">
-                {initials(page.title)}
+                {initials(
+                  page.title,
+                )}
               </div>
 
               <div className="min-w-0">
@@ -1289,7 +1734,11 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
                 </p>
 
                 <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
-                  /{page.slug} • Version {page.version}
+                  /{page.slug} •
+                  Version{" "}
+                  {
+                    page.version
+                  }
                 </p>
               </div>
             </div>
@@ -1307,17 +1756,26 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
 
             <button
               type="button"
-              onClick={onConfirm}
+              onClick={
+                onConfirm
+              }
               disabled={loading}
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
+                <FiRefreshCw
+                  size={15}
+                  className="animate-spin"
+                />
               ) : (
-                <FiTrash2 size={15} />
+                <FiTrash2
+                  size={15}
+                />
               )}
 
-              {loading ? "Deleting..." : "Delete Page"}
+              {loading
+                ? "Deleting..."
+                : "Delete Page"}
             </button>
           </div>
         </div>
@@ -1327,1009 +1785,1662 @@ const DeletePageModal: React.FC<DeletePageModalProps> = ({
 };
 
 // =====================================================
-// MAIN PAGE
+// ✅ PERMISSION LOADING
 // =====================================================
 
-const LandingPageManagement: React.FC = () => {
-  // ===================================================
-  // ✅ PERMISSIONS
-  // ===================================================
-
-  const {
-    hasPermission,
-    hasModuleAccess,
-    isSuperAdmin,
-  } = usePermissions();
-
-  const canViewContent = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("content") ||
-      hasPermission("content.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
-  );
-
-  const canCreateContent = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.create"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canUpdateContent = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.edit") ||
-      hasPermission("content.update"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canDeleteContent = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.delete"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  // ===================================================
-  // STATE
-  // ===================================================
-
-  const [pages, setPages] = useState<ContentPage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "published" | "draft" | "archived"
-  >("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [viewOpen, setViewOpen] = useState(false);
-  const [addEditOpen, setAddEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [selectedGroup, setSelectedGroup] = useState<PageGroup | null>(null);
-  const [selectedPage, setSelectedPage] = useState<ContentPage | null>(null);
-
-  const ITEMS_PER_PAGE = 10;
-
-  // =================================================
-  // FETCH
-  // =================================================
-
-  const fetchContents = async () => {
-    try {
-      setLoading(true);
-
-      const response = await landingApi.getAll();
-
-      if (response.data.success) {
-        setPages(response.data.data || []);
-      } else {
-        toast.error(
-          response.data.message || "Unable to fetch pages.",
-        );
-      }
-    } catch (error: any) {
-      console.error("Fetch contents error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch pages.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (canViewContent) {
-      fetchContents();
-    }
-  }, [canViewContent]);
-
-  // =================================================
-  // GROUP VERSIONS
-  // =================================================
-
-  const groupedPages = useMemo(() => {
-    const map = new Map<string, PageGroup>();
-
-    pages.forEach((page) => {
-      const key =
-        page.slug || page.title.trim().toLowerCase();
-
-      if (!map.has(key)) {
-        map.set(key, {
-          slug: page.slug,
-          title: page.title,
-          latest: page,
-          versions: [page],
-        });
-
-        return;
-      }
-
-      const group = map.get(key)!;
-
-      group.versions.push(page);
-
-      const currentVersion = versionNumber(group.latest.version);
-      const incomingVersion = versionNumber(page.version);
-
-      const latestUpdated = new Date(group.latest.updated_at).getTime();
-      const incomingUpdated = new Date(page.updated_at).getTime();
-
-      if (
-        incomingVersion > currentVersion ||
-        (incomingVersion === currentVersion &&
-          incomingUpdated > latestUpdated)
-      ) {
-        group.latest = page;
-        group.title = page.title;
-      }
-    });
-
-    return Array.from(map.values()).sort(
-      (a, b) =>
-        new Date(b.latest.updated_at).getTime() -
-        new Date(a.latest.updated_at).getTime(),
-    );
-  }, [pages]);
-
-  // =================================================
-  // FILTER
-  // =================================================
-
-  const filteredGroups = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return groupedPages.filter((group) => {
-      const page = group.latest;
-
-      const matchesSearch =
-        !query ||
-        [page.title, page.slug, page.status, page.version]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        page.status?.toLowerCase() === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [groupedPages, search, statusFilter]);
-
-  // =================================================
-  // PAGINATION
-  // =================================================
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredGroups.length / ITEMS_PER_PAGE),
-  );
-
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const visibleGroups = filteredGroups.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
-  );
-
-  const startEntry =
-    filteredGroups.length === 0 ? 0 : startIndex + 1;
-
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredGroups.length,
-  );
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
-    if (currentPage >= totalPages - 2) {
-      return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      ];
-    }
-
-    return [
-      currentPage - 2,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
-  }, [currentPage, totalPages]);
-
-  // =================================================
-  // VIEW
-  // =================================================
-
-  const handleView = (group: PageGroup) => {
-    setSelectedGroup(group);
-    setViewOpen(true);
-  };
-
-  // =================================================
-  // ADD
-  // =================================================
-
-  const openAdd = () => {
-    setSelectedPage(null);
-    setModalMode("add");
-    setAddEditOpen(true);
-  };
-
-  // =================================================
-  // EDIT
-  // =================================================
-
-  const openEdit = (page: ContentPage) => {
-    setSelectedPage(page);
-    setModalMode("edit");
-    setAddEditOpen(true);
-  };
-
-  // =================================================
-  // SAVE
-  // =================================================
-
-  const handleSave = async (payload: ContentPayload) => {
-    try {
-      setSaveLoading(true);
-
-      if (modalMode === "edit" && selectedPage) {
-        const response = await landingApi.update(
-          selectedPage.id,
-          payload,
-        );
-
-        if (response.data.success) {
-          toast.success(
-            response.data.message || "Page updated successfully.",
-          );
-
-          setAddEditOpen(false);
-          setSelectedPage(null);
-
-          await fetchContents();
-        } else {
-          toast.error(
-            response.data.message || "Unable to update page.",
-          );
-        }
-      } else {
-        const response = await landingApi.create(payload);
-
-        if (response.data.success) {
-          toast.success(
-            response.data.message || "Page created successfully.",
-          );
-
-          setAddEditOpen(false);
-
-          await fetchContents();
-        } else {
-          toast.error(
-            response.data.message || "Unable to create page.",
-          );
-        }
-      }
-    } catch (error: any) {
-      console.error("Save page error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Unable to save page.",
-      );
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  // =================================================
-  // DELETE OPEN
-  // =================================================
-
-  const openDelete = (page: ContentPage) => {
-    setSelectedPage(page);
-    setDeleteOpen(true);
-  };
-
-  // =================================================
-  // DELETE
-  // =================================================
-
-  const handleDelete = async () => {
-    if (!selectedPage) {
-      return;
-    }
-
-    try {
-      setDeleteLoading(true);
-
-      const response = await landingApi.delete(selectedPage.id);
-
-      if (response.data.success) {
-        toast.success(
-          response.data.message || "Page version deleted successfully.",
-        );
-
-        setDeleteOpen(false);
-        setSelectedPage(null);
-
-        await fetchContents();
-      } else {
-        toast.error(
-          response.data.message || "Unable to delete page.",
-        );
-      }
-    } catch (error: any) {
-      console.error("Delete page error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Unable to delete page.",
-      );
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-
-  if (loading && pages.length === 0) {
+const PermissionLoading: React.FC =
+  () => {
     return (
-      <div className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6">
-        <div className="flex min-h-[450px] items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
-              <FiRefreshCw size={23} className="animate-spin" />
-            </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="flex flex-col items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
+          </div>
 
-            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-              Loading pages...
-            </p>
+          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+            Checking permissions...
+          </p>
+
+          <p className="mt-1 text-[10px] text-[#8C97B2]">
+            Verifying landing page
+            management access.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+// =====================================================
+// ✅ ACCESS DENIED
+// =====================================================
+
+const AccessDenied: React.FC =
+  () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle
+              size={26}
+            />
+          </div>
+
+          <h2 className="text-lg font-bold text-[#0F1B3D]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have
+            permission to access
+            the Landing Page
+            Management module.
+          </p>
+
+          <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FBEAEA] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+            Contact your
+            administrator to request
+            access.
           </div>
         </div>
       </div>
     );
-  }
+  };
 
-  return (
-    <>
-      {/* =================================================
-          ✅ SK EDITOR STYLES — NAVY THEME
-      ================================================= */}
+// =====================================================
+// MAIN PAGE
+// =====================================================
 
-      <style>{`
-        .sk-editor-wrapper .ql-toolbar.ql-snow {
-          border: 1px solid #D8E2F0;
-          border-bottom: none;
-          border-top-left-radius: 12px;
-          border-top-right-radius: 12px;
-          background: #F5F8FF;
-          padding: 8px 10px;
+const LandingPageManagement: React.FC =
+  () => {
+    // ===================================================
+    // ✅ PERMISSIONS
+    // ===================================================
+
+    const {
+      hasPermission,
+      hasModuleAccess,
+      isSuperAdmin,
+      loading:
+        permissionsLoading,
+    } = usePermissions();
+
+    const canViewContent =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasModuleAccess(
+            "content",
+          ) ||
+          hasPermission(
+            "content.view",
+          ),
+        [
+          isSuperAdmin,
+          hasModuleAccess,
+          hasPermission,
+        ],
+      );
+
+    const canCreateContent =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.create",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
+
+    const canUpdateContent =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.edit",
+          ) ||
+          hasPermission(
+            "content.update",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
+
+    const canDeleteContent =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.delete",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
+
+    // ===================================================
+    // STATE
+    // ===================================================
+
+    const [pages, setPages] =
+      useState<
+        ContentPage[]
+      >([]);
+
+    const [loading, setLoading] =
+      useState(false);
+
+    const [
+      saveLoading,
+      setSaveLoading,
+    ] = useState(false);
+
+    const [
+      deleteLoading,
+      setDeleteLoading,
+    ] = useState(false);
+
+    const [search, setSearch] =
+      useState("");
+
+    const [
+      statusFilter,
+      setStatusFilter,
+    ] = useState<
+      | "all"
+      | "published"
+      | "draft"
+      | "archived"
+    >("all");
+
+    const [
+      currentPage,
+      setCurrentPage,
+    ] = useState(1);
+
+    const [
+      viewOpen,
+      setViewOpen,
+    ] = useState(false);
+
+    const [
+      addEditOpen,
+      setAddEditOpen,
+    ] = useState(false);
+
+    const [
+      deleteOpen,
+      setDeleteOpen,
+    ] = useState(false);
+
+    const [
+      modalMode,
+      setModalMode,
+    ] = useState<
+      "add" | "edit"
+    >("add");
+
+    const [
+      selectedGroup,
+      setSelectedGroup,
+    ] =
+      useState<PageGroup | null>(
+        null,
+      );
+
+    const [
+      selectedPage,
+      setSelectedPage,
+    ] =
+      useState<ContentPage | null>(
+        null,
+      );
+
+    const ITEMS_PER_PAGE = 10;
+
+    // =================================================
+    // FETCH
+    // =================================================
+
+    const fetchContents =
+      async () => {
+        try {
+          setLoading(true);
+
+          const response =
+            await landingApi.getAll();
+
+          if (
+            response.data
+              .success
+          ) {
+            setPages(
+              response.data
+                .data || [],
+            );
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to fetch pages.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Fetch contents error:",
+            error,
+          );
+
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Unable to fetch pages.",
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    // =================================================
+    // ✅ FETCH ONLY AFTER PERMISSION CHECK
+    // =================================================
+
+    useEffect(() => {
+      if (
+        permissionsLoading
+      ) {
+        return;
+      }
+
+      if (canViewContent) {
+        fetchContents();
+      }
+    }, [
+      permissionsLoading,
+      canViewContent,
+    ]);
+
+    // =================================================
+    // GROUP VERSIONS
+    // =================================================
+
+    const groupedPages =
+      useMemo(() => {
+        const map = new Map<
+          string,
+          PageGroup
+        >();
+
+        pages.forEach(
+          (page) => {
+            const key =
+              page.slug ||
+              page.title
+                .trim()
+                .toLowerCase();
+
+            if (!map.has(key)) {
+              map.set(key, {
+                slug: page.slug,
+                title:
+                  page.title,
+                latest: page,
+                versions: [page],
+              });
+
+              return;
+            }
+
+            const group =
+              map.get(key)!;
+
+            group.versions.push(
+              page,
+            );
+
+            const currentVersion =
+              versionNumber(
+                group
+                  .latest
+                  .version,
+              );
+
+            const incomingVersion =
+              versionNumber(
+                page.version,
+              );
+
+            const latestUpdated =
+              new Date(
+                group
+                  .latest
+                  .updated_at,
+              ).getTime();
+
+            const incomingUpdated =
+              new Date(
+                page.updated_at,
+              ).getTime();
+
+            if (
+              incomingVersion >
+                currentVersion ||
+              (incomingVersion ===
+                currentVersion &&
+                incomingUpdated >
+                  latestUpdated)
+            ) {
+              group.latest =
+                page;
+
+              group.title =
+                page.title;
+            }
+          },
+        );
+
+        return Array.from(
+          map.values(),
+        ).sort(
+          (a, b) =>
+            new Date(
+              b.latest.updated_at,
+            ).getTime() -
+            new Date(
+              a.latest.updated_at,
+            ).getTime(),
+        );
+      }, [pages]);
+
+    // =================================================
+    // FILTER
+    // =================================================
+
+    const filteredGroups =
+      useMemo(() => {
+        const query =
+          search
+            .trim()
+            .toLowerCase();
+
+        return groupedPages.filter(
+          (group) => {
+            const page =
+              group.latest;
+
+            const matchesSearch =
+              !query ||
+              [
+                page.title,
+                page.slug,
+                page.status,
+                page.version,
+              ]
+                .join(" ")
+                .toLowerCase()
+                .includes(query);
+
+            const matchesStatus =
+              statusFilter ===
+                "all" ||
+              page.status
+                ?.toLowerCase() ===
+                statusFilter;
+
+            return (
+              matchesSearch &&
+              matchesStatus
+            );
+          },
+        );
+      }, [
+        groupedPages,
+        search,
+        statusFilter,
+      ]);
+
+    // =================================================
+    // PAGINATION
+    // =================================================
+
+    const totalPages =
+      Math.max(
+        1,
+        Math.ceil(
+          filteredGroups.length /
+            ITEMS_PER_PAGE,
+        ),
+      );
+
+    const startIndex =
+      (currentPage - 1) *
+      ITEMS_PER_PAGE;
+
+    const visibleGroups =
+      filteredGroups.slice(
+        startIndex,
+        startIndex +
+          ITEMS_PER_PAGE,
+      );
+
+    const startEntry =
+      filteredGroups.length ===
+      0
+        ? 0
+        : startIndex + 1;
+
+    const endEntry = Math.min(
+      startIndex +
+        ITEMS_PER_PAGE,
+      filteredGroups.length,
+    );
+
+    useEffect(() => {
+      if (
+        currentPage >
+        totalPages
+      ) {
+        setCurrentPage(
+          totalPages,
+        );
+      }
+    }, [
+      currentPage,
+      totalPages,
+    ]);
+
+    const paginationPages =
+      useMemo(() => {
+        if (totalPages <= 5) {
+          return Array.from(
+            {
+              length:
+                totalPages,
+            },
+            (_, index) =>
+              index + 1,
+          );
         }
 
-        .sk-editor-wrapper .ql-container.ql-snow {
-          border: 1px solid #D8E2F0;
-          border-bottom-left-radius: 12px;
-          border-bottom-right-radius: 12px;
-          background: #FFFFFF;
-          font-family: inherit;
-          font-size: 14px;
+        if (currentPage <= 3) {
+          return [
+            1,
+            2,
+            3,
+            4,
+            5,
+          ];
         }
 
-        .sk-editor-wrapper .ql-editor {
-          min-height: 180px;
-          max-height: 360px;
-          overflow-y: auto;
-          line-height: 1.6;
-          color: #0F1B3D;
+        if (
+          currentPage >=
+          totalPages - 2
+        ) {
+          return [
+            totalPages - 4,
+            totalPages - 3,
+            totalPages - 2,
+            totalPages - 1,
+            totalPages,
+          ];
         }
 
-        .sk-editor-wrapper .ql-editor.ql-blank::before {
-          color: #8C97B2;
-          font-style: normal;
-          font-size: 13px;
+        return [
+          currentPage - 2,
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          currentPage + 2,
+        ];
+      }, [
+        currentPage,
+        totalPages,
+      ]);
+
+    // =================================================
+    // VIEW
+    // =================================================
+
+    const handleView = (
+      group: PageGroup,
+    ) => {
+      setSelectedGroup(
+        group,
+      );
+
+      setViewOpen(true);
+    };
+
+    // =================================================
+    // ADD
+    // =================================================
+
+    const openAdd = () => {
+      setSelectedPage(
+        null,
+      );
+
+      setModalMode(
+        "add",
+      );
+
+      setAddEditOpen(
+        true,
+      );
+    };
+
+    // =================================================
+    // EDIT
+    // =================================================
+
+    const openEdit = (
+      page: ContentPage,
+    ) => {
+      setSelectedPage(
+        page,
+      );
+
+      setModalMode(
+        "edit",
+      );
+
+      setAddEditOpen(
+        true,
+      );
+    };
+
+    // =================================================
+    // SAVE
+    // =================================================
+
+    const handleSave = async (
+      payload: ContentPayload,
+    ) => {
+      try {
+        setSaveLoading(
+          true,
+        );
+
+        if (
+          modalMode ===
+            "edit" &&
+          selectedPage
+        ) {
+          const response =
+            await landingApi.update(
+              selectedPage.id,
+              payload,
+            );
+
+          if (
+            response.data
+              .success
+          ) {
+            toast.success(
+              response.data
+                .message ||
+                "Page updated successfully.",
+            );
+
+            setAddEditOpen(
+              false,
+            );
+
+            setSelectedPage(
+              null,
+            );
+
+            await fetchContents();
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to update page.",
+            );
+          }
+        } else {
+          const response =
+            await landingApi.create(
+              payload,
+            );
+
+          if (
+            response.data
+              .success
+          ) {
+            toast.success(
+              response.data
+                .message ||
+                "Page created successfully.",
+            );
+
+            setAddEditOpen(
+              false,
+            );
+
+            await fetchContents();
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to create page.",
+            );
+          }
+        }
+      } catch (error: any) {
+        console.error(
+          "Save page error:",
+          error,
+        );
+
+        toast.error(
+          error?.response
+            ?.data?.message ||
+            "Unable to save page.",
+        );
+      } finally {
+        setSaveLoading(
+          false,
+        );
+      }
+    };
+
+    // =================================================
+    // DELETE OPEN
+    // =================================================
+
+    const openDelete = (
+      page: ContentPage,
+    ) => {
+      setSelectedPage(
+        page,
+      );
+
+      setDeleteOpen(
+        true,
+      );
+    };
+
+    // =================================================
+    // DELETE
+    // =================================================
+
+    const handleDelete =
+      async () => {
+        if (!selectedPage) {
+          return;
         }
 
-        .sk-editor-wrapper .ql-snow .ql-stroke {
-          stroke: #1E3A8A;
-        }
+        try {
+          setDeleteLoading(
+            true,
+          );
 
-        .sk-editor-wrapper .ql-snow .ql-fill {
-          fill: #1E3A8A;
-        }
+          const response =
+            await landingApi.delete(
+              selectedPage.id,
+            );
 
-        .sk-editor-wrapper .ql-snow .ql-picker {
-          color: #1E3A8A;
-        }
+          if (
+            response.data
+              .success
+          ) {
+            toast.success(
+              response.data
+                .message ||
+                "Page version deleted successfully.",
+            );
 
-        .sk-editor-wrapper .ql-snow .ql-picker-options {
-          background: #FFFFFF;
-          border: 1px solid #D8E2F0;
-          border-radius: 8px;
-          box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
-        }
+            setDeleteOpen(
+              false,
+            );
 
-        .sk-editor-wrapper .ql-snow.ql-toolbar button:hover,
-        .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active {
-          background: #EAF1FF;
-          border-radius: 6px;
-        }
+            setSelectedPage(
+              null,
+            );
 
-        .sk-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
-        .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke {
-          stroke: #1E3A8A;
-        }
+            await fetchContents();
+          } else {
+            toast.error(
+              response.data
+                .message ||
+                "Unable to delete page.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Delete page error:",
+            error,
+          );
 
-        .sk-editor-wrapper .ql-snow .ql-tooltip {
-          border-radius: 8px;
-          border: 1px solid #D8E2F0;
-          box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Unable to delete page.",
+          );
+        } finally {
+          setDeleteLoading(
+            false,
+          );
         }
+      };
 
-        .sk-editor-wrapper .ql-editor h1,
-        .sk-editor-wrapper .ql-editor h2,
-        .sk-editor-wrapper .ql-editor h3 {
-          color: #0F1B3D;
-        }
+    // =================================================
+    // ✅ PERMISSION LOADING
+    // =================================================
 
-        .sk-editor-wrapper .ql-editor ul,
-        .sk-editor-wrapper .ql-editor ol {
-          padding-left: 22px;
-        }
+    if (
+      permissionsLoading
+    ) {
+      return (
+        <PermissionLoading />
+      );
+    }
 
-        .sk-editor-wrapper .ql-editor blockquote {
-          border-left: 3px solid #1E3A8A;
-          padding-left: 12px;
-          color: #4A5778;
-        }
+    // =================================================
+    // ✅ ACCESS DENIED
+    // =================================================
 
-        .sk-editor-wrapper .ql-editor a {
-          color: #2563EB;
-          text-decoration: underline;
-        }
+    if (!canViewContent) {
+      return <AccessDenied />;
+    }
 
-        .sk-answer-preview ul,
-        .sk-answer-preview ol {
-          padding-left: 22px;
-          margin: 8px 0;
-        }
+    // =================================================
+    // PAGE DATA LOADING
+    // =================================================
 
-        .sk-answer-preview ul {
-          list-style: disc;
-        }
+    if (
+      loading &&
+      pages.length === 0
+    ) {
+      return (
+        <div className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6">
+          <div className="flex min-h-[450px] items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
+                <FiRefreshCw
+                  size={23}
+                  className="animate-spin"
+                />
+              </div>
 
-        .sk-answer-preview ol {
-          list-style: decimal;
-        }
+              <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                Loading pages...
+              </p>
 
-        .sk-answer-preview li {
-          margin: 3px 0;
-        }
+              <p className="mt-1 text-[10px] text-[#8C97B2]">
+                Fetching landing page
+                content.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
-        .sk-answer-preview a {
-          color: #2563EB;
-          text-decoration: underline;
-        }
+    return (
+      <>
+        {/* =================================================
+            ✅ SK EDITOR STYLES — NAVY THEME
+        ================================================= */}
 
-        .sk-answer-preview blockquote {
-          border-left: 3px solid #1E3A8A;
-          margin: 10px 0;
-          padding-left: 12px;
-          color: #4A5778;
-        }
+        <style>{`
+          .sk-editor-wrapper .ql-toolbar.ql-snow {
+            border: 1px solid #D8E2F0;
+            border-bottom: none;
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            background: #F5F8FF;
+            padding: 8px 10px;
+          }
 
-        .sk-answer-preview pre,
-        .sk-answer-preview code {
-          background: #F5F8FF;
-          border-radius: 6px;
-          padding: 2px 6px;
-          font-size: 12px;
-        }
+          .sk-editor-wrapper .ql-container.ql-snow {
+            border: 1px solid #D8E2F0;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            background: #FFFFFF;
+            font-family: inherit;
+            font-size: 14px;
+          }
 
-        .sk-answer-preview h1,
-        .sk-answer-preview h2,
-        .sk-answer-preview h3 {
-          color: #0F1B3D;
-          font-weight: 700;
-          margin: 10px 0 5px;
-        }
+          .sk-editor-wrapper .ql-editor {
+            min-height: 180px;
+            max-height: 360px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #0F1B3D;
+          }
 
-        .sk-answer-preview p {
-          margin: 5px 0;
-        }
-      `}</style>
+          .sk-editor-wrapper .ql-editor.ql-blank::before {
+            color: #8C97B2;
+            font-style: normal;
+            font-size: 13px;
+          }
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
-      >
-        {/* HEADER */}
+          .sk-editor-wrapper .ql-snow .ql-stroke {
+            stroke: #1E3A8A;
+          }
+
+          .sk-editor-wrapper .ql-snow .ql-fill {
+            fill: #1E3A8A;
+          }
+
+          .sk-editor-wrapper .ql-snow .ql-picker {
+            color: #1E3A8A;
+          }
+
+          .sk-editor-wrapper .ql-snow .ql-picker-options {
+            background: #FFFFFF;
+            border: 1px solid #D8E2F0;
+            border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
+          }
+
+          .sk-editor-wrapper .ql-snow.ql-toolbar button:hover,
+          .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active {
+            background: #EAF1FF;
+            border-radius: 6px;
+          }
+
+          .sk-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
+          .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+            stroke: #1E3A8A;
+          }
+
+          .sk-editor-wrapper .ql-snow .ql-tooltip {
+            border-radius: 8px;
+            border: 1px solid #D8E2F0;
+            box-shadow: 0 8px 20px rgba(30, 58, 138, 0.12);
+          }
+
+          .sk-editor-wrapper .ql-editor h1,
+          .sk-editor-wrapper .ql-editor h2,
+          .sk-editor-wrapper .ql-editor h3 {
+            color: #0F1B3D;
+          }
+
+          .sk-editor-wrapper .ql-editor ul,
+          .sk-editor-wrapper .ql-editor ol {
+            padding-left: 22px;
+          }
+
+          .sk-editor-wrapper .ql-editor blockquote {
+            border-left: 3px solid #1E3A8A;
+            padding-left: 12px;
+            color: #4A5778;
+          }
+
+          .sk-editor-wrapper .ql-editor a {
+            color: #2563EB;
+            text-decoration: underline;
+          }
+
+          .sk-answer-preview ul,
+          .sk-answer-preview ol {
+            padding-left: 22px;
+            margin: 8px 0;
+          }
+
+          .sk-answer-preview ul {
+            list-style: disc;
+          }
+
+          .sk-answer-preview ol {
+            list-style: decimal;
+          }
+
+          .sk-answer-preview li {
+            margin: 3px 0;
+          }
+
+          .sk-answer-preview a {
+            color: #2563EB;
+            text-decoration: underline;
+          }
+
+          .sk-answer-preview blockquote {
+            border-left: 3px solid #1E3A8A;
+            margin: 10px 0;
+            padding-left: 12px;
+            color: #4A5778;
+          }
+
+          .sk-answer-preview pre,
+          .sk-answer-preview code {
+            background: #F5F8FF;
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-size: 12px;
+          }
+
+          .sk-answer-preview h1,
+          .sk-answer-preview h2,
+          .sk-answer-preview h3 {
+            color: #0F1B3D;
+            font-weight: 700;
+            margin: 10px 0 5px;
+          }
+
+          .sk-answer-preview p {
+            margin: 5px 0;
+          }
+        `}</style>
 
         <motion.div
-          variants={itemVariants}
-          className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+          variants={
+            containerVariants
+          }
+          initial="hidden"
+          animate="visible"
+          className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
         >
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+          {/* HEADER */}
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
-                Website Content
-              </span>
+          <motion.div
+            variants={
+              itemVariants
+            }
+            className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+          >
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+
+                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+                  Website Content
+                </span>
+              </div>
+
+              <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+                Landing Pages
+              </h1>
+
+              <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
+                Manage website pages,
+                content blocks, images
+                and published versions
+                from one place.
+              </p>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
-              Landing Pages
-            </h1>
-
-            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
-              Manage website pages, content blocks, images and published
-              versions from one place.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={fetchContents}
-              disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <FiRefreshCw
-                size={15}
-                className={loading ? "animate-spin" : ""}
-              />
-              Refresh
-            </button>
-
-            {/* ✅ ADD PAGE — permission based */}
-            {canCreateContent && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={openAdd}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+                onClick={
+                  fetchContents
+                }
+                disabled={
+                  loading
+                }
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <FiPlus size={15} />
-                Add Page
+                <FiRefreshCw
+                  size={15}
+                  className={
+                    loading
+                      ? "animate-spin"
+                      : ""
+                  }
+                />
+                Refresh
               </button>
-            )}
-          </div>
-        </motion.div>
 
-        {/* MAIN CARD */}
+              {/* ✅ ADD PAGE — permission based */}
+              {canCreateContent && (
+                <button
+                  type="button"
+                  onClick={
+                    openAdd
+                  }
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+                >
+                  <FiPlus
+                    size={15}
+                  />
+                  Add Page
+                </button>
+              )}
+            </div>
+          </motion.div>
 
-        <motion.div
-          variants={itemVariants}
-          className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
-        >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+          {/* MAIN CARD */}
 
-          {/* TOOLBAR */}
+          <motion.div
+            variants={
+              itemVariants
+            }
+            className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+          >
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
-          <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative w-full lg:max-w-[440px]">
-                <FiSearch
-                  size={17}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
-                />
+            {/* TOOLBAR */}
 
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search title, slug or version..."
-                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
-                />
+            <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:max-w-[440px]">
+                  <FiSearch
+                    size={17}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                  />
+
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(
+                      event,
+                    ) => {
+                      setSearch(
+                        event.target
+                          .value,
+                      );
+
+                      setCurrentPage(
+                        1,
+                      );
+                    }}
+                    placeholder="Search title, slug or version..."
+                    className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* DESKTOP TABLE */}
+            {/* DESKTOP TABLE */}
 
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[850px] border-collapse">
-              <thead>
-                <tr className="bg-[#1E3A8A]">
-                  <th className="w-[75px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    S.No.
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Page
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Slug
-                  </th>
-
-                  <th className="w-[120px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Latest Version
-                  </th>
-
-                  {(canViewContent || canUpdateContent || canDeleteContent) && (
-                    <th className="w-[150px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                      Actions
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[850px] border-collapse">
+                <thead>
+                  <tr className="bg-[#1E3A8A]">
+                    <th className="w-[75px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      S.No.
                     </th>
-                  )}
-                </tr>
-              </thead>
 
-              <tbody>
-                {visibleGroups.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={
-                        4 +
-                        (canViewContent || canUpdateContent || canDeleteContent
-                          ? 1
-                          : 0)
-                      }
-                      className="px-5 py-16 text-center"
-                    >
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-                          <FiFileText size={24} />
-                        </div>
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      Page
+                    </th>
 
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-                          No pages found
-                        </p>
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      Slug
+                    </th>
 
-                        <p className="mt-1 text-xs text-[#8C97B2]">
-                          Try another search or create a new page.
-                        </p>
-                      </div>
-                    </td>
+                    <th className="w-[120px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                      Latest Version
+                    </th>
+
+                    {(
+                      canViewContent ||
+                      canUpdateContent ||
+                      canDeleteContent
+                    ) && (
+                      <th className="w-[150px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
+                        Actions
+                      </th>
+                    )}
                   </tr>
-                ) : (
-                  visibleGroups.map((group, index) => {
-                    const page = group.latest;
+                </thead>
+
+                <tbody>
+                  {visibleGroups.length ===
+                  0 ? (
+                    <tr>
+                      <td
+                        colSpan={
+                          4 +
+                          (
+                            canViewContent ||
+                            canUpdateContent ||
+                            canDeleteContent
+                          )
+                            ? 1
+                            : 0
+                        }
+                        className="px-5 py-16 text-center"
+                      >
+                        <div className="flex flex-col items-center">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                            <FiFileText
+                              size={24}
+                            />
+                          </div>
+
+                          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                            No pages
+                            found
+                          </p>
+
+                          <p className="mt-1 text-xs text-[#8C97B2]">
+                            Try another
+                            search or
+                            create a
+                            new page.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    visibleGroups.map(
+                      (
+                        group,
+                        index,
+                      ) => {
+                        const page =
+                          group.latest;
+
+                        return (
+                          <motion.tr
+                            key={
+                              group.slug
+                            }
+                            initial={{
+                              opacity: 0,
+                              y: 5,
+                            }}
+                            animate={{
+                              opacity: 1,
+                              y: 0,
+                            }}
+                            transition={{
+                              delay:
+                                index *
+                                0.03,
+                            }}
+                            className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
+                          >
+                            <td className="px-5 py-4">
+                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
+                                {startIndex +
+                                  index +
+                                  1}
+                              </span>
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[11px] font-bold text-white shadow-sm">
+                                  {initials(
+                                    page.title,
+                                  )}
+                                </div>
+
+                                <div className="min-w-0">
+                                  <p className="max-w-[240px] truncate text-sm font-bold text-[#0F1B3D]">
+                                    {
+                                      page.title
+                                    }
+                                  </p>
+
+                                  <p className="mt-1 flex items-center gap-1 text-[10px] text-[#8C97B2]">
+                                    <FiClock
+                                      size={
+                                        10
+                                      }
+                                    />
+                                    Updated{" "}
+                                    {formatDate(
+                                      page.updated_at,
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-5 py-4">
+                              <span className="rounded-lg bg-[#F5F8FF] px-3 py-2 font-mono text-[10px] font-semibold text-[#4A5778]">
+                                /{
+                                  page.slug
+                                }
+                              </span>
+                            </td>
+
+                            <td className="px-5 py-4 text-center">
+                              <span className="inline-flex items-center rounded-lg border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1.5 text-[10px] font-bold text-[#1E3A8A]">
+                                v
+                                {
+                                  page.version
+                                }
+                              </span>
+                            </td>
+
+                            {(
+                              canViewContent ||
+                              canUpdateContent ||
+                              canDeleteContent
+                            ) && (
+                              <td className="px-5 py-4">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  {/* ✅ VIEW */}
+                                  {canViewContent && (
+                                    <button
+                                      type="button"
+                                      title="View page"
+                                      onClick={() =>
+                                        handleView(
+                                          group,
+                                        )
+                                      }
+                                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                                    >
+                                      <FiEye
+                                        size={
+                                          15
+                                        }
+                                      />
+                                    </button>
+                                  )}
+
+                                  {/* ✅ EDIT */}
+                                  {canUpdateContent && (
+                                    <button
+                                      type="button"
+                                      title="Edit page"
+                                      onClick={() =>
+                                        openEdit(
+                                          page,
+                                        )
+                                      }
+                                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                                    >
+                                      <FiEdit2
+                                        size={
+                                          15
+                                        }
+                                      />
+                                    </button>
+                                  )}
+
+                                  {/* ✅ DELETE */}
+                                  {canDeleteContent && (
+                                    <button
+                                      type="button"
+                                      title="Delete latest version"
+                                      onClick={() =>
+                                        openDelete(
+                                          page,
+                                        )
+                                      }
+                                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                                    >
+                                      <FiTrash2
+                                        size={
+                                          15
+                                        }
+                                      />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+                          </motion.tr>
+                        );
+                      },
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* MOBILE */}
+
+            <div className="block lg:hidden">
+              {visibleGroups.length >
+              0 ? (
+                visibleGroups.map(
+                  (
+                    group,
+                    index,
+                  ) => {
+                    const page =
+                      group.latest;
 
                     return (
-                      <motion.tr
-                        key={group.slug}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.03 }}
-                        className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
+                      <motion.div
+                        key={
+                          group.slug
+                        }
+                        variants={
+                          itemVariants
+                        }
+                        className="border-b border-[#1E3A8A]/10 p-4"
                       >
-                        <td className="px-5 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[11px] font-bold text-white shadow-sm">
-                              {initials(page.title)}
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="max-w-[240px] truncate text-sm font-bold text-[#0F1B3D]">
-                                {page.title}
-                              </p>
-
-                              <p className="mt-1 flex items-center gap-1 text-[10px] text-[#8C97B2]">
-                                <FiClock size={10} />
-                                Updated {formatDate(page.updated_at)}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="rounded-lg bg-[#F5F8FF] px-3 py-2 font-mono text-[10px] font-semibold text-[#4A5778]">
-                            /{page.slug}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-center">
-                          <span className="inline-flex items-center rounded-lg border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1.5 text-[10px] font-bold text-[#1E3A8A]">
-                            v{page.version}
-                          </span>
-                        </td>
-
-                        {(canViewContent ||
-                          canUpdateContent ||
-                          canDeleteContent) && (
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-center gap-1.5">
-                              {/* ✅ VIEW */}
-                              {canViewContent && (
-                                <button
-                                  type="button"
-                                  title="View page"
-                                  onClick={() => handleView(group)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
-                                >
-                                  <FiEye size={15} />
-                                </button>
-                              )}
-
-                              {/* ✅ EDIT */}
-                              {canUpdateContent && (
-                                <button
-                                  type="button"
-                                  title="Edit page"
-                                  onClick={() => openEdit(page)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
-                                >
-                                  <FiEdit2 size={15} />
-                                </button>
-                              )}
-
-                              {/* ✅ DELETE */}
-                              {canDeleteContent && (
-                                <button
-                                  type="button"
-                                  title="Delete latest version"
-                                  onClick={() => openDelete(page)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiTrash2 size={15} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </motion.tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* MOBILE */}
-
-          <div className="block lg:hidden">
-            {visibleGroups.length > 0 ? (
-              visibleGroups.map((group, index) => {
-                const page = group.latest;
-
-                return (
-                  <motion.div
-                    key={group.slug}
-                    variants={itemVariants}
-                    className="border-b border-[#1E3A8A]/10 p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[11px] font-bold text-white">
-                        {initials(page.title)}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-[#0F1B3D]">
-                              {page.title}
-                            </p>
-
-                            <p className="mt-1 truncate font-mono text-[10px] text-[#8C97B2]">
-                              /{page.slug}
-                            </p>
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[11px] font-bold text-white">
+                            {initials(
+                              page.title,
+                            )}
                           </div>
 
-                          <StatusBadge status={page.status} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-[#0F1B3D]">
+                                  {
+                                    page.title
+                                  }
+                                </p>
+
+                                <p className="mt-1 truncate font-mono text-[10px] text-[#8C97B2]">
+                                  /{
+                                    page.slug
+                                  }
+                                </p>
+                              </div>
+
+                              <StatusBadge
+                                status={
+                                  page.status
+                                }
+                              />
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="mt-4 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                        Latest Version
-                      </p>
+                        <div className="mt-4 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                            Latest
+                            Version
+                          </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#1E3A8A]">
-                        v{page.version}
-                      </p>
-                    </div>
+                          <p className="mt-1 text-sm font-bold text-[#1E3A8A]">
+                            v
+                            {
+                              page.version
+                            }
+                          </p>
+                        </div>
 
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-[10px] text-[#8C97B2]">
-                        Updated {formatDate(page.updated_at)}
-                      </p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-[10px] text-[#8C97B2]">
+                            Updated{" "}
+                            {formatDate(
+                              page.updated_at,
+                            )}
+                          </p>
 
-                      <span className="text-[9px] font-bold text-[#8C97B2]">
-                        #{startIndex + index + 1}
-                      </span>
-                    </div>
+                          <span className="text-[9px] font-bold text-[#8C97B2]">
+                            #
+                            {startIndex +
+                              index +
+                              1}
+                          </span>
+                        </div>
 
-                    <div className="mt-3 flex justify-end gap-2">
-                      {canViewContent && (
-                        <button
-                          type="button"
-                          onClick={() => handleView(group)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A]"
-                          title="View"
-                        >
-                          <FiEye size={14} />
-                        </button>
-                      )}
+                        <div className="mt-3 flex justify-end gap-2">
+                          {canViewContent && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleView(
+                                  group,
+                                )
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A]"
+                              title="View"
+                            >
+                              <FiEye
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
 
-                      {canUpdateContent && (
-                        <button
-                          type="button"
-                          onClick={() => openEdit(page)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A]"
-                          title="Edit"
-                        >
-                          <FiEdit2 size={14} />
-                        </button>
-                      )}
+                          {canUpdateContent && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEdit(
+                                  page,
+                                )
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A]"
+                              title="Edit"
+                            >
+                              <FiEdit2
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
 
-                      {canDeleteContent && (
-                        <button
-                          type="button"
-                          onClick={() => openDelete(page)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
-                          title="Delete"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-                  <FiFileText size={24} />
+                          {canDeleteContent && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openDelete(
+                                  page,
+                                )
+                              }
+                              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                              title="Delete"
+                            >
+                              <FiTrash2
+                                size={
+                                  14
+                                }
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  },
+                )
+              ) : (
+                <div className="flex flex-col items-center px-5 py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                    <FiFileText
+                      size={24}
+                    />
+                  </div>
+
+                  <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                    No pages
+                    found
+                  </p>
+
+                  <p className="mt-1 text-xs text-[#8C97B2]">
+                    Try another search
+                    or filter.
+                  </p>
                 </div>
+              )}
+            </div>
 
-                <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-                  No pages found
-                </p>
+            {/* PAGINATION */}
 
-                <p className="mt-1 text-xs text-[#8C97B2]">
-                  Try another search or filter.
-                </p>
+            {filteredGroups.length >
+              0 && (
+              <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
+                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                  <p className="text-xs text-[#8C97B2]">
+                    Showing{" "}
+                    <span className="font-bold text-[#3A4668]">
+                      {
+                        startEntry
+                      }
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-bold text-[#3A4668]">
+                      {endEntry}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-bold text-[#3A4668]">
+                      {
+                        filteredGroups.length
+                      }
+                    </span>{" "}
+                    pages
+                  </p>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(
+                          (
+                            page,
+                          ) =>
+                            page -
+                            1,
+                        )
+                      }
+                      disabled={
+                        currentPage ===
+                        1
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <FiChevronLeft
+                        size={17}
+                      />
+                    </button>
+
+                    {paginationPages.map(
+                      (
+                        page,
+                      ) => (
+                        <button
+                          key={
+                            page
+                          }
+                          type="button"
+                          onClick={() =>
+                            setCurrentPage(
+                              page,
+                            )
+                          }
+                          className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+                            currentPage ===
+                            page
+                              ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
+                              : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+                          }`}
+                        >
+                          {
+                            page
+                          }
+                        </button>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(
+                          (
+                            page,
+                          ) =>
+                            page +
+                            1,
+                        )
+                      }
+                      disabled={
+                        currentPage ===
+                        totalPages
+                      }
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <FiChevronRight
+                        size={17}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
+          </motion.div>
 
-          {/* PAGINATION */}
-
-          {filteredGroups.length > 0 && (
-            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
-              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8C97B2]">
-                  Showing{" "}
-                  <span className="font-bold text-[#3A4668]">
-                    {startEntry}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#3A4668]">
-                    {endEntry}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#3A4668]">
-                    {filteredGroups.length}
-                  </span>{" "}
-                  pages
-                </p>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => page - 1)
-                    }
-                    disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronLeft size={17} />
-                  </button>
-
-                  {paginationPages.map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
-                          : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => page + 1)
-                    }
-                    disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronRight size={17} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="h-5" />
         </motion.div>
 
-        <div className="h-5" />
-      </motion.div>
+        {/* MODALS — permission based */}
 
-      {/* MODALS — permission based */}
-
-      {canViewContent && (
-        <ViewPageModal
-          open={viewOpen}
-          page={selectedGroup}
-          onClose={() => {
-            setViewOpen(false);
-            setSelectedGroup(null);
-          }}
-        />
-      )}
-
-      {(canCreateContent || canUpdateContent) && (
-        <PageFormModal
-          open={addEditOpen}
-          loading={saveLoading}
-          mode={modalMode}
-          page={selectedPage}
-          onClose={() => {
-            if (!saveLoading) {
-              setAddEditOpen(false);
-              setSelectedPage(null);
+        {canViewContent && (
+          <ViewPageModal
+            open={viewOpen}
+            page={
+              selectedGroup
             }
-          }}
-          onSubmit={handleSave}
-        />
-      )}
+            onClose={() => {
+              setViewOpen(
+                false,
+              );
 
-      {canDeleteContent && (
-        <DeletePageModal
-          open={deleteOpen}
-          loading={deleteLoading}
-          page={selectedPage}
-          onClose={() => {
-            if (!deleteLoading) {
-              setDeleteOpen(false);
-              setSelectedPage(null);
+              setSelectedGroup(
+                null,
+              );
+            }}
+          />
+        )}
+
+        {(
+          canCreateContent ||
+          canUpdateContent
+        ) && (
+          <PageFormModal
+            open={addEditOpen}
+            loading={
+              saveLoading
             }
-          }}
-          onConfirm={handleDelete}
-        />
-      )}
-    </>
-  );
-};
+            mode={modalMode}
+            page={selectedPage}
+            onClose={() => {
+              if (
+                !saveLoading
+              ) {
+                setAddEditOpen(
+                  false,
+                );
+
+                setSelectedPage(
+                  null,
+                );
+              }
+            }}
+            onSubmit={
+              handleSave
+            }
+          />
+        )}
+
+        {canDeleteContent && (
+          <DeletePageModal
+            open={deleteOpen}
+            loading={
+              deleteLoading
+            }
+            page={selectedPage}
+            onClose={() => {
+              if (
+                !deleteLoading
+              ) {
+                setDeleteOpen(
+                  false,
+                );
+
+                setSelectedPage(
+                  null,
+                );
+              }
+            }}
+            onConfirm={
+              handleDelete
+            }
+          />
+        )}
+      </>
+    );
+  };
 
 export default LandingPageManagement;

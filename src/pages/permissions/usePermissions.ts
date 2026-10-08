@@ -1,267 +1,114 @@
-// src/hooks/usePermissions.ts
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-import adminApi from "../../api/endpoints/Auth";
+import { adminApi } from "../../api/endpoints/Auth";
 
 export const ROLES = {
   SUPER_ADMIN: "super-admin",
-
   ADMIN: "admin",
-
   FINANCE: "finance",
   FINANCE_MANAGER: "finance-manager",
-
   SALES: "sales",
   SALES_MANAGER: "sales-manager",
   SALES_EXECUTIVE: "sales-executive",
-
   WAREHOUSE: "warehouse",
   WAREHOUSE_MANAGER: "warehouse-manager",
   WAREHOUSE_EXECUTIVE: "warehouse-executive",
 } as const;
-
-export type RoleSlug = (typeof ROLES)[keyof typeof ROLES];
-
-export interface AdminRole {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string | null;
-}
-
-export interface Warehouse {
-  id: number;
-  name: string;
-  code: string;
-  city: string;
-  state: string;
-  is_active: boolean;
-  is_default: boolean;
-}
-
-export interface WarehouseRole {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string | null;
-}
-
-export interface WarehouseAssignment {
-  id: number;
-
-  warehouse: Warehouse | null;
-
-  role: WarehouseRole | null;
-
-  role_id: number;
-  role_slug: string;
-
-  is_primary: boolean;
-  is_active: boolean;
-  is_current: boolean;
-
-  assigned_from: string | null;
-  assigned_until: string | null;
-
-  notes: string | null;
-
-  assigned_by: number;
-
-  created_at: string;
-  updated_at: string;
-}
-
-/* ============================================================
-   ADMIN DETAILS
-   ============================================================ */
 
 export interface AdminDetails {
   id: number;
   name: string;
   email: string;
   profile_image?: string | null;
-  warehouse_name?: string | null;
-  warehouse_code?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-/* ============================================================
-   PERMISSIONS DATA
-   ============================================================ */
+export interface AdminRole {
+  id?: number;
+  name?: string;
+  slug?: string;
+  is_primary?: boolean;
+  pivot?: {
+    admin_id?: number;
+    role_id?: number;
+  };
+}
+
+export interface WarehouseAssignment {
+  id?: number;
+  warehouse_id?: number;
+  warehouse?: {
+    id?: number;
+    name?: string;
+    code?: string;
+  };
+  is_primary?: boolean;
+}
 
 export interface PermissionsData {
   admin: AdminDetails | null;
-
   permissions_grouped: Record<string, string[]>;
-
   roles: AdminRole[];
-
   warehouse_assignments: WarehouseAssignment[];
-
   has_warehouse_access: boolean;
 }
 
-/* ============================================================
-   API RESPONSE
-   ============================================================ */
+interface UsePermissionsReturn {
+  data: PermissionsData | null;
+  loading: boolean;
+  error: string | null;
 
-export interface PermissionsResponse {
-  success: boolean;
+  admin: AdminDetails | null;
+  roles: AdminRole[];
+  roleSlugs: string[];
+  primaryRole: string | null;
 
-  data: PermissionsData;
+  permissionsGrouped: Record<string, string[]>;
+  allSlugs: string[];
 
-  message?: string;
+  hasPermission: (slug: string) => boolean;
+  hasAnyPermission: (slugs: string[]) => boolean;
+  hasAllPermissions: (slugs: string[]) => boolean;
+
+  can: (module: string, action: string) => boolean;
+  hasModuleAccess: (module: string) => boolean;
+
+  hasRole: (role: string) => boolean;
+  hasAnyRole: (roles: string[]) => boolean;
+
+  isSuperAdmin: boolean;
+
+  hasWarehouseAccess: boolean;
+  warehouseAssignments: WarehouseAssignment[];
+
+  refetch: () => Promise<void>;
 }
 
-/* ============================================================
-   ROLE BASED FALLBACK PERMISSIONS
-   ------------------------------------------------------------
-   ⚠️ Ye fallback use NAHI hoga (hasPermission me).
-   Sirf reference ke liye rakha hai.
-   ============================================================ */
-
-export const ROLE_PERMISSIONS: Record<string, string[]> = {
-  [ROLES.SUPER_ADMIN]: ["*"],
-
-  [ROLES.ADMIN]: [
-    "product.create",
-    "product.view",
-    "product.update",
-    "product.details",
-
-    "category.create",
-    "category.view",
-    "category.update",
-    "category.details",
-
-    "attribute.create",
-    "attribute.view",
-    "attribute.update",
-    "attribute.delete",
-    "attribute.details",
-
-    "order.view",
-    "order.details",
-    "order.dispatch",
-    "order.shipped",
-    "order.delivered",
-  ],
-
-  [ROLES.FINANCE]: [
-    "payout.view",
-    "payout.details",
-    "payout.release",
-    "payout.hold",
-
-    "return_refund.view",
-    "return_refund.details",
-    "return_refund.approve",
-    "return_refund.reject",
-  ],
-
-  [ROLES.FINANCE_MANAGER]: [
-    "payout.view",
-    "payout.details",
-    "payout.release",
-    "payout.hold",
-    "payout.notify",
-    "payout.export",
-
-    "return_refund.view",
-    "return_refund.details",
-    "return_refund.approve",
-    "return_refund.reject",
-    "return_refund.received",
-    "return_refund.completed",
-  ],
-
-  [ROLES.SALES]: [
-    "order.view",
-    "order.details",
-  ],
-
-  [ROLES.SALES_MANAGER]: [
-    "order.view",
-    "order.details",
-    "order.dispatch",
-    "order.shipped",
-    "order.delivered",
-  ],
-
-  [ROLES.SALES_EXECUTIVE]: [
-    "order.view",
-    "order.details",
-  ],
-
-  [ROLES.WAREHOUSE]: [
-    "stock.view",
-    "stock.update",
-  ],
-
-  [ROLES.WAREHOUSE_MANAGER]: [
-    "stock.view",
-    "stock.update",
-
-    "product.view",
-    "product.details",
-
-    "category.view",
-    "category.details",
-
-    "attribute.view",
-    "attribute.details",
-  ],
-
-  [ROLES.WAREHOUSE_EXECUTIVE]: [
-    "stock.view",
-    "stock.update",
-  ],
+/**
+ * Normalize permission/role/module strings.
+ */
+const normalize = (value: unknown): string => {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 };
 
-export const WAREHOUSE_ROLE_ACCESS: Record<
-  string,
-  {
-    view: boolean;
-    update: boolean;
-    transfer: boolean;
-    dispatch: boolean;
-  }
-> = {
-  [ROLES.SUPER_ADMIN]: {
-    view: true,
-    update: true,
-    transfer: true,
-    dispatch: true,
-  },
-
-  [ROLES.WAREHOUSE]: {
-    view: true,
-    update: false,
-    transfer: false,
-    dispatch: false,
-  },
-
-  [ROLES.WAREHOUSE_MANAGER]: {
-    view: true,
-    update: true,
-    transfer: true,
-    dispatch: true,
-  },
-
-  [ROLES.WAREHOUSE_EXECUTIVE]: {
-    view: true,
-    update: true,
-    transfer: false,
-    dispatch: false,
-  },
+/**
+ * Convert different role object formats into a slug.
+ */
+const getRoleSlug = (role: AdminRole): string => {
+  return normalize(role?.slug || role?.name || "");
 };
 
-export const usePermissions = () => {
+export const usePermissions = (): UsePermissionsReturn => {
   const [data, setData] = useState<PermissionsData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Fetch current admin details + permissions.
+   */
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -269,17 +116,38 @@ export const usePermissions = () => {
     try {
       const response = await adminApi.me();
 
-      if (response.data.success) {
-        setData(response.data.data);
+      if (response?.data?.success) {
+        const responseData = response.data.data;
+
+        setData({
+          admin: responseData?.admin ?? null,
+          permissions_grouped:
+            responseData?.permissions_grouped &&
+            typeof responseData.permissions_grouped === "object"
+              ? responseData.permissions_grouped
+              : {},
+          roles: Array.isArray(responseData?.roles)
+            ? responseData.roles
+            : [],
+          warehouse_assignments: Array.isArray(
+            responseData?.warehouse_assignments,
+          )
+            ? responseData.warehouse_assignments
+            : [],
+          has_warehouse_access:
+            Boolean(responseData?.has_warehouse_access),
+        });
       } else {
         setData(null);
 
         setError(
-          response.data.message ||
+          response?.data?.message ||
             "Failed to fetch admin permissions",
         );
       }
     } catch (err: any) {
+      console.error("Failed to fetch admin permissions:", err);
+
       setData(null);
 
       setError(
@@ -292,306 +160,432 @@ export const usePermissions = () => {
     }
   }, []);
 
+  /**
+   * Fetch permissions on mount.
+   */
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  const admin = useMemo(() => {
-    return data?.admin ?? null;
-  }, [data]);
-
+  /**
+   * Admin roles.
+   */
   const roles = useMemo<AdminRole[]>(() => {
-    return data?.roles ?? [];
+    return Array.isArray(data?.roles) ? data.roles : [];
   }, [data]);
 
+  /**
+   * Role slugs.
+   */
   const roleSlugs = useMemo<string[]>(() => {
-    const roleSet = new Set<string>();
+    return roles
+      .map(getRoleSlug)
+      .filter(Boolean);
+  }, [roles]);
 
-    roles.forEach((role) => {
-      if (role.slug) {
-        roleSet.add(role.slug);
-      }
-    });
-
-    data?.warehouse_assignments?.forEach((assignment) => {
-      if (assignment.role_slug) {
-        roleSet.add(assignment.role_slug);
-      }
-
-      if (assignment.role?.slug) {
-        roleSet.add(assignment.role.slug);
-      }
-    });
-
-    return Array.from(roleSet);
-  }, [roles, data]);
-
+  /**
+   * Primary role.
+   */
   const primaryRole = useMemo<string | null>(() => {
-    const primaryAssignment =
-      data?.warehouse_assignments?.find(
-        (assignment) => assignment.is_primary === true,
-      );
-
-    if (primaryAssignment?.role_slug) {
-      return primaryAssignment.role_slug;
+    if (!roles.length) {
+      return null;
     }
 
-    if (primaryAssignment?.role?.slug) {
-      return primaryAssignment.role.slug;
+    const primary =
+      roles.find((role) => role?.is_primary === true) ||
+      roles.find(
+        (role) =>
+          normalize(role?.pivot?.admin_id) !== "" &&
+          role?.is_primary === true,
+      ) ||
+      roles[0];
+
+    return getRoleSlug(primary) || null;
+  }, [roles]);
+
+  /**
+   * Permissions grouped by module.
+   *
+   * Example backend:
+   *
+   * {
+   *   "admin": [
+   *     "create",
+   *     "edit",
+   *     "view",
+   *     "details",
+   *     "delete"
+   *   ]
+   * }
+   */
+  const permissionsGrouped = useMemo<
+    Record<string, string[]>
+  >(() => {
+    if (
+      !data?.permissions_grouped ||
+      typeof data.permissions_grouped !== "object"
+    ) {
+      return {};
     }
 
-    if (roles.length > 0) {
-      return roles[0]?.slug ?? null;
-    }
+    const normalized: Record<string, string[]> = {};
 
-    return roleSlugs[0] ?? null;
-  }, [data, roles, roleSlugs]);
+    Object.entries(data.permissions_grouped).forEach(
+      ([module, actions]) => {
+        const normalizedModule = normalize(module);
 
-  const permissionsGrouped = useMemo(() => {
-    return data?.permissions_grouped ?? {};
+        if (!normalizedModule) {
+          return;
+        }
+
+        if (!Array.isArray(actions)) {
+          return;
+        }
+
+        normalized[normalizedModule] = actions
+          .map((action) => normalize(action))
+          .filter(Boolean);
+      },
+    );
+
+    return normalized;
   }, [data]);
 
+  /**
+   * Convert grouped permissions into permission slugs.
+   *
+   * Example:
+   *
+   * admin: ["create", "edit", "view", "delete"]
+   *
+   * becomes:
+   *
+   * [
+   *   "admin.create",
+   *   "admin.edit",
+   *   "admin.view",
+   *   "admin.delete"
+   * ]
+   */
   const allSlugs = useMemo<string[]>(() => {
     const slugs: string[] = [];
 
     Object.entries(permissionsGrouped).forEach(
       ([module, actions]) => {
+        if (!Array.isArray(actions)) {
+          return;
+        }
+
         actions.forEach((action) => {
-          slugs.push(`${module}.${action}`);
+          const normalizedModule = normalize(module);
+          const normalizedAction = normalize(action);
+
+          if (!normalizedModule || !normalizedAction) {
+            return;
+          }
+
+          slugs.push(
+            `${normalizedModule}.${normalizedAction}`,
+          );
         });
       },
     );
 
-    return slugs;
+    return [...new Set(slugs)];
   }, [permissionsGrouped]);
 
-  /* ============================================================
-     ✅ hasPermission — sirf API permissions valid
-     ============================================================ */
-
-  const hasPermission = useCallback(
-    (slug: string): boolean => {
-      if (roleSlugs.includes(ROLES.SUPER_ADMIN)) {
-        return true;
-      }
-
-      if (allSlugs.includes(slug)) {
-        return true;
-      }
-
-      if (allSlugs.includes("*")) {
-        return true;
-      }
-
-      return false;
-    },
-    [roleSlugs, allSlugs],
-  );
-
-  const hasAnyPermission = useCallback(
-    (slugs: string[]): boolean => {
-      return slugs.some((slug) => hasPermission(slug));
-    },
-    [hasPermission],
-  );
-
-  const hasAllPermissions = useCallback(
-    (slugs: string[]): boolean => {
-      return slugs.every((slug) => hasPermission(slug));
-    },
-    [hasPermission],
-  );
-
-  /* ============================================================
-     ✅ hasModuleAccess — sirf API modules valid
-     ============================================================ */
-
-  const hasModuleAccess = useCallback(
-    (module: string): boolean => {
-      if (roleSlugs.includes(ROLES.SUPER_ADMIN)) {
-        return true;
-      }
-
-      const actions = permissionsGrouped[module];
-
-      if (Array.isArray(actions) && actions.length > 0) {
-        return true;
-      }
-
-      return false;
-    },
-    [permissionsGrouped, roleSlugs],
-  );
-
-  const can = useCallback(
-    (module: string, action: string): boolean => {
-      return hasPermission(`${module}.${action}`);
-    },
-    [hasPermission],
-  );
-
-  const hasRole = useCallback(
-    (roleSlug: string): boolean => {
-      return roleSlugs.includes(roleSlug);
-    },
-    [roleSlugs],
-  );
-
-  const isSuperAdmin = useMemo(() => {
-    return roleSlugs.includes(ROLES.SUPER_ADMIN);
+  /**
+   * Check if current admin is super admin.
+   */
+  const isSuperAdmin = useMemo<boolean>(() => {
+    return roleSlugs.some(
+      (role) =>
+        normalize(role) === normalize(ROLES.SUPER_ADMIN),
+    );
   }, [roleSlugs]);
 
-  const isFinance = useMemo(() => {
-    return (
-      hasRole(ROLES.FINANCE) ||
-      hasRole(ROLES.FINANCE_MANAGER) ||
-      hasModuleAccess("payout") ||
-      hasModuleAccess("return_refund")
-    );
-  }, [hasRole, hasModuleAccess]);
-
-  const isSales = useMemo(() => {
-    return (
-      hasRole(ROLES.SALES) ||
-      hasRole(ROLES.SALES_MANAGER) ||
-      hasRole(ROLES.SALES_EXECUTIVE) ||
-      hasModuleAccess("sales")
-    );
-  }, [hasRole, hasModuleAccess]);
-
-  const isWarehouse = useMemo(() => {
-    return (
-      data?.has_warehouse_access === true ||
-      data?.warehouse_assignments?.some(
-        (assignment) => assignment.is_active === true,
-      ) === true ||
-      hasRole(ROLES.WAREHOUSE) ||
-      hasRole(ROLES.WAREHOUSE_MANAGER) ||
-      hasRole(ROLES.WAREHOUSE_EXECUTIVE) ||
-      hasModuleAccess("warehouse") ||
-      hasModuleAccess("stock")
-    );
-  }, [data, hasRole, hasModuleAccess]);
-
-  const hasWarehouseAccess = useMemo(() => {
-    return (
-      data?.has_warehouse_access === true ||
-      data?.warehouse_assignments?.some(
-        (assignment) => assignment.is_active === true,
-      ) === true
-    );
-  }, [data]);
-
-  const warehouseAssignments = useMemo(() => {
-    return data?.warehouse_assignments ?? [];
-  }, [data]);
-
-  const getWarehousesByRole = useCallback(
-    (roleSlug: string): WarehouseAssignment[] => {
-      return warehouseAssignments.filter(
-        (assignment) =>
-          assignment.role_slug === roleSlug ||
-          assignment.role?.slug === roleSlug,
-      );
-    },
-    [warehouseAssignments],
-  );
-
-  const hasWarehouseId = useCallback(
-    (warehouseId: number): boolean => {
-      return warehouseAssignments.some(
-        (assignment) =>
-          assignment.warehouse?.id === warehouseId &&
-          assignment.is_active === true,
-      );
-    },
-    [warehouseAssignments],
-  );
-
-  const accessibleWarehouses = useMemo(() => {
-    const map = new Map<number, Warehouse>();
-
-    warehouseAssignments.forEach((assignment) => {
-      if (
-        assignment.is_active === true &&
-        assignment.warehouse
-      ) {
-        map.set(assignment.warehouse.id, assignment.warehouse);
-      }
-    });
-
-    return Array.from(map.values());
-  }, [warehouseAssignments]);
-
-  const currentWarehouse = useMemo(() => {
-    const current = warehouseAssignments.find(
-      (assignment) =>
-        assignment.is_current === true &&
-        assignment.is_active === true,
-    );
-
-    return current?.warehouse ?? null;
-  }, [warehouseAssignments]);
-
-  const primaryWarehouse = useMemo(() => {
-    const primary = warehouseAssignments.find(
-      (assignment) =>
-        assignment.is_primary === true &&
-        assignment.is_active === true,
-    );
-
-    return primary?.warehouse ?? null;
-  }, [warehouseAssignments]);
-
-  const canInWarehouse = useCallback(
-    (
-      action: "view" | "update" | "transfer" | "dispatch",
-    ): boolean => {
+  /**
+   * Check one permission.
+   *
+   * Examples:
+   *
+   * hasPermission("admin.view")
+   * hasPermission("admin.create")
+   * hasPermission("admin.edit")
+   * hasPermission("admin.delete")
+   */
+  const hasPermission = useCallback(
+    (slug: string): boolean => {
+      /**
+       * Super admin has complete access.
+       */
       if (isSuperAdmin) {
         return true;
       }
 
-      if (hasPermission(`warehouse.${action}`)) {
+      const normalizedSlug = normalize(slug);
+
+      if (!normalizedSlug) {
+        return false;
+      }
+
+      /**
+       * Direct permission match.
+       */
+      if (allSlugs.includes(normalizedSlug)) {
+        return true;
+      }
+
+      /**
+       * Wildcard permission.
+       */
+      if (allSlugs.includes("*")) {
+        return true;
+      }
+
+      /**
+       * Module wildcard.
+       *
+       * Example:
+       * admin.*
+       */
+      const [module] = normalizedSlug.split(".");
+
+      if (
+        module &&
+        allSlugs.includes(`${module}.*`)
+      ) {
         return true;
       }
 
       return false;
     },
-    [isSuperAdmin, hasPermission],
+    [allSlugs, isSuperAdmin],
   );
+
+  /**
+   * Check any permission.
+   */
+  const hasAnyPermission = useCallback(
+    (slugs: string[]): boolean => {
+      if (isSuperAdmin) {
+        return true;
+      }
+
+      if (!Array.isArray(slugs) || slugs.length === 0) {
+        return false;
+      }
+
+      return slugs.some((slug) =>
+        hasPermission(slug),
+      );
+    },
+    [hasPermission, isSuperAdmin],
+  );
+
+  /**
+   * Check all permissions.
+   */
+  const hasAllPermissions = useCallback(
+    (slugs: string[]): boolean => {
+      if (isSuperAdmin) {
+        return true;
+      }
+
+      if (!Array.isArray(slugs) || slugs.length === 0) {
+        return false;
+      }
+
+      return slugs.every((slug) =>
+        hasPermission(slug),
+      );
+    },
+    [hasPermission, isSuperAdmin],
+  );
+
+  /**
+   * Check module + action.
+   *
+   * Example:
+   *
+   * can("admin", "view")
+   * can("admin", "create")
+   * can("admin", "edit")
+   * can("admin", "delete")
+   */
+  const can = useCallback(
+    (module: string, action: string): boolean => {
+      const normalizedModule = normalize(module);
+      const normalizedAction = normalize(action);
+
+      if (!normalizedModule || !normalizedAction) {
+        return false;
+      }
+
+      return hasPermission(
+        `${normalizedModule}.${normalizedAction}`,
+      );
+    },
+    [hasPermission],
+  );
+
+  /**
+   * Check module access.
+   *
+   * Example:
+   *
+   * hasModuleAccess("admin")
+   * hasModuleAccess("Admin Management")
+   */
+  const hasModuleAccess = useCallback(
+    (module: string): boolean => {
+      if (isSuperAdmin) {
+        return true;
+      }
+
+      const normalizedModule = normalize(module);
+
+      if (!normalizedModule) {
+        return false;
+      }
+
+      /**
+       * Exact module match.
+       */
+      const actions =
+        permissionsGrouped[normalizedModule];
+
+      if (
+        Array.isArray(actions) &&
+        actions.length > 0
+      ) {
+        return true;
+      }
+
+      /**
+       * Module wildcard.
+       */
+      if (
+        allSlugs.includes(
+          `${normalizedModule}.*`,
+        )
+      ) {
+        return true;
+      }
+
+      /**
+       * Check if any permission starts with module.
+       */
+      return allSlugs.some(
+        (slug) =>
+          slug.startsWith(
+            `${normalizedModule}.`,
+          ),
+      );
+    },
+    [
+      allSlugs,
+      isSuperAdmin,
+      permissionsGrouped,
+    ],
+  );
+
+  /**
+   * Check one role.
+   */
+  const hasRole = useCallback(
+    (role: string): boolean => {
+      const normalizedRole = normalize(role);
+
+      if (!normalizedRole) {
+        return false;
+      }
+
+      return roleSlugs.includes(normalizedRole);
+    },
+    [roleSlugs],
+  );
+
+  /**
+   * Check any role.
+   */
+  const hasAnyRole = useCallback(
+    (rolesToCheck: string[]): boolean => {
+      if (
+        !Array.isArray(rolesToCheck) ||
+        rolesToCheck.length === 0
+      ) {
+        return false;
+      }
+
+      return rolesToCheck.some((role) =>
+        hasRole(role),
+      );
+    },
+    [hasRole],
+  );
+
+  /**
+   * Warehouse assignments.
+   */
+  const warehouseAssignments = useMemo<
+    WarehouseAssignment[]
+  >(() => {
+    return Array.isArray(
+      data?.warehouse_assignments,
+    )
+      ? data.warehouse_assignments
+      : [];
+  }, [data]);
+
+  /**
+   * Warehouse access.
+   */
+  const hasWarehouseAccess = useMemo<boolean>(() => {
+    if (isSuperAdmin) {
+      return true;
+    }
+
+    return Boolean(
+      data?.has_warehouse_access ||
+        warehouseAssignments.length > 0,
+    );
+  }, [
+    data,
+    isSuperAdmin,
+    warehouseAssignments,
+  ]);
 
   return {
     data,
-    admin,
     loading,
     error,
-    refetch: fetchAll,
+
+    admin: data?.admin ?? null,
 
     roles,
     roleSlugs,
     primaryRole,
-    hasRole,
-    isSuperAdmin,
-    isFinance,
-    isSales,
-    isWarehouse,
 
     permissionsGrouped,
     allSlugs,
+
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-    hasModuleAccess,
+
     can,
+    hasModuleAccess,
+
+    hasRole,
+    hasAnyRole,
+
+    isSuperAdmin,
 
     hasWarehouseAccess,
     warehouseAssignments,
-    accessibleWarehouses,
-    currentWarehouse,
-    primaryWarehouse,
-    getWarehousesByRole,
-    hasWarehouseId,
-    canInWarehouse,
+
+    refetch: fetchAll,
   };
 };
 

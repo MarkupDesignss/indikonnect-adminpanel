@@ -209,6 +209,30 @@ const formatMethodLabel = (method?: string | null) => {
 };
 
 // =====================================================
+// PERMISSION LOADING STATE
+// =====================================================
+
+const PermissionLoadingState: React.FC = () => {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+          <FiRefreshCw size={24} className="animate-spin" />
+        </div>
+
+        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+          Checking permissions...
+        </h2>
+
+        <p className="mt-2 text-sm text-[#8C97B2]">
+          Please wait while we verify your access.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
 // TIMELINE EVENT BUILDER — NAVY THEME
 // =====================================================
 
@@ -2340,6 +2364,7 @@ const ReturnRefund: React.FC = () => {
     hasPermission,
     hasModuleAccess,
     isSuperAdmin,
+    loading: permissionsLoading,
   } = usePermissions();
 
   const canViewReturns = useMemo(
@@ -2466,10 +2491,10 @@ const ReturnRefund: React.FC = () => {
   };
 
   useEffect(() => {
-    if (canViewReturns) {
+    if (!permissionsLoading && canViewReturns) {
       fetchReturnRequests();
     }
-  }, [canViewReturns]);
+  }, [canViewReturns, permissionsLoading]);
 
   // ===================================================
   // STATS
@@ -2887,6 +2912,14 @@ const ReturnRefund: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
+  // ✅ LOADING STATE (only once, at top level)
+  // ===================================================
+
+  if (permissionsLoading) {
+    return <PermissionLoadingState />;
+  }
+
+  // ===================================================
   // ✅ ACCESS DENIED
   // ===================================================
 
@@ -2898,7 +2931,7 @@ const ReturnRefund: React.FC = () => {
             <FiAlertCircle size={26} />
           </div>
           <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-           <p className="mt-2 text-sm text-[#6B7896]">
+          <p className="mt-2 text-sm text-[#6B7896]">
             You don't have permission to access this section.
           </p>
         </div>

@@ -25,6 +25,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiShieldOff,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -63,57 +64,6 @@ const DANGER = "#C23B32";
 const DANGER_BG = "#FBEAEA";
 
 // =====================================================
-// PERMISSION KEYS
-// =====================================================
-
-const VIEW_PERMISSION_KEYS = [
-  "admin.view",
-  "admins.view",
-  "Admin.view",
-  "Admins.view",
-  "admin_management.view",
-  "Admin Management.view",
-];
-
-const CREATE_PERMISSION_KEYS = [
-  "admin.create",
-  "admins.create",
-  "Admin.create",
-  "Admins.create",
-  "admin_management.create",
-  "Admin Management.create",
-];
-
-const UPDATE_PERMISSION_KEYS = [
-  "admin.update",
-  "admins.update",
-  "Admin.update",
-  "Admins.update",
-  "admin_management.update",
-  "Admin Management.update",
-  "admin.edit",
-  "admins.edit",
-  "Admin.edit",
-  "Admins.edit",
-];
-
-const DELETE_PERMISSION_KEYS = [
-  "admin.delete",
-  "admins.delete",
-  "Admin.delete",
-  "Admins.delete",
-  "admin_management.delete",
-  "Admin Management.delete",
-];
-
-const ROLE_VIEW_PERMISSION_KEYS = [
-  "role.view",
-  "roles.view",
-  "Role.view",
-  "Roles.view",
-];
-
-// =====================================================
 // TYPES
 // =====================================================
 
@@ -134,7 +84,7 @@ interface DeleteTarget {
 // =====================================================
 
 const getInitials = (
-  name?: string | null
+  name?: string | null,
 ): string => {
   if (!name) return "AD";
 
@@ -156,7 +106,7 @@ const getInitials = (
 };
 
 const formatDate = (
-  value?: string | null
+  value?: string | null,
 ): string => {
   if (!value) return "—";
 
@@ -174,7 +124,7 @@ const formatDate = (
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }
+    },
   );
 };
 
@@ -211,7 +161,7 @@ const AdminFormModal: FC<
 }) => {
   const selectedRole = roles.find(
     (role) =>
-      role.id === form.role_id
+      role.id === form.role_id,
   );
 
   if (!open) return null;
@@ -227,7 +177,6 @@ const AdminFormModal: FC<
       closeOnOverlayClick={!loading}
     >
       <div className="w-full max-w-[620px] overflow-hidden rounded-[22px] border bg-white shadow-[0_25px_70px_rgba(30,58,138,0.18)]">
-        {/* ACCENT */}
         <div
           className="h-[3px]"
           style={{
@@ -378,14 +327,14 @@ const AdminFormModal: FC<
                     !canSubmit
                   }
                   onChange={(
-                    event: ChangeEvent<HTMLInputElement>
+                    event: ChangeEvent<HTMLInputElement>,
                   ) =>
                     setForm(
                       (previous) => ({
                         ...previous,
                         name: event
                           .target.value,
-                      })
+                      }),
                     )
                   }
                   placeholder="John Admin"
@@ -434,7 +383,7 @@ const AdminFormModal: FC<
                       !canSubmit
                     }
                     onChange={(
-                      event: ChangeEvent<HTMLInputElement>
+                      event: ChangeEvent<HTMLInputElement>,
                     ) =>
                       setForm(
                         (previous) => ({
@@ -443,7 +392,7 @@ const AdminFormModal: FC<
                             event
                               .target
                               .value,
-                        })
+                        }),
                       )
                     }
                     placeholder="admin@example.com"
@@ -470,8 +419,8 @@ const AdminFormModal: FC<
                       color: MUTED,
                     }}
                   >
-                    Email cannot be changed while
-                    editing an admin.
+                    Email cannot be changed
+                    while editing an admin.
                   </p>
                 )}
               </div>
@@ -507,7 +456,7 @@ const AdminFormModal: FC<
                       !canSubmit
                     }
                     onChange={(
-                      event: ChangeEvent<HTMLInputElement>
+                      event: ChangeEvent<HTMLInputElement>,
                     ) =>
                       setForm(
                         (previous) => ({
@@ -516,7 +465,7 @@ const AdminFormModal: FC<
                             event
                               .target
                               .value,
-                        })
+                        }),
                       )
                     }
                     placeholder={
@@ -626,7 +575,7 @@ const AdminFormModal: FC<
                     !canSubmit
                   }
                   onChange={(
-                    event: ChangeEvent<HTMLSelectElement>
+                    event: ChangeEvent<HTMLSelectElement>,
                   ) =>
                     setForm(
                       (previous) => ({
@@ -638,10 +587,10 @@ const AdminFormModal: FC<
                             ? Number(
                                 event
                                   .target
-                                  .value
+                                  .value,
                               )
                             : null,
-                      })
+                      }),
                     )
                   }
                   className="h-12 w-full appearance-none rounded-xl pl-10 pr-10 text-sm font-semibold outline-none transition disabled:cursor-not-allowed disabled:opacity-60"
@@ -669,7 +618,7 @@ const AdminFormModal: FC<
                       >
                         {role.name}
                       </option>
-                    )
+                    ),
                   )}
                 </select>
 
@@ -689,7 +638,6 @@ const AdminFormModal: FC<
                 </svg>
               </div>
 
-              {/* SELECTED ROLE */}
               {selectedRole && (
                 <div
                   className="mt-4 rounded-xl border p-4"
@@ -741,12 +689,9 @@ const AdminFormModal: FC<
                         color: PRIMARY,
                       }}
                     >
-                      {
-                        selectedRole
-                          .permissions
-                          ?.length ||
-                        0
-                      }{" "}
+                      {selectedRole
+                        .permissions
+                        ?.length || 0}{" "}
                       Permissions
                     </span>
                   </div>
@@ -778,7 +723,7 @@ const AdminFormModal: FC<
                         <div className="flex flex-wrap gap-1.5">
                           {selectedRole.permissions.map(
                             (
-                              permission
+                              permission,
                             ) => (
                               <span
                                 key={
@@ -806,7 +751,7 @@ const AdminFormModal: FC<
                                   permission.name
                                 }
                               </span>
-                            )
+                            ),
                           )}
                         </div>
                       </div>
@@ -1057,6 +1002,73 @@ const DeleteAdminModal: FC<
 };
 
 // =====================================================
+// ACCESS DENIED
+// =====================================================
+
+const AccessDenied: FC = () => {
+  return (
+    <div
+      className="flex min-h-[500px] items-center justify-center p-6 font-poppins"
+      style={{
+        backgroundColor:
+          PAGE_BG,
+      }}
+    >
+      <div className="w-full max-w-[460px] rounded-[24px] border bg-white p-8 text-center shadow-[0_15px_50px_rgba(30,58,138,0.08)]">
+        <div
+          className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl"
+          style={{
+            backgroundColor:
+              DANGER_BG,
+            color: DANGER,
+          }}
+        >
+          <FiShieldOff size={28} />
+        </div>
+
+        <h2
+          className="mt-5 text-xl font-bold"
+          style={{
+            color:
+              TEXT_PRIMARY,
+          }}
+        >
+          Access Denied
+        </h2>
+
+        <p
+          className="mt-2 text-sm leading-6"
+          style={{
+            color:
+              TEXT_SECONDARY,
+          }}
+        >
+          You don't have permission to
+          access the Admin Management
+          module.
+        </p>
+
+        <div
+          className="mt-5 flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-xs font-semibold"
+          style={{
+            borderColor:
+              "#F0D1CE",
+            backgroundColor:
+              DANGER_BG,
+            color: DANGER,
+          }}
+        >
+          <FiAlertCircle size={14} />
+
+          Contact your administrator to
+          request access.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
 // MAIN
 // =====================================================
 
@@ -1075,113 +1087,77 @@ const AdminManagement: FC = () => {
 
   const {
     hasPermission,
-    hasModuleAccess,
     isSuperAdmin,
     loading:
       permissionsLoading,
   } = usePermissions();
 
-  const hasAnyPermission =
-    useCallback(
-      (permissionKeys: string[]) =>
-        permissionKeys.some(
-          (permission) =>
-            hasPermission(
-              permission
-            )
-        ),
-      [hasPermission]
-    );
+  /**
+   * IMPORTANT:
+   *
+   * Backend permissions:
+   *
+   * admin:
+   *   create
+   *   edit
+   *   view
+   *   details
+   *   delete
+   *
+   * Therefore frontend uses:
+   *
+   * admin.create
+   * admin.edit
+   * admin.view
+   * admin.delete
+   *
+   * No module-access fallback is used here.
+   */
 
   const canViewAdmins = useMemo(
     () =>
       isSuperAdmin ||
-      hasModuleAccess(
-        "Admin Management"
-      ) ||
-      hasModuleAccess(
-        "Admin"
-      ) ||
-      hasModuleAccess(
-        "Admins"
-      ) ||
-      hasModuleAccess(
-        "admin_management"
-      ) ||
-      hasModuleAccess(
-        "admin"
-      ) ||
-      hasModuleAccess(
-        "admins"
-      ) ||
-      hasAnyPermission(
-        VIEW_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasAnyPermission,
-    ]
+      hasPermission("admin_member.view") ||
+      hasPermission("admin_member.details"),
+    [isSuperAdmin, hasPermission],
   );
-
+  
   const canCreateAdmin = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        CREATE_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasPermission("admin_member.create"),
+    [isSuperAdmin, hasPermission],
   );
-
+  
   const canUpdateAdmin = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        UPDATE_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasPermission("admin_member.edit"),
+    [isSuperAdmin, hasPermission],
   );
-
+  
   const canDeleteAdmin = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        DELETE_PERMISSION_KEYS
+      hasPermission("admin_member.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+
+  const canViewRoles = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission(
+        "role.view",
+      ) ||
+      hasPermission(
+        "roles.view",
       ),
     [
       isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasPermission,
+    ],
   );
-
-  const canViewRoles =
-    useMemo(
-      () =>
-        isSuperAdmin ||
-        hasAnyPermission(
-          ROLE_VIEW_PERMISSION_KEYS
-        ) ||
-        hasModuleAccess(
-          "Role Management"
-        ) ||
-        hasModuleAccess(
-          "Role"
-        ) ||
-        hasModuleAccess(
-          "Roles"
-        ),
-      [
-        isSuperAdmin,
-        hasAnyPermission,
-        hasModuleAccess,
-      ]
-    );
 
   // ===================================================
   // STATES
@@ -1189,7 +1165,7 @@ const AdminManagement: FC = () => {
 
   const [admins, setAdmins] =
     useState<AdminMember[]>(
-      []
+      [],
     );
 
   const [roles, setRoles] =
@@ -1233,7 +1209,7 @@ const AdminManagement: FC = () => {
     setEditingAdmin,
   ] =
     useState<AdminMember | null>(
-      null
+      null,
     );
 
   const [
@@ -1246,7 +1222,7 @@ const AdminManagement: FC = () => {
     setDeleteTarget,
   ] =
     useState<DeleteTarget | null>(
-      null
+      null,
     );
 
   const [
@@ -1265,7 +1241,7 @@ const AdminManagement: FC = () => {
     setHighlightedAdminId,
   ] =
     useState<number | null>(
-      null
+      null,
     );
 
   const [
@@ -1281,7 +1257,7 @@ const AdminManagement: FC = () => {
 
   const fetchInFlightRef =
     useRef<Promise<void> | null>(
-      null
+      null,
     );
 
   const hasInitialFetchRef =
@@ -1294,24 +1270,24 @@ const AdminManagement: FC = () => {
   const openEditAdmin =
     useCallback(
       (
-        admin: AdminMember
+        admin: AdminMember,
       ) => {
         if (!canUpdateAdmin) {
           toast.error(
-            "You do not have permission to update admins."
+            "You do not have permission to update admins.",
           );
           return;
         }
 
         if (!canViewRoles) {
           toast.error(
-            "You do not have permission to view roles."
+            "You do not have permission to view roles.",
           );
           return;
         }
 
         setEditingAdmin(
-          admin
+          admin,
         );
 
         setAdminForm({
@@ -1330,7 +1306,7 @@ const AdminManagement: FC = () => {
       [
         canUpdateAdmin,
         canViewRoles,
-      ]
+      ],
     );
 
   // ===================================================
@@ -1340,9 +1316,10 @@ const AdminManagement: FC = () => {
   const fetchAll =
     useCallback(
       async (
-        force = false
+        force = false,
       ) => {
         if (!canViewAdmins) {
+          setLoading(false);
           return;
         }
 
@@ -1369,20 +1346,24 @@ const AdminManagement: FC = () => {
                   adminManagementApi.getAdmins(),
                 ];
 
+              /**
+               * Roles are only fetched if
+               * current admin has role.view.
+               */
               if (canViewRoles) {
                 requests.push(
-                  adminManagementApi.getRoles()
+                  adminManagementApi.getRoles(),
                 );
               }
 
               const responses =
                 await Promise.all(
-                  requests
+                  requests,
                 );
 
-              // ------------------------------------------------
+              // =================================================
               // ADMINS
-              // ------------------------------------------------
+              // =================================================
 
               const adminsResponse =
                 responses[0];
@@ -1392,7 +1373,7 @@ const AdminManagement: FC = () => {
 
               const adminsData =
                 Array.isArray(
-                  adminsRaw
+                  adminsRaw,
                 )
                   ? adminsRaw
                   : adminsRaw &&
@@ -1405,7 +1386,7 @@ const AdminManagement: FC = () => {
                           adminsRaw as {
                             data?: unknown;
                           }
-                        ).data
+                        ).data,
                       )
                     ? (
                         adminsRaw as {
@@ -1414,9 +1395,9 @@ const AdminManagement: FC = () => {
                       ).data
                     : [];
 
-              // ------------------------------------------------
+              // =================================================
               // ROLES
-              // ------------------------------------------------
+              // =================================================
 
               let rolesData: Role[] =
                 [];
@@ -1430,7 +1411,7 @@ const AdminManagement: FC = () => {
 
                 rolesData =
                   Array.isArray(
-                    rolesRaw
+                    rolesRaw,
                   )
                     ? rolesRaw
                     : rolesRaw &&
@@ -1443,7 +1424,7 @@ const AdminManagement: FC = () => {
                             rolesRaw as {
                               data?: unknown;
                             }
-                          ).data
+                          ).data,
                         )
                       ? (
                           rolesRaw as {
@@ -1454,34 +1435,33 @@ const AdminManagement: FC = () => {
               }
 
               setAdmins(
-                adminsData as AdminMember[]
+                adminsData as AdminMember[],
               );
 
               setRoles(
-                rolesData as Role[]
+                rolesData as Role[],
               );
 
-              // ------------------------------------------------
+              // =================================================
               // HEADER ADMIN
-              // ------------------------------------------------
+              // =================================================
 
               if (
                 adminFromHeader &&
                 isInitialLoad &&
-                adminsData.length >
-                  0
+                adminsData.length > 0
               ) {
                 const targetAdmin =
                   adminsData.find(
                     (
-                      admin: AdminMember
+                      admin: AdminMember,
                     ) =>
                       String(
-                        admin.id
+                        admin.id,
                       ) ===
                       String(
-                        adminFromHeader.id
-                      )
+                        adminFromHeader.id,
+                      ),
                   );
 
                 if (
@@ -1491,15 +1471,15 @@ const AdminManagement: FC = () => {
                     targetAdmin.name ||
                     targetAdmin.email ||
                     String(
-                      targetAdmin.id
+                      targetAdmin.id,
                     );
 
                   setSearch(
-                    searchTerm
+                    searchTerm,
                   );
 
                   setHighlightedAdminId(
-                    targetAdmin.id
+                    targetAdmin.id,
                   );
 
                   if (
@@ -1507,23 +1487,23 @@ const AdminManagement: FC = () => {
                     canViewRoles
                   ) {
                     openEditAdmin(
-                      targetAdmin
+                      targetAdmin,
                     );
                   }
                 } else {
                   setSearch(
                     String(
-                      adminFromHeader.id
-                    )
+                      adminFromHeader.id,
+                    ),
                   );
 
                   toast.info(
-                    `Looking for admin with ID: ${adminFromHeader.id}`
+                    `Looking for admin with ID: ${adminFromHeader.id}`,
                   );
                 }
 
                 setIsInitialLoad(
-                  false
+                  false,
                 );
               }
 
@@ -1532,13 +1512,13 @@ const AdminManagement: FC = () => {
             } catch (error: any) {
               console.error(
                 "Admin management fetch error:",
-                error
+                error,
               );
 
               toast.error(
                 error?.response
                   ?.data?.message ||
-                  "Unable to load admin management data."
+                  "Unable to load admin management data.",
               );
             } finally {
               setLoading(false);
@@ -1562,7 +1542,7 @@ const AdminManagement: FC = () => {
         isInitialLoad,
         canUpdateAdmin,
         openEditAdmin,
-      ]
+      ],
     );
 
   // ===================================================
@@ -1576,6 +1556,13 @@ const AdminManagement: FC = () => {
       !hasInitialFetchRef.current
     ) {
       fetchAll();
+    }
+
+    if (
+      !permissionsLoading &&
+      !canViewAdmins
+    ) {
+      setLoading(false);
     }
   }, [
     permissionsLoading,
@@ -1606,7 +1593,7 @@ const AdminManagement: FC = () => {
                 []
               ).map(
                 (role) =>
-                  role.name
+                  role.name,
               ),
             ]
               .join(" ")
@@ -1631,7 +1618,7 @@ const AdminManagement: FC = () => {
             matchesSearch &&
             matchesStatus
           );
-        }
+        },
       );
     }, [
       admins,
@@ -1648,8 +1635,8 @@ const AdminManagement: FC = () => {
       1,
       Math.ceil(
         filteredAdmins.length /
-          ITEMS_PER_PAGE
-      )
+          ITEMS_PER_PAGE,
+      ),
     );
 
   const startIndex =
@@ -1660,7 +1647,7 @@ const AdminManagement: FC = () => {
     filteredAdmins.slice(
       startIndex,
       startIndex +
-        ITEMS_PER_PAGE
+        ITEMS_PER_PAGE,
     );
 
   const startEntry =
@@ -1672,7 +1659,7 @@ const AdminManagement: FC = () => {
     Math.min(
       startIndex +
         ITEMS_PER_PAGE,
-      filteredAdmins.length
+      filteredAdmins.length,
     );
 
   useEffect(() => {
@@ -1687,7 +1674,7 @@ const AdminManagement: FC = () => {
       currentPage > totalPages
     ) {
       setCurrentPage(
-        totalPages
+        totalPages,
       );
     }
   }, [
@@ -1704,13 +1691,17 @@ const AdminManagement: FC = () => {
               totalPages,
           },
           (_, index) =>
-            index + 1
+            index + 1,
         );
       }
 
       if (currentPage <= 3) {
         return [
-          1, 2, 3, 4, 5,
+          1,
+          2,
+          3,
+          4,
+          5,
         ];
       }
 
@@ -1747,14 +1738,14 @@ const AdminManagement: FC = () => {
     () => {
       if (!canCreateAdmin) {
         toast.error(
-          "You do not have permission to create admins."
+          "You do not have permission to create admins.",
         );
         return;
       }
 
       if (!canViewRoles) {
         toast.error(
-          "You do not have permission to view roles."
+          "You do not have permission to view roles.",
         );
         return;
       }
@@ -1789,28 +1780,28 @@ const AdminManagement: FC = () => {
         toast.error(
           editingAdmin
             ? "You do not have permission to update admins."
-            : "You do not have permission to create admins."
+            : "You do not have permission to create admins.",
         );
         return;
       }
 
       if (!canViewRoles) {
         toast.error(
-          "You do not have permission to view roles."
+          "You do not have permission to view roles.",
         );
         return;
       }
 
       if (!adminForm.name.trim()) {
         toast.error(
-          "Please enter admin name."
+          "Please enter admin name.",
         );
         return;
       }
 
       if (!adminForm.email.trim()) {
         toast.error(
-          "Please enter email."
+          "Please enter email.",
         );
         return;
       }
@@ -1820,14 +1811,14 @@ const AdminManagement: FC = () => {
         !adminForm.password
       ) {
         toast.error(
-          "Please enter password."
+          "Please enter password.",
         );
         return;
       }
 
       if (!adminForm.role_id) {
         toast.error(
-          "Please select a role."
+          "Please select a role.",
         );
         return;
       }
@@ -1850,13 +1841,13 @@ const AdminManagement: FC = () => {
 
           const response =
             await adminManagementApi.createAdmin(
-              payload
+              payload,
             );
 
           toast.success(
             response.data
               ?.message ||
-              "Admin created successfully."
+              "Admin created successfully.",
           );
         } else {
           const payload = {
@@ -1873,13 +1864,13 @@ const AdminManagement: FC = () => {
           const response =
             await adminManagementApi.updateAdmin(
               editingAdmin.id,
-              payload
+              payload,
             );
 
           toast.success(
             response.data
               ?.message ||
-              "Admin updated successfully."
+              "Admin updated successfully.",
           );
         }
 
@@ -1897,17 +1888,17 @@ const AdminManagement: FC = () => {
       } catch (error: any) {
         console.error(
           "Save admin error:",
-          error
+          error,
         );
 
         toast.error(
           error?.response
             ?.data?.message ||
-            "Unable to save admin."
+            "Unable to save admin.",
         );
       } finally {
         setActionLoading(
-          false
+          false,
         );
       }
     };
@@ -1918,11 +1909,11 @@ const AdminManagement: FC = () => {
 
   const openDeleteAdmin =
     (
-      admin: AdminMember
+      admin: AdminMember,
     ) => {
       if (!canDeleteAdmin) {
         toast.error(
-          "You do not have permission to delete admins."
+          "You do not have permission to delete admins.",
         );
         return;
       }
@@ -1933,7 +1924,7 @@ const AdminManagement: FC = () => {
       });
 
       setDeleteModalOpen(
-        true
+        true,
       );
     };
 
@@ -1945,50 +1936,50 @@ const AdminManagement: FC = () => {
 
       if (!canDeleteAdmin) {
         toast.error(
-          "You do not have permission to delete admins."
+          "You do not have permission to delete admins.",
         );
         return;
       }
 
       try {
         setDeleteLoading(
-          true
+          true,
         );
 
         const response =
           await adminManagementApi.deleteAdmin(
-            deleteTarget.id
+            deleteTarget.id,
           );
 
         toast.success(
           response.data
             ?.message ||
-            "Admin deleted successfully."
+            "Admin deleted successfully.",
         );
 
         setDeleteModalOpen(
-          false
+          false,
         );
 
         setDeleteTarget(
-          null
+          null,
         );
 
         await fetchAll(true);
       } catch (error: any) {
         console.error(
           "Delete admin error:",
-          error
+          error,
         );
 
         toast.error(
           error?.response
             ?.data?.message ||
-            "Unable to delete admin."
+            "Unable to delete admin.",
         );
       } finally {
         setDeleteLoading(
-          false
+          false,
         );
       }
     };
@@ -1998,12 +1989,12 @@ const AdminManagement: FC = () => {
   // ===================================================
 
   const handleSearch = (
-    value: string
+    value: string,
   ) => {
     setSearch(value);
     setCurrentPage(1);
     setHighlightedAdminId(
-      null
+      null,
     );
   };
 
@@ -2056,6 +2047,17 @@ const AdminManagement: FC = () => {
     );
   }
 
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewAdmins) {
+    return <AccessDenied />;
+  }
+
+  // ===================================================
+  // DATA LOADING
+  // ===================================================
 
   if (
     loading &&
@@ -2264,11 +2266,11 @@ const AdminManagement: FC = () => {
                   type="text"
                   value={search}
                   onChange={(
-                    event
+                    event,
                   ) =>
                     handleSearch(
                       event.target
-                        .value
+                        .value,
                     )
                   }
                   placeholder="Search name, email, ID or role..."
@@ -2307,15 +2309,15 @@ const AdminManagement: FC = () => {
                       type="button"
                       onClick={() => {
                         setStatusFilter(
-                          item.key
+                          item.key,
                         );
 
                         setCurrentPage(
-                          1
+                          1,
                         );
 
                         setHighlightedAdminId(
-                          null
+                          null,
                         );
                       }}
                       className="rounded-xl px-5 py-2.5 text-xs font-bold transition"
@@ -2346,7 +2348,7 @@ const AdminManagement: FC = () => {
                         item.label
                       }
                     </button>
-                  )
+                  ),
                 )}
               </div>
             </div>
@@ -2389,7 +2391,10 @@ const AdminManagement: FC = () => {
                     color: MUTED,
                   }}
                 >
-                  {filteredAdmins.length} administrator
+                  {
+                    filteredAdmins.length
+                  }{" "}
+                  administrator
                   {filteredAdmins.length ===
                   1
                     ? ""
@@ -2474,7 +2479,8 @@ const AdminManagement: FC = () => {
                           style={{
                             backgroundColor:
                               LIGHT_BLUE,
-                            color: PRIMARY,
+                            color:
+                              PRIMARY,
                           }}
                         >
                           <FiUsers
@@ -2500,8 +2506,9 @@ const AdminManagement: FC = () => {
                               MUTED,
                           }}
                         >
-                          Try another search or
-                          add a new admin.
+                          Try another search
+                          or add a new
+                          admin.
                         </p>
                       </div>
                     </td>
@@ -2510,7 +2517,7 @@ const AdminManagement: FC = () => {
                   paginatedAdmins.map(
                     (
                       admin,
-                      index
+                      index,
                     ) => {
                       const adminRole =
                         admin.roles?.[0] ||
@@ -2539,7 +2546,6 @@ const AdminManagement: FC = () => {
                                 : undefined,
                           }}
                         >
-                          {/* S.NO */}
                           <td className="px-5 py-4">
                             <span
                               className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
@@ -2556,7 +2562,6 @@ const AdminManagement: FC = () => {
                             </span>
                           </td>
 
-                          {/* ADMIN */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
                               <div
@@ -2567,7 +2572,7 @@ const AdminManagement: FC = () => {
                                 }}
                               >
                                 {getInitials(
-                                  admin.name
+                                  admin.name,
                                 )}
                               </div>
 
@@ -2587,7 +2592,6 @@ const AdminManagement: FC = () => {
                             </div>
                           </td>
 
-                          {/* EMAIL */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <FiMail
@@ -2612,7 +2616,6 @@ const AdminManagement: FC = () => {
                             </div>
                           </td>
 
-                          {/* ROLE */}
                           <td className="px-5 py-4">
                             {adminRole ? (
                               <div>
@@ -2672,7 +2675,6 @@ const AdminManagement: FC = () => {
                             )}
                           </td>
 
-                          {/* CREATED */}
                           <td className="px-5 py-4">
                             <span
                               className="text-[10px] font-semibold"
@@ -2682,12 +2684,11 @@ const AdminManagement: FC = () => {
                               }}
                             >
                               {formatDate(
-                                admin.created_at
+                                admin.created_at,
                               )}
                             </span>
                           </td>
 
-                          {/* ACTIONS */}
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-center gap-2">
                               {canUpdateAdmin && (
@@ -2695,7 +2696,7 @@ const AdminManagement: FC = () => {
                                   type="button"
                                   onClick={() =>
                                     openEditAdmin(
-                                      admin
+                                      admin,
                                     )
                                   }
                                   title="Edit Admin"
@@ -2725,7 +2726,7 @@ const AdminManagement: FC = () => {
                                   type="button"
                                   onClick={() =>
                                     openDeleteAdmin(
-                                      admin
+                                      admin,
                                     )
                                   }
                                   title="Delete Admin"
@@ -2767,7 +2768,7 @@ const AdminManagement: FC = () => {
                           </td>
                         </tr>
                       );
-                    }
+                    },
                   )
                 )}
               </tbody>
@@ -2781,7 +2782,7 @@ const AdminManagement: FC = () => {
               paginatedAdmins.map(
                 (
                   admin,
-                  index
+                  index,
                 ) => {
                   const adminRole =
                     admin.roles?.[0] ||
@@ -2820,7 +2821,7 @@ const AdminManagement: FC = () => {
                             }}
                           >
                             {getInitials(
-                              admin.name
+                              admin.name,
                             )}
                           </div>
 
@@ -2866,7 +2867,6 @@ const AdminManagement: FC = () => {
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {/* ROLE */}
                         <div
                           className="rounded-xl border p-3"
                           style={{
@@ -2899,7 +2899,6 @@ const AdminManagement: FC = () => {
                           </p>
                         </div>
 
-                        {/* CREATED */}
                         <div
                           className="rounded-xl border p-3"
                           style={{
@@ -2927,20 +2926,19 @@ const AdminManagement: FC = () => {
                             }}
                           >
                             {formatDate(
-                              admin.created_at
+                              admin.created_at,
                             )}
                           </p>
                         </div>
                       </div>
 
-                      {/* ACTIONS */}
                       <div className="mt-4 flex justify-end gap-2">
                         {canUpdateAdmin && (
                           <button
                             type="button"
                             onClick={() =>
                               openEditAdmin(
-                                admin
+                                admin,
                               )
                             }
                             disabled={
@@ -2970,7 +2968,7 @@ const AdminManagement: FC = () => {
                             type="button"
                             onClick={() =>
                               openDeleteAdmin(
-                                admin
+                                admin,
                               )
                             }
                             className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-bold"
@@ -2991,10 +2989,27 @@ const AdminManagement: FC = () => {
                             Delete
                           </button>
                         )}
+
+                        {!canUpdateAdmin &&
+                          !canDeleteAdmin && (
+                            <span
+                              className="rounded-lg border px-3 py-2 text-[9px] font-semibold"
+                              style={{
+                                borderColor:
+                                  BORDER,
+                                backgroundColor:
+                                  "#F7F9FD",
+                                color:
+                                  MUTED,
+                              }}
+                            >
+                              View Only
+                            </span>
+                          )}
                       </div>
                     </div>
                   );
-                }
+                },
               )
             ) : (
               <div className="flex flex-col items-center py-16 text-center">
@@ -3064,13 +3079,14 @@ const AdminManagement: FC = () => {
                       TEXT_SECONDARY,
                   }}
                 >
-                  {filteredAdmins.length}
+                  {
+                    filteredAdmins.length
+                  }
                 </span>{" "}
                 entries
               </p>
 
               <div className="flex items-center gap-1.5">
-                {/* PREVIOUS */}
                 <button
                   type="button"
                   onClick={() =>
@@ -3078,8 +3094,8 @@ const AdminManagement: FC = () => {
                       (page) =>
                         Math.max(
                           1,
-                          page - 1
-                        )
+                          page - 1,
+                        ),
                     )
                   }
                   disabled={
@@ -3090,8 +3106,7 @@ const AdminManagement: FC = () => {
                   style={{
                     borderColor:
                       BORDER,
-                    color:
-                      PRIMARY,
+                    color: PRIMARY,
                   }}
                 >
                   <FiChevronLeft
@@ -3106,7 +3121,7 @@ const AdminManagement: FC = () => {
                       type="button"
                       onClick={() =>
                         setCurrentPage(
-                          page
+                          page,
                         )
                       }
                       className="flex h-9 min-w-9 items-center justify-center rounded-lg px-2.5 text-xs font-bold"
@@ -3135,10 +3150,9 @@ const AdminManagement: FC = () => {
                     >
                       {page}
                     </button>
-                  )
+                  ),
                 )}
 
-                {/* NEXT */}
                 <button
                   type="button"
                   onClick={() =>
@@ -3146,8 +3160,8 @@ const AdminManagement: FC = () => {
                       (page) =>
                         Math.min(
                           totalPages,
-                          page + 1
-                        )
+                          page + 1,
+                        ),
                     )
                   }
                   disabled={
@@ -3158,8 +3172,7 @@ const AdminManagement: FC = () => {
                   style={{
                     borderColor:
                       BORDER,
-                    color:
-                      PRIMARY,
+                    color: PRIMARY,
                   }}
                 >
                   <FiChevronRight
@@ -3195,7 +3208,7 @@ const AdminManagement: FC = () => {
           if (!actionLoading) {
             setModalOpen(false);
             setEditingAdmin(
-              null
+              null,
             );
           }
         }}
@@ -3216,11 +3229,11 @@ const AdminManagement: FC = () => {
         onClose={() => {
           if (!deleteLoading) {
             setDeleteModalOpen(
-              false
+              false,
             );
 
             setDeleteTarget(
-              null
+              null,
             );
           }
         }}

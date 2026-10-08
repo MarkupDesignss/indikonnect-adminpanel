@@ -51,6 +51,8 @@ import LandingPageManagement from "@/pages/Cms/LandingPageManagement";
 
 import Addwarehouse from "@/pages/Warehouse/Addwarehouse";
 import Productsaasignment from "@/pages/Warehouse/Productsaasignment";
+import WarehouseProducts from "@/pages/Warehouse/WarehouseProducts";
+import Inventorywarehouse from "@/pages/Warehouse/Inventorywarehouse";
 
 const ScrollLayout = () => {
   return (
@@ -248,6 +250,11 @@ export const adminRouter = createBrowserRouter(
               path: "Fiance/CancelRefund",
               element: <CancelRefund />,
             },
+
+            { path: "warehouse/products", element: <WarehouseProducts /> },
+
+            { path: "warehouse/inventory", element: <Inventorywarehouse /> },
+
 
             // SETTINGS
             {

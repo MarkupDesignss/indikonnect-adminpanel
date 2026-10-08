@@ -28,7 +28,9 @@ import {
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
-import testimonialsApi, { Testimonial } from "../../api/endpoints/testimonials";
+import testimonialsApi, {
+  Testimonial,
+} from "../../api/endpoints/testimonials";
 
 // ✅ PERMISSIONS
 import { usePermissions } from "../../pages/permissions/usePermissions";
@@ -41,16 +43,25 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.04 },
+    transition: {
+      staggerChildren: 0.04,
+    },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: {
+    opacity: 0,
+    y: 12,
+  },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 110, damping: 16 },
+    transition: {
+      type: "spring",
+      stiffness: 110,
+      damping: 16,
+    },
   },
 };
 
@@ -58,60 +69,98 @@ const itemVariants = {
 // HELPERS
 // =====================================================
 
-const getVideoUrl = (testimonial: Testimonial | null) => {
+const getVideoUrl = (
+  testimonial: Testimonial | null,
+) => {
   if (!testimonial) return "";
   return testimonial.video_path || "";
 };
 
-const formatDate = (value?: string | null) => {
+const formatDate = (
+  value?: string | null,
+) => {
   if (!value) return "—";
+
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    },
+  );
 };
 
 // =====================================================
 // STAR RATING DISPLAY — NAVY THEME
 // =====================================================
 
-const StarRatingDisplay: React.FC<{ rating: string | number }> = ({
-  rating,
-}) => {
-  const numRating = typeof rating === "string" ? parseFloat(rating) : rating;
-  const fullStars = Math.floor(numRating / 2);
-  const hasHalfStar = (numRating / 2) % 1 >= 0.5;
+const StarRatingDisplay: React.FC<{
+  rating: string | number;
+}> = ({ rating }) => {
+  const numRating =
+    typeof rating === "string"
+      ? parseFloat(rating)
+      : rating;
+
+  const fullStars = Math.floor(
+    numRating / 2,
+  );
+
+  const hasHalfStar =
+    (numRating / 2) % 1 >= 0.5;
+
   const totalStars = 5;
 
   return (
     <div className="flex items-center gap-0.5">
-      {[...Array(totalStars)].map((_, i) => {
-        if (i < fullStars) {
+      {[...Array(totalStars)].map(
+        (_, i) => {
+          if (i < fullStars) {
+            return (
+              <FiStar
+                key={i}
+                className="h-3 w-3 fill-[#FACC15] text-[#FACC15]"
+              />
+            );
+          } else if (
+            i === fullStars &&
+            hasHalfStar
+          ) {
+            return (
+              <div
+                key={i}
+                className="relative"
+              >
+                <FiStar className="h-3 w-3 text-[#D8E2F0]" />
+
+                <div className="absolute inset-0 w-1/2 overflow-hidden">
+                  <FiStar className="h-3 w-3 fill-[#FACC15] text-[#FACC15]" />
+                </div>
+              </div>
+            );
+          }
+
           return (
             <FiStar
               key={i}
-              className="h-3 w-3 fill-[#FACC15] text-[#FACC15]"
+              className="h-3 w-3 text-[#D8E2F0]"
             />
           );
-        } else if (i === fullStars && hasHalfStar) {
-          return (
-            <div key={i} className="relative">
-              <FiStar className="h-3 w-3 text-[#D8E2F0]" />
-              <div className="absolute inset-0 overflow-hidden w-1/2">
-                <FiStar className="h-3 w-3 fill-[#FACC15] text-[#FACC15]" />
-              </div>
-            </div>
-          );
-        } else {
-          return <FiStar key={i} className="h-3 w-3 text-[#D8E2F0]" />;
-        }
-      })}
+        },
+      )}
+
       <span className="ml-1 text-xs font-semibold text-[#3A4668]">
         {typeof rating === "string"
-          ? parseFloat(rating).toFixed(1)
+          ? parseFloat(
+              rating,
+            ).toFixed(1)
           : rating.toFixed(1)}
       </span>
     </div>
@@ -128,10 +177,14 @@ interface TestimonialFormModalProps {
   mode: "add" | "edit";
   testimonial: Testimonial | null;
   onClose: () => void;
-  onSubmit: (payload: FormData) => void;
+  onSubmit: (
+    payload: FormData,
+  ) => void;
 }
 
-const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
+const TestimonialFormModal: React.FC<
+  TestimonialFormModalProps
+> = ({
   open,
   loading,
   mode,
@@ -139,19 +192,41 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
   onClose,
   onSubmit,
 }) => {
-  const [personName, setPersonName] = useState("");
-  const [rating, setRating] = useState("");
-  const [text, setText] = useState("");
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreview, setVideoPreview] = useState("");
+  const [personName, setPersonName] =
+    useState("");
 
-  const videoInputRef = useRef<HTMLInputElement | null>(null);
-  const videoObjectUrlRef = useRef<string | null>(null);
+  const [rating, setRating] =
+    useState("");
+
+  const [text, setText] =
+    useState("");
+
+  const [videoFile, setVideoFile] =
+    useState<File | null>(null);
+
+  const [
+    videoPreview,
+    setVideoPreview,
+  ] = useState("");
+
+  const videoInputRef =
+    useRef<HTMLInputElement | null>(
+      null,
+    );
+
+  const videoObjectUrlRef =
+    useRef<string | null>(null);
 
   const cleanupPreviewUrls = () => {
-    if (videoObjectUrlRef.current) {
-      URL.revokeObjectURL(videoObjectUrlRef.current);
-      videoObjectUrlRef.current = null;
+    if (
+      videoObjectUrlRef.current
+    ) {
+      URL.revokeObjectURL(
+        videoObjectUrlRef.current,
+      );
+
+      videoObjectUrlRef.current =
+        null;
     }
   };
 
@@ -163,11 +238,30 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
     cleanupPreviewUrls();
 
-    if (mode === "edit" && testimonial) {
-      setPersonName(testimonial.person_name || "");
-      setRating(String(testimonial.rating || ""));
-      setText(testimonial.text || "");
-      setVideoPreview(getVideoUrl(testimonial));
+    if (
+      mode === "edit" &&
+      testimonial
+    ) {
+      setPersonName(
+        testimonial.person_name ||
+          "",
+      );
+
+      setRating(
+        String(
+          testimonial.rating || "",
+        ),
+      );
+
+      setText(
+        testimonial.text || "",
+      );
+
+      setVideoPreview(
+        getVideoUrl(
+          testimonial,
+        ),
+      );
     } else {
       setPersonName("");
       setRating("");
@@ -176,93 +270,185 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
       setVideoPreview("");
     }
 
-    if (videoInputRef.current) videoInputRef.current.value = "";
+    if (videoInputRef.current) {
+      videoInputRef.current.value =
+        "";
+    }
 
     return () => {
       cleanupPreviewUrls();
     };
-  }, [open, mode, testimonial]);
+  }, [
+    open,
+    mode,
+    testimonial,
+  ]);
 
-  const handleVideoChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleVideoChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file =
+      event.target.files?.[0];
+
     if (!file) return;
 
-    if (!file.type.startsWith("video/")) {
-      toast.error("Please select a valid video file.");
+    if (
+      !file.type.startsWith(
+        "video/",
+      )
+    ) {
+      toast.error(
+        "Please select a valid video file.",
+      );
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error("Video size should be less than 50MB.");
+    if (
+      file.size >
+      50 * 1024 * 1024
+    ) {
+      toast.error(
+        "Video size should be less than 50MB.",
+      );
       return;
     }
 
-    if (videoObjectUrlRef.current) {
-      URL.revokeObjectURL(videoObjectUrlRef.current);
+    if (
+      videoObjectUrlRef.current
+    ) {
+      URL.revokeObjectURL(
+        videoObjectUrlRef.current,
+      );
     }
 
-    const url = URL.createObjectURL(file);
-    videoObjectUrlRef.current = url;
+    const url =
+      URL.createObjectURL(
+        file,
+      );
+
+    videoObjectUrlRef.current =
+      url;
 
     setVideoFile(file);
     setVideoPreview(url);
   };
 
   const resetVideo = () => {
-    if (videoObjectUrlRef.current) {
-      URL.revokeObjectURL(videoObjectUrlRef.current);
-      videoObjectUrlRef.current = null;
+    if (
+      videoObjectUrlRef.current
+    ) {
+      URL.revokeObjectURL(
+        videoObjectUrlRef.current,
+      );
+
+      videoObjectUrlRef.current =
+        null;
     }
 
     setVideoFile(null);
 
-    if (mode === "edit" && testimonial) {
-      setVideoPreview(getVideoUrl(testimonial));
+    if (
+      mode === "edit" &&
+      testimonial
+    ) {
+      setVideoPreview(
+        getVideoUrl(
+          testimonial,
+        ),
+      );
     } else {
       setVideoPreview("");
     }
 
-    if (videoInputRef.current) videoInputRef.current.value = "";
+    if (videoInputRef.current) {
+      videoInputRef.current.value =
+        "";
+    }
   };
 
   const handleSubmit = () => {
-    const trimmedPersonName = personName.trim();
-    const trimmedRating = rating.trim();
-    const trimmedText = text.trim();
+    const trimmedPersonName =
+      personName.trim();
+
+    const trimmedRating =
+      rating.trim();
+
+    const trimmedText =
+      text.trim();
 
     if (!trimmedPersonName) {
-      toast.error("Please enter person name.");
+      toast.error(
+        "Please enter person name.",
+      );
       return;
     }
 
     if (!trimmedRating) {
-      toast.error("Please enter rating.");
+      toast.error(
+        "Please enter rating.",
+      );
       return;
     }
 
-    const ratingNum = parseFloat(trimmedRating);
-    if (isNaN(ratingNum) || ratingNum < 0 || ratingNum > 10) {
-      toast.error("Please enter a valid rating between 0 and 10.");
+    const ratingNum =
+      parseFloat(
+        trimmedRating,
+      );
+
+    if (
+      isNaN(ratingNum) ||
+      ratingNum < 0 ||
+      ratingNum > 10
+    ) {
+      toast.error(
+        "Please enter a valid rating between 0 and 10.",
+      );
       return;
     }
 
     if (!trimmedText) {
-      toast.error("Please enter testimonial text.");
+      toast.error(
+        "Please enter testimonial text.",
+      );
       return;
     }
 
-    if (mode === "add" && !videoFile) {
-      toast.error("Please upload a video.");
+    if (
+      mode === "add" &&
+      !videoFile
+    ) {
+      toast.error(
+        "Please upload a video.",
+      );
       return;
     }
 
-    const formData = new FormData();
-    formData.append("person_name", trimmedPersonName);
-    formData.append("rating", String(ratingNum));
-    formData.append("text", trimmedText);
+    const formData =
+      new FormData();
 
-    if (videoFile instanceof File) {
-      formData.append("video", videoFile, videoFile.name);
+    formData.append(
+      "person_name",
+      trimmedPersonName,
+    );
+
+    formData.append(
+      "rating",
+      String(ratingNum),
+    );
+
+    formData.append(
+      "text",
+      trimmedText,
+    );
+
+    if (
+      videoFile instanceof File
+    ) {
+      formData.append(
+        "video",
+        videoFile,
+        videoFile.name,
+      );
     }
 
     onSubmit(formData);
@@ -270,69 +456,111 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
   const handleClose = () => {
     if (loading) return;
+
     cleanupPreviewUrls();
     onClose();
   };
 
-  const renderStarPreview = () => {
-    const numRating = parseFloat(rating) / 2;
-    if (isNaN(numRating)) return null;
+  const renderStarPreview =
+    () => {
+      const numRating =
+        parseFloat(rating) / 2;
 
-    const fullStars = Math.floor(numRating);
-    const hasHalfStar = numRating % 1 >= 0.5;
-    const totalStars = 5;
+      if (isNaN(numRating)) {
+        return null;
+      }
 
-    return (
-      <div className="flex items-center gap-0.5">
-        {[...Array(totalStars)].map((_, i) => {
-          if (i < fullStars) {
+      const fullStars =
+        Math.floor(
+          numRating,
+        );
+
+      const hasHalfStar =
+        numRating % 1 >= 0.5;
+
+      const totalStars = 5;
+
+      return (
+        <div className="flex items-center gap-0.5">
+          {[
+            ...Array(
+              totalStars,
+            ),
+          ].map((_, i) => {
+            if (
+              i < fullStars
+            ) {
+              return (
+                <FiStar
+                  key={i}
+                  className="h-4 w-4 fill-[#FACC15] text-[#FACC15]"
+                />
+              );
+            } else if (
+              i === fullStars &&
+              hasHalfStar
+            ) {
+              return (
+                <div
+                  key={i}
+                  className="relative"
+                >
+                  <FiStar className="h-4 w-4 text-[#D8E2F0]" />
+
+                  <div className="absolute inset-0 w-1/2 overflow-hidden">
+                    <FiStar className="h-4 w-4 fill-[#FACC15] text-[#FACC15]" />
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <FiStar
                 key={i}
-                className="h-4 w-4 fill-[#FACC15] text-[#FACC15]"
+                className="h-4 w-4 text-[#D8E2F0]"
               />
             );
-          } else if (i === fullStars && hasHalfStar) {
-            return (
-              <div key={i} className="relative">
-                <FiStar className="h-4 w-4 text-[#D8E2F0]" />
-                <div className="absolute inset-0 overflow-hidden w-1/2">
-                  <FiStar className="h-4 w-4 fill-[#FACC15] text-[#FACC15]" />
-                </div>
-              </div>
-            );
-          } else {
-            return <FiStar key={i} className="h-4 w-4 text-[#D8E2F0]" />;
-          }
-        })}
-        <span className="ml-1 text-sm font-semibold text-[#3A4668]">
-          {rating ? parseFloat(rating).toFixed(1) : "0.0"} / 10
-        </span>
-      </div>
-    );
-  };
+          })}
+
+          <span className="ml-1 text-sm font-semibold text-[#3A4668]">
+            {rating
+              ? parseFloat(
+                  rating,
+                ).toFixed(1)
+              : "0.0"}{" "}
+            / 10
+          </span>
+        </div>
+      );
+    };
 
   return (
     <GlobalModal
       isOpen={open}
       onClose={handleClose}
-      closeOnOverlayClick={!loading}
+      closeOnOverlayClick={
+        !loading
+      }
       title=""
     >
       <div className="w-full max-w-[650px] overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
-        {/* TOP LINE — NAVY */}
+        {/* TOP LINE */}
         <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
 
         {/* HEADER */}
         <div className="flex items-start justify-between border-b border-[#1E3A8A]/10 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-              <FiMessageSquare size={18} />
+              <FiMessageSquare
+                size={18}
+              />
             </div>
 
             <div className="min-w-0">
               <h2 className="text-lg font-semibold text-[#0F1B3D]">
-                {mode === "add" ? "Add Testimonial" : "Update Testimonial"}
+                {mode === "add"
+                  ? "Add Testimonial"
+                  : "Update Testimonial"}
               </h2>
 
               <p className="mt-0.5 text-xs text-[#4A5778]">
@@ -359,7 +587,10 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             {/* PERSON NAME */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
-                Person Name <span className="ml-1 text-[#C23B32]">*</span>
+                Person Name{" "}
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
               </label>
 
               <div className="relative">
@@ -370,9 +601,17 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
                 <input
                   type="text"
-                  value={personName}
-                  onChange={(e) => setPersonName(e.target.value)}
-                  disabled={loading}
+                  value={
+                    personName
+                  }
+                  onChange={(e) =>
+                    setPersonName(
+                      e.target.value,
+                    )
+                  }
+                  disabled={
+                    loading
+                  }
                   placeholder="Enter person name"
                   className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
@@ -382,7 +621,10 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             {/* RATING */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
-                Rating (0-10) <span className="ml-1 text-[#C23B32]">*</span>
+                Rating (0-10){" "}
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
               </label>
 
               <div className="relative">
@@ -397,8 +639,14 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                   max="10"
                   step="0.1"
                   value={rating}
-                  onChange={(e) => setRating(e.target.value)}
-                  disabled={loading}
+                  onChange={(e) =>
+                    setRating(
+                      e.target.value,
+                    )
+                  }
+                  disabled={
+                    loading
+                  }
                   placeholder="Enter rating (e.g., 8.5)"
                   className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-10 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                 />
@@ -406,8 +654,10 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
               <div className="mt-2 flex items-center gap-3">
                 {renderStarPreview()}
+
                 <span className="text-[10px] text-[#8C97B2]">
-                  Rating out of 10
+                  Rating out of
+                  10
                 </span>
               </div>
             </div>
@@ -415,13 +665,22 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
             {/* TEXT */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-[#3A4668]">
-                Testimonial Text <span className="ml-1 text-[#C23B32]">*</span>
+                Testimonial Text{" "}
+                <span className="ml-1 text-[#C23B32]">
+                  *
+                </span>
               </label>
 
               <textarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
-                disabled={loading}
+                onChange={(e) =>
+                  setText(
+                    e.target.value,
+                  )
+                }
+                disabled={
+                  loading
+                }
                 rows={4}
                 placeholder="Write the testimonial text here..."
                 className="w-full rounded-xl border border-[#D8E2F0] bg-white px-4 py-3 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
@@ -433,40 +692,63 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
               <div className="mb-1.5 flex items-center justify-between">
                 <label className="block text-xs font-semibold text-[#3A4668]">
                   Video File
-                  {mode === "add" && (
-                    <span className="ml-1 text-[#C23B32]">*</span>
+                  {mode ===
+                    "add" && (
+                    <span className="ml-1 text-[#C23B32]">
+                      *
+                    </span>
                   )}
                 </label>
 
-                <span className="text-[10px] text-[#8C97B2]">Max 50MB</span>
+                <span className="text-[10px] text-[#8C97B2]">
+                  Max 50MB
+                </span>
               </div>
 
               <input
-                ref={videoInputRef}
+                ref={
+                  videoInputRef
+                }
                 type="file"
                 accept="video/*"
-                onChange={handleVideoChange}
-                disabled={loading}
+                onChange={
+                  handleVideoChange
+                }
+                disabled={
+                  loading
+                }
                 className="hidden"
               />
 
               {!videoPreview ? (
                 <button
                   type="button"
-                  onClick={() => videoInputRef.current?.click()}
-                  disabled={loading}
+                  onClick={() =>
+                    videoInputRef.current?.click()
+                  }
+                  disabled={
+                    loading
+                  }
                   className="flex w-full items-center justify-center gap-4 rounded-xl border border-dashed border-[#D8E2F0] bg-[#F5F8FF] px-5 py-7 transition hover:border-[#1E3A8A] hover:bg-[#EAF1FF]"
                 >
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                    <FiUpload size={19} />
+                    <FiUpload
+                      size={19}
+                    />
                   </div>
 
                   <div className="text-left">
                     <p className="text-sm font-semibold text-[#3A4668]">
-                      Upload Testimonial Video
+                      Upload Testimonial
+                      Video
                     </p>
+
                     <p className="mt-0.5 text-[10px] text-[#8C97B2]">
-                      MP4, MOV, WEBM or other supported video
+                      MP4, MOV,
+                      WEBM or
+                      other
+                      supported
+                      video
                     </p>
                   </div>
                 </button>
@@ -475,7 +757,9 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                   <div className="flex gap-3">
                     <div className="h-[90px] w-[70px] shrink-0 overflow-hidden rounded-xl bg-black">
                       <video
-                        src={videoPreview}
+                        src={
+                          videoPreview
+                        }
                         className="h-full w-full object-cover"
                         controls
                         playsInline
@@ -484,8 +768,10 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-[#0F1B3D]">
-                        {videoFile?.name || "Current video"}
+                        {videoFile?.name ||
+                          "Current video"}
                       </p>
+
                       <p className="mt-1 text-[10px] text-[#8C97B2]">
                         {videoFile
                           ? "New video selected"
@@ -495,18 +781,27 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
                       <div className="mt-3 flex gap-3">
                         <button
                           type="button"
-                          onClick={() => videoInputRef.current?.click()}
-                          disabled={loading}
+                          onClick={() =>
+                            videoInputRef.current?.click()
+                          }
+                          disabled={
+                            loading
+                          }
                           className="text-xs font-semibold text-[#1E3A8A] hover:underline"
                         >
-                          Change Video
+                          Change
+                          Video
                         </button>
 
                         {videoFile && (
                           <button
                             type="button"
-                            onClick={resetVideo}
-                            disabled={loading}
+                            onClick={
+                              resetVideo
+                            }
+                            disabled={
+                              loading
+                            }
                             className="text-xs font-semibold text-[#C23B32] hover:underline"
                           >
                             Reset
@@ -534,23 +829,36 @@ const TestimonialFormModal: React.FC<TestimonialFormModalProps> = ({
 
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={
+              handleSubmit
+            }
             disabled={loading}
             className="flex min-w-[125px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
-                <FiRefreshCw size={14} className="animate-spin" />
-                {mode === "add" ? "Creating..." : "Updating..."}
+                <FiRefreshCw
+                  size={14}
+                  className="animate-spin"
+                />
+
+                {mode === "add"
+                  ? "Creating..."
+                  : "Updating..."}
               </>
-            ) : mode === "add" ? (
+            ) : mode ===
+              "add" ? (
               <>
-                <FiPlus size={15} />
+                <FiPlus
+                  size={15}
+                />
                 Create Testimonial
               </>
             ) : (
               <>
-                <FiCheckCircle size={15} />
+                <FiCheckCircle
+                  size={15}
+                />
                 Update Testimonial
               </>
             )}
@@ -573,7 +881,9 @@ interface DeleteTestimonialModalProps {
   onConfirm: () => void;
 }
 
-const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
+const DeleteTestimonialModal: React.FC<
+  DeleteTestimonialModalProps
+> = ({
   open,
   loading,
   testimonial,
@@ -584,9 +894,13 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
     <GlobalModal
       isOpen={open}
       onClose={() => {
-        if (!loading) onClose();
+        if (!loading) {
+          onClose();
+        }
       }}
-      closeOnOverlayClick={!loading}
+      closeOnOverlayClick={
+        !loading
+      }
       title=""
     >
       <div className="w-full max-w-[430px] overflow-hidden rounded-[20px] border border-[#C23B32]/15 bg-white shadow-2xl font-poppins">
@@ -600,11 +914,14 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
 
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-[#0F1B3D]">
-                Delete Testimonial?
+                Delete
+                Testimonial?
               </h2>
 
               <p className="mt-1.5 text-xs leading-5 text-[#4A5778]">
-                This action will permanently remove the selected testimonial.
+                This action will
+                permanently remove the
+                selected testimonial.
               </p>
             </div>
 
@@ -622,7 +939,9 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
             <div className="h-16 w-12 shrink-0 overflow-hidden rounded-xl bg-black">
               {testimonial?.video_path ? (
                 <video
-                  src={testimonial.video_path}
+                  src={
+                    testimonial.video_path
+                  }
                   className="h-full w-full object-cover"
                   muted
                 />
@@ -635,11 +954,15 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#0F1B3D]">
-                {testimonial?.person_name || "Selected Testimonial"}
+                {testimonial?.person_name ||
+                  "Selected Testimonial"}
               </p>
 
               <p className="mt-0.5 text-xs text-[#4A5778]">
-                Rating: {testimonial?.rating || "N/A"}/10
+                Rating:{" "}
+                {testimonial?.rating ||
+                  "N/A"}
+                /10
               </p>
             </div>
           </div>
@@ -657,18 +980,25 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
 
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={
+              onConfirm
+            }
             disabled={loading}
             className="flex min-w-[120px] items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
           >
             {loading ? (
               <>
-                <FiRefreshCw size={14} className="animate-spin" />
+                <FiRefreshCw
+                  size={14}
+                  className="animate-spin"
+                />
                 Deleting...
               </>
             ) : (
               <>
-                <FiTrash2 size={14} />
+                <FiTrash2
+                  size={14}
+                />
                 Delete
               </>
             )}
@@ -686,13 +1016,19 @@ const DeleteTestimonialModal: React.FC<DeleteTestimonialModalProps> = ({
 interface TestimonialCardProps {
   testimonial: Testimonial;
   serialNumber: number;
-  onEdit: (testimonial: Testimonial) => void;
-  onDelete: (testimonial: Testimonial) => void;
+  onEdit: (
+    testimonial: Testimonial,
+  ) => void;
+  onDelete: (
+    testimonial: Testimonial,
+  ) => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }
 
-const TestimonialCard: React.FC<TestimonialCardProps> = ({
+const TestimonialCard: React.FC<
+  TestimonialCardProps
+> = ({
   testimonial,
   serialNumber,
   onEdit,
@@ -700,14 +1036,18 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
   canEdit = false,
   canDelete = false,
 }) => {
-  const videoUrl = getVideoUrl(testimonial);
+  const videoUrl =
+    getVideoUrl(testimonial);
 
-  const hasAnyAction = canEdit || canDelete;
+  const hasAnyAction =
+    canEdit || canDelete;
 
   return (
     <motion.div
       variants={itemVariants}
-      whileHover={{ y: -3 }}
+      whileHover={{
+        y: -3,
+      }}
       className="group overflow-hidden rounded-[18px] border border-[#E3E9F5] bg-white shadow-sm transition-all duration-300 hover:border-[#1E3A8A]/30 hover:shadow-[0_15px_35px_rgba(30,58,138,0.08)]"
     >
       {/* VIDEO */}
@@ -722,7 +1062,10 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <FiMessageSquare size={35} className="text-[#60A5FA]" />
+            <FiMessageSquare
+              size={35}
+              className="text-[#60A5FA]"
+            />
           </div>
         )}
 
@@ -737,19 +1080,32 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
         {/* BOTTOM */}
         <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
           <div className="flex items-center gap-2">
-            <StarRatingDisplay rating={testimonial.rating} />
+            <StarRatingDisplay
+              rating={
+                testimonial.rating
+              }
+            />
           </div>
 
           <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-5">
-            {testimonial.person_name}
+            {
+              testimonial.person_name
+            }
           </h3>
 
           <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-white/65">
             <span className="flex items-center gap-1.5">
-              <FiMessageSquare size={11} />
+              <FiMessageSquare
+                size={11}
+              />
               Testimonial
             </span>
-            <span>{formatDate(testimonial.created_at)}</span>
+
+            <span>
+              {formatDate(
+                testimonial.created_at,
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -763,22 +1119,31 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
             </p>
 
             <p className="mt-1 truncate text-xs font-semibold text-[#0F1B3D]">
-              {testimonial.person_name}
+              {
+                testimonial.person_name
+              }
             </p>
           </div>
 
           <div className="flex items-center gap-1 text-[10px] text-[#1E3A8A]">
-            <FiStar size={12} className="fill-[#FACC15] text-[#FACC15]" />
+            <FiStar
+              size={12}
+              className="fill-[#FACC15] text-[#FACC15]"
+            />
 
             <span className="font-semibold">
-              {parseFloat(testimonial.rating).toFixed(1)}
+              {parseFloat(
+                testimonial.rating,
+              ).toFixed(1)}
             </span>
           </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-[#1E3A8A]/10 pt-3">
           <div className="text-[10px] text-[#8C97B2]">
-            {formatDate(testimonial.created_at)}
+            {formatDate(
+              testimonial.created_at,
+            )}
           </div>
 
           {hasAnyAction && (
@@ -786,22 +1151,34 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
               {canEdit && (
                 <button
                   type="button"
-                  onClick={() => onEdit(testimonial)}
+                  onClick={() =>
+                    onEdit(
+                      testimonial,
+                    )
+                  }
                   title="Edit Testimonial"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#1E3A8A] hover:text-[#1E3A8A]"
                 >
-                  <FiEdit2 size={14} />
+                  <FiEdit2
+                    size={14}
+                  />
                 </button>
               )}
 
               {canDelete && (
                 <button
                   type="button"
-                  onClick={() => onDelete(testimonial)}
+                  onClick={() =>
+                    onDelete(
+                      testimonial,
+                    )
+                  }
                   title="Delete Testimonial"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#C23B32] hover:text-[#C23B32]"
                 >
-                  <FiTrash2 size={14} />
+                  <FiTrash2
+                    size={14}
+                  />
                 </button>
               )}
             </div>
@@ -811,551 +1188,985 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
     </motion.div>
   );
 };
+
+// =====================================================
+// ✅ PERMISSION LOADING
+// =====================================================
+
+const PermissionLoading: React.FC =
+  () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="flex flex-col items-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
+            <FiRefreshCw
+              size={23}
+              className="animate-spin"
+            />
+          </div>
+
+          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+            Checking permissions...
+          </p>
+
+          <p className="mt-1 text-[10px] text-[#8C97B2]">
+            Verifying testimonial management
+            access.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+// =====================================================
+// ✅ ACCESS DENIED
+// =====================================================
+
+const AccessDenied: React.FC =
+  () => {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <FiAlertCircle
+              size={26}
+            />
+          </div>
+
+          <h2 className="text-lg font-bold text-[#0F1B3D]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7896]">
+            You don't have permission
+            to access the Testimonials
+            Management module.
+          </p>
+
+          <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FBEAEA] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+            Contact your administrator
+            to request access.
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
 
-const TestimonialsManagement: React.FC = () => {
-  // ===================================================
-  // ✅ PERMISSIONS
-  // ===================================================
+const TestimonialsManagement: React.FC =
+  () => {
+    // ===================================================
+    // ✅ PERMISSIONS
+    // ===================================================
 
-  const {
-    hasPermission,
-    hasModuleAccess,
-    isSuperAdmin,
-  } = usePermissions();
+    const {
+      hasPermission,
+      hasModuleAccess,
+      isSuperAdmin,
+      loading:
+        permissionsLoading,
+    } = usePermissions();
 
-  const canViewTestimonials = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("content") ||
-      hasModuleAccess("testimonial") ||
-      hasPermission("content.view") ||
-      hasPermission("testimonial.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
-  );
-
-  const canCreateTestimonial = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.create") ||
-      hasPermission("testimonial.create"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canUpdateTestimonial = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.edit") ||
-      hasPermission("content.update") ||
-      hasPermission("testimonial.edit"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canDeleteTestimonial = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("content.delete") ||
-      hasPermission("testimonial.delete"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  // ===================================================
-  // STATE
-  // ===================================================
-
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [addEditOpen, setAddEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-  const [selectedTestimonial, setSelectedTestimonial] =
-    useState<Testimonial | null>(null);
-
-  // =================================================
-  // FETCH
-  // =================================================
-
-  const fetchTestimonials = async () => {
-    try {
-      setLoading(true);
-      const response = await testimonialsApi.getAll();
-
-      if (response.data?.data?.data) {
-        setTestimonials(response.data.data.data);
-      } else {
-        setTestimonials([]);
-        toast.error(
-          response.data?.message || "Unable to fetch testimonials.",
-        );
-      }
-    } catch (error: any) {
-      console.error("Fetch testimonials error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch testimonials.",
+    const canViewTestimonials =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasModuleAccess(
+            "content",
+          ) ||
+          hasModuleAccess(
+            "testimonial",
+          ) ||
+          hasPermission(
+            "content.view",
+          ) ||
+          hasPermission(
+            "testimonial.view",
+          ),
+        [
+          isSuperAdmin,
+          hasModuleAccess,
+          hasPermission,
+        ],
       );
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    if (canViewTestimonials) {
-      fetchTestimonials();
-    }
-  }, [canViewTestimonials]);
-
-  // =================================================
-  // SEARCH
-  // =================================================
-
-  const filteredTestimonials = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return testimonials;
-
-    return testimonials.filter(
-      (testimonial) =>
-        testimonial.person_name?.toLowerCase().includes(query) ||
-        testimonial.text?.toLowerCase().includes(query) ||
-        String(testimonial.id).includes(query),
-    );
-  }, [testimonials, search]);
-
-  const totalTestimonials = testimonials.length;
-
-  // =================================================
-  // HANDLERS
-  // =================================================
-
-  const openAdd = () => {
-    setSelectedTestimonial(null);
-    setModalMode("add");
-    setAddEditOpen(true);
-  };
-
-  const openEdit = (testimonial: Testimonial) => {
-    setSelectedTestimonial(testimonial);
-    setModalMode("edit");
-    setAddEditOpen(true);
-  };
-
-  const openDelete = (testimonial: Testimonial) => {
-    setSelectedTestimonial(testimonial);
-    setDeleteOpen(true);
-  };
-
-  const handleSave = async (payload: FormData) => {
-    try {
-      setSaveLoading(true);
-
-      let response;
-
-      if (modalMode === "edit" && selectedTestimonial) {
-        response = await testimonialsApi.update(
-          selectedTestimonial.id,
-          payload,
-        );
-      } else {
-        response = await testimonialsApi.create(payload);
-      }
-
-      if (response.data?.success !== false) {
-        toast.success(
-          response.data?.message ||
-            (modalMode === "edit"
-              ? "Testimonial updated successfully."
-              : "Testimonial created successfully."),
-        );
-
-        setAddEditOpen(false);
-        setSelectedTestimonial(null);
-        await fetchTestimonials();
-      } else {
-        toast.error(
-          response.data?.message || "Unable to save testimonial.",
-        );
-      }
-    } catch (error: any) {
-      console.error("Save testimonial error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Something went wrong while saving testimonial.",
+    const canCreateTestimonial =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.create",
+          ) ||
+          hasPermission(
+            "testimonial.create",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
       );
-    } finally {
-      setSaveLoading(false);
-    }
-  };
 
-  const handleDelete = async () => {
-    if (!selectedTestimonial) return;
+    const canUpdateTestimonial =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.edit",
+          ) ||
+          hasPermission(
+            "content.update",
+          ) ||
+          hasPermission(
+            "testimonial.edit",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
 
-    try {
-      setDeleteLoading(true);
-      const response = await testimonialsApi.delete(selectedTestimonial.id);
+    const canDeleteTestimonial =
+      useMemo(
+        () =>
+          isSuperAdmin ||
+          hasPermission(
+            "content.delete",
+          ) ||
+          hasPermission(
+            "testimonial.delete",
+          ),
+        [
+          isSuperAdmin,
+          hasPermission,
+        ],
+      );
 
-      if (response.data?.success !== false) {
-        toast.success(
-          response.data?.message || "Testimonial deleted successfully.",
+    // ===================================================
+    // STATE
+    // ===================================================
+
+    const [
+      testimonials,
+      setTestimonials,
+    ] = useState<
+      Testimonial[]
+    >([]);
+
+    const [loading, setLoading] =
+      useState(false);
+
+    const [
+      saveLoading,
+      setSaveLoading,
+    ] = useState(false);
+
+    const [
+      deleteLoading,
+      setDeleteLoading,
+    ] = useState(false);
+
+    const [search, setSearch] =
+      useState("");
+
+    const [
+      addEditOpen,
+      setAddEditOpen,
+    ] = useState(false);
+
+    const [
+      deleteOpen,
+      setDeleteOpen,
+    ] = useState(false);
+
+    const [
+      modalMode,
+      setModalMode,
+    ] = useState<
+      "add" | "edit"
+    >("add");
+
+    const [
+      selectedTestimonial,
+      setSelectedTestimonial,
+    ] =
+      useState<Testimonial | null>(
+        null,
+      );
+
+    // =================================================
+    // FETCH
+    // =================================================
+
+    const fetchTestimonials =
+      async () => {
+        try {
+          setLoading(true);
+
+          const response =
+            await testimonialsApi.getAll();
+
+          if (
+            response.data?.data
+              ?.data
+          ) {
+            setTestimonials(
+              response.data.data.data,
+            );
+          } else {
+            setTestimonials(
+              [],
+            );
+
+            toast.error(
+              response.data
+                ?.message ||
+                "Unable to fetch testimonials.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Fetch testimonials error:",
+            error,
+          );
+
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Unable to fetch testimonials.",
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+    // =================================================
+    // ✅ FETCH ONLY AFTER PERMISSIONS FINISH
+    // =================================================
+
+    useEffect(() => {
+      if (
+        permissionsLoading
+      ) {
+        return;
+      }
+
+      if (
+        canViewTestimonials
+      ) {
+        fetchTestimonials();
+      }
+    }, [
+      permissionsLoading,
+      canViewTestimonials,
+    ]);
+
+    // =================================================
+    // SEARCH
+    // =================================================
+
+    const filteredTestimonials =
+      useMemo(() => {
+        const query =
+          search
+            .trim()
+            .toLowerCase();
+
+        if (!query) {
+          return testimonials;
+        }
+
+        return testimonials.filter(
+          (
+            testimonial,
+          ) =>
+            testimonial.person_name
+              ?.toLowerCase()
+              .includes(query) ||
+            testimonial.text
+              ?.toLowerCase()
+              .includes(query) ||
+            String(
+              testimonial.id,
+            ).includes(query),
+        );
+      }, [
+        testimonials,
+        search,
+      ]);
+
+    const totalTestimonials =
+      testimonials.length;
+
+    // =================================================
+    // HANDLERS
+    // =================================================
+
+    const openAdd = () => {
+      setSelectedTestimonial(
+        null,
+      );
+
+      setModalMode(
+        "add",
+      );
+
+      setAddEditOpen(
+        true,
+      );
+    };
+
+    const openEdit = (
+      testimonial: Testimonial,
+    ) => {
+      setSelectedTestimonial(
+        testimonial,
+      );
+
+      setModalMode(
+        "edit",
+      );
+
+      setAddEditOpen(
+        true,
+      );
+    };
+
+    const openDelete = (
+      testimonial: Testimonial,
+    ) => {
+      setSelectedTestimonial(
+        testimonial,
+      );
+
+      setDeleteOpen(
+        true,
+      );
+    };
+
+    const handleSave = async (
+      payload: FormData,
+    ) => {
+      try {
+        setSaveLoading(
+          true,
         );
 
-        setDeleteOpen(false);
-        setSelectedTestimonial(null);
-        await fetchTestimonials();
-      } else {
+        let response;
+
+        if (
+          modalMode ===
+            "edit" &&
+          selectedTestimonial
+        ) {
+          response =
+            await testimonialsApi.update(
+              selectedTestimonial.id,
+              payload,
+            );
+        } else {
+          response =
+            await testimonialsApi.create(
+              payload,
+            );
+        }
+
+        if (
+          response.data
+            ?.success !== false
+        ) {
+          toast.success(
+            response.data
+              ?.message ||
+              (modalMode ===
+              "edit"
+                ? "Testimonial updated successfully."
+                : "Testimonial created successfully."),
+          );
+
+          setAddEditOpen(
+            false,
+          );
+
+          setSelectedTestimonial(
+            null,
+          );
+
+          await fetchTestimonials();
+        } else {
+          toast.error(
+            response.data
+              ?.message ||
+              "Unable to save testimonial.",
+          );
+        }
+      } catch (error: any) {
+        console.error(
+          "Save testimonial error:",
+          error,
+        );
+
         toast.error(
-          response.data?.message || "Unable to delete testimonial.",
+          error?.response
+            ?.data?.message ||
+            "Something went wrong while saving testimonial.",
+        );
+      } finally {
+        setSaveLoading(
+          false,
         );
       }
-    } catch (error: any) {
-      console.error("Delete testimonial error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Something went wrong while deleting testimonial.",
+    };
+
+    const handleDelete =
+      async () => {
+        if (
+          !selectedTestimonial
+        ) {
+          return;
+        }
+
+        try {
+          setDeleteLoading(
+            true,
+          );
+
+          const response =
+            await testimonialsApi.delete(
+              selectedTestimonial.id,
+            );
+
+          if (
+            response.data
+              ?.success !== false
+          ) {
+            toast.success(
+              response.data
+                ?.message ||
+                "Testimonial deleted successfully.",
+            );
+
+            setDeleteOpen(
+              false,
+            );
+
+            setSelectedTestimonial(
+              null,
+            );
+
+            await fetchTestimonials();
+          } else {
+            toast.error(
+              response.data
+                ?.message ||
+                "Unable to delete testimonial.",
+            );
+          }
+        } catch (error: any) {
+          console.error(
+            "Delete testimonial error:",
+            error,
+          );
+
+          toast.error(
+            error?.response
+              ?.data?.message ||
+              "Something went wrong while deleting testimonial.",
+          );
+        } finally {
+          setDeleteLoading(
+            false,
+          );
+        }
+      };
+
+    // =================================================
+    // ✅ PERMISSION LOADING
+    // =================================================
+
+    if (
+      permissionsLoading
+    ) {
+      return (
+        <PermissionLoading />
       );
-    } finally {
-      setDeleteLoading(false);
     }
-  };
 
-  // ===================================================
-  // ✅ ACCESS DENIED
-  // ===================================================
+    // =================================================
+    // ✅ ACCESS DENIED
+    // =================================================
 
-  if (!canViewTestimonials) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
-            <FiAlertCircle size={26} />
-          </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
-            You don't have permission to access this section.
-          </p>
-        </div>
-      </div>
-    );
-  }
+    if (
+      !canViewTestimonials
+    ) {
+      return <AccessDenied />;
+    }
 
-  // =================================================
-  // LOADING
-  // =================================================
+    // =================================================
+    // DATA LOADING
+    // =================================================
 
-  if (loading && testimonials.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#D8E2F0] border-t-[#1E3A8A]" />
+    if (
+      loading &&
+      testimonials.length ===
+        0
+    ) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
+          <div className="text-center">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#D8E2F0] border-t-[#1E3A8A]" />
 
-          <p className="mt-3 text-sm text-[#4A5778]">
-            Loading testimonials...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // =================================================
-  // UI
-  // =================================================
-
-  return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-      className="min-h-screen bg-[#F5F8FF] px-4 py-5 font-poppins sm:px-6 lg:px-8"
-    >
-      <div className="mx-auto max-w-[1500px]">
-        {/* HEADER */}
-        <motion.div
-          variants={itemVariants}
-          className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-center"
-        >
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
-
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]">
-                Content Management
-              </span>
-            </div>
-
-            <h1 className="text-[29px] font-semibold tracking-tight text-[#0F1B3D] sm:text-[32px]">
-              Testimonials
-            </h1>
-
-            <p className="mt-1 text-sm text-[#4A5778]">
-              Manage customer testimonials, videos, and ratings.
+            <p className="mt-3 text-sm text-[#4A5778]">
+              Loading
+              testimonials...
             </p>
           </div>
+        </div>
+      );
+    }
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={fetchTestimonials}
-              disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm font-medium text-[#3A4668] shadow-sm transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:opacity-50"
-            >
-              <FiRefreshCw
-                size={15}
-                className={loading ? "animate-spin" : ""}
-              />
-              <span className="hidden sm:inline">Refresh</span>
-            </button>
+    // =================================================
+    // UI
+    // =================================================
 
-            {/* ✅ ADD — permission based */}
-            {canCreateTestimonial && (
+    return (
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={
+          containerVariants
+        }
+        className="min-h-screen bg-[#F5F8FF] px-4 py-5 font-poppins sm:px-6 lg:px-8"
+      >
+        <div className="mx-auto max-w-[1500px]">
+          {/* HEADER */}
+
+          <motion.div
+            variants={
+              itemVariants
+            }
+            className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-center"
+          >
+            <div>
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]">
+                  Content Management
+                </span>
+              </div>
+
+              <h1 className="text-[29px] font-semibold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+                Testimonials
+              </h1>
+
+              <p className="mt-1 text-sm text-[#4A5778]">
+                Manage customer
+                testimonials, videos,
+                and ratings.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={openAdd}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+                onClick={
+                  fetchTestimonials
+                }
+                disabled={
+                  loading
+                }
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm font-medium text-[#3A4668] shadow-sm transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:opacity-50"
               >
-                <FiPlus size={16} />
-                Add Testimonial
+                <FiRefreshCw
+                  size={15}
+                  className={
+                    loading
+                      ? "animate-spin"
+                      : ""
+                  }
+                />
+
+                <span className="hidden sm:inline">
+                  Refresh
+                </span>
               </button>
-            )}
-          </div>
-        </motion.div>
 
-        {/* STATS */}
-        <motion.div
-          variants={containerVariants}
-          className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
-          >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
-                  Total Testimonials
-                </p>
-
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
-                  {totalTestimonials}
-                </p>
-
-                <p className="mt-1 text-[11px] text-[#4A5778]">
-                  All customer testimonials
-                </p>
-              </div>
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF1FF] text-[#1E3A8A]">
-                <FiMessageSquare size={21} />
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
-          >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
-
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
-                  With Videos
-                </p>
-
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
-                  {testimonials.filter((t) => t.video_path).length}
-                </p>
-
-                <p className="mt-1 text-[11px] text-[#4A5778]">
-                  Video testimonials uploaded
-                </p>
-              </div>
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#DBEAFE] text-[#1E40AF]">
-                <FiFilm size={21} />
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            variants={itemVariants}
-            className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
-          >
-            <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
-
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
-                  Average Rating
-                </p>
-
-                <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
-                  {testimonials.length > 0
-                    ? (
-                        testimonials.reduce(
-                          (sum, t) =>
-                            sum + parseFloat(String(t.rating || 0)),
-                          0,
-                        ) / testimonials.length
-                      ).toFixed(1)
-                    : "0.0"}
-                </p>
-
-                <p className="mt-1 text-[11px] text-[#4A5778]">
-                  Out of 10 average
-                </p>
-              </div>
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#FEF9C3] text-[#1E293B]">
-                <FiStar size={21} className="fill-[#FACC15]" />
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-
-        {/* MAIN CARD */}
-        <motion.div
-          variants={itemVariants}
-          className="overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
-        >
-          <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-          {/* TOOLBAR */}
-          <div className="flex flex-col gap-4 border-b border-[#1E3A8A]/10 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-[#0F1B3D]">
-                Testimonial Directory
-              </h2>
-
-              <p className="mt-1 text-xs text-[#4A5778]">
-                {filteredTestimonials.length}{" "}
-                {filteredTestimonials.length === 1
-                  ? "testimonial"
-                  : "testimonials"}{" "}
-                found
-              </p>
-            </div>
-
-            <div className="relative w-full md:max-w-sm">
-              <FiSearch
-                size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
-              />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search testimonials, person or ID..."
-                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-10 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
-              />
-
-              {search && (
+              {/* ADD — permission based */}
+              {canCreateTestimonial && (
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[#8C97B2] hover:text-[#1E3A8A]"
+                  onClick={
+                    openAdd
+                  }
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
                 >
-                  <FiX size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* CONTENT */}
-          {filteredTestimonials.length === 0 ? (
-            <div className="px-5 py-20 text-center sm:px-6">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EAF1FF] text-[#1E3A8A]">
-                <FiMessageSquare size={27} />
-              </div>
-
-              <h3 className="mt-5 text-base font-semibold text-[#0F1B3D]">
-                {search ? "No testimonials found" : "No testimonials available"}
-              </h3>
-
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#4A5778]">
-                {search
-                  ? "Try searching with another person name or ID."
-                  : "Add your first testimonial to start managing customer feedback."}
-              </p>
-
-              {!search && canCreateTestimonial && (
-                <button
-                  type="button"
-                  onClick={openAdd}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
-                >
-                  <FiPlus size={16} />
+                  <FiPlus
+                    size={16}
+                  />
                   Add Testimonial
                 </button>
               )}
             </div>
-          ) : (
-            <div className="p-5 sm:p-6">
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                {filteredTestimonials.map((testimonial, index) => (
-                  <TestimonialCard
-                    key={testimonial.id}
-                    testimonial={testimonial}
-                    serialNumber={index + 1}
-                    onEdit={openEdit}
-                    onDelete={openDelete}
-                    canEdit={canUpdateTestimonial}
-                    canDelete={canDeleteTestimonial}
+          </motion.div>
+
+          {/* STATS */}
+
+          <motion.div
+            variants={
+              containerVariants
+            }
+            className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3"
+          >
+            <motion.div
+              variants={
+                itemVariants
+              }
+              className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
+            >
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                    Total
+                    Testimonials
+                  </p>
+
+                  <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
+                    {
+                      totalTestimonials
+                    }
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-[#4A5778]">
+                    All customer
+                    testimonials
+                  </p>
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF1FF] text-[#1E3A8A]">
+                  <FiMessageSquare
+                    size={21}
                   />
-                ))}
-              </motion.div>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={
+                itemVariants
+              }
+              className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
+            >
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#60A5FA] to-[#2563EB]" />
+
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                    With Videos
+                  </p>
+
+                  <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
+                    {
+                      testimonials.filter(
+                        (t) =>
+                          t.video_path,
+                      ).length
+                    }
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-[#4A5778]">
+                    Video testimonials
+                    uploaded
+                  </p>
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#DBEAFE] text-[#1E40AF]">
+                  <FiFilm
+                    size={21}
+                  />
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={
+                itemVariants
+              }
+              className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_24px_rgba(30,58,138,0.05)]"
+            >
+              <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#FDE047] to-[#FACC15]" />
+
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                    Average
+                    Rating
+                  </p>
+
+                  <p className="mt-2 text-[26px] font-bold tracking-tight text-[#0F1B3D]">
+                    {testimonials.length >
+                    0
+                      ? (
+                          testimonials.reduce(
+                            (
+                              sum,
+                              t,
+                            ) =>
+                              sum +
+                              parseFloat(
+                                String(
+                                  t.rating ||
+                                    0,
+                                ),
+                              ),
+                            0,
+                          ) /
+                          testimonials.length
+                        ).toFixed(1)
+                      : "0.0"}
+                  </p>
+
+                  <p className="mt-1 text-[11px] text-[#4A5778]">
+                    Out of 10
+                    average
+                  </p>
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#FEF9C3] text-[#1E293B]">
+                  <FiStar
+                    size={21}
+                    className="fill-[#FACC15]"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* MAIN CARD */}
+
+          <motion.div
+            variants={
+              itemVariants
+            }
+            className="overflow-hidden rounded-[20px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+          >
+            <div className="h-[3px] w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+
+            {/* TOOLBAR */}
+
+            <div className="flex flex-col gap-4 border-b border-[#1E3A8A]/10 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-[#0F1B3D]">
+                  Testimonial
+                  Directory
+                </h2>
+
+                <p className="mt-1 text-xs text-[#4A5778]">
+                  {
+                    filteredTestimonials.length
+                  }{" "}
+                  {filteredTestimonials.length ===
+                  1
+                    ? "testimonial"
+                    : "testimonials"}{" "}
+                  found
+                </p>
+              </div>
+
+              <div className="relative w-full md:max-w-sm">
+                <FiSearch
+                  size={17}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                />
+
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(
+                      e.target.value,
+                    )
+                  }
+                  placeholder="Search testimonials, person or ID..."
+                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-10 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                />
+
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSearch("")
+                    }
+                    className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[#8C97B2] hover:text-[#1E3A8A]"
+                  >
+                    <FiX
+                      size={16}
+                    />
+                  </button>
+                )}
+              </div>
             </div>
-          )}
-        </motion.div>
-      </div>
 
-      {/* MODALS — permission based */}
+            {/* CONTENT */}
 
-      {(canCreateTestimonial || canUpdateTestimonial) && (
-        <TestimonialFormModal
-          open={addEditOpen}
-          loading={saveLoading}
-          mode={modalMode}
-          testimonial={selectedTestimonial}
-          onClose={() => {
-            if (!saveLoading) {
-              setAddEditOpen(false);
-              setSelectedTestimonial(null);
+            {filteredTestimonials.length ===
+            0 ? (
+              <div className="px-5 py-20 text-center sm:px-6">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EAF1FF] text-[#1E3A8A]">
+                  <FiMessageSquare
+                    size={27}
+                  />
+                </div>
+
+                <h3 className="mt-5 text-base font-semibold text-[#0F1B3D]">
+                  {search
+                    ? "No testimonials found"
+                    : "No testimonials available"}
+                </h3>
+
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#4A5778]">
+                  {search
+                    ? "Try searching with another person name or ID."
+                    : "Add your first testimonial to start managing customer feedback."}
+                </p>
+
+                {!search &&
+                  canCreateTestimonial && (
+                    <button
+                      type="button"
+                      onClick={
+                        openAdd
+                      }
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
+                    >
+                      <FiPlus
+                        size={16}
+                      />
+                      Add Testimonial
+                    </button>
+                  )}
+              </div>
+            ) : (
+              <div className="p-5 sm:p-6">
+                <motion.div
+                  variants={
+                    containerVariants
+                  }
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {filteredTestimonials.map(
+                    (
+                      testimonial,
+                      index,
+                    ) => (
+                      <TestimonialCard
+                        key={
+                          testimonial.id
+                        }
+                        testimonial={
+                          testimonial
+                        }
+                        serialNumber={
+                          index + 1
+                        }
+                        onEdit={
+                          openEdit
+                        }
+                        onDelete={
+                          openDelete
+                        }
+                        canEdit={
+                          canUpdateTestimonial
+                        }
+                        canDelete={
+                          canDeleteTestimonial
+                        }
+                      />
+                    ),
+                  )}
+                </motion.div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+
+        {/* MODALS — permission based */}
+
+        {(
+          canCreateTestimonial ||
+          canUpdateTestimonial
+        ) && (
+          <TestimonialFormModal
+            open={
+              addEditOpen
             }
-          }}
-          onSubmit={handleSave}
-        />
-      )}
-
-      {canDeleteTestimonial && (
-        <DeleteTestimonialModal
-          open={deleteOpen}
-          loading={deleteLoading}
-          testimonial={selectedTestimonial}
-          onClose={() => {
-            if (!deleteLoading) {
-              setDeleteOpen(false);
-              setSelectedTestimonial(null);
+            loading={
+              saveLoading
             }
-          }}
-          onConfirm={handleDelete}
-        />
-      )}
-    </motion.div>
-  );
-};
+            mode={
+              modalMode
+            }
+            testimonial={
+              selectedTestimonial
+            }
+            onClose={() => {
+              if (
+                !saveLoading
+              ) {
+                setAddEditOpen(
+                  false,
+                );
+
+                setSelectedTestimonial(
+                  null,
+                );
+              }
+            }}
+            onSubmit={
+              handleSave
+            }
+          />
+        )}
+
+        {canDeleteTestimonial && (
+          <DeleteTestimonialModal
+            open={
+              deleteOpen
+            }
+            loading={
+              deleteLoading
+            }
+            testimonial={
+              selectedTestimonial
+            }
+            onClose={() => {
+              if (
+                !deleteLoading
+              ) {
+                setDeleteOpen(
+                  false,
+                );
+
+                setSelectedTestimonial(
+                  null,
+                );
+              }
+            }}
+            onConfirm={
+              handleDelete
+            }
+          />
+        )}
+      </motion.div>
+    );
+  };
 
 export default TestimonialsManagement;
