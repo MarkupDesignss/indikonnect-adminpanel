@@ -21,6 +21,10 @@ import {
   FiAward,
   FiTruck,
   FiMove,
+  FiCheck,
+  FiChevronDown,
+  FiImage,
+  FiPercent,
 } from "react-icons/fi";
 
 import { FaRupeeSign } from "react-icons/fa";
@@ -183,6 +187,11 @@ const normalizeId = (value: any): string => {
 
   return String(value).trim();
 };
+
+const formatINR = (n: number): string =>
+  new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 2,
+  }).format(Number.isFinite(n) ? n : 0);
 
 /* =========================================================
    SPECIFICATION
@@ -504,7 +513,179 @@ const generateVariantsFromProduct = (rawProduct: any): VariantFormData[] => {
 };
 
 /* =========================================================
-   ATTRIBUTE SELECTOR — NAVY THEME
+   SMALL UI BUILDING BLOCKS
+========================================================= */
+
+const inputCls = (hasError?: boolean, extra = "") =>
+  `h-11 w-full rounded-xl border ${
+    hasError
+      ? "border-rose-400 bg-rose-50/50"
+      : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
+  } px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-4 focus:ring-[#1E3A8A]/10 ${extra}`;
+
+const primaryBtn =
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:shadow-[0_12px_24px_-8px_rgba(30,58,138,0.75)] hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+
+const softBtn =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#EAF1FF] font-semibold text-[#1E3A8A] transition hover:bg-[#DBE8FF] active:scale-[0.98]";
+
+const SectionCard: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  required?: boolean;
+  children: React.ReactNode;
+}> = ({ icon, title, subtitle, action, required, children }) => (
+  <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,27,61,0.04),0_12px_32px_-12px_rgba(30,58,138,0.12)]">
+    <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#EAF1FF] to-[#DBE8FF] text-[#1E3A8A] ring-1 ring-[#1E3A8A]/10">
+          {icon}
+        </span>
+
+        <div>
+          <h3 className="text-[15px] font-bold leading-tight text-[#0F1B3D]">
+            {title}
+            {required && <span className="ml-1 text-rose-500">*</span>}
+          </h3>
+
+          {subtitle && (
+            <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>
+          )}
+        </div>
+      </div>
+
+      {action}
+    </header>
+
+    <div className="p-5">{children}</div>
+  </section>
+);
+
+const Field: React.FC<{
+  label: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  icon?: React.ReactNode;
+  small?: boolean;
+  children: React.ReactNode;
+}> = ({ label, required, error, hint, icon, small, children }) => (
+  <div>
+    <label
+      className={`mb-1.5 flex items-center gap-1.5 font-semibold ${
+        small ? "text-xs text-slate-600" : "text-[13px] text-[#0F1B3D]"
+      }`}
+    >
+      {icon}
+      {label}
+      {required && <span className="text-rose-500">*</span>}
+    </label>
+
+    {children}
+
+    {error && (
+      <p className="error-message mt-1.5 flex items-center gap-1 text-xs font-medium text-rose-600">
+        <FiInfo size={13} />
+        {error}
+      </p>
+    )}
+
+    {!error && hint && (
+      <p className="mt-1.5 flex items-center gap-1 text-xs text-slate-400">
+        <FiInfo size={12} />
+        {hint}
+      </p>
+    )}
+  </div>
+);
+
+const AdornedInput: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  prefix?: string;
+  suffix?: string;
+  inputMode?: "decimal" | "numeric";
+  hasError?: boolean;
+  compact?: boolean;
+}> = ({
+  value,
+  onChange,
+  placeholder,
+  prefix,
+  suffix,
+  inputMode = "decimal",
+  hasError,
+  compact,
+}) => (
+  <div className="relative">
+    {prefix && (
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
+        {prefix}
+      </span>
+    )}
+
+    <input
+      type="text"
+      inputMode={inputMode}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`${inputCls(hasError, compact ? "!h-10" : "")} ${
+        prefix ? "!pl-8" : ""
+      } ${suffix ? "!pr-10" : ""}`}
+    />
+
+    {suffix && (
+      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
+        {suffix}
+      </span>
+    )}
+  </div>
+);
+
+const SelectBox: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  options: SelectOption[];
+  icon: React.ReactNode;
+  hasError?: boolean;
+}> = ({ value, onChange, placeholder, options, icon, hasError }) => (
+  <div className="relative">
+    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2563EB]">
+      {icon}
+    </span>
+
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${inputCls(hasError)} cursor-pointer appearance-none !pl-10 !pr-10`}
+    >
+      <option value="">{placeholder}</option>
+
+      {value && !options.some((o) => String(o.id) === value) && (
+        <option value={value}>Loading... (ID: {value})</option>
+      )}
+
+      {options.map((o) => (
+        <option key={o.id} value={String(o.id)}>
+          {o.name}
+        </option>
+      ))}
+    </select>
+
+    <FiChevronDown
+      size={16}
+      className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+    />
+  </div>
+);
+
+/* =========================================================
+   ATTRIBUTE SELECTOR
 ========================================================= */
 
 const AttributeSelector: React.FC<{
@@ -562,11 +743,11 @@ const AttributeSelector: React.FC<{
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         {selectedAttributes.map((attr, index) => (
           <span
             key={`${attr.key}-${attr.value}-${index}`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1 text-xs font-medium"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#2563EB]/20 bg-white py-1 pl-3 pr-1.5 text-xs font-medium shadow-sm"
           >
             <span className="font-semibold text-[#1E3A8A]">{attr.key}:</span>
 
@@ -575,101 +756,103 @@ const AttributeSelector: React.FC<{
             <button
               type="button"
               onClick={() => onRemoveAttribute(variantId, attr.key, attr.value)}
-              className="ml-0.5 text-[#C23B32] transition-colors hover:text-red-700"
+              className="flex h-4 w-4 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-rose-100 hover:text-rose-600"
             >
-              <FiX size={12} />
+              <FiX size={11} />
             </button>
           </span>
         ))}
 
         {selectedAttributes.length === 0 && (
-          <span className="text-xs text-[#8C97B2]">No attributes selected</span>
+          <span className="text-xs text-slate-400">No attributes selected</span>
         )}
-      </div>
 
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-[#2563EB] transition-colors hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
-        >
-          <FiPlus size={14} />
-          Add Attribute
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-[#2563EB]/40 px-2.5 py-1 text-xs font-semibold text-[#2563EB] transition-colors hover:bg-[#EAF1FF]"
+          >
+            <FiPlus size={12} />
+            Add
+          </button>
 
-        {isOpen && (
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 rounded-lg border border-[#E3E9F5] bg-white p-4 shadow-xl">
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#0F1B3D]">
-                  Select Attribute
-                </label>
-
-                <select
-                  value={selectedKey}
-                  onChange={(e) => {
-                    setSelectedKey(e.target.value);
-                    setSelectedValue("");
-                  }}
-                  className="h-9 w-full rounded-lg border border-[#D8E2F0] px-3 text-sm outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                >
-                  <option value="">Choose attribute...</option>
-
-                  {availableAttributes.map((attr) => (
-                    <option key={attr.id} value={attr.attribute_key}>
-                      {attr.attribute_key}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {selectedKey && (
+          {isOpen && (
+            <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-2xl ring-1 ring-black/5">
+              <div className="space-y-3">
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-[#0F1B3D]">
-                    Select Value
+                    Attribute
                   </label>
 
                   <select
-                    value={selectedValue}
-                    onChange={(e) => setSelectedValue(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-[#D8E2F0] px-3 text-sm outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
+                    value={selectedKey}
+                    onChange={(e) => {
+                      setSelectedKey(e.target.value);
+                      setSelectedValue("");
+                    }}
+                    className={inputCls(false, "!h-9")}
                   >
-                    <option value="">Choose value...</option>
+                    <option value="">Choose attribute...</option>
 
-                    {getAvailableValuesForAttribute(selectedKey).map((val) => (
-                      <option key={val.id} value={val.value}>
-                        {val.value}
+                    {availableAttributes.map((attr) => (
+                      <option key={attr.id} value={attr.attribute_key}>
+                        {attr.attribute_key}
                       </option>
                     ))}
                   </select>
                 </div>
-              )}
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsOpen(false);
-                    setSelectedKey("");
-                    setSelectedValue("");
-                  }}
-                  className="h-8 flex-1 rounded-lg border border-[#D8E2F0] text-xs font-semibold text-[#4A5778] transition-colors hover:bg-[#F5F8FF]"
-                >
-                  Cancel
-                </button>
+                {selectedKey && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-[#0F1B3D]">
+                      Value
+                    </label>
 
-                <button
-                  type="button"
-                  onClick={handleAdd}
-                  disabled={!selectedKey || !selectedValue}
-                  className="h-8 flex-1 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Add
-                </button>
+                    <select
+                      value={selectedValue}
+                      onChange={(e) => setSelectedValue(e.target.value)}
+                      className={inputCls(false, "!h-9")}
+                    >
+                      <option value="">Choose value...</option>
+
+                      {getAvailableValuesForAttribute(selectedKey).map(
+                        (val) => (
+                          <option key={val.id} value={val.value}>
+                            {val.value}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      setSelectedKey("");
+                      setSelectedValue("");
+                    }}
+                    className="h-9 flex-1 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={!selectedKey || !selectedValue}
+                    className={`${primaryBtn} h-9 flex-1 text-xs`}
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -783,10 +966,67 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const dragCounterRef = useRef(0);
 
   /* =========================================================
+     ✨ UI-ONLY DERIVED VALUES (price preview + checklist)
+  ========================================================= */
+
+  const pricePreview = useMemo(() => {
+    const calc = (mrp: string, disc: string) => {
+      const m = Number(mrp) || 0;
+      const d = Math.min(100, Math.max(0, Number(disc) || 0));
+      return {
+        mrp: m,
+        discount: d,
+        final: m - (m * d) / 100,
+        saved: (m * d) / 100,
+      };
+    };
+
+    return {
+      retail: calc(retailMrp, retailDiscountValue),
+      distributor: calc(distributorMrp, distributorDiscountValue),
+    };
+  }, [
+    retailMrp,
+    retailDiscountValue,
+    distributorMrp,
+    distributorDiscountValue,
+  ]);
+
+  const checklist = useMemo(
+    () => [
+      { label: "Product name", done: !!name.trim() },
+      { label: "Product code", done: !!productCode.trim() },
+      { label: "Category", done: !!categoryId },
+      { label: "Sub category", done: !!subcategoryId },
+      { label: "Brand", done: !!brandId },
+      { label: "Tax category", done: !!taxCategoryId },
+      { label: "Retail MRP", done: Number(retailMrp) > 0 },
+      { label: "Stock quantity", done: stockQuantity !== "" },
+      { label: "Product image", done: images.length > 0 },
+    ],
+    [
+      name,
+      productCode,
+      categoryId,
+      subcategoryId,
+      brandId,
+      taxCategoryId,
+      retailMrp,
+      stockQuantity,
+      images.length,
+    ],
+  );
+
+  const completedCount = checklist.filter((c) => c.done).length;
+
+  const completionPercent = Math.round(
+    (completedCount / checklist.length) * 100,
+  );
+
+  /* =========================================================
      ✅ AUTO-SCROLL (image drag karte waqt modal body scroll ho)
   ========================================================= */
 
-  // Modal ka wahi div jisme overflow-y-auto hai
   const bodyScrollRef = useRef<HTMLDivElement | null>(null);
 
   const autoScrollCleanupRef = useRef<(() => void) | null>(null);
@@ -799,11 +1039,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   }, []);
 
   const startAutoScroll = useCallback(() => {
-    // pehle ka loop band karo
     stopAutoScroll();
 
-    const EDGE = 110; // edge se kitne px ander scroll shuru ho
-    const MAX_SPEED = 22; // per frame max scroll speed
+    const EDGE = 110;
+    const MAX_SPEED = 22;
 
     let pointerY: number | null = null;
     let rafId = 0;
@@ -818,13 +1057,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       if (el && pointerY !== null) {
         const rect = el.getBoundingClientRect();
 
-        // UPAR scroll (header ke upar pointer ho tab bhi chalega)
         if (pointerY < rect.top + EDGE) {
           const ratio = Math.min(1, (rect.top + EDGE - pointerY) / EDGE);
           el.scrollTop -= Math.ceil(ratio * MAX_SPEED);
-        }
-        // NEECHE scroll
-        else if (pointerY > rect.bottom - EDGE) {
+        } else if (pointerY > rect.bottom - EDGE) {
           const ratio = Math.min(1, (pointerY - (rect.bottom - EDGE)) / EDGE);
           el.scrollTop += Math.ceil(ratio * MAX_SPEED);
         }
@@ -835,7 +1071,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     const onFinish = () => stopAutoScroll();
 
-    // capture=true taaki child ka stopPropagation isse na roke
     window.addEventListener("dragover", onDragOver, true);
     window.addEventListener("dragend", onFinish, true);
     window.addEventListener("drop", onFinish, true);
@@ -850,14 +1085,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     };
   }, [stopAutoScroll]);
 
-  // unmount par cleanup
   useEffect(() => {
     return () => {
       stopAutoScroll();
     };
   }, [stopAutoScroll]);
 
-  // modal band ho to bhi cleanup
   useEffect(() => {
     if (!open) {
       stopAutoScroll();
@@ -865,12 +1098,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   }, [open, stopAutoScroll]);
 
   /* =========================================================
-     ✅ CLEANUP OBJECT URLs (memory leak se bachne ke liye)
+     ✅ CLEANUP OBJECT URLs
   ========================================================= */
 
   const revokeAllObjectUrls = useCallback(
     (imageList: ImageItem[], variantList: VariantFormData[]) => {
-      // Product images
       imageList.forEach((img) => {
         if (!img.is_existing && img.preview && img.preview.startsWith("blob:")) {
           try {
@@ -881,7 +1113,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         }
       });
 
-      // Variant images
       variantList.forEach((variant) => {
         variant.images.forEach((img) => {
           if (
@@ -902,16 +1133,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   );
 
   /* =========================================================
-     ✅ FULL RESET (close hone par sab kuch saaf)
+     ✅ FULL RESET
   ========================================================= */
 
   const resetEverything = useCallback(() => {
-    // Revoke object URLs first
     revokeAllObjectUrls(images, variants);
 
     stopAutoScroll();
 
-    // Reset product states
     setProductCode("");
     setName("");
     setSlug("");
@@ -958,7 +1187,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   ========================================================= */
 
   const handleClose = useCallback(() => {
-    // Agar loading/upload chal raha hai → confirm
     if (loading) {
       const confirmed = window.confirm(
         "Upload/processing is in progress. If you close now, all progress will be lost. Do you want to close?",
@@ -969,10 +1197,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       }
     }
 
-    // Reset everything
     resetEverything();
 
-    // Call parent onClose
     onClose();
   }, [loading, resetEverything, onClose]);
 
@@ -1614,7 +1840,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     e.dataTransfer.setData("text/plain", String(imageId));
 
-    // ✅ drag ke time modal body auto-scroll shuru
     startAutoScroll();
   };
 
@@ -1652,7 +1877,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setDragOverImageId(null);
 
-    // ✅ auto-scroll band
     stopAutoScroll();
   };
 
@@ -2203,491 +2427,317 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
      RENDER
   ========================================================= */
 
+  const productName = getProductObject(editData)?.name || "Product";
+
   return (
     <>
       {/* BACKDROP */}
       <div
-        className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] bg-[#0B1330]/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-poppins">
+      <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-3 font-poppins sm:p-5">
         <div
-          className="relative flex max-h-[90vh] w-full max-w-[1200px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+          className="pointer-events-auto relative flex h-[92vh] w-full max-w-[1240px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(11,19,48,0.6)] ring-1 ring-white/20"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* TOP GRADIENT BAR — NAVY */}
-          <div className="h-[3px] w-full flex-shrink-0 bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
           {/* =====================================================
               HEADER
           ===================================================== */}
 
-          <div className="relative z-20 flex flex-shrink-0 items-center justify-between border-b border-[#E3E9F5] bg-white px-6 py-5">
-            <div>
-              <h2 className="flex items-center gap-2 text-2xl font-bold text-[#0F1B3D]">
-                {isEdit ? (
-                  <FiEdit2 className="text-[#2563EB]" size={24} />
-                ) : (
-                  <FiPlus className="text-[#2563EB]" size={24} />
-                )}
+          <div className="relative flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0F1B3D] via-[#1E3A8A] to-[#2563EB] px-6 py-5 text-white">
+            <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-[#60A5FA]/20 blur-3xl" />
 
-                {isEdit ? "Edit Product" : "Add New Product"}
-              </h2>
+            <div className="relative flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
+                  {isEdit ? <FiEdit2 size={22} /> : <FiPlus size={24} />}
+                </span>
 
-              <p className="mt-0.5 text-sm text-[#4A5778]">
-                {isEdit
-                  ? `Editing: ${getProductObject(editData)?.name || "Product"}`
-                  : "Fill in the product details, pricing, variants and images"}
-              </p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold leading-tight sm:text-2xl">
+                      {isEdit ? "Edit product" : "Add new product"}
+                    </h2>
+
+                    <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-white/25">
+                      {isEdit ? "Editing" : "Draft"}
+                    </span>
+                  </div>
+
+                  <p className="mt-0.5 text-sm text-blue-100/90">
+                    {isEdit
+                      ? `Editing: ${productName}`
+                      : "Fill in the product details, pricing, variants and images"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1.5 pl-3 pr-4 ring-1 ring-white/20 backdrop-blur sm:flex">
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/20">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#7DD3FC] to-white transition-all duration-500"
+                      style={{ width: `${completionPercent}%` }}
+                    />
+                  </div>
+
+                  <span className="text-xs font-semibold">
+                    {completionPercent}% complete
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  aria-label="Close"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/20"
+                >
+                  <FiX size={20} />
+                </button>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={false}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#4A5778] transition-colors hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <FiX size={21} />
-            </button>
           </div>
 
           {/* =====================================================
-              BODY  (✅ ref + overscroll-contain add kiya)
+              BODY
           ===================================================== */}
 
           <div
             ref={bodyScrollRef}
-            className="flex-1 overflow-y-auto overscroll-contain bg-[#F5F8FF] p-6"
+            className="flex-1 overflow-y-auto overscroll-contain bg-[#F4F7FD] p-4 sm:p-6"
           >
             <form onSubmit={handleSubmit} id="product-form">
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
                 {/* =================================================
                     LEFT SIDE
                 ================================================= */}
 
-                <div className="space-y-6">
+                <div className="min-w-0 space-y-6">
                   {/* BASIC INFORMATION */}
 
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center gap-2">
-                      <FiInfo className="text-[#2563EB]" size={20} />
-
-                      <h3 className="text-lg font-bold text-[#0F1B3D]">
-                        Basic Information
-                      </h3>
-                    </div>
-
+                  <SectionCard
+                    icon={<FiInfo size={19} />}
+                    title="Basic information"
+                    subtitle="Name, code and where this product lives in your catalog"
+                  >
                     <div className="space-y-4">
-                      {/* PRODUCT NAME */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Product Name{" "}
-                          <span className="text-[#C23B32]">*</span>
-                        </label>
-
+                      <Field
+                        label="Product name"
+                        required
+                        error={errors.name}
+                      >
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => handleNameChange(e.target.value)}
                           placeholder="e.g. SoundMax Pro 5G Smartphone"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.name
-                              ? "border-[#C23B32]"
-                              : "border-[#D8E2F0]"
-                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
+                          className={inputCls(!!errors.name, "!h-12 !text-[15px] font-medium")}
                         />
+                      </Field>
 
-                        {errors.name && (
-                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                            <FiInfo size={14} />
-                            {errors.name}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* PRODUCT CODE */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          SKU / Product Code{" "}
-                          <span className="text-[#C23B32]">*</span>
-                        </label>
-
-                        <input
-                          type="text"
-                          value={productCode}
-                          onChange={(e) => setProductCode(e.target.value)}
-                          placeholder="e.g. SMP5G-BLACK-128"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.product_code
-                              ? "border-[#C23B32]"
-                              : "border-[#D8E2F0]"
-                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                        />
-
-                        {errors.product_code && (
-                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                            <FiInfo size={14} />
-                            {errors.product_code}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* SLUG */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Slug
-                        </label>
-
-                        <input
-                          type="text"
-                          value={slug}
-                          readOnly
-                          className="h-12 w-full cursor-not-allowed rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#4A5778] outline-none"
-                        />
-
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
-                          <FiInfo size={12} />
-                          Auto-generated from product name
-                        </p>
-                      </div>
-
-                      {/* CATEGORY / SUBCATEGORY / BRAND / TAX */}
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {/* CATEGORY */}
-                        <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                            Category <span className="text-[#C23B32]">*</span>
-                          </label>
+                        <Field
+                          label="SKU / Product code"
+                          required
+                          error={errors.product_code}
+                        >
+                          <input
+                            type="text"
+                            value={productCode}
+                            onChange={(e) => setProductCode(e.target.value)}
+                            placeholder="e.g. SMP5G-BLACK-128"
+                            className={inputCls(!!errors.product_code)}
+                          />
+                        </Field>
 
-                          <div className="relative">
-                            <select
-                              value={categoryId}
-                              onChange={(e) =>
-                                handleCategoryChange(e.target.value)
-                              }
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.category_id
-                                  ? "border-[#C23B32]"
-                                  : "border-[#D8E2F0]"
-                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                            >
-                              <option value="">Select category...</option>
+                        <Field
+                          label="Slug"
+                          hint="Auto-generated from product name"
+                        >
+                          <input
+                            type="text"
+                            value={slug}
+                            readOnly
+                            placeholder="product-slug"
+                            className={inputCls(
+                              false,
+                              "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500",
+                            )}
+                          />
+                        </Field>
+                      </div>
 
-                              {categoryId &&
-                                !categories.some(
-                                  (c) => String(c.id) === categoryId,
-                                ) && (
-                                  <option value={categoryId}>
-                                    Loading... (ID: {categoryId})
-                                  </option>
-                                )}
+                      <div className="h-px bg-slate-100" />
 
-                              {categories.map((category) => (
-                                <option
-                                  key={category.id}
-                                  value={String(category.id)}
-                                >
-                                  {category.name}
-                                </option>
-                              ))}
-                            </select>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <Field
+                          label="Category"
+                          required
+                          error={errors.category_id}
+                        >
+                          <SelectBox
+                            value={categoryId}
+                            onChange={handleCategoryChange}
+                            placeholder="Select category..."
+                            options={categories}
+                            icon={<FiTag size={16} />}
+                            hasError={!!errors.category_id}
+                          />
+                        </Field>
 
-                            <FiTag
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
-                              size={18}
-                            />
-                          </div>
+                        <Field
+                          label="Sub category"
+                          required
+                          error={errors.subcategory_id}
+                        >
+                          <SelectBox
+                            value={subcategoryId}
+                            onChange={handleSubcategoryChange}
+                            placeholder="Select subcategory..."
+                            options={subcategories}
+                            icon={<FiLayers size={16} />}
+                            hasError={!!errors.subcategory_id}
+                          />
+                        </Field>
 
-                          {errors.category_id && (
-                            <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                              <FiInfo size={14} />
-                              {errors.category_id}
-                            </p>
-                          )}
-                        </div>
+                        <Field
+                          label="Brand"
+                          required
+                          error={errors.brand_id}
+                        >
+                          <SelectBox
+                            value={brandId}
+                            onChange={(v) => {
+                              setBrandId(v);
 
-                        {/* SUBCATEGORY */}
-                        <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                            Sub Category{" "}
-                            <span className="text-[#C23B32]">*</span>
-                          </label>
+                              setErrors((prev) => ({
+                                ...prev,
+                                brand_id: undefined,
+                              }));
+                            }}
+                            placeholder="Select brand..."
+                            options={brands}
+                            icon={<FiAward size={16} />}
+                            hasError={!!errors.brand_id}
+                          />
+                        </Field>
 
-                          <div className="relative">
-                            <select
-                              value={subcategoryId}
-                              onChange={(e) =>
-                                handleSubcategoryChange(e.target.value)
-                              }
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.subcategory_id
-                                  ? "border-[#C23B32]"
-                                  : "border-[#D8E2F0]"
-                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                            >
-                              <option value="">Select subcategory...</option>
+                        <Field
+                          label="Tax category"
+                          required
+                          error={errors.tax_category_id}
+                        >
+                          <SelectBox
+                            value={taxCategoryId}
+                            onChange={(v) => {
+                              setTaxCategoryId(v);
 
-                              {subcategoryId &&
-                                !subcategories.some(
-                                  (s) => String(s.id) === subcategoryId,
-                                ) && (
-                                  <option value={subcategoryId}>
-                                    Loading... (ID: {subcategoryId})
-                                  </option>
-                                )}
-
-                              {subcategories.map((subcategory) => (
-                                <option
-                                  key={subcategory.id}
-                                  value={String(subcategory.id)}
-                                >
-                                  {subcategory.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            <FiLayers
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
-                              size={18}
-                            />
-                          </div>
-
-                          {errors.subcategory_id && (
-                            <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                              <FiInfo size={14} />
-                              {errors.subcategory_id}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* BRAND */}
-                        <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                            Brand <span className="text-[#C23B32]">*</span>
-                          </label>
-
-                          <div className="relative">
-                            <select
-                              value={brandId}
-                              onChange={(e) => {
-                                setBrandId(e.target.value);
-
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  brand_id: undefined,
-                                }));
-                              }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.brand_id
-                                  ? "border-[#C23B32]"
-                                  : "border-[#D8E2F0]"
-                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                            >
-                              <option value="">Select brand...</option>
-
-                              {brandId &&
-                                !brands.some(
-                                  (b) => String(b.id) === brandId,
-                                ) && (
-                                  <option value={brandId}>
-                                    Loading... (ID: {brandId})
-                                  </option>
-                                )}
-
-                              {brands.map((brand) => (
-                                <option key={brand.id} value={String(brand.id)}>
-                                  {brand.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            <FiAward
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
-                              size={18}
-                            />
-                          </div>
-
-                          {errors.brand_id && (
-                            <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                              <FiInfo size={14} />
-                              {errors.brand_id}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* TAX */}
-                        <div>
-                          <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                            Tax Category{" "}
-                            <span className="text-[#C23B32]">*</span>
-                          </label>
-
-                          <div className="relative">
-                            <select
-                              value={taxCategoryId}
-                              onChange={(e) => {
-                                setTaxCategoryId(e.target.value);
-
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  tax_category_id: undefined,
-                                }));
-                              }}
-                              className={`h-12 w-full appearance-none rounded-lg border ${
-                                errors.tax_category_id
-                                  ? "border-[#C23B32]"
-                                  : "border-[#D8E2F0]"
-                              } bg-[#F5F8FF] px-4 pr-10 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                            >
-                              <option value="">Select tax...</option>
-
-                              {taxCategoryId &&
-                                !taxCategories.some(
-                                  (t) => String(t.id) === taxCategoryId,
-                                ) && (
-                                  <option value={taxCategoryId}>
-                                    Loading... (ID: {taxCategoryId})
-                                  </option>
-                                )}
-
-                              {taxCategories.map((tax) => (
-                                <option key={tax.id} value={String(tax.id)}>
-                                  {tax.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            <FiTag
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#2563EB]"
-                              size={18}
-                            />
-                          </div>
-
-                          {errors.tax_category_id && (
-                            <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                              <FiInfo size={14} />
-                              {errors.tax_category_id}
-                            </p>
-                          )}
-                        </div>
+                              setErrors((prev) => ({
+                                ...prev,
+                                tax_category_id: undefined,
+                              }));
+                            }}
+                            placeholder="Select tax..."
+                            options={taxCategories}
+                            icon={<FiPercent size={16} />}
+                            hasError={!!errors.tax_category_id}
+                          />
+                        </Field>
                       </div>
                     </div>
-                  </div>
+                  </SectionCard>
 
                   {/* DESCRIPTION / SPECIFICATION */}
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {/* DESCRIPTION */}
-                    <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                      <div className="mb-4 flex items-center gap-2">
-                        <FiAlignLeft className="text-[#2563EB]" size={20} />
-
-                        <h3 className="text-lg font-bold text-[#0F1B3D]">
-                          Description
-                        </h3>
-                      </div>
-
+                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <SectionCard
+                      icon={<FiAlignLeft size={19} />}
+                      title="Description"
+                      subtitle="What customers will read"
+                    >
                       <textarea
-                        rows={6}
+                        rows={9}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Enter product description..."
-                        className="w-full resize-none rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 py-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-sm leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-[#1E3A8A] focus:bg-white focus:ring-4 focus:ring-[#1E3A8A]/10"
                       />
-                    </div>
+                    </SectionCard>
 
-                    {/* SPECIFICATION */}
-                    <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FiGrid className="text-[#2563EB]" size={20} />
-
-                          <h3 className="text-lg font-bold text-[#0F1B3D]">
-                            Specification
-                          </h3>
-                        </div>
-
+                    <SectionCard
+                      icon={<FiGrid size={19} />}
+                      title="Specification"
+                      subtitle="Key–value details"
+                      action={
                         <button
                           type="button"
                           onClick={addSpecificationField}
-                          className="flex items-center gap-1 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                          className={`${softBtn} h-9 px-3 text-xs`}
                         >
                           <FiPlus size={14} />
-                          Add Field
+                          Add field
                         </button>
-                      </div>
-
-                      <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
+                      }
+                    >
+                      <div className="max-h-[260px] space-y-2.5 overflow-y-auto pr-1">
                         {specification.map((item, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={item.key}
-                                onChange={(e) =>
-                                  updateSpecification(
-                                    index,
-                                    "key",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="Key (e.g., Display)"
-                                className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
-                              />
-                            </div>
+                          <div key={index} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={item.key}
+                              onChange={(e) =>
+                                updateSpecification(index, "key", e.target.value)
+                              }
+                              placeholder="Key (e.g., Display)"
+                              className={inputCls(false, "!h-10 flex-1 min-w-0")}
+                            />
 
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={item.value}
-                                onChange={(e) =>
-                                  updateSpecification(
-                                    index,
-                                    "value",
-                                    e.target.value,
-                                  )
-                                }
-                                placeholder="Value (e.g., 6.7-inch AMOLED)"
-                                className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
-                              />
-                            </div>
+                            <input
+                              type="text"
+                              value={item.value}
+                              onChange={(e) =>
+                                updateSpecification(
+                                  index,
+                                  "value",
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="Value (e.g., 6.7-inch AMOLED)"
+                              className={inputCls(false, "!h-10 flex-1 min-w-0")}
+                            />
 
                             <button
                               type="button"
                               onClick={() => removeSpecificationField(index)}
                               disabled={specification.length <= 1}
-                              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border ${
-                                specification.length <= 1
-                                  ? "cursor-not-allowed border-[#E3E9F5] text-[#8C97B2]"
-                                  : "border-[#C23B32]/20 text-[#C23B32] hover:border-[#C23B32]/40 hover:bg-[#C23B32]/5"
-                              } transition-colors`}
+                              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                             >
                               <FiTrash2 size={16} />
                             </button>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </SectionCard>
                   </div>
 
                   {/* PRODUCT IMAGES */}
 
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FiUploadCloud className="text-[#2563EB]" size={20} />
-
-                        <h3 className="text-lg font-bold text-[#0F1B3D]">
-                          Product Images
-                        </h3>
-
-                        <span className="text-sm text-[#C23B32]">*</span>
-                      </div>
-
-                      <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90">
+                  <SectionCard
+                    icon={<FiImage size={19} />}
+                    title="Product images"
+                    required
+                    subtitle={
+                      images.length > 0
+                        ? `${images.length} image${images.length !== 1 ? "s" : ""} · first image is the cover`
+                        : "Upload at least one image"
+                    }
+                    action={
+                      <label className={`${primaryBtn} h-10 cursor-pointer px-4 text-sm`}>
                         <FiPlus size={16} />
-                        Add Images
+                        Add images
                         <input
                           type="file"
                           multiple
@@ -2696,15 +2746,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onChange={handleImages}
                         />
                       </label>
-                    </div>
-
+                    }
+                  >
                     {images.length > 1 && (
-                      <div className="mb-4 flex items-center gap-2 rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2 text-xs text-[#4A5778]">
+                      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#2563EB]/15 bg-[#EAF1FF]/60 px-3.5 py-2.5 text-xs text-slate-600">
                         <FiMove size={14} className="text-[#2563EB]" />
 
-                        <span>
-                          Drag and drop images to arrange their order.
-                        </span>
+                        <span>Drag and drop images to arrange their order.</span>
 
                         {isEdit && (
                           <span className="font-semibold text-[#1E3A8A]">
@@ -2715,8 +2763,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     )}
 
                     {errors.images && (
-                      <p className="error-message mb-3 flex items-center gap-1 text-sm text-[#C23B32]">
-                        <FiInfo size={14} />
+                      <p className="error-message mb-3 flex items-center gap-1 text-xs font-medium text-rose-600">
+                        <FiInfo size={13} />
                         {errors.images}
                       </p>
                     )}
@@ -2730,27 +2778,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     >
                       {images.length === 0 ? (
                         <label
-                          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                          className={`group flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 text-center transition-all ${
                             isDragging
-                              ? "border-[#1E3A8A] bg-[#EAF1FF]"
-                              : "border-[#D8E2F0] bg-[#F5F8FF] hover:bg-[#EAF1FF]"
+                              ? "scale-[1.01] border-[#1E3A8A] bg-[#EAF1FF]"
+                              : errors.images
+                                ? "border-rose-300 bg-rose-50/40"
+                                : "border-slate-300 bg-slate-50/70 hover:border-[#2563EB] hover:bg-[#EAF1FF]/60"
                           }`}
                         >
-                          <FiUploadCloud
-                            size={40}
-                            className={
-                              isDragging ? "text-[#1E3A8A]" : "text-[#8C97B2]"
-                            }
-                          />
+                          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow-md ring-1 ring-slate-200 transition group-hover:-translate-y-0.5">
+                            <FiUploadCloud size={26} />
+                          </span>
 
-                          <p className="mt-2 text-sm font-semibold text-[#0F1B3D]">
+                          <p className="mt-3 text-sm font-semibold text-[#0F1B3D]">
                             {isDragging
                               ? "Drop images here"
-                              : "Upload Product Images"}
+                              : "Upload product images"}
                           </p>
 
-                          <p className="mt-0.5 text-xs text-[#8C97B2]">
-                            Drag & drop or click to select multiple images
+                          <p className="mt-1 text-xs text-slate-500">
+                            Drag & drop, or{" "}
+                            <span className="font-semibold text-[#2563EB]">
+                              browse files
+                            </span>{" "}
+                            to select multiple images
                           </p>
 
                           <input
@@ -2763,13 +2814,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         </label>
                       ) : (
                         <div
-                          className={`grid grid-cols-2 gap-4 rounded-xl border-2 border-transparent p-2 transition-colors sm:grid-cols-3 ${
+                          className={`grid grid-cols-2 gap-3 rounded-2xl border-2 border-transparent p-1 transition-colors sm:grid-cols-3 xl:grid-cols-4 ${
                             isDragging
-                              ? "border-dashed border-[#1E3A8A] bg-[#EAF1FF]"
+                              ? "border-dashed !border-[#1E3A8A] bg-[#EAF1FF]"
                               : ""
                           }`}
                         >
-                          {images.map((item) => {
+                          {images.map((item, index) => {
                             const isArranging =
                               item.is_existing && item.existing_id
                                 ? arrangingImageIds.includes(
@@ -2790,31 +2841,47 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 onDragLeave={handleImageDragLeave}
                                 onDrop={(e) => handleImageDrop(e, item.id)}
                                 onDragEnd={handleImageDragEnd}
-                                className={`group relative cursor-grab overflow-hidden rounded-lg border bg-white shadow-sm transition-all active:cursor-grabbing ${
+                                className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border bg-slate-100 shadow-sm transition-all active:cursor-grabbing ${
                                   dragOverImageId === item.id
-                                    ? "border-[#1E3A8A] ring-2 ring-[#2563EB]/30 scale-[1.02]"
-                                    : "border-[#E3E9F5]"
+                                    ? "scale-[1.03] border-[#1E3A8A] ring-4 ring-[#2563EB]/25"
+                                    : "border-slate-200"
                                 } ${
                                   isArranging
                                     ? "opacity-70"
-                                    : "hover:shadow-md"
+                                    : "hover:-translate-y-0.5 hover:shadow-lg"
                                 }`}
                               >
                                 <img
                                   src={item.preview}
                                   alt="Product"
-                                  className="h-[140px] w-full object-cover"
+                                  className="h-full w-full object-cover"
                                   draggable={false}
                                 />
 
+                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/10 opacity-60 transition-opacity group-hover:opacity-100" />
+
+                                {/* ORDER / COVER BADGE */}
+                                <span
+                                  className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${
+                                    index === 0
+                                      ? "bg-[#1E3A8A] text-white"
+                                      : "bg-white/90 text-slate-700"
+                                  }`}
+                                >
+                                  {index === 0 ? "Cover" : `#${index + 1}`}
+                                </span>
+
                                 {/* DRAG HANDLE */}
-                                <div className="absolute bottom-4 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
-                                  <FiMove size={14} />
+                                <div className="absolute bottom-2 left-2 flex h-7 items-center gap-1 rounded-full bg-black/55 px-2 text-[10px] font-medium text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                                  <FiMove size={12} />
+                                  Drag
                                 </div>
+
+                               
 
                                 {/* ARRANGE LOADER */}
                                 {isArranging && (
-                                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/55 backdrop-blur-[1px]">
+                                  <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 backdrop-blur-[1px]">
                                     <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#1E3A8A]/20 border-t-[#1E3A8A]" />
                                   </div>
                                 )}
@@ -2830,7 +2897,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                       Number(item.existing_id),
                                     )
                                   }
-                                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#C23B32] shadow transition-colors hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow transition-colors hover:bg-rose-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   <FiX size={14} />
                                 </button>
@@ -2840,16 +2907,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           {/* ADD MORE */}
                           <label
-                            className={`flex h-[140px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+                            className={`flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors ${
                               isDragging
                                 ? "border-[#1E3A8A] bg-[#EAF1FF]"
-                                : "border-[#D8E2F0] bg-[#F5F8FF] hover:bg-[#EAF1FF]"
+                                : "border-slate-300 bg-slate-50 hover:border-[#2563EB] hover:bg-[#EAF1FF]/60"
                             }`}
                           >
-                            <FiPlus size={24} className="text-[#2563EB]" />
+                            <FiPlus size={22} className="text-[#2563EB]" />
 
-                            <span className="mt-1 text-xs font-semibold text-[#4A5778]">
-                              Add More
+                            <span className="mt-1 text-xs font-semibold text-slate-600">
+                              Add more
                             </span>
 
                             <input
@@ -2865,7 +2932,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                       {/* FILE DROP OVERLAY */}
                       {isDragging && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-[#1E3A8A] bg-[#EAF1FF]/80 backdrop-blur-[1px]">
+                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-[#1E3A8A] bg-[#EAF1FF]/85 backdrop-blur-[1px]">
                           <div className="flex flex-col items-center text-[#1E3A8A]">
                             <FiUploadCloud size={36} />
 
@@ -2876,124 +2943,139 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         </div>
                       )}
                     </div>
-                  </div>
+                  </SectionCard>
 
                   {/* VARIANTS */}
 
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FiPackage className="text-[#2563EB]" size={20} />
-
-                        <h3 className="text-lg font-bold text-[#0F1B3D]">
-                          Variants
-                        </h3>
-
-                        <span className="text-xs text-[#8C97B2]">
-                          ({variants.length} variant
-                          {variants.length !== 1 ? "s" : ""})
-                        </span>
-                      </div>
-
+                  <SectionCard
+                    icon={<FiPackage size={19} />}
+                    title="Variants"
+                    subtitle={`${variants.length} variant${variants.length !== 1 ? "s" : ""} · size, color, storage and more`}
+                    action={
                       <button
                         type="button"
                         onClick={addVariant}
-                        className="flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-4 text-sm font-semibold text-white transition-colors hover:opacity-90"
+                        className={`${primaryBtn} h-10 px-4 text-sm`}
                       >
                         <FiPlus size={16} />
-                        Add Variant
+                        Add variant
                       </button>
-                    </div>
-
+                    }
+                  >
                     {variants.length === 0 ? (
-                      <div className="rounded-xl border-2 border-dashed border-[#D8E2F0] bg-[#F5F8FF] py-10 text-center text-sm text-[#8C97B2]">
-                        No variants added. Click "Add Variant" to create one.
+                      <div className="flex flex-col items-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-4 py-10 text-center">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow ring-1 ring-slate-200">
+                          <FiPackage size={22} />
+                        </span>
+
+                        <p className="mt-3 text-sm font-semibold text-[#0F1B3D]">
+                          No variants yet
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          Add a variant if this product comes in different
+                          options.
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={addVariant}
+                          className={`${softBtn} mt-4 h-9 px-4 text-xs`}
+                        >
+                          <FiPlus size={14} />
+                          Add variant
+                        </button>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {variants.map((variant, index) => (
                           <div
                             key={variant.id}
-                            className="rounded-lg border border-[#E3E9F5] bg-[#F5F8FF] p-4 transition-colors hover:bg-[#EAF1FF]/40"
+                            className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                           >
-                            <div className="mb-3 flex items-center justify-between">
-                              <h4 className="flex items-center gap-2 font-bold text-[#0F1B3D]">
-                                <FiPackage
-                                  className="text-[#2563EB]"
-                                  size={16}
-                                />
-                                Variant #{index + 1}
+                            {/* VARIANT HEADER */}
+                            <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#EAF1FF] to-[#F4F7FD] px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A8A] text-sm font-bold text-white">
+                                  {index + 1}
+                                </span>
+
+                                <div>
+                                  <h4 className="text-sm font-bold text-[#0F1B3D]">
+                                    Variant {index + 1}
+                                  </h4>
+
+                                  <p className="text-xs text-slate-500">
+                                    {variant.sku || "No SKU yet"}
+                                  </p>
+                                </div>
+
                                 {variant.is_existing && (
-                                  <span className="rounded-full bg-[#EAF1FF] px-2 py-0.5 text-xs text-[#2563EB]">
+                                  <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-[#2563EB] ring-1 ring-[#2563EB]/20">
                                     Existing
                                   </span>
                                 )}
-                              </h4>
+
+                                <span
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                    variant.is_active
+                                      ? "bg-emerald-100 text-emerald-700"
+                                      : "bg-slate-200 text-slate-600"
+                                  }`}
+                                >
+                                  {variant.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </div>
 
                               <button
                                 type="button"
                                 onClick={() => removeVariant(variant.id)}
-                                className="rounded-lg p-1 text-[#C23B32] transition-colors hover:bg-[#C23B32]/10 hover:text-red-700"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                aria-label="Remove variant"
                               >
-                                <FiTrash2 size={18} />
+                                <FiTrash2 size={17} />
                               </button>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                              {/* SKU */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  SKU
-                                </label>
-
-                                <input
-                                  type="text"
-                                  value={variant.sku}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      variant.id,
-                                      "sku",
-                                      e.target.value,
-                                    )
-                                  }
-                                  placeholder="e.g. SMP5G-BLACK-128"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                />
-                              </div>
-
-                              {/* ATTRIBUTE */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Attributes
-                                </label>
-
-                                <AttributeSelector
-                                  variantId={variant.id}
-                                  selectedAttributes={variant.attributes}
-                                  availableAttributes={attributeMasters}
-                                  onAddAttribute={updateVariantAttribute}
-                                  onRemoveAttribute={removeVariantAttribute}
-                                />
-                              </div>
-
-                              {/* RETAIL MRP */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Retail MRP
-                                </label>
-
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
-                                    ₹
-                                  </span>
-
+                            <div className="p-4">
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <Field label="SKU" small>
                                   <input
                                     type="text"
-                                    inputMode="decimal"
-                                    value={variant.retail_mrp}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
+                                    value={variant.sku}
+                                    onChange={(e) =>
+                                      updateVariant(
+                                        variant.id,
+                                        "sku",
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder="e.g. SMP5G-BLACK-128"
+                                    className={inputCls(false, "!h-10")}
+                                  />
+                                </Field>
 
+                                <Field label="Attributes" small>
+                                  <AttributeSelector
+                                    variantId={variant.id}
+                                    selectedAttributes={variant.attributes}
+                                    availableAttributes={attributeMasters}
+                                    onAddAttribute={updateVariantAttribute}
+                                    onRemoveAttribute={removeVariantAttribute}
+                                  />
+                                </Field>
+                              </div>
+
+                              <div className="my-4 h-px bg-slate-100" />
+
+                              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                                <Field label="Retail MRP" small>
+                                  <AdornedInput
+                                    compact
+                                    prefix="₹"
+                                    value={variant.retail_mrp}
+                                    placeholder="100000"
+                                    onChange={(val) => {
                                       if (isValidDecimalInput(val)) {
                                         updateVariant(
                                           variant.id,
@@ -3002,56 +3084,34 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                         );
                                       }
                                     }}
-                                    placeholder="100000"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white pl-7 pr-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
-                                </div>
-                              </div>
+                                </Field>
 
-                              {/* RETAIL DISCOUNT */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Discount (%)
-                                </label>
+                                <Field label="Discount" small>
+                                  <AdornedInput
+                                    compact
+                                    suffix="%"
+                                    value={variant.retail_discount_value}
+                                    placeholder="40"
+                                    onChange={(val) => {
+                                      if (isValidDecimalInput(val)) {
+                                        updateVariant(
+                                          variant.id,
+                                          "retail_discount_value",
+                                          val,
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </Field>
 
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={variant.retail_discount_value}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-
-                                    if (isValidDecimalInput(val)) {
-                                      updateVariant(
-                                        variant.id,
-                                        "retail_discount_value",
-                                        val,
-                                      );
-                                    }
-                                  }}
-                                  placeholder="40"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                />
-                              </div>
-
-                              {/* DISTRIBUTOR MRP */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Distributor MRP
-                                </label>
-
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
-                                    ₹
-                                  </span>
-
-                                  <input
-                                    type="text"
-                                    inputMode="decimal"
+                                <Field label="Distributor MRP" small>
+                                  <AdornedInput
+                                    compact
+                                    prefix="₹"
                                     value={variant.distributor_mrp}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-
+                                    placeholder="90000"
+                                    onChange={(val) => {
                                       if (isValidDecimalInput(val)) {
                                         updateVariant(
                                           variant.id,
@@ -3060,222 +3120,242 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                         );
                                       }
                                     }}
-                                    placeholder="90000"
-                                    className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white pl-7 pr-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
                                   />
-                                </div>
-                              </div>
+                                </Field>
 
-                              {/* DISTRIBUTOR DISCOUNT */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Distributor Discount (%)
-                                </label>
-
-                                <input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={variant.distributor_discount_value}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-
-                                    if (isValidDecimalInput(val)) {
-                                      updateVariant(
-                                        variant.id,
-                                        "distributor_discount_value",
-                                        val,
-                                      );
-                                    }
-                                  }}
-                                  placeholder="35"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                />
-                              </div>
-
-                              {/* STOCK */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Stock
-                                </label>
-
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={variant.stock_quantity}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-
-                                    if (isValidIntegerInput(val)) {
-                                      updateVariant(
-                                        variant.id,
-                                        "stock_quantity",
-                                        val,
-                                      );
-                                    }
-                                  }}
-                                  placeholder="20"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                />
-                              </div>
-
-                              {/* LOW STOCK */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Low Stock Alert
-                                </label>
-
-                                <input
-                                  type="text"
-                                  inputMode="numeric"
-                                  value={variant.low_stock_threshold}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-
-                                    if (isValidIntegerInput(val)) {
-                                      updateVariant(
-                                        variant.id,
-                                        "low_stock_threshold",
-                                        val,
-                                      );
-                                    }
-                                  }}
-                                  placeholder="5"
-                                  className="h-10 w-full rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                />
-                              </div>
-
-                              {/* STATUS */}
-                              <div>
-                                <label className="text-xs font-semibold text-[#4A5778]">
-                                  Status
-                                </label>
-
-                                <select
-                                  value={variant.is_active}
-                                  onChange={(e) =>
-                                    updateVariant(
-                                      variant.id,
-                                      "is_active",
-                                      Number(e.target.value),
-                                    )
-                                  }
-                                  className="h-10 w-full appearance-none rounded-lg border border-[#D8E2F0] bg-white px-3 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
-                                >
-                                  <option value={1}>Active</option>
-
-                                  <option value={0}>Inactive</option>
-                                </select>
-                              </div>
-                            </div>
-
-                            {/* VARIANT IMAGES */}
-                            <div className="mt-3 border-t border-[#E3E9F5] pt-3">
-                              <div className="mb-2 flex items-center justify-between">
-                                <label className="flex items-center gap-1 text-xs font-semibold text-[#4A5778]">
-                                  <FiUploadCloud size={14} />
-                                  Variant Images
-                                </label>
-
-                                <label className="flex cursor-pointer items-center gap-1 rounded-lg bg-[#EAF1FF] px-3 py-1 text-xs font-semibold text-[#1E3A8A] transition-colors hover:bg-[#DBEAFE]">
-                                  <FiPlus size={12} />
-                                  Add Images
-                                  <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) =>
-                                      handleVariantImages(variant.id, e)
-                                    }
+                                <Field label="Distributor discount" small>
+                                  <AdornedInput
+                                    compact
+                                    suffix="%"
+                                    value={variant.distributor_discount_value}
+                                    placeholder="35"
+                                    onChange={(val) => {
+                                      if (isValidDecimalInput(val)) {
+                                        updateVariant(
+                                          variant.id,
+                                          "distributor_discount_value",
+                                          val,
+                                        );
+                                      }
+                                    }}
                                   />
-                                </label>
-                              </div>
+                                </Field>
 
-                              {variant.images.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
-                                  {variant.images.map((img) => (
-                                    <div
-                                      key={img.id}
-                                      className="relative h-16 w-16 overflow-hidden rounded-lg border border-[#E3E9F5] shadow-sm"
-                                    >
-                                      <img
-                                        src={img.preview}
-                                        alt="Variant"
-                                        className="h-full w-full object-cover"
-                                        draggable={false}
-                                      />
+                                <Field label="Stock" small>
+                                  <AdornedInput
+                                    compact
+                                    inputMode="numeric"
+                                    value={variant.stock_quantity}
+                                    placeholder="20"
+                                    onChange={(val) => {
+                                      if (isValidIntegerInput(val)) {
+                                        updateVariant(
+                                          variant.id,
+                                          "stock_quantity",
+                                          val,
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </Field>
 
-                                      <div
-                                        className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold transition-colors ${
-                                          img.is_primary
-                                            ? "bg-[#1E3A8A] text-white"
-                                            : "bg-white/90 text-[#4A5778]"
-                                        }`}
-                                      >
-                                        {img.is_primary ? "P" : "Img"}
-                                      </div>
+                                <Field label="Low stock alert" small>
+                                  <AdornedInput
+                                    compact
+                                    inputMode="numeric"
+                                    value={variant.low_stock_threshold}
+                                    placeholder="5"
+                                    onChange={(val) => {
+                                      if (isValidIntegerInput(val)) {
+                                        updateVariant(
+                                          variant.id,
+                                          "low_stock_threshold",
+                                          val,
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </Field>
 
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          removeVariantImage(variant.id, img.id)
-                                        }
-                                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-[#C23B32] transition-colors hover:bg-[#C23B32] hover:text-white"
-                                      >
-                                        <FiX size={10} />
-                                      </button>
-
-                                      {img.is_existing && (
-                                        <span className="absolute bottom-0 left-0 right-0 bg-[#2563EB] text-center text-[6px] text-white">
-                                          Existing
-                                        </span>
+                                <Field label="Status" small>
+                                  <div className="relative">
+                                    <select
+                                      value={variant.is_active}
+                                      onChange={(e) =>
+                                        updateVariant(
+                                          variant.id,
+                                          "is_active",
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      className={inputCls(
+                                        false,
+                                        "!h-10 cursor-pointer appearance-none !pr-9",
                                       )}
-                                    </div>
-                                  ))}
+                                    >
+                                      <option value={1}>Active</option>
+
+                                      <option value={0}>Inactive</option>
+                                    </select>
+
+                                    <FiChevronDown
+                                      size={15}
+                                      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                                    />
+                                  </div>
+                                </Field>
+                              </div>
+
+                              {/* VARIANT IMAGES */}
+                              <div className="mt-4 rounded-xl bg-slate-50 p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                                    <FiImage size={14} />
+                                    Variant images
+                                    <span className="font-normal text-slate-400">
+                                      ({variant.images.length})
+                                    </span>
+                                  </span>
+
+                                  <label
+                                    className={`${softBtn} h-8 cursor-pointer px-3 text-xs`}
+                                  >
+                                    <FiPlus size={12} />
+                                    Add images
+                                    <input
+                                      type="file"
+                                      multiple
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) =>
+                                        handleVariantImages(variant.id, e)
+                                      }
+                                    />
+                                  </label>
                                 </div>
-                              )}
+
+                                {variant.images.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2.5">
+                                    {variant.images.map((img) => (
+                                      <div
+                                        key={img.id}
+                                        className="group relative h-[72px] w-[72px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                                      >
+                                        <img
+                                          src={img.preview}
+                                          alt="Variant"
+                                          className="h-full w-full object-cover"
+                                          draggable={false}
+                                        />
+
+                                        <span
+                                          className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                                            img.is_primary
+                                              ? "bg-[#1E3A8A] text-white"
+                                              : "bg-white/90 text-slate-600"
+                                          }`}
+                                        >
+                                          {img.is_primary ? "Main" : "Img"}
+                                        </span>
+
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            removeVariantImage(
+                                              variant.id,
+                                              img.id,
+                                            )
+                                          }
+                                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/95 text-rose-600 opacity-0 shadow transition group-hover:opacity-100 hover:bg-rose-600 hover:text-white"
+                                        >
+                                          <FiX size={11} />
+                                        </button>
+
+                                        {img.is_existing && (
+                                          <span className="absolute bottom-0 left-0 right-0 bg-[#1E3A8A]/90 py-0.5 text-center text-[8px] font-medium text-white">
+                                            Saved
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </SectionCard>
                 </div>
 
                 {/* =================================================
                     RIGHT SIDE
                 ================================================= */}
 
-                <div className="space-y-6">
-                  {/* PRICING */}
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center gap-2">
-                      <FaRupeeSign className="text-[#2563EB]" size={20} />
+                <aside className="min-w-0 space-y-6 lg:sticky lg:top-0 lg:self-start">
+                  {/* LIVE PRICE PREVIEW */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1B3D] via-[#1E3A8A] to-[#2563EB] p-5 text-white shadow-[0_20px_40px_-16px_rgba(30,58,138,0.6)]">
+                    <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
 
-                      <h3 className="text-lg font-bold text-[#0F1B3D]">
-                        Pricing
-                      </h3>
+                    <p className="relative text-xs font-medium text-blue-100">
+                      Customer pays (retail)
+                    </p>
+
+                    <div className="relative mt-1 flex items-end gap-2">
+                      <span className="text-3xl font-bold tracking-tight">
+                        ₹{formatINR(pricePreview.retail.final)}
+                      </span>
+
+                      {pricePreview.retail.discount > 0 &&
+                        pricePreview.retail.mrp > 0 && (
+                          <span className="mb-1 text-sm text-blue-200 line-through">
+                            ₹{formatINR(pricePreview.retail.mrp)}
+                          </span>
+                        )}
                     </div>
 
+                    <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
+                      {pricePreview.retail.discount > 0 && (
+                        <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-300/30">
+                          {pricePreview.retail.discount}% off · save ₹
+                          {formatINR(pricePreview.retail.saved)}
+                        </span>
+                      )}
+
+                      {pricePreview.distributor.mrp > 0 && (
+                        <span className="rounded-full bg-white/10 px-2.5 py-1 font-medium ring-1 ring-white/20">
+                          Distributor ₹{formatINR(pricePreview.distributor.final)}
+                        </span>
+                      )}
+
+                      {pricePreview.retail.mrp === 0 && (
+                        <span className="text-blue-200">
+                          Enter MRP to preview the final price
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* PRICING */}
+                  <SectionCard
+                    icon={<FaRupeeSign size={17} />}
+                    title="Pricing"
+                    subtitle="Retail, distributor and shipping"
+                  >
                     <div className="space-y-4">
-                      {/* RETAIL MRP */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Retail MRP <span className="text-[#C23B32]">*</span>
-                        </label>
-
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
-                            ₹
-                          </span>
-
-                          <input
-                            type="text"
-                            inputMode="decimal"
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          label="Retail MRP"
+                          required
+                          error={errors.retail_mrp}
+                        >
+                          <AdornedInput
+                            prefix="₹"
                             value={retailMrp}
-                            onChange={(e) => {
-                              const val = e.target.value;
-
+                            placeholder="100000"
+                            hasError={!!errors.retail_mrp}
+                            onChange={(val) => {
                               if (isValidDecimalInput(val)) {
                                 setRetailMrp(val);
 
@@ -3285,206 +3365,108 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 }));
                               }
                             }}
-                            placeholder="100000"
-                            className={`h-12 w-full rounded-lg border ${
-                              errors.retail_mrp
-                                ? "border-[#C23B32]"
-                                : "border-[#D8E2F0]"
-                            } bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                           />
-                        </div>
+                        </Field>
 
-                        {errors.retail_mrp && (
-                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                            <FiInfo size={14} />
-                            {errors.retail_mrp}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* RETAIL DISCOUNT */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Discount (%)
-                        </label>
-
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
+                        <Field label="Discount">
+                          <AdornedInput
+                            suffix="%"
                             value={retailDiscountValue}
-                            onChange={(e) => {
-                              const val = e.target.value;
-
+                            placeholder="40"
+                            onChange={(val) => {
                               if (isValidDecimalInput(val)) {
                                 setRetailDiscountValue(val);
                               }
                             }}
-                            placeholder="40"
-                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-12 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
+                        </Field>
 
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8C97B2]">
-                            %
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* DISTRIBUTOR MRP */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Distributor MRP
-                        </label>
-
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
-                            ₹
-                          </span>
-
-                          <input
-                            type="text"
-                            inputMode="decimal"
+                        <Field label="Distributor MRP">
+                          <AdornedInput
+                            prefix="₹"
                             value={distributorMrp}
-                            onChange={(e) => {
-                              const val = e.target.value;
-
+                            placeholder="90000"
+                            onChange={(val) => {
                               if (isValidDecimalInput(val)) {
                                 setDistributorMrp(val);
                               }
                             }}
-                            placeholder="90000"
-                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
-                        </div>
-                      </div>
+                        </Field>
 
-                      {/* DISTRIBUTOR DISCOUNT */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Distributor Discount (%)
-                        </label>
-
-                        <div className="relative">
-                          <input
-                            type="text"
-                            inputMode="decimal"
+                        <Field label="Distributor disc.">
+                          <AdornedInput
+                            suffix="%"
                             value={distributorDiscountValue}
-                            onChange={(e) => {
-                              const val = e.target.value;
-
+                            placeholder="35"
+                            onChange={(val) => {
                               if (isValidDecimalInput(val)) {
                                 setDistributorDiscountValue(val);
                               }
                             }}
-                            placeholder="35"
-                            className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-12 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                           />
-
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#8C97B2]">
-                            %
-                          </span>
-                        </div>
+                        </Field>
                       </div>
 
-                      {/* COMMISSION */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Commission Value
-                        </label>
+                      <div className="h-px bg-slate-100" />
 
-                        <input
-                          type="text"
+                      <Field label="Commission value">
+                        <AdornedInput
                           inputMode="numeric"
                           value={commissionValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-
+                          placeholder="0"
+                          onChange={(val) => {
                             if (isValidIntegerInput(val)) {
                               setCommissionValue(val);
                             }
                           }}
-                          placeholder="0"
-                          className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                         />
-                      </div>
+                      </Field>
 
-                      {/* SHIPPING */}
-                      <div>
-                        <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-[#0F1B3D]">
-                          <FiTruck size={14} className="text-[#2563EB]" />
-                          Shipping Charge
-                        </label>
+                      <Field
+                        label="Shipping charge"
+                        icon={<FiTruck size={14} className="text-[#2563EB]" />}
+                        error={errors.shipping_charge}
+                        hint="Enter 0 for free shipping"
+                      >
+                        <AdornedInput
+                          prefix="₹"
+                          value={shippingCharge}
+                          placeholder="0"
+                          hasError={!!errors.shipping_charge}
+                          onChange={(val) => {
+                            if (isValidDecimalInput(val)) {
+                              setShippingCharge(val);
 
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#2563EB]">
-                            ₹
-                          </span>
-
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={shippingCharge}
-                            onChange={(e) => {
-                              const val = e.target.value;
-
-                              if (isValidDecimalInput(val)) {
-                                setShippingCharge(val);
-
-                                setErrors((prev) => ({
-                                  ...prev,
-                                  shipping_charge: undefined,
-                                }));
-                              }
-                            }}
-                            placeholder="0"
-                            className={`h-12 w-full rounded-lg border ${
-                              errors.shipping_charge
-                                ? "border-[#C23B32]"
-                                : "border-[#D8E2F0]"
-                            } bg-[#F5F8FF] pl-8 pr-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
-                          />
-                        </div>
-
-                        {errors.shipping_charge && (
-                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                            <FiInfo size={14} />
-                            {errors.shipping_charge}
-                          </p>
-                        )}
-
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
-                          <FiInfo size={12} />
-                          Enter 0 for free shipping
-                        </p>
-                      </div>
+                              setErrors((prev) => ({
+                                ...prev,
+                                shipping_charge: undefined,
+                              }));
+                            }
+                          }}
+                        />
+                      </Field>
                     </div>
-                  </div>
+                  </SectionCard>
 
                   {/* INVENTORY */}
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center gap-2">
-                      <FiPackage className="text-[#2563EB]" size={20} />
-
-                      <h3 className="text-lg font-bold text-[#0F1B3D]">
-                        Inventory
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* STOCK */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Stock Quantity{" "}
-                          <span className="text-[#C23B32]">*</span>
-                        </label>
-
-                        <input
-                          type="text"
+                  <SectionCard
+                    icon={<FiPackage size={19} />}
+                    title="Inventory"
+                    subtitle="Stock and alerts"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <Field
+                        label="Stock quantity"
+                        required
+                        error={errors.stock_quantity}
+                      >
+                        <AdornedInput
                           inputMode="numeric"
                           value={stockQuantity}
-                          onChange={(e) => {
-                            const val = e.target.value;
-
+                          placeholder="100"
+                          hasError={!!errors.stock_quantity}
+                          onChange={(val) => {
                             if (isValidIntegerInput(val)) {
                               setStockQuantity(val);
 
@@ -3494,81 +3476,115 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               }));
                             }
                           }}
-                          placeholder="100"
-                          className={`h-12 w-full rounded-lg border ${
-                            errors.stock_quantity
-                              ? "border-[#C23B32]"
-                              : "border-[#D8E2F0]"
-                          } bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10`}
                         />
+                      </Field>
 
-                        {errors.stock_quantity && (
-                          <p className="error-message mt-1 flex items-center gap-1 text-sm text-[#C23B32]">
-                            <FiInfo size={14} />
-                            {errors.stock_quantity}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* LOW STOCK */}
-                      <div>
-                        <label className="mb-1.5 block text-sm font-semibold text-[#0F1B3D]">
-                          Low Stock Threshold
-                        </label>
-
-                        <input
-                          type="text"
+                      <Field label="Low stock at">
+                        <AdornedInput
                           inputMode="numeric"
                           value={lowStockThreshold}
-                          onChange={(e) => {
-                            const val = e.target.value;
-
+                          placeholder="10"
+                          onChange={(val) => {
                             if (isValidIntegerInput(val)) {
                               setLowStockThreshold(val);
                             }
                           }}
-                          placeholder="10"
-                          className="h-12 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition-all focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
                         />
-
-                        <p className="mt-1 flex items-center gap-1 text-xs text-[#8C97B2]">
-                          <FiInfo size={12} />
-                          You'll be notified when stock falls below this number
-                        </p>
-                      </div>
+                      </Field>
                     </div>
-                  </div>
+
+                    <p className="mt-3 flex items-center gap-1 text-xs text-slate-400">
+                      <FiInfo size={12} />
+                      You'll be notified when stock falls below this number
+                    </p>
+                  </SectionCard>
 
                   {/* PUBLISHING */}
-                  <div className="rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-[0_8px_30px_rgba(30,58,138,0.06)]">
-                    <div className="mb-4 flex items-center gap-2">
-                      <FiTag className="text-[#2563EB]" size={20} />
-
-                      <h3 className="text-lg font-bold text-[#0F1B3D]">
-                        Publishing
-                      </h3>
-                    </div>
-
-                    <label className="flex cursor-pointer items-center justify-between rounded-lg border border-[#E3E9F5] bg-[#F5F8FF] p-3 transition-colors hover:bg-[#EAF1FF]/50">
+                  <SectionCard
+                    icon={<FiTag size={19} />}
+                    title="Publishing"
+                    subtitle="Control store visibility"
+                  >
+                    <div
+                      className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors ${
+                        isPublished
+                          ? "border-emerald-200 bg-emerald-50/70"
+                          : "border-slate-200 bg-slate-50"
+                      }`}
+                    >
                       <div>
                         <p className="text-sm font-bold text-[#0F1B3D]">
-                          Publish Product
+                          {isPublished ? "Published" : "Hidden"}
                         </p>
 
-                        <p className="text-xs text-[#4A5778]">
-                          Visible to customers
+                        <p className="text-xs text-slate-500">
+                          {isPublished
+                            ? "Visible to customers"
+                            : "Not visible to customers"}
                         </p>
                       </div>
 
-                      <input
-                        type="checkbox"
-                        checked={isPublished}
-                        onChange={(e) => setIsPublished(e.target.checked)}
-                        className="h-5 w-5 cursor-pointer rounded border-[#D8E2F0] accent-[#1E3A8A]"
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isPublished}
+                        onClick={() => setIsPublished(!isPublished)}
+                        className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${
+                          isPublished ? "bg-emerald-500" : "bg-slate-300"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
+                            isPublished ? "left-[22px]" : "left-0.5"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </SectionCard>
+
+                  {/* CHECKLIST */}
+                  <SectionCard
+                    icon={<FiCheck size={19} />}
+                    title="Before you save"
+                    subtitle={`${completedCount} of ${checklist.length} required items done`}
+                  >
+                    <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#1E3A8A] transition-all duration-500"
+                        style={{ width: `${completionPercent}%` }}
                       />
-                    </label>
-                  </div>
-                </div>
+                    </div>
+
+                    <ul className="grid grid-cols-2 gap-x-3 gap-y-2">
+                      {checklist.map((item) => (
+                        <li
+                          key={item.label}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <span
+                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
+                              item.done
+                                ? "bg-emerald-500 text-white"
+                                : "bg-slate-200 text-transparent"
+                            }`}
+                          >
+                            <FiCheck size={10} strokeWidth={3} />
+                          </span>
+
+                          <span
+                            className={
+                              item.done
+                                ? "font-medium text-slate-700"
+                                : "text-slate-400"
+                            }
+                          >
+                            {item.label}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </SectionCard>
+                </aside>
               </div>
             </form>
           </div>
@@ -3577,8 +3593,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               FOOTER
           ===================================================== */}
 
-          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-[#E3E9F5] bg-white px-6 py-4">
-            {/* UPLOAD PROGRESS */}
+          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
             {loading && uploadProgress && (
               <UploadProgressBar
                 percent={uploadProgress.percent}
@@ -3594,63 +3609,73 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               />
             )}
 
-            <div className="flex justify-end gap-3">
-              {/* CANCEL */}
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={false}
-                className="flex h-11 items-center gap-2 rounded-lg border border-[#D8E2F0] bg-white px-6 text-sm font-semibold text-[#4A5778] transition-colors hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Cancel
-              </button>
+            <div className="flex items-center justify-between gap-3">
+              <p className="hidden text-xs text-slate-500 sm:block">
+                <span className="font-semibold text-[#1E3A8A]">
+                  {completedCount}/{checklist.length}
+                </span>{" "}
+                required items complete · press{" "}
+                <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-600">
+                  Esc
+                </kbd>{" "}
+                to close
+              </p>
 
-              {/* ✅ SUBMIT — permission based */}
-              <button
-                type="submit"
-                disabled={
-                  loading ||
-                  fetchingOptions ||
-                  arrangingImageIds.length > 0 ||
-                  !canSubmit
-                }
-                onClick={handleSubmit}
-                className="flex h-11 items-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-8 text-sm font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <svg
-                      className="h-4 w-4 animate-spin text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
+              <div className="ml-auto flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
 
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
+                <button
+                  type="submit"
+                  disabled={
+                    loading ||
+                    fetchingOptions ||
+                    arrangingImageIds.length > 0 ||
+                    !canSubmit
+                  }
+                  onClick={handleSubmit}
+                  className={`${primaryBtn} h-11 min-w-[160px] px-8 text-sm`}
+                >
+                  {loading ? (
+                    <>
+                      <svg
+                        className="h-4 w-4 animate-spin text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
 
-                    {isEdit ? "Updating..." : "Adding..."}
-                  </>
-                ) : fetchingOptions ? (
-                  "Loading..."
-                ) : isEdit ? (
-                  "Update Product"
-                ) : (
-                  "Add Product"
-                )}
-              </button>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+
+                      {isEdit ? "Updating..." : "Adding..."}
+                    </>
+                  ) : fetchingOptions ? (
+                    "Loading..."
+                  ) : isEdit ? (
+                    "Update product"
+                  ) : (
+                    "Add product"
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
