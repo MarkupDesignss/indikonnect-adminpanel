@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-
 import {
   FiPlus,
   FiSearch,
@@ -50,7 +49,11 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100, damping: 14 },
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 14,
+    },
   },
 };
 
@@ -95,19 +98,23 @@ const formatCouponValue = (coupon: Coupon) => {
   const value = Number(coupon.value ?? 0);
 
   if (coupon.type === "percentage") return `${value}%`;
+
   return formatMoney(value);
 };
 
-// ✅ NAVY THEME
+// =====================================================
+// STATUS / TYPE COLORS
+// =====================================================
+
 const getStatusClass = (active: boolean) =>
   active
-    ? "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]"
-    : "border-[#D8E2F0] bg-[#F3F6FB] text-[#4A5778]";
+    ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+    : "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]";
 
 const getTypeClass = (type: string) =>
   type === "percentage"
-    ? "border-[#1E3A8A]/20 bg-[#EAF1FF] text-[#1E3A8A]"
-    : "border-[#D8E2F0] bg-[#F3F6FB] text-[#3A4668]";
+    ? "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
+    : "border-[#DCE6F2] bg-[#F4F8FD] text-[#111827]";
 
 const getInitials = (title: string) => {
   const parts = title.trim().split(/\s+/).filter(Boolean);
@@ -133,17 +140,17 @@ const getExpiryState = (expiresAt: string) => {
 
 const PermissionLoadingState: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
           <FiRefreshCw size={24} className="animate-spin" />
         </div>
 
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+        <h2 className="mt-5 text-base font-bold text-[#111827]">
           Checking permissions...
         </h2>
 
-        <p className="mt-2 text-sm text-[#8C97B2]">
+        <p className="mt-2 text-sm text-[#6B7280]">
           Please wait while we verify your access.
         </p>
       </div>
@@ -168,7 +175,7 @@ const emptyForm: CouponPayload = {
 };
 
 // =====================================================
-// STATUS BADGE — NAVY THEME
+// STATUS BADGE
 // =====================================================
 
 const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
@@ -179,7 +186,7 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   >
     <span
       className={`h-1.5 w-1.5 rounded-full ${
-        active ? "bg-[#1E3A8A]" : "bg-[#8C97B2]"
+        active ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
       }`}
     />
     {active ? "Active" : "Inactive"}
@@ -187,7 +194,7 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
 );
 
 // =====================================================
-// TYPE BADGE — NAVY THEME
+// TYPE BADGE
 // =====================================================
 
 const TypeBadge: React.FC<{ type: string }> = ({ type }) => (
@@ -202,39 +209,39 @@ const TypeBadge: React.FC<{ type: string }> = ({ type }) => (
 );
 
 // =====================================================
-// DETAIL ITEM — NAVY THEME
+// DETAIL ITEM
 // =====================================================
 
 const DetailItem: React.FC<{ label: string; value: string }> = ({
   label,
   value,
 }) => (
-  <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
-    <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+    <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
       {label}
     </p>
-    <p className="mt-1.5 text-sm font-bold text-[#0F1B3D]">{value}</p>
+    <p className="mt-1.5 text-sm font-bold text-[#111827]">{value}</p>
   </div>
 );
 
 // =====================================================
-// DETAIL ROW — NAVY THEME
+// DETAIL ROW
 // =====================================================
 
 const DetailRow: React.FC<{ label: string; value: string }> = ({
   label,
   value,
 }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 pb-3 last:border-0 last:pb-0">
-    <span className="text-xs text-[#8C97B2]">{label}</span>
-    <span className="max-w-[65%] text-right text-xs font-bold text-[#3A4668]">
+  <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-3 last:border-0 last:pb-0">
+    <span className="text-xs text-[#6B7280]">{label}</span>
+    <span className="max-w-[65%] text-right text-xs font-bold text-[#111827]">
       {value}
     </span>
   </div>
 );
 
 // =====================================================
-// DELETE MODAL — NAVY THEME
+// DELETE MODAL
 // =====================================================
 
 interface DeleteModalProps {
@@ -255,22 +262,26 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
-      <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
+      <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] to-[#C23B32]" />
 
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
               <FiAlertCircle size={23} />
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#0F1B3D]">
+              <h2 className="text-lg font-bold text-[#111827]">
                 Delete Coupon
               </h2>
 
-              <p className="mt-1 text-sm leading-6 text-[#4A5778]">
+              <p className="mt-1 text-sm leading-6 text-[#6B7280]">
                 This coupon will be removed permanently. This action cannot be
                 undone.
               </p>
@@ -278,17 +289,18 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
           </div>
 
           {coupon && (
-            <div className="mt-5 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
+            <div className="mt-5 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-xs font-bold text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
                   {getInitials(coupon.title)}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#0F1B3D]">
+                  <p className="text-xs font-bold text-[#111827]">
                     {coupon.code}
                   </p>
-                  <p className="mt-0.5 truncate text-[11px] text-[#8C97B2]">
+
+                  <p className="mt-0.5 truncate text-[11px] text-[#6B7280]">
                     {coupon.title}
                   </p>
                 </div>
@@ -301,7 +313,7 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#1E3A8A]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -317,6 +329,7 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
               ) : (
                 <FiTrash2 size={15} />
               )}
+
               {loading ? "Deleting..." : "Delete Coupon"}
             </button>
           </div>
@@ -327,7 +340,7 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
 };
 
 // =====================================================
-// COUPON FORM — NAVY THEME
+// COUPON FORM
 // =====================================================
 
 interface CouponFormProps {
@@ -350,23 +363,23 @@ const CouponForm: React.FC<CouponFormProps> = ({
   onSubmit,
   onClose,
 }) => (
-  <div className="w-full max-w-[620px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
-    <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+  <div className="w-full max-w-[620px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+    <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
     {/* HEADER */}
-    <div className="flex items-center justify-between border-b border-[#1E3A8A]/10 px-5 py-4 sm:px-6">
+    <div className="flex items-center justify-between border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
       <div>
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
             <FiTag size={17} />
           </div>
 
-          <h2 className="text-lg font-bold text-[#0F1B3D]">
+          <h2 className="text-lg font-bold text-[#111827]">
             {editing ? "Edit Coupon" : "Add Coupon"}
           </h2>
         </div>
 
-        <p className="mt-1 text-xs text-[#8C97B2]">
+        <p className="mt-1 text-xs text-[#6B7280]">
           {editing
             ? "Update coupon offer and usage settings."
             : "Create a new promotional coupon for customers."}
@@ -377,7 +390,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
         type="button"
         onClick={onClose}
         disabled={loading}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8C97B2] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:opacity-50"
       >
         <FiX size={18} />
       </button>
@@ -389,7 +402,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
         {/* CODE + TITLE */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Coupon Code <span className="text-[#C23B32]">*</span>
             </label>
 
@@ -398,12 +411,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
               value={form.code || ""}
               onChange={(e) => onChange("code", e.target.value.toUpperCase())}
               placeholder="SAVE10"
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm font-bold uppercase text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+              className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm font-bold uppercase text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Coupon Title <span className="text-[#C23B32]">*</span>
             </label>
 
@@ -412,7 +425,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
               value={form.title || ""}
               onChange={(e) => onChange("title", e.target.value)}
               placeholder="10% Off on Your Order"
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+              className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
           </div>
         </div>
@@ -420,14 +433,16 @@ const CouponForm: React.FC<CouponFormProps> = ({
         {/* TYPE + VALUE */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Discount Type <span className="text-[#C23B32]">*</span>
             </label>
 
             <select
               value={form.type || "percentage"}
-              onChange={(e) => onChange("type", e.target.value as CouponType)}
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+              onChange={(e) =>
+                onChange("type", e.target.value as CouponType)
+              }
+              className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             >
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed Amount</option>
@@ -435,7 +450,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Discount Value <span className="text-[#C23B32]">*</span>
             </label>
 
@@ -445,12 +460,14 @@ const CouponForm: React.FC<CouponFormProps> = ({
                 min="0"
                 step="0.01"
                 value={form.value || ""}
-                onChange={(e) => onChange("value", Number(e.target.value) || 0)}
+                onChange={(e) =>
+                  onChange("value", Number(e.target.value) || 0)
+                }
                 placeholder={form.type === "percentage" ? "10" : "500"}
-                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-4 pr-12 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+                className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 pr-12 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
 
-              <div className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl border-l border-[#D8E2F0] bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl border-l border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8]">
                 {form.type === "percentage" ? (
                   <FiPercent size={16} />
                 ) : (
@@ -462,16 +479,18 @@ const CouponForm: React.FC<CouponFormProps> = ({
         </div>
 
         {/* ORDER LIMITS */}
-        <div className="rounded-2xl border border-[#1E3A8A]/10 bg-[#FAFBFF] p-4">
+        <div className="rounded-2xl border border-[#DCE6F2] bg-[#F8FBFF] p-4">
           <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-[#1E3A8A]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
               <FiTag size={15} />
             </div>
 
             <div>
-              <h3 className="text-sm font-bold text-[#0F1B3D]">Order Limits</h3>
+              <h3 className="text-sm font-bold text-[#111827]">
+                Order Limits
+              </h3>
 
-              <p className="text-[11px] text-[#8C97B2]">
+              <p className="text-[11px] text-[#6B7280]">
                 Configure minimum and maximum cart values.
               </p>
             </div>
@@ -479,12 +498,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#4A5778]">
+              <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
                 Minimum Order
               </label>
 
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8C97B2]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#6B7280]">
                   ₹
                 </span>
 
@@ -496,18 +515,18 @@ const CouponForm: React.FC<CouponFormProps> = ({
                   onChange={(e) =>
                     onChange("min_order", Number(e.target.value) || 0)
                   }
-                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-8 pr-3 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
+                  className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white pl-8 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-[#4A5778]">
+              <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
                 Maximum Order
               </label>
 
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#8C97B2]">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#6B7280]">
                   ₹
                 </span>
 
@@ -519,7 +538,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
                   onChange={(e) =>
                     onChange("max_order", Number(e.target.value) || 0)
                   }
-                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white pl-8 pr-3 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/10"
+                  className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white pl-8 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
                 />
               </div>
             </div>
@@ -529,14 +548,14 @@ const CouponForm: React.FC<CouponFormProps> = ({
         {/* USES + EXPIRY */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Maximum Uses
             </label>
 
             <div className="relative">
               <FiUsers
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
 
               <input
@@ -546,38 +565,40 @@ const CouponForm: React.FC<CouponFormProps> = ({
                 onChange={(e) =>
                   onChange("max_uses", Number(e.target.value) || 1)
                 }
-                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-3 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
               Expiry Date <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="relative">
               <FiCalendar
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
 
               <input
                 type="datetime-local"
                 value={form.expires_at || ""}
                 onChange={(e) => onChange("expires_at", e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-3 text-sm text-[#0F1B3D] outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+                className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
             </div>
           </div>
         </div>
 
         {/* STATUS */}
-        <div className="flex items-center justify-between rounded-2xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
+        <div className="flex items-center justify-between rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
           <div>
-            <p className="text-sm font-bold text-[#0F1B3D]">Coupon Status</p>
+            <p className="text-sm font-bold text-[#111827]">
+              Coupon Status
+            </p>
 
-            <p className="mt-1 text-[11px] text-[#8C97B2]">
+            <p className="mt-1 text-[11px] text-[#6B7280]">
               Inactive coupons cannot be applied to orders.
             </p>
           </div>
@@ -585,10 +606,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
           <button
             type="button"
             onClick={() => onChange("is_active", !form.is_active)}
+            aria-label="Toggle coupon status"
+            aria-pressed={Boolean(form.is_active)}
             className={`relative h-7 w-12 rounded-full transition ${
               form.is_active
-                ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A]"
-                : "bg-[#D8E2F0]"
+                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
+                : "bg-[#D1D5DB]"
             }`}
           >
             <span
@@ -602,12 +625,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
     </div>
 
     {/* FOOTER */}
-    <div className="flex items-center justify-end gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4 sm:px-6">
+    <div className="flex items-center justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
       <button
         type="button"
         onClick={onClose}
         disabled={loading}
-        className="rounded-xl border border-[#1E3A8A]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+        className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD] disabled:opacity-50"
       >
         Cancel
       </button>
@@ -616,9 +639,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
         type="button"
         onClick={onSubmit}
         disabled={loading}
-        className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading && <FiRefreshCw size={14} className="animate-spin" />}
+
         {loading
           ? editing
             ? "Updating..."
@@ -632,7 +656,7 @@ const CouponForm: React.FC<CouponFormProps> = ({
 );
 
 // =====================================================
-// VIEW MODAL — NAVY THEME
+// VIEW MODAL
 // =====================================================
 
 interface ViewModalProps {
@@ -656,50 +680,50 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
 
   return (
     <GlobalModal isOpen={open} onClose={onClose}>
-      <div className="w-full max-w-[600px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+      <div className="w-full max-w-[600px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
         {/* HEADER */}
-        <div className="flex items-center justify-between border-b border-[#1E3A8A]/10 px-5 py-4 sm:px-6">
+        <div className="flex items-center justify-between border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-sm font-bold text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-sm font-bold text-white">
               {getInitials(coupon.title)}
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#0F1B3D]">
+              <h2 className="text-lg font-bold text-[#111827]">
                 Coupon Details
               </h2>
 
-              <p className="text-xs text-[#8C97B2]">{coupon.code}</p>
+              <p className="text-xs text-[#6B7280]">{coupon.code}</p>
             </div>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#8C97B2] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* BODY */}
-        <div className="max-h-[75vh] overflow-y-auto bg-[#F5F8FF] p-5 sm:p-6">
+        <div className="max-h-[75vh] overflow-y-auto bg-[#F4F8FD] p-5 sm:p-6">
           <div className="space-y-5">
             {/* MAIN SUMMARY */}
-            <div className="rounded-2xl border border-[#1E3A8A]/15 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                     Coupon Code
                   </p>
 
-                  <p className="mt-1 text-2xl font-black tracking-wide text-[#1E3A8A]">
+                  <p className="mt-1 text-2xl font-black tracking-wide text-[#2D6FE8]">
                     {coupon.code}
                   </p>
 
-                  <p className="mt-2 text-sm font-semibold text-[#3A4668]">
+                  <p className="mt-2 text-sm font-semibold text-[#111827]">
                     {coupon.title}
                   </p>
                 </div>
@@ -713,24 +737,25 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
 
             {/* DISCOUNT + USAGE */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+              <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                   Discount
                 </p>
 
-                <p className="mt-2 text-2xl font-bold text-[#0F1B3D]">
+                <p className="mt-2 text-2xl font-bold text-[#111827]">
                   {formatCouponValue(coupon)}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+              <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                   Usage
                 </p>
 
-                <p className="mt-2 text-2xl font-bold text-[#0F1B3D]">
+                <p className="mt-2 text-2xl font-bold text-[#111827]">
                   {coupon.used_count}
-                  <span className="ml-1 text-sm font-medium text-[#8C97B2]">
+
+                  <span className="ml-1 text-sm font-medium text-[#6B7280]">
                     / {coupon.max_uses}
                   </span>
                 </p>
@@ -738,10 +763,11 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
             </div>
 
             {/* ORDER RULES */}
-            <div className="rounded-2xl border border-[#1E3A8A]/10 bg-white p-5">
+            <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <FiTag size={16} className="text-[#1E3A8A]" />
-                <h3 className="text-sm font-bold text-[#0F1B3D]">
+                <FiTag size={16} className="text-[#2D6FE8]" />
+
+                <h3 className="text-sm font-bold text-[#111827]">
                   Order Rules
                 </h3>
               </div>
@@ -760,10 +786,11 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
             </div>
 
             {/* TIMELINE */}
-            <div className="rounded-2xl border border-[#1E3A8A]/10 bg-white p-5">
+            <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <FiCalendar size={16} className="text-[#1E3A8A]" />
-                <h3 className="text-sm font-bold text-[#0F1B3D]">
+                <FiCalendar size={16} className="text-[#2D6FE8]" />
+
+                <h3 className="text-sm font-bold text-[#111827]">
                   Coupon Timeline
                 </h3>
               </div>
@@ -784,14 +811,18 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
                   value={formatDate(coupon.expires_at)}
                 />
 
-                <div className="flex items-center justify-between border-t border-[#1E3A8A]/10 pt-3">
-                  <span className="text-xs text-[#8C97B2]">Expiry Status</span>
+                <div className="flex items-center justify-between border-t border-[#DCE6F2] pt-3">
+                  <span className="text-xs text-[#6B7280]">
+                    Expiry Status
+                  </span>
 
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold ${
                       expiryState === "expired"
-                        ? "bg-[#FBEAEA] text-[#C23B32]"
-                        : "bg-[#EAF1FF] text-[#1E3A8A]"
+                        ? "bg-[#FEF2F2] text-[#C23B32]"
+                        : expiryState === "unknown"
+                          ? "bg-[#F4F8FD] text-[#6B7280]"
+                          : "bg-[#EAF3FF] text-[#2D6FE8]"
                     }`}
                   >
                     {expiryState === "expired" ? (
@@ -799,7 +830,12 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
                     ) : (
                       <FiCheckCircle size={12} />
                     )}
-                    {expiryState === "expired" ? "Expired" : "Valid"}
+
+                    {expiryState === "expired"
+                      ? "Expired"
+                      : expiryState === "unknown"
+                        ? "Unknown"
+                        : "Valid"}
                   </span>
                 </div>
               </div>
@@ -808,21 +844,21 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-end gap-2 border-t border-[#1E3A8A]/10 bg-white px-5 py-4 sm:px-6">
+        <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#1E3A8A]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF]"
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD]"
           >
             Close
           </button>
 
-          {/* ✅ Edit — permission based */}
+          {/* EDIT — PERMISSION BASED */}
           {canEdit && (
             <button
               type="button"
               onClick={() => onEdit(coupon)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)] transition hover:-translate-y-0.5"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
             >
               <FiEdit2 size={14} />
               Edit Coupon
@@ -859,9 +895,7 @@ const Coupons: React.FC = () => {
   );
 
   const canCreateCoupon = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("promocode.create"),
+    () => isSuperAdmin || hasPermission("promocode.create"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -874,9 +908,7 @@ const Coupons: React.FC = () => {
   );
 
   const canDeleteCoupon = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("promocode.delete"),
+    () => isSuperAdmin || hasPermission("promocode.delete"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -888,12 +920,15 @@ const Coupons: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "percentage" | "fixed">(
-    "all",
-  );
+
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | "percentage" | "fixed"
+  >("all");
+
   const [statusFilter, setStatusFilter] = useState<
     "all" | "active" | "inactive"
   >("all");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -912,16 +947,23 @@ const Coupons: React.FC = () => {
   const fetchCoupons = async () => {
     try {
       setLoading(true);
+
       const response = await couponApi.getAll(1, 100);
 
       if (response.data.success) {
         setCoupons(response.data.data?.data || []);
       } else {
-        toast.error(response.data.message || "Unable to fetch coupons.");
+        toast.error(
+          response.data.message || "Unable to fetch coupons.",
+        );
       }
     } catch (error: any) {
       console.error("Fetch coupons error:", error);
-      toast.error(error?.response?.data?.message || "Unable to fetch coupons.");
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to fetch coupons.",
+      );
     } finally {
       setLoading(false);
     }
@@ -941,7 +983,10 @@ const Coupons: React.FC = () => {
     key: keyof CouponPayload,
     value: string | number | boolean,
   ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
   // ===================================================
@@ -954,12 +999,19 @@ const Coupons: React.FC = () => {
     return coupons.filter((coupon) => {
       const matchesSearch =
         !query ||
-        [coupon.code, coupon.title, coupon.type, String(coupon.value)]
+        [
+          coupon.code,
+          coupon.title,
+          coupon.type,
+          String(coupon.value),
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query);
 
-      const matchesType = typeFilter === "all" || coupon.type === typeFilter;
+      const matchesType =
+        typeFilter === "all" || coupon.type === typeFilter;
+
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" && coupon.is_active) ||
@@ -979,28 +1031,39 @@ const Coupons: React.FC = () => {
   );
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
   const paginatedCoupons = filteredCoupons.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
 
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
   }, [currentPage, totalPages]);
 
-  const startEntry = filteredCoupons.length === 0 ? 0 : startIndex + 1;
+  const startEntry =
+    filteredCoupons.length === 0 ? 0 : startIndex + 1;
+
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredCoupons.length,
   );
 
   const paginationPages = useMemo(() => {
-    if (totalPages <= 5)
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    if (totalPages <= 5) {
+      return Array.from(
+        { length: totalPages },
+        (_, index) => index + 1,
+      );
+    }
 
-    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
 
-    if (currentPage >= totalPages - 2)
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -1008,6 +1071,7 @@ const Coupons: React.FC = () => {
         totalPages - 1,
         totalPages,
       ];
+    }
 
     return [
       currentPage - 2,
@@ -1047,7 +1111,10 @@ const Coupons: React.FC = () => {
       return false;
     }
 
-    if (form.type === "percentage" && Number(form.value) > 100) {
+    if (
+      form.type === "percentage" &&
+      Number(form.value) > 100
+    ) {
       toast.error("Percentage discount cannot be more than 100.");
       return false;
     }
@@ -1098,17 +1165,25 @@ const Coupons: React.FC = () => {
       const response = await couponApi.create(payload);
 
       if (response.data.success) {
-        toast.success(response.data.message || "Coupon created successfully.");
+        toast.success(
+          response.data.message || "Coupon created successfully.",
+        );
 
         setAddOpen(false);
         await fetchCoupons();
         setCurrentPage(1);
       } else {
-        toast.error(response.data.message || "Unable to create coupon.");
+        toast.error(
+          response.data.message || "Unable to create coupon.",
+        );
       }
     } catch (error: any) {
       console.error("Create coupon error:", error);
-      toast.error(error?.response?.data?.message || "Unable to create coupon.");
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to create coupon.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -1121,13 +1196,21 @@ const Coupons: React.FC = () => {
   const openEdit = (coupon: Coupon) => {
     setSelectedCoupon(coupon);
 
-    const expiryDate = coupon.expires_at ? new Date(coupon.expires_at) : null;
+    const expiryDate = coupon.expires_at
+      ? new Date(coupon.expires_at)
+      : null;
+
     let formattedExpiry = "";
 
-    if (expiryDate && !Number.isNaN(expiryDate.getTime())) {
+    if (
+      expiryDate &&
+      !Number.isNaN(expiryDate.getTime())
+    ) {
       const local = new Date(
-        expiryDate.getTime() - expiryDate.getTimezoneOffset() * 60000,
+        expiryDate.getTime() -
+        expiryDate.getTimezoneOffset() * 60000,
       );
+
       formattedExpiry = local.toISOString().slice(0, 16);
     }
 
@@ -1167,20 +1250,31 @@ const Coupons: React.FC = () => {
         max_uses: Number(form.max_uses),
       };
 
-      const response = await couponApi.update(selectedCoupon.id, payload);
+      const response = await couponApi.update(
+        selectedCoupon.id,
+        payload,
+      );
 
       if (response.data.success) {
-        toast.success(response.data.message || "Coupon updated successfully.");
+        toast.success(
+          response.data.message || "Coupon updated successfully.",
+        );
 
         setEditOpen(false);
         setSelectedCoupon(null);
         await fetchCoupons();
       } else {
-        toast.error(response.data.message || "Unable to update coupon.");
+        toast.error(
+          response.data.message || "Unable to update coupon.",
+        );
       }
     } catch (error: any) {
       console.error("Update coupon error:", error);
-      toast.error(error?.response?.data?.message || "Unable to update coupon.");
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to update coupon.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -1209,27 +1303,37 @@ const Coupons: React.FC = () => {
       const response = await couponApi.delete(selectedCoupon.id);
 
       if (response.data.success) {
-        toast.success(response.data.message || "Coupon deleted successfully.");
+        toast.success(
+          response.data.message || "Coupon deleted successfully.",
+        );
 
         setCoupons((prev) =>
-          prev.filter((item) => item.id !== selectedCoupon.id),
+          prev.filter(
+            (item) => item.id !== selectedCoupon.id,
+          ),
         );
 
         setDeleteOpen(false);
         setSelectedCoupon(null);
       } else {
-        toast.error(response.data.message || "Unable to delete coupon.");
+        toast.error(
+          response.data.message || "Unable to delete coupon.",
+        );
       }
     } catch (error: any) {
       console.error("Delete coupon error:", error);
-      toast.error(error?.response?.data?.message || "Unable to delete coupon.");
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to delete coupon.",
+      );
     } finally {
       setDeleteLoading(false);
     }
   };
 
   // ===================================================
-  // ✅ LOADING STATE (only once, at top level)
+  // ✅ LOADING STATE
   // ===================================================
 
   if (permissionsLoading) {
@@ -1242,13 +1346,17 @@ const Coupons: React.FC = () => {
 
   if (!canViewCoupons) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
         </div>
@@ -1266,7 +1374,7 @@ const Coupons: React.FC = () => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins"
+        className="min-h-screen bg-white p-4 font-poppins"
       >
         {/* HEADER */}
         <motion.div
@@ -1275,30 +1383,30 @@ const Coupons: React.FC = () => {
         >
           <div>
             <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
               <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Marketing
               </span>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[30px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Promo Codes
             </h1>
 
-            <p className="mt-1 text-sm text-[#4A5778]">
+            <p className="mt-0.5 text-sm text-[#111827]">
               Create, manage and monitor promotional discount codes.
             </p>
           </div>
 
-          {/* ✅ ADD — permission based */}
+          {/* ADD — PERMISSION BASED */}
           {canCreateCoupon && (
             <button
               type="button"
               onClick={openAdd}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(30,58,138,0.7)]"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
             >
               <FiPlus size={18} />
               Add Coupon
@@ -1309,13 +1417,13 @@ const Coupons: React.FC = () => {
         {/* TOP BAR */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-sm"
+          className="mb-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white "
         >
-          <div className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 p-2 sm:p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-[480px]">
               <FiSearch
                 size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
 
               <input
@@ -1326,7 +1434,7 @@ const Coupons: React.FC = () => {
                   setCurrentPage(1);
                 }}
                 placeholder="Search coupon code, title or type..."
-                className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-11 pr-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+                className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
             </div>
 
@@ -1335,11 +1443,14 @@ const Coupons: React.FC = () => {
                 value={typeFilter}
                 onChange={(e) => {
                   setTypeFilter(
-                    e.target.value as "all" | "percentage" | "fixed",
+                    e.target.value as
+                    | "all"
+                    | "percentage"
+                    | "fixed",
                   );
                   setCurrentPage(1);
                 }}
-                className="h-10 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-3 text-xs font-semibold text-[#4A5778] outline-none focus:border-[#1E3A8A]"
+                className="h-10 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs font-semibold text-[#111827] outline-none focus:border-[#2D6FE8]"
               >
                 <option value="all">All Types</option>
                 <option value="percentage">Percentage</option>
@@ -1350,11 +1461,14 @@ const Coupons: React.FC = () => {
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(
-                    e.target.value as "all" | "active" | "inactive",
+                    e.target.value as
+                    | "all"
+                    | "active"
+                    | "inactive",
                   );
                   setCurrentPage(1);
                 }}
-                className="h-10 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-3 text-xs font-semibold text-[#4A5778] outline-none focus:border-[#1E3A8A]"
+                className="h-10 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs font-semibold text-[#111827] outline-none focus:border-[#2D6FE8]"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -1365,7 +1479,7 @@ const Coupons: React.FC = () => {
                 type="button"
                 onClick={fetchCoupons}
                 disabled={loading}
-                className="flex h-10 items-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-white px-3 text-xs font-bold text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
+                className="flex h-10 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-50"
               >
                 <FiRefreshCw
                   size={14}
@@ -1380,30 +1494,13 @@ const Coupons: React.FC = () => {
         {/* TABLE CARD */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-sm"
+          className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm"
         >
-          <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
           {/* TABLE HEADER */}
-          <div className="flex flex-col justify-between gap-3 border-b border-[#1E3A8A]/10 px-4 pb-4 pt-5 sm:flex-row sm:items-center sm:px-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-                <FiTag size={18} />
-              </div>
-
-              <div>
-                <h2 className="text-base font-bold text-[#0F1B3D]">
-                  Coupon Directory
-                </h2>
-
-                <p className="mt-0.5 text-xs text-[#8C97B2]">
-                  {filteredCoupons.length} coupon
-                  {filteredCoupons.length === 1 ? "" : "s"} found
-                </p>
-              </div>
-            </div>
-
-            {(search || typeFilter !== "all" || statusFilter !== "all") && (
+          <div className="flex flex-col justify-between gap-3 border-b border-[#DCE6F2] px-4 sm:flex-row sm:items-center sm:px-5">
+            {(search ||
+              typeFilter !== "all" ||
+              statusFilter !== "all") && (
               <button
                 type="button"
                 onClick={() => {
@@ -1412,7 +1509,7 @@ const Coupons: React.FC = () => {
                   setStatusFilter("all");
                   setCurrentPage(1);
                 }}
-                className="flex items-center gap-1.5 self-start rounded-lg bg-[#EAF1FF] px-3 py-2 text-[10px] font-bold text-[#1E3A8A] sm:self-auto"
+                className="flex items-center gap-1.5 self-start rounded-lg bg-[#EAF3FF] px-3 py-2 text-[10px] font-bold text-[#2D6FE8] sm:self-auto"
               >
                 <FiX size={13} />
                 Clear Filters
@@ -1421,36 +1518,36 @@ const Coupons: React.FC = () => {
           </div>
 
           {/* DESKTOP TABLE */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full min-w-[1250px] border-collapse">
+          <div className="hidden lg:block">
+            <table className="w-full border-collapse table-fixed">
               <thead>
-                <tr className="bg-[#1E3A8A]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                <tr className="bg-[#4F8FF7]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white w-[50px]">
                     S.No.
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Coupon
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Type
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Discount
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Limit
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Usage
                   </th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Expires
                   </th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-2 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
                   {(canViewCoupons || canUpdateCoupon || canDeleteCoupon) && (
-                    <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                    <th className="px-2 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                       Actions
                     </th>
                   )}
@@ -1463,18 +1560,15 @@ const Coupons: React.FC = () => {
                     <td
                       colSpan={
                         8 +
-                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon
-                          ? 1
-                          : 0)
+                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon ? 1 : 0)
                       }
-                      className="px-5 py-16 text-center"
+                      className="px-5 py-20 text-center"
                     >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiRefreshCw size={21} className="animate-spin" />
                         </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading coupons...
                         </p>
                       </div>
@@ -1485,22 +1579,18 @@ const Coupons: React.FC = () => {
                     <td
                       colSpan={
                         8 +
-                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon
-                          ? 1
-                          : 0)
+                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon ? 1 : 0)
                       }
-                      className="px-5 py-16 text-center"
+                      className="px-5 py-20 text-center"
                     >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiTag size={24} />
                         </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
                           No coupons found
                         </p>
-
-                        <p className="mt-1 text-xs text-[#8C97B2]">
+                        <p className="mt-1 text-xs text-[#6B7280]">
                           Try changing your search or filters.
                         </p>
                       </div>
@@ -1510,75 +1600,70 @@ const Coupons: React.FC = () => {
                   paginatedCoupons.map((coupon, index) => (
                     <tr
                       key={coupon.id}
-                      className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFBFF]"
+                      className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                     >
-                      <td className="px-5 py-4">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
+                      <td className="px-2 py-4">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
                           {startIndex + index + 1}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[10px] font-bold text-white">
+                      <td className="px-2 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[9px] font-bold text-white">
                             {getInitials(coupon.title)}
                           </div>
-
                           <div className="min-w-0">
-                            <p className="font-mono text-sm font-black tracking-wide text-[#1E3A8A]">
+                            <p className="text-xs font-black tracking-wide text-[#111827] truncate">
                               {coupon.code}
                             </p>
-
-                            <p className="mt-1 max-w-[230px] truncate text-xs font-semibold text-[#3A4668]">
+                            <p className="mt-1 max-w-[130px] truncate text-[10px] font-semibold text-[#111827]">
                               {coupon.title}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-2 py-4">
                         <TypeBadge type={coupon.type} />
                       </td>
 
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-black text-[#0F1B3D]">
+                      <td className="px-2 py-4">
+                        <p className="text-xs font-black text-[#111827]">
                           {formatCouponValue(coupon)}
                         </p>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-2 py-4">
                         <div className="space-y-1">
-                          <p className="text-xs font-semibold text-[#3A4668]">
+                          <p className="text-[10px] font-semibold text-[#111827]">
                             Min: {formatMoney(coupon.min_order)}
                           </p>
-
-                          <p className="text-[10px] text-[#8C97B2]">
+                          <p className="text-[9px] text-[#6B7280]">
                             Max: {formatMoney(coupon.max_order)}
                           </p>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <div className="min-w-[90px]">
+                      <td className="px-2 py-4">
+                        <div className="min-w-[70px]">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-[#3A4668]">
+                            <span className="text-[10px] font-bold text-[#111827]">
                               {coupon.used_count}
                             </span>
-
-                            <span className="text-[10px] text-[#8C97B2]">
+                            <span className="text-[9px] text-[#6B7280]">
                               / {coupon.max_uses}
                             </span>
                           </div>
-
-                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#EAF1FF]">
+                          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#EAF3FF]">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A]"
+                              className="h-full rounded-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
                               style={{
                                 width: `${Math.min(
                                   (Number(coupon.used_count) /
                                     Math.max(Number(coupon.max_uses), 1)) *
                                     100,
-                                  100,
+                                  100
                                 )}%`,
                               }}
                             />
@@ -1586,16 +1671,14 @@ const Coupons: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <FiCalendar size={14} className="text-[#1E3A8A]" />
-
+                      <td className="px-2 py-4">
+                        <div className="flex items-center gap-1.5">
+                          <FiCalendar size={13} className="text-[#2D6FE8] shrink-0" />
                           <div>
-                            <p className="text-xs font-semibold text-[#3A4668]">
+                            <p className="text-[10px] font-semibold text-[#111827] whitespace-nowrap">
                               {formatDateOnly(coupon.expires_at)}
                             </p>
-
-                            <p className="mt-1 text-[10px] text-[#8C97B2]">
+                            <p className="mt-1 text-[9px] text-[#6B7280]">
                               {getExpiryState(coupon.expires_at) === "expired"
                                 ? "Expired"
                                 : "Valid"}
@@ -1604,23 +1687,21 @@ const Coupons: React.FC = () => {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-2 py-4 text-center">
                         <StatusBadge active={coupon.is_active} />
                       </td>
 
-                      {(canViewCoupons ||
-                        canUpdateCoupon ||
-                        canDeleteCoupon) && (
-                        <td className="px-5 py-4">
-                          <div className="flex justify-center gap-2">
+                      {(canViewCoupons || canUpdateCoupon || canDeleteCoupon) && (
+                        <td className="px-2 py-4">
+                          <div className="flex justify-center gap-1">
                             {canViewCoupons && (
                               <button
                                 type="button"
                                 onClick={() => openView(coupon)}
                                 title="View Coupon"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
                               >
-                                <FiEye size={15} />
+                                <FiEye size={14} />
                               </button>
                             )}
 
@@ -1629,9 +1710,9 @@ const Coupons: React.FC = () => {
                                 type="button"
                                 onClick={() => openEdit(coupon)}
                                 title="Edit Coupon"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
                               >
-                                <FiEdit2 size={15} />
+                                <FiEdit2 size={14} />
                               </button>
                             )}
 
@@ -1640,9 +1721,9 @@ const Coupons: React.FC = () => {
                                 type="button"
                                 onClick={() => openDelete(coupon)}
                                 title="Delete Coupon"
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
                               >
-                                <FiTrash2 size={15} />
+                                <FiTrash2 size={14} />
                               </button>
                             )}
                           </div>
@@ -1655,83 +1736,84 @@ const Coupons: React.FC = () => {
             </table>
           </div>
 
-          {/* MOBILE */}
+          {/* MOBILE CARDS */}
           <div className="block lg:hidden">
             {paginatedCoupons.length > 0 ? (
               paginatedCoupons.map((coupon, index) => (
                 <div
                   key={coupon.id}
-                  className="border-b border-[#1E3A8A]/10 p-4"
+                  className="border-b border-[#DCE6F2] p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-[10px] font-bold text-white">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[10px] font-bold text-white">
                         {getInitials(coupon.title)}
                       </div>
 
                       <div className="min-w-0">
-                        <p className="font-mono text-sm font-black tracking-wide text-[#1E3A8A]">
+                        <p className="font-mono text-sm font-black tracking-wide text-[#2D6FE8]">
                           {coupon.code}
                         </p>
 
-                        <p className="mt-1 truncate text-xs font-semibold text-[#3A4668]">
+                        <p className="mt-1 truncate text-xs font-semibold text-[#111827]">
                           {coupon.title}
                         </p>
                       </div>
                     </div>
 
-                    <span className="text-[10px] font-bold text-[#8C97B2]">
+                    <span className="text-[10px] font-bold text-[#6B7280]">
                       #{startIndex + index + 1}
                     </span>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Discount
                       </p>
 
-                      <p className="mt-1 text-sm font-black text-[#0F1B3D]">
+                      <p className="mt-1 text-sm font-black text-[#111827]">
                         {formatCouponValue(coupon)}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Usage
                       </p>
 
-                      <p className="mt-1 text-sm font-black text-[#0F1B3D]">
+                      <p className="mt-1 text-sm font-black text-[#111827]">
                         {coupon.used_count}
-                        <span className="text-xs font-medium text-[#8C97B2]">
+
+                        <span className="text-xs font-medium text-[#6B7280]">
                           /{coupon.max_uses}
                         </span>
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Minimum Order
                       </p>
 
-                      <p className="mt-1 text-xs font-bold text-[#0F1B3D]">
+                      <p className="mt-1 text-xs font-bold text-[#111827]">
                         {formatMoney(coupon.min_order)}
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                    <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Expires
                       </p>
 
-                      <p className="mt-1 text-xs font-bold text-[#0F1B3D]">
+                      <p className="mt-1 text-xs font-bold text-[#111827]">
                         {formatDateOnly(coupon.expires_at)}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <TypeBadge type={coupon.type} />
                       <StatusBadge active={coupon.is_active} />
                     </div>
@@ -1741,7 +1823,8 @@ const Coupons: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openView(coupon)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A]"
+                          aria-label="View coupon"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]"
                         >
                           <FiEye size={14} />
                         </button>
@@ -1751,7 +1834,8 @@ const Coupons: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openEdit(coupon)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A]"
+                          aria-label="Edit coupon"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#2D6FE8]"
                         >
                           <FiEdit2 size={14} />
                         </button>
@@ -1761,7 +1845,8 @@ const Coupons: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openDelete(coupon)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
+                          aria-label="Delete coupon"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
                         >
                           <FiTrash2 size={14} />
                         </button>
@@ -1772,15 +1857,15 @@ const Coupons: React.FC = () => {
               ))
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiTag size={24} />
                 </div>
 
-                <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                <p className="mt-4 text-sm font-bold text-[#111827]">
                   No coupons found
                 </p>
 
-                <p className="mt-1 text-xs text-[#8C97B2]">
+                <p className="mt-1 text-xs text-[#6B7280]">
                   Try changing your search or filter.
                 </p>
               </div>
@@ -1789,14 +1874,19 @@ const Coupons: React.FC = () => {
 
           {/* PAGINATION */}
           {filteredCoupons.length > 0 && (
-            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8C97B2]">
+                <p className="text-xs text-[#6B7280]">
                   Showing{" "}
-                  <span className="font-bold text-[#3A4668]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#111827]">
+                    {startEntry}
+                  </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3A4668]">{endEntry}</span> of{" "}
-                  <span className="font-bold text-[#3A4668]">
+                  <span className="font-bold text-[#111827]">
+                    {endEntry}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-bold text-[#111827]">
                     {filteredCoupons.length}
                   </span>{" "}
                   entries
@@ -1806,10 +1896,12 @@ const Coupons: React.FC = () => {
                   <button
                     type="button"
                     onClick={() =>
-                      setCurrentPage((page) => Math.max(page - 1, 1))
+                      setCurrentPage((page) =>
+                        Math.max(page - 1, 1),
+                      )
                     }
                     disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
@@ -1819,10 +1911,10 @@ const Coupons: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-colors ${
                         currentPage === page
-                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
-                          : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                       }`}
                     >
                       {page}
@@ -1832,10 +1924,12 @@ const Coupons: React.FC = () => {
                   <button
                     type="button"
                     onClick={() =>
-                      setCurrentPage((page) => Math.min(page + 1, totalPages))
+                      setCurrentPage((page) =>
+                        Math.min(page + 1, totalPages),
+                      )
                     }
                     disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>
@@ -1846,7 +1940,7 @@ const Coupons: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* ADD MODAL — permission based */}
+      {/* ADD MODAL — PERMISSION BASED */}
       {canCreateCoupon && (
         <GlobalModal
           isOpen={addOpen}
@@ -1866,7 +1960,7 @@ const Coupons: React.FC = () => {
         </GlobalModal>
       )}
 
-      {/* EDIT MODAL — permission based */}
+      {/* EDIT MODAL — PERMISSION BASED */}
       {canUpdateCoupon && (
         <GlobalModal
           isOpen={editOpen}
@@ -1903,6 +1997,7 @@ const Coupons: React.FC = () => {
           }}
           onEdit={(coupon) => {
             setViewOpen(false);
+
             if (canUpdateCoupon) {
               openEdit(coupon);
             }
@@ -1911,7 +2006,7 @@ const Coupons: React.FC = () => {
         />
       )}
 
-      {/* DELETE MODAL — permission based */}
+      {/* DELETE MODAL — PERMISSION BASED */}
       {canDeleteCoupon && (
         <DeleteCouponModal
           open={deleteOpen}

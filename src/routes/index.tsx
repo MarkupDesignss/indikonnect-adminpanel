@@ -53,6 +53,7 @@ import Addwarehouse from "@/pages/Warehouse/Addwarehouse";
 import Productsaasignment from "@/pages/Warehouse/Productsaasignment";
 import WarehouseProducts from "@/pages/Warehouse/WarehouseProducts";
 import Inventorywarehouse from "@/pages/Warehouse/Inventorywarehouse";
+import SalesReport from "@/pages/SalesReport/SalesReport";
 
 const ScrollLayout = () => {
   return (
@@ -255,7 +256,7 @@ export const adminRouter = createBrowserRouter(
 
             { path: "warehouse/inventory", element: <Inventorywarehouse /> },
 
-
+            { path: "/sales/report", element: <SalesReport /> },
             // SETTINGS
             {
               path: "SettingsManagement",

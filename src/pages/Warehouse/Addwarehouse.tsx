@@ -21,7 +21,6 @@ import {
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
-
 import { toast } from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
@@ -38,7 +37,6 @@ const containerVariants = {
   hidden: {
     opacity: 0,
   },
-
   visible: {
     opacity: 1,
     transition: {
@@ -52,11 +50,9 @@ const itemVariants = {
     y: 12,
     opacity: 0,
   },
-
   visible: {
     y: 0,
     opacity: 1,
-
     transition: {
       type: "spring" as const,
       stiffness: 110,
@@ -139,17 +135,17 @@ const normalizeTime = (value?: string | null) => {
 
 const PermissionLoadingState: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
           <FiRefreshCw size={24} className="animate-spin" />
         </div>
 
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
+        <h2 className="mt-5 text-base font-bold text-[#111827]">
           Checking permissions...
         </h2>
 
-        <p className="mt-2 text-sm text-[#8C97B2]">
+        <p className="mt-2 text-sm text-[#6B7280]">
           Please wait while we verify your access.
         </p>
       </div>
@@ -182,9 +178,7 @@ const Addwarehouse: React.FC = () => {
   );
 
   const canCreateWarehouse = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("warehouse.create"),
+    () => isSuperAdmin || hasPermission("warehouse.create"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -201,9 +195,7 @@ const Addwarehouse: React.FC = () => {
   // ===================================================
 
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-
   const [loading, setLoading] = useState(false);
-
   const [search, setSearch] = useState("");
 
   // ===================================================
@@ -213,13 +205,9 @@ const Addwarehouse: React.FC = () => {
   const ITEMS_PER_PAGE = 15;
 
   const [currentPage, setCurrentPage] = useState(1);
-
   const [totalPages, setTotalPages] = useState(1);
-
   const [totalEntries, setTotalEntries] = useState(0);
-
   const [startEntry, setStartEntry] = useState(0);
-
   const [endEntry, setEndEntry] = useState(0);
 
   // ===================================================
@@ -227,7 +215,6 @@ const Addwarehouse: React.FC = () => {
   // ===================================================
 
   const [addModalOpen, setAddModalOpen] = useState(false);
-
   const [addLoading, setAddLoading] = useState(false);
 
   // ===================================================
@@ -235,7 +222,6 @@ const Addwarehouse: React.FC = () => {
   // ===================================================
 
   const [editModalOpen, setEditModalOpen] = useState(false);
-
   const [editLoading, setEditLoading] = useState(false);
 
   const [selectedWarehouse, setSelectedWarehouse] =
@@ -255,28 +241,26 @@ const Addwarehouse: React.FC = () => {
     try {
       setLoading(true);
 
-      const response = await warehousesApi.getAll(page, ITEMS_PER_PAGE);
+      const response = await warehousesApi.getAll(
+        page,
+        ITEMS_PER_PAGE,
+      );
 
       const pagination = response?.data?.data;
-
       const list = pagination?.data || [];
 
       setWarehouses(list);
-
       setCurrentPage(pagination?.current_page || page);
-
       setTotalPages(Math.max(pagination?.last_page || 1, 1));
-
       setTotalEntries(pagination?.total || 0);
-
       setStartEntry(pagination?.from || 0);
-
       setEndEntry(pagination?.to || 0);
     } catch (error: any) {
       console.error("Get warehouses error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to fetch warehouses.",
+        error?.response?.data?.message ||
+          "Unable to fetch warehouses.",
       );
     } finally {
       setLoading(false);
@@ -363,7 +347,6 @@ const Addwarehouse: React.FC = () => {
 
   const openCreateModal = () => {
     resetForm();
-
     setAddModalOpen(true);
   };
 
@@ -395,7 +378,6 @@ const Addwarehouse: React.FC = () => {
       total_capacity: Number(warehouse.total_capacity || 0),
 
       opening_time: normalizeTime(warehouse.opening_time),
-
       closing_time: normalizeTime(warehouse.closing_time),
     });
 
@@ -483,29 +465,21 @@ const Addwarehouse: React.FC = () => {
       code: form.code.trim(),
 
       address_line_1: form.address_line_1.trim(),
-
       address_line_2: form.address_line_2.trim(),
 
       city: form.city.trim(),
-
       state: form.state.trim(),
-
       pincode: form.pincode.trim(),
-
       country: form.country.trim() || "India",
 
       contact_person: form.contact_person.trim(),
-
       contact_number: form.contact_number.trim(),
-
       contact_email: form.contact_email.trim(),
 
       is_active: Boolean(form.is_active),
-
       total_capacity: Number(form.total_capacity) || 0,
 
       opening_time: normalizeTime(form.opening_time),
-
       closing_time: normalizeTime(form.closing_time),
     };
   };
@@ -525,11 +499,11 @@ const Addwarehouse: React.FC = () => {
       const response = await warehousesApi.create(buildPayload());
 
       toast.success(
-        response?.data?.message || "Warehouse created successfully.",
+        response?.data?.message ||
+          "Warehouse created successfully.",
       );
 
       setAddModalOpen(false);
-
       resetForm();
 
       await fetchWarehouses(currentPage);
@@ -537,7 +511,8 @@ const Addwarehouse: React.FC = () => {
       console.error("Create warehouse error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to create warehouse.",
+        error?.response?.data?.message ||
+          "Unable to create warehouse.",
       );
     } finally {
       setAddLoading(false);
@@ -566,13 +541,12 @@ const Addwarehouse: React.FC = () => {
       );
 
       toast.success(
-        response?.data?.message || "Warehouse updated successfully.",
+        response?.data?.message ||
+          "Warehouse updated successfully.",
       );
 
       setEditModalOpen(false);
-
       setSelectedWarehouse(null);
-
       resetForm();
 
       await fetchWarehouses(currentPage);
@@ -580,7 +554,8 @@ const Addwarehouse: React.FC = () => {
       console.error("Update warehouse error:", error);
 
       toast.error(
-        error?.response?.data?.message || "Unable to update warehouse.",
+        error?.response?.data?.message ||
+          "Unable to update warehouse.",
       );
     } finally {
       setEditLoading(false);
@@ -592,12 +567,15 @@ const Addwarehouse: React.FC = () => {
   // ===================================================
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages || page === currentPage) {
+    if (
+      page < 1 ||
+      page > totalPages ||
+      page === currentPage
+    ) {
       return;
     }
 
     setCurrentPage(page);
-
     fetchWarehouses(page);
   };
 
@@ -609,7 +587,6 @@ const Addwarehouse: React.FC = () => {
     const pages: number[] = [];
 
     const start = Math.max(1, currentPage - 2);
-
     const end = Math.min(totalPages, currentPage + 2);
 
     for (let page = start; page <= end; page++) {
@@ -629,7 +606,6 @@ const Addwarehouse: React.FC = () => {
     }
 
     setAddModalOpen(false);
-
     resetForm();
   };
 
@@ -643,14 +619,12 @@ const Addwarehouse: React.FC = () => {
     }
 
     setEditModalOpen(false);
-
     setSelectedWarehouse(null);
-
     resetForm();
   };
 
   // ===================================================
-  // INPUT COMPONENT — NAVY THEME
+  // INPUT COMPONENT — BLUE THEME
   // ===================================================
 
   const InputField = ({
@@ -670,10 +644,12 @@ const Addwarehouse: React.FC = () => {
   }) => {
     return (
       <div>
-        <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+        <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
           {label}
 
-          {required && <span className="ml-1 text-[#C23B32]">*</span>}
+          {required && (
+            <span className="ml-1 text-[#C23B32]">*</span>
+          )}
         </label>
 
         <input
@@ -681,14 +657,14 @@ const Addwarehouse: React.FC = () => {
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-full rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 text-xs text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+          className="h-9 w-full rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
         />
       </div>
     );
   };
 
   // ===================================================
-  // TOGGLE — NAVY THEME
+  // TOGGLE — BLUE THEME
   // ===================================================
 
   const ToggleField = ({
@@ -706,12 +682,14 @@ const Addwarehouse: React.FC = () => {
       <button
         type="button"
         onClick={() => onChange(!checked)}
-        className="flex w-full items-center justify-between rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2.5 text-left transition hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF]"
+        className="flex w-full items-center justify-between rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-left transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
       >
         <div className="pr-4">
-          <div className="text-xs font-bold text-[#0F1B3D]">{label}</div>
+          <div className="text-xs font-bold text-[#111827]">
+            {label}
+          </div>
 
-          <div className="mt-0.5 text-[10px] leading-4 text-[#8C97B2]">
+          <div className="mt-0.5 text-[10px] leading-4 text-[#6B7280]">
             {description}
           </div>
         </div>
@@ -719,8 +697,8 @@ const Addwarehouse: React.FC = () => {
         <div
           className={`relative h-6 w-11 shrink-0 rounded-full transition ${
             checked
-              ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A]"
-              : "bg-[#D8E2F0]"
+              ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
+              : "bg-[#D1D5DB]"
           }`}
         >
           <span
@@ -734,34 +712,35 @@ const Addwarehouse: React.FC = () => {
   };
 
   // ===================================================
-  // FORM — NAVY THEME
+  // FORM — BLUE/YELLOW THEME
   // ===================================================
 
   const renderWarehouseForm = (editMode: boolean) => {
     const submitting = editMode ? editLoading : addLoading;
 
     return (
-      <div className="w-full max-w-[880px] overflow-hidden rounded-[22px] bg-white shadow-2xl font-poppins">
+      <div className="w-full max-w-[880px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         {/* MODAL HEADER */}
 
-        <div className="relative border-b border-[#E3E9F5] px-5 py-3.5">
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+        <div className="relative border-b border-[#DCE6F2] px-5 py-4">
+          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#FACC15]" />
 
           <div className="flex items-start justify-between gap-4 pt-1">
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
 
-                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#2563EB]">
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#2D6FE8]">
                   Inventory Management
                 </span>
               </div>
 
-              <h2 className="text-[18px] font-bold tracking-tight text-[#0F1B3D]">
+              <h2 className="text-[18px] font-bold tracking-tight text-[#111827]">
                 {editMode ? "Edit Warehouse" : "Create Warehouse"}
               </h2>
 
-              <p className="mt-0.5 text-[10px] leading-4 text-[#4A5778]">
+              <p className="mt-0.5 text-[10px] leading-4 text-[#6B7280]">
                 {editMode
                   ? "Update warehouse details, capacity and operating settings."
                   : "Add a new warehouse with complete location and contact details."}
@@ -772,7 +751,7 @@ const Addwarehouse: React.FC = () => {
               type="button"
               disabled={submitting}
               onClick={editMode ? closeEditModal : closeAddModal}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F5F8FF] text-[#4A5778] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiX size={14} />
             </button>
@@ -786,16 +765,16 @@ const Addwarehouse: React.FC = () => {
 
           <div className="mb-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiDatabase size={12} />
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#0F1B3D]">
+                <div className="text-[11px] font-bold text-[#111827]">
                   Basic Information
                 </div>
 
-                <div className="text-[9px] text-[#8C97B2]">
+                <div className="text-[9px] text-[#6B7280]">
                   Warehouse name and unique code
                 </div>
               </div>
@@ -814,7 +793,9 @@ const Addwarehouse: React.FC = () => {
                 label="Warehouse Code"
                 required
                 value={form.code}
-                onChange={(value) => updateField("code", value.toUpperCase())}
+                onChange={(value) =>
+                  updateField("code", value.toUpperCase())
+                }
                 placeholder="WH-NOI-001"
               />
             </div>
@@ -824,16 +805,16 @@ const Addwarehouse: React.FC = () => {
 
           <div className="mb-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiMapPin size={12} />
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#0F1B3D]">
+                <div className="text-[11px] font-bold text-[#111827]">
                   Address
                 </div>
 
-                <div className="text-[9px] text-[#8C97B2]">
+                <div className="text-[9px] text-[#6B7280]">
                   Complete warehouse location
                 </div>
               </div>
@@ -844,14 +825,18 @@ const Addwarehouse: React.FC = () => {
                 label="Address Line 1"
                 required
                 value={form.address_line_1}
-                onChange={(value) => updateField("address_line_1", value)}
+                onChange={(value) =>
+                  updateField("address_line_1", value)
+                }
                 placeholder="Plot No. 25, Sector 63"
               />
 
               <InputField
                 label="Address Line 2"
                 value={form.address_line_2}
-                onChange={(value) => updateField("address_line_2", value)}
+                onChange={(value) =>
+                  updateField("address_line_2", value)
+                }
                 placeholder="Near Fortis Hospital"
               />
 
@@ -900,16 +885,16 @@ const Addwarehouse: React.FC = () => {
 
           <div className="mb-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiPhone size={12} />
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#0F1B3D]">
+                <div className="text-[11px] font-bold text-[#111827]">
                   Contact Details
                 </div>
 
-                <div className="text-[9px] text-[#8C97B2]">
+                <div className="text-[9px] text-[#6B7280]">
                   Primary warehouse contact
                 </div>
               </div>
@@ -920,7 +905,9 @@ const Addwarehouse: React.FC = () => {
                 label="Contact Person"
                 required
                 value={form.contact_person}
-                onChange={(value) => updateField("contact_person", value)}
+                onChange={(value) =>
+                  updateField("contact_person", value)
+                }
                 placeholder="Rahul Sharma"
               />
 
@@ -937,15 +924,15 @@ const Addwarehouse: React.FC = () => {
                 placeholder="9876543210"
               />
 
-              <div>
-                <InputField
-                  label="Contact Email"
-                  value={form.contact_email}
-                  onChange={(value) => updateField("contact_email", value)}
-                  placeholder="rahul@company.com"
-                  type="email"
-                />
-              </div>
+              <InputField
+                label="Contact Email"
+                value={form.contact_email}
+                onChange={(value) =>
+                  updateField("contact_email", value)
+                }
+                placeholder="rahul@company.com"
+                type="email"
+              />
             </div>
           </div>
 
@@ -953,16 +940,16 @@ const Addwarehouse: React.FC = () => {
 
           <div className="mb-4">
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiClock size={12} />
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#0F1B3D]">
+                <div className="text-[11px] font-bold text-[#111827]">
                   Operating Details
                 </div>
 
-                <div className="text-[9px] text-[#8C97B2]">
+                <div className="text-[9px] text-[#6B7280]">
                   Capacity and business hours
                 </div>
               </div>
@@ -985,14 +972,18 @@ const Addwarehouse: React.FC = () => {
               <InputField
                 label="Opening Time"
                 value={form.opening_time}
-                onChange={(value) => updateField("opening_time", value)}
+                onChange={(value) =>
+                  updateField("opening_time", value)
+                }
                 type="time"
               />
 
               <InputField
                 label="Closing Time"
                 value={form.closing_time}
-                onChange={(value) => updateField("closing_time", value)}
+                onChange={(value) =>
+                  updateField("closing_time", value)
+                }
                 type="time"
               />
             </div>
@@ -1002,16 +993,16 @@ const Addwarehouse: React.FC = () => {
 
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiDatabase size={12} />
               </div>
 
               <div>
-                <div className="text-[11px] font-bold text-[#0F1B3D]">
+                <div className="text-[11px] font-bold text-[#111827]">
                   Warehouse Settings
                 </div>
 
-                <div className="text-[9px] text-[#8C97B2]">
+                <div className="text-[9px] text-[#6B7280]">
                   Active configuration
                 </div>
               </div>
@@ -1021,7 +1012,9 @@ const Addwarehouse: React.FC = () => {
               <ToggleField
                 label="Active Warehouse"
                 checked={form.is_active}
-                onChange={(value) => updateField("is_active", value)}
+                onChange={(value) =>
+                  updateField("is_active", value)
+                }
                 description="Warehouse can be used for inventory operations."
               />
             </div>
@@ -1030,12 +1023,12 @@ const Addwarehouse: React.FC = () => {
 
         {/* FOOTER */}
 
-        <div className="flex flex-col-reverse gap-2 border-t border-[#E3E9F5] bg-[#FAFBFF] px-5 py-3 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3 sm:flex-row sm:justify-end">
           <button
             type="button"
             disabled={submitting}
             onClick={editMode ? closeEditModal : closeAddModal}
-            className="h-9 rounded-lg border border-[#D8E2F0] bg-white px-5 text-xs font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 rounded-lg border border-[#DCE6F2] bg-white px-5 text-xs font-bold text-[#111827] transition hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -1044,9 +1037,11 @@ const Addwarehouse: React.FC = () => {
             type="button"
             disabled={submitting}
             onClick={
-              editMode ? handleUpdateWarehouse : handleCreateWarehouse
+              editMode
+                ? handleUpdateWarehouse
+                : handleCreateWarehouse
             }
-            className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-6 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:shadow-[0_10px_22px_-8px_rgba(30,58,138,0.65)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.55)] transition hover:shadow-[0_10px_22px_-8px_rgba(45,111,232,0.65)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting && (
               <FiRefreshCw size={13} className="animate-spin" />
@@ -1066,7 +1061,7 @@ const Addwarehouse: React.FC = () => {
   };
 
   // ===================================================
-  // ✅ LOADING STATE (only once, at top level)
+  // ✅ LOADING STATE
   // ===================================================
 
   if (permissionsLoading) {
@@ -1079,13 +1074,17 @@ const Addwarehouse: React.FC = () => {
 
   if (!canViewWarehouses) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
         </div>
@@ -1099,7 +1098,7 @@ const Addwarehouse: React.FC = () => {
 
   return (
     <motion.div
-      className="min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-6"
+      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -1112,20 +1111,19 @@ const Addwarehouse: React.FC = () => {
       >
         <div>
           <div className="mb-1.5 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
             <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
               Inventory Management
             </span>
           </div>
 
-          <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+          <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
             Warehouses
           </h1>
-
-          <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
+          <p className="mt-0.5 text-sm text-[#111827]">
             Manage your warehouse locations, capacity, contacts and operating
             settings from one place.
           </p>
@@ -1134,32 +1132,32 @@ const Addwarehouse: React.FC = () => {
         {/* SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
+          <div className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Total Warehouses
             </div>
 
-            <div className="mt-0.5 text-lg font-bold text-[#0F1B3D]">
+            <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {totalEntries}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#1E3A8A]/10 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2563EB]">
+          <div className="rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
               Active
             </div>
 
-            <div className="mt-0.5 text-lg font-bold text-[#1E3A8A]">
+            <div className="mt-0.5 text-lg font-bold text-[#2D6FE8]">
               {activeCount}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#C23B32]/15 bg-white px-4 py-2.5 shadow-sm">
-            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#C23B32]">
+          <div className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2.5 shadow-sm">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Inactive
             </div>
 
-            <div className="mt-0.5 text-lg font-bold text-[#C23B32]">
+            <div className="mt-0.5 text-lg font-bold text-[#6B7280]">
               {inactiveCount}
             </div>
           </div>
@@ -1170,21 +1168,14 @@ const Addwarehouse: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white p-4 shadow-[0_8px_30px_rgba(30,58,138,0.06)] sm:p-5"
+        className="relative mb-5 overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white p-3 sm:p-3"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#1E3A8A]/10" />
-
-        <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#1E3A8A]/10" />
-
-        <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
               size={17}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
             />
 
             <input
@@ -1192,7 +1183,7 @@ const Addwarehouse: React.FC = () => {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search warehouses, codes, cities or contacts..."
-              className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/10"
+              className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
             />
           </div>
 
@@ -1205,7 +1196,7 @@ const Addwarehouse: React.FC = () => {
               onClick={() => fetchWarehouses(currentPage)}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={14}
@@ -1215,7 +1206,7 @@ const Addwarehouse: React.FC = () => {
               Refresh
             </motion.button>
 
-            {/* ✅ ADD — permission based */}
+            {/* ADD — PERMISSION BASED */}
 
             {canCreateWarehouse && (
               <motion.button
@@ -1223,13 +1214,12 @@ const Addwarehouse: React.FC = () => {
                 onClick={openCreateModal}
                 whileHover={{
                   y: -2,
-                  boxShadow: "0 10px 22px rgba(30,58,138,0.18)",
+                  boxShadow: "0 10px 22px rgba(45,111,232,0.18)",
                 }}
                 whileTap={{ scale: 0.97 }}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white  transition"
               >
                 <FiPlus size={15} />
-
                 <span>Add Warehouse</span>
               </motion.button>
             )}
@@ -1241,40 +1231,39 @@ const Addwarehouse: React.FC = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[22px] border border-[#E3E9F5] bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
+        className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
       >
-        <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
-        <div className="overflow-x-auto pt-[3px]">
-          <table className="min-w-[1180px] w-full">
+     
+        <div className="overflow-x-auto ">
+          <table className="w-full min-w-[1180px] border-collapse">
             <thead>
-              <tr className="border-b border-[#E3E9F5] bg-[#FAFBFF]">
-                <th className="px-5 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+              <tr className="bg-[#4F8FF7]">
+                <th className="px-5 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Warehouse
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Location
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Contact
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Capacity
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
-                  Working Hours
+                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                  Working Hours 
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Status
                 </th>
 
                 {canUpdateWarehouse && (
-                  <th className="px-5 py-4 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                  <th className="px-5 py-4 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                     Action
                   </th>
                 )}
@@ -1286,12 +1275,12 @@ const Addwarehouse: React.FC = () => {
 
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
-                  <tr key={index} className="border-b border-[#EEF2FA]">
+                  <tr key={index} className="border-b border-[#DCE6F2]">
                     {Array.from({
                       length: canUpdateWarehouse ? 7 : 6,
                     }).map((__, cellIndex) => (
                       <td key={cellIndex} className="px-4 py-4">
-                        <div className="h-10 animate-pulse rounded-lg bg-[#F0F3FA]" />
+                        <div className="h-10 animate-pulse rounded-lg bg-[#F4F8FD]" />
                       </td>
                     ))}
                   </tr>
@@ -1304,15 +1293,15 @@ const Addwarehouse: React.FC = () => {
                     colSpan={canUpdateWarehouse ? 7 : 6}
                     className="px-5 py-14 text-center"
                   >
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF1FF] text-[#1E3A8A]">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
                       <FiDatabase size={19} />
                     </div>
 
-                    <div className="mt-3 text-sm font-bold text-[#0F1B3D]">
+                    <div className="mt-3 text-sm font-bold text-[#111827]">
                       No warehouses found
                     </div>
 
-                    <div className="mt-1 text-xs text-[#8C97B2]">
+                    <div className="mt-1 text-xs text-[#6B7280]">
                       {search
                         ? "Try another search term."
                         : "Create your first warehouse to get started."}
@@ -1327,23 +1316,23 @@ const Addwarehouse: React.FC = () => {
                     key={warehouse.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="border-b border-[#EEF2FA] transition hover:bg-[#FAFBFF]"
+                    className="border-b border-[#DCE6F2] transition hover:bg-[#F8FBFF]"
                   >
                     {/* WAREHOUSE */}
 
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiDatabase size={16} />
                         </div>
 
                         <div className="min-w-0">
-                          <div className="truncate text-xs font-bold text-[#0F1B3D]">
+                          <div className="truncate text-xs font-bold text-[#111827]">
                             {warehouse.name}
                           </div>
 
                           <div className="mt-1 flex items-center gap-1.5">
-                            <span className="rounded-md bg-[#F5F8FF] px-2 py-0.5 text-[9px] font-bold text-[#4A5778]">
+                            <span className="rounded-md bg-[#F4F8FD] px-2 py-0.5 text-[9px] font-bold text-[#111827]">
                               {warehouse.code}
                             </span>
                           </div>
@@ -1357,25 +1346,25 @@ const Addwarehouse: React.FC = () => {
                       <div className="flex items-start gap-2">
                         <FiMapPin
                           size={13}
-                          className="mt-0.5 shrink-0 text-[#1E3A8A]"
+                          className="mt-0.5 shrink-0 text-[#2D6FE8]"
                         />
 
                         <div>
-                          <div className="text-xs font-semibold text-[#0F1B3D]">
+                          <div className="text-xs font-semibold text-[#111827]">
                             {warehouse.city}, {warehouse.state}
                           </div>
 
-                          <div className="mt-0.5 max-w-[220px] text-[10px] leading-4 text-[#8C97B2]">
+                          <div className="mt-0.5 max-w-[220px] text-[10px] leading-4 text-[#6B7280]">
                             {warehouse.address_line_1}
                           </div>
 
                           {warehouse.address_line_2 && (
-                            <div className="text-[10px] leading-4 text-[#8C97B2]">
+                            <div className="text-[10px] leading-4 text-[#6B7280]">
                               {warehouse.address_line_2}
                             </div>
                           )}
 
-                          <div className="mt-1 text-[9px] font-semibold text-[#4A5778]">
+                          <div className="mt-1 text-[9px] font-semibold text-[#111827]">
                             PIN: {warehouse.pincode}
                           </div>
                         </div>
@@ -1385,19 +1374,18 @@ const Addwarehouse: React.FC = () => {
                     {/* CONTACT */}
 
                     <td className="px-4 py-4">
-                      <div className="text-xs font-semibold text-[#0F1B3D]">
+                      <div className="text-xs font-semibold text-[#111827]">
                         {warehouse.contact_person}
                       </div>
 
-                      <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#4A5778]">
-                        <FiPhone size={11} className="text-[#1E3A8A]" />
-
+                      <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+                        <FiPhone size={11} className="text-[#2D6FE8]" />
                         {warehouse.contact_number}
                       </div>
 
                       {warehouse.contact_email && (
-                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#8C97B2]">
-                          <FiMail size={11} className="text-[#1E3A8A]" />
+                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+                          <FiMail size={11} className="text-[#2D6FE8]" />
 
                           <span className="max-w-[170px] truncate">
                             {warehouse.contact_email}
@@ -1409,13 +1397,13 @@ const Addwarehouse: React.FC = () => {
                     {/* CAPACITY */}
 
                     <td className="px-4 py-4">
-                      <div className="text-xs font-bold text-[#0F1B3D]">
-                        {Number(warehouse.total_capacity || 0).toLocaleString(
-                          "en-IN",
-                        )}
+                      <div className="text-xs font-bold text-[#111827]">
+                        {Number(
+                          warehouse.total_capacity || 0,
+                        ).toLocaleString("en-IN")}
                       </div>
 
-                      <div className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[#8C97B2]">
+                      <div className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[#6B7280]">
                         Units
                       </div>
                     </td>
@@ -1424,18 +1412,18 @@ const Addwarehouse: React.FC = () => {
 
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-[#1E3A8A]">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiClock size={13} />
                         </div>
 
                         <div>
-                          <div className="text-xs font-semibold text-[#0F1B3D]">
+                          <div className="text-xs font-semibold text-[#111827]">
                             {normalizeTime(warehouse.opening_time)}
                             {" - "}
                             {normalizeTime(warehouse.closing_time)}
                           </div>
 
-                          <div className="mt-0.5 text-[9px] text-[#8C97B2]">
+                          <div className="mt-0.5 text-[9px] text-[#6B7280]">
                             Operating Hours
                           </div>
                         </div>
@@ -1447,10 +1435,10 @@ const Addwarehouse: React.FC = () => {
                     <td className="px-4 py-4">
                       <div className="flex flex-col items-start gap-1.5">
                         <span
-                          className={`rounded-full px-2.5 py-1 text-[9px] font-bold ${
+                          className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${
                             warehouse.is_active
-                              ? "bg-[#EAF1FF] text-[#1E3A8A]"
-                              : "bg-[#FBEAEA] text-[#C23B32]"
+                              ? "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
+                              : "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]"
                           }`}
                         >
                           {warehouse.is_active ? "Active" : "Inactive"}
@@ -1458,7 +1446,7 @@ const Addwarehouse: React.FC = () => {
                       </div>
                     </td>
 
-                    {/* ACTION — permission based */}
+                    {/* ACTION — PERMISSION BASED */}
 
                     {canUpdateWarehouse && (
                       <td className="px-5 py-4 text-right">
@@ -1467,10 +1455,9 @@ const Addwarehouse: React.FC = () => {
                           whileHover={{ y: -1 }}
                           whileTap={{ scale: 0.96 }}
                           onClick={() => openEditModal(warehouse)}
-                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#1E3A8A]/15 bg-[#F5F8FF] px-3 text-[10px] font-bold text-[#1E3A8A] transition hover:border-[#1E3A8A]/25 hover:bg-[#EAF1FF]"
+                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-[10px] font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
                         >
                           <FiEdit2 size={12} />
-
                           Edit
                         </motion.button>
                       </td>
@@ -1484,11 +1471,20 @@ const Addwarehouse: React.FC = () => {
 
         {/* PAGINATION */}
 
-        <div className="flex flex-col gap-3 border-t border-[#E3E9F5] bg-[#FAFBFF] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <div className="text-[10px] text-[#8C97B2]">
-            Showing <span className="font-bold text-[#4A5778]">{startEntry}</span>{" "}
-            to <span className="font-bold text-[#4A5778]">{endEntry}</span> of{" "}
-            <span className="font-bold text-[#4A5778]">{totalEntries}</span>{" "}
+        <div className="flex flex-col gap-3 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="text-[10px] text-[#6B7280]">
+            Showing{" "}
+            <span className="font-bold text-[#111827]">
+              {startEntry}
+            </span>{" "}
+            to{" "}
+            <span className="font-bold text-[#111827]">
+              {endEntry}
+            </span>{" "}
+            of{" "}
+            <span className="font-bold text-[#111827]">
+              {totalEntries}
+            </span>{" "}
             warehouses
           </div>
 
@@ -1499,7 +1495,7 @@ const Addwarehouse: React.FC = () => {
               type="button"
               disabled={currentPage <= 1 || loading}
               onClick={() => handlePageChange(currentPage - 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#1E3A8A]/20 hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <FiChevronLeft size={14} />
             </button>
@@ -1514,8 +1510,8 @@ const Addwarehouse: React.FC = () => {
                 onClick={() => handlePageChange(page)}
                 className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[10px] font-bold transition ${
                   page === currentPage
-                    ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-sm"
-                    : "border border-[#D8E2F0] bg-white text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+                    ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-sm"
+                    : "border border-[#DCE6F2] bg-white text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {page}
@@ -1528,7 +1524,7 @@ const Addwarehouse: React.FC = () => {
               type="button"
               disabled={currentPage >= totalPages || loading}
               onClick={() => handlePageChange(currentPage + 1)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#4A5778] transition hover:border-[#1E3A8A]/20 hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <FiChevronRight size={14} />
             </button>
@@ -1536,7 +1532,7 @@ const Addwarehouse: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* ✅ CREATE MODAL — permission based */}
+      {/* CREATE MODAL — PERMISSION BASED */}
 
       {canCreateWarehouse && (
         <GlobalModal
@@ -1548,7 +1544,7 @@ const Addwarehouse: React.FC = () => {
         </GlobalModal>
       )}
 
-      {/* ✅ EDIT MODAL — permission based */}
+      {/* EDIT MODAL — PERMISSION BASED */}
 
       {canUpdateWarehouse && (
         <GlobalModal

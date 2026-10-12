@@ -19,9 +19,30 @@ import adminApi from "../../api/endpoints/Auth";
 import GlobalModal from "@/components/common/GlobalModal";
 
 // =====================================================
+// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer, Admin)
+// =====================================================
+const PRIMARY = "#2D6FE8";
+const DARK_PRIMARY = "#2D6FE8";
+const BLUE = "#2D6FE8";
+const ACCENT = "#4F8FF7";
+const LIGHT_BLUE = "#EAF3FF";
+const SOFT_BLUE = "#EAF3FF";
+const PAGE_BG = "#F4F8FD";
+
+const TEXT_PRIMARY = "#111827";
+const TEXT_SECONDARY = "#6B7280";
+const MUTED = "#6B7280";
+const BORDER = "#DCE6F2";
+const WHITE = "#FFFFFF";
+
+const DANGER = "#C23B32";
+const DANGER_BG = "#FEF2F2";
+
+const WARNING = "#FACC15";
+
+// =====================================================
 // TYPES
 // =====================================================
-
 interface ProfileForm {
   name: string;
   email: string;
@@ -64,7 +85,6 @@ interface ProfileApiData {
 // =====================================================
 // ANIMATIONS
 // =====================================================
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -78,57 +98,19 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 15,
-    },
+    transition: { type: "spring" as const, stiffness: 110, damping: 15 },
   },
 };
 
 // =====================================================
-// SELF-CONTAINED ANIMATION STYLES — NAVY THEME
+// INPUT CLASS — BLUE THEME
 // =====================================================
-
-const LocalStyles = () => (
-  <style>{`
-        @keyframes up-ambient-float {
-            0%, 100% { transform: translate(-50%, 0) scale(1); opacity: 0.05; }
-            50%      { transform: translate(-50%, -12px) scale(1.08); opacity: 0.09; }
-        }
-        @keyframes up-shimmer-sweep {
-            0%   { transform: translateX(-150%) rotate(20deg); }
-            100% { transform: translateX(250%) rotate(20deg); }
-        }
-        @keyframes up-avatar-glow {
-            0%, 100% {
-                box-shadow:
-                    0 12px 30px -10px rgba(30,58,138,0.35),
-                    inset 0 1px 0 rgba(255,255,255,0.25);
-            }
-            50% {
-                box-shadow:
-                    0 18px 40px -10px rgba(30,58,138,0.50),
-                    inset 0 1px 0 rgba(255,255,255,0.35);
-            }
-        }
-        .up-ambient { animation: up-ambient-float 8s ease-in-out infinite; }
-        .up-shimmer { animation: up-shimmer-sweep 4s ease-in-out infinite; }
-        .up-avatar-glow { animation: up-avatar-glow 3.6s ease-in-out infinite; }
-    `}</style>
-);
-
-// =====================================================
-// INPUT CLASS — NAVY THEME
-// =====================================================
-
 const inputClass =
-  "h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:ring-2 focus:ring-[#1E3A8A]/15";
+  "h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:cursor-not-allowed disabled:bg-[#EAF3FF]";
 
 // =====================================================
 // COMPONENT
 // =====================================================
-
 const UpdateProfile: FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -148,7 +130,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // PROFILE IMAGE MODAL
   // ===================================================
-
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [modalImage, setModalImage] = useState<string>("");
 
@@ -167,7 +148,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // GET ORIGINAL PROFILE IMAGE
   // ===================================================
-
   const getOriginalProfileImage = (admin: ProfileApiData | null): string => {
     return (
       admin?.profile_image_url ||
@@ -182,7 +162,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // GET PROFILE
   // ===================================================
-
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -218,7 +197,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // INITIAL LOAD
   // ===================================================
-
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -226,7 +204,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // CLEANUP OBJECT URL
   // ===================================================
-
   useEffect(() => {
     return () => {
       if (profilePreview && profilePreview.startsWith("blob:")) {
@@ -238,7 +215,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // INPUT CHANGE
   // ===================================================
-
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -247,7 +223,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // PROFILE IMAGE CHANGE
   // ===================================================
-
   const handleProfilePicture = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -272,7 +247,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // REMOVE SELECTED PROFILE IMAGE
   // ===================================================
-
   const handleRemoveProfilePicture = () => {
     setProfilePicture(null);
 
@@ -289,7 +263,6 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // SUBMIT / UPDATE PROFILE
   // ===================================================
-
   const handleSubmit = async () => {
     if (!form.name.trim()) {
       toast.error("Please enter your name.");
@@ -346,23 +319,16 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // INITIALS
   // ===================================================
-
   const getInitials = (name?: string) => {
     if (!name?.trim()) return "AD";
-
     const parts = name.trim().split(/\s+/).filter(Boolean);
-
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   };
 
   // ===================================================
   // RENDER ROLES
   // ===================================================
-
   const renderRoles = () => {
     if (!profile?.roles || profile.roles.length === 0) return null;
 
@@ -370,22 +336,19 @@ const UpdateProfile: FC = () => {
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         {profile.roles.map((role) => (
           <div key={role.id} className="group relative">
-            <span className="rounded-full border border-[#1E3A8A]/20 bg-[#EAF1FF] px-3 py-1.5 text-[9px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white hover:border-transparent">
+            <span className="rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-1.5 text-[9px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white hover:border-transparent cursor-pointer">
               {role.name}
             </span>
 
-            <div className="invisible absolute left-1/2 top-full z-20 mt-2 w-48 -translate-x-1/2 rounded-xl border border-[#1E3A8A]/15 bg-white p-3 shadow-[0_18px_40px_-12px_rgba(30,58,138,0.25)] group-hover:visible">
-              <p className="text-[10px] font-bold text-[#0F1B3D]">
-                {role.name}
-              </p>
-
-              <p className="mt-0.5 text-[9px] text-[#8C97B2]">
+            <div className="invisible absolute left-1/2 top-full z-20 mt-2 w-48 -translate-x-1/2 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-[0_18px_40px_-12px_rgba(45,111,232,0.25)] group-hover:visible">
+              <p className="text-[10px] font-bold text-[#111827]">{role.name}</p>
+              <p className="mt-0.5 text-[9px] text-[#6B7280]">
                 {role.description}
               </p>
 
               {role.permissions && role.permissions.length > 0 && (
-                <div className="mt-2 border-t border-[#1E3A8A]/10 pt-2">
-                  <p className="text-[8px] font-bold uppercase tracking-wide text-[#4A5778]">
+                <div className="mt-2 border-t border-[#DCE6F2] pt-2">
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Permissions: {role.permissions.length}
                   </p>
                 </div>
@@ -400,16 +363,12 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // RENDER PERMISSIONS
   // ===================================================
-
   const renderPermissions = () => {
     if (!profile?.roles) return null;
 
     const allPermissions: Permission[] = [];
-
     profile.roles.forEach((role) => {
-      if (role.permissions) {
-        allPermissions.push(...role.permissions);
-      }
+      if (role.permissions) allPermissions.push(...role.permissions);
     });
 
     if (allPermissions.length === 0) return null;
@@ -424,16 +383,16 @@ const UpdateProfile: FC = () => {
     );
 
     return (
-      <div className="mt-4 border-t border-[#1E3A8A]/10 pt-4">
-        <p className="text-[8px] font-bold uppercase tracking-wide text-[#4A5778]">
+      <div className="mt-4 border-t border-[#DCE6F2] pt-4">
+        <p className="text-[8px] font-bold uppercase tracking-wide text-[#6B7280]">
           Permissions
         </p>
 
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
           {Object.entries(groupedPermissions).map(([module, perms]) => (
             <span
               key={module}
-              className="rounded-md bg-[#EAF1FF] px-2 py-1 text-[8px] font-semibold text-[#1E3A8A]"
+              className="rounded-md bg-[#EAF3FF] px-2 py-1 text-[8px] font-bold text-[#2D6FE8]"
             >
               {module}: {perms.length}
             </span>
@@ -446,76 +405,57 @@ const UpdateProfile: FC = () => {
   // ===================================================
   // LOADING
   // ===================================================
-
   if (loading) {
     return (
-      <>
-        <LocalStyles />
-
-        <div className="flex min-h-[450px] items-center justify-center bg-[#F5F8FF] font-poppins">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_14px_30px_-10px_rgba(30,58,138,0.55)]">
-              <FiRefreshCw size={22} className="animate-spin" />
-            </div>
-
-            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-              Loading profile...
-            </p>
-
-            <p className="mt-1 text-xs text-[#8C97B2]">
-              Please wait while your profile is being loaded.
-            </p>
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+            <FiRefreshCw size={27} className="animate-spin" />
           </div>
+
+          <p className="mt-4 text-sm font-bold text-[#111827]">
+            Loading profile...
+          </p>
+
+          <p className="mt-1 text-xs text-[#6B7280]">
+            Please wait while your profile is being loaded.
+          </p>
         </div>
-      </>
+      </div>
     );
   }
 
   // ===================================================
   // UI
   // ===================================================
-
   return (
     <>
-      <LocalStyles />
-
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="relative min-h-screen bg-[#F5F8FF] p-4 font-poppins sm:p-5 lg:p-7"
+        className="min-h-screen bg-[#F4F8FD] p-4 font-poppins sm:p-5 lg:p-7"
       >
-        {/* =================================================
-                    AMBIENT BACKGROUND
-                ================================================= */}
-
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="up-ambient absolute -top-32 left-1/2 h-72 w-72 rounded-full bg-[#1E3A8A] blur-3xl" />
-          <div className="absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-[#1E40AF] opacity-[0.05] blur-3xl" />
-        </div>
-
-        {/* =================================================
-                    HEADER
-                ================================================= */}
-
+        {/* HEADER */}
         <motion.div
           variants={itemVariants}
-          className="relative mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center"
+          className="flex flex-col justify-between gap-4 md:flex-row md:items-center"
         >
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-
-              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#4A5778]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Account Settings
               </span>
             </div>
 
-            <h1 className="text-[30px] font-bold tracking-tight text-[#0F1B3D] sm:text-[34px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Update Profile
             </h1>
 
-            <p className="mt-1.5 max-w-xl text-sm leading-6 text-[#8C97B2]">
+            <p className="mt-0.5 text-sm text-[#111827]">
               Manage your administrator profile and account information.
             </p>
           </div>
@@ -524,51 +464,22 @@ const UpdateProfile: FC = () => {
             type="button"
             onClick={fetchProfile}
             disabled={loading || saving}
-            className="
-                            group
-                            flex h-11 items-center justify-center gap-2
-                            rounded-xl border border-[#1E3A8A]/20
-                            bg-white px-4 text-sm font-bold text-[#1E3A8A]
-                            shadow-[0_4px_12px_-4px_rgba(30,58,138,0.10),inset_0_1px_0_rgba(255,255,255,0.95)]
-                            transition-all duration-300
-                            hover:border-transparent
-                            hover:from-[#1E40AF] hover:to-[#1E3A8A] hover:text-white
-                            hover:bg-gradient-to-br
-                            hover:-translate-y-0.5
-                            hover:shadow-[0_10px_22px_-8px_rgba(30,58,138,0.45)]
-                            disabled:cursor-not-allowed disabled:opacity-50
-                        "
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
         </motion.div>
 
-        {/* =================================================
-                    MAIN GRID
-                ================================================= */}
-
-        <div className="relative grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          {/* =================================================
-                        PROFILE CARD (3D)
-                    ================================================= */}
-
+        {/* MAIN GRID */}
+        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+          {/* PROFILE CARD */}
           <motion.div
             variants={itemVariants}
-            className="
-                            relative h-fit overflow-hidden rounded-[22px]
-                            border border-[#E3E9F5]
-                            bg-gradient-to-b from-white to-[#F5F8FF]
-                            shadow-[0_18px_50px_-20px_rgba(30,58,138,0.22)]
-                        "
+            className="relative h-fit overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
           >
             {/* Top accent */}
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] via-[#1E3A8A] to-[#172554]" />
-
-            {/* Shimmer overlay */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div className="up-shimmer absolute -top-1/2 left-0 h-[200%] w-20 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-40 blur-xl" />
-            </div>
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
             <div className="relative p-5 text-center">
               {/* PROFILE IMAGE */}
@@ -577,20 +488,11 @@ const UpdateProfile: FC = () => {
                   onClick={() =>
                     profilePreview && handleImageClick(profilePreview)
                   }
-                  className={`
-                                        up-avatar-glow
-                                        flex h-28 w-28 items-center justify-center
-                                        overflow-hidden rounded-[28px]
-                                        border-4 border-white
-                                        bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554]
-                                        text-3xl font-bold text-white
-                                        transition-all duration-300
-                                        ${
-                                          profilePreview
-                                            ? "cursor-pointer hover:scale-105"
-                                            : "cursor-default"
-                                        }
-                                    `}
+                  className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-[28px] border-4 border-white bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-3xl font-bold text-white shadow-[0_12px_30px_-10px_rgba(45,111,232,0.45)] transition-all duration-300 ${
+                    profilePreview
+                      ? "cursor-pointer hover:scale-105"
+                      : "cursor-default"
+                  }`}
                 >
                   {profilePreview ? (
                     <img
@@ -608,18 +510,7 @@ const UpdateProfile: FC = () => {
                   type="button"
                   onClick={() => profileInputRef.current?.click()}
                   disabled={saving}
-                  className="
-                                        absolute -bottom-1 -right-1
-                                        flex h-9 w-9 items-center justify-center
-                                        rounded-xl border-2 border-white
-                                        bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A]
-                                        text-white
-                                        shadow-[0_8px_18px_-6px_rgba(30,58,138,0.55)]
-                                        transition-all duration-300
-                                        hover:-translate-y-0.5
-                                        hover:shadow-[0_12px_22px_-6px_rgba(30,58,138,0.65)]
-                                        disabled:cursor-not-allowed disabled:opacity-60
-                                    "
+                  className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-white bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_8px_18px_-6px_rgba(45,111,232,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-6px_rgba(45,111,232,0.65)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <FiCamera size={15} />
                 </button>
@@ -634,20 +525,19 @@ const UpdateProfile: FC = () => {
               </div>
 
               {/* NAME */}
-              <h2 className="mt-5 text-[17px] font-bold text-[#0F1B3D]">
+              <h2 className="mt-5 text-[17px] font-bold text-[#111827]">
                 {form.name || "Admin"}
               </h2>
 
               {/* EMAIL */}
-              <p className="mt-1 break-all text-xs text-[#8C97B2]">
+              <p className="mt-1 break-all text-xs text-[#6B7280]">
                 {form.email || "—"}
               </p>
 
               {/* ROLE */}
               <div className="mt-4 flex items-center justify-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
-
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[#1E40AF]">
+                <span className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                   {profile?.roles && profile.roles.length > 0
                     ? profile.roles[0].name
                     : "Administrator"}
@@ -658,21 +548,17 @@ const UpdateProfile: FC = () => {
               {renderPermissions()}
             </div>
 
-            {/* =================================================
-                            SECURITY BOX
-                        ================================================= */}
-
-            <div className="border-t border-[#1E3A8A]/10 bg-[#F5F8FF]/70 p-4">
-              <div className="rounded-xl border border-[#1E3A8A]/10 bg-white p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+            {/* SECURITY BOX */}
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] p-4">
+              <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
                 <div className="flex items-center gap-2">
-                  <FiShield size={14} className="text-[#1E3A8A]" />
-
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#1E40AF]">
+                  <FiShield size={14} className="text-[#2D6FE8]" />
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                     Profile Security
                   </span>
                 </div>
 
-                <p className="mt-2 text-[10px] leading-5 text-[#8C97B2]">
+                <p className="mt-2 text-[10px] leading-5 text-[#6B7280]">
                   Keep your profile information updated to maintain accurate
                   account records.
                 </p>
@@ -680,35 +566,26 @@ const UpdateProfile: FC = () => {
             </div>
           </motion.div>
 
-          {/* =================================================
-                        FORM CARD (3D)
-                    ================================================= */}
-
+          {/* FORM CARD */}
           <motion.div
             variants={itemVariants}
-            className="
-                            relative overflow-hidden rounded-[22px]
-                            border border-[#E3E9F5]
-                            bg-white
-                            shadow-[0_18px_50px_-20px_rgba(30,58,138,0.22)]
-                        "
+            className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
           >
             {/* Top accent */}
-            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#1E40AF] via-[#1E3A8A] to-[#172554]" />
+            <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
             {/* FORM HEADER */}
-            <div className="border-b border-[#1E3A8A]/10 px-5 py-5 sm:px-6">
+            <div className="border-b border-[#DCE6F2] px-5 py-5 sm:px-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#EAF1FF] to-[#D8E2F0] text-[#1E3A8A] shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiUser size={19} />
                 </div>
 
                 <div>
-                  <h2 className="text-[17px] font-bold text-[#0F1B3D]">
+                  <h2 className="text-[17px] font-bold text-[#111827]">
                     Personal Information
                   </h2>
-
-                  <p className="mt-0.5 text-xs text-[#8C97B2]">
+                  <p className="mt-0.5 text-xs text-[#6B7280]">
                     Update the information associated with your account.
                   </p>
                 </div>
@@ -716,18 +593,18 @@ const UpdateProfile: FC = () => {
             </div>
 
             {/* FORM BODY */}
-            <div className="bg-[#F5F8FF] p-5 sm:p-6">
+            <div className="bg-[#F8FBFF] p-5 sm:p-6">
               <div className="space-y-5">
                 {/* NAME */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
                     Full Name *
                   </label>
 
                   <div className="relative">
                     <FiUser
                       size={15}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                     />
 
                     <input
@@ -737,21 +614,21 @@ const UpdateProfile: FC = () => {
                       onChange={handleChange}
                       placeholder="Enter your name"
                       disabled={saving}
-                      className={`${inputClass} pl-10 disabled:cursor-not-allowed disabled:bg-[#EAF1FF]`}
+                      className={`${inputClass} pl-10`}
                     />
                   </div>
                 </div>
 
                 {/* EMAIL */}
                 <div>
-                  <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#4A5778]">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
                     Email *
                   </label>
 
                   <div className="relative">
                     <FiMail
                       size={15}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                     />
 
                     <input
@@ -761,24 +638,22 @@ const UpdateProfile: FC = () => {
                       onChange={handleChange}
                       placeholder="Enter your email"
                       disabled={saving}
-                      className={`${inputClass} pl-10 disabled:cursor-not-allowed disabled:bg-[#EAF1FF]`}
+                      className={`${inputClass} pl-10`}
                     />
                   </div>
                 </div>
 
                 {/* PROFILE PICTURE */}
-                <div className="rounded-2xl border border-[#1E3A8A]/10 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
+                <div className="rounded-2xl border border-[#DCE6F2] bg-white p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <FiCamera size={15} className="text-[#1E3A8A]" />
-
-                        <p className="text-xs font-bold text-[#0F1B3D]">
+                        <FiCamera size={15} className="text-[#2D6FE8]" />
+                        <p className="text-xs font-bold text-[#111827]">
                           Profile Picture
                         </p>
                       </div>
-
-                      <p className="mt-1 text-[10px] text-[#8C97B2]">
+                      <p className="mt-1 text-[10px] text-[#6B7280]">
                         Upload a new profile image from your device.
                       </p>
                     </div>
@@ -787,17 +662,7 @@ const UpdateProfile: FC = () => {
                       type="button"
                       onClick={() => profileInputRef.current?.click()}
                       disabled={saving}
-                      className="
-                                                group flex h-10 items-center justify-center gap-2
-                                                rounded-xl border border-[#1E3A8A]/15
-                                                bg-[#EAF1FF] px-4 text-xs font-bold text-[#1E3A8A]
-                                                transition-all duration-300
-                                                hover:bg-gradient-to-br hover:from-[#1E40AF] hover:to-[#1E3A8A]
-                                                hover:text-white hover:border-transparent
-                                                hover:-translate-y-0.5
-                                                hover:shadow-[0_10px_22px_-8px_rgba(30,58,138,0.45)]
-                                                disabled:cursor-not-allowed disabled:opacity-50
-                                            "
+                      className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white hover:border-transparent disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <FiUpload size={14} />
                       Choose Image
@@ -806,14 +671,10 @@ const UpdateProfile: FC = () => {
 
                   {/* SELECTED FILE */}
                   {profilePicture && (
-                    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] px-3 py-2">
+                    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] px-3 py-2">
                       <div className="flex min-w-0 items-center gap-2">
-                        <FiCheck
-                          size={13}
-                          className="shrink-0 text-[#1E3A8A]"
-                        />
-
-                        <span className="truncate text-[10px] font-semibold text-[#4A5778]">
+                        <FiCheck size={13} className="shrink-0 text-[#2D6FE8]" />
+                        <span className="truncate text-[10px] font-bold text-[#6B7280]">
                           {profilePicture.name}
                         </span>
                       </div>
@@ -823,15 +684,7 @@ const UpdateProfile: FC = () => {
                         onClick={handleRemoveProfilePicture}
                         disabled={saving}
                         title="Remove selected image"
-                        className="
-                                                    flex h-7 w-7 shrink-0 items-center justify-center
-                                                    rounded-lg border border-[#C23B32]/25
-                                                    bg-white text-[#C23B32]
-                                                    transition
-                                                    hover:bg-[#FBEAEA]
-                                                    hover:text-[#C23B32]
-                                                    disabled:cursor-not-allowed disabled:opacity-50
-                                                "
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#C23B32]/25 bg-white text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <FiX size={13} />
                       </button>
@@ -839,7 +692,7 @@ const UpdateProfile: FC = () => {
                   )}
 
                   <div className="mt-2">
-                    <p className="text-[9px] text-[#8C97B2]">
+                    <p className="text-[9px] text-[#6B7280]">
                       Maximum file size: 5MB
                     </p>
                   </div>
@@ -847,21 +700,21 @@ const UpdateProfile: FC = () => {
 
                 {/* ROLE INFORMATION */}
                 {profile?.roles && profile.roles.length > 0 && (
-                  <div className="rounded-2xl border border-[#1E3A8A]/10 bg-white p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-                    <p className="text-xs font-bold text-[#0F1B3D]">
+                  <div className="rounded-2xl border border-[#DCE6F2] bg-white p-4">
+                    <p className="text-xs font-bold text-[#111827]">
                       Role Information
                     </p>
 
                     {profile.roles.map((role) => (
                       <div
                         key={role.id}
-                        className="mt-2 rounded-lg bg-[#F5F8FF] p-2"
+                        className="mt-2 rounded-lg bg-[#F8FBFF] p-2"
                       >
-                        <p className="text-sm font-semibold text-[#0F1B3D]">
+                        <p className="text-sm font-bold text-[#111827]">
                           {role.name}
                         </p>
 
-                        <p className="text-[10px] text-[#8C97B2]">
+                        <p className="text-[10px] text-[#6B7280]">
                           {role.description}
                         </p>
 
@@ -870,14 +723,14 @@ const UpdateProfile: FC = () => {
                             {role.permissions.slice(0, 3).map((perm) => (
                               <span
                                 key={perm.id}
-                                className="rounded-md bg-[#EAF1FF] px-1.5 py-0.5 text-[8px] text-[#1E3A8A]"
+                                className="rounded-md bg-[#EAF3FF] px-1.5 py-0.5 text-[8px] font-bold text-[#2D6FE8]"
                               >
                                 {perm.name}
                               </span>
                             ))}
 
                             {role.permissions.length > 3 && (
-                              <span className="text-[8px] text-[#8C97B2]">
+                              <span className="text-[8px] text-[#6B7280]">
                                 +{role.permissions.length - 3} more
                               </span>
                             )}
@@ -891,30 +744,18 @@ const UpdateProfile: FC = () => {
             </div>
 
             {/* FOOTER */}
-            <div className="flex justify-end border-t border-[#1E3A8A]/10 bg-white px-5 py-4 sm:px-6">
+            <div className="flex justify-end border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={saving}
-                className="
-                                    group flex items-center gap-2
-                                    rounded-xl
-                                    bg-gradient-to-br from-[#1E40AF] via-[#1E3A8A] to-[#172554]
-                                    px-6 py-2.5 text-sm font-bold text-white
-                                    shadow-[0_10px_22px_-8px_rgba(30,58,138,0.6),inset_0_1px_0_rgba(255,255,255,0.18)]
-                                    transition-all duration-300
-                                    hover:-translate-y-0.5
-                                    hover:shadow-[0_14px_28px_-8px_rgba(30,58,138,0.7),inset_0_1px_0_rgba(255,255,255,0.28)]
-                                    active:scale-[0.98]
-                                    disabled:cursor-not-allowed disabled:opacity-50
-                                "
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <FiRefreshCw size={15} className="animate-spin" />
                 ) : (
                   <FiSave size={15} />
                 )}
-
                 {saving ? "Saving..." : "Update Profile"}
               </button>
             </div>
@@ -922,10 +763,7 @@ const UpdateProfile: FC = () => {
         </div>
       </motion.div>
 
-      {/* =================================================
-                IMAGE MODAL
-            ================================================= */}
-
+      {/* IMAGE MODAL */}
       <GlobalModal
         isOpen={isImageModalOpen}
         onClose={closeImageModal}
@@ -942,13 +780,7 @@ const UpdateProfile: FC = () => {
 
           <button
             onClick={closeImageModal}
-            className="
-                            absolute right-20 top-0 z-50
-                            flex h-10 w-10 items-center justify-center
-                            rounded-full bg-black/70 text-white
-                            transition-all duration-300
-                            hover:bg-black/90 hover:scale-105
-                        "
+            className="absolute right-20 top-0 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black/90 hover:scale-105"
             aria-label="Close"
           >
             <FiX size={20} />

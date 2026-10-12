@@ -41,6 +41,9 @@ import contentsApi, {
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
+// =====================================================
+// PERMISSION KEYS
+// =====================================================
 const VIEW_PERMISSION_KEYS = [
   "contents.view",
   "content.view",
@@ -78,39 +81,26 @@ const DELETE_PERMISSION_KEYS = [
 // =====================================================
 // ANIMATION
 // =====================================================
-
 const containerVariants = {
   hidden: { opacity: 0 },
-
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-    },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 12,
-  },
-
+  hidden: { opacity: 0, y: 15 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 16,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 15 },
   },
 };
 
 // =====================================================
 // TYPES
 // =====================================================
-
 interface PageGroup {
   slug: string;
   title: string;
@@ -139,7 +129,6 @@ interface FormBlock {
 // =====================================================
 // QUILL CONFIG
 // =====================================================
-
 const SK_EDITOR_MODULES = {
   toolbar: [
     [{ header: [1, 2, 3, false] }],
@@ -171,16 +160,10 @@ const SK_EDITOR_FORMATS = [
 // =====================================================
 // HELPERS
 // =====================================================
-
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
-
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
+  if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -190,8 +173,7 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const versionNumber = (version?: string) =>
-  Number(version || "0");
+const versionNumber = (version?: string) => Number(version || "0");
 
 const initials = (title: string) => {
   const value = title
@@ -199,11 +181,8 @@ const initials = (title: string) => {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((item) =>
-      item.charAt(0).toUpperCase(),
-    )
+    .map((item) => item.charAt(0).toUpperCase())
     .join("");
-
   return value || "PG";
 };
 
@@ -212,12 +191,7 @@ const isVideoFile = (file: File) =>
 
 const isVideoUrl = (url?: string | null) => {
   if (!url) return false;
-
-  const cleanUrl = url
-    .split("?")[0]
-    .split("#")[0]
-    .toLowerCase();
-
+  const cleanUrl = url.split("?")[0].split("#")[0].toLowerCase();
   return (
     cleanUrl.endsWith(".mp4") ||
     cleanUrl.endsWith(".webm") ||
@@ -230,16 +204,9 @@ const isVideoUrl = (url?: string | null) => {
 
 const isExistingVideo = (image: ExistingImage) => {
   const mediaType = String(
-    image.media_type ||
-      image.mime_type ||
-      image.type ||
-      "",
+    image.media_type || image.mime_type || image.type || "",
   ).toLowerCase();
-
-  return (
-    mediaType.includes("video") ||
-    isVideoUrl(image.url)
-  );
+  return mediaType.includes("video") || isVideoUrl(image.url);
 };
 
 const getMediaCountLabel = (count: number) =>
@@ -248,67 +215,51 @@ const getMediaCountLabel = (count: number) =>
 // =====================================================
 // PERMISSION STATES
 // =====================================================
-
-const PermissionLoadingState: React.FC = () => {
-  return (
-    <div className="font-poppins flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-          <FiRefreshCw
-            size={24}
-            className="animate-spin"
-          />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#8C97B2]">
-          Please wait while we verify your access.
-        </p>
+const PermissionLoadingState: React.FC = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+    <div className="text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+        <FiRefreshCw size={27} className="animate-spin" />
       </div>
+      <p className="mt-4 text-sm font-bold text-[#111827]">
+        Checking permissions...
+      </p>
+      <p className="mt-1 text-xs text-[#6B7280]">
+        Please wait while we verify your access.
+      </p>
     </div>
-  );
-};
+  </div>
+);
 
-const AccessDeniedState: React.FC = () => {
-  return (
-    <div className="font-poppins flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
-          <FiFileText size={24} />
-        </div>
-
-        <h2 className="mt-5 text-lg font-bold text-[#0F1B3D]">
-          Access Denied
-        </h2>
-
-        <p className="mt-2 text-sm leading-6 text-[#4A5778]">
-          You do not have permission to view website
-          content.
-        </p>
+const AccessDeniedState: React.FC = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+    <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+        <FiFileText size={24} />
       </div>
+      <h2 className="mt-5 text-lg font-bold text-[#111827]">
+        Access Denied
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+        You do not have permission to view website content.
+      </p>
     </div>
-  );
-};
+  </div>
+);
 
 // =====================================================
 // MEDIA PREVIEW
 // =====================================================
-
 interface NewMediaPreviewProps {
   file: File;
   onRemove: () => void;
 }
 
-const NewMediaPreview: React.FC<
-  NewMediaPreviewProps
-> = ({ file, onRemove }) => {
-  const previewUrl = useMemo(
-    () => URL.createObjectURL(file),
-    [file],
-  );
+const NewMediaPreview: React.FC<NewMediaPreviewProps> = ({
+  file,
+  onRemove,
+}) => {
+  const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
 
   useEffect(() => {
     return () => {
@@ -319,7 +270,7 @@ const NewMediaPreview: React.FC<
   const video = isVideoFile(file);
 
   return (
-    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/15 bg-white">
+    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
       {video ? (
         <video
           src={previewUrl}
@@ -338,7 +289,7 @@ const NewMediaPreview: React.FC<
       )}
 
       <div className="absolute left-2 top-2">
-        <span className="flex items-center gap-1 rounded-full bg-[#1E3A8A] px-2 py-1 text-[7px] font-bold uppercase text-white">
+        <span className="flex items-center gap-1 rounded-full bg-[#2D6FE8] px-2 py-1 text-[7px] font-bold uppercase text-white">
           {video ? (
             <>
               <FiVideo size={9} />
@@ -371,7 +322,6 @@ const NewMediaPreview: React.FC<
 // =====================================================
 // EXISTING MEDIA PREVIEW
 // =====================================================
-
 interface ExistingMediaPreviewProps {
   image: ExistingImage;
   index: number;
@@ -380,9 +330,7 @@ interface ExistingMediaPreviewProps {
   onRemove: () => void;
 }
 
-const ExistingMediaPreview: React.FC<
-  ExistingMediaPreviewProps
-> = ({
+const ExistingMediaPreview: React.FC<ExistingMediaPreviewProps> = ({
   image,
   index,
   blockIndex,
@@ -392,7 +340,7 @@ const ExistingMediaPreview: React.FC<
   const video = isExistingVideo(image);
 
   return (
-    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white">
+    <div className="group relative aspect-video overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
       {video ? (
         <video
           src={image.url}
@@ -404,10 +352,7 @@ const ExistingMediaPreview: React.FC<
       ) : (
         <img
           src={image.url}
-          alt={
-            image.alt_text ||
-            `Block ${blockIndex + 1} media`
-          }
+          alt={image.alt_text || `Block ${blockIndex + 1} media`}
           className="h-full w-full object-cover"
         />
       )}
@@ -418,7 +363,7 @@ const ExistingMediaPreview: React.FC<
         </span>
       )}
 
-      <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#172554]/90 px-2 py-1 text-[7px] font-bold uppercase text-white">
+      <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-[#2D6FE8]/90 px-2 py-1 text-[7px] font-bold uppercase text-white">
         {video ? <FiVideo size={8} /> : null}
         {video ? "Video" : "Existing"}
       </span>
@@ -440,24 +385,13 @@ const ExistingMediaPreview: React.FC<
 // =====================================================
 // BLOCK EDITOR
 // =====================================================
-
 interface BlockEditorProps {
   block: FormBlock;
   index: number;
-  onChange: (
-    index: number,
-    key: keyof FormBlock,
-    value: any,
-  ) => void;
+  onChange: (index: number, key: keyof FormBlock, value: any) => void;
   onRemove: (index: number) => void;
-  onRemoveNewImage: (
-    blockIndex: number,
-    imageIndex: number,
-  ) => void;
-  onRemoveExistingImage: (
-    blockIndex: number,
-    imageIndex: number,
-  ) => void;
+  onRemoveNewImage: (blockIndex: number, imageIndex: number) => void;
+  onRemoveExistingImage: (blockIndex: number, imageIndex: number) => void;
   canRemove: boolean;
   canDeleteMedia: boolean;
 }
@@ -472,28 +406,23 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
   canRemove,
   canDeleteMedia,
 }) => {
-  const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
-
-  const totalMedia =
-    block.existingImages.length +
-    block.imageFiles.length;
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const totalMedia = block.existingImages.length + block.imageFiles.length;
 
   return (
-    <div className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFCFF] p-4 sm:p-5">
+    <div className="rounded-[18px] border border-[#DCE6F2] bg-[#F8FBFF] p-4 sm:p-5">
       {/* BLOCK HEADER */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
             <FiList size={16} />
           </div>
 
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+            <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
               Content Block
             </p>
-
-            <h4 className="mt-0.5 text-sm font-bold text-[#0F1B3D]">
+            <h4 className="mt-0.5 text-sm font-bold text-[#111827]">
               Block {index + 1}
             </h4>
           </div>
@@ -503,7 +432,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
           <button
             type="button"
             onClick={() => onRemove(index)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
             title="Remove block"
           >
             <FiTrash2 size={14} />
@@ -513,73 +442,49 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
 
       <div className="grid grid-cols-1 gap-4">
         {/* HEADING */}
-
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
             Heading
           </label>
-
           <input
             type="text"
             value={block.heading}
-            onChange={(event) =>
-              onChange(
-                index,
-                "heading",
-                event.target.value,
-              )
-            }
+            onChange={(event) => onChange(index, "heading", event.target.value)}
             placeholder="<h1>Your heading</h1>"
-            className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+            className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
           />
         </div>
 
         {/* SHORT DESCRIPTION */}
-
         <div>
-          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+          <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
             Short Description
           </label>
-
           <textarea
             value={block.short_description}
             onChange={(event) =>
-              onChange(
-                index,
-                "short_description",
-                event.target.value,
-              )
+              onChange(index, "short_description", event.target.value)
             }
             rows={3}
             placeholder="<p>Short description...</p>"
-            className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-white px-4 py-3 text-sm leading-6 text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+            className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-white px-4 py-4 text-sm leading-6 text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
           />
         </div>
 
         {/* DESCRIPTION */}
-
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Description
             </label>
-
-            <span className="text-[9px] text-[#8C97B2]">
-              HTML supported
-            </span>
+            <span className="text-[9px] text-[#6B7280]">HTML supported</span>
           </div>
 
           <div className="sk-editor-wrapper">
             <ReactQuill
               theme="snow"
               value={block.description}
-              onChange={(value) =>
-                onChange(
-                  index,
-                  "description",
-                  value,
-                )
-              }
+              onChange={(value) => onChange(index, "description", value)}
               modules={SK_EDITOR_MODULES}
               formats={SK_EDITOR_FORMATS}
               placeholder="Write page content here..."
@@ -588,14 +493,12 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
         </div>
 
         {/* MEDIA */}
-
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+            <label className="block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Block {index + 1} Media
             </label>
-
-            <span className="text-[9px] text-[#8C97B2]">
+            <span className="text-[9px] text-[#6B7280]">
               {getMediaCountLabel(totalMedia)}
             </span>
           </div>
@@ -618,133 +521,94 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
             multiple
             className="hidden"
             onChange={(event) => {
-              const files = Array.from(
-                event.target.files || [],
-              );
+              const files = Array.from(event.target.files || []);
+              if (files.length === 0) return;
 
-              if (files.length === 0) {
-                return;
-              }
-
-              onChange(index, "imageFiles", [
-                ...block.imageFiles,
-                ...files,
-              ]);
-
+              onChange(index, "imageFiles", [...block.imageFiles, ...files]);
               event.target.value = "";
             }}
           />
 
           <button
             type="button"
-            onClick={() =>
-              fileInputRef.current?.click()
-            }
-            className="flex min-h-[100px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#2563EB]/30 bg-white px-4 text-xs font-semibold text-[#1E3A8A] transition hover:border-[#2563EB]/50 hover:bg-[#EAF1FF]"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex min-h-[100px] w-full items-center justify-center gap-3 rounded-xl border border-dashed border-[#2D6FE8]/30 bg-white px-4 text-xs font-semibold text-[#2D6FE8] transition hover:border-[#2D6FE8]/50 hover:bg-[#EAF3FF]"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF1FF]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF]">
               <FiUpload size={18} />
             </div>
 
             <div className="text-left">
-              <p className="font-bold">
-                Upload images or videos
+              <p className="font-bold">Upload images or videos</p>
+              <p className="mt-0.5 text-[9px] font-normal text-[#6B7280]">
+                PNG, JPG, WEBP, AVIF, MP4, WEBM, OGG, MOV
               </p>
-
-              <p className="mt-0.5 text-[9px] font-normal text-[#8C97B2]">
-                PNG, JPG, WEBP, AVIF, MP4, WEBM,
-                OGG, MOV
-              </p>
-
-              <p className="mt-0.5 text-[9px] font-normal text-[#8C97B2]">
-                Files will belong to Block{" "}
-                {index + 1}
+              <p className="mt-0.5 text-[9px] font-normal text-[#6B7280]">
+                Files will belong to Block {index + 1}
               </p>
             </div>
           </button>
 
           {/* EXISTING MEDIA */}
-
           {block.existingImages.length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Existing Media
               </p>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {block.existingImages.map(
-                  (image, imageIndex) => (
-                    <ExistingMediaPreview
-                      key={
-                        image.id ??
-                        `${index}-existing-${imageIndex}`
-                      }
-                      image={image}
-                      index={imageIndex}
-                      blockIndex={index}
-                      canDelete={canDeleteMedia}
-                      onRemove={() =>
-                        onRemoveExistingImage(
-                          index,
-                          imageIndex,
-                        )
-                      }
-                    />
-                  ),
-                )}
+                {block.existingImages.map((image, imageIndex) => (
+                  <ExistingMediaPreview
+                    key={image.id ?? `${index}-existing-${imageIndex}`}
+                    image={image}
+                    index={imageIndex}
+                    blockIndex={index}
+                    canDelete={canDeleteMedia}
+                    onRemove={() =>
+                      onRemoveExistingImage(index, imageIndex)
+                    }
+                  />
+                ))}
               </div>
 
               {!canDeleteMedia && (
-                <p className="mt-2 text-[9px] text-[#8C97B2]">
-                  You do not have permission to remove
-                  existing media.
+                <p className="mt-2 text-[9px] text-[#6B7280]">
+                  You do not have permission to remove existing media.
                 </p>
               )}
             </div>
           )}
 
           {/* NEW MEDIA */}
-
           {block.imageFiles.length > 0 && (
             <div className="mt-4">
-              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
+              <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                 New Media
               </p>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {block.imageFiles.map(
-                  (file, fileIndex) => (
-                    <NewMediaPreview
-                      key={`${file.name}-${file.lastModified}-${fileIndex}`}
-                      file={file}
-                      onRemove={() =>
-                        onRemoveNewImage(
-                          index,
-                          fileIndex,
-                        )
-                      }
-                    />
-                  ),
-                )}
+                {block.imageFiles.map((file, fileIndex) => (
+                  <NewMediaPreview
+                    key={`${file.name}-${file.lastModified}-${fileIndex}`}
+                    file={file}
+                    onRemove={() => onRemoveNewImage(index, fileIndex)}
+                  />
+                ))}
               </div>
             </div>
           )}
 
           {/* INFO */}
-
           {totalMedia > 0 && (
-            <div className="mt-3 rounded-xl border border-[#1E3A8A]/10 bg-[#EAF1FF] px-3 py-2.5">
-              <p className="text-[9px] leading-4 text-[#4A5778]">
-                <span className="font-bold text-[#1E3A8A]">
+            <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#EAF3FF] px-3 py-2.5">
+              <p className="text-[9px] leading-4 text-[#6B7280]">
+                <span className="font-bold text-[#2D6FE8]">
                   Block {index + 1}
                 </span>{" "}
-                media will be submitted in the same block
-                media field.
+                media will be submitted in the same block media field.
               </p>
-
-              <p className="mt-1 font-mono text-[8px] leading-4 text-[#8C97B2]">
-                blocks[{index}][images][0],
-                blocks[{index}][images][1]...
+              <p className="mt-1 font-mono text-[8px] leading-4 text-[#6B7280]">
+                blocks[{index}][images][0], blocks[{index}][images][1]...
               </p>
             </div>
           )}
@@ -757,60 +621,48 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
 // =====================================================
 // VIEW PAGE MODAL
 // =====================================================
-
 interface ViewPageModalProps {
   open: boolean;
   page: PageGroup | null;
   onClose: () => void;
 }
 
-const ViewPageModal: React.FC<
-  ViewPageModalProps
-> = ({ open, page, onClose }) => {
-  const [activeVersionId, setActiveVersionId] =
-    useState<number | null>(
-      page?.latest.id || null,
-    );
+const ViewPageModal: React.FC<ViewPageModalProps> = ({
+  open,
+  page,
+  onClose,
+}) => {
+  const [activeVersionId, setActiveVersionId] = useState<number | null>(
+    page?.latest.id || null,
+  );
 
   useEffect(() => {
-    setActiveVersionId(
-      page?.latest.id || null,
-    );
+    setActiveVersionId(page?.latest.id || null);
   }, [page]);
 
   if (!open || !page) return null;
 
   const activePage =
-    page.versions.find(
-      (item) =>
-        item.id === activeVersionId,
-    ) || page.latest;
+    page.versions.find((item) => item.id === activeVersionId) || page.latest;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick
-    >
-      <div className="font-poppins w-full max-w-[1000px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#60A5FA] via-[#1E3A8A] to-[#172554]" />
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick>
+      <div className="w-full max-w-[1000px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
         {/* HEADER */}
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 px-5 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-sm font-bold text-white">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-sm font-bold text-white">
               {initials(page.title)}
             </div>
 
             <div className="min-w-0">
-              <h2 className="truncate text-[20px] font-bold text-[#0F1B3D]">
+              <h2 className="truncate text-[20px] font-bold text-[#111827]">
                 {page.title}
               </h2>
-
-              <p className="mt-1 truncate text-xs text-[#8C97B2]">
-                /{page.slug} • Version{" "}
-                {activePage.version}
+              <p className="mt-1 truncate text-xs text-[#6B7280]">
+                /{page.slug} • Version {activePage.version}
               </p>
             </div>
           </div>
@@ -818,7 +670,7 @@ const ViewPageModal: React.FC<
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#EAF3FF]"
           >
             <FiX size={18} />
           </button>
@@ -827,19 +679,14 @@ const ViewPageModal: React.FC<
         <div className="max-h-[78vh] overflow-y-auto">
           <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr]">
             {/* VERSION SIDEBAR */}
-
-            <aside className="border-b border-[#1E3A8A]/10 bg-[#FAFCFF] p-4 xl:border-b-0 xl:border-r">
+            <aside className="border-b border-[#DCE6F2] bg-[#F8FBFF] p-4 xl:border-b-0 xl:border-r">
               <div className="mb-3">
-                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                   Version History
                 </p>
-
-                <p className="mt-1 text-xs text-[#4A5778]">
+                <p className="mt-1 text-xs text-[#6B7280]">
                   {page.versions.length} version
-                  {page.versions.length !== 1
-                    ? "s"
-                    : ""}{" "}
-                  available
+                  {page.versions.length !== 1 ? "s" : ""} available
                 </p>
               </div>
 
@@ -847,44 +694,29 @@ const ViewPageModal: React.FC<
                 {[...page.versions]
                   .sort(
                     (a, b) =>
-                      versionNumber(
-                        b.version,
-                      ) -
-                      versionNumber(
-                        a.version,
-                      ),
+                      versionNumber(b.version) - versionNumber(a.version),
                   )
                   .map((version) => {
-                    const selected =
-                      version.id ===
-                      activeVersionId;
-
+                    const selected = version.id === activeVersionId;
                     return (
                       <button
                         key={version.id}
                         type="button"
-                        onClick={() =>
-                          setActiveVersionId(
-                            version.id,
-                          )
-                        }
+                        onClick={() => setActiveVersionId(version.id)}
                         className={`w-full rounded-xl border p-3 text-left transition ${
                           selected
-                            ? "border-[#2563EB]/30 bg-white shadow-sm"
-                            : "border-[#1E3A8A]/10 bg-transparent hover:bg-white"
+                            ? "border-[#2D6FE8]/30 bg-white shadow-sm"
+                            : "border-[#DCE6F2] bg-transparent hover:bg-white"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-[#0F1B3D]">
+                          <span className="text-xs font-bold text-[#111827]">
                             v{version.version}
                           </span>
                         </div>
-
-                        <p className="mt-2 flex items-center gap-1 text-[9px] text-[#8C97B2]">
+                        <p className="mt-2 flex items-center gap-1 text-[9px] text-[#6B7280]">
                           <FiClock size={10} />
-                          {formatDate(
-                            version.created_at,
-                          )}
+                          {formatDate(version.created_at)}
                         </p>
                       </button>
                     );
@@ -893,201 +725,145 @@ const ViewPageModal: React.FC<
             </aside>
 
             {/* CONTENT */}
-
             <div className="p-5 sm:p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                     Page Content
                   </p>
-
-                  <p className="mt-1 text-xs text-[#4A5778]">
-                    Updated{" "}
-                    {formatDate(
-                      activePage.updated_at,
-                    )}
+                  <p className="mt-1 text-xs text-[#6B7280]">
+                    Updated {formatDate(activePage.updated_at)}
                   </p>
                 </div>
 
-                <span className="rounded-lg bg-[#EAF1FF] px-3 py-2 text-[10px] font-bold text-[#1E3A8A]">
+                <span className="rounded-lg bg-[#EAF3FF] px-3 py-2 text-[10px] font-bold text-[#2D6FE8]">
                   {activePage.blocks.length} block
-                  {activePage.blocks.length !==
-                  1
-                    ? "s"
-                    : ""}
+                  {activePage.blocks.length !== 1 ? "s" : ""}
                 </span>
               </div>
 
               <div className="space-y-5">
-                {activePage.blocks.length ===
-                0 ? (
-                  <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-8 text-center">
-                    <FiFileText
-                      size={28}
-                      className="mx-auto text-[#1E3A8A]"
-                    />
-
-                    <p className="mt-3 text-sm font-bold text-[#0F1B3D]">
+                {activePage.blocks.length === 0 ? (
+                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-8 text-center">
+                    <FiFileText size={28} className="mx-auto text-[#2D6FE8]" />
+                    <p className="mt-3 text-sm font-bold text-[#111827]">
                       No content blocks
                     </p>
                   </div>
                 ) : (
-                  activePage.blocks.map(
-                    (block, index) => (
-                      <div
-                        key={
-                          block.id ??
-                          index
-                        }
-                        className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFCFF] p-4 sm:p-5"
-                      >
-                        <div className="mb-4">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Block {index + 1}
-                          </p>
-                        </div>
-
-                        {/* HEADING */}
-
-                        {block.heading && (
-                          <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                              Heading
-                            </p>
-
-                            <div
-                              className="prose prose-sm max-w-none text-[#0F1B3D]"
-                              dangerouslySetInnerHTML={{
-                                __html:
-                                  block.heading,
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        {/* SHORT DESCRIPTION */}
-
-                        {block.short_description && (
-                          <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                              Short Description
-                            </p>
-
-                            <div
-                              className="prose prose-sm max-w-none text-[#4A5778]"
-                              dangerouslySetInnerHTML={{
-                                __html:
-                                  block.short_description,
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        {/* DESCRIPTION */}
-
-                        {block.description && (
-                          <div className="mb-4">
-                            <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                              Description
-                            </p>
-
-                            <div
-                              className="sk-answer-preview prose prose-sm max-w-none text-[#4A5778]"
-                              dangerouslySetInnerHTML={{
-                                __html:
-                                  block.description,
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        {/* MEDIA */}
-
-                        {block.images.length >
-                          0 && (
-                          <div>
-                            <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                              Media
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                              {block.images.map(
-                                (
-                                  image,
-                                  imageIndex,
-                                ) => {
-                                  const video =
-                                    isExistingVideo(
-                                      image,
-                                    );
-
-                                  return (
-                                    <div
-                                      key={
-                                        image.id ??
-                                        imageIndex
-                                      }
-                                      className="group relative aspect-video overflow-hidden rounded-xl border border-[#1E3A8A]/10 bg-white"
-                                    >
-                                      {video ? (
-                                        <video
-                                          src={
-                                            image.url
-                                          }
-                                          className="h-full w-full object-cover"
-                                          controls
-                                          playsInline
-                                          preload="metadata"
-                                        />
-                                      ) : (
-                                        <img
-                                          src={
-                                            image.url
-                                          }
-                                          alt={
-                                            image.alt_text ||
-                                            `Block ${
-                                              index +
-                                              1
-                                            } media`
-                                          }
-                                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                                        />
-                                      )}
-
-                                      {image.is_primary && (
-                                        <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[8px] font-bold text-white">
-                                          Primary
-                                        </span>
-                                      )}
-
-                                      {video && (
-                                        <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-[#172554]/90 px-2 py-1 text-[8px] font-bold text-white">
-                                          <FiVideo size={9} />
-                                          Video
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                },
-                              )}
-                            </div>
-                          </div>
-                        )}
+                  activePage.blocks.map((block, index) => (
+                    <div
+                      key={block.id ?? index}
+                      className="rounded-[18px] border border-[#DCE6F2] bg-[#F8FBFF] p-4 sm:p-5"
+                    >
+                      <div className="mb-4">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Block {index + 1}
+                        </p>
                       </div>
-                    ),
-                  )
+
+                      {block.heading && (
+                        <div className="mb-4">
+                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Heading
+                          </p>
+                          <div
+                            className="prose prose-sm max-w-none text-[#111827]"
+                            dangerouslySetInnerHTML={{ __html: block.heading }}
+                          />
+                        </div>
+                      )}
+
+                      {block.short_description && (
+                        <div className="mb-4">
+                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Short Description
+                          </p>
+                          <div
+                            className="prose prose-sm max-w-none text-[#6B7280]"
+                            dangerouslySetInnerHTML={{
+                              __html: block.short_description,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {block.description && (
+                        <div className="mb-4">
+                          <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Description
+                          </p>
+                          <div
+                            className="sk-answer-preview prose prose-sm max-w-none text-[#6B7280]"
+                            dangerouslySetInnerHTML={{ __html: block.description }}
+                          />
+                        </div>
+                      )}
+
+                      {block.images.length > 0 && (
+                        <div>
+                          <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Media
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {block.images.map((image, imageIndex) => {
+                              const video = isExistingVideo(image);
+                              return (
+                                <div
+                                  key={image.id ?? imageIndex}
+                                  className="group relative aspect-video overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
+                                >
+                                  {video ? (
+                                    <video
+                                      src={image.url}
+                                      className="h-full w-full object-cover"
+                                      controls
+                                      playsInline
+                                      preload="metadata"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={image.url}
+                                      alt={
+                                        image.alt_text ||
+                                        `Block ${index + 1} media`
+                                      }
+                                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                    />
+                                  )}
+
+                                  {image.is_primary && (
+                                    <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-1 text-[8px] font-bold text-white">
+                                      Primary
+                                    </span>
+                                  )}
+
+                                  {video && (
+                                    <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-[#2D6FE8]/90 px-2 py-1 text-[8px] font-bold text-white">
+                                      <FiVideo size={9} />
+                                      Video
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end border-t border-[#1E3A8A]/10 bg-[#FAFCFF] px-5 py-4 sm:px-6">
+        <div className="flex justify-end border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
           >
             Close
           </button>
@@ -1100,7 +876,6 @@ const ViewPageModal: React.FC<
 // =====================================================
 // PAGE FORM MODAL
 // =====================================================
-
 interface PageFormModalProps {
   open: boolean;
   loading: boolean;
@@ -1111,9 +886,7 @@ interface PageFormModalProps {
   onSubmit: (payload: ContentPayload) => void;
 }
 
-const PageFormModal: React.FC<
-  PageFormModalProps
-> = ({
+const PageFormModal: React.FC<PageFormModalProps> = ({
   open,
   loading,
   mode,
@@ -1123,9 +896,7 @@ const PageFormModal: React.FC<
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
-  const [blocks, setBlocks] = useState<
-    FormBlock[]
-  >([]);
+  const [blocks, setBlocks] = useState<FormBlock[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -1133,37 +904,23 @@ const PageFormModal: React.FC<
     if (page) {
       setTitle(page.title || "");
 
-      const mappedBlocks =
-        (page.blocks || []).map(
-          (block): FormBlock => ({
-            heading: block.heading || "",
-
-            short_description:
-              block.short_description || "",
-
-            description:
-              block.description || "",
-
-            existingImages: (
-              block.images || []
-            ).map((image) => ({
-              id: image.id,
-              url: image.url,
-              alt_text: image.alt_text,
-              is_primary: image.is_primary,
-              media_type:
-                (image as any).media_type ||
-                null,
-              mime_type:
-                (image as any).mime_type ||
-                null,
-              type:
-                (image as any).type || null,
-            })),
-
-            imageFiles: [],
-          }),
-        );
+      const mappedBlocks = (page.blocks || []).map(
+        (block): FormBlock => ({
+          heading: block.heading || "",
+          short_description: block.short_description || "",
+          description: block.description || "",
+          existingImages: (block.images || []).map((image) => ({
+            id: image.id,
+            url: image.url,
+            alt_text: image.alt_text,
+            is_primary: image.is_primary,
+            media_type: (image as any).media_type || null,
+            mime_type: (image as any).mime_type || null,
+            type: (image as any).type || null,
+          })),
+          imageFiles: [],
+        }),
+      );
 
       setBlocks(
         mappedBlocks.length > 0
@@ -1180,7 +937,6 @@ const PageFormModal: React.FC<
       );
     } else {
       setTitle("");
-
       setBlocks([
         {
           heading: "",
@@ -1199,14 +955,8 @@ const PageFormModal: React.FC<
     value: any,
   ) => {
     setBlocks((previous) =>
-      previous.map(
-        (block, blockIndex) =>
-          blockIndex === index
-            ? {
-                ...block,
-                [key]: value,
-              }
-            : block,
+      previous.map((block, blockIndex) =>
+        blockIndex === index ? { ...block, [key]: value } : block,
       ),
     );
   };
@@ -1224,209 +974,113 @@ const PageFormModal: React.FC<
     ]);
   };
 
-  const removeBlock = (
-    index: number,
-  ) => {
+  const removeBlock = (index: number) => {
     setBlocks((previous) =>
-      previous.filter(
-        (_, blockIndex) =>
-          blockIndex !== index,
-      ),
+      previous.filter((_, blockIndex) => blockIndex !== index),
     );
   };
 
-  const removeNewImage = (
+  const removeNewImage = (blockIndex: number, imageIndex: number) => {
+    setBlocks((previous) =>
+      previous.map((block, currentIndex) => {
+        if (currentIndex !== blockIndex) return block;
+        return {
+          ...block,
+          imageFiles: block.imageFiles.filter(
+            (_, currentImageIndex) => currentImageIndex !== imageIndex,
+          ),
+        };
+      }),
+    );
+  };
+
+  const removeExistingImage = async (
     blockIndex: number,
     imageIndex: number,
   ) => {
-    setBlocks((previous) =>
-      previous.map(
-        (block, currentIndex) => {
-          if (currentIndex !== blockIndex) {
-            return block;
-          }
+    if (!canDeleteMedia) {
+      toast.error("You do not have permission to remove media.");
+      return;
+    }
 
+    const block = blocks[blockIndex];
+    const image = block?.existingImages?.[imageIndex];
+
+    if (!image) {
+      toast.error("Media not found.");
+      return;
+    }
+
+    if (!image.id) {
+      setBlocks((previous) =>
+        previous.map((currentBlock, currentIndex) => {
+          if (currentIndex !== blockIndex) return currentBlock;
           return {
-            ...block,
-            imageFiles:
-              block.imageFiles.filter(
-                (
-                  _,
-                  currentImageIndex,
-                ) =>
-                  currentImageIndex !==
-                  imageIndex,
-              ),
-          };
-        },
-      ),
-    );
-  };
-
-  const removeExistingImage =
-    async (
-      blockIndex: number,
-      imageIndex: number,
-    ) => {
-      if (!canDeleteMedia) {
-        toast.error(
-          "You do not have permission to remove media.",
-        );
-        return;
-      }
-
-      const block =
-        blocks[blockIndex];
-
-      const image =
-        block?.existingImages?.[
-          imageIndex
-        ];
-
-      if (!image) {
-        toast.error(
-          "Media not found.",
-        );
-        return;
-      }
-
-      if (!image.id) {
-        setBlocks((previous) =>
-          previous.map(
-            (
-              currentBlock,
-              currentIndex,
-            ) => {
-              if (
-                currentIndex !==
-                blockIndex
-              ) {
-                return currentBlock;
-              }
-
-              return {
-                ...currentBlock,
-                existingImages:
-                  currentBlock.existingImages.filter(
-                    (
-                      _,
-                      currentImageIndex,
-                    ) =>
-                      currentImageIndex !==
-                      imageIndex,
-                  ),
-              };
-            },
-          ),
-        );
-
-        return;
-      }
-
-      try {
-        const response =
-          await contentsApi.deleteMedia(
-            image.id,
-          );
-
-        if (response.data?.success) {
-          setBlocks((previous) =>
-            previous.map(
-              (
-                currentBlock,
-                currentIndex,
-              ) => {
-                if (
-                  currentIndex !==
-                  blockIndex
-                ) {
-                  return currentBlock;
-                }
-
-                return {
-                  ...currentBlock,
-                  existingImages:
-                    currentBlock.existingImages.filter(
-                      (
-                        _,
-                        currentImageIndex,
-                      ) =>
-                        currentImageIndex !==
-                        imageIndex,
-                    ),
-                };
-              },
+            ...currentBlock,
+            existingImages: currentBlock.existingImages.filter(
+              (_, currentImageIndex) => currentImageIndex !== imageIndex,
             ),
-          );
-
-          toast.success(
-            response.data?.message ||
-              "Media deleted successfully.",
-          );
-        } else {
-          toast.error(
-            response.data?.message ||
-              "Unable to delete media.",
-          );
-        }
-      } catch (error: any) {
-        console.error(
-          "Delete media error:",
-          error,
-        );
-
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            "Unable to delete media.",
-        );
-      }
-    };
-
-  const handleSubmit = (
-    event: React.FormEvent,
-  ) => {
-    event.preventDefault();
-
-    if (!title.trim()) {
-      toast.error(
-        "Page title is required.",
+          };
+        }),
       );
       return;
     }
 
-    if (blocks.length === 0) {
+    try {
+      const response = await contentsApi.deleteMedia(image.id);
+
+      if (response.data?.success) {
+        setBlocks((previous) =>
+          previous.map((currentBlock, currentIndex) => {
+            if (currentIndex !== blockIndex) return currentBlock;
+            return {
+              ...currentBlock,
+              existingImages: currentBlock.existingImages.filter(
+                (_, currentImageIndex) => currentImageIndex !== imageIndex,
+              ),
+            };
+          }),
+        );
+
+        toast.success(
+          response.data?.message || "Media deleted successfully.",
+        );
+      } else {
+        toast.error(response.data?.message || "Unable to delete media.");
+      }
+    } catch (error: any) {
+      console.error("Delete media error:", error);
       toast.error(
-        "At least one content block is required.",
+        error?.response?.data?.message || "Unable to delete media.",
       );
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!title.trim()) {
+      toast.error("Page title is required.");
+      return;
+    }
+
+    if (blocks.length === 0) {
+      toast.error("At least one content block is required.");
       return;
     }
 
     const payload: ContentPayload = {
       title: title.trim(),
-
       status:
-        mode === "edit" &&
-        page?.status
-          ? page.status
-          : "published",
-
+        mode === "edit" && page?.status ? page.status : "published",
       blocks: blocks.map(
         (block) =>
           ({
             heading: block.heading,
-
-            short_description:
-              block.short_description,
-
-            description:
-              block.description,
-
-            imageFiles:
-              block.imageFiles,
-
-            existingImages:
-              block.existingImages,
+            short_description: block.short_description,
+            description: block.description,
+            imageFiles: block.imageFiles,
+            existingImages: block.existingImages,
           }) as ContentBlockPayload,
       ),
     };
@@ -1440,40 +1094,30 @@ const PageFormModal: React.FC<
     <GlobalModal
       isOpen={open}
       onClose={() => {
-        if (!loading) {
-          onClose();
-        }
+        if (!loading) onClose();
       }}
       closeOnOverlayClick={!loading}
     >
-      <div className="font-poppins w-full max-w-[980px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#60A5FA] via-[#1E3A8A] to-[#172554]" />
+      <div className="w-full max-w-[980px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
         {/* HEADER */}
-
-        <div className="flex items-start justify-between gap-4 border-b border-[#1E3A8A]/10 bg-white px-5 py-5 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] bg-white px-5 py-5 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
-              {mode === "add" ? (
-                <FiPlus size={17} />
-              ) : (
-                <FiEdit2 size={16} />
-              )}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+              {mode === "add" ? <FiPlus size={17} /> : <FiEdit2 size={16} />}
             </div>
 
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
                 Content Management
               </p>
-
-              <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#0F1B3D]">
+              <h2 className="mt-0.5 truncate text-[20px] font-bold text-[#111827]">
                 Page Editor
               </h2>
-
               {page && (
-                <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
-                  {page.title} • v
-                  {page.version}
+                <p className="mt-1 truncate text-[10px] text-[#6B7280]">
+                  {page.title} • v{page.version}
                 </p>
               )}
             </div>
@@ -1483,30 +1127,27 @@ const PageFormModal: React.FC<
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:opacity-50"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-50"
           >
             <FiX size={18} />
           </button>
         </div>
 
         {/* FORM */}
-
         <form onSubmit={handleSubmit}>
-          <div className="max-h-[75vh] overflow-y-auto bg-[#FAFCFF] p-5 sm:p-6">
+          <div className="max-h-[75vh] overflow-y-auto bg-[#F8FBFF] p-5 sm:p-6">
             {/* BASIC INFO */}
-
-            <div className="rounded-[18px] border border-[#1E3A8A]/10 bg-[#FAFCFF] p-4 sm:p-5">
+            <div className="rounded-[18px] border border-[#DCE6F2] bg-[#F8FBFF] p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiFileText size={16} />
                 </div>
 
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                     Page Settings
                   </p>
-
-                  <p className="mt-0.5 text-sm font-bold text-[#0F1B3D]">
+                  <p className="mt-0.5 text-sm font-bold text-[#111827]">
                     Basic Information
                   </p>
                 </div>
@@ -1514,76 +1155,56 @@ const PageFormModal: React.FC<
 
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#4A5778]">
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
                     Page Title
                   </label>
-
                   <input
                     type="text"
                     value={title}
-                    onChange={(event) =>
-                      setTitle(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setTitle(event.target.value)}
                     placeholder="Home"
-                    className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/10"
+                    className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
                   />
                 </div>
               </div>
             </div>
 
             {/* CONTENT BLOCKS */}
-
             <div className="mt-5">
               <div className="mb-3">
-                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8C97B2]">
+                <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                   Page Builder
                 </p>
-
-                <h3 className="mt-0.5 text-base font-bold text-[#0F1B3D]">
+                <h3 className="mt-0.5 text-base font-bold text-[#111827]">
                   Content Blocks
                 </h3>
-
-                <p className="mt-1 text-[10px] text-[#8C97B2]">
-                  Each block manages its own text,
-                  images and videos.
+                <p className="mt-1 text-[10px] text-[#6B7280]">
+                  Each block manages its own text, images and videos.
                 </p>
               </div>
 
               <div className="space-y-4">
-                {blocks.map(
-                  (block, index) => (
-                    <BlockEditor
-                      key={`block-${index}`}
-                      block={block}
-                      index={index}
-                      onChange={updateBlock}
-                      onRemove={removeBlock}
-                      onRemoveNewImage={
-                        removeNewImage
-                      }
-                      onRemoveExistingImage={
-                        removeExistingImage
-                      }
-                      canRemove={
-                        blocks.length > 1
-                      }
-                      canDeleteMedia={
-                        canDeleteMedia
-                      }
-                    />
-                  ),
-                )}
+                {blocks.map((block, index) => (
+                  <BlockEditor
+                    key={`block-${index}`}
+                    block={block}
+                    index={index}
+                    onChange={updateBlock}
+                    onRemove={removeBlock}
+                    onRemoveNewImage={removeNewImage}
+                    onRemoveExistingImage={removeExistingImage}
+                    canRemove={blocks.length > 1}
+                    canDeleteMedia={canDeleteMedia}
+                  />
+                ))}
               </div>
 
               {/* ADD BLOCK */}
-
               <div className="mt-5 flex justify-end">
                 <button
                   type="button"
                   onClick={addBlock}
-                  className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] px-4 text-[10px] font-bold text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
                 >
                   <FiPlus size={14} />
                   Add Block
@@ -1593,13 +1214,12 @@ const PageFormModal: React.FC<
           </div>
 
           {/* FOOTER */}
-
-          <div className="flex flex-col-reverse gap-2 border-t border-[#1E3A8A]/10 bg-[#FAFCFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A] disabled:opacity-50"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1607,20 +1227,14 @@ const PageFormModal: React.FC<
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] via-[#1E3A8A] to-[#172554] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(37,99,235,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(37,99,235,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw
-                  size={15}
-                  className="animate-spin"
-                />
+                <FiRefreshCw size={15} className="animate-spin" />
               ) : (
                 <FiSave size={15} />
               )}
-
-              {loading
-                ? "Saving..."
-                : "Save Page"}
+              {loading ? "Saving..." : "Save Page"}
             </button>
           </div>
         </form>
@@ -1632,7 +1246,6 @@ const PageFormModal: React.FC<
 // =====================================================
 // DELETE MODAL
 // =====================================================
-
 interface DeletePageModalProps {
   open: boolean;
   loading: boolean;
@@ -1641,18 +1254,14 @@ interface DeletePageModalProps {
   onConfirm: () => void;
 }
 
-const DeletePageModal: React.FC<
-  DeletePageModalProps
-> = ({
+const DeletePageModal: React.FC<DeletePageModalProps> = ({
   open,
   loading,
   page,
   onClose,
   onConfirm,
 }) => {
-  if (!open || !page) {
-    return null;
-  }
+  if (!open || !page) return null;
 
   return (
     <GlobalModal
@@ -1660,41 +1269,35 @@ const DeletePageModal: React.FC<
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="font-poppins w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#2563EB] to-[#C23B32]" />
+      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#2D6FE8] to-[#C23B32]" />
 
         <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
               <FiTrash2 size={21} />
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#0F1B3D]">
-                Delete Page
-              </h2>
-
-              <p className="mt-1 text-sm leading-6 text-[#4A5778]">
-                Are you sure you want to delete this
-                page version?
+              <h2 className="text-lg font-bold text-[#111827]">Delete Page</h2>
+              <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+                Are you sure you want to delete this page version?
               </p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-4">
+          <div className="mt-5 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-bold text-[#1E3A8A]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-bold text-[#2D6FE8]">
                 {initials(page.title)}
               </div>
 
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#0F1B3D]">
+                <p className="truncate text-sm font-bold text-[#111827]">
                   {page.title}
                 </p>
-
-                <p className="mt-1 truncate text-[10px] text-[#8C97B2]">
-                  /{page.slug} • Version{" "}
-                  {page.version}
+                <p className="mt-1 truncate text-[10px] text-[#6B7280]">
+                  /{page.slug} • Version {page.version}
                 </p>
               </div>
             </div>
@@ -1705,7 +1308,7 @@ const DeletePageModal: React.FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border border-[#1E3A8A]/15 bg-white px-5 py-2.5 text-sm font-bold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -1717,17 +1320,11 @@ const DeletePageModal: React.FC<
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw
-                  size={15}
-                  className="animate-spin"
-                />
+                <FiRefreshCw size={15} className="animate-spin" />
               ) : (
                 <FiTrash2 size={15} />
               )}
-
-              {loading
-                ? "Deleting..."
-                : "Delete Page"}
+              {loading ? "Deleting..." : "Delete Page"}
             </button>
           </div>
         </div>
@@ -1739,12 +1336,10 @@ const DeletePageModal: React.FC<
 // =====================================================
 // MAIN PAGE
 // =====================================================
-
 const ContentsManagement: React.FC = () => {
   // ===================================================
   // PERMISSIONS
   // ===================================================
-
   const {
     hasPermission,
     hasModuleAccess,
@@ -1753,10 +1348,7 @@ const ContentsManagement: React.FC = () => {
   } = usePermissions();
 
   const hasAnyPermission = useCallback(
-    (keys: string[]) =>
-      keys.some((key) =>
-        hasPermission(key),
-      ),
+    (keys: string[]) => keys.some((key) => hasPermission(key)),
     [hasPermission],
   );
 
@@ -1766,14 +1358,8 @@ const ContentsManagement: React.FC = () => {
       hasModuleAccess("Contents") ||
       hasModuleAccess("Content") ||
       hasModuleAccess("Website Content") ||
-      hasAnyPermission(
-        VIEW_PERMISSION_KEYS,
-      ),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasAnyPermission,
-    ],
+      hasAnyPermission(VIEW_PERMISSION_KEYS),
+    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
   const canCreateContents = useMemo(
@@ -1782,14 +1368,8 @@ const ContentsManagement: React.FC = () => {
       hasModuleAccess("Contents") ||
       hasModuleAccess("Content") ||
       hasModuleAccess("Website Content") ||
-      hasAnyPermission(
-        CREATE_PERMISSION_KEYS,
-      ),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasAnyPermission,
-    ],
+      hasAnyPermission(CREATE_PERMISSION_KEYS),
+    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
   const canUpdateContents = useMemo(
@@ -1798,14 +1378,8 @@ const ContentsManagement: React.FC = () => {
       hasModuleAccess("Contents") ||
       hasModuleAccess("Content") ||
       hasModuleAccess("Website Content") ||
-      hasAnyPermission(
-        UPDATE_PERMISSION_KEYS,
-      ),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasAnyPermission,
-    ],
+      hasAnyPermission(UPDATE_PERMISSION_KEYS),
+    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
   const canDeleteContents = useMemo(
@@ -1814,137 +1388,69 @@ const ContentsManagement: React.FC = () => {
       hasModuleAccess("Contents") ||
       hasModuleAccess("Content") ||
       hasModuleAccess("Website Content") ||
-      hasAnyPermission(
-        DELETE_PERMISSION_KEYS,
-      ),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasAnyPermission,
-    ],
+      hasAnyPermission(DELETE_PERMISSION_KEYS),
+    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
   // ===================================================
   // STATE
   // ===================================================
-
-  const [pages, setPages] = useState<
-    ContentPage[]
-  >([]);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [saveLoading, setSaveLoading] =
-    useState(false);
-
-  const [deleteLoading, setDeleteLoading] =
-    useState(false);
-
+  const [pages, setPages] = useState<ContentPage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  const [viewOpen, setViewOpen] =
-    useState(false);
-
-  const [addEditOpen, setAddEditOpen] =
-    useState(false);
-
-  const [deleteOpen, setDeleteOpen] =
-    useState(false);
-
-  const [modalMode, setModalMode] =
-    useState<"add" | "edit">("add");
-
-  const [
-    selectedGroup,
-    setSelectedGroup,
-  ] = useState<PageGroup | null>(null);
-
-  const [
-    selectedPage,
-    setSelectedPage,
-  ] = useState<ContentPage | null>(null);
-
+  const [currentPage, setCurrentPage] = useState(1);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [addEditOpen, setAddEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [selectedGroup, setSelectedGroup] = useState<PageGroup | null>(null);
+  const [selectedPage, setSelectedPage] = useState<ContentPage | null>(null);
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
   // FETCH PROTECTION
   // ===================================================
-
-  const fetchInFlightRef =
-    useRef<Promise<void> | null>(null);
-
-  const hasInitialFetchRef =
-    useRef(false);
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
+  const hasInitialFetchRef = useRef(false);
 
   // ===================================================
   // FETCH
   // ===================================================
-
   const fetchContents = useCallback(
     async (force = false) => {
       if (!canViewContents) return;
-
-      if (fetchInFlightRef.current) {
-        return fetchInFlightRef.current;
-      }
-
-      if (
-        !force &&
-        hasInitialFetchRef.current
-      ) {
-        return;
-      }
+      if (fetchInFlightRef.current) return fetchInFlightRef.current;
+      if (!force && hasInitialFetchRef.current) return;
 
       const request = (async () => {
         try {
           setLoading(true);
-
-          const response =
-            await contentsApi.getAll();
+          const response = await contentsApi.getAll();
 
           if (response.data.success) {
-            setPages(
-              response.data.data || [],
-            );
-
-            hasInitialFetchRef.current =
-              true;
+            setPages(response.data.data || []);
+            hasInitialFetchRef.current = true;
           } else {
-            toast.error(
-              response.data.message ||
-                "Unable to fetch pages.",
-            );
+            toast.error(response.data.message || "Unable to fetch pages.");
           }
         } catch (error: any) {
-          console.error(
-            "Fetch contents error:",
-            error,
-          );
-
+          console.error("Fetch contents error:", error);
           toast.error(
-            error?.response?.data
-              ?.message ||
-              "Unable to fetch pages.",
+            error?.response?.data?.message || "Unable to fetch pages.",
           );
         } finally {
           setLoading(false);
         }
       })();
 
-      fetchInFlightRef.current =
-        request;
+      fetchInFlightRef.current = request;
 
       try {
         await request;
       } finally {
-        if (
-          fetchInFlightRef.current ===
-          request
-        ) {
+        if (fetchInFlightRef.current === request) {
           fetchInFlightRef.current = null;
         }
       }
@@ -1960,30 +1466,17 @@ const ContentsManagement: React.FC = () => {
     ) {
       return;
     }
-
     void fetchContents();
-  }, [
-    permissionsLoading,
-    canViewContents,
-    fetchContents,
-  ]);
+  }, [permissionsLoading, canViewContents, fetchContents]);
 
   // ===================================================
   // GROUP PAGES
   // ===================================================
-
   const groupedPages = useMemo(() => {
-    const map = new Map<
-      string,
-      PageGroup
-    >();
+    const map = new Map<string, PageGroup>();
 
     pages.forEach((page) => {
-      const key =
-        page.slug ||
-        page.title
-          .trim()
-          .toLowerCase();
+      const key = page.slug || page.title.trim().toLowerCase();
 
       if (!map.has(key)) {
         map.set(key, {
@@ -1993,32 +1486,17 @@ const ContentsManagement: React.FC = () => {
           versions: [page],
         });
       } else {
-        const group =
-          map.get(key)!;
-
+        const group = map.get(key)!;
         group.versions.push(page);
 
-        const currentVersion =
-          versionNumber(
-            group.latest.version,
-          );
-
-        const incomingVersion =
-          versionNumber(
-            page.version,
-          );
+        const currentVersion = versionNumber(group.latest.version);
+        const incomingVersion = versionNumber(page.version);
 
         if (
-          incomingVersion >
-            currentVersion ||
-          (incomingVersion ===
-            currentVersion &&
-            new Date(
-              page.updated_at,
-            ).getTime() >
-              new Date(
-                group.latest.updated_at,
-              ).getTime())
+          incomingVersion > currentVersion ||
+          (incomingVersion === currentVersion &&
+            new Date(page.updated_at).getTime() >
+              new Date(group.latest.updated_at).getTime())
         ) {
           group.latest = page;
           group.title = page.title;
@@ -2028,99 +1506,58 @@ const ContentsManagement: React.FC = () => {
 
     return Array.from(map.values()).sort(
       (a, b) =>
-        new Date(
-          b.latest.updated_at,
-        ).getTime() -
-        new Date(
-          a.latest.updated_at,
-        ).getTime(),
+        new Date(b.latest.updated_at).getTime() -
+        new Date(a.latest.updated_at).getTime(),
     );
   }, [pages]);
 
   // ===================================================
   // SEARCH
   // ===================================================
-
   const filteredGroups = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+    const query = search.trim().toLowerCase();
 
-    return groupedPages.filter(
-      (group) => {
-        const page = group.latest;
-
-        return (
-          !query ||
-          [
-            page.title,
-            page.slug,
-            page.version,
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(query)
-        );
-      },
-    );
+    return groupedPages.filter((group) => {
+      const page = group.latest;
+      return (
+        !query ||
+        [page.title, page.slug, page.version]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      );
+    });
   }, [groupedPages, search]);
 
   // ===================================================
   // PAGINATION
   // ===================================================
-
   const totalPages = Math.max(
     1,
-    Math.ceil(
-      filteredGroups.length /
-        ITEMS_PER_PAGE,
-    ),
+    Math.ceil(filteredGroups.length / ITEMS_PER_PAGE),
   );
 
-  const startIndex =
-    (currentPage - 1) *
-    ITEMS_PER_PAGE;
-
-  const visibleGroups =
-    filteredGroups.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE,
-    );
-
-  const startEntry =
-    filteredGroups.length === 0
-      ? 0
-      : startIndex + 1;
-
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const visibleGroups = filteredGroups.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
+  const startEntry = filteredGroups.length === 0 ? 0 : startIndex + 1;
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredGroups.length,
   );
 
   useEffect(() => {
-    if (
-      currentPage > totalPages
-    ) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
-      return Array.from(
-        { length: totalPages },
-        (_, index) => index + 1,
-      );
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
-    if (
-      currentPage >=
-      totalPages - 2
-    ) {
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -2129,7 +1566,6 @@ const ContentsManagement: React.FC = () => {
         totalPages,
       ];
     }
-
     return [
       currentPage - 2,
       currentPage - 1,
@@ -2140,54 +1576,36 @@ const ContentsManagement: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // VIEW
+  // VIEW / ADD / EDIT / DELETE HANDLERS
   // ===================================================
-
   const handleView = useCallback(
     (group: PageGroup) => {
       if (!canViewContents) {
-        toast.error(
-          "You do not have permission to view pages.",
-        );
+        toast.error("You do not have permission to view pages.");
         return;
       }
-
       setSelectedGroup(group);
       setViewOpen(true);
     },
     [canViewContents],
   );
 
-  // ===================================================
-  // ADD
-  // ===================================================
-
   const openAdd = useCallback(() => {
     if (!canCreateContents) {
-      toast.error(
-        "You do not have permission to create pages.",
-      );
+      toast.error("You do not have permission to create pages.");
       return;
     }
-
     setSelectedPage(null);
     setModalMode("add");
     setAddEditOpen(true);
   }, [canCreateContents]);
 
-  // ===================================================
-  // EDIT
-  // ===================================================
-
   const openEdit = useCallback(
     (page: ContentPage) => {
       if (!canUpdateContents) {
-        toast.error(
-          "You do not have permission to update pages.",
-        );
+        toast.error("You do not have permission to update pages.");
         return;
       }
-
       setSelectedPage(page);
       setModalMode("edit");
       setAddEditOpen(true);
@@ -2195,92 +1613,54 @@ const ContentsManagement: React.FC = () => {
     [canUpdateContents],
   );
 
-  // ===================================================
-  // SAVE
-  // ===================================================
-
   const handleSave = useCallback(
     async (payload: ContentPayload) => {
-      const isEdit =
-        modalMode === "edit";
+      const isEdit = modalMode === "edit";
 
       if (isEdit && !canUpdateContents) {
-        toast.error(
-          "You do not have permission to update pages.",
-        );
+        toast.error("You do not have permission to update pages.");
         return;
       }
-
       if (!isEdit && !canCreateContents) {
-        toast.error(
-          "You do not have permission to create pages.",
-        );
+        toast.error("You do not have permission to create pages.");
         return;
       }
-
       if (saveLoading) return;
 
       try {
         setSaveLoading(true);
 
-        if (
-          isEdit &&
-          selectedPage
-        ) {
-          const response =
-            await contentsApi.update(
-              selectedPage.id,
-              payload,
-            );
-
+        if (isEdit && selectedPage) {
+          const response = await contentsApi.update(
+            selectedPage.id,
+            payload,
+          );
           if (response.data.success) {
             toast.success(
-              response.data.message ||
-                "Page updated successfully.",
+              response.data.message || "Page updated successfully.",
             );
-
             setAddEditOpen(false);
             setSelectedPage(null);
-
             await fetchContents(true);
           } else {
-            toast.error(
-              response.data.message ||
-                "Unable to update page.",
-            );
+            toast.error(response.data.message || "Unable to update page.");
           }
         } else {
-          const response =
-            await contentsApi.create(
-              payload,
-            );
-
+          const response = await contentsApi.create(payload);
           if (response.data.success) {
             toast.success(
-              response.data.message ||
-                "Page created successfully.",
+              response.data.message || "Page created successfully.",
             );
-
             setAddEditOpen(false);
-
             await fetchContents(true);
           } else {
-            toast.error(
-              response.data.message ||
-                "Unable to create page.",
-            );
+            toast.error(response.data.message || "Unable to create page.");
           }
         }
       } catch (error: any) {
-        console.error(
-          "Save page error:",
-          error,
-        );
-
+        console.error("Save page error:", error);
         toast.error(
-          error?.response?.data
-            ?.message ||
-            "Unable to save page.",
+          error?.response?.data?.message || "Unable to save page.",
         );
       } finally {
         setSaveLoading(false);
@@ -2296,139 +1676,70 @@ const ContentsManagement: React.FC = () => {
     ],
   );
 
-  // ===================================================
-  // DELETE OPEN
-  // ===================================================
-
   const openDelete = useCallback(
     (page: ContentPage) => {
       if (!canDeleteContents) {
-        toast.error(
-          "You do not have permission to delete pages.",
-        );
+        toast.error("You do not have permission to delete pages.");
         return;
       }
-
       setSelectedPage(page);
       setDeleteOpen(true);
     },
     [canDeleteContents],
   );
 
-  // ===================================================
-  // DELETE
-  // ===================================================
+  const handleDelete = useCallback(async () => {
+    if (!canDeleteContents) {
+      toast.error("You do not have permission to delete pages.");
+      return;
+    }
+    if (!selectedPage) return;
+    if (deleteLoading) return;
 
-  const handleDelete = useCallback(
-    async () => {
-      if (!canDeleteContents) {
-        toast.error(
-          "You do not have permission to delete pages.",
+    try {
+      setDeleteLoading(true);
+      const response = await contentsApi.delete(selectedPage.id);
+
+      if (response.data.success) {
+        toast.success(
+          response.data.message || "Page version deleted successfully.",
         );
-        return;
+        setDeleteOpen(false);
+        setSelectedPage(null);
+        await fetchContents(true);
+      } else {
+        toast.error(response.data.message || "Unable to delete page.");
       }
-
-      if (!selectedPage) return;
-
-      if (deleteLoading) return;
-
-      try {
-        setDeleteLoading(true);
-
-        const response =
-          await contentsApi.delete(
-            selectedPage.id,
-          );
-
-        if (response.data.success) {
-          toast.success(
-            response.data.message ||
-              "Page version deleted successfully.",
-          );
-
-          setDeleteOpen(false);
-          setSelectedPage(null);
-
-          await fetchContents(true);
-        } else {
-          toast.error(
-            response.data.message ||
-              "Unable to delete page.",
-          );
-        }
-      } catch (error: any) {
-        console.error(
-          "Delete page error:",
-          error,
-        );
-
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            "Unable to delete page.",
-        );
-      } finally {
-        setDeleteLoading(false);
-      }
-    },
-    [
-      canDeleteContents,
-      selectedPage,
-      deleteLoading,
-      fetchContents,
-    ],
-  );
-
-  // ===================================================
-  // REFRESH
-  // ===================================================
+    } catch (error: any) {
+      console.error("Delete page error:", error);
+      toast.error(
+        error?.response?.data?.message || "Unable to delete page.",
+      );
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [canDeleteContents, selectedPage, deleteLoading, fetchContents]);
 
   const handleRefresh = useCallback(() => {
     if (!canViewContents) {
-      toast.error(
-        "You do not have permission to view pages.",
-      );
+      toast.error("You do not have permission to view pages.");
       return;
     }
-
     void fetchContents(true);
   }, [canViewContents, fetchContents]);
 
   // ===================================================
   // PERMISSION LOADING
   // ===================================================
+  if (permissionsLoading) return <PermissionLoadingState />;
+  if (!canViewContents) return <AccessDeniedState />;
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
-  }
-
-  if (!canViewContents) {
-    return <AccessDeniedState />;
-  }
-
-  // ===================================================
-  // INITIAL LOADING
-  // ===================================================
-
-  if (
-    loading &&
-    pages.length === 0
-  ) {
+  if (loading && pages.length === 0) {
     return (
-      <div className="font-poppins min-h-screen bg-[#F5F8FF] p-4 sm:p-5 lg:p-6">
-        <div className="flex min-h-[450px] items-center justify-center">
-          <div className="flex flex-col items-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#1E3A8A] shadow-sm">
-              <FiRefreshCw
-                size={23}
-                className="animate-spin"
-              />
-            </div>
-
-            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-              Loading pages...
-            </p>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
+        <div className="text-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
+          <p className="mt-3 text-sm text-[#6B7280]">Loading pages...</p>
         </div>
       </div>
     );
@@ -2437,25 +1748,21 @@ const ContentsManagement: React.FC = () => {
   // ===================================================
   // UI
   // ===================================================
-
   return (
     <>
-      {/* =================================================
-          QUILL STYLES
-      ================================================= */}
-
+      {/* QUILL STYLES */}
       <style>{`
         .sk-editor-wrapper .ql-toolbar.ql-snow {
-          border: 1px solid #D8E2F0;
+          border: 1px solid #DCE6F2;
           border-bottom: none;
           border-top-left-radius: 12px;
           border-top-right-radius: 12px;
-          background: #F5F8FF;
+          background: #F4F8FD;
           padding: 8px 10px;
         }
 
         .sk-editor-wrapper .ql-container.ql-snow {
-          border: 1px solid #D8E2F0;
+          border: 1px solid #DCE6F2;
           border-bottom-left-radius: 12px;
           border-bottom-right-radius: 12px;
           background: #FFFFFF;
@@ -2468,55 +1775,55 @@ const ContentsManagement: React.FC = () => {
           max-height: 360px;
           overflow-y: auto;
           line-height: 1.6;
-          color: #0F1B3D;
+          color: #111827;
         }
 
         .sk-editor-wrapper .ql-editor.ql-blank::before {
-          color: #8C97B2;
+          color: #6B7280;
           font-style: normal;
           font-size: 13px;
         }
 
         .sk-editor-wrapper .ql-snow .ql-stroke {
-          stroke: #1E3A8A;
+          stroke: #2D6FE8;
         }
 
         .sk-editor-wrapper .ql-snow .ql-fill {
-          fill: #1E3A8A;
+          fill: #2D6FE8;
         }
 
         .sk-editor-wrapper .ql-snow .ql-picker {
-          color: #1E3A8A;
+          color: #2D6FE8;
         }
 
         .sk-editor-wrapper .ql-snow .ql-picker-options {
           background: #FFFFFF;
-          border: 1px solid #D8E2F0;
+          border: 1px solid #DCE6F2;
           border-radius: 8px;
-          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+          box-shadow: 0 8px 20px rgba(45, 111, 232, 0.12);
         }
 
         .sk-editor-wrapper .ql-snow.ql-toolbar button:hover,
         .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active {
-          background: #EAF1FF;
+          background: #EAF3FF;
           border-radius: 6px;
         }
 
         .sk-editor-wrapper .ql-snow.ql-toolbar button:hover .ql-stroke,
         .sk-editor-wrapper .ql-snow.ql-toolbar button.ql-active .ql-stroke {
-          stroke: #1E3A8A;
+          stroke: #2D6FE8;
         }
 
         .sk-editor-wrapper .ql-snow .ql-tooltip {
           border-radius: 8px;
-          border: 1px solid #D8E2F0;
-          box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+          border: 1px solid #DCE6F2;
+          box-shadow: 0 8px 20px rgba(45, 111, 232, 0.12);
         }
 
         .sk-editor-wrapper .ql-editor h1,
         .sk-editor-wrapper .ql-editor h2,
         .sk-editor-wrapper .ql-editor h3 {
-          color: #0F1B3D;
+          color: #111827;
         }
 
         .sk-editor-wrapper .ql-editor ul,
@@ -2525,13 +1832,13 @@ const ContentsManagement: React.FC = () => {
         }
 
         .sk-editor-wrapper .ql-editor blockquote {
-          border-left: 3px solid #2563EB;
+          border-left: 3px solid #2D6FE8;
           padding-left: 12px;
-          color: #4A5778;
+          color: #6B7280;
         }
 
         .sk-editor-wrapper .ql-editor a {
-          color: #2563EB;
+          color: #2D6FE8;
           text-decoration: underline;
         }
 
@@ -2540,100 +1847,78 @@ const ContentsManagement: React.FC = () => {
           padding-left: 22px;
           margin: 8px 0;
         }
-
-        .sk-answer-preview ul {
-          list-style: disc;
-        }
-
-        .sk-answer-preview ol {
-          list-style: decimal;
-        }
-
-        .sk-answer-preview li {
-          margin: 3px 0;
-        }
-
+        .sk-answer-preview ul { list-style: disc; }
+        .sk-answer-preview ol { list-style: decimal; }
+        .sk-answer-preview li { margin: 3px 0; }
         .sk-answer-preview a {
-          color: #2563EB;
+          color: #2D6FE8;
           text-decoration: underline;
         }
-
         .sk-answer-preview blockquote {
-          border-left: 3px solid #2563EB;
+          border-left: 3px solid #2D6FE8;
           margin: 10px 0;
           padding-left: 12px;
-          color: #4A5778;
+          color: #6B7280;
         }
-
         .sk-answer-preview pre,
         .sk-answer-preview code {
-          background: #F5F8FF;
+          background: #F4F8FD;
           border-radius: 6px;
           padding: 2px 6px;
           font-size: 12px;
         }
-
         .sk-answer-preview h1,
         .sk-answer-preview h2,
         .sk-answer-preview h3 {
-          color: #0F1B3D;
+          color: #111827;
           font-weight: 700;
           margin: 10px 0 5px;
         }
-
-        .sk-answer-preview p {
-          margin: 5px 0;
-        }
+        .sk-answer-preview p { margin: 5px 0; }
       `}</style>
 
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="font-poppins min-h-screen bg-[#F5F8FF] p-4 sm:p-5 lg:p-6"
+        className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-7"
       >
         {/* HEADER */}
-
         <motion.div
           variants={itemVariants}
-          className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+          className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center"
         >
           <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-
-              <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Website Content
               </span>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[32px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Pages
             </h1>
 
-            <p className="mt-1.5 max-w-2xl text-xs leading-5 text-[#4A5778]">
-              Manage website pages, content blocks,
-              images, videos and published versions
-              from one place.
+           <p className="mt-0.5 text-sm text-[#111827]">
+              Manage website pages, content blocks, images, videos and
+              published versions from one place.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-3 self-start">
             <button
               type="button"
               onClick={handleRefresh}
               disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
-                size={15}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+                size={16}
+                className={loading ? "animate-spin" : ""}
               />
-
               Refresh
             </button>
 
@@ -2641,374 +1926,310 @@ const ContentsManagement: React.FC = () => {
               <button
                 type="button"
                 onClick={openAdd}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(37,99,235,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(37,99,235,0.7)]"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <FiPlus size={15} />
+                <FiPlus size={16} />
                 Add Page
               </button>
             )}
           </div>
         </motion.div>
 
-        {/* MAIN TABLE CARD */}
-
+        {/* MAIN CARD */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-[22px] border border-[#D8E2F0] bg-white shadow-[0_8px_30px_rgba(37,99,235,0.06)]"
+          className="relative mt-6 overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
         >
-          <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#93C5FD] via-[#1E3A8A] to-[#172554]" />
-
           {/* TOOLBAR */}
-
-          <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="relative w-full lg:max-w-[440px]">
+          <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[200px] flex-1">
                 <FiSearch
-                  size={17}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                 />
-
                 <input
                   type="text"
                   value={search}
                   onChange={(event) => {
-                    setSearch(
-                      event.target.value,
-                    );
-
+                    setSearch(event.target.value);
                     setCurrentPage(1);
                   }}
                   placeholder="Search title, slug or version..."
-                  className="h-11 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-10 pr-4 text-xs text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#2563EB] focus:bg-white focus:ring-2 focus:ring-[#2563EB]/10"
+                  className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#4F8FF7]/10"
                 />
               </div>
             </div>
           </div>
 
-          {/* DESKTOP TABLE */}
+          {/* DESKTOP TABLE — NO HORIZONTAL SCROLL */}
+          <div className="hidden lg:block">
+  <table className="w-full table-fixed border-collapse">
+    <colgroup>
+      <col className="w-[6%]" />
+      <col className="w-[28%]" />
+      <col className="w-[22%]" />
+      <col className="w-[12%]" />
+      <col className="w-[12%]" />
+      <col className="w-[20%]" />
+    </colgroup>
+    <thead>
+      <tr className="bg-[#4F8FF7]">
+        <th className="rounded-tl-2xl px-3 py-4 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          S.No.
+        </th>
+        <th className="px-3 py-4 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          Page
+        </th>
+        <th className="px-3 py-4 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          Slug
+        </th>
+        <th className="px-3 py-4 text-center text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          Latest Version
+        </th>
+        <th className="px-3 py-4 text-center text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          Versions
+        </th>
+        <th className="rounded-tr-2xl px-3 py-4 text-center text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+          Actions
+        </th>
+      </tr>
+    </thead>
 
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[950px] border-collapse">
-              <thead>
-                <tr className="bg-[#172554]">
-                  <th className="w-[75px] px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    S.No.
-                  </th>
+    <tbody>
+      {loading ? (
+        <tr>
+          <td colSpan={6} className="px-5 py-16 text-center">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiRefreshCw size={22} className="animate-spin" />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">
+                Loading pages...
+              </p>
+            </div>
+          </td>
+        </tr>
+      ) : visibleGroups.length === 0 ? (
+        <tr>
+          <td colSpan={6} className="px-5 py-16 text-center">
+            <div className="flex flex-col items-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiFileText size={24} />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">
+                No pages found
+              </p>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Try another search or create a new page.
+              </p>
+            </div>
+          </td>
+        </tr>
+      ) : (
+        visibleGroups.map((group, index) => {
+          const page = group.latest;
+          return (
+            <motion.tr
+              key={group.slug}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.03 }}
+              className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
+            >
+              <td className="px-3 py-4">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[11px] font-bold text-[#2D6FE8]">
+                  {startIndex + index + 1}
+                </span>
+              </td>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    Page
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    Slug
-                  </th>
-
-                  <th className="w-[140px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    Latest Version
-                  </th>
-
-                  <th className="w-[130px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    Versions
-                  </th>
-
-                  <th className="w-[150px] px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#DBEAFE]">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {visibleGroups.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-5 py-16 text-center"
+              <td className="px-3 py-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[10px] font-bold text-white">
+                    {initials(page.title)}
+                  </div>
+                  <div className="min-w-0">
+                    <p
+                      className="truncate text-xs font-bold text-[#111827]"
+                      title={page.title}
                     >
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-                          <FiFileText size={24} />
-                        </div>
+                      {page.title}
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-[#6B7280]">
+                      <FiClock size={10} />
+                      {formatDate(page.updated_at)}
+                    </p>
+                  </div>
+                </div>
+              </td>
 
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-                          No pages found
-                        </p>
+              <td className="px-3 py-4">
+                <span className="inline-block max-w-full truncate rounded-lg bg-[#F4F8FD] px-2 py-1.5 font-mono text-[10px] font-semibold text-[#6B7280]">
+                  /{page.slug}
+                </span>
+              </td>
 
-                        <p className="mt-1 text-xs text-[#8C97B2]">
-                          Try another search or
-                          create a new page.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  visibleGroups.map(
-                    (group, index) => {
-                      const page =
-                        group.latest;
+              <td className="px-3 py-4 text-center">
+                <span className="inline-flex items-center rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                  v{page.version}
+                </span>
+              </td>
 
-                      return (
-                        <motion.tr
-                          key={group.slug}
-                          initial={{
-                            opacity: 0,
-                            y: 5,
-                          }}
-                          animate={{
-                            opacity: 1,
-                            y: 0,
-                          }}
-                          transition={{
-                            delay:
-                              index * 0.03,
-                          }}
-                          className="border-b border-[#1E3A8A]/10 bg-white transition hover:bg-[#FAFCFF]"
-                        >
-                          <td className="px-5 py-4">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF1FF] text-xs font-bold text-[#1E3A8A]">
-                              {startIndex +
-                                index +
-                                1}
-                            </span>
-                          </td>
+              <td className="px-3 py-4 text-center">
+                <span className="inline-flex items-center gap-1 rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#6B7280]">
+                  <FiList size={11} />
+                  {group.versions.length}
+                </span>
+              </td>
 
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-[11px] font-bold text-white shadow-sm">
-                                {initials(
-                                  page.title,
-                                )}
-                              </div>
+              <td className="px-3 py-4">
+                <div className="flex items-center justify-center gap-1.5">
+                  <button
+                    type="button"
+                    title="View page"
+                    onClick={() => handleView(group)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                  >
+                    <FiEye size={14} />
+                  </button>
 
-                              <div className="min-w-0">
-                                <p className="max-w-[240px] truncate text-sm font-bold text-[#0F1B3D]">
-                                  {page.title}
-                                </p>
+                  {canUpdateContents && (
+                    <button
+                      type="button"
+                      title="Edit page"
+                      onClick={() => openEdit(page)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/15 bg-white text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                    >
+                      <FiEdit2 size={14} />
+                    </button>
+                  )}
 
-                                <p className="mt-1 flex items-center gap-1 text-[10px] text-[#8C97B2]">
-                                  <FiClock
-                                    size={10}
-                                  />
-                                  Updated{" "}
-                                  {formatDate(
-                                    page.updated_at,
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <span className="rounded-lg bg-[#F5F8FF] px-3 py-2 font-mono text-[10px] font-semibold text-[#4A5778]">
-                              /{page.slug}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4 text-center">
-                            <span className="inline-flex items-center rounded-lg border border-[#1E3A8A]/15 bg-[#EAF1FF] px-3 py-1.5 text-[10px] font-bold text-[#1E3A8A]">
-                              v{page.version}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4 text-center">
-                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F8FF] px-3 py-1.5 text-[10px] font-bold text-[#4A5778]">
-                              <FiList size={12} />
-                              {group.versions.length}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                type="button"
-                                title="View page"
-                                onClick={() =>
-                                  handleView(
-                                    group,
-                                  )
-                                }
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
-                              >
-                                <FiEye
-                                  size={15}
-                                />
-                              </button>
-
-                              {canUpdateContents && (
-                                <button
-                                  type="button"
-                                  title="Edit page"
-                                  onClick={() =>
-                                    openEdit(
-                                      page,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#1E3A8A] hover:text-white"
-                                >
-                                  <FiEdit2
-                                    size={15}
-                                  />
-                                </button>
-                              )}
-
-                              {canDeleteContents && (
-                                <button
-                                  type="button"
-                                  title="Delete latest version"
-                                  onClick={() =>
-                                    openDelete(
-                                      page,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiTrash2
-                                    size={15}
-                                  />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </motion.tr>
-                      );
-                    },
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* MOBILE */}
-
+                  {canDeleteContents && (
+                    <button
+                      type="button"
+                      title="Delete latest version"
+                      onClick={() => openDelete(page)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </td>
+            </motion.tr>
+          );
+        })
+      )}
+    </tbody>
+  </table>
+</div>
+          {/* MOBILE CARDS */}
           <div className="block lg:hidden">
-            {visibleGroups.length > 0 ? (
-              visibleGroups.map(
-                (group, index) => {
-                  const page =
-                    group.latest;
-
-                  return (
-                    <motion.div
-                      key={group.slug}
-                      variants={itemVariants}
-                      className="border-b border-[#1E3A8A]/10 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-[11px] font-bold text-white">
-                          {initials(
-                            page.title,
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-bold text-[#0F1B3D]">
-                            {page.title}
-                          </p>
-
-                          <p className="mt-1 truncate font-mono text-[10px] text-[#8C97B2]">
-                            /{page.slug}
-                          </p>
-                        </div>
+            {loading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading pages...
+                </p>
+              </div>
+            ) : visibleGroups.length > 0 ? (
+              visibleGroups.map((group, index) => {
+                const page = group.latest;
+                return (
+                  <motion.div
+                    key={group.slug}
+                    variants={itemVariants}
+                    className="border-b border-[#DCE6F2] bg-white p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[11px] font-bold text-white">
+                        {initials(page.title)}
                       </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Latest Version
-                          </p>
-
-                          <p className="mt-1 text-sm font-bold text-[#1E3A8A]">
-                            v{page.version}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#1E3A8A]/10 bg-[#F5F8FF] p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#8C97B2]">
-                            Versions
-                          </p>
-
-                          <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
-                            {group.versions.length}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between">
-                        <p className="text-[10px] text-[#8C97B2]">
-                          Updated{" "}
-                          {formatDate(
-                            page.updated_at,
-                          )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-[#111827]">
+                          {page.title}
                         </p>
+                        <p className="mt-1 truncate font-mono text-[10px] text-[#6B7280]">
+                          /{page.slug}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-bold text-[#6B7280]">
+                        #{startIndex + index + 1}
+                      </span>
+                    </div>
 
-                        <span className="text-[9px] font-bold text-[#8C97B2]">
-                          #
-                          {startIndex +
-                            index +
-                            1}
-                        </span>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+                          Latest Version
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#2D6FE8]">
+                          v{page.version}
+                        </p>
                       </div>
 
-                      <div className="mt-3 flex justify-end gap-2">
+                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Versions
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-[#111827]">
+                          {group.versions.length}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-[10px] text-[#6B7280]">
+                        Updated {formatDate(page.updated_at)}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleView(group)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8]"
+                        title="View"
+                      >
+                        <FiEye size={14} />
+                      </button>
+
+                      {canUpdateContents && (
                         <button
                           type="button"
-                          onClick={() =>
-                            handleView(group)
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#1E3A8A]"
-                          title="View"
+                          onClick={() => openEdit(page)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-white text-[#2D6FE8]"
+                          title="Edit"
                         >
-                          <FiEye
-                            size={14}
-                          />
+                          <FiEdit2 size={14} />
                         </button>
+                      )}
 
-                        {canUpdateContents && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openEdit(page)
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#1E3A8A]/15 bg-white text-[#1E3A8A]"
-                            title="Edit"
-                          >
-                            <FiEdit2
-                              size={14}
-                            />
-                          </button>
-                        )}
-
-                        {canDeleteContents && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openDelete(
-                                page,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] text-[#C23B32]"
-                            title="Delete"
-                          >
-                            <FiTrash2
-                              size={14}
-                            />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                },
-              )
+                      {canDeleteContents && (
+                        <button
+                          type="button"
+                          onClick={() => openDelete(page)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
+                          title="Delete"
+                        >
+                          <FiTrash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })
             ) : (
-              <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+              <div className="flex flex-col items-center bg-white px-5 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiFileText size={24} />
                 </div>
-
-                <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                <p className="mt-4 text-sm font-bold text-[#111827]">
                   No pages found
                 </p>
-
-                <p className="mt-1 text-xs text-[#8C97B2]">
+                <p className="mt-1 text-xs text-[#6B7280]">
                   Try another search.
                 </p>
               </div>
@@ -3016,21 +2237,18 @@ const ContentsManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-
           {filteredGroups.length > 0 && (
-            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFCFF] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8C97B2]">
+                <p className="text-xs text-[#6B7280]">
                   Showing{" "}
-                  <span className="font-bold text-[#4A5778]">
+                  <span className="font-bold text-[#111827]">
                     {startEntry}
                   </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#4A5778]">
-                    {endEntry}
-                  </span>{" "}
+                  <span className="font-bold text-[#111827]">{endEntry}</span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#4A5778]">
+                  <span className="font-bold text-[#111827]">
                     {filteredGroups.length}
                   </span>{" "}
                   pages
@@ -3039,55 +2257,33 @@ const ContentsManagement: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page - 1,
-                      )
-                    }
-                    disabled={
-                      currentPage === 1
-                    }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    onClick={() => setCurrentPage((page) => page - 1)}
+                    disabled={currentPage === 1}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
 
-                  {paginationPages.map(
-                    (page) => (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() =>
-                          setCurrentPage(
-                            page,
-                          )
-                        }
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                          currentPage ===
-                          page
-                            ? "bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(37,99,235,0.5)]"
-                            : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  {paginationPages.map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
+                        currentPage === page
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "text-[#6B7280] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page + 1,
-                      )
-                    }
-                    disabled={
-                      currentPage ===
-                      totalPages
-                    }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    onClick={() => setCurrentPage((page) => page + 1)}
+                    disabled={currentPage === totalPages}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>
@@ -3097,11 +2293,10 @@ const ContentsManagement: React.FC = () => {
           )}
         </motion.div>
 
-        <div className="h-5" />
+        <div className="h-4" />
       </motion.div>
 
       {/* VIEW */}
-
       <ViewPageModal
         open={viewOpen}
         page={selectedGroup}
@@ -3112,17 +2307,13 @@ const ContentsManagement: React.FC = () => {
       />
 
       {/* ADD / EDIT */}
-
-      {(canCreateContents ||
-        canUpdateContents) && (
+      {(canCreateContents || canUpdateContents) && (
         <PageFormModal
           open={addEditOpen}
           loading={saveLoading}
           mode={modalMode}
           page={selectedPage}
-          canDeleteMedia={
-            canDeleteContents
-          }
+          canDeleteMedia={canDeleteContents}
           onClose={() => {
             if (!saveLoading) {
               setAddEditOpen(false);
@@ -3134,7 +2325,6 @@ const ContentsManagement: React.FC = () => {
       )}
 
       {/* DELETE */}
-
       {canDeleteContents && (
         <DeletePageModal
           open={deleteOpen}

@@ -250,6 +250,13 @@ export interface DealPayload {
   sale_type: string;
 }
 
+/** Optional payload for partial deal update */
+export interface UpdateDealPayload {
+  starts_at?: string;
+  ends_at?: string;
+  sale_type?: string;
+}
+
 /* =========================================================
    PUBLISH
 ========================================================= */
@@ -500,19 +507,38 @@ export const productApi = {
     ),
 
   // ============================
-  // DEAL CRUD
+  // DEAL OF THE DAY CRUD
   // ============================
 
+  /**
+   * GET all Deal of the Day products
+   * GET /api/products-deal-of-the-day
+   */
   getDeals: () =>
     apiClient.get<ApiResponse<Product[]>>(
       "/products-deal-of-the-day",
     ),
 
+  /**
+   * GET a single Deal of the Day product by ID
+   * GET /api/products-deal-of-the-day/{id}
+   */
   getDealById: (id: number) =>
     apiClient.get<ApiResponse<Product>>(
       `/products-deal-of-the-day/${id}`,
     ),
 
+  /**
+   * ADD a product as Deal of the Day
+   * POST /api/products-deal-of-the-day/{productId}
+   *
+   * Example:
+   *   productApi.addDeal(34, {
+   *     starts_at: "2026-10-12 10:00:00",
+   *     ends_at:   "2026-10-13 10:00:00",
+   *     sale_type: "deal_of_the_day",
+   *   });
+   */
   addDeal: (
     productId: number,
     data: DealPayload,
@@ -522,6 +548,26 @@ export const productApi = {
       data,
     ),
 
+  /**
+   * UPDATE an existing Deal of the Day
+   * PUT /api/products-deal-of-the-day/{productId}
+   */
+  updateDeal: (
+    productId: number,
+    data: UpdateDealPayload,
+  ) =>
+    apiClient.put<ApiResponse<Product>>(
+      `/products-deal-of-the-day/${productId}`,
+      data,
+    ),
+
+  /**
+   * REMOVE a product from Deal of the Day
+   * DELETE /api/products-deal-of-the-day/{productId}
+   *
+   * Example:
+   *   productApi.removeDeal(34);
+   */
   removeDeal: (productId: number) =>
     apiClient.delete<ApiResponse<null>>(
       `/products-deal-of-the-day/${productId}`,

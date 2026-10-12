@@ -207,6 +207,12 @@ export const openInvoicePdfInNewTab = (
       ? orderItems.filter((it: any) => it.id === orderItemId)
       : orderItems;
 
+    // ✅ Single product → show one "Delivery Charge" column
+    // ✅ Multiple products → show "Per Unit Delivery Charge" + "Total Delivery Charge"
+    const isSingleProduct = filteredItems.length === 1;
+    const isMultiProduct = filteredItems.length > 1;
+    const showDeliveryChargeColumns = filteredItems.length > 0;
+
     const doc = new jsPDF({
       unit: "pt",
       format: "a4",
@@ -215,6 +221,17 @@ export const openInvoicePdfInNewTab = (
     const pageWidth = doc.internal.pageSize.getWidth();
     const marginX = 40;
     let cursorY = 40;
+
+    // ✅ Get dispatched_at date (fallback to order created_at)
+    const dispatchedItem =
+      filteredItems.length > 0
+        ? filteredItems[0]
+        : orderItems.length > 0
+          ? orderItems[0]
+          : null;
+
+    const dispatchedAt =
+      dispatchedItem?.dispatched_at || order?.created_at || null;
 
     // ============ HEADER BAR ============
     doc.setFillColor(22, 63, 32); // #163F20
@@ -239,10 +256,15 @@ export const openInvoicePdfInNewTab = (
       42,
       { align: "right" },
     );
+    // ✅ Date now uses dispatched_at (falls back to order created_at)
     doc.text(
       `Date: ${
-        order.order_date
-          ? new Date(order.order_date).toLocaleDateString("en-IN")
+        dispatchedAt
+          ? new Date(dispatchedAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
           : "N/A"
       }`,
       pageWidth - marginX,
@@ -321,19 +343,119 @@ export const openInvoicePdfInNewTab = (
     cursorY += 110;
 
     // ============ ITEMS TABLE ============
-    const tableHead = [
-      ["#", "Product", "Code", "Qty", "Unit Price", "GST", "Total"],
-    ];
+    // ✅ "S.No." instead of "#"
+    // ✅ Single product → one "Delivery Charge" column
+    // ✅ Multiple products → "Per Unit Delivery Charge" + "Total Delivery Charge"
+    let tableHead: string[][];
+    let columnStyles: Record<number, any>;
 
-    const tableBody = filteredItems.map((item: any, idx: number) => [
-      idx + 1,
-      item.product_name || "N/A",
-      item.product_code || "N/A",
-      item.quantity || 0,
-      `Rs. ${Number(item.unit_price || 0).toFixed(2)}`,
-      `${item.gst_rate || 0}%`,
-      `Rs. ${Number(item.line_total || 0).toFixed(2)}`,
-    ]);
+    if (isMultiProduct) {
+      tableHead = [
+        [
+          "S.No.",
+          "Product",
+          "Code",
+          "Qty",
+          "Unit Price",
+          "GST",
+          "Per Unit Delivery Charge",
+          "Total Delivery Charge",
+          "Total",
+        ],
+      ];
+      columnStyles = {
+        0: { cellWidth: 35, halign: "center" },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 35, halign: "center" },
+        4: { cellWidth: 65, halign: "right" },
+        5: { cellWidth: 40, halign: "right" },
+        6: { cellWidth: 70, halign: "right" },
+        7: { cellWidth: 70, halign: "right" },
+        8: { cellWidth: 70, halign: "right" },
+      };
+    } else if (isSingleProduct) {
+      tableHead = [
+        [
+          "S.No.",
+          "Product",
+          "Code",
+          "Qty",
+          "Unit Price",
+          "GST",
+          "Delivery Charge",
+          "Total",
+        ],
+      ];
+      columnStyles = {
+        0: { cellWidth: 40, halign: "center" },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 60 },
+        3: { cellWidth: 40, halign: "center" },
+        4: { cellWidth: 75, halign: "right" },
+        5: { cellWidth: 45, halign: "right" },
+        6: { cellWidth: 85, halign: "right" },
+        7: { cellWidth: 85, halign: "right" },
+      };
+    } else {
+      tableHead = [
+        [
+          "S.No.",
+          "Product",
+          "Code",
+          "Qty",
+          "Unit Price",
+          "GST",
+          "Total",
+        ],
+      ];
+      columnStyles = {
+        0: { cellWidth: 45, halign: "center" },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 45, halign: "center" },
+        4: { cellWidth: 85, halign: "right" },
+        5: { cellWidth: 55, halign: "right" },
+        6: { cellWidth: 95, halign: "right" },
+      };
+    }
+
+    const tableBody = filteredItems.map((item: any, idx: number) => {
+      if (isMultiProduct) {
+        return [
+          idx + 1,
+          item.product_name || "N/A",
+          item.product_code || "N/A",
+          item.quantity || 0,
+          `Rs. ${Number(item.unit_price || 0).toFixed(2)}`,
+          `${item.gst_rate || 0}%`,
+          `Rs. ${Number(item.per_unit_delivery_charge || 0).toFixed(2)}`,
+          `Rs. ${Number(item.total_delivery_charge || 0).toFixed(2)}`,
+          `Rs. ${Number(item.line_total || 0).toFixed(2)}`,
+        ];
+      }
+      if (isSingleProduct) {
+        return [
+          idx + 1,
+          item.product_name || "N/A",
+          item.product_code || "N/A",
+          item.quantity || 0,
+          `Rs. ${Number(item.unit_price || 0).toFixed(2)}`,
+          `${item.gst_rate || 0}%`,
+          `Rs. ${Number(item.total_delivery_charge || 0).toFixed(2)}`,
+          `Rs. ${Number(item.line_total || 0).toFixed(2)}`,
+        ];
+      }
+      return [
+        idx + 1,
+        item.product_name || "N/A",
+        item.product_code || "N/A",
+        item.quantity || 0,
+        `Rs. ${Number(item.unit_price || 0).toFixed(2)}`,
+        `${item.gst_rate || 0}%`,
+        `Rs. ${Number(item.line_total || 0).toFixed(2)}`,
+      ];
+    });
 
     autoTable(doc, {
       startY: cursorY,
@@ -344,25 +466,17 @@ export const openInvoicePdfInNewTab = (
         fillColor: [22, 63, 32],
         textColor: [234, 243, 234],
         fontStyle: "bold",
-        fontSize: 9,
+        fontSize: 8,
         halign: "left",
       },
       bodyStyles: {
-        fontSize: 9,
+        fontSize: 8,
         textColor: [63, 74, 65],
       },
       alternateRowStyles: {
         fillColor: [250, 251, 250],
       },
-      columnStyles: {
-        0: { cellWidth: 30, halign: "center" },
-        1: { cellWidth: "auto" },
-        2: { cellWidth: 80 },
-        3: { cellWidth: 45, halign: "center" },
-        4: { cellWidth: 80, halign: "right" },
-        5: { cellWidth: 50, halign: "right" },
-        6: { cellWidth: 90, halign: "right" },
-      },
+      columnStyles: columnStyles as any,
       margin: { left: marginX, right: marginX },
     });
 

@@ -28,6 +28,7 @@ export const menuItems: MenuItem[] = [
     anyOf: ['user.view', 'user.details', 'user.change_status'],
   },
 
+  // ✅ Orders — top-level, no children
   {
     path: '/orders',
     label: 'Orders',
@@ -192,6 +193,17 @@ export const menuItems: MenuItem[] = [
     ],
   },
 
+  // ✅ Sales Report — Finance ke niche, top-level (exactly like Orders)
+  // API permission: "sales": ["report"]  →  slug = "sales.report"
+  {
+    path: '/sales/report',
+    label: 'Sales Report',
+    icon: 'trending_up',
+    module: 'sales',
+    permission: 'sales.report',
+    anyOf: ['sales.report'],
+  },
+
   {
     path: '/cms',
     label: 'CMS Management',
@@ -235,30 +247,6 @@ export const menuItems: MenuItem[] = [
         module: 'content',
       },
       {
-        path: '/cms/faq',
-        label: 'FAQ Management',
-        icon: 'quiz',
-        isHeading: true,
-        permission: 'content.view',
-        module: 'content',
-        children: [
-          {
-            path: 'cms/SectionManagement',
-            label: 'Section Management',
-            icon: 'view_agenda',
-            permission: 'content.view',
-            module: 'content',
-          },
-          {
-            path: 'cms/FAQManagement',
-            label: 'FAQ Management',
-            icon: 'quiz',
-            permission: 'content.view',
-            module: 'content',
-          },
-        ],
-      },
-      {
         path: '/cms/footer',
         label: 'Footer Management',
         icon: 'vertical_align_bottom',
@@ -271,6 +259,31 @@ export const menuItems: MenuItem[] = [
         icon: 'notifications_active',
         permission: 'notification.view',
         module: 'notification',
+      },
+    ],
+  },
+
+  // ✅ FAQ moved out of CMS as a top-level item
+  {
+    path: '/cms/faq',
+    label: 'FAQ Management',
+    icon: 'quiz',
+    permission: 'content.view',
+    module: 'content',
+    children: [
+      {
+        path: 'cms/SectionManagement',
+        label: 'Section Management',
+        icon: 'view_agenda',
+        permission: 'content.view',
+        module: 'content',
+      },
+      {
+        path: 'cms/FAQManagement',
+        label: 'FAQ Management',
+        icon: 'quiz',
+        permission: 'content.view',
+        module: 'content',
       },
     ],
   },
@@ -328,22 +341,24 @@ export const menuItems: MenuItem[] = [
     module: 'contact_us',
   },
 
-  // ✅ Common — no permission needed
-  {
-    path: '/ChangePassword',
-    label: 'Change Password',
-    icon: 'lock',
-  },
+  // ✅ Account section items (rendered inside Account group in sidebar)
   {
     path: '/UpdateProfile',
     label: 'Update Profile',
     icon: 'person',
+    isHeading: true,
   },
   {
-    path: '/SettingsManagement',
-    label: 'Admin Settings',
-    icon: 'settings',
-    module: 'settings',
-    permission: 'settings.view',
+    path: '/ChangePassword',
+    label: 'Change Password',
+    icon: 'lock',
+    isHeading: true,
+  },
+  {
+    path: "/SettingsManagement",
+    label: "Admin Settings",
+    icon: "settings",
+    module: "Admin Settings",
+    permission: "Admin Settings.view",
   },
 ];

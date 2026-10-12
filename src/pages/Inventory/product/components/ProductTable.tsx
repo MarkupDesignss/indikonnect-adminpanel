@@ -42,6 +42,14 @@ interface ProductTableProps {
 
   trendingLoadingId: number | null;
 
+  // Deal of the Day
+  onDealToggle: (
+    product: Product,
+    checked: boolean,
+  ) => void;
+
+  dealLoadingId: number | null;
+
   // Publish / Unpublish
   onPublishToggle: (
     product: Product,
@@ -58,6 +66,7 @@ interface ProductTableProps {
   canDelete?: boolean;
   canPublish?: boolean;
   canToggleTrending?: boolean;
+  canToggleDeal?: boolean;
 }
 
 // =====================================================
@@ -92,6 +101,19 @@ const getStockClass = (
 };
 
 // =====================================================
+// BODY SCROLL LOCK RESET
+// =====================================================
+
+const resetBodyScrollLock = () => {
+  if (typeof document === "undefined") return;
+
+  document.body.style.overflow = "";
+  document.body.style.overflowY = "";
+  document.body.style.paddingRight = "";
+  document.documentElement.style.overflow = "";
+};
+
+// =====================================================
 // COMPONENT
 // =====================================================
 
@@ -110,6 +132,8 @@ const ProductTable: React.FC<
   onView,
   onTrendingToggle,
   trendingLoadingId,
+  onDealToggle,
+  dealLoadingId,
   onPublishToggle,
   publishLoadingId,
 
@@ -118,6 +142,7 @@ const ProductTable: React.FC<
   canDelete = false,
   canPublish = false,
   canToggleTrending = false,
+  canToggleDeal = false,
 }) => {
   const ITEMS_PER_PAGE = 10;
 
@@ -229,15 +254,23 @@ const ProductTable: React.FC<
       document.body.style.overflow =
         "hidden";
     } else {
-      document.body.style.overflow =
-        "unset";
+      resetBodyScrollLock();
     }
 
     return () => {
-      document.body.style.overflow =
-        "unset";
+      resetBodyScrollLock();
     };
   }, [zoomedImage]);
+
+  // ===================================================
+  // TOTAL COLUMNS
+  // ===================================================
+
+  const totalColumns =
+    7 +
+    (canToggleTrending ? 1 : 0) +
+    (canToggleDeal ? 1 : 0) +
+    (hasAnyAction ? 1 : 0);
 
   // ===================================================
   // RENDER
@@ -250,51 +283,73 @@ const ProductTable: React.FC<
       ================================================= */}
 
       <div className="overflow-hidden bg-white font-poppins">
-        {/* TOP ACCENT */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px] border-collapse">
+          <table className="w-full min-w-[1000px] table-fixed border-collapse">
+            {/* =================================================
+                COLUMN WIDTHS
+            ================================================= */}
+
+            <colgroup>
+              <col className="w-[55px]" />
+              <col className="w-[70px]" />
+              <col className="w-[200px]" />
+              <col className="w-[130px]" />
+              <col className="w-[110px]" />
+              <col className="w-[95px]" />
+              <col className="w-[130px]" />
+              {canToggleTrending && <col className="w-[85px]" />}
+              {canToggleDeal && <col className="w-[90px]" />}
+              {hasAnyAction && <col className="w-[130px]" />}
+            </colgroup>
+
             {/* =================================================
                 HEADER
             ================================================= */}
 
             <thead>
               <tr className="bg-[#4F8FF7] text-left">
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   S.No
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   Image
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   Product
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   SKU
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   Retail Price
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                 Remaining Stock
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  Stock
                 </th>
 
-                <th className="whitespace-nowrap px-4 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                   Status
                 </th>
 
                 {canToggleTrending && (
-                  <th className="whitespace-nowrap px-4 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Trending
                   </th>
                 )}
 
+                {canToggleDeal && (
+                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                    Deal of Day
+                  </th>
+                )}
+
                 {hasAnyAction && (
-                  <th className="whitespace-nowrap px-4 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  <th className="whitespace-nowrap px-3 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Actions
                   </th>
                 )}
@@ -311,13 +366,7 @@ const ProductTable: React.FC<
               {loading ? (
                 <tr>
                   <td
-                    colSpan={
-                      7 +
-                      (canToggleTrending
-                        ? 1
-                        : 0) +
-                      (hasAnyAction ? 1 : 0)
-                    }
+                    colSpan={totalColumns}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
@@ -341,20 +390,12 @@ const ProductTable: React.FC<
 
                 <tr>
                   <td
-                    colSpan={
-                      7 +
-                      (canToggleTrending
-                        ? 1
-                        : 0) +
-                      (hasAnyAction ? 1 : 0)
-                    }
+                    colSpan={totalColumns}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-[#EAF3FF] text-[#2D6FE8]">
-                        <FiPackage
-                          size={24}
-                        />
+                        <FiPackage size={24} />
                       </div>
 
                       <p className="text-sm font-bold text-[#111827]">
@@ -374,8 +415,7 @@ const ProductTable: React.FC<
                 products.map(
                   (product, index) => {
                     const serialNumber =
-                      (currentPage -
-                        1) *
+                      (currentPage - 1) *
                         ITEMS_PER_PAGE +
                       index +
                       1;
@@ -389,8 +429,7 @@ const ProductTable: React.FC<
                       product.images?.[0];
 
                     const stock = Number(
-                      product.stock_quantity ||
-                        0,
+                      product.stock_quantity || 0,
                     );
 
                     const lowStockThreshold =
@@ -400,8 +439,7 @@ const ProductTable: React.FC<
                       );
 
                     const isLowStock =
-                      stock <=
-                      lowStockThreshold;
+                      stock <= lowStockThreshold;
 
                     const rawPublished =
                       (
@@ -415,11 +453,8 @@ const ProductTable: React.FC<
 
                     const isPublished =
                       rawPublished === true ||
-                      rawPublished ===
-                        "true" ||
-                      Number(
-                        rawPublished,
-                      ) === 1;
+                      rawPublished === "true" ||
+                      Number(rawPublished) === 1;
 
                     const isPublishLoading =
                       publishLoadingId ===
@@ -437,14 +472,34 @@ const ProductTable: React.FC<
 
                     const isTrending =
                       rawTrending === true ||
-                      rawTrending ===
-                        "true" ||
-                      Number(
-                        rawTrending,
-                      ) === 1;
+                      rawTrending === "true" ||
+                      Number(rawTrending) === 1;
 
                     const isTrendingLoading =
                       trendingLoadingId ===
+                      product.id;
+
+                    // ============================
+                    // DEAL OF THE DAY
+                    // ============================
+
+                    const rawDeal =
+                      (
+                        product as Product & {
+                          is_deal_of_the_day?:
+                            | number
+                            | boolean
+                            | string;
+                        }
+                      ).is_deal_of_the_day;
+
+                    const isDealOfTheDay =
+                      rawDeal === true ||
+                      rawDeal === "true" ||
+                      Number(rawDeal) === 1;
+
+                    const isDealLoading =
+                      dealLoadingId ===
                       product.id;
 
                     return (
@@ -454,17 +509,15 @@ const ProductTable: React.FC<
                       >
                         {/* S.NO */}
 
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                            {
-                              serialNumber
-                            }
+                            {serialNumber}
                           </span>
                         </td>
 
                         {/* IMAGE */}
 
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           {primaryImage ? (
                             <div
                               className="relative h-[48px] w-[48px] cursor-pointer overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-0.5 transition-all duration-200 group-hover:border-[#2D6FE8]/35 group-hover:shadow-lg"
@@ -480,9 +533,7 @@ const ProductTable: React.FC<
                                 src={
                                   primaryImage.image_url
                                 }
-                                alt={
-                                  product.name
-                                }
+                                alt={product.name}
                                 className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
                                 onError={(
                                   event,
@@ -511,17 +562,24 @@ const ProductTable: React.FC<
                           )}
                         </td>
 
-                        {/* PRODUCT */}
+                        {/* PRODUCT — NAME + DESC (TRUNCATED) */}
 
-                        <td className="px-4 py-3">
-                          <div className="max-w-[250px]">
-                            <p className="truncate text-sm font-bold text-[#111827]">
-                              {
-                                product.name
-                              }
+                        <td className="px-3 py-3">
+                          <div className="w-full min-w-0">
+                            <p
+                              className="truncate text-sm font-bold text-[#111827]"
+                              title={product.name}
+                            >
+                              {product.name}
                             </p>
 
-                            <p className="mt-1 truncate text-[10px] leading-5 text-[#6B7280]">
+                            <p
+                              className="mt-1 truncate text-[10px] leading-5 text-[#6B7280]"
+                              title={
+                                product.description ||
+                                ""
+                              }
+                            >
                               {product.description ||
                                 "No description available"}
                             </p>
@@ -530,8 +588,14 @@ const ProductTable: React.FC<
 
                         {/* SKU */}
 
-                        <td className="px-4 py-3">
-                          <span className="inline-flex rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#111827]">
+                        <td className="px-3 py-3">
+                          <span
+                            className="inline-block max-w-full truncate rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#111827]"
+                            title={
+                              product.product_code ||
+                              "-"
+                            }
+                          >
                             {product.product_code ||
                               "-"}
                           </span>
@@ -539,13 +603,13 @@ const ProductTable: React.FC<
 
                         {/* RETAIL PRICE */}
 
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <div className="flex items-center gap-1">
                             <span className="text-[11px] font-bold text-[#2D6FE8]">
                               ₹
                             </span>
 
-                            <span className="text-sm font-bold text-[#111827]">
+                            <span className="truncate text-sm font-bold text-[#111827]">
                               {Number(
                                 product.retail_price ||
                                   0,
@@ -558,15 +622,14 @@ const ProductTable: React.FC<
 
                         {/* STOCK */}
 
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <span
                             className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStockClass(
                               isLowStock,
                               stock,
                             )}`}
                           >
-                            {stock <=
-                            0
+                            {stock <= 0
                               ? "Out"
                               : stock}
                           </span>
@@ -574,9 +637,9 @@ const ProductTable: React.FC<
 
                         {/* STATUS */}
 
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           {canPublish ? (
-                            <div className="relative inline-block">
+                            <div className="relative inline-block w-full">
                               <select
                                 value={
                                   isPublished
@@ -605,7 +668,7 @@ const ProductTable: React.FC<
                                     );
                                   }
                                 }}
-                                className={`h-8 min-w-[130px] max-w-[130px] cursor-pointer appearance-none rounded-full border py-1.5 pl-3 pr-9 text-[10px] font-bold uppercase tracking-wide outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
+                                className={`h-8 w-full cursor-pointer appearance-none rounded-full border py-1.5 pl-3 pr-8 text-[10px] font-bold uppercase tracking-wide outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
                                   isPublished,
                                 )} focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10`}
                               >
@@ -618,7 +681,7 @@ const ProductTable: React.FC<
                                 </option>
                               </select>
 
-                              <span className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center">
+                              <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center">
                                 {isPublishLoading ? (
                                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
                                 ) : (
@@ -649,7 +712,7 @@ const ProductTable: React.FC<
                         {/* TRENDING */}
 
                         {canToggleTrending && (
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3">
                             <div className="flex justify-center">
                               <label
                                 className={`relative inline-flex items-center ${
@@ -710,10 +773,74 @@ const ProductTable: React.FC<
                           </td>
                         )}
 
+                        {/* DEAL OF THE DAY — TEAL COLOR */}
+
+                        {canToggleDeal && (
+                          <td className="px-3 py-3">
+                            <div className="flex justify-center">
+                              <label
+                                className={`relative inline-flex items-center ${
+                                  isDealLoading
+                                    ? "cursor-wait"
+                                    : "cursor-pointer"
+                                }`}
+                                title={
+                                  isDealOfTheDay
+                                    ? "Remove from Deal of the Day"
+                                    : "Add as Deal of the Day"
+                                }
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    isDealOfTheDay
+                                  }
+                                  disabled={
+                                    isDealLoading
+                                  }
+                                  onChange={(
+                                    event,
+                                  ) =>
+                                    onDealToggle(
+                                      product,
+                                      event
+                                        .target
+                                        .checked,
+                                    )
+                                  }
+                                  className="peer sr-only"
+                                />
+
+                                <div
+                                  className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
+                                    isDealOfTheDay
+                                      ? "border-[#0D9488] bg-gradient-to-r from-[#14B8A6] to-[#0D9488]"
+                                      : "border-[#D6E2F0] bg-[#EEF2F9]"
+                                  } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0D9488]/20`}
+                                >
+                                  <span
+                                    className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                                      isDealOfTheDay
+                                        ? "left-[23px]"
+                                        : "left-[3px]"
+                                    }`}
+                                  />
+                                </div>
+
+                                {isDealLoading && (
+                                  <span className="absolute inset-0 flex items-center justify-center">
+                                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D9488]/25 border-t-[#0D9488]" />
+                                  </span>
+                                )}
+                              </label>
+                            </div>
+                          </td>
+                        )}
+
                         {/* ACTIONS */}
 
                         {hasAnyAction && (
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-3">
                             <div className="flex justify-end gap-1.5">
                               {/* VIEW */}
 
@@ -816,9 +943,7 @@ const ProductTable: React.FC<
 
                 <button
                   type="button"
-                  disabled={
-                    currentPage === 1
-                  }
+                  disabled={currentPage === 1}
                   onClick={() =>
                     onPageChange(
                       currentPage - 1,
@@ -827,39 +952,34 @@ const ProductTable: React.FC<
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Previous page"
                 >
-                  <FiChevronLeft
-                    size={17}
-                  />
+                  <FiChevronLeft size={17} />
                 </button>
 
                 {/* PAGE NUMBERS */}
 
-                {paginationPages.map(
-                  (page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        onPageChange(page)
-                      }
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
-                          : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
+                {paginationPages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() =>
+                      onPageChange(page)
+                    }
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                      currentPage === page
+                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
+                        : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 {/* NEXT */}
 
                 <button
                   type="button"
                   disabled={
-                    currentPage ===
-                      totalPages ||
+                    currentPage === totalPages ||
                     totalPages === 0
                   }
                   onClick={() =>
@@ -870,9 +990,7 @@ const ProductTable: React.FC<
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Next page"
                 >
-                  <FiChevronRight
-                    size={17}
-                  />
+                  <FiChevronRight size={17} />
                 </button>
               </div>
             </div>
@@ -896,9 +1014,7 @@ const ProductTable: React.FC<
 
             <button
               type="button"
-              onClick={
-                handleCloseZoom
-              }
+              onClick={handleCloseZoom}
               className="absolute -right-2 -top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:scale-110 hover:bg-black/70 sm:-right-4"
               aria-label="Close zoom"
             >
@@ -917,9 +1033,7 @@ const ProductTable: React.FC<
 
             <div
               className="relative max-h-[80vh] max-w-[85vw] cursor-zoom-out"
-              onClick={
-                handleCloseZoom
-              }
+              onClick={handleCloseZoom}
             >
               <img
                 src={zoomedImage.url}
@@ -929,8 +1043,7 @@ const ProductTable: React.FC<
                   const target =
                     event.target as HTMLImageElement;
 
-                  target.style.display =
-                    "none";
+                  target.style.display = "none";
                 }}
               />
             </div>
@@ -938,8 +1051,7 @@ const ProductTable: React.FC<
             {/* HINT */}
 
             <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[10px] text-white/60 sm:text-xs">
-              Click anywhere to close •
-              ESC to exit
+              Click anywhere to close • ESC to exit
             </div>
           </div>
         )}

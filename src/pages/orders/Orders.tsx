@@ -3729,6 +3729,7 @@ interface StatCardProps {
   tileIconClass?: string;
 }
 
+
 const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
@@ -3747,14 +3748,17 @@ const StatCard: React.FC<StatCardProps> = ({
       }}
       className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm"
     >
+      {/* Top Accent */}
       <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
 
+      {/* Decorative Circles */}
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/10" />
 
       <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#2D6FE8]/10" />
 
+      {/* Card Content */}
       <div className="relative z-10 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#111827]">
             {title}
           </p>
@@ -3763,13 +3767,18 @@ const StatCard: React.FC<StatCardProps> = ({
             {value.toLocaleString("en-IN")}
           </p>
 
-          <p className="mt-1 text-xs text-[#111827]">{subtitle}</p>
+          <p className="mt-1 text-xs text-[#111827]">
+            {subtitle}
+          </p>
         </div>
 
+        {/* Smaller Icon */}
         <div
-          className={`flex h-10 w-10 font-medium items-center justify-center rounded-xl -text-[2px] ${tileClass} ${tileIconClass}`}
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tileClass} ${tileIconClass}`}
         >
-          {icon}
+          <span className="flex items-center justify-center text-[16px] [&>svg]:h-[16px] [&>svg]:w-[16px]">
+            {icon}
+          </span>
         </div>
       </div>
     </motion.div>

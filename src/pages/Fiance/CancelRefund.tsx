@@ -164,16 +164,16 @@ const getStatusLabel = (status: string) => {
 const getStatusClass = (status: string) => {
   switch (status) {
     case "pending":
-      return "border-[#FACC15]/40 bg-[#FEF9C3] text-[#8A6D16]";
+      return "border-[#FACC15]/40 bg-[#FEF9C3] text-[#A16207]";
 
     case "approved":
-      return "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]";
+      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
 
     case "rejected":
-      return "border-[#C23B32]/25 bg-[#FBEAEA] text-[#C23B32]";
+      return "border-[#C23B32]/25 bg-[#FEF2F2] text-[#C23B32]";
 
     default:
-      return "border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778]";
+      return "border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563]";
   }
 };
 
@@ -183,13 +183,13 @@ const getStatusDot = (status: string) => {
       return "bg-[#FACC15]";
 
     case "approved":
-      return "bg-[#1E3A8A]";
+      return "bg-[#2D6FE8]";
 
     case "rejected":
       return "bg-[#C23B32]";
 
     default:
-      return "bg-[#8C97B2]";
+      return "bg-[#6B7280]";
   }
 };
 
@@ -269,19 +269,19 @@ const getAccountTypeClass = (
 ) => {
   switch (accountType) {
     case "distributor":
-      return "border-[#1E3A8A]/25 bg-[#EAF1FF] text-[#1E3A8A]";
+      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
 
     case "retailer":
-      return "border-[#2563EB]/25 bg-[#DBEAFE] text-[#1E40AF]";
+      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#1E40AF]";
 
     case "wholesaler":
-      return "border-[#1E40AF]/25 bg-[#EAF1FF] text-[#1E40AF]";
+      return "border-[#1E40AF]/25 bg-[#EAF3FF] text-[#1E40AF]";
 
     case "customer":
-      return "border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778]";
+      return "border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563]";
 
     default:
-      return "border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778]";
+      return "border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563]";
   }
 };
 
@@ -319,7 +319,7 @@ const buildTimelineEvents = (
       description:
         "Order was placed by the customer.",
       date: timeline.created_at ?? null,
-      color: "bg-[#1E3A8A]",
+      color: "bg-[#2D6FE8]",
       icon: <FiPackage size={14} />,
     },
     {
@@ -328,7 +328,7 @@ const buildTimelineEvents = (
       description:
         "Order was handed over to courier.",
       date: timeline.dispatched_at ?? null,
-      color: "bg-[#2563EB]",
+      color: "bg-[#2D6FE8]",
       icon: <FiTruck size={14} />,
     },
     {
@@ -337,7 +337,7 @@ const buildTimelineEvents = (
       description:
         "Package is in transit.",
       date: timeline.shipped_at ?? null,
-      color: "bg-[#2563EB]",
+      color: "bg-[#2D6FE8]",
       icon: <FiSend size={14} />,
     },
     {
@@ -346,7 +346,7 @@ const buildTimelineEvents = (
       description:
         "Package delivered to the customer.",
       date: timeline.delivered_at ?? null,
-      color: "bg-[#172554]",
+      color: "bg-[#1E40AF]",
       icon: <FiCheckCircle size={14} />,
     },
     {
@@ -395,7 +395,7 @@ const buildTimelineEvents = (
       description:
         "Return request was approved.",
       date: timeline.return_approved_at ?? null,
-      color: "bg-[#1E3A8A]",
+      color: "bg-[#2D6FE8]",
       icon: <FiCheckCircle size={14} />,
     },
     {
@@ -414,7 +414,7 @@ const buildTimelineEvents = (
         "Return process was completed.",
       date:
         timeline.return_completed_at ?? null,
-      color: "bg-[#172554]",
+      color: "bg-[#1E40AF]",
       icon: <FiCheckCircle size={14} />,
     },
     {
@@ -423,7 +423,7 @@ const buildTimelineEvents = (
       description:
         "Last status change recorded.",
       date: timeline.updated_at ?? null,
-      color: "bg-[#2563EB]",
+      color: "bg-[#2D6FE8]",
       icon: <FiClock size={14} />,
     },
   ];
@@ -487,31 +487,31 @@ const CancellationStatCard: React.FC<
         boxShadow:
           "0 16px 30px -18px rgba(30,58,138,0.28)",
       }}
-      className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white p-5 shadow-sm"
+      className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white p-5 shadow-sm"
     >
       <div
         className={`absolute left-0 top-0 h-1 w-full ${accent}`}
       />
 
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2563EB]/15" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/15" />
 
-      <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#1E3A8A]/10" />
+      <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#2D6FE8]/10" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
             {title}
           </p>
 
           {loading ? (
-            <div className="mt-3 h-9 w-16 animate-pulse rounded-lg bg-[#EAF1FF]" />
+            <div className="mt-3 h-9 w-16 animate-pulse rounded-lg bg-[#EAF3FF]" />
           ) : (
-            <p className="mt-2 text-3xl font-bold text-[#0F1B3D]">
+            <p className="mt-2 text-3xl font-bold text-[#111827]">
               {value.toLocaleString("en-IN")}
             </p>
           )}
 
-          <p className="mt-1 text-xs text-[#4A5778]">
+          <p className="mt-1 text-xs text-[#4B5563]">
             {subtitle}
           </p>
         </div>
@@ -543,8 +543,8 @@ const TimelineStepper: React.FC<
 }) => {
   if (!events || events.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-[#D8E2F0] bg-[#FAFBFF] p-4 text-center">
-        <p className="text-xs text-[#8C97B2]">
+      <div className="rounded-xl border border-dashed border-[#DCE6F2] bg-[#F8FBFF] p-4 text-center">
+        <p className="text-xs text-[#6B7280]">
           {emptyText}
         </p>
       </div>
@@ -570,29 +570,29 @@ const TimelineStepper: React.FC<
               </div>
 
               {!isLast && (
-                <div className="absolute top-9 bottom-0 w-px bg-[#D8E2F0]" />
+                <div className="absolute top-9 bottom-0 w-px bg-[#DCE6F2]" />
               )}
             </div>
 
             <div className="flex-1 pt-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-bold text-[#0F1B3D]">
+                <p className="text-sm font-bold text-[#111827]">
                   {event.label}
                 </p>
 
                 {isLast && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#1E3A8A]/25 bg-[#EAF1FF] px-2 py-0.5 text-[10px] font-bold text-[#1E3A8A]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2 py-0.5 text-[10px] font-bold text-[#2D6FE8]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
                     Latest
                   </span>
                 )}
               </div>
 
-              <p className="mt-1 text-xs leading-5 text-[#4A5778]">
+              <p className="mt-1 text-xs leading-5 text-[#4B5563]">
                 {event.description}
               </p>
 
-              <p className="mt-1 text-[11px] font-semibold text-[#8C97B2]">
+              <p className="mt-1 text-[11px] font-semibold text-[#6B7280]">
                 {formatDate(event.date)}
               </p>
             </div>
@@ -646,10 +646,10 @@ const RejectPopup: React.FC<
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
+      <div className="w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
+        <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] to-[#C23B32]" />
 
-        <div className="flex items-start justify-between border-b border-[#D8E2F0] px-4 py-3">
+        <div className="flex items-start justify-between border-b border-[#DCE6F2] px-4 py-3">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#C23B32]" />
@@ -659,11 +659,11 @@ const RejectPopup: React.FC<
               </span>
             </div>
 
-            <h2 className="text-base font-bold text-[#0F1B3D]">
+            <h2 className="text-base font-bold text-[#111827]">
               Reject Cancellation
             </h2>
 
-            <p className="mt-0.5 text-[11px] text-[#8C97B2]">
+            <p className="mt-0.5 text-[11px] text-[#6B7280]">
               Enter the reason for rejecting this request.
             </p>
           </div>
@@ -672,7 +672,7 @@ const RejectPopup: React.FC<
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] disabled:opacity-50"
           >
             <FiX size={16} />
           </button>
@@ -680,7 +680,7 @@ const RejectPopup: React.FC<
 
         <div className="space-y-3 p-4">
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
               Rejection Reason{" "}
               <span className="text-[#C23B32]">*</span>
             </label>
@@ -695,12 +695,12 @@ const RejectPopup: React.FC<
               rows={3}
               placeholder="Enter rejection reason..."
               disabled={loading}
-              className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2.5 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15 disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
               Admin Notes
             </label>
 
@@ -714,12 +714,12 @@ const RejectPopup: React.FC<
               rows={2}
               placeholder="Optional internal notes..."
               disabled={loading}
-              className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2.5 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15 disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
             />
           </div>
 
-          <div className="rounded-xl border border-[#C23B32]/20 bg-[#FBEAEA] p-2.5">
-            <p className="text-[11px] leading-4 text-[#8b3a34]">
+          <div className="rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] p-2.5">
+            <p className="text-[11px] leading-4 text-[#C23B32]">
               ⚠️ Rejecting will mark this cancellation
               request as rejected. Customer will be
               notified.
@@ -727,12 +727,12 @@ const RejectPopup: React.FC<
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#D8E2F0] bg-[#FAFBFF] px-4 py-3">
+        <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-[#D8E2F0] bg-white px-4 py-2 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+            className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -823,24 +823,24 @@ const PayPopup: React.FC<PayPopupProps> = ({
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+      <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
-        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2F0] px-4 py-3">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-4 py-3">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#1E3A8A]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
                 Approve Cancellation
               </span>
             </div>
 
-            <h2 className="text-base font-bold text-[#0F1B3D]">
+            <h2 className="text-base font-bold text-[#111827]">
               Pay Cancellation Amount
             </h2>
 
-            <p className="mt-0.5 text-[11px] text-[#8C97B2]">
+            <p className="mt-0.5 text-[11px] text-[#6B7280]">
               Enter the amount to be refunded to the customer.
             </p>
           </div>
@@ -849,43 +849,43 @@ const PayPopup: React.FC<PayPopupProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A] disabled:opacity-50"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:opacity-50"
           >
             <FiX size={16} />
           </button>
         </div>
 
         <div className="space-y-3 p-4">
-          <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
+          <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#8C97B2]">
+              <span className="text-xs text-[#6B7280]">
                 Order
               </span>
 
-              <span className="text-right text-sm font-bold text-[#0F1B3D]">
+              <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
 
-            <div className="mt-2 flex justify-between gap-4 border-t border-[#D8E2F0] pt-2">
-              <span className="text-xs text-[#8C97B2]">
+            <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
+              <span className="text-xs text-[#6B7280]">
                 Customer
               </span>
 
-              <span className="text-right text-sm font-semibold text-[#0F1B3D]">
+              <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
               </span>
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
               Payment Amount{" "}
               <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#1E3A8A]">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2D6FE8]">
                 ₹
               </span>
 
@@ -899,13 +899,13 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 }
                 placeholder="Enter amount"
                 disabled={loading}
-                className="h-10 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-8 pr-3 text-sm font-semibold text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15 disabled:opacity-60"
+                className="h-10 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-8 pr-3 text-sm font-semibold text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4A5778]">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
               Admin Notes
             </label>
 
@@ -919,22 +919,22 @@ const PayPopup: React.FC<PayPopupProps> = ({
               rows={2}
               placeholder="Optional internal notes..."
               disabled={loading}
-              className="w-full resize-none rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] px-3 py-2.5 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15 disabled:opacity-60"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
             />
           </div>
 
-          <div className="rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] p-3">
+          <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#1E3A8A]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
                 <FiCreditCard size={17} />
               </div>
 
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#2563EB]">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                   Amount To Pay
                 </p>
 
-                <p className="mt-1 text-xl font-bold text-[#1E3A8A]">
+                <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
                   {formatCurrency(
                     numericAmount,
                   )}
@@ -944,12 +944,12 @@ const PayPopup: React.FC<PayPopupProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#D8E2F0] bg-[#FAFBFF] px-4 py-3">
+        <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-[#D8E2F0] bg-white px-4 py-2 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+            className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -965,7 +965,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 adminNotes.trim(),
               )
             }
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-5 py-2 text-sm font-bold text-white shadow-md shadow-[#1E3A8A]/15 transition hover:from-[#1E3A8A] hover:to-[#172554] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-5 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <FiRefreshCw
@@ -1023,11 +1023,11 @@ const CancellationDetailModal: React.FC<
         onClose={onClose}
         closeOnOverlayClick={false}
       >
-        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-2xl font-poppins">
-          <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+        <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
+          <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
           <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
               <FiAlertCircle size={28} />
             </div>
 
@@ -1038,7 +1038,7 @@ const CancellationDetailModal: React.FC<
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-6 py-2.5 text-sm font-bold text-white"
+              className="mt-5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white"
             >
               Close
             </button>
@@ -1159,25 +1159,25 @@ const CancellationDetailModal: React.FC<
       onClose={onClose}
       closeOnOverlayClick={false}
     >
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
+      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#D8E2F0] px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
+              <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#1E3A8A]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
                 Cancellation Requests
               </span>
             </div>
 
-            <h2 className="text-xl font-bold text-[#0F1B3D]">
+            <h2 className="text-xl font-bold text-[#111827]">
               Cancellation Request
             </h2>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8C97B2]">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
               <span>
                 Item Ref: {itemReference}
               </span>
@@ -1210,7 +1210,7 @@ const CancellationDetailModal: React.FC<
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778] transition hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
           >
             <FiX size={18} />
           </button>
@@ -1225,7 +1225,7 @@ const CancellationDetailModal: React.FC<
                 ? "border-[#FACC15]/30"
                 : status === "rejected"
                   ? "border-[#C23B32]/25"
-                  : "border-[#1E3A8A]/25"
+                  : "border-[#2D6FE8]/25"
             }`}
           >
             <div
@@ -1233,17 +1233,17 @@ const CancellationDetailModal: React.FC<
                 status === "pending"
                   ? "bg-[#FEF9C3]"
                   : status === "rejected"
-                    ? "bg-[#FBEAEA]"
-                    : "bg-[#EAF1FF]"
+                    ? "bg-[#FEF2F2]"
+                    : "bg-[#EAF3FF]"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#8C97B2]">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
                     Current Status
                   </p>
 
-                  <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
+                  <p className="mt-1 text-sm font-bold text-[#111827]">
                     {getStatusLabel(
                       status,
                     )}
@@ -1270,19 +1270,19 @@ const CancellationDetailModal: React.FC<
           </div>
 
           {/* ITEM CARD */}
-          <div className="overflow-hidden rounded-2xl border border-[#D8E2F0]">
-            <div className="border-b border-[#D8E2F0] bg-[#FAFBFF] px-5 py-4">
+          <div className="overflow-hidden rounded-2xl border border-[#DCE6F2]">
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={17} />
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-[#0F1B3D]">
+                  <h3 className="text-sm font-bold text-[#111827]">
                     Cancellation Item
                   </h3>
 
-                  <p className="mt-0.5 text-xs text-[#8C97B2]">
+                  <p className="mt-0.5 text-xs text-[#6B7280]">
                     {quantity} item(s)
                   </p>
                 </div>
@@ -1298,74 +1298,74 @@ const CancellationDetailModal: React.FC<
                       raw.product.name ||
                       "Product"
                     }
-                    className="h-16 w-16 shrink-0 rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] object-cover"
+                    className="h-16 w-16 shrink-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#1E3A8A]">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]">
                     <FiPackage size={22} />
                   </div>
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-bold text-[#0F1B3D]">
+                  <h4 className="text-sm font-bold text-[#111827]">
                     {raw.product?.name ||
                       "Cancellation Item"}
                   </h4>
 
-                  <p className="mt-1 text-xs text-[#8C97B2]">
+                  <p className="mt-1 text-xs text-[#6B7280]">
                     SKU:{" "}
                     {raw.product
                       ?.product_code ||
                       "N/A"}
                   </p>
 
-                  <p className="mt-2 text-sm font-semibold text-[#1E3A8A]">
+                  <p className="mt-2 text-sm font-semibold text-[#2D6FE8]">
                     Qty: {quantity}
                   </p>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Price
                   </p>
 
-                  <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
+                  <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(
                       unitPrice,
                     )}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Tax
                   </p>
 
-                  <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
+                  <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(tax)}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Total
                   </p>
 
-                  <p className="mt-1 text-sm font-bold text-[#0F1B3D]">
+                  <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(
                       subtotal,
                     )}
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-[#1E3A8A]/20 bg-[#EAF1FF] p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#2563EB]">
+                <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                     Reason
                   </p>
 
-                  <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#4A5778]">
+                  <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#4B5563]">
                     {reason}
                   </p>
                 </div>
@@ -1375,13 +1375,13 @@ const CancellationDetailModal: React.FC<
 
           {/* CUSTOMER + ORDER */}
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#D8E2F0] bg-[#F5F8FF] p-5">
+            <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiUser size={17} />
                 </div>
 
-                <h3 className="text-sm font-bold text-[#0F1B3D]">
+                <h3 className="text-sm font-bold text-[#111827]">
                   {detail.user?.account_type?.toLowerCase() ===
                   "distributor"
                     ? "Distributor Information"
@@ -1390,25 +1390,25 @@ const CancellationDetailModal: React.FC<
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#D8E2F0] pb-2.5">
-                  <span className="text-xs text-[#8C97B2]">
+                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="text-xs text-[#6B7280]">
                     Name
                   </span>
 
-                  <span className="text-right text-sm font-semibold text-[#0F1B3D]">
+                  <span className="text-right text-sm font-semibold text-[#111827]">
                     {getCustomerName(
                       customer,
                     )}
                   </span>
                 </div>
 
-                <div className="flex items-start justify-between gap-4 border-b border-[#D8E2F0] pb-2.5">
-                  <span className="shrink-0 text-xs text-[#8C97B2]">
+                <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
                     Email
                   </span>
 
                   <div className="min-w-0 text-right">
-                    <p className="truncate text-sm font-semibold text-[#0F1B3D]">
+                    <p className="truncate text-sm font-semibold text-[#111827]">
                       {customer.email ||
                         "N/A"}
                     </p>
@@ -1430,11 +1430,11 @@ const CancellationDetailModal: React.FC<
                 </div>
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#8C97B2]">
+                  <span className="text-xs text-[#6B7280]">
                     Phone
                   </span>
 
-                  <span className="text-sm font-semibold text-[#0F1B3D]">
+                  <span className="text-sm font-semibold text-[#111827]">
                     {customer.phone ||
                       "N/A"}
                   </span>
@@ -1442,44 +1442,44 @@ const CancellationDetailModal: React.FC<
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#D8E2F0] bg-[#F5F8FF] p-5">
+            <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={17} />
                 </div>
 
-                <h3 className="text-sm font-bold text-[#0F1B3D]">
+                <h3 className="text-sm font-bold text-[#111827]">
                   Order Information
                 </h3>
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#D8E2F0] pb-2.5">
-                  <span className="text-xs text-[#8C97B2]">
+                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="text-xs text-[#6B7280]">
                     Order Reference
                   </span>
 
-                  <span className="text-right text-sm font-bold text-[#1E3A8A]">
+                  <span className="text-right text-sm font-bold text-[#2D6FE8]">
                     {orderReference}
                   </span>
                 </div>
 
-                <div className="flex justify-between gap-4 border-b border-[#D8E2F0] pb-2.5">
-                  <span className="text-xs text-[#8C97B2]">
+                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="text-xs text-[#6B7280]">
                     Item Reference
                   </span>
 
-                  <span className="text-sm font-semibold text-[#0F1B3D]">
+                  <span className="text-sm font-semibold text-[#111827]">
                     {itemReference}
                   </span>
                 </div>
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#8C97B2]">
+                  <span className="text-xs text-[#6B7280]">
                     Delivery Status
                   </span>
 
-                  <span className="text-sm font-semibold capitalize text-[#0F1B3D]">
+                  <span className="text-sm font-semibold capitalize text-[#111827]">
                     {getStatusLabel(
                       raw.delivery_status ||
                         "N/A",
@@ -1491,38 +1491,38 @@ const CancellationDetailModal: React.FC<
           </div>
 
           {/* AMOUNT */}
-          <div className="mt-5 rounded-2xl border border-[#1E3A8A]/20 bg-gradient-to-r from-[#EAF1FF] to-[#f4f8ff] p-5">
+          <div className="mt-5 rounded-2xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2563EB]">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2D6FE8]">
                   Cancellation Amount
                 </p>
 
-                <p className="mt-1 text-2xl font-bold text-[#1E3A8A]">
+                <p className="mt-1 text-2xl font-bold text-[#2D6FE8]">
                   {formatCurrency(amount)}
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#1E3A8A]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
                 <FiCreditCard size={20} />
               </div>
             </div>
           </div>
 
           {/* TIMELINE */}
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#D8E2F0] bg-white">
-            <div className="border-b border-[#D8E2F0] bg-[#FAFBFF] px-5 py-4">
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiTruck size={17} />
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-bold text-[#0F1B3D]">
+                  <h3 className="text-sm font-bold text-[#111827]">
                     Track Order
                   </h3>
 
-                  <p className="mt-0.5 text-xs text-[#8C97B2]">
+                  <p className="mt-0.5 text-xs text-[#6B7280]">
                     Full timeline of this cancellation request
                   </p>
                 </div>
@@ -1530,7 +1530,7 @@ const CancellationDetailModal: React.FC<
             </div>
 
             <div className="p-5">
-              <div className="rounded-2xl border border-[#D8E2F0] bg-[#FAFBFF] p-5">
+              <div className="rounded-2xl border border-[#DCE6F2] bg-[#F8FBFF] p-5">
                 <TimelineStepper
                   events={timelineEvents}
                   emptyText="No timeline events recorded for this request yet."
@@ -1541,12 +1541,12 @@ const CancellationDetailModal: React.FC<
 
           {/* ADMIN NOTES */}
           {raw.admin_notes && (
-            <div className="mt-5 rounded-2xl border border-[#D8E2F0] bg-[#F5F8FF] p-4">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+            <div className="mt-5 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Admin Notes
               </p>
 
-              <p className="mt-2 text-sm leading-6 text-[#4A5778]">
+              <p className="mt-2 text-sm leading-6 text-[#4B5563]">
                 {raw.admin_notes}
               </p>
             </div>
@@ -1554,12 +1554,12 @@ const CancellationDetailModal: React.FC<
         </div>
 
         {/* FOOTER */}
-        <div className="border-t border-[#D8E2F0] bg-[#FAFBFF] px-5 py-4 sm:px-6">
+        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#D8E2F0] bg-white px-5 py-2.5 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
             >
               Close
             </button>
@@ -1574,7 +1574,7 @@ const CancellationDetailModal: React.FC<
                       actionLoading.type ===
                       "approve"
                     }
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#1E3A8A]/15 transition hover:from-[#1E3A8A] hover:to-[#172554] disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                   >
                     {actionLoading.type ===
                     "approve" ? (
@@ -1599,7 +1599,7 @@ const CancellationDetailModal: React.FC<
                       actionLoading.type ===
                       "reject"
                     }
-                    className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                   >
                     {actionLoading.type ===
                     "reject" ? (
@@ -2391,20 +2391,20 @@ const CancelRefund: React.FC = () => {
 
   if (permissionsLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] font-poppins">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
         <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
             <FiRefreshCw
               size={27}
               className="animate-spin"
             />
           </div>
 
-          <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+          <p className="mt-4 text-sm font-bold text-[#111827]">
             Checking permissions...
           </p>
 
-          <p className="mt-1 text-xs text-[#8C97B2]">
+          <p className="mt-1 text-xs text-[#6B7280]">
             Please wait while we verify your access.
           </p>
         </div>
@@ -2416,7 +2416,7 @@ const CancelRefund: React.FC = () => {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins"
+        className="min-h-screen bg-white p-4 font-poppins"
         initial="hidden"
         animate="visible"
         variants={{
@@ -2431,22 +2431,22 @@ const CancelRefund: React.FC = () => {
         >
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
+              <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
               <div className="h-2 w-2 rounded-full bg-[#FACC15]" />
 
-              <div className="h-2 w-2 rounded-full bg-[#2563EB]" />
+              <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
                 Order Management
               </span>
             </div>
 
-            <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[30px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Cancellation Requests
             </h1>
 
-            <p className="mt-1 text-sm text-[#4A5778]">
+            <p className="mt-0.5 text-sm text-[#111827]">
               Review, approve, reject and pay customer
               cancellation requests.
             </p>
@@ -2456,7 +2456,7 @@ const CancelRefund: React.FC = () => {
             type="button"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#D8E2F0] bg-white px-4 text-sm font-semibold text-[#1E3A8A] shadow-sm transition hover:border-[#1E3A8A] hover:bg-[#EAF1FF] disabled:opacity-50"
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] disabled:opacity-50"
           >
             <FiRefreshCw
               size={16}
@@ -2482,9 +2482,9 @@ const CancelRefund: React.FC = () => {
             subtitle="All cancellation requests"
             icon={<FiPackage size={21} />}
             loading={loading}
-            accent="bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]"
-            tileClass="bg-[#EAF1FF]"
-            tileIconClass="text-[#1E3A8A]"
+            accent="bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]"
+            tileClass="bg-[#EAF3FF]"
+            tileIconClass="text-[#2D6FE8]"
           />
 
           <CancellationStatCard
@@ -2495,7 +2495,7 @@ const CancelRefund: React.FC = () => {
             loading={loading}
             accent="bg-gradient-to-r from-[#FDE047] to-[#FACC15]"
             tileClass="bg-[#FEF9C3]"
-            tileIconClass="text-[#1E293B]"
+            tileIconClass="text-[#A16207]"
           />
 
           <CancellationStatCard
@@ -2504,8 +2504,8 @@ const CancelRefund: React.FC = () => {
             subtitle="Approved requests"
             icon={<FiCheckCircle size={21} />}
             loading={loading}
-            accent="bg-gradient-to-r from-[#60A5FA] to-[#2563EB]"
-            tileClass="bg-[#DBEAFE]"
+            accent="bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
+            tileClass="bg-[#EAF3FF]"
             tileIconClass="text-[#1E40AF]"
           />
 
@@ -2516,7 +2516,7 @@ const CancelRefund: React.FC = () => {
             icon={<FiX size={21} />}
             loading={loading}
             accent="bg-gradient-to-r from-[#EF4444] to-[#C23B32]"
-            tileClass="bg-[#FBEAEA]"
+            tileClass="bg-[#FEF2F2]"
             tileIconClass="text-[#C23B32]"
           />
         </motion.div>
@@ -2524,14 +2524,14 @@ const CancelRefund: React.FC = () => {
         {/* TOOLBAR */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-sm"
+          className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white "
         >
-          <div className="border-b border-[#D8E2F0] p-4 sm:p-5">
+          <div className="border-b border-[#DCE6F2] p-3 sm:p-3">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[540px]">
                 <FiSearch
                   size={19}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                 />
 
                 <input
@@ -2544,7 +2544,7 @@ const CancelRefund: React.FC = () => {
                   }
                   placeholder="Search order, customer, email..."
                   disabled={loading}
-                  className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-11 pr-10 text-sm text-[#0F1B3D] outline-none transition placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15 disabled:opacity-60"
+                  className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
                 />
               </div>
 
@@ -2579,8 +2579,8 @@ const CancelRefund: React.FC = () => {
                       className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
                         activeFilter ===
                         filter
-                          ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-md shadow-[#1E3A8A]/15"
-                          : "border border-[#D8E2F0] bg-[#F5F8FF] text-[#4A5778] hover:border-[#1E3A8A]/40 hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+                          ? "bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                          : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                       } disabled:opacity-60`}
                     >
                       {getStatusLabel(
@@ -2601,44 +2601,43 @@ const CancelRefund: React.FC = () => {
         {/* MAIN TABLE */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-2xl border border-[#1E3A8A]/10 bg-white shadow-sm"
+          className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-sm"
         >
-          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
+         
           {/* DESKTOP */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1100px] border-collapse">
               <thead>
-                <tr className="bg-[#1E3A8A]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                <tr className="bg-[#4F8FF7]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Reference
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Buyer
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Quantity
                   </th>
 
-                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
                     Cancellation Amount
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Reason
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-[#EAF1FF]">
+                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Actions
                   </th>
                 </tr>
@@ -2651,47 +2650,47 @@ const CancelRefund: React.FC = () => {
                   }).map((_, i) => (
                     <tr
                       key={`skeleton-${i}`}
-                      className="animate-pulse border-b border-[#D8E2F0]"
+                      className="animate-pulse border-b border-[#DCE6F2]"
                     >
                       <td className="px-5 py-4">
-                        <div className="h-8 w-8 rounded-lg bg-[#EAF1FF]" />
+                        <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="h-6 w-32 rounded-lg bg-[#EAF1FF]" />
+                        <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
 
-                        <div className="mt-2 h-3 w-24 rounded bg-[#F5F8FF]" />
+                        <div className="mt-2 h-3 w-24 rounded bg-[#F4F8FD]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="h-4 w-32 rounded bg-[#EAF1FF]" />
+                        <div className="h-4 w-32 rounded bg-[#EAF3FF]" />
 
-                        <div className="mt-2 h-4 w-20 rounded-full bg-[#F5F8FF]" />
+                        <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="h-4 w-8 rounded bg-[#EAF1FF]" />
+                        <div className="h-4 w-8 rounded bg-[#EAF3FF]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="ml-auto h-4 w-20 rounded bg-[#EAF1FF]" />
+                        <div className="ml-auto h-4 w-20 rounded bg-[#EAF3FF]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="h-3 w-40 rounded bg-[#F5F8FF]" />
+                        <div className="h-3 w-40 rounded bg-[#F4F8FD]" />
 
-                        <div className="mt-2 h-3 w-32 rounded bg-[#F5F8FF]" />
+                        <div className="mt-2 h-3 w-32 rounded bg-[#F4F8FD]" />
                       </td>
 
                       <td className="px-5 py-4">
-                        <div className="h-6 w-24 rounded-full bg-[#EAF1FF]" />
+                        <div className="h-6 w-24 rounded-full bg-[#EAF3FF]" />
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex justify-center gap-2">
-                          <div className="h-9 w-9 rounded-xl bg-[#EAF1FF]" />
+                          <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
 
-                          <div className="h-9 w-20 rounded-xl bg-[#EAF1FF]" />
+                          <div className="h-9 w-20 rounded-xl bg-[#EAF3FF]" />
                         </div>
                       </td>
                     </tr>
@@ -2730,10 +2729,10 @@ const CancelRefund: React.FC = () => {
                       return (
                         <tr
                           key={`${requestId}-${index}`}
-                          className="group border-b border-[#D8E2F0] bg-white transition hover:bg-[#FAFBFF]"
+                          className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                         >
                           <td className="px-5 py-4">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-xs font-bold text-[#1E3A8A]">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                               {startIndex +
                                 index +
                                 1}
@@ -2742,13 +2741,13 @@ const CancelRefund: React.FC = () => {
 
                           <td className="px-5 py-4">
                             <div>
-                              <span className="inline-flex rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-xs font-bold text-[#1E3A8A]">
+                              <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
                                 {
                                   request.order_reference
                                 }
                               </span>
 
-                              <p className="mt-2 text-[11px] text-[#8C97B2]">
+                              <p className="mt-2 text-[11px] text-[#6B7280]">
                                 Item Ref:{" "}
                                 {raw.item_reference_id ||
                                   "N/A"}
@@ -2757,7 +2756,7 @@ const CancelRefund: React.FC = () => {
                           </td>
 
                           <td className="px-5 py-4">
-                            <p className="text-sm font-bold text-[#0F1B3D]">
+                            <p className="text-sm font-bold text-[#111827]">
                               {getCustomerName(
                                 request.user,
                               )}
@@ -2779,14 +2778,14 @@ const CancelRefund: React.FC = () => {
                           </td>
 
                           <td className="px-5 py-4">
-                            <p className="text-sm font-bold text-[#0F1B3D]">
+                            <p className="text-sm font-bold text-[#111827]">
                               {request.items_count ||
                                 1}
                             </p>
                           </td>
 
                           <td className="px-5 py-4 text-right">
-                            <p className="text-sm font-bold text-[#1E3A8A]">
+                            <p className="text-sm font-bold text-[#2D6FE8]">
                               {formatCurrency(
                                 getRowAmount(
                                   request,
@@ -2796,7 +2795,7 @@ const CancelRefund: React.FC = () => {
                           </td>
 
                           <td className="px-5 py-4">
-                            <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4A5778]">
+                            <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4B5563]">
                               {request.reason ||
                                 "No reason provided."}
                             </p>
@@ -2829,7 +2828,7 @@ const CancelRefund: React.FC = () => {
                                     request,
                                   )
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#1E3A8A] transition hover:border-[#1E3A8A] hover:bg-[#1E3A8A] hover:text-white"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                                 title="View"
                               >
                                 <FiEye
@@ -2844,7 +2843,7 @@ const CancelRefund: React.FC = () => {
                                     request,
                                   )
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#2563EB]/25 bg-[#DBEAFE] text-[#1E3A8A] transition hover:border-transparent hover:bg-[#1E3A8A] hover:text-white"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8] transition hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
                                 title="Track Order"
                               >
                                 <FiTruck
@@ -2863,7 +2862,7 @@ const CancelRefund: React.FC = () => {
                                       request,
                                     )
                                   }
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#1E3A8A] hover:to-[#172554] disabled:opacity-50"
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                                 >
                                   {approveLoading ? (
                                     <FiRefreshCw
@@ -2888,7 +2887,7 @@ const CancelRefund: React.FC = () => {
                                       request,
                                     )
                                   }
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
                                 >
                                   <FiX
                                     size={13}
@@ -2910,16 +2909,16 @@ const CancelRefund: React.FC = () => {
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F8FF] text-[#1E3A8A]">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#2D6FE8]">
                           <FiPackage size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
                           No cancellation requests
                           found
                         </p>
 
-                        <p className="mt-1 text-xs text-[#8C97B2]">
+                        <p className="mt-1 text-xs text-[#6B7280]">
                           Try changing your
                           search or status
                           filter.
@@ -2940,32 +2939,32 @@ const CancelRefund: React.FC = () => {
               }).map((_, i) => (
                 <div
                   key={`mobile-skeleton-${i}`}
-                  className="animate-pulse border-b border-[#D8E2F0] bg-white p-4"
+                  className="animate-pulse border-b border-[#DCE6F2] bg-white p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="h-6 w-32 rounded-lg bg-[#EAF1FF]" />
+                    <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
 
-                    <div className="h-8 w-8 rounded-lg bg-[#EAF1FF]" />
+                    <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
                   </div>
 
                   <div className="mt-4">
-                    <div className="h-4 w-28 rounded bg-[#EAF1FF]" />
+                    <div className="h-4 w-28 rounded bg-[#EAF3FF]" />
 
-                    <div className="mt-2 h-3 w-40 rounded bg-[#F5F8FF]" />
+                    <div className="mt-2 h-3 w-40 rounded bg-[#F4F8FD]" />
 
-                    <div className="mt-2 h-4 w-20 rounded-full bg-[#F5F8FF]" />
+                    <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="h-16 rounded-xl bg-[#EAF1FF]" />
+                    <div className="h-16 rounded-xl bg-[#EAF3FF]" />
 
-                    <div className="h-16 rounded-xl bg-[#EAF1FF]" />
+                    <div className="h-16 rounded-xl bg-[#EAF3FF]" />
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <div className="h-9 w-9 rounded-xl bg-[#EAF1FF]" />
+                    <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
 
-                    <div className="h-9 w-9 rounded-xl bg-[#EAF1FF]" />
+                    <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
                   </div>
                 </div>
               ))
@@ -3000,17 +2999,17 @@ const CancelRefund: React.FC = () => {
                   return (
                     <div
                       key={`${requestId}-${index}`}
-                      className="border-b border-[#D8E2F0] bg-white p-4"
+                      className="border-b border-[#DCE6F2] bg-white p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <span className="inline-flex rounded-lg bg-[#EAF1FF] px-2.5 py-1 text-xs font-bold text-[#1E3A8A]">
+                          <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
                             {
                               request.order_reference
                             }
                           </span>
 
-                          <p className="mt-2 text-[10px] text-[#8C97B2]">
+                          <p className="mt-2 text-[10px] text-[#6B7280]">
                             Item Ref:{" "}
                             {(request as any)
                               .item_reference_id ||
@@ -3018,7 +3017,7 @@ const CancelRefund: React.FC = () => {
                           </p>
                         </div>
 
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F5F8FF] text-xs font-bold text-[#1E3A8A]">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                           {startIndex +
                             index +
                             1}
@@ -3026,13 +3025,13 @@ const CancelRefund: React.FC = () => {
                       </div>
 
                       <div className="mt-4">
-                        <p className="text-sm font-bold text-[#0F1B3D]">
+                        <p className="text-sm font-bold text-[#111827]">
                           {getCustomerName(
                             request.user,
                           )}
                         </p>
 
-                        <p className="mt-1 truncate text-xs text-[#8C97B2]">
+                        <p className="mt-1 truncate text-xs text-[#6B7280]">
                           {
                             request.user
                               ?.email
@@ -3055,12 +3054,12 @@ const CancelRefund: React.FC = () => {
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                        <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                             Amount
                           </p>
 
-                          <p className="mt-1 text-base font-bold text-[#1E3A8A]">
+                          <p className="mt-1 text-base font-bold text-[#2D6FE8]">
                             {formatCurrency(
                               getRowAmount(
                                 request,
@@ -3069,12 +3068,12 @@ const CancelRefund: React.FC = () => {
                           </p>
                         </div>
 
-                        <div className="rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#8C97B2]">
+                        <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                             Items
                           </p>
 
-                          <p className="mt-1 text-base font-bold text-[#0F1B3D]">
+                          <p className="mt-1 text-base font-bold text-[#111827]">
                             {request.items_count ||
                               1}
                           </p>
@@ -3107,7 +3106,7 @@ const CancelRefund: React.FC = () => {
                               request,
                             )
                           }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] text-[#1E3A8A]"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]"
                           title="View"
                         >
                           <FiEye size={15} />
@@ -3120,7 +3119,7 @@ const CancelRefund: React.FC = () => {
                               request,
                             )
                           }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2563EB]/25 bg-[#DBEAFE] text-[#1E3A8A]"
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
                           title="Track"
                         >
                           <FiTruck size={15} />
@@ -3137,7 +3136,7 @@ const CancelRefund: React.FC = () => {
                                 request,
                               )
                             }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1E3A8A] text-white disabled:opacity-50"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2D6FE8] text-white disabled:opacity-50"
                             title="Approve"
                           >
                             {approveLoading ? (
@@ -3161,7 +3160,7 @@ const CancelRefund: React.FC = () => {
                                 request,
                               )
                             }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FBEAEA] text-[#C23B32]"
+                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#C23B32]"
                             title="Reject"
                           >
                             <FiX size={15} />
@@ -3169,20 +3168,20 @@ const CancelRefund: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="mt-3 rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] p-3">
-                        <p className="text-xs leading-5 text-[#4A5778]">
+                      <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-xs leading-5 text-[#4B5563]">
                           {request.reason ||
                             "No reason provided."}
                         </p>
                       </div>
 
-                      <div className="mt-3 rounded-xl border border-[#1E3A8A]/20 bg-gradient-to-r from-[#EAF1FF] to-[#f4f8ff] p-3">
+                      <div className="mt-3 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#2D6FE8]">
                             Cancellation Amount
                           </span>
 
-                          <span className="text-sm font-bold text-[#1E3A8A]">
+                          <span className="text-sm font-bold text-[#2D6FE8]">
                             {formatCurrency(
                               getRowAmount(
                                 request,
@@ -3197,16 +3196,16 @@ const CancelRefund: React.FC = () => {
               )
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F5F8FF] text-[#1E3A8A]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#2D6FE8]">
                   <FiPackage size={24} />
                 </div>
 
-                <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
+                <p className="mt-4 text-sm font-bold text-[#111827]">
                   No cancellation requests
                   found
                 </p>
 
-                <p className="mt-1 text-xs text-[#8C97B2]">
+                <p className="mt-1 text-xs text-[#6B7280]">
                   Try changing your search
                   or status filter.
                 </p>
@@ -3218,19 +3217,19 @@ const CancelRefund: React.FC = () => {
           {!loading &&
             filteredRequests.length >
               0 && (
-              <div className="border-t border-[#D8E2F0] bg-[#FAFBFF] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <p className="text-xs text-[#8C97B2]">
+                  <p className="text-xs text-[#6B7280]">
                     Showing{" "}
-                    <span className="font-bold text-[#0F1B3D]">
+                    <span className="font-bold text-[#111827]">
                       {startEntry}
                     </span>{" "}
                     to{" "}
-                    <span className="font-bold text-[#0F1B3D]">
+                    <span className="font-bold text-[#111827]">
                       {endEntry}
                     </span>{" "}
                     of{" "}
-                    <span className="font-bold text-[#0F1B3D]">
+                    <span className="font-bold text-[#111827]">
                       {
                         filteredRequests.length
                       }
@@ -3251,7 +3250,7 @@ const CancelRefund: React.FC = () => {
                             1,
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronLeft
                         size={17}
@@ -3271,8 +3270,8 @@ const CancelRefund: React.FC = () => {
                           className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
                             currentPage ===
                             page
-                              ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-md shadow-[#1E3A8A]/15"
-                              : "text-[#4A5778] hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+                              ? "bg-gradient-to-br from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                              : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                           }`}
                         >
                           {page}
@@ -3292,7 +3291,7 @@ const CancelRefund: React.FC = () => {
                             1,
                         )
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#D8E2F0] bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       <FiChevronRight
                         size={17}

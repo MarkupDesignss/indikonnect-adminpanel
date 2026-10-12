@@ -21,6 +21,7 @@ import {
   FiX,
   FiLayers,
   FiShield,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -35,62 +36,74 @@ import faqSectionsApi, {
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
-// THEME
+// BLUE / YELLOW THEME
 // =====================================================
 
-const PRIMARY = "#1E3A8A";
-const DARK_PRIMARY = "#172554";
-const BLUE = "#1E40AF";
-const ACCENT = "#2563EB";
+const PRIMARY = "#2D6FE8";
+const BLUE = "#4F8FF7";
+const YELLOW = "#FACC15";
 
-const LIGHT_BLUE = "#EAF1FF";
-const SOFT_BLUE = "#DBEAFE";
-const PAGE_BG = "#F5F8FF";
+const LIGHT_BLUE = "#EAF3FF";
+const PAGE_BG = "#F4F8FD";
 
-const TEXT_PRIMARY = "#0F1B3D";
-const TEXT_SECONDARY = "#4A5778";
-const MUTED = "#8C97B2";
+const TEXT_PRIMARY = "#111827";
+const TEXT_SECONDARY = "#6B7280";
+const MUTED = "#6B7280";
 
-const BORDER = "#D8E2F0";
+const BORDER = "#DCE6F2";
 const WHITE = "#FFFFFF";
 
 const DANGER = "#C23B32";
-const DANGER_BG = "#FBEAEA";
+const DANGER_BG = "#FEF2F2";
 
 // =====================================================
-// PERMISSIONS
+// FAQ PERMISSIONS
+//
+// Section Management uses the existing FAQ permissions.
+// Separate faq_section / faq_sections permissions
+// are intentionally not checked.
+//
+// Supported permission formats:
+// faq.view
+// faq.create
+// faq.update
+// faq.edit
+// faq.delete
+//
+// If the existing FAQ module uses "faqs" instead of
+// "faq", plural aliases are supported as well.
 // =====================================================
 
 const VIEW_PERMISSION_KEYS = [
-  "faq_section.view",
-  "faq_sections.view",
-  "FAQ Section.view",
-  "FAQ Sections.view",
+  "faq.view",
+  "faqs.view",
+  "FAQ.view",
+  "FAQs.view",
 ];
 
 const CREATE_PERMISSION_KEYS = [
-  "faq_section.create",
-  "faq_sections.create",
-  "FAQ Section.create",
-  "FAQ Sections.create",
+  "faq.create",
+  "faqs.create",
+  "FAQ.create",
+  "FAQs.create",
 ];
 
 const UPDATE_PERMISSION_KEYS = [
-  "faq_section.update",
-  "faq_sections.update",
-  "FAQ Section.update",
-  "FAQ Sections.update",
-  "faq_section.edit",
-  "faq_sections.edit",
-  "FAQ Section.edit",
-  "FAQ Sections.edit",
+  "faq.update",
+  "faqs.update",
+  "FAQ.update",
+  "FAQs.update",
+  "faq.edit",
+  "faqs.edit",
+  "FAQ.edit",
+  "FAQs.edit",
 ];
 
 const DELETE_PERMISSION_KEYS = [
-  "faq_section.delete",
-  "faq_sections.delete",
-  "FAQ Section.delete",
-  "FAQ Sections.delete",
+  "faq.delete",
+  "faqs.delete",
+  "FAQ.delete",
+  "FAQs.delete",
 ];
 
 // =====================================================
@@ -107,31 +120,20 @@ interface SectionForm {
 // =====================================================
 
 const containerVariants = {
-  hidden: {
-    opacity: 0,
-  },
-
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-
-    transition: {
-      staggerChildren: 0.05,
-    },
+    transition: { staggerChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 12,
-  },
-
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 110,
       damping: 16,
     },
@@ -143,8 +145,8 @@ const itemVariants = {
 // =====================================================
 
 const truncateText = (
-  value: string | null,
-  length = 100
+  value: string | null | undefined,
+  length = 100,
 ) => {
   if (!value) return "-";
 
@@ -152,6 +154,10 @@ const truncateText = (
     ? `${value.slice(0, length).trim()}...`
     : value;
 };
+
+const sectionGradient = `linear-gradient(135deg, ${BLUE}, ${PRIMARY})`;
+
+const accentGradient = `linear-gradient(to right, ${BLUE}, ${PRIMARY}, ${YELLOW})`;
 
 // =====================================================
 // ADD / EDIT SECTION MODAL
@@ -179,22 +185,16 @@ const SectionModal: React.FC<SectionModalProps> = ({
     if (!open) return;
 
     setName(editingSection?.name || "");
-    setDescription(
-      editingSection?.description || ""
-    );
+    setDescription(editingSection?.description || "");
   }, [open, editingSection]);
 
   if (!open) return null;
 
-  const handleSubmit = (
-    event: React.FormEvent
-  ) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!name.trim()) {
-      toast.error(
-        "Section name is required."
-      );
+      toast.error("Section name is required.");
       return;
     }
 
@@ -204,40 +204,25 @@ const SectionModal: React.FC<SectionModalProps> = ({
     });
   };
 
+  const fieldClass =
+    "w-full rounded-xl border px-4 py-3 text-sm font-medium text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:cursor-not-allowed disabled:opacity-60";
+
   return (
     <GlobalModal
       isOpen={open}
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border bg-white shadow-2xl">
-        {/* TOP LINE */}
+      <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div
           className="h-[3px] w-full"
-          style={{
-            background:
-              `linear-gradient(to right, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
-          }}
+          style={{ background: accentGradient }}
         />
 
-        {/* HEADER */}
-        <div
-          className="flex items-start justify-between border-b px-5 py-5"
-          style={{
-            borderColor:
-              "rgba(30,58,138,0.10)",
-          }}
-        >
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-5">
           <div>
             <div className="mb-1 flex items-center gap-2">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg"
-                style={{
-                  backgroundColor:
-                    LIGHT_BLUE,
-                  color: PRIMARY,
-                }}
-              >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
                 {editingSection ? (
                   <FiEdit3 size={15} />
                 ) : (
@@ -245,27 +230,18 @@ const SectionModal: React.FC<SectionModalProps> = ({
                 )}
               </div>
 
-              <span
-                className="text-[9px] font-bold uppercase tracking-[0.16em]"
-                style={{ color: ACCENT }}
-              >
-                FAQ Section Management
+              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#4F8FF7]">
+                FAQ Management
               </span>
+
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
             </div>
 
-            <h2
-              className="text-lg font-bold"
-              style={{ color: TEXT_PRIMARY }}
-            >
-              {editingSection
-                ? "Edit Section"
-                : "Add Section"}
+            <h2 className="text-lg font-bold text-[#111827]">
+              {editingSection ? "Edit Section" : "Add Section"}
             </h2>
 
-            <p
-              className="mt-1 text-[11px]"
-              style={{ color: MUTED }}
-            >
+            <p className="mt-1 text-[11px] text-[#6B7280]">
               {editingSection
                 ? "Update the FAQ section details."
                 : "Create a new FAQ section."}
@@ -276,169 +252,70 @@ const SectionModal: React.FC<SectionModalProps> = ({
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition disabled:opacity-50"
-            style={{
-              backgroundColor:
-                PAGE_BG,
-              color: PRIMARY,
-            }}
-            onMouseEnter={(event) => {
-              if (!loading) {
-                event.currentTarget.style.backgroundColor =
-                  LIGHT_BLUE;
-              }
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.backgroundColor =
-                PAGE_BG;
-            }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-50"
+            aria-label="Close section form"
           >
             <FiX size={16} />
           </button>
         </div>
 
-        {/* FORM */}
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 p-5">
-            {/* NAME */}
             <div>
-              <label
-                className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
-                style={{ color: TEXT_SECONDARY }}
-              >
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Section Name *
               </label>
 
               <div className="relative">
                 <FiLayers
                   size={15}
-                  className="absolute left-4 top-1/2 -translate-y-1/2"
-                  style={{
-                    color: PRIMARY,
-                  }}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                 />
 
                 <input
                   type="text"
                   value={name}
                   onChange={(event) =>
-                    setName(
-                      event.target.value
-                    )
+                    setName(event.target.value)
                   }
                   placeholder="e.g. General Questions"
                   disabled={loading}
-                  className="h-11 w-full rounded-xl pl-11 pr-4 text-sm font-medium outline-none placeholder:text-[#8C97B2] disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
-                    border: `1px solid ${BORDER}`,
-                    backgroundColor: loading
-                      ? "#EEF3FA"
-                      : PAGE_BG,
-                    color: TEXT_PRIMARY,
-                  }}
-                  onFocus={(event) => {
-                    if (!loading) {
-                      event.currentTarget.style.borderColor =
-                        ACCENT;
-                      event.currentTarget.style.backgroundColor =
-                        WHITE;
-                      event.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(37,99,235,0.08)";
-                    }
-                  }}
-                  onBlur={(event) => {
-                    event.currentTarget.style.borderColor =
-                      BORDER;
-                    event.currentTarget.style.backgroundColor =
-                      loading
-                        ? "#EEF3FA"
-                        : PAGE_BG;
-                    event.currentTarget.style.boxShadow =
-                      "none";
-                  }}
+                  className={`${fieldClass} h-11 bg-[#F4F8FD] pl-11 pr-4`}
                 />
               </div>
             </div>
 
-            {/* DESCRIPTION */}
             <div>
-              <label
-                className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
-                style={{ color: TEXT_SECONDARY }}
-              >
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Description
               </label>
 
               <div className="relative">
                 <FiFileText
                   size={15}
-                  className="absolute left-4 top-4"
-                  style={{
-                    color: PRIMARY,
-                  }}
+                  className="absolute left-4 top-4 text-[#2D6FE8]"
                 />
 
                 <textarea
                   value={description}
                   onChange={(event) =>
-                    setDescription(
-                      event.target.value
-                    )
+                    setDescription(event.target.value)
                   }
                   placeholder="Write a short description for this FAQ section..."
                   rows={5}
                   disabled={loading}
-                  className="w-full resize-none rounded-xl px-4 py-3 pl-11 text-sm font-medium leading-6 outline-none placeholder:text-[#8C97B2] disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
-                    border: `1px solid ${BORDER}`,
-                    backgroundColor: loading
-                      ? "#EEF3FA"
-                      : PAGE_BG,
-                    color: TEXT_PRIMARY,
-                  }}
-                  onFocus={(event) => {
-                    if (!loading) {
-                      event.currentTarget.style.borderColor =
-                        ACCENT;
-                      event.currentTarget.style.backgroundColor =
-                        WHITE;
-                      event.currentTarget.style.boxShadow =
-                        "0 0 0 3px rgba(37,99,235,0.08)";
-                    }
-                  }}
-                  onBlur={(event) => {
-                    event.currentTarget.style.borderColor =
-                      BORDER;
-                    event.currentTarget.style.backgroundColor =
-                      loading
-                        ? "#EEF3FA"
-                        : PAGE_BG;
-                    event.currentTarget.style.boxShadow =
-                      "none";
-                  }}
+                  className={`${fieldClass} resize-none bg-[#F4F8FD] pl-11 leading-6`}
                 />
               </div>
             </div>
           </div>
 
-          {/* FOOTER */}
-          <div
-            className="flex flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-end"
-            style={{
-              borderColor:
-                "rgba(30,58,138,0.10)",
-              backgroundColor: "#FAFBFE",
-            }}
-          >
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border bg-white px-5 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                borderColor: BORDER,
-                color: TEXT_SECONDARY,
-              }}
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
@@ -446,11 +323,8 @@ const SectionModal: React.FC<SectionModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                background:
-                  `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
-              }}
+              className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+              style={{ background: sectionGradient }}
             >
               {loading ? (
                 <FiRefreshCw
@@ -505,71 +379,45 @@ const DeleteSectionModal: React.FC<
       onClose={onClose}
       closeOnOverlayClick={!loading}
     >
-      <div className="w-full max-w-[420px] overflow-hidden rounded-[22px] border bg-white shadow-2xl">
+      <div className="w-full max-w-[420px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div
           className="h-[3px] w-full"
           style={{
-            background:
-              `linear-gradient(to right, ${ACCENT}, ${DANGER})`,
+            background: `linear-gradient(to right, ${BLUE}, ${DANGER})`,
           }}
         />
 
         <div className="p-5">
           <div className="flex items-start gap-4">
-            <div
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-              style={{
-                backgroundColor:
-                  DANGER_BG,
-                color: DANGER,
-              }}
-            >
-              <FiAlertTriangle
-                size={20}
-              />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#C23B32]">
+              <FiAlertTriangle size={20} />
             </div>
 
             <div className="min-w-0">
-              <h2
-                className="text-lg font-bold"
-                style={{
-                  color: TEXT_PRIMARY,
-                }}
-              >
+              <h2 className="text-lg font-bold text-[#111827]">
                 Delete Section
               </h2>
 
-              <p
-                className="mt-1 text-sm leading-6"
-                style={{
-                  color:
-                    TEXT_SECONDARY,
-                }}
-              >
-                Are you sure you want to delete
-                this FAQ section?
+              <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+                Are you sure you want to delete this FAQ section?
               </p>
 
-              <div
-                className="mt-3 rounded-lg px-3 py-2"
-                style={{
-                  backgroundColor:
-                    PAGE_BG,
-                }}
-              >
-                <p
-                  className="text-xs font-semibold leading-5"
-                  style={{
-                    color: TEXT_SECONDARY,
-                  }}
-                >
-                  {truncateText(
-                    section.name,
-                    100
-                  )}
+              <div className="mt-3 rounded-lg bg-[#F4F8FD] px-3 py-2">
+                <p className="text-xs font-semibold leading-5 text-[#6B7280]">
+                  {truncateText(section.name, 100)}
                 </p>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#EAF3FF] disabled:opacity-50"
+              aria-label="Close delete confirmation"
+            >
+              <FiX size={16} />
+            </button>
           </div>
 
           <div className="mt-4 flex justify-end gap-2">
@@ -577,11 +425,7 @@ const DeleteSectionModal: React.FC<
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="rounded-xl border bg-white px-5 py-2.5 text-sm font-bold transition disabled:opacity-50"
-              style={{
-                borderColor: BORDER,
-                color: TEXT_SECONDARY,
-              }}
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] disabled:opacity-50"
             >
               Cancel
             </button>
@@ -590,11 +434,7 @@ const DeleteSectionModal: React.FC<
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                background:
-                  `linear-gradient(135deg, ${DANGER}, #A62F27)`,
-              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? (
                 <FiRefreshCw
@@ -605,9 +445,7 @@ const DeleteSectionModal: React.FC<
                 <FiTrash2 size={14} />
               )}
 
-              {loading
-                ? "Deleting..."
-                : "Delete"}
+              {loading ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>
@@ -617,14 +455,57 @@ const DeleteSectionModal: React.FC<
 };
 
 // =====================================================
+// PERMISSION / LOADING STATES
+// =====================================================
+
+const PermissionLoading: React.FC = () => (
+  <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+    <div className="flex flex-col items-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2D6FE8] shadow-sm">
+        <FiRefreshCw
+          size={23}
+          className="animate-spin"
+        />
+      </div>
+
+      <p className="mt-4 text-sm font-bold text-[#111827]">
+        Checking permissions...
+      </p>
+
+      <p className="mt-1 text-[10px] text-[#6B7280]">
+        Verifying FAQ access.
+      </p>
+    </div>
+  </div>
+);
+
+const AccessDenied: React.FC = () => (
+  <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+    <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+        <FiAlertCircle size={26} />
+      </div>
+
+      <h2 className="text-lg font-bold text-[#111827]">
+        Access Denied
+      </h2>
+
+      <p className="mt-2 text-sm text-[#6B7280]">
+        You don't have permission to access FAQ Management.
+      </p>
+
+      <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FEF2F2] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+        Contact your administrator to request access.
+      </div>
+    </div>
+  </div>
+);
+
+// =====================================================
 // MAIN COMPONENT
 // =====================================================
 
 const SectionManagement: React.FC = () => {
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
-
   const {
     hasPermission,
     hasModuleAccess,
@@ -632,145 +513,119 @@ const SectionManagement: React.FC = () => {
     loading: permissionsLoading,
   } = usePermissions();
 
+  // ---------------------------------------------------
+  // CHECK THE EXISTING FAQ PERMISSIONS
+  // ---------------------------------------------------
+
   const hasAnyPermission = useCallback(
     (permissions: string[]) =>
       permissions.some((permission) =>
-        hasPermission(permission)
+        hasPermission(permission),
       ),
-    [hasPermission]
+    [hasPermission],
   );
+
+  // ---------------------------------------------------
+  // VIEW PERMISSION
+  //
+  // Uses the FAQ module only.
+  // No faq_section / faq_sections module checks.
+  // ---------------------------------------------------
 
   const canViewSections = useMemo(
     () =>
       isSuperAdmin ||
-      hasModuleAccess(
-        "FAQ Sections"
-      ) ||
-      hasModuleAccess(
-        "FAQ Section"
-      ) ||
-      hasModuleAccess(
-        "faq_sections"
-      ) ||
-      hasModuleAccess(
-        "faq_section"
-      ) ||
-      hasAnyPermission(
-        VIEW_PERMISSION_KEYS
-      ),
+      hasModuleAccess("faq") ||
+      hasModuleAccess("faqs") ||
+      hasAnyPermission(VIEW_PERMISSION_KEYS),
     [
       isSuperAdmin,
       hasModuleAccess,
       hasAnyPermission,
-    ]
+    ],
   );
+
+  // ---------------------------------------------------
+  // CREATE PERMISSION
+  // ---------------------------------------------------
 
   const canCreateSection = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        CREATE_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasAnyPermission(CREATE_PERMISSION_KEYS),
+    [isSuperAdmin, hasAnyPermission],
   );
+
+  // ---------------------------------------------------
+  // UPDATE PERMISSION
+  // ---------------------------------------------------
 
   const canUpdateSection = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        UPDATE_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasAnyPermission(UPDATE_PERMISSION_KEYS),
+    [isSuperAdmin, hasAnyPermission],
   );
+
+  // ---------------------------------------------------
+  // DELETE PERMISSION
+  // ---------------------------------------------------
 
   const canDeleteSection = useMemo(
     () =>
       isSuperAdmin ||
-      hasAnyPermission(
-        DELETE_PERMISSION_KEYS
-      ),
-    [
-      isSuperAdmin,
-      hasAnyPermission,
-    ]
+      hasAnyPermission(DELETE_PERMISSION_KEYS),
+    [isSuperAdmin, hasAnyPermission],
   );
 
-  // ===================================================
-  // STATES
-  // ===================================================
+  // ---------------------------------------------------
+  // STATE
+  // ---------------------------------------------------
 
-  const [sections, setSections] =
-    useState<FAQSection[]>([]);
+  const [sections, setSections] = useState<FAQSection[]>(
+    [],
+  );
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [search, setSearch] =
-    useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [sectionModalOpen, setSectionModalOpen] =
     useState(false);
 
   const [editingSection, setEditingSection] =
-    useState<FAQSection | null>(
-      null
-    );
+    useState<FAQSection | null>(null);
 
   const [savingSection, setSavingSection] =
     useState(false);
 
-  const [deleteOpen, setDeleteOpen] =
-    useState(false);
-
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] =
     useState(false);
 
   const [selectedSection, setSelectedSection] =
-    useState<FAQSection | null>(
-      null
-    );
+    useState<FAQSection | null>(null);
 
   const ITEMS_PER_PAGE = 7;
 
-  // ===================================================
-  // FETCH PROTECTION
-  // ===================================================
-
   const fetchInFlightRef =
-    useRef<Promise<void> | null>(
-      null
-    );
+    useRef<Promise<void> | null>(null);
 
-  const hasInitialFetchRef =
-    useRef(false);
+  const hasInitialFetchRef = useRef(false);
 
   // ===================================================
-  // FETCH
+  // FETCH FAQ SECTIONS
   // ===================================================
 
   const fetchSections = useCallback(
     async (force = false) => {
-      if (!canViewSections) {
-        return;
-      }
+      if (!canViewSections) return;
 
       if (fetchInFlightRef.current) {
         return fetchInFlightRef.current;
       }
 
-      if (
-        !force &&
-        hasInitialFetchRef.current
-      ) {
+      if (!force && hasInitialFetchRef.current) {
         return;
       }
 
@@ -778,49 +633,41 @@ const SectionManagement: React.FC = () => {
         try {
           setLoading(true);
 
-          const response =
-            await faqSectionsApi.getAll();
+          const response = await faqSectionsApi.getAll();
 
           if (response.data.success) {
-            setSections(
-              response.data.data || []
-            );
-
-            hasInitialFetchRef.current =
-              true;
+            setSections(response.data.data || []);
+            hasInitialFetchRef.current = true;
           } else {
             toast.error(
               response.data.message ||
-                "Unable to fetch FAQ sections."
+                "Unable to fetch FAQ sections.",
             );
           }
         } catch (error: any) {
           console.error(
             "Fetch FAQ sections error:",
-            error
+            error,
           );
 
           toast.error(
-            error?.response?.data
-              ?.message ||
-              "Unable to fetch FAQ sections."
+            error?.response?.data?.message ||
+              "Unable to fetch FAQ sections.",
           );
         } finally {
           setLoading(false);
         }
       })();
 
-      fetchInFlightRef.current =
-        requestPromise;
+      fetchInFlightRef.current = requestPromise;
 
       try {
         await requestPromise;
       } finally {
-        fetchInFlightRef.current =
-          null;
+        fetchInFlightRef.current = null;
       }
     },
-    [canViewSections]
+    [canViewSections],
   );
 
   // ===================================================
@@ -833,7 +680,7 @@ const SectionManagement: React.FC = () => {
       canViewSections &&
       !hasInitialFetchRef.current
     ) {
-      fetchSections();
+      void fetchSections();
     }
   }, [
     permissionsLoading,
@@ -842,37 +689,31 @@ const SectionManagement: React.FC = () => {
   ]);
 
   // ===================================================
-  // FILTER
+  // SEARCH AND SORT
   // ===================================================
 
   const filteredSections = useMemo(() => {
-    const query =
-      search.trim().toLowerCase();
+    const query = search.trim().toLowerCase();
 
     return [...sections]
-      .filter((section) => {
-        const matchesSearch =
-          !query ||
-          [
-            section.name,
-            section.slug,
-            section.description,
-            String(section.id),
-            String(section.order),
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(query);
-
-        return matchesSearch;
-      })
-      .sort((a, b) => {
-        if (a.order !== b.order) {
-          return a.order - b.order;
-        }
-
-        return a.id - b.id;
-      });
+      .filter((section) =>
+        !query ||
+        [
+          section.name,
+          section.slug,
+          section.description,
+          String(section.id),
+          String(section.order),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query),
+      )
+      .sort((a, b) =>
+        a.order !== b.order
+          ? a.order - b.order
+          : a.id - b.id,
+      );
   }, [sections, search]);
 
   // ===================================================
@@ -882,20 +723,17 @@ const SectionManagement: React.FC = () => {
   const totalPages = Math.max(
     1,
     Math.ceil(
-      filteredSections.length /
-        ITEMS_PER_PAGE
-    )
+      filteredSections.length / ITEMS_PER_PAGE,
+    ),
   );
 
   const startIndex =
-    (currentPage - 1) *
-    ITEMS_PER_PAGE;
+    (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const paginatedSections =
-    filteredSections.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE
-    );
+  const paginatedSections = filteredSections.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
   const startEntry =
     filteredSections.length === 0
@@ -904,25 +742,20 @@ const SectionManagement: React.FC = () => {
 
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
-    filteredSections.length
+    filteredSections.length,
   );
 
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
-  }, [
-    currentPage,
-    totalPages,
-  ]);
+  }, [currentPage, totalPages]);
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from(
-        {
-          length: totalPages,
-        },
-        (_, index) => index + 1
+        { length: totalPages },
+        (_, index) => index + 1,
       );
     }
 
@@ -930,10 +763,7 @@ const SectionManagement: React.FC = () => {
       return [1, 2, 3, 4, 5];
     }
 
-    if (
-      currentPage >=
-      totalPages - 2
-    ) {
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -950,19 +780,16 @@ const SectionManagement: React.FC = () => {
       currentPage + 1,
       currentPage + 2,
     ];
-  }, [
-    currentPage,
-    totalPages,
-  ]);
+  }, [currentPage, totalPages]);
 
   // ===================================================
-  // HANDLERS
+  // ADD SECTION
   // ===================================================
 
   const openAddSection = () => {
     if (!canCreateSection) {
       toast.error(
-        "You do not have permission to create FAQ sections."
+        "You do not have permission to create FAQ sections.",
       );
       return;
     }
@@ -971,12 +798,14 @@ const SectionManagement: React.FC = () => {
     setSectionModalOpen(true);
   };
 
-  const openEditSection = (
-    section: FAQSection
-  ) => {
+  // ===================================================
+  // EDIT SECTION
+  // ===================================================
+
+  const openEditSection = (section: FAQSection) => {
     if (!canUpdateSection) {
       toast.error(
-        "You do not have permission to update FAQ sections."
+        "You do not have permission to update FAQ sections.",
       );
       return;
     }
@@ -986,22 +815,21 @@ const SectionManagement: React.FC = () => {
   };
 
   // ===================================================
-  // SAVE
+  // SAVE SECTION
   // ===================================================
 
   const handleSaveSection = async (
-    payload: SectionForm
+    payload: SectionForm,
   ) => {
-    const hasPermissionForSave =
-      editingSection
-        ? canUpdateSection
-        : canCreateSection;
+    const hasPermissionForSave = editingSection
+      ? canUpdateSection
+      : canCreateSection;
 
     if (!hasPermissionForSave) {
       toast.error(
         editingSection
           ? "You do not have permission to update FAQ sections."
-          : "You do not have permission to create FAQ sections."
+          : "You do not have permission to create FAQ sections.",
       );
       return;
     }
@@ -1009,38 +837,29 @@ const SectionManagement: React.FC = () => {
     try {
       setSavingSection(true);
 
-      let response;
-
-      if (editingSection) {
-        response =
-          await faqSectionsApi.update(
+      const response = editingSection
+        ? await faqSectionsApi.update(
             editingSection.id,
             {
               name: payload.name,
-              description:
-                payload.description,
-              is_active:
-                editingSection.is_active
-                  ? 1
-                  : 0,
-            }
-          );
-      } else {
-        response =
-          await faqSectionsApi.create({
+              description: payload.description,
+              is_active: editingSection.is_active
+                ? 1
+                : 0,
+            },
+          )
+        : await faqSectionsApi.create({
             name: payload.name,
-            description:
-              payload.description,
+            description: payload.description,
             is_active: 1,
           });
-      }
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
             (editingSection
               ? "Section updated successfully."
-              : "Section added successfully.")
+              : "Section added successfully."),
         );
 
         setSectionModalOpen(false);
@@ -1050,19 +869,19 @@ const SectionManagement: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to save section."
+            "Unable to save section.",
         );
       }
     } catch (error: any) {
       console.error(
         "Save FAQ section error:",
-        error
+        error,
       );
 
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Unable to save section."
+          "Unable to save section.",
       );
     } finally {
       setSavingSection(false);
@@ -1070,15 +889,13 @@ const SectionManagement: React.FC = () => {
   };
 
   // ===================================================
-  // DELETE
+  // OPEN DELETE MODAL
   // ===================================================
 
-  const openDelete = (
-    section: FAQSection
-  ) => {
+  const openDelete = (section: FAQSection) => {
     if (!canDeleteSection) {
       toast.error(
-        "You do not have permission to delete FAQ sections."
+        "You do not have permission to delete FAQ sections.",
       );
       return;
     }
@@ -1087,14 +904,16 @@ const SectionManagement: React.FC = () => {
     setDeleteOpen(true);
   };
 
+  // ===================================================
+  // DELETE SECTION
+  // ===================================================
+
   const handleDelete = async () => {
-    if (!selectedSection) {
-      return;
-    }
+    if (!selectedSection) return;
 
     if (!canDeleteSection) {
       toast.error(
-        "You do not have permission to delete FAQ sections."
+        "You do not have permission to delete FAQ sections.",
       );
       return;
     }
@@ -1102,15 +921,14 @@ const SectionManagement: React.FC = () => {
     try {
       setDeleteLoading(true);
 
-      const response =
-        await faqSectionsApi.delete(
-          selectedSection.id
-        );
+      const response = await faqSectionsApi.delete(
+        selectedSection.id,
+      );
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Section deleted successfully."
+            "Section deleted successfully.",
         );
 
         setDeleteOpen(false);
@@ -1120,18 +938,18 @@ const SectionManagement: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to delete section."
+            "Unable to delete section.",
         );
       }
     } catch (error: any) {
       console.error(
         "Delete FAQ section error:",
-        error
+        error,
       );
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to delete section."
+          "Unable to delete section.",
       );
     } finally {
       setDeleteLoading(false);
@@ -1139,84 +957,33 @@ const SectionManagement: React.FC = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING
+  // ACCESS STATES
   // ===================================================
 
   if (permissionsLoading) {
-    return (
-      <div
-        className="flex min-h-[500px] items-center justify-center p-6 font-poppins"
-        style={{
-          backgroundColor: PAGE_BG,
-        }}
-      >
-        <div className="flex flex-col items-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
-            <FiRefreshCw
-              size={23}
-              className="animate-spin"
-            />
-          </div>
-
-          <p
-            className="mt-4 text-sm font-bold"
-            style={{
-              color: TEXT_PRIMARY,
-            }}
-          >
-            Checking permissions...
-          </p>
-
-          <p
-            className="mt-1 text-[10px]"
-            style={{ color: MUTED }}
-          >
-            Verifying FAQ section access.
-          </p>
-        </div>
-      </div>
-    );
+    return <PermissionLoading />;
   }
 
+  if (!canViewSections) {
+    return <AccessDenied />;
+  }
 
-  if (
-    loading &&
-    sections.length === 0
-  ) {
+  if (loading && sections.length === 0) {
     return (
-      <div
-        className="flex min-h-[500px] items-center justify-center p-6 font-poppins"
-        style={{
-          backgroundColor: PAGE_BG,
-        }}
-      >
+      <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
         <div className="flex flex-col items-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2D6FE8] shadow-sm">
             <FiRefreshCw
               size={23}
               className="animate-spin"
             />
           </div>
 
-          <p
-            className="mt-4 text-sm font-bold"
-            style={{
-              color: TEXT_PRIMARY,
-            }}
-          >
+          <p className="mt-4 text-sm font-bold text-[#111827]">
             Loading sections...
           </p>
 
-          <p
-            className="mt-1 text-[10px]"
-            style={{ color: MUTED }}
-          >
+          <p className="mt-1 text-[10px] text-[#6B7280]">
             Fetching FAQ section data.
           </p>
         </div>
@@ -1225,945 +992,431 @@ const SectionManagement: React.FC = () => {
   }
 
   // ===================================================
-  // RENDER
+  // UI
   // ===================================================
 
   return (
-    <>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
+    >
+      {/* PAGE HEADER */}
+
       <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="min-h-screen p-4 font-poppins sm:p-5 lg:p-6"
-        style={{
-          backgroundColor: PAGE_BG,
-        }}
+        variants={itemVariants}
+        className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center"
       >
-        {/* PAGE HEADER */}
-        <motion.div
-          variants={itemVariants}
-          className="mb-5 flex flex-col justify-between gap-3 xl:flex-row xl:items-center"
-        >
-          <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{
-                  backgroundColor:
-                    PRIMARY,
-                }}
-              />
+        <div>
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
-              <span
-                className="text-[9px] font-bold uppercase tracking-[0.22em]"
-                style={{
-                  color: ACCENT,
-                }}
-              >
-                Website Configuration
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <h1
-                className="text-[27px] font-bold tracking-tight sm:text-[30px]"
-                style={{
-                  color:
-                    TEXT_PRIMARY,
-                }}
-              >
-                Section Management
-              </h1>
-
-              <span
-                className="rounded-full border bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide"
-                style={{
-                  borderColor:
-                    "rgba(30,58,138,0.15)",
-                  color: PRIMARY,
-                }}
-              >
-                FAQ Sections
-              </span>
-            </div>
-
-            <p
-              className="mt-1 max-w-2xl text-xs leading-5"
-              style={{
-                color: TEXT_SECONDARY,
-              }}
-            >
-              Manage your FAQ sections,
-              descriptions, ordering and active
-              status.
-            </p>
+            <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#4F8FF7]">
+              Website Configuration
+            </span>
           </div>
 
-          <div className="flex gap-2">
-            {/* REFRESH */}
+          <div className="flex flex-wrap items-center gap-3">
+           <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+              Section Management
+            </h1>
+
+            <span className="rounded-full border border-[#DCE6F2] bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+              FAQ Sections
+            </span>
+          </div>
+
+          <p className="mt-0.5 text-sm text-[#111827]">
+            Manage your FAQ sections, descriptions,
+            ordering and active status.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void fetchSections(true)}
+            disabled={loading}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#2D6FE8]  transition hover:border-[#4F8FF7] hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FiRefreshCw
+              size={15}
+              className={loading ? "animate-spin" : ""}
+            />
+            Refresh
+          </button>
+
+          {canCreateSection ? (
             <button
               type="button"
-              onClick={() =>
-                fetchSections(true)
-              }
-              disabled={loading}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-xs font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                borderColor: BORDER,
-                color: PRIMARY,
-              }}
-              onMouseEnter={(event) => {
-                if (!loading) {
-                  event.currentTarget.style.backgroundColor =
-                    LIGHT_BLUE;
-                  event.currentTarget.style.borderColor =
-                    ACCENT;
-                }
-              }}
-              onMouseLeave={(event) => {
-                event.currentTarget.style.backgroundColor =
-                  WHITE;
-                event.currentTarget.style.borderColor =
-                  BORDER;
-              }}
+              onClick={openAddSection}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold text-white transition hover:-translate-y-0.5"
+              style={{ background: sectionGradient }}
             >
-              <FiRefreshCw
-                size={15}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+              <FiPlus size={15} />
+              Add Section
+            </button>
+          ) : (
+            <div className="flex h-10 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#6B7280]">
+              <FiShield size={14} />
+              View Only
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* MAIN CARD */}
+
+      <motion.div
+        variants={itemVariants}
+        className="relative overflow-hidden rounded-[20px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
+      >
+
+
+        {/* TOOLBAR */}
+
+        <div className="border-b border-[#DCE6F2] p-4">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:max-w-[420px]">
+              <FiSearch
+                size={17}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
               />
 
-              Refresh
-            </button>
-
-            {/* ADD */}
-            {canCreateSection && (
-              <button
-                type="button"
-                onClick={
-                  openAddSection
-                }
-                className="flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5"
-                style={{
-                  background:
-                    `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setCurrentPage(1);
                 }}
-              >
-                <FiPlus size={15} />
-                Add Section
-              </button>
-            )}
-
-            {!canCreateSection && (
-              <div
-                className="flex h-10 items-center gap-2 rounded-xl border bg-white px-4 text-xs font-bold"
-                style={{
-                  borderColor: BORDER,
-                  color: MUTED,
-                }}
-              >
-                <FiShield size={14} />
-                View Only
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* MAIN CARD */}
-        <motion.div
-          variants={itemVariants}
-          className="relative overflow-hidden rounded-[20px] border bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
-          style={{
-            borderColor: "#E0E7F2",
-          }}
-        >
-          {/* TOP LINE */}
-          <div
-            className="absolute left-0 right-0 top-0 h-[3px]"
-            style={{
-              background:
-                `linear-gradient(to right, #6EA0FF, ${PRIMARY}, ${DARK_PRIMARY})`,
-            }}
-          />
-
-          {/* TOOLBAR */}
-          <div
-            className="border-b p-4"
-            style={{
-              borderColor:
-                "rgba(30,58,138,0.10)",
-            }}
-          >
-            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* SEARCH */}
-              <div className="relative w-full sm:max-w-[420px]">
-                <FiSearch
-                  size={17}
-                  className="absolute left-4 top-1/2 -translate-y-1/2"
-                  style={{
-                    color: PRIMARY,
-                  }}
-                />
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(
-                      event.target.value
-                    );
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Search section, description or ID..."
-                  className="h-11 w-full rounded-xl pl-11 pr-4 text-xs outline-none placeholder:text-[#8C97B2]"
-                  style={{
-                    border: `1px solid ${BORDER}`,
-                    backgroundColor:
-                      PAGE_BG,
-                    color:
-                      TEXT_PRIMARY,
-                  }}
-                  onFocus={(event) => {
-                    event.currentTarget.style.borderColor =
-                      ACCENT;
-                    event.currentTarget.style.backgroundColor =
-                      WHITE;
-                    event.currentTarget.style.boxShadow =
-                      "0 0 0 3px rgba(37,99,235,0.08)";
-                  }}
-                  onBlur={(event) => {
-                    event.currentTarget.style.borderColor =
-                      BORDER;
-                    event.currentTarget.style.backgroundColor =
-                      PAGE_BG;
-                    event.currentTarget.style.boxShadow =
-                      "none";
-                  }}
-                />
-              </div>
-
-              {/* ADD SECTION */}
-              {canCreateSection && (
-                <button
-                  type="button"
-                  onClick={
-                    openAddSection
-                  }
-                  className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:-translate-y-0.5"
-                  style={{
-                    background:
-                      `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
-                  }}
-                >
-                  <FiPlus size={15} />
-                  Add Section
-                </button>
-              )}
+                placeholder="Search section, description or ID..."
+                className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-4 text-xs text-[#111827] outline-none placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+              />
             </div>
+
           </div>
 
-          {/* DESKTOP TABLE */}
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[900px] border-collapse">
-              <thead>
-                <tr
-                  style={{
-                    backgroundColor:
-                      PRIMARY,
-                  }}
-                >
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    S.No
-                  </th>
+          
+        </div>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Section
-                  </th>
+        {/* DESKTOP TABLE */}
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Slug
-                  </th>
+        <div className="hidden overflow-x-auto lg:block rounded-2xl">
+          <table className="w-full min-w-[900px] border-collapse">
+            <thead>
+              <tr className="bg-[#4F8FF7]">
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  S.No
+                </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Description
-                  </th>
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  Section
+                </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-[#EAF1FF]">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  Slug
+                </th>
 
-              <tbody>
-                {paginatedSections.length ===
-                0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-5 py-14 text-center"
-                    >
-                      <div className="flex flex-col items-center">
-                        <div
-                          className="flex h-12 w-12 items-center justify-center rounded-xl"
-                          style={{
-                            backgroundColor:
-                              LIGHT_BLUE,
-                            color: PRIMARY,
-                          }}
-                        >
-                          <FiLayers
-                            size={21}
-                          />
-                        </div>
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  Description
+                </th>
 
-                        <p
-                          className="mt-3 text-sm font-bold"
-                          style={{
-                            color:
-                              TEXT_PRIMARY,
-                          }}
-                        >
-                          No sections found
-                        </p>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-                        <p
-                          className="mt-1 text-[10px]"
-                          style={{
-                            color: MUTED,
-                          }}
-                        >
-                          Add a new FAQ section
-                          to get started.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedSections.map(
-                    (
-                      section,
-                      index
-                    ) => (
-                      <motion.tr
-                        key={
-                          section.id
-                        }
-                        initial={{
-                          opacity: 0,
-                          y: 5,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          delay:
-                            index *
-                            0.03,
-                        }}
-                        className="border-b bg-white transition hover:bg-[#F9FBFF]"
-                        style={{
-                          borderColor:
-                            "#EEF2F8",
-                        }}
-                      >
-                        {/* S.NO */}
-                        <td className="px-5 py-4">
-                          <span
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold"
-                            style={{
-                              backgroundColor:
-                                LIGHT_BLUE,
-                              color:
-                                PRIMARY,
-                            }}
-                          >
-                            {startIndex +
-                              index +
-                              1}
-                          </span>
-                        </td>
-
-                        {/* SECTION */}
-                        <td className="max-w-[280px] px-5 py-4">
-                          <div className="flex items-start gap-3">
-                            <div
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                              style={{
-                                backgroundColor:
-                                  LIGHT_BLUE,
-                                color:
-                                  PRIMARY,
-                              }}
-                            >
-                              <FiLayers
-                                size={17}
-                              />
-                            </div>
-
-                            <div className="min-w-0">
-                              <p
-                                className="text-sm font-bold leading-5"
-                                style={{
-                                  color:
-                                    TEXT_PRIMARY,
-                                }}
-                              >
-                                {
-                                  section.name
-                                }
-                              </p>
-
-                              <p
-                                className="mt-1 text-[10px]"
-                                style={{
-                                  color:
-                                    MUTED,
-                                }}
-                              >
-                                Section #
-                                {
-                                  section.id
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* SLUG */}
-                        <td className="max-w-[180px] px-5 py-4">
-                          <span
-                            className="inline-block rounded-lg px-2.5 py-1.5 font-mono text-[10px] font-semibold"
-                            style={{
-                              backgroundColor:
-                                PAGE_BG,
-                              color:
-                                TEXT_SECONDARY,
-                            }}
-                          >
-                            {section.slug ||
-                              "-"}
-                          </span>
-                        </td>
-
-                        {/* DESCRIPTION */}
-                        <td className="max-w-[330px] px-5 py-4">
-                          <p
-                            className="text-xs leading-5"
-                            style={{
-                              color:
-                                TEXT_SECONDARY,
-                            }}
-                          >
-                            {truncateText(
-                              section.description,
-                              120
-                            )}
-                          </p>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {/* EDIT */}
-                            {canUpdateSection && (
-                              <button
-                                type="button"
-                                title="Edit Section"
-                                onClick={() =>
-                                  openEditSection(
-                                    section
-                                  )
-                                }
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border transition hover:text-white"
-                                style={{
-                                  borderColor:
-                                    "#C9D9F4",
-                                  backgroundColor:
-                                    LIGHT_BLUE,
-                                  color:
-                                    PRIMARY,
-                                }}
-                                onMouseEnter={(
-                                  event
-                                ) => {
-                                  event.currentTarget.style.backgroundColor =
-                                    PRIMARY;
-                                  event.currentTarget.style.borderColor =
-                                    PRIMARY;
-                                }}
-                                onMouseLeave={(
-                                  event
-                                ) => {
-                                  event.currentTarget.style.backgroundColor =
-                                    LIGHT_BLUE;
-                                  event.currentTarget.style.borderColor =
-                                    "#C9D9F4";
-                                  event.currentTarget.style.color =
-                                    PRIMARY;
-                                }}
-                              >
-                                <FiEdit3
-                                  size={15}
-                                />
-                              </button>
-                            )}
-
-                            {/* DELETE */}
-                            {canDeleteSection && (
-                              <button
-                                type="button"
-                                title="Delete Section"
-                                onClick={() =>
-                                  openDelete(
-                                    section
-                                  )
-                                }
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                                style={{
-                                  borderColor:
-                                    "rgba(194,59,50,0.20)",
-                                  backgroundColor:
-                                    DANGER_BG,
-                                  color:
-                                    DANGER,
-                                }}
-                              >
-                                <FiTrash2
-                                  size={15}
-                                />
-                              </button>
-                            )}
-
-                            {!canUpdateSection &&
-                              !canDeleteSection && (
-                                <span
-                                  className="rounded-lg border px-3 py-2 text-[9px] font-semibold"
-                                  style={{
-                                    borderColor:
-                                      BORDER,
-                                    backgroundColor:
-                                      "#F7F9FD",
-                                    color:
-                                      MUTED,
-                                  }}
-                                >
-                                  View Only
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                      </motion.tr>
-                    )
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* MOBILE */}
-          <div className="block lg:hidden">
-            {paginatedSections.length >
-            0 ? (
-              paginatedSections.map(
-                (section) => (
-                  <motion.div
-                    key={section.id}
-                    variants={itemVariants}
-                    className="border-b p-4"
-                    style={{
-                      borderColor:
-                        "#EEF2F8",
-                    }}
+            <tbody>
+              {paginatedSections.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-5 py-14 text-center"
                   >
-                    {/* TOP */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                          style={{
-                            backgroundColor:
-                              LIGHT_BLUE,
-                            color:
-                              PRIMARY,
-                          }}
-                        >
-                          <FiLayers
-                            size={17}
-                          />
+                    <div className="flex flex-col items-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                        <FiLayers size={21} />
+                      </div>
+
+                      <p className="mt-3 text-sm font-bold text-[#111827]">
+                        No sections found
+                      </p>
+
+                      <p className="mt-1 text-[10px] text-[#6B7280]">
+                        Add a new FAQ section to get started.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedSections.map((section, index) => (
+                  <motion.tr
+                    key={section.id}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
+                  >
+                    <td className="px-5 py-4 align-top">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
+                        {startIndex + index + 1}
+                      </span>
+                    </td>
+
+                    <td className="max-w-[280px] px-5 py-4 align-top">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white">
+                          <FiLayers size={17} />
                         </div>
 
                         <div className="min-w-0">
-                          <p
-                            className="text-[10px] font-bold uppercase tracking-wide"
-                            style={{
-                              color:
-                                MUTED,
-                            }}
-                          >
-                            Section
-                          </p>
-
-                          <p
-                            className="mt-1 text-sm font-bold leading-5"
-                            style={{
-                              color:
-                                TEXT_PRIMARY,
-                            }}
-                          >
+                          <p className="text-sm font-bold leading-5 text-[#111827]">
                             {section.name}
                           </p>
 
-                          <p
-                            className="mt-1 font-mono text-[9px]"
-                            style={{
-                              color:
-                                MUTED,
-                            }}
-                          >
-                            Section #
-                            {section.id}
+                          <p className="mt-1 text-[10px] text-[#6B7280]">
+                            Section #{section.id}
                           </p>
                         </div>
                       </div>
+                    </td>
 
-                      <span
-                        className="shrink-0 rounded-lg px-2.5 py-1.5 text-[9px] font-bold"
-                        style={{
-                          backgroundColor:
-                            PAGE_BG,
-                          color:
-                            PRIMARY,
-                        }}
-                      >
-                        Order{" "}
-                        {section.order}
+                    <td className="max-w-[180px] px-5 py-4 align-top">
+                      <span className="inline-block max-w-full truncate rounded-lg bg-[#F4F8FD] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#6B7280]">
+                        {section.slug || "-"}
                       </span>
-                    </div>
+                    </td>
 
-                    {/* SLUG */}
-                    <div
-                      className="mt-3 rounded-xl border p-3"
-                      style={{
-                        borderColor:
-                          "rgba(30,58,138,0.10)",
-                        backgroundColor:
-                          "#FAFBFE",
-                      }}
-                    >
-                      <p
-                        className="text-[9px] font-bold uppercase tracking-wide"
-                        style={{
-                          color:
-                            MUTED,
-                        }}
-                      >
-                        Slug
+                    <td className="max-w-[330px] px-5 py-4 align-top">
+                      <p className="text-xs leading-5 text-[#6B7280]">
+                        {truncateText(section.description, 120)}
                       </p>
+                    </td>
 
-                      <p
-                        className="mt-1 font-mono text-xs"
-                        style={{
-                          color:
-                            TEXT_SECONDARY,
-                        }}
-                      >
-                        {section.slug ||
-                          "-"}
-                      </p>
-                    </div>
-
-                    {/* DESCRIPTION */}
-                    <div
-                      className="mt-3 rounded-xl border p-3"
-                      style={{
-                        borderColor:
-                          "rgba(30,58,138,0.10)",
-                        backgroundColor:
-                          "#FAFBFE",
-                      }}
-                    >
-                      <p
-                        className="text-[9px] font-bold uppercase tracking-wide"
-                        style={{
-                          color:
-                            MUTED,
-                        }}
-                      >
-                        Description
-                      </p>
-
-                      <p
-                        className="mt-1 text-xs leading-5"
-                        style={{
-                          color:
-                            TEXT_SECONDARY,
-                        }}
-                      >
-                        {truncateText(
-                          section.description,
-                          180
-                        )}
-                      </p>
-                    </div>
-
-                    {/* BOTTOM */}
-                    <div className="mt-3 flex items-center justify-end gap-2">
-                      {canUpdateSection && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openEditSection(
-                              section
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border"
-                          style={{
-                            borderColor:
-                              "#C9D9F4",
-                            backgroundColor:
-                              LIGHT_BLUE,
-                            color:
-                              PRIMARY,
-                          }}
-                        >
-                          <FiEdit3
-                            size={14}
-                          />
-                        </button>
-                      )}
-
-                      {canDeleteSection && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openDelete(
-                              section
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border"
-                          style={{
-                            borderColor:
-                              "rgba(194,59,50,0.20)",
-                            backgroundColor:
-                              DANGER_BG,
-                            color:
-                              DANGER,
-                          }}
-                        >
-                          <FiTrash2
-                            size={14}
-                          />
-                        </button>
-                      )}
-
-                      {!canUpdateSection &&
-                        !canDeleteSection && (
-                          <span
-                            className="rounded-lg border px-3 py-2 text-[9px] font-semibold"
-                            style={{
-                              borderColor:
-                                BORDER,
-                              backgroundColor:
-                                "#F7F9FD",
-                              color:
-                                MUTED,
-                            }}
+                    <td className="px-5 py-4 align-top">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {canUpdateSection && (
+                          <button
+                            type="button"
+                            title="Edit Section"
+                            onClick={() =>
+                              openEditSection(section)
+                            }
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                           >
-                            View Only
-                          </span>
+                            <FiEdit3 size={15} />
+                          </button>
                         )}
+
+                        {canDeleteSection && (
+                          <button
+                            type="button"
+                            title="Delete Section"
+                            onClick={() => openDelete(section)}
+                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                          >
+                            <FiTrash2 size={15} />
+                          </button>
+                        )}
+
+                        {!canUpdateSection &&
+                          !canDeleteSection && (
+                            <span className="rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] px-3 py-2 text-[9px] font-semibold text-[#6B7280]">
+                              View Only
+                            </span>
+                          )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* MOBILE CARDS */}
+
+        <div className="block lg:hidden">
+          {paginatedSections.length > 0 ? (
+            paginatedSections.map((section) => (
+              <motion.div
+                key={section.id}
+                variants={itemVariants}
+                className="border-b border-[#DCE6F2] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                      <FiLayers size={17} />
                     </div>
-                  </motion.div>
-                )
-              )
-            ) : (
-              <div className="flex flex-col items-center px-5 py-14 text-center">
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor:
-                      LIGHT_BLUE,
-                    color: PRIMARY,
-                  }}
-                >
-                  <FiLayers size={22} />
+
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Section
+                      </p>
+
+                      <p className="mt-1 break-words text-sm font-bold leading-5 text-[#111827]">
+                        {section.name}
+                      </p>
+
+                      <p className="mt-1 font-mono text-[9px] text-[#6B7280]">
+                        Section #{section.id}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="shrink-0 rounded-lg border border-[#FACC15]/60 bg-[#FEF9C3] px-2.5 py-1.5 text-[9px] font-bold text-[#A16207]">
+                    Order {section.order}
+                  </span>
                 </div>
 
-                <p
-                  className="mt-3 text-sm font-bold"
-                  style={{
-                    color:
-                      TEXT_PRIMARY,
-                  }}
-                >
-                  No sections found
-                </p>
+                <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Slug
+                  </p>
 
-                <p
-                  className="mt-1 text-[10px]"
-                  style={{
-                    color: MUTED,
-                  }}
-                >
-                  Add a section from the button
-                  above.
-                </p>
-              </div>
-            )}
-          </div>
+                  <p className="mt-1 break-all font-mono text-xs text-[#6B7280]">
+                    {section.slug || "-"}
+                  </p>
+                </div>
 
-          {/* PAGINATION */}
-          {filteredSections.length >
-            0 && (
-            <div
-              className="border-t px-4 py-4"
-              style={{
-                borderColor:
-                  "rgba(30,58,138,0.10)",
-                backgroundColor:
-                  "#FAFBFE",
-              }}
-            >
-              <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-                <p
-                  className="text-[10px]"
-                  style={{
-                    color: MUTED,
-                  }}
-                >
-                  Showing{" "}
-                  <strong
-                    style={{
-                      color:
-                        TEXT_SECONDARY,
-                    }}
-                  >
-                    {startEntry}
-                  </strong>{" "}
-                  to{" "}
-                  <strong
-                    style={{
-                      color:
-                        TEXT_SECONDARY,
-                    }}
-                  >
-                    {endEntry}
-                  </strong>{" "}
-                  of{" "}
-                  <strong
-                    style={{
-                      color:
-                        TEXT_SECONDARY,
-                    }}
-                  >
-                    {filteredSections.length}
-                  </strong>
-                </p>
+                <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Description
+                  </p>
 
-                <div className="flex items-center gap-1.5">
-                  {/* PREVIOUS */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page - 1
-                      )
-                    }
-                    disabled={
-                      currentPage === 1
-                    }
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF1FF] disabled:opacity-30"
-                    style={{
-                      borderColor:
-                        BORDER,
-                      color:
-                        PRIMARY,
-                    }}
-                  >
-                    <FiChevronLeft
-                      size={15}
-                    />
-                  </button>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-[#6B7280]">
+                    {truncateText(section.description, 180)}
+                  </p>
+                </div>
 
-                  {paginationPages.map(
-                    (page) => (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() =>
-                          setCurrentPage(
-                            page
-                          )
-                        }
-                        className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-[10px] font-bold transition"
-                        style={{
-                          background:
-                            currentPage ===
-                            page
-                              ? `linear-gradient(135deg, ${ACCENT}, ${PRIMARY})`
-                              : WHITE,
-                          color:
-                            currentPage ===
-                            page
-                              ? WHITE
-                              : TEXT_SECONDARY,
-                          border:
-                            currentPage ===
-                            page
-                              ? "none"
-                              : `1px solid ${BORDER}`,
-                          boxShadow:
-                            currentPage ===
-                            page
-                              ? "0 6px 14px -6px rgba(30,58,138,0.5)"
-                              : "none",
-                        }}
-                      >
-                        {page}
-                      </button>
-                    )
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  {canUpdateSection && (
+                    <button
+                      type="button"
+                      onClick={() => openEditSection(section)}
+                      title="Edit section"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8]"
+                    >
+                      <FiEdit3 size={14} />
+                    </button>
                   )}
 
-                  {/* NEXT */}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage(
-                        (page) =>
-                          page + 1
-                      )
-                    }
-                    disabled={
-                      currentPage ===
-                      totalPages
-                    }
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF1FF] disabled:opacity-30"
-                    style={{
-                      borderColor:
-                        BORDER,
-                      color:
-                        PRIMARY,
-                    }}
-                  >
-                    <FiChevronRight
-                      size={15}
-                    />
-                  </button>
+                  {canDeleteSection && (
+                    <button
+                      type="button"
+                      onClick={() => openDelete(section)}
+                      title="Delete section"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  )}
+
+                  {!canUpdateSection &&
+                    !canDeleteSection && (
+                      <span className="rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] px-3 py-2 text-[9px] font-semibold text-[#6B7280]">
+                        View Only
+                      </span>
+                    )}
                 </div>
+              </motion.div>
+            ))
+          ) : (
+            <div className="flex flex-col items-center px-5 py-14 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiLayers size={22} />
               </div>
+
+              <p className="mt-3 text-sm font-bold text-[#111827]">
+                No sections found
+              </p>
+
+              <p className="mt-1 text-[10px] text-[#6B7280]">
+                Add a section from the button above.
+              </p>
             </div>
           )}
-        </motion.div>
+        </div>
 
-        <div className="h-4" />
+        {/* PAGINATION */}
+
+        {filteredSections.length > 0 && (
+          <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4">
+            <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+              <p className="text-[10px] text-[#6B7280]">
+                Showing{" "}
+                <strong className="text-[#111827]">
+                  {startEntry}
+                </strong>{" "}
+                to{" "}
+                <strong className="text-[#111827]">
+                  {endEntry}
+                </strong>{" "}
+                of{" "}
+                <strong className="text-[#111827]">
+                  {filteredSections.length}
+                </strong>
+              </p>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.max(1, page - 1),
+                    )
+                  }
+                  disabled={currentPage === 1}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-30"
+                  aria-label="Previous page"
+                >
+                  <FiChevronLeft size={15} />
+                </button>
+
+                {paginationPages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => setCurrentPage(page)}
+                    className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2.5 text-[10px] font-bold transition ${
+                      currentPage === page
+                        ? "bg-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                        : "border border-[#DCE6F2] bg-white text-[#6B7280] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.min(totalPages, page + 1),
+                    )
+                  }
+                  disabled={currentPage === totalPages}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-30"
+                  aria-label="Next page"
+                >
+                  <FiChevronRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
 
-      {/* ADD / EDIT */}
+      <div className="h-4" />
+
+      {/* ADD / EDIT MODAL */}
+
       <SectionModal
         open={sectionModalOpen}
         editingSection={editingSection}
@@ -2174,12 +1427,11 @@ const SectionManagement: React.FC = () => {
           setSectionModalOpen(false);
           setEditingSection(null);
         }}
-        onSubmit={
-          handleSaveSection
-        }
+        onSubmit={handleSaveSection}
       />
 
-      {/* DELETE */}
+      {/* DELETE MODAL */}
+
       <DeleteSectionModal
         open={deleteOpen}
         loading={deleteLoading}
@@ -2192,7 +1444,7 @@ const SectionManagement: React.FC = () => {
         }}
         onConfirm={handleDelete}
       />
-    </>
+    </motion.div>
   );
 };
 

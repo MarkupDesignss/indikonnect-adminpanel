@@ -33,33 +33,33 @@ import footerApi, {
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
-// THEME
+// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ)
 // =====================================================
+const PRIMARY = "#2D6FE8";
+const DARK_PRIMARY = "#2D6FE8";
+const BLUE = "#2D6FE8";
+const ACCENT = "#4F8FF7";
 
-const PRIMARY = "#1E3A8A";
-const DARK_PRIMARY = "#172554";
-const BLUE = "#1E40AF";
-const ACCENT = "#2563EB";
+const LIGHT_BLUE = "#EAF3FF";
+const SOFT_BLUE = "#EAF3FF";
+const PAGE_BG = "#F4F8FD";
 
-const LIGHT_BLUE = "#EAF1FF";
-const SOFT_BLUE = "#DBEAFE";
-const PAGE_BG = "#F5F8FF";
+const TEXT_PRIMARY = "#111827";
+const TEXT_SECONDARY = "#6B7280";
+const MUTED = "#6B7280";
 
-const TEXT_PRIMARY = "#0F1B3D";
-const TEXT_SECONDARY = "#4A5778";
-const MUTED = "#8C97B2";
-
-const BORDER = "#D8E2F0";
+const BORDER = "#DCE6F2";
 
 const WHITE = "#FFFFFF";
 
 const DANGER = "#C23B32";
-const DANGER_BG = "#FBEAEA";
+const DANGER_BG = "#FEF2F2";
+
+const WARNING = "#FACC15";
 
 // =====================================================
 // PERMISSIONS
 // =====================================================
-
 const VIEW_PERMISSION_KEYS = [
   "footer.view",
   "Footer.view",
@@ -81,7 +81,6 @@ const UPDATE_PERMISSION_KEYS = [
 // =====================================================
 // ANIMATIONS
 // =====================================================
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -91,22 +90,17 @@ const containerVariants = {
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 15 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 16,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 15 },
   },
 };
 
 // =====================================================
 // TYPES
 // =====================================================
-
 interface FooterForm {
   title: string;
   instagram: string;
@@ -123,7 +117,6 @@ interface FooterForm {
 // =====================================================
 // HELPERS
 // =====================================================
-
 const valueOrEmpty = (value?: string | null): string => value || "";
 
 const getInitialLogo = (footer: FooterData | null): string | null =>
@@ -132,7 +125,6 @@ const getInitialLogo = (footer: FooterData | null): string | null =>
 // =====================================================
 // REUSABLE FIELD
 // =====================================================
-
 interface FieldProps {
   label: string;
   value: string;
@@ -154,18 +146,17 @@ const FooterField: React.FC<FieldProps> = ({
   disabled = false,
   onChange,
 }) => {
+  const baseClass =
+    "w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:cursor-not-allowed disabled:bg-[#EEF3FA] disabled:text-[#6B7280]";
+
   return (
     <div>
-      <label
-        className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em]"
-        style={{ color: TEXT_SECONDARY }}
-      >
+      <label className="mb-1.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
         {icon && (
-          <span style={{ color: disabled ? MUTED : PRIMARY }}>
+          <span className={disabled ? "text-[#6B7280]" : "text-[#2D6FE8]"}>
             {icon}
           </span>
         )}
-
         {label}
       </label>
 
@@ -176,27 +167,7 @@ const FooterField: React.FC<FieldProps> = ({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="w-full resize-none rounded-xl px-4 py-3 text-sm outline-none transition placeholder:text-[#8C97B2] disabled:cursor-not-allowed disabled:bg-[#EEF3FA] disabled:text-[#8C97B2]"
-          style={{
-            border: `1px solid ${BORDER}`,
-            backgroundColor: disabled ? "#EEF3FA" : PAGE_BG,
-            color: TEXT_PRIMARY,
-          }}
-          onFocus={(event) => {
-            if (!disabled) {
-              event.currentTarget.style.borderColor = PRIMARY;
-              event.currentTarget.style.boxShadow =
-                `0 0 0 3px rgba(37, 99, 235, 0.08)`;
-              event.currentTarget.style.backgroundColor = WHITE;
-            }
-          }}
-          onBlur={(event) => {
-            event.currentTarget.style.borderColor = BORDER;
-            event.currentTarget.style.boxShadow = "none";
-            event.currentTarget.style.backgroundColor = disabled
-              ? "#EEF3FA"
-              : PAGE_BG;
-          }}
+          className={`${baseClass} resize-none px-4 py-3`}
         />
       ) : (
         <input
@@ -205,27 +176,7 @@ const FooterField: React.FC<FieldProps> = ({
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
-          className="h-11 w-full rounded-xl px-4 text-sm outline-none transition placeholder:text-[#8C97B2] disabled:cursor-not-allowed disabled:bg-[#EEF3FA] disabled:text-[#8C97B2]"
-          style={{
-            border: `1px solid ${BORDER}`,
-            backgroundColor: disabled ? "#EEF3FA" : PAGE_BG,
-            color: TEXT_PRIMARY,
-          }}
-          onFocus={(event) => {
-            if (!disabled) {
-              event.currentTarget.style.borderColor = PRIMARY;
-              event.currentTarget.style.boxShadow =
-                `0 0 0 3px rgba(37, 99, 235, 0.08)`;
-              event.currentTarget.style.backgroundColor = WHITE;
-            }
-          }}
-          onBlur={(event) => {
-            event.currentTarget.style.borderColor = BORDER;
-            event.currentTarget.style.boxShadow = "none";
-            event.currentTarget.style.backgroundColor = disabled
-              ? "#EEF3FA"
-              : PAGE_BG;
-          }}
+          className={`${baseClass} h-11 px-4`}
         />
       )}
     </div>
@@ -235,7 +186,6 @@ const FooterField: React.FC<FieldProps> = ({
 // =====================================================
 // SECTION CARD
 // =====================================================
-
 interface SectionCardProps {
   title: string;
   subtitle: string;
@@ -252,48 +202,22 @@ const SectionCard: React.FC<SectionCardProps> = ({
   return (
     <motion.div
       variants={itemVariants}
-      className="relative overflow-hidden rounded-[20px] border bg-white shadow-[0_8px_30px_rgba(30,58,138,0.06)]"
-      style={{ borderColor: "#E0E7F2" }}
+      className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
     >
-      <div
-        className="absolute left-0 right-0 top-0 h-[3px]"
-        style={{
-          background: `linear-gradient(to right, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
-        }}
-      />
+      <div className="absolute left-0 right-0 top-0 h-[3px] bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
-      <div
-        className="flex items-center gap-3 border-b px-5 py-4"
-        style={{ borderColor: "rgba(30,58,138,0.10)" }}
-      >
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-xl"
-          style={{
-            backgroundColor: LIGHT_BLUE,
-            color: PRIMARY,
-          }}
-        >
+      <div className="flex items-center gap-3 border-b border-[#DCE6F2] px-5 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
           {icon}
         </div>
 
         <div>
-          <h2
-            className="text-sm font-bold"
-            style={{ color: TEXT_PRIMARY }}
-          >
-            {title}
-          </h2>
-
-          <p
-            className="mt-0.5 text-[10px]"
-            style={{ color: MUTED }}
-          >
-            {subtitle}
-          </p>
+          <h2 className="text-sm font-bold text-[#111827]">{title}</h2>
+          <p className="mt-0.5 text-[10px] text-[#6B7280]">{subtitle}</p>
         </div>
       </div>
 
-      <div className="p-5">{children}</div>
+      <div className="bg-[#F8FBFF] p-5">{children}</div>
     </motion.div>
   );
 };
@@ -301,7 +225,6 @@ const SectionCard: React.FC<SectionCardProps> = ({
 // =====================================================
 // LOGO UPLOADER
 // =====================================================
-
 interface LogoUploaderProps {
   currentLogo: string | null;
   selectedFile: File | null;
@@ -334,34 +257,18 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
   const image = preview || currentLogo;
 
   return (
-    <div
-      className="rounded-[16px] border p-3"
-      style={{
-        borderColor: "rgba(30,58,138,0.10)",
-        backgroundColor: "#FAFBFE",
-      }}
-    >
+    <div className="rounded-[16px] border border-[#DCE6F2] bg-white p-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
             <FiImage size={14} />
           </div>
 
           <div>
-            <p
-              className="text-[9px] font-bold uppercase tracking-[0.12em]"
-              style={{ color: MUTED }}
-            >
+            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Footer Logo
             </p>
-
-            <p
-              className="text-[10px] font-bold"
-              style={{ color: TEXT_SECONDARY }}
-            >
+            <p className="text-[10px] font-bold text-[#6B7280]">
               Current Footer Logo
             </p>
           </div>
@@ -371,18 +278,14 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="text-[10px] font-bold transition hover:opacity-80"
-            style={{ color: DANGER }}
+            className="text-[10px] font-bold text-[#C23B32] transition hover:opacity-80"
           >
             Remove
           </button>
         )}
       </div>
 
-      <div
-        className="flex h-[100px] items-center justify-center overflow-hidden rounded-lg border bg-white p-3"
-        style={{ borderColor: "rgba(30,58,138,0.10)" }}
-      >
+      <div className="flex h-[100px] items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-white p-3">
         {image ? (
           <img
             src={image}
@@ -390,45 +293,23 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
             className="max-h-[80px] max-w-full object-contain"
           />
         ) : (
-          <div
-            className="text-center"
-            style={{ color: MUTED }}
-          >
+          <div className="text-center text-[#6B7280]">
             <FiImage size={24} className="mx-auto" />
-
-            <p className="mt-1 text-[9px]">
-              No footer logo available
-            </p>
+            <p className="mt-1 text-[9px]">No footer logo available</p>
           </div>
         )}
       </div>
 
       {!disabled && (
         <>
-          <label
-            className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border bg-white px-3 py-2 text-[9px] font-bold transition"
-            style={{
-              borderColor: "rgba(30,58,138,0.20)",
-              color: PRIMARY,
-            }}
-            onMouseEnter={(event) => {
-              event.currentTarget.style.backgroundColor = LIGHT_BLUE;
-            }}
-            onMouseLeave={(event) => {
-              event.currentTarget.style.backgroundColor = WHITE;
-            }}
-          >
+          <label className="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-[9px] font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF]">
             <FiUploadCloud size={13} />
-
             {selectedFile ? "Change Logo" : "Choose New Logo"}
-
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/webp"
               className="hidden"
-              onChange={(
-                event: ChangeEvent<HTMLInputElement>
-              ) => {
+              onChange={(event: ChangeEvent<HTMLInputElement>) => {
                 onChange(event.target.files?.[0] || null);
                 event.target.value = "";
               }}
@@ -436,13 +317,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
           </label>
 
           {selectedFile && (
-            <div
-              className="mt-2 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[8px] font-semibold"
-              style={{
-                backgroundColor: LIGHT_BLUE,
-                color: PRIMARY,
-              }}
-            >
+            <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-[8px] font-semibold text-[#2D6FE8]">
               <FiCheck size={11} />
               {selectedFile.name}
             </div>
@@ -451,13 +326,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
       )}
 
       {disabled && (
-        <div
-          className="mt-2 rounded-lg px-3 py-2 text-[9px] font-semibold"
-          style={{
-            backgroundColor: "#EEF3FA",
-            color: MUTED,
-          }}
-        >
+        <div className="mt-2 rounded-lg bg-[#EEF3FA] px-3 py-2 text-[9px] font-semibold text-[#6B7280]">
           Update permission is required to change the footer logo.
         </div>
       )}
@@ -468,7 +337,6 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({
 // =====================================================
 // LOGO FILE PREVIEW
 // =====================================================
-
 const LogoPreviewFile: React.FC<{ file: File }> = ({ file }) => {
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -495,7 +363,6 @@ const LogoPreviewFile: React.FC<{ file: File }> = ({ file }) => {
 // =====================================================
 // EYE ICON
 // =====================================================
-
 const FiEyeIcon = () => (
   <svg
     width="18"
@@ -511,7 +378,6 @@ const FiEyeIcon = () => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-
     <circle
       cx="12"
       cy="12"
@@ -525,7 +391,6 @@ const FiEyeIcon = () => (
 // =====================================================
 // MAIN PAGE
 // =====================================================
-
 const FooterManagement: React.FC = () => {
   const {
     hasPermission,
@@ -537,7 +402,6 @@ const FooterManagement: React.FC = () => {
   // =================================================
   // PERMISSION HELPERS
   // =================================================
-
   const hasAnyPermission = (permissions: string[]) =>
     permissions.some((permission) => hasPermission(permission));
 
@@ -549,24 +413,17 @@ const FooterManagement: React.FC = () => {
       hasModuleAccess("Footers") ||
       hasModuleAccess("footers") ||
       hasAnyPermission(VIEW_PERMISSION_KEYS),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasPermission,
-    ],
+    [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
   const canUpdateFooter = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasAnyPermission(UPDATE_PERMISSION_KEYS),
+    () => isSuperAdmin || hasAnyPermission(UPDATE_PERMISSION_KEYS),
     [isSuperAdmin, hasPermission],
   );
 
   // =================================================
   // STATES
   // =================================================
-
   const [footer, setFooter] = useState<FooterData | null>(null);
 
   const [form, setForm] = useState<FooterForm>({
@@ -588,27 +445,16 @@ const FooterManagement: React.FC = () => {
   // =================================================
   // FETCH REFS
   // =================================================
-
-  const fetchInFlightRef =
-    useRef<Promise<void> | null>(null);
-
-  const hasInitialFetchRef =
-    useRef(false);
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
+  const hasInitialFetchRef = useRef(false);
 
   // =================================================
   // GET FOOTER
   // =================================================
-
   const fetchFooter = async (force = false) => {
     if (!canViewFooter) return;
-
-    if (fetchInFlightRef.current) {
-      return fetchInFlightRef.current;
-    }
-
-    if (!force && hasInitialFetchRef.current) {
-      return;
-    }
+    if (fetchInFlightRef.current) return fetchInFlightRef.current;
+    if (!force && hasInitialFetchRef.current) return;
 
     const requestPromise = (async () => {
       try {
@@ -617,8 +463,7 @@ const FooterManagement: React.FC = () => {
         const response = await footerApi.get();
 
         if (response?.data?.success) {
-          const footerData =
-            response?.data?.data?.footer;
+          const footerData = response?.data?.data?.footer;
 
           if (!footerData) {
             toast.error("Footer data not found.");
@@ -629,49 +474,27 @@ const FooterManagement: React.FC = () => {
 
           setForm({
             title: valueOrEmpty(footerData.title),
-            instagram: valueOrEmpty(
-              footerData.instagram
-            ),
-            facebook: valueOrEmpty(
-              footerData.facebook
-            ),
-            linkedin: valueOrEmpty(
-              footerData.linkedin
-            ),
-            twitter: valueOrEmpty(
-              footerData.twitter
-            ),
-            youtube: valueOrEmpty(
-              footerData.youtube
-            ),
-            email: valueOrEmpty(
-              footerData.email
-            ),
-            phone: valueOrEmpty(
-              footerData.phone
-            ),
-            copyright: valueOrEmpty(
-              footerData.copyright
-            ),
+            instagram: valueOrEmpty(footerData.instagram),
+            facebook: valueOrEmpty(footerData.facebook),
+            linkedin: valueOrEmpty(footerData.linkedin),
+            twitter: valueOrEmpty(footerData.twitter),
+            youtube: valueOrEmpty(footerData.youtube),
+            email: valueOrEmpty(footerData.email),
+            phone: valueOrEmpty(footerData.phone),
+            copyright: valueOrEmpty(footerData.copyright),
             logo: null,
           });
 
           hasInitialFetchRef.current = true;
         } else {
           toast.error(
-            response?.data?.message ||
-              "Unable to load footer."
+            response?.data?.message || "Unable to load footer.",
           );
         }
       } catch (error: any) {
-        console.error(
-          "Fetch footer error:",
-          error
-        );
-
+        console.error("Fetch footer error:", error);
         toast.error(
-          error?.response?.data?.message ||
-            "Unable to load footer."
+          error?.response?.data?.message || "Unable to load footer.",
         );
       } finally {
         setLoading(false);
@@ -690,7 +513,6 @@ const FooterManagement: React.FC = () => {
   // =================================================
   // INITIAL FETCH
   // =================================================
-
   useEffect(() => {
     if (
       !permissionsLoading &&
@@ -699,40 +521,24 @@ const FooterManagement: React.FC = () => {
     ) {
       fetchFooter();
     }
-  }, [
-    permissionsLoading,
-    canViewFooter,
-  ]);
+  }, [permissionsLoading, canViewFooter]);
 
   // =================================================
   // FIELD UPDATE
   // =================================================
-
-  const updateField = (
-    field: keyof FooterForm,
-    value: string
-  ) => {
+  const updateField = (field: keyof FooterForm, value: string) => {
     if (!canUpdateFooter) return;
-
-    setForm((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setForm((current) => ({ ...current, [field]: value }));
   };
 
   // =================================================
   // UPDATE FOOTER
   // =================================================
-
-  const handleSubmit = async (
-    event: React.FormEvent
-  ) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!canUpdateFooter) {
-      toast.error(
-        "You do not have permission to update the footer."
-      );
+      toast.error("You do not have permission to update the footer.");
       return;
     }
 
@@ -767,31 +573,22 @@ const FooterManagement: React.FC = () => {
         copyright: form.copyright.trim(),
       };
 
-      const response =
-        await footerApi.update(payload);
+      const response = await footerApi.update(payload);
 
       if (response?.data?.success) {
         toast.success(
-          response.data.message ||
-            "Footer updated successfully."
+          response.data.message || "Footer updated successfully.",
         );
-
         await fetchFooter(true);
       } else {
         toast.error(
-          response?.data?.message ||
-            "Unable to update footer."
+          response?.data?.message || "Unable to update footer.",
         );
       }
     } catch (error: any) {
-      console.error(
-        "Update footer error:",
-        error
-      );
-
+      console.error("Update footer error:", error);
       toast.error(
-        error?.response?.data?.message ||
-          "Unable to update footer."
+        error?.response?.data?.message || "Unable to update footer.",
       );
     } finally {
       setSaving(false);
@@ -801,35 +598,17 @@ const FooterManagement: React.FC = () => {
   // =================================================
   // PERMISSION LOADING
   // =================================================
-
   if (permissionsLoading) {
     return (
-      <div
-        className="flex min-h-[500px] items-center justify-center font-poppins"
-        style={{ backgroundColor: PAGE_BG }}
-      >
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
         <div className="flex flex-col items-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
-            <FiRefreshCw
-              size={23}
-              className="animate-spin"
-            />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+            <FiRefreshCw size={27} className="animate-spin" />
           </div>
-
-          <p
-            className="mt-4 text-sm font-bold"
-            style={{ color: TEXT_PRIMARY }}
-          >
+          <p className="mt-4 text-sm font-bold text-[#111827]">
             Checking permissions...
           </p>
-
-          <p
-            className="mt-1 text-[10px]"
-            style={{ color: MUTED }}
-          >
+          <p className="mt-1 text-xs text-[#6B7280]">
             Verifying footer access.
           </p>
         </div>
@@ -839,34 +618,10 @@ const FooterManagement: React.FC = () => {
 
   if (loading && !footer) {
     return (
-      <div
-        className="flex min-h-[500px] items-center justify-center font-poppins"
-        style={{ backgroundColor: PAGE_BG }}
-      >
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
         <div className="flex flex-col items-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
-            <FiRefreshCw
-              size={23}
-              className="animate-spin"
-            />
-          </div>
-
-          <p
-            className="mt-4 text-sm font-bold"
-            style={{ color: TEXT_PRIMARY }}
-          >
-            Loading footer...
-          </p>
-
-          <p
-            className="mt-1 text-[10px]"
-            style={{ color: MUTED }}
-          >
-            Fetching current footer settings.
-          </p>
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
+          <p className="mt-3 text-sm text-[#6B7280]">Loading footer...</p>
         </div>
       </div>
     );
@@ -875,119 +630,71 @@ const FooterManagement: React.FC = () => {
   // =================================================
   // UI
   // =================================================
-
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen p-4 font-poppins sm:p-5 lg:p-6"
-      style={{ backgroundColor: PAGE_BG }}
+      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-7"
     >
       {/* HEADER */}
       <motion.div
         variants={itemVariants}
-        className="mb-5 flex flex-col justify-between gap-4 xl:flex-row xl:items-center"
+        className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center"
       >
         <div>
-          <div className="mb-1.5 flex items-center gap-2">
-            <span
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ backgroundColor: PRIMARY }}
-            />
-
-            <span
-              className="text-[9px] font-bold uppercase tracking-[0.22em]"
-              style={{ color: ACCENT }}
-            >
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
               Website Configuration
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <h1
-              className="text-[28px] font-bold tracking-tight sm:text-[32px]"
-              style={{ color: TEXT_PRIMARY }}
-            >
-              Footer Management
-            </h1>
+          <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+            Footer Management
+          </h1>
 
-            <span
-              className="hidden rounded-full border bg-white px-3 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex"
-              style={{
-                borderColor: "rgba(30,58,138,0.15)",
-                color: PRIMARY,
-              }}
-            >
-              Website Footer
-            </span>
-          </div>
-
-          <p
-            className="mt-1.5 max-w-2xl text-xs leading-5"
-            style={{ color: TEXT_SECONDARY }}
-          >
-            Manage your website footer logo, social
-            links, contact information and copyright
-            content.
+          <p className="mt-0.5 text-sm text-[#111827]">
+            Manage your website footer logo, social links, contact information
+            and copyright content.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* VIEW PERMISSION = REFRESH */}
+        <div className="flex flex-wrap items-center gap-3 self-start">
+          {/* REFRESH */}
           <button
             type="button"
             onClick={() => fetchFooter(true)}
             disabled={loading || saving}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl border bg-white px-4 text-xs font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              borderColor: "rgba(30,58,138,0.20)",
-              color: PRIMARY,
-            }}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiRefreshCw
-              size={15}
-              className={
-                loading ? "animate-spin" : ""
-              }
+              size={16}
+              className={loading ? "animate-spin" : ""}
             />
             Refresh
           </button>
 
-          {/* UPDATE PERMISSION */}
+          {/* SAVE */}
           {canUpdateFooter ? (
             <button
               type="submit"
               form="footer-management-form"
               disabled={saving}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl px-5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.55)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                background: `linear-gradient(135deg, ${ACCENT}, ${PRIMARY}, ${DARK_PRIMARY})`,
-              }}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-bold text-white  transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? (
-                <FiRefreshCw
-                  size={15}
-                  className="animate-spin"
-                />
+                <FiRefreshCw size={15} className="animate-spin" />
               ) : (
                 <FiSave size={15} />
               )}
-
-              {saving
-                ? "Updating..."
-                : "Update Footer"}
+              {saving ? "Updating..." : "Update Footer"}
             </button>
           ) : (
-            <div
-              className="flex h-10 items-center gap-2 rounded-xl border bg-white px-4 text-xs font-bold"
-              style={{
-                borderColor:
-                  "rgba(30,58,138,0.15)",
-                color: MUTED,
-              }}
-            >
-              <FiCheck size={14} />
+            <div className="flex h-11 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm font-bold text-[#6B7280]">
+              <FiCheck size={15} />
               View Only
             </div>
           )}
@@ -995,13 +702,10 @@ const FooterManagement: React.FC = () => {
       </motion.div>
 
       {/* FORM */}
-      <form
-        id="footer-management-form"
-        onSubmit={handleSubmit}
-      >
+      <form id="footer-management-form" onSubmit={handleSubmit}>
         <motion.div
           variants={containerVariants}
-          className="grid grid-cols-1 gap-5 xl:grid-cols-3"
+          className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-3"
         >
           {/* LEFT COLUMN */}
           <div className="space-y-5 xl:col-span-2">
@@ -1013,16 +717,11 @@ const FooterManagement: React.FC = () => {
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
                 <LogoUploader
-                  currentLogo={getInitialLogo(
-                    footer
-                  )}
+                  currentLogo={getInitialLogo(footer)}
                   selectedFile={form.logo}
                   disabled={!canUpdateFooter}
                   onChange={(file) =>
-                    setForm((current) => ({
-                      ...current,
-                      logo: file,
-                    }))
+                    setForm((current) => ({ ...current, logo: file }))
                   }
                 />
 
@@ -1033,67 +732,27 @@ const FooterManagement: React.FC = () => {
                     disabled={!canUpdateFooter}
                     placeholder="Connect India through opportunity and..."
                     icon={<FiEdit3 size={13} />}
-                    onChange={(value) =>
-                      updateField(
-                        "title",
-                        value
-                      )
-                    }
+                    onChange={(value) => updateField("title", value)}
                   />
 
-                  <div
-                    className="rounded-xl border p-3"
-                    style={{
-                      borderColor:
-                        "rgba(30,58,138,0.10)",
-                      backgroundColor: PAGE_BG,
-                    }}
-                  >
+                  <div className="rounded-xl border border-[#DCE6F2] bg-white p-3">
                     <div className="flex items-center gap-2">
-                      <FiCheck
-                        size={14}
-                        style={{ color: PRIMARY }}
-                      />
-
-                      <span
-                        className="text-[9px] font-bold uppercase tracking-[0.12em]"
-                        style={{
-                          color: PRIMARY,
-                        }}
-                      >
+                      <FiCheck size={14} className="text-[#2D6FE8]" />
+                      <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
                         Footer Status
                       </span>
                     </div>
 
-                    <p
-                      className="mt-1 text-[10px] leading-4"
-                      style={{
-                        color: TEXT_SECONDARY,
-                      }}
-                    >
-                      Footer content is available on
-                      the website and can be updated
-                      from this page.
+                    <p className="mt-1 text-[10px] leading-4 text-[#6B7280]">
+                      Footer content is available on the website and can be
+                      updated from this page.
                     </p>
                   </div>
 
                   {!canUpdateFooter && (
-                    <div
-                      className="rounded-xl border px-3 py-2.5"
-                      style={{
-                        borderColor:
-                          "rgba(30,58,138,0.10)",
-                        backgroundColor: "#EEF3FA",
-                      }}
-                    >
-                      <p
-                        className="text-[10px] font-semibold"
-                        style={{
-                          color: TEXT_SECONDARY,
-                        }}
-                      >
-                        You have view access only.
-                        Footer update permission is
+                    <div className="rounded-xl border border-[#DCE6F2] bg-[#EEF3FA] px-3 py-2.5">
+                      <p className="text-[10px] font-semibold text-[#6B7280]">
+                        You have view access only. Footer update permission is
                         required to edit these fields.
                       </p>
                     </div>
@@ -1115,12 +774,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="https://instagram.com/..."
                   icon={<FiInstagram size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "instagram",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("instagram", value)}
                 />
 
                 <FooterField
@@ -1129,12 +783,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="https://facebook.com/..."
                   icon={<FiGlobe size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "facebook",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("facebook", value)}
                 />
 
                 <FooterField
@@ -1143,12 +792,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="https://linkedin.com/..."
                   icon={<FiLink size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "linkedin",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("linkedin", value)}
                 />
 
                 <FooterField
@@ -1157,12 +801,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="https://x.com/..."
                   icon={<FiTwitter size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "twitter",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("twitter", value)}
                 />
 
                 <FooterField
@@ -1171,12 +810,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="https://youtube.com/..."
                   icon={<FiYoutube size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "youtube",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("youtube", value)}
                 />
               </div>
             </SectionCard>
@@ -1197,12 +831,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="support@example.com"
                   icon={<FiMail size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "email",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("email", value)}
                 />
 
                 <FooterField
@@ -1211,12 +840,7 @@ const FooterManagement: React.FC = () => {
                   disabled={!canUpdateFooter}
                   placeholder="+91 98765 43210"
                   icon={<FiPhone size={13} />}
-                  onChange={(value) =>
-                    updateField(
-                      "phone",
-                      value
-                    )
-                  }
+                  onChange={(value) => updateField("phone", value)}
                 />
               </div>
             </SectionCard>
@@ -1234,29 +858,14 @@ const FooterManagement: React.FC = () => {
                 placeholder="© 2026 IndieConnect. All rights reserved."
                 multiline
                 rows={4}
-                onChange={(value) =>
-                  updateField(
-                    "copyright",
-                    value
-                  )
-                }
+                onChange={(value) => updateField("copyright", value)}
               />
             </SectionCard>
 
             {/* UPDATE INFO */}
-            <div
-              className="rounded-[18px] border p-4"
-              style={{
-                borderColor:
-                  "rgba(30,58,138,0.15)",
-                background: `linear-gradient(135deg, ${LIGHT_BLUE}, ${SOFT_BLUE})`,
-              }}
-            >
+            <div className="rounded-[18px] border border-[#2D6FE8]/15 bg-gradient-to-br from-[#EAF3FF] to-[#EAF3FF] p-4">
               <div className="flex items-start gap-3">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
-                  style={{ color: PRIMARY }}
-                >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8] shadow-sm">
                   {canUpdateFooter ? (
                     <FiUploadCloud size={16} />
                   ) : (
@@ -1265,38 +874,25 @@ const FooterManagement: React.FC = () => {
                 </div>
 
                 <div>
-                  <p
-                    className="text-xs font-bold"
-                    style={{ color: TEXT_PRIMARY }}
-                  >
-                    {canUpdateFooter
-                      ? "Ready to update"
-                      : "View only mode"}
+                  <p className="text-xs font-bold text-[#111827]">
+                    {canUpdateFooter ? "Ready to update" : "View only mode"}
                   </p>
 
-                  <p
-                    className="mt-1 text-[10px] leading-5"
-                    style={{ color: TEXT_SECONDARY }}
-                  >
+                  <p className="mt-1 text-[10px] leading-5 text-[#6B7280]">
                     {canUpdateFooter ? (
                       <>
                         Make your changes and click
-                        <span
-                          className="font-bold"
-                          style={{ color: PRIMARY }}
-                        >
+                        <span className="font-bold text-[#2D6FE8]">
                           {" "}
                           Update Footer
                         </span>
-                        . Logo is optional, so the
-                        existing logo remains unchanged
-                        when no new file is selected.
+                        . Logo is optional, so the existing logo remains
+                        unchanged when no new file is selected.
                       </>
                     ) : (
                       <>
-                        You can view all current footer
-                        settings, but an update permission
-                        is required to make changes.
+                        You can view all current footer settings, but an update
+                        permission is required to make changes.
                       </>
                     )}
                   </p>
@@ -1310,21 +906,12 @@ const FooterManagement: React.FC = () => {
               subtitle="Quick preview of your current footer branding."
               icon={<FiEyeIcon />}
             >
-              <div
-                className="overflow-hidden rounded-[16px] border"
-                style={{
-                  borderColor:
-                    "rgba(30,58,138,0.10)",
-                  backgroundColor: DARK_PRIMARY,
-                }}
-              >
+              <div className="overflow-hidden rounded-[16px] border border-[#DCE6F2] bg-[#0B1228]">
                 <div className="border-b border-white/10 px-4 py-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-12 w-20 items-center justify-center overflow-hidden rounded-lg bg-white p-2">
                       {form.logo ? (
-                        <LogoPreviewFile
-                          file={form.logo}
-                        />
+                        <LogoPreviewFile file={form.logo} />
                       ) : footer?.logo_url ? (
                         <img
                           src={footer.logo_url}
@@ -1332,19 +919,14 @@ const FooterManagement: React.FC = () => {
                           className="max-h-full max-w-full object-contain"
                         />
                       ) : (
-                        <FiImage
-                          size={20}
-                          style={{ color: "#6EA0FF" }}
-                        />
+                        <FiImage size={20} className="text-[#4F8FF7]" />
                       )}
                     </div>
 
                     <div className="min-w-0">
                       <p className="truncate text-xs font-bold text-white">
-                        {form.title ||
-                          "Footer Title"}
+                        {form.title || "Footer Title"}
                       </p>
-
                       <p className="mt-1 text-[9px] text-[#8FB2FF]">
                         Footer Branding
                       </p>
@@ -1354,25 +936,15 @@ const FooterManagement: React.FC = () => {
 
                 <div className="space-y-3 px-4 py-4">
                   {form.email && (
-                    <div className="flex items-center gap-2 text-[10px] text-[#EAF1FF]">
-                      <FiMail
-                        size={12}
-                        className="text-[#8FB2FF]"
-                      />
-
-                      <span className="truncate">
-                        {form.email}
-                      </span>
+                    <div className="flex items-center gap-2 text-[10px] text-[#EAF3FF]">
+                      <FiMail size={12} className="text-[#8FB2FF]" />
+                      <span className="truncate">{form.email}</span>
                     </div>
                   )}
 
                   {form.phone && (
-                    <div className="flex items-center gap-2 text-[10px] text-[#EAF1FF]">
-                      <FiPhone
-                        size={12}
-                        className="text-[#8FB2FF]"
-                      />
-
+                    <div className="flex items-center gap-2 text-[10px] text-[#EAF3FF]">
+                      <FiPhone size={12} className="text-[#8FB2FF]" />
                       <span>{form.phone}</span>
                     </div>
                   )}

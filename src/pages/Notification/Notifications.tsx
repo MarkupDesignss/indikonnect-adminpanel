@@ -33,7 +33,6 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 // =====================================================
 // TYPES
 // =====================================================
-
 export type NotificationType =
   | "order"
   | "payment"
@@ -59,7 +58,6 @@ export interface Notification {
 // =====================================================
 // ANIMATION
 // =====================================================
-
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -73,41 +71,34 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 110, damping: 15 },
+    transition: { type: "spring" as const, stiffness: 110, damping: 15 },
   },
 };
 
 // =====================================================
-// PERMISSION LOADING STATE
+// PERMISSION LOADING
 // =====================================================
-
-const PermissionLoadingState: React.FC = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D8E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#0F1B3D]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#8C97B2]">
-          Please wait while we verify your access.
-        </p>
+const PermissionLoadingState: React.FC = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+    <div className="flex flex-col items-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+        <FiRefreshCw size={27} className="animate-spin" />
       </div>
+      <p className="mt-4 text-sm font-bold text-[#111827]">
+        Checking permissions...
+      </p>
+      <p className="mt-1 text-xs text-[#6B7280]">
+        Verifying notification access.
+      </p>
     </div>
-  );
-};
+  </div>
+);
 
 // =====================================================
-// HELPERS — NAVY THEME
+// HELPERS — BLUE THEME
 // =====================================================
-
 const getNotificationIcon = (type?: string) => {
   const normalizedType = type?.toLowerCase() || "";
-
   if (normalizedType.includes("order") || normalizedType === "order_confirmed")
     return <FiPackage size={18} />;
   if (normalizedType.includes("payment")) return <FiCreditCard size={18} />;
@@ -122,15 +113,12 @@ const getNotificationIcon = (type?: string) => {
   if (normalizedType.includes("alert")) return <FiAlertCircle size={18} />;
   if (normalizedType.includes("system")) return <FiSettings size={18} />;
   if (normalizedType.includes("return")) return <FiTruck size={18} />;
-
   return <FiBell size={18} />;
 };
 
 const getNotificationLabel = (type?: string) => {
   if (!type) return "Notification";
-
   const normalizedType = type.toLowerCase();
-
   if (normalizedType === "order_confirmed") return "Order Confirmed";
   if (normalizedType === "return_pending") return "Return Request";
   if (normalizedType === "return_approved") return "Return Approved";
@@ -138,11 +126,10 @@ const getNotificationLabel = (type?: string) => {
   if (normalizedType === "new_distributor_registration")
     return "Distributor Registration";
   if (normalizedType === "kyc_review") return "KYC Review";
-
   return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-// ✅ NAVY THEME
+// BLUE THEME
 const getIconClasses = (type?: string) => {
   const normalizedType = type?.toLowerCase() || "";
 
@@ -150,34 +137,35 @@ const getIconClasses = (type?: string) => {
     normalizedType.includes("payment") ||
     normalizedType === "order_confirmed"
   )
-    return "bg-[#EAF1FF] text-[#1E3A8A] border-[#1E3A8A]/20";
+    return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
 
-  if (normalizedType.includes("delivery") || normalizedType.includes("return"))
-    return "bg-[#DBEAFE] text-[#1E40AF] border-[#2563EB]/25";
+  if (
+    normalizedType.includes("delivery") ||
+    normalizedType.includes("return")
+  )
+    return "bg-[#EAF3FF] text-[#2D6FE8] border-[#4F8FF7]/25";
 
   if (
     normalizedType.includes("user") ||
     normalizedType.includes("distributor") ||
     normalizedType.includes("kyc")
   )
-    return "bg-[#EAF1FF] text-[#1E3A8A] border-[#1E3A8A]/15";
+    return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/15";
 
   if (normalizedType.includes("alert"))
-    return "bg-[#FEF9C3] text-[#8A6D16] border-[#FACC15]/30";
+    return "bg-[#FEF9C3] text-[#A16207] border-[#FACC15]/30";
 
   if (normalizedType.includes("message"))
-    return "bg-[#EAF1FF] text-[#1E3A8A] border-[#1E3A8A]/20";
+    return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
 
-  return "bg-[#EAF1FF] text-[#1E3A8A] border-[#1E3A8A]/20";
+  return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
 };
 
 const formatDate = (date?: string | null) => {
   if (!date) return "—";
-
   try {
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) return date;
-
     return parsed.toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -192,24 +180,18 @@ const formatDate = (date?: string | null) => {
 
 const getRelativeTime = (date?: string | null) => {
   if (!date) return "";
-
   try {
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) return "";
-
     const now = new Date();
     const diff = now.getTime() - parsed.getTime();
     const minutes = Math.floor(diff / 60000);
-
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
-
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
-
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d ago`;
-
     return formatDate(date);
   } catch {
     return "";
@@ -217,69 +199,8 @@ const getRelativeTime = (date?: string | null) => {
 };
 
 // =====================================================
-// STAT CARD — NAVY THEME
+// DELETE CONFIRM MODAL — BLUE THEME
 // =====================================================
-
-interface NotificationStatCardProps {
-  title: string;
-  value: number;
-  subtitle: string;
-  icon: React.ReactNode;
-  accent: string;
-  tileClass?: string;
-  tileIconClass?: string;
-}
-
-const NotificationStatCard: React.FC<NotificationStatCardProps> = ({
-  title,
-  value,
-  subtitle,
-  icon,
-  accent,
-  tileClass = "bg-[#EAF1FF]",
-  tileIconClass = "text-[#1E3A8A]",
-}) => {
-  return (
-    <motion.div
-      variants={itemVariants}
-      whileHover={{
-        y: -4,
-        boxShadow: "0 16px 30px -18px rgba(30,58,138,0.28)",
-      }}
-      className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white p-5 shadow-sm"
-    >
-      <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
-
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#1E3A8A]/10" />
-      <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#1E3A8A]/10" />
-
-      <div className="relative z-10 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#8C97B2]">
-            {title}
-          </p>
-
-          <p className="mt-2 text-3xl font-bold text-[#0F1B3D]">
-            {value.toLocaleString("en-IN")}
-          </p>
-
-          <p className="mt-1 text-xs text-[#8C97B2]">{subtitle}</p>
-        </div>
-
-        <div
-          className={`flex h-11 w-11 items-center justify-center rounded-xl ${tileClass} ${tileIconClass}`}
-        >
-          {icon}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// =====================================================
-// DELETE CONFIRM MODAL — NAVY THEME
-// =====================================================
-
 interface DeleteConfirmModalProps {
   open: boolean;
   title: string;
@@ -304,30 +225,31 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="w-full max-w-[440px] overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-2xl"
+        className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-2xl"
       >
-        <div className="h-1 w-full bg-gradient-to-r from-[#1E3A8A] to-[#C23B32]" />
+        <div className="h-[3px] w-full bg-gradient-to-r from-[#2D6FE8] to-[#C23B32]" />
 
-        <div className="p-5">
+        <div className="p-5 sm:p-6">
           <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FBEAEA] text-[#C23B32]">
-              <FiTrash2 size={20} />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+              <FiTrash2 size={22} />
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#0F1B3D]">{title}</h2>
-
-              <p className="mt-1 text-sm leading-6 text-[#8C97B2]">{message}</p>
+              <h2 className="text-lg font-bold text-[#111827]">{title}</h2>
+              <p className="mt-1 text-sm leading-6 text-[#6B7280]">
+                {message}
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-5 py-4">
+        <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="rounded-xl border border-[#1E3A8A]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#4A5778] transition hover:bg-[#F5F8FF] disabled:opacity-50"
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] disabled:opacity-50"
           >
             Cancel
           </button>
@@ -336,7 +258,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_-8px_rgba(194,59,50,0.7)] disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.55)] transition hover:-translate-y-0.5 disabled:opacity-50"
           >
             {loading ? (
               <FiRefreshCw size={14} className="animate-spin" />
@@ -352,16 +274,13 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 };
 
 // =====================================================
-// NOTIFICATION CARD — NAVY THEME
+// NOTIFICATION CARD — BLUE THEME (beautified)
 // =====================================================
-
 interface NotificationCardProps {
   notification: Notification;
   onRead: (notification: Notification) => void;
   onDelete: (notification: Notification) => void;
   readLoadingId: number | null;
-
-  // ✅ Permission props
   canMarkRead?: boolean;
   canDelete?: boolean;
 }
@@ -371,8 +290,6 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onRead,
   onDelete,
   readLoadingId,
-
-  // ✅ Permission defaults
   canMarkRead = false,
   canDelete = false,
 }) => {
@@ -382,107 +299,126 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     <motion.div
       variants={itemVariants}
       layout
-      className={`group relative overflow-hidden border-b border-[#1E3A8A]/10 p-4 transition-all duration-300 sm:p-5 ${
-        isUnread ? "bg-[#EAF1FF]/35" : "bg-white hover:bg-[#FAFBFF]"
+      className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
+        isUnread
+          ? "border-[#2D6FE8]/20 bg-gradient-to-br from-[#EAF3FF] via-white to-white shadow-[0_6px_20px_-8px_rgba(45,111,232,0.15)]"
+          : "border-[#DCE6F2] bg-white hover:border-[#4F8FF7]/30 hover:shadow-[0_6px_20px_-8px_rgba(45,111,232,0.12)]"
       }`}
     >
-      {/* Unread indicator */}
+      {/* Unread indicator bar */}
       {isUnread && (
-        <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#3B82F6] to-[#1E3A8A]" />
+        <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#4F8FF7] to-[#2D6FE8]" />
       )}
 
-      <div className="flex items-start gap-4">
-        {/* ICON */}
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${getIconClasses(
-            notification.type,
-          )}`}
-        >
-          {getNotificationIcon(notification.type)}
-        </div>
+      {/* Subtle decorative circle for unread */}
+      {isUnread && (
+        <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full border border-[#2D6FE8]/10" />
+      )}
 
-        {/* CONTENT */}
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3
-                  className={`text-sm ${
-                    isUnread
-                      ? "font-bold text-[#0F1B3D]"
-                      : "font-semibold text-[#3A4668]"
-                  }`}
-                >
-                  {notification.title}
-                </h3>
+      <div className="relative p-4 sm:p-5">
+        <div className="flex items-start gap-4">
+          {/* ICON */}
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${getIconClasses(
+              notification.type,
+            )}`}
+          >
+            {getNotificationIcon(notification.type)}
+          </div>
 
-                {isUnread && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EAF1FF] px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-[#1E3A8A]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A8A]" />
-                    New
-                  </span>
-                )}
+          {/* CONTENT */}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3
+                    className={`text-sm ${
+                      isUnread
+                        ? "font-bold text-[#111827]"
+                        : "font-bold text-[#111827]"
+                    }`}
+                  >
+                    {notification.title}
+                  </h3>
+
+                  {isUnread && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                      New
+                    </span>
+                  )}
+                </div>
+
+                <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[#2D6FE8]">
+                  {getNotificationLabel(notification.type)}
+                </p>
               </div>
 
-              <p className="mt-1 text-xs text-[#8C97B2]">
-                {getNotificationLabel(notification.type)}
+              <div className="shrink-0">
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+                    isUnread
+                      ? "border-[#2D6FE8]/25 bg-white text-[#2D6FE8]"
+                      : "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]"
+                  }`}
+                >
+                  {getRelativeTime(notification.created_at)}
+                </span>
+              </div>
+            </div>
+
+            {/* Message */}
+            <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-white/70 px-4 py-3 backdrop-blur-sm">
+              <p className="max-w-3xl text-sm leading-6 text-[#6B7280]">
+                {notification.message}
               </p>
             </div>
 
-            <div className="shrink-0">
-              <span className="text-[11px] text-[#8C97B2]">
-                {getRelativeTime(notification.created_at)}
-              </span>
+            {/* Meta row */}
+            <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+              <FiInfo size={11} className="text-[#2D6FE8]" />
+              {formatDate(notification.created_at)}
             </div>
+
+            {/* ACTIONS */}
+            {(canMarkRead || canDelete || !isUnread) && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#DCE6F2] pt-3">
+                {canMarkRead && isUnread && (
+                  <button
+                    type="button"
+                    onClick={() => onRead(notification)}
+                    disabled={readLoadingId === notification.id}
+                    className="flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8] transition hover:border-[#2D6FE8]/35 hover:bg-[#2D6FE8] hover:text-white disabled:opacity-50"
+                  >
+                    {readLoadingId === notification.id ? (
+                      <FiRefreshCw size={13} className="animate-spin" />
+                    ) : (
+                      <FiCheck size={13} />
+                    )}
+                    Mark as Read
+                  </button>
+                )}
+
+                {!isUnread && (
+                  <span className="flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]">
+                    <FiCheckCircle size={13} />
+                    Read
+                  </span>
+                )}
+
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => onDelete(notification)}
+                    className="flex items-center gap-1.5 rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] px-3 py-2 text-[11px] font-bold text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
+                  >
+                    <FiTrash2 size={13} />
+                    Delete
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-[#4A5778]">
-            {notification.message}
-          </p>
-
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-[#8C97B2]">
-            <FiInfo size={11} />
-            {formatDate(notification.created_at)}
-          </div>
-
-          {/* ACTIONS — permission based */}
-          {(canMarkRead || canDelete) && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {canMarkRead && isUnread && (
-                <button
-                  type="button"
-                  onClick={() => onRead(notification)}
-                  disabled={readLoadingId === notification.id}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#1E3A8A]/20 bg-[#EAF1FF] px-3 py-2 text-[11px] font-bold text-[#1E3A8A] transition hover:border-[#1E3A8A]/35 hover:bg-[#DBEAFE] disabled:opacity-50"
-                >
-                  {readLoadingId === notification.id ? (
-                    <FiRefreshCw size={13} className="animate-spin" />
-                  ) : (
-                    <FiCheck size={13} />
-                  )}
-                  Mark as Read
-                </button>
-              )}
-
-              {!isUnread && (
-                <span className="flex items-center gap-1.5 rounded-lg bg-[#EAF1FF] px-3 py-2 text-[11px] font-semibold text-[#1E3A8A]">
-                  <FiCheckCircle size={13} />
-                  Read
-                </span>
-              )}
-
-              {canDelete && (
-                <button
-                  type="button"
-                  onClick={() => onDelete(notification)}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#C23B32]/20 bg-[#FBEAEA] px-3 py-2 text-[11px] font-bold text-[#C23B32] transition hover:border-[#C23B32]/40 hover:bg-[#C23B32] hover:text-white"
-                >
-                  <FiTrash2 size={13} />
-                  Delete
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </motion.div>
@@ -492,12 +428,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 // =====================================================
 // MAIN PAGE
 // =====================================================
-
 const Notifications: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
-
   const {
     hasPermission,
     hasModuleAccess,
@@ -522,16 +456,13 @@ const Notifications: React.FC = () => {
   );
 
   const canDeleteNotification = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("notification.delete"),
+    () => isSuperAdmin || hasPermission("notification.delete"),
     [isSuperAdmin, hasPermission],
   );
 
   // ===================================================
   // STATE
   // ===================================================
-
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -551,18 +482,15 @@ const Notifications: React.FC = () => {
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
-  // FETCH ALL NOTIFICATIONS
+  // FETCH
   // ===================================================
-
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-
       const response = await notificationApi.getAll();
       const responseData = response.data;
 
       let rawData: any[] = [];
-
       if (Array.isArray(responseData?.data)) {
         rawData = responseData.data;
       } else if (Array.isArray(responseData?.data?.data)) {
@@ -584,7 +512,6 @@ const Notifications: React.FC = () => {
       setNotifications(list || []);
     } catch (error: any) {
       console.error("Get notifications error:", error);
-
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
@@ -604,22 +531,18 @@ const Notifications: React.FC = () => {
   // ===================================================
   // COUNTS
   // ===================================================
-
   const counts = useMemo(() => {
     const total = notifications.length;
     const unread = notifications.filter((item) => !item.is_read).length;
     const read = notifications.filter((item) => item.is_read).length;
-
     return { total, unread, read };
   }, [notifications]);
 
   // ===================================================
   // FILTER
   // ===================================================
-
   const filteredNotifications = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     return notifications.filter((notification) => {
       const matchesSearch =
         !query ||
@@ -629,7 +552,6 @@ const Notifications: React.FC = () => {
           .includes(query);
 
       let matchesFilter = true;
-
       if (activeFilter === "unread") matchesFilter = !notification.is_read;
       if (activeFilter === "read") matchesFilter = !!notification.is_read;
 
@@ -640,7 +562,6 @@ const Notifications: React.FC = () => {
   // ===================================================
   // PAGINATION
   // ===================================================
-
   const totalPages = Math.max(
     1,
     Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE),
@@ -664,7 +585,6 @@ const Notifications: React.FC = () => {
   // ===================================================
   // HANDLERS
   // ===================================================
-
   const handleSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
@@ -675,16 +595,11 @@ const Notifications: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // ===================================================
-  // SINGLE READ
-  // ===================================================
-
   const handleMarkAsRead = async (notification: Notification) => {
     if (notification.is_read) return;
 
     try {
       setReadLoadingId(notification.id);
-
       const response = await notificationApi.markAsRead(notification.id);
       const message =
         response?.data?.message || "Notification marked as read.";
@@ -709,10 +624,6 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // ===================================================
-  // MARK ALL READ
-  // ===================================================
-
   const handleMarkAllAsRead = async () => {
     if (counts.unread === 0) {
       toast.success("All notifications are already read.");
@@ -721,7 +632,6 @@ const Notifications: React.FC = () => {
 
     try {
       setMarkAllLoading(true);
-
       const response = await notificationApi.markAllAsRead();
 
       setNotifications((prev) =>
@@ -746,10 +656,6 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // ===================================================
-  // DELETE
-  // ===================================================
-
   const handleDeleteClick = (notification: Notification) => {
     setSelectedNotification(notification);
     setDeleteModalOpen(true);
@@ -760,7 +666,6 @@ const Notifications: React.FC = () => {
 
     try {
       setDeleteLoadingId(selectedNotification.id);
-
       const response = await notificationApi.delete(selectedNotification.id);
 
       setNotifications((prev) =>
@@ -785,7 +690,6 @@ const Notifications: React.FC = () => {
   const handleDeleteAll = async () => {
     try {
       setDeleteAllLoading(true);
-
       const response = await notificationApi.deleteAll();
 
       setNotifications([]);
@@ -806,10 +710,6 @@ const Notifications: React.FC = () => {
     }
   };
 
-  // ===================================================
-  // REFRESH / PAGINATION
-  // ===================================================
-
   const handleRefresh = async () => {
     await fetchNotifications();
     toast.success("Notifications refreshed.");
@@ -823,9 +723,7 @@ const Notifications: React.FC = () => {
   const paginationPages = useMemo(() => {
     if (totalPages <= 5)
       return Array.from({ length: totalPages }, (_, index) => index + 1);
-
     if (currentPage <= 3) return [1, 2, 3, 4, 5];
-
     if (currentPage >= totalPages - 2)
       return [
         totalPages - 4,
@@ -834,7 +732,6 @@ const Notifications: React.FC = () => {
         totalPages - 1,
         totalPages,
       ];
-
     return [
       currentPage - 2,
       currentPage - 1,
@@ -845,26 +742,19 @@ const Notifications: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // ✅ LOADING STATE (only once, at top level)
+  // LOADING / ACCESS DENIED
   // ===================================================
-
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
-  }
-
-  // ===================================================
-  // ✅ ACCESS DENIED
-  // ===================================================
+  if (permissionsLoading) return <PermissionLoadingState />;
 
   if (!canViewNotifications) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FF] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#E3E9F5] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FBEAEA] text-[#C23B32]">
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertTriangle size={26} />
           </div>
-          <h2 className="text-lg font-bold text-[#0F1B3D]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7896]">
+          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
+          <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
         </div>
@@ -872,53 +762,26 @@ const Notifications: React.FC = () => {
     );
   }
 
-  // ===================================================
-  // LOADING
-  // ===================================================
-
   if (loading && notifications.length === 0) {
     return (
-      <div className="min-h-screen bg-[#F5F8FF] p-4 font-poppins">
-        <div className="mb-5">
-          <div className="mb-1 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
-              Notifications
-            </span>
-          </div>
-
-          <h1 className="text-[28px] font-bold text-[#0F1B3D]">
-            Notification Center
-          </h1>
-
-          <p className="mt-1 text-sm text-[#8C97B2]">
-            Stay updated with the latest activity.
+      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
+        <div className="flex flex-col items-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
+          <p className="mt-3 text-sm text-[#6B7280]">
+            Loading notifications...
           </p>
-        </div>
-
-        <div className="flex min-h-[350px] items-center justify-center rounded-2xl border border-[#E3E9F5] bg-white shadow-sm">
-          <div className="flex flex-col items-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
-              <FiRefreshCw size={27} className="animate-spin" />
-            </div>
-
-            <p className="mt-4 text-sm font-bold text-[#0F1B3D]">
-              Loading notifications...
-            </p>
-
-            <p className="mt-1 text-xs text-[#8C97B2]">
-              Please wait while we fetch your latest notifications.
-            </p>
-          </div>
         </div>
       </div>
     );
   }
 
+  // ===================================================
+  // UI
+  // ===================================================
   return (
     <>
       <motion.div
-        className="min-h-screen bg-[#F5F8FF] p-4 font-poppins"
+        className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-7"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -926,53 +789,51 @@ const Notifications: React.FC = () => {
         {/* PAGE HEADER */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
+          className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center"
         >
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-[#1E3A8A]" />
-              <div className="h-2 w-2 rounded-full bg-[#FACC15]" />
-              <div className="h-2 w-2 rounded-full bg-[#2563EB]" />
-
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2563EB]">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Notifications
               </span>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[28px] font-bold tracking-tight text-[#0F1B3D] sm:text-[30px]">
+              <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
                 Notification Center
               </h1>
 
               {counts.unread > 0 && (
-                <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-3 py-1.5 text-[10px] font-bold text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]">
+                <span className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-3 py-1.5 text-[10px] font-bold text-white">
                   <span className="h-1.5 w-1.5 rounded-full bg-white" />
                   {counts.unread} unread
                 </span>
               )}
             </div>
 
-            <p className="mt-1 text-sm text-[#8C97B2]">
+            <p className="mt-0.5 text-sm text-[#111827]">
               Keep track of orders, payments, users, and important admin
               activity.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {/* ✅ MARK ALL READ — permission based */}
+          <div className="flex flex-wrap items-center gap-3 self-start">
             {canMarkRead && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
                 disabled={markAllLoading || counts.unread === 0}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:border-[#1E3A8A]/35 hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {markAllLoading ? (
                   <FiRefreshCw size={15} className="animate-spin" />
                 ) : (
                   <FiCheckCircle size={15} />
                 )}
-                Mark All as Read
+                Mark All Read
               </button>
             )}
 
@@ -980,7 +841,7 @@ const Notifications: React.FC = () => {
               type="button"
               onClick={handleRefresh}
               disabled={loading}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#1E3A8A]/20 bg-white px-4 text-xs font-bold text-[#1E3A8A] shadow-sm transition hover:border-[#1E3A8A]/35 hover:bg-[#EAF1FF] disabled:opacity-50"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:opacity-50"
             >
               <FiRefreshCw
                 size={15}
@@ -989,13 +850,12 @@ const Notifications: React.FC = () => {
               Refresh
             </button>
 
-            {/* ✅ DELETE ALL — permission based */}
             {canDeleteNotification && (
               <button
                 type="button"
                 onClick={() => setDeleteAllModalOpen(true)}
                 disabled={notifications.length === 0}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FBEAEA] px-4 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32]/40 hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] px-4 text-sm font-bold text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <FiTrash2 size={15} />
                 Delete All
@@ -1004,55 +864,20 @@ const Notifications: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* STATS */}
-        <motion.div
-          variants={containerVariants}
-          className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          <NotificationStatCard
-            title="Total"
-            value={counts.total}
-            subtitle="All notifications"
-            icon={<FiBell size={20} />}
-            accent="bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]"
-            tileClass="bg-[#EAF1FF]"
-            tileIconClass="text-[#1E3A8A]"
-          />
-          <NotificationStatCard
-            title="Unread"
-            value={counts.unread}
-            subtitle="Awaiting review"
-            icon={<FiMail size={20} />}
-            accent="bg-gradient-to-r from-[#FDE047] to-[#FACC15]"
-            tileClass="bg-[#FEF9C3]"
-            tileIconClass="text-[#1E293B]"
-          />
-          <NotificationStatCard
-            title="Read"
-            value={counts.read}
-            subtitle="Already reviewed"
-            icon={<FiCheckCircle size={20} />}
-            accent="bg-gradient-to-r from-[#8C97B2] to-[#4A5778]"
-            tileClass="bg-[#F3F6FB]"
-            tileIconClass="text-[#4A5778]"
-          />
-        </motion.div>
-
         {/* MAIN CARD */}
         <motion.div
           variants={itemVariants}
-          className="relative overflow-hidden rounded-2xl border border-[#E3E9F5] bg-white shadow-sm"
+          className="relative mt-6 overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
         >
-          <div className="absolute left-0 top-0 h-1 w-full bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]" />
-
+   
           {/* TOOLBAR */}
-          <div className="border-b border-[#1E3A8A]/10 p-4 sm:p-5">
+          <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               {/* SEARCH */}
               <div className="relative w-full xl:max-w-[520px]">
                 <FiSearch
                   size={19}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#1E3A8A]"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
                 />
 
                 <input
@@ -1060,48 +885,64 @@ const Notifications: React.FC = () => {
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search notifications..."
-                  className="h-12 w-full rounded-xl border border-[#D8E2F0] bg-[#F5F8FF] pl-11 pr-10 text-sm text-[#0F1B3D] outline-none transition-all placeholder:text-[#8C97B2] focus:border-[#1E3A8A] focus:bg-white focus:ring-2 focus:ring-[#1E3A8A]/15"
+                  className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#4F8FF7]/10"
                 />
 
                 {search && (
                   <button
                     type="button"
                     onClick={() => handleSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C97B2] hover:text-[#1E3A8A]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#2D6FE8]"
                   >
                     <FiX size={16} />
                   </button>
                 )}
               </div>
 
-              {/* FILTER */}
+              {/* FILTERS */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: "all" as const, label: "All" },
-                  { key: "unread" as const, label: "Unread" },
-                  { key: "read" as const, label: "Read" },
+                  { key: "all" as const, label: "All", count: counts.total },
+                  {
+                    key: "unread" as const,
+                    label: "Unread",
+                    count: counts.unread,
+                  },
+                  { key: "read" as const, label: "Read", count: counts.read },
                 ].map((filter) => (
                   <button
                     type="button"
                     key={filter.key}
                     onClick={() => handleFilter(filter.key)}
-                    className={`rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                       activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
-                        : "border border-[#1E3A8A]/15 bg-[#F5F8FF] text-[#4A5778] hover:border-[#1E3A8A]/30 hover:bg-[#EAF1FF] hover:text-[#1E3A8A]"
+                        ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                        : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] hover:border-[#4F8FF7]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                     }`}
                   >
                     {filter.label}
 
-                    {filter.key === "unread" && counts.unread > 0 && (
+                    {filter.key === "unread" && filter.count > 0 && (
                       <span
-                        className={`ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
+                        className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
                           activeFilter === "unread"
-                            ? "bg-white/20 text-white"
-                            : "bg-[#EAF1FF] text-[#1E3A8A]"
+                            ? "bg-white/25 text-white"
+                            : "bg-[#2D6FE8] text-white"
                         }`}
                       >
-                        {counts.unread}
+                        {filter.count}
+                      </span>
+                    )}
+
+                    {filter.key === "all" && filter.count > 0 && (
+                      <span
+                        className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
+                          activeFilter === "all"
+                            ? "bg-white/25 text-white"
+                            : "bg-[#EAF3FF] text-[#2D6FE8]"
+                        }`}
+                      >
+                        {filter.count}
                       </span>
                     )}
                   </button>
@@ -1116,6 +957,7 @@ const Notifications: React.FC = () => {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
+              className="space-y-3 bg-[#F8FBFF] p-4 sm:p-5"
             >
               {paginatedNotifications.map((notification) => (
                 <NotificationCard
@@ -1133,20 +975,20 @@ const Notifications: React.FC = () => {
             /* EMPTY */
             <div className="flex min-h-[350px] flex-col items-center justify-center px-5 py-16 text-center">
               <div className="relative">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF1FF] text-[#1E3A8A]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiBell size={27} />
                 </div>
 
-                <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#1E3A8A] text-white">
+                <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#2D6FE8] text-white">
                   <FiCheck size={11} />
                 </div>
               </div>
 
-              <h3 className="mt-5 text-base font-bold text-[#0F1B3D]">
+              <h3 className="mt-5 text-base font-bold text-[#111827]">
                 No notifications found
               </h3>
 
-              <p className="mt-1 max-w-sm text-xs leading-5 text-[#8C97B2]">
+              <p className="mt-1 max-w-sm text-xs leading-5 text-[#6B7280]">
                 {search
                   ? "Try another search keyword."
                   : activeFilter === "unread"
@@ -1164,7 +1006,7 @@ const Notifications: React.FC = () => {
                     setActiveFilter("all");
                     setCurrentPage(1);
                   }}
-                  className="mt-5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#1E3A8A] px-5 py-2.5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.5)]"
+                  className="mt-5 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
                 >
                   Clear Filters
                 </button>
@@ -1174,14 +1016,15 @@ const Notifications: React.FC = () => {
 
           {/* PAGINATION */}
           {filteredNotifications.length > 0 && (
-            <div className="border-t border-[#1E3A8A]/10 bg-[#FAFBFF] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#8C97B2]">
+                <p className="text-xs text-[#6B7280]">
                   Showing{" "}
-                  <span className="font-bold text-[#3A4668]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#111827]">{startEntry}</span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#3A4668]">{endEntry}</span> of{" "}
-                  <span className="font-bold text-[#3A4668]">
+                  <span className="font-bold text-[#111827]">{endEntry}</span>{" "}
+                  of{" "}
+                  <span className="font-bold text-[#111827]">
                     {filteredNotifications.length}
                   </span>{" "}
                   entries
@@ -1192,7 +1035,7 @@ const Notifications: React.FC = () => {
                     type="button"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
@@ -1204,8 +1047,8 @@ const Notifications: React.FC = () => {
                       onClick={() => handlePageChange(page)}
                       className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
                         currentPage === page
-                          ? "bg-gradient-to-br from-[#1E40AF] to-[#1E3A8A] text-white shadow-[0_6px_14px_-6px_rgba(30,58,138,0.5)]"
-                          : "text-[#4A5778] hover:bg-[#F5F8FF] hover:text-[#1E3A8A]"
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "border border-[#DCE6F2] bg-white text-[#6B7280] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                       }`}
                     >
                       {page}
@@ -1216,7 +1059,7 @@ const Notifications: React.FC = () => {
                     type="button"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#1E3A8A]/15 bg-white text-[#1E3A8A] transition hover:bg-[#EAF1FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>
@@ -1227,7 +1070,7 @@ const Notifications: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* DELETE ONE MODAL — permission based */}
+      {/* DELETE ONE MODAL */}
       {canDeleteNotification && (
         <DeleteConfirmModal
           open={deleteModalOpen}
@@ -1245,7 +1088,7 @@ const Notifications: React.FC = () => {
         />
       )}
 
-      {/* DELETE ALL MODAL — permission based */}
+      {/* DELETE ALL MODAL */}
       {canDeleteNotification && (
         <DeleteConfirmModal
           open={deleteAllModalOpen}
