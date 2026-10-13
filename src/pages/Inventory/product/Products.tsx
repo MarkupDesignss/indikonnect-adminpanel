@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   FiPlus,
@@ -19,12 +25,23 @@ import ViewProductModal from "./components/ViewProductModal";
 
 import {
   productApi,
+  type Product,
+  type ProductListParams,
+  type Pagination,
+  type SelectOption,
   type UploadProgressMeta,
 } from "../../../api/endpoints/product";
 
 import trendingProductsApi from "../../../api/endpoints/today";
 
 import { usePermissions } from "../../permissions/usePermissions";
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const ITEMS_PER_PAGE = 10;
+const SEARCH_DEBOUNCE_MS = 350;
 
 // =====================================================
 // ANIMATIONS
@@ -54,6 +71,174 @@ const itemVariants = {
       damping: 16,
     },
   },
+};
+
+// =====================================================
+// HELPER FUNCTIONS
+// =====================================================
+
+const isPublishedProduct = (product: Product | any): boolean => {
+  const value = product?.is_published;
+
+  return (
+    value === true ||
+    value === 1 ||
+    value === "1" ||
+    String(value).toLowerCase() === "true"
+  );
+};
+
+const toNumber = (value: unknown, fallback: number): number => {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+type NormalizedProductResponse = {
+  products: Product[];
+  pagination: Pagination;
+};
+
+/**
+ * Supports common API response shapes:
+ *
+ * 1. { data: [...], pagination: {...} }
+ * 2. { data: { data: [...], pagination: {...} } }
+ * 3. { data: [...], current_page, last_page, total, per_page }
+ * 4. { data: { data: [...], current_page, last_page, total, per_page } }
+ */
+const normalizeProductResponse = (
+  responseData: unknown,
+  requestedPage: number,
+  requestedPerPage: number,
+): NormalizedProductResponse => {
+  const body = (responseData ?? {}) as Record<string, any>;
+
+  const rootData = body.data;
+
+  let rows: any[] = [];
+
+  if (Array.isArray(rootData)) {
+    rows = rootData;
+  } else if (Array.isArray(rootData?.data)) {
+    rows = rootData.data;
+  } else if (Array.isArray(body.products)) {
+    rows = body.products;
+  } else if (Array.isArray(body.result?.data)) {
+    rows = body.result.data;
+  } else if (Array.isArray(body.payload?.data)) {
+    rows = body.payload.data;
+  }
+
+  const nestedContainer =
+    rootData &&
+    !Array.isArray(rootData) &&
+    typeof rootData === "object"
+      ? rootData
+      : undefined;
+
+  const hasPaginationShape = (value: any): boolean => {
+    if (!value || typeof value !== "object") {
+      return false;
+    }
+
+    return (
+      value.total !== undefined ||
+      value.current_page !== undefined ||
+      value.last_page !== undefined ||
+      value.per_page !== undefined
+    );
+  };
+
+  const paginationSource =
+    body.pagination ??
+    body.meta?.pagination ??
+    body.meta ??
+    nestedContainer?.pagination ??
+    nestedContainer?.meta?.pagination ??
+    nestedContainer?.meta ??
+    (hasPaginationShape(nestedContainer)
+      ? nestedContainer
+      : undefined) ??
+    (hasPaginationShape(body) ? body : undefined) ??
+    {};
+
+  const total = Math.max(
+    0,
+    toNumber(
+      paginationSource.total ??
+        paginationSource.total_entries ??
+        paginationSource.totalRecords,
+      rows.length,
+    ),
+  );
+
+  const perPage = Math.max(
+    1,
+    toNumber(
+      paginationSource.per_page ??
+        paginationSource.perPage ??
+        paginationSource.limit,
+      requestedPerPage,
+    ),
+  );
+
+  const currentPage = Math.max(
+    1,
+    toNumber(
+      paginationSource.current_page ??
+        paginationSource.currentPage ??
+        paginationSource.page,
+      requestedPage,
+    ),
+  );
+
+  const lastPage = Math.max(
+    1,
+    toNumber(
+      paginationSource.last_page ?? paginationSource.lastPage,
+      Math.ceil(total / perPage) || 1,
+    ),
+  );
+
+  const defaultFrom =
+    total > 0 && rows.length > 0
+      ? (currentPage - 1) * perPage + 1
+      : 0;
+
+  const from =
+    rows.length > 0
+      ? toNumber(paginationSource.from, defaultFrom)
+      : 0;
+
+  const defaultTo =
+    rows.length > 0
+      ? Math.min(
+          (currentPage - 1) * perPage + rows.length,
+          total || (currentPage - 1) * perPage + rows.length,
+        )
+      : 0;
+
+  const to =
+    rows.length > 0
+      ? toNumber(paginationSource.to, defaultTo)
+      : 0;
+
+  return {
+    products: rows as Product[],
+    pagination: {
+      total,
+      per_page: perPage,
+      current_page: currentPage,
+      last_page: lastPage,
+      from,
+      to,
+    },
+  };
 };
 
 // =====================================================
@@ -90,8 +275,22 @@ const resetBodyScrollLock = () => {
   document.body.style.overflow = "";
   document.body.style.overflowY = "";
   document.body.style.paddingRight = "";
+
   document.documentElement.style.overflow = "";
 };
+
+// =====================================================
+// DEFAULT PAGINATION
+// =====================================================
+
+const createDefaultPagination = (): Pagination => ({
+  total: 0,
+  per_page: ITEMS_PER_PAGE,
+  current_page: 1,
+  last_page: 1,
+  from: 0,
+  to: 0,
+});
 
 // =====================================================
 // PRODUCTS
@@ -160,10 +359,6 @@ const Products: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
-  // ===================================================
-  // DEAL OF THE DAY PERMISSION
-  // ===================================================
-
   const canToggleDeal = useMemo(
     () =>
       isSuperAdmin ||
@@ -173,15 +368,24 @@ const Products: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
+  const canSetPrimaryImage = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.update") ||
+      hasPermission("product.edit") ||
+      hasPermission("product.set_primary_image"),
+    [isSuperAdmin, hasPermission],
+  );
+
   // ===================================================
   // STATE
   // ===================================================
 
   const [products, setProducts] = useState<Product[]>([]);
 
-  const [categories, setCategories] = useState<SelectOption[]>([]);
-  const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
-  const [brands, setBrands] = useState<SelectOption[]>([]);
+  const [categories] = useState<SelectOption[]>([]);
+  const [taxCategories] = useState<SelectOption[]>([]);
+  const [brands] = useState<SelectOption[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -197,16 +401,25 @@ const Products: React.FC = () => {
   const [publishLoadingId, setPublishLoadingId] =
     useState<number | null>(null);
 
+  const [setPrimaryLoadingId, setSetPrimaryLoadingId] =
+    useState<number | null>(null);
+
   const [uploadProgress, setUploadProgress] =
     useState<UploadProgressMeta | null>(null);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [pagination, setPagination] = useState<Pagination>(
+    createDefaultPagination,
+  );
 
   const [highlightedProductId, setHighlightedProductId] =
     useState<number | null>(null);
 
-  const ITEMS_PER_PAGE = 10;
+  // Old requests cannot replace data from the latest request.
+  const latestRequestId = useRef(0);
 
   // ===================================================
   // MODALS
@@ -232,63 +445,127 @@ const Products: React.FC = () => {
       addModalOpen || editModalOpen || viewModalOpen;
 
     if (!anyModalOpen) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         resetBodyScrollLock();
       }, 50);
 
-      return () => clearTimeout(timer);
+      return () => window.clearTimeout(timer);
     }
   }, [addModalOpen, editModalOpen, viewModalOpen]);
 
-  // Safety: component unmount hone par bhi reset
   useEffect(() => {
     return () => {
       resetBodyScrollLock();
+      latestRequestId.current += 1;
     };
   }, []);
 
   // ===================================================
-  // FETCH PRODUCTS
+  // DEBOUNCED SEARCH
   // ===================================================
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, SEARCH_DEBOUNCE_MS);
 
-      const response = await productApi.getProducts();
-      const productData = response?.data?.data ?? [];
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-      setProducts(Array.isArray(productData) ? productData : []);
-    } catch (error: any) {
-      console.error("Fetch products error:", error);
+  // ===================================================
+  // FETCH PRODUCTS - SERVER-SIDE PAGINATION
+  // ===================================================
 
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Unable to fetch products.",
-      );
-    } finally {
-      setLoading(false);
+  const fetchProducts = useCallback(
+    async (
+      page: number = currentPage,
+      query: string = debouncedSearch,
+    ) => {
+      const requestId = ++latestRequestId.current;
+
+      try {
+        setLoading(true);
+
+        const params: ProductListParams = {
+          page,
+          per_page: ITEMS_PER_PAGE,
+        };
+
+        if (query.trim()) {
+          params.search = query.trim();
+        }
+
+        const response = await productApi.getProducts(params);
+
+        // Ignore stale responses.
+        if (requestId !== latestRequestId.current) {
+          return;
+        }
+
+        const normalized = normalizeProductResponse(
+          response?.data,
+          page,
+          ITEMS_PER_PAGE,
+        );
+
+        setProducts(normalized.products);
+        setPagination(normalized.pagination);
+      } catch (error: any) {
+        if (requestId !== latestRequestId.current) {
+          return;
+        }
+
+        console.error("Fetch products error:", error);
+
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to fetch products.",
+        );
+      } finally {
+        if (requestId === latestRequestId.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [currentPage, debouncedSearch],
+  );
+
+  // ===================================================
+  // INITIAL FETCH + PAGE/SEARCH CHANGE
+  // ===================================================
+
+  useEffect(() => {
+    if (!permissionsLoading && canViewProducts) {
+      void fetchProducts(currentPage, debouncedSearch);
     }
-  };
+  }, [
+    permissionsLoading,
+    canViewProducts,
+    currentPage,
+    debouncedSearch,
+    fetchProducts,
+  ]);
 
   // ===================================================
   // FETCH PRODUCT DETAILS
   // ===================================================
 
-  const fetchProductDetails = async (productId: number) => {
+  const fetchProductDetails = async (
+    productId: number,
+  ): Promise<Product | null> => {
     try {
       setFetchingProduct(true);
 
       const response = await productApi.getProductById(productId);
 
-      console.log("EDIT PRODUCT API RESPONSE:", response?.data);
+      const responseBody = response?.data as any;
 
       const rawProduct =
-        response?.data?.data?.data ??
-        response?.data?.data ??
-        response?.data?.product ??
-        response?.data;
+        responseBody?.data?.data ??
+        responseBody?.data ??
+        responseBody?.product ??
+        responseBody;
 
       if (!rawProduct || typeof rawProduct !== "object") {
         return null;
@@ -314,14 +591,21 @@ const Products: React.FC = () => {
         }
       }
 
-      const product = {
+      const normalizedImages = Array.isArray(rawProduct.images)
+        ? rawProduct.images.map((image: any) => ({
+            ...image,
+            is_primary:
+              image?.is_primary ??
+              image?.isPrimary ??
+              (image?.id === rawProduct?.primary_image_id ? 1 : undefined),
+          }))
+        : [];
+
+      return {
         ...rawProduct,
         subcategory_id: normalizedSubcategoryId,
-      };
-
-      console.log("NORMALIZED PRODUCT:", product);
-
-      return product as Product;
+        images: normalizedImages,
+      } as Product;
     } catch (error: any) {
       console.error("Fetch product details error:", error);
 
@@ -338,16 +622,6 @@ const Products: React.FC = () => {
   };
 
   // ===================================================
-  // INITIAL FETCH
-  // ===================================================
-
-  useEffect(() => {
-    if (!permissionsLoading && canViewProducts) {
-      fetchProducts();
-    }
-  }, [permissionsLoading, canViewProducts]);
-
-  // ===================================================
   // HEADER PRODUCT
   // ===================================================
 
@@ -362,139 +636,57 @@ const Products: React.FC = () => {
       setSearch(String(productFromHeader.id));
     }
 
+    setCurrentPage(1);
     setHighlightedProductId(productFromHeader.id);
 
     window.history.replaceState({}, document.title);
   }, [productFromHeader]);
 
   // ===================================================
-  // SEARCH
+  // API RESULTS
   // ===================================================
 
-  const filteredProducts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  // The API already returns only the current page.
+  // Do not slice this list again on the client.
+  const filteredProducts = products;
 
-    if (!query) {
-      return products;
-    }
+  const totalProducts = pagination.total;
 
-    return products.filter((product: any) => {
-      if (!isNaN(Number(query)) && product.id === Number(query)) {
-        return true;
-      }
-
-      if (product.name?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.product_code?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.slug?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.description?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.sku?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.category?.name?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.subcategory?.name?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.brand?.name?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      if (product.price?.toString().includes(query)) {
-        return true;
-      }
-
-      if (product.status?.toLowerCase().includes(query)) {
-        return true;
-      }
-
-      const isPublished =
-        product.is_published === true ||
-        product.is_published === 1 ||
-        product.is_published === "1" ||
-        product.is_published === "true";
-
-      if (query === "published" && isPublished) {
-        return true;
-      }
-
-      if (query === "unpublished" && !isPublished) {
-        return true;
-      }
-
-      if (query === "active" && isPublished) {
-        return true;
-      }
-
-      if (query === "inactive" && !isPublished) {
-        return true;
-      }
-
-      if (String(product.is_published).toLowerCase().includes(query)) {
-        return true;
-      }
-
-      return false;
-    });
-  }, [products, search]);
-
-  // ===================================================
-  // COUNTS
-  // ===================================================
-
+  // These two counts describe the currently displayed page.
   const publishedCount = useMemo(
-    () =>
-      products.filter(
-        (product: any) =>
-          product.is_published === true ||
-          product.is_published === 1 ||
-          product.is_published === "1" ||
-          product.is_published === "true",
-      ).length,
+    () => products.filter(isPublishedProduct).length,
     [products],
   );
 
-  const unpublishedCount = useMemo(
-    () => products.length - publishedCount,
-    [products, publishedCount],
-  );
+  const unpublishedCount = products.length - publishedCount;
 
   // ===================================================
-  // PAGINATION
+  // PAGINATION METADATA
   // ===================================================
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-
-  const safeTotalPages = Math.max(totalPages, 1);
-
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const paginatedProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
+  const totalPages = Math.max(
+    1,
+    pagination.last_page ||
+      Math.ceil(pagination.total / ITEMS_PER_PAGE) ||
+      1,
   );
 
-  const startEntry = filteredProducts.length === 0 ? 0 : startIndex + 1;
+  const safeTotalPages = totalPages;
 
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredProducts.length,
-  );
+  const startEntry =
+    filteredProducts.length === 0
+      ? 0
+      : pagination.from ||
+        (currentPage - 1) * ITEMS_PER_PAGE + 1;
+
+  const endEntry =
+    filteredProducts.length === 0
+      ? 0
+      : pagination.to ||
+        Math.min(
+          (currentPage - 1) * ITEMS_PER_PAGE + filteredProducts.length,
+          pagination.total || filteredProducts.length,
+        );
 
   // ===================================================
   // KEEP PAGE VALID
@@ -515,16 +707,20 @@ const Products: React.FC = () => {
       setAddLoading(true);
       setUploadProgress(null);
 
-      const response = await productApi.createProduct(formData, (meta) =>
-        setUploadProgress(meta),
+      const response = await productApi.createProduct(
+        formData,
+        (meta) => setUploadProgress(meta),
       );
 
-      await fetchProducts();
-
       setAddModalOpen(false);
-      setCurrentPage(1);
-
       resetBodyScrollLock();
+
+      // Refresh page 1 after creating a product.
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        await fetchProducts(1, debouncedSearch);
+      }
 
       toast.success(
         response.data?.message || "Product added successfully.",
@@ -534,7 +730,10 @@ const Products: React.FC = () => {
 
       if (error?.response?.data?.errors) {
         const errors = error.response.data.errors;
-        const errorMessages = Object.values(errors).flat().join(", ");
+
+        const errorMessages = Object.values(errors)
+          .flat()
+          .join(", ");
 
         toast.error(errorMessages);
       } else {
@@ -569,12 +768,11 @@ const Products: React.FC = () => {
         (meta) => setUploadProgress(meta),
       );
 
-      await fetchProducts();
-
       setEditModalOpen(false);
       setSelectedProduct(null);
-
       resetBodyScrollLock();
+
+      await fetchProducts(currentPage, debouncedSearch);
 
       toast.success(
         response.data?.message || "Product updated successfully.",
@@ -584,7 +782,10 @@ const Products: React.FC = () => {
 
       if (error?.response?.data?.errors) {
         const errors = error.response.data.errors;
-        const errorMessages = Object.values(errors).flat().join(", ");
+
+        const errorMessages = Object.values(errors)
+          .flat()
+          .join(", ");
 
         toast.error(errorMessages);
       } else {
@@ -616,7 +817,7 @@ const Products: React.FC = () => {
           is_trending: checked ? 1 : 0,
         });
 
-      await fetchProducts();
+      await fetchProducts(currentPage, debouncedSearch);
 
       toast.success(
         response.data?.message ||
@@ -651,7 +852,6 @@ const Products: React.FC = () => {
       let response;
 
       if (checked) {
-        // Add as Deal of the Day
         response = await productApi.addDeal(product.id, {
           starts_at: new Date().toISOString(),
           ends_at: new Date(
@@ -660,11 +860,10 @@ const Products: React.FC = () => {
           sale_type: "today_best",
         });
       } else {
-        // Remove from Deal of the Day
         response = await productApi.removeDeal(product.id);
       }
 
-      await fetchProducts();
+      await fetchProducts(currentPage, debouncedSearch);
 
       toast.success(
         response.data?.message ||
@@ -700,7 +899,7 @@ const Products: React.FC = () => {
         is_published: isPublished ? 1 : 0,
       });
 
-      await fetchProducts();
+      await fetchProducts(currentPage, debouncedSearch);
 
       toast.success(
         response.data?.message ||
@@ -722,24 +921,65 @@ const Products: React.FC = () => {
   };
 
   // ===================================================
+  // SET AS PRIMARY IMAGE
+  // ===================================================
+
+  const handleSetPrimaryImage = async (
+    product: Product,
+    imageId: number,
+  ) => {
+    try {
+      setSetPrimaryLoadingId(product.id);
+
+      const response = await productApi.setPrimaryImage(
+        product.id,
+        imageId,
+      );
+
+      await fetchProducts(currentPage, debouncedSearch);
+
+      // Refresh selected product details too when needed.
+      if (
+        selectedProduct?.id === product.id &&
+        (editModalOpen || viewModalOpen)
+      ) {
+        const refreshedProduct = await fetchProductDetails(product.id);
+
+        if (refreshedProduct) {
+          setSelectedProduct(refreshedProduct);
+        }
+      }
+
+      toast.success(
+        response.data?.message || "Primary image set successfully.",
+      );
+    } catch (error: any) {
+      console.error("Set primary image error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to set primary image.",
+      );
+    } finally {
+      setSetPrimaryLoadingId(null);
+    }
+  };
+
+  // ===================================================
   // HANDLE EDIT
   // ===================================================
 
   const handleEdit = async (product: Product) => {
-    try {
-      const fullProduct = await fetchProductDetails(product.id);
-      const productToEdit = fullProduct || product;
-
-      console.log("PRODUCT PASSED TO EDIT MODAL:", productToEdit);
-
-      setSelectedProduct(productToEdit);
-      setEditModalOpen(true);
-    } catch (error) {
-      console.error("Error fetching product details:", error);
-
-      setSelectedProduct(product);
-      setEditModalOpen(true);
+    if (!canUpdateProduct) {
+      return;
     }
+
+    const fullProduct = await fetchProductDetails(product.id);
+    const productToEdit = fullProduct || product;
+
+    setSelectedProduct(productToEdit);
+    setEditModalOpen(true);
   };
 
   // ===================================================
@@ -756,11 +996,13 @@ const Products: React.FC = () => {
   // ===================================================
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > safeTotalPages) {
+    if (page < 1 || page > safeTotalPages || page === currentPage) {
       return;
     }
 
     setCurrentPage(page);
+
+    // fetchProducts is triggered automatically by the page effect.
   };
 
   // ===================================================
@@ -840,15 +1082,17 @@ const Products: React.FC = () => {
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Total Products
             </div>
+
             <div className="mt-0.5 text-lg font-bold text-[#111827]">
-              {products.length}
+              {totalProducts}
             </div>
           </div>
 
           <div className="rounded-xl border border-[#2D6FE8]/15 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
-              Published
+              Published on Page
             </div>
+
             <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {publishedCount}
             </div>
@@ -856,8 +1100,9 @@ const Products: React.FC = () => {
 
           <div className="rounded-xl border border-[#D6E2F0] bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
-              Unpublished
+              Unpublished on Page
             </div>
+
             <div className="mt-0.5 text-lg font-bold text-[#111827]">
               {unpublishedCount}
             </div>
@@ -889,19 +1134,18 @@ const Products: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={(event) => {
+                setSearch(event.target.value);
                 setCurrentPage(1);
                 setHighlightedProductId(null);
               }}
               placeholder="Search by ID, name, code, slug, SKU, price, status..."
-              className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-24 text-xs text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-28 text-xs text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
 
             {search && (
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-[#EAF3FF] px-2 py-1 text-[9px] font-bold text-[#2D6FE8]">
-                {filteredProducts.length} result
-                {filteredProducts.length !== 1 ? "s" : ""}
+                {loading ? "Searching..." : `${pagination.total} result${pagination.total !== 1 ? "s" : ""}`}
               </div>
             )}
           </div>
@@ -930,11 +1174,11 @@ const Products: React.FC = () => {
         className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white"
       >
         <ProductTable
-          products={paginatedProducts}
+          products={filteredProducts}
           loading={loading}
           currentPage={currentPage}
-          totalPages={totalPages}
-          totalEntries={filteredProducts.length}
+          totalPages={safeTotalPages}
+          totalEntries={pagination.total}
           startEntry={startEntry}
           endEntry={endEntry}
           onPageChange={handlePageChange}
@@ -947,12 +1191,15 @@ const Products: React.FC = () => {
           highlightedProductId={highlightedProductId}
           onPublishToggle={handlePublishToggle}
           publishLoadingId={publishLoadingId}
+          onSetPrimaryImage={handleSetPrimaryImage}
+          setPrimaryLoadingId={setPrimaryLoadingId}
           canView={canViewProducts}
           canEdit={canUpdateProduct}
           canDelete={canDeleteProduct}
           canPublish={canPublishProduct}
           canToggleTrending={canToggleTrending}
           canToggleDeal={canToggleDeal}
+          canSetPrimaryImage={canSetPrimaryImage}
         />
       </motion.div>
 

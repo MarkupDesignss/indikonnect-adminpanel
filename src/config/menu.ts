@@ -78,13 +78,7 @@ export const menuItems: MenuItem[] = [
         permission: 'tax_category.view',
         module: 'tax_category',
       },
-      {
-        path: '/inventory/AttributesManagement',
-        label: 'Attributes Management',
-        icon: 'tune',
-        permission: 'attribute.view',
-        module: 'attribute',
-      },
+     
       {
         path: '/inventory/products',
         label: 'Products',

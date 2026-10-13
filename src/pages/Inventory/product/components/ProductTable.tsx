@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 
 import {
@@ -8,18 +9,22 @@ import {
   FiEye,
   FiImage,
   FiPackage,
+  FiStar,
   FiTrash2,
   FiX,
   FiZoomIn,
 } from "react-icons/fi";
 
-import { Product } from "@/types/product";
+import type { Product } from "@/types/product";
 
 import GlobalModal from "@/components/common/GlobalModal";
 
+// =====================================================
+// PROPS
+// =====================================================
+
 interface ProductTableProps {
   products: Product[];
-
   loading: boolean;
 
   currentPage: number;
@@ -29,12 +34,9 @@ interface ProductTableProps {
   endEntry: number;
 
   onPageChange: (page: number) => void;
-
   onEdit: (product: Product) => void;
-
   onView: (product: Product) => void;
 
-  // Trending
   onTrendingToggle: (
     product: Product,
     checked: boolean,
@@ -42,7 +44,6 @@ interface ProductTableProps {
 
   trendingLoadingId: number | null;
 
-  // Deal of the Day
   onDealToggle: (
     product: Product,
     checked: boolean,
@@ -50,7 +51,6 @@ interface ProductTableProps {
 
   dealLoadingId: number | null;
 
-  // Publish / Unpublish
   onPublishToggle: (
     product: Product,
     isPublished: boolean,
@@ -58,16 +58,85 @@ interface ProductTableProps {
 
   publishLoadingId: number | null;
 
+  onSetPrimaryImage?: (
+    product: Product,
+    imageId: number,
+  ) => void;
+
+  setPrimaryLoadingId?: number | null;
+
   onDelete?: (product: Product) => void;
 
-  // Permission props
   canView?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   canPublish?: boolean;
   canToggleTrending?: boolean;
   canToggleDeal?: boolean;
+  canSetPrimaryImage?: boolean;
 }
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const ITEMS_PER_PAGE = 10;
+
+// =====================================================
+// BOOLEAN / NUMBER FLAG
+// =====================================================
+
+const isEnabled = (value: unknown): boolean => {
+  return (
+    value === true ||
+    value === 1 ||
+    value === "1" ||
+    (typeof value === "string" &&
+      value.toLowerCase() === "true")
+  );
+};
+
+// =====================================================
+// PRIMARY IMAGE STATUS
+// =====================================================
+
+const isPrimaryImage = (
+  image: { is_primary?: boolean | number | string },
+): boolean => {
+  return isEnabled(image?.is_primary);
+};
+
+// =====================================================
+// PRODUCT PRIMARY STATUS
+//
+// API example:
+// { is_primary: 1 }  => yellow star
+// { is_primary: 0 }  => grey star
+//
+// If the product-level field is missing,
+// check the image-level primary status.
+// =====================================================
+
+const isPrimaryProduct = (
+  product: Product,
+): boolean => {
+  const productWithPrimary = product as Product & {
+    is_primary?: boolean | number | string | null;
+  };
+
+  const productPrimary = productWithPrimary.is_primary;
+
+  if (
+    productPrimary !== undefined &&
+    productPrimary !== null
+  ) {
+    return isEnabled(productPrimary);
+  }
+
+  return (product.images ?? []).some((image) =>
+    isPrimaryImage(image),
+  );
+};
 
 // =====================================================
 // PUBLISH STATUS
@@ -110,6 +179,7 @@ const resetBodyScrollLock = () => {
   document.body.style.overflow = "";
   document.body.style.overflowY = "";
   document.body.style.paddingRight = "";
+
   document.documentElement.style.overflow = "";
 };
 
@@ -117,25 +187,33 @@ const resetBodyScrollLock = () => {
 // COMPONENT
 // =====================================================
 
-const ProductTable: React.FC<
-  ProductTableProps
-> = ({
+const ProductTable: React.FC<ProductTableProps> = ({
   products,
   loading,
+
   currentPage,
   totalPages,
   totalEntries,
   startEntry,
   endEntry,
+
   onPageChange,
   onEdit,
   onView,
+
   onTrendingToggle,
   trendingLoadingId,
+
   onDealToggle,
   dealLoadingId,
+
   onPublishToggle,
   publishLoadingId,
+
+  onSetPrimaryImage,
+  setPrimaryLoadingId = null,
+
+  onDelete,
 
   canView = true,
   canEdit = false,
@@ -143,11 +221,10 @@ const ProductTable: React.FC<
   canPublish = false,
   canToggleTrending = false,
   canToggleDeal = false,
+  canSetPrimaryImage = false,
 }) => {
-  const ITEMS_PER_PAGE = 10;
-
   // ===================================================
-  // ANY ACTION AVAILABLE
+  // ACTIONS
   // ===================================================
 
   const hasAnyAction =
@@ -164,13 +241,22 @@ const ProductTable: React.FC<
     } | null>(null);
 
   // ===================================================
+  // NORMALIZE TOTAL PAGES
+  // ===================================================
+
+  const normalizedTotalPages = Math.max(
+    1,
+    Number(totalPages) || 1,
+  );
+
+  // ===================================================
   // PAGINATION
   // ===================================================
 
   const getPaginationPages = () => {
-    if (totalPages <= 5) {
+    if (normalizedTotalPages <= 5) {
       return Array.from(
-        { length: totalPages },
+        { length: normalizedTotalPages },
         (_, index) => index + 1,
       );
     }
@@ -179,13 +265,16 @@ const ProductTable: React.FC<
       return [1, 2, 3, 4, 5];
     }
 
-    if (currentPage >= totalPages - 2) {
+    if (
+      currentPage >=
+      normalizedTotalPages - 2
+    ) {
       return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
+        normalizedTotalPages - 4,
+        normalizedTotalPages - 3,
+        normalizedTotalPages - 2,
+        normalizedTotalPages - 1,
+        normalizedTotalPages,
       ];
     }
 
@@ -198,8 +287,7 @@ const ProductTable: React.FC<
     ];
   };
 
-  const paginationPages =
-    getPaginationPages();
+  const paginationPages = getPaginationPages();
 
   // ===================================================
   // IMAGE ZOOM
@@ -209,6 +297,8 @@ const ProductTable: React.FC<
     imageUrl: string,
     productName: string,
   ) => {
+    if (!imageUrl) return;
+
     setZoomedImage({
       url: imageUrl,
       name: productName,
@@ -246,13 +336,12 @@ const ProductTable: React.FC<
   }, []);
 
   // ===================================================
-  // PREVENT SCROLL WHEN ZOOMED
+  // LOCK SCROLL WHEN ZOOMED
   // ===================================================
 
   useEffect(() => {
     if (zoomedImage) {
-      document.body.style.overflow =
-        "hidden";
+      document.body.style.overflow = "hidden";
     } else {
       resetBodyScrollLock();
     }
@@ -263,11 +352,19 @@ const ProductTable: React.FC<
   }, [zoomedImage]);
 
   // ===================================================
-  // TOTAL COLUMNS
+  // TABLE COLUMN COUNT
+  //
+  // 7 normal columns:
+  // S.No, Image, Product, SKU, Retail Price, Stock, Status
+  //
+  // + Primary column
+  // + optional Trending
+  // + optional Deal of Day
+  // + optional Actions
   // ===================================================
 
   const totalColumns =
-    7 +
+    8 +
     (canToggleTrending ? 1 : 0) +
     (canToggleDeal ? 1 : 0) +
     (hasAnyAction ? 1 : 0);
@@ -279,27 +376,40 @@ const ProductTable: React.FC<
   return (
     <>
       {/* =================================================
-          TABLE
+          PRODUCT TABLE
       ================================================= */}
 
       <div className="overflow-hidden bg-white font-poppins">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1000px] table-fixed border-collapse">
+          <table className="w-full min-w-[1220px] table-fixed border-collapse">
             {/* =================================================
                 COLUMN WIDTHS
             ================================================= */}
 
             <colgroup>
               <col className="w-[55px]" />
-              <col className="w-[70px]" />
+              <col className="w-[90px]" />
               <col className="w-[200px]" />
               <col className="w-[130px]" />
               <col className="w-[110px]" />
               <col className="w-[95px]" />
               <col className="w-[130px]" />
-              {canToggleTrending && <col className="w-[85px]" />}
-              {canToggleDeal && <col className="w-[90px]" />}
-              {hasAnyAction && <col className="w-[130px]" />}
+
+              {canToggleTrending && (
+                <col className="w-[85px]" />
+              )}
+
+              {/* PRIMARY COLUMN — BEFORE DEAL OF DAY */}
+
+              <col className="w-[75px]" />
+
+              {canToggleDeal && (
+                <col className="w-[90px]" />
+              )}
+
+              {hasAnyAction && (
+                <col className="w-[160px]" />
+              )}
             </colgroup>
 
             {/* =================================================
@@ -336,20 +446,32 @@ const ProductTable: React.FC<
                   Status
                 </th>
 
+                {/* TRENDING */}
+
                 {canToggleTrending && (
-                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                     Trending
                   </th>
                 )}
 
+                {/* PRIMARY — BEFORE DEAL OF DAY */}
+
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                  Primary
+                </th>
+
+                {/* DEAL OF DAY */}
+
                 {canToggleDeal && (
-                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                     Deal of Day
                   </th>
                 )}
 
+                {/* ACTIONS */}
+
                 {hasAnyAction && (
-                  <th className="whitespace-nowrap px-3 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Actions
                   </th>
                 )}
@@ -357,7 +479,7 @@ const ProductTable: React.FC<
             </thead>
 
             {/* =================================================
-                BODY
+                TABLE BODY
             ================================================= */}
 
             <tbody>
@@ -384,8 +506,7 @@ const ProductTable: React.FC<
                     </div>
                   </td>
                 </tr>
-              ) : products.length ===
-                0 ? (
+              ) : products.length === 0 ? (
                 /* EMPTY */
 
                 <tr>
@@ -412,514 +533,573 @@ const ProductTable: React.FC<
               ) : (
                 /* PRODUCTS */
 
-                products.map(
-                  (product, index) => {
-                    const serialNumber =
-                      (currentPage - 1) *
-                        ITEMS_PER_PAGE +
-                      index +
-                      1;
+                products.map((product, index) => {
+                  const serialNumber =
+                    (currentPage - 1) *
+                      ITEMS_PER_PAGE +
+                    index +
+                    1;
 
-                    const primaryImage =
-                      product.images?.find(
-                        (image) =>
-                          image.is_primary ===
-                          true,
-                      ) ||
-                      product.images?.[0];
+                  const images = product.images ?? [];
 
-                    const stock = Number(
-                      product.stock_quantity || 0,
-                    );
+                  const primaryImage =
+                    images.find((image) =>
+                      isPrimaryImage(image),
+                    ) ?? images[0];
 
-                    const lowStockThreshold =
-                      Number(
-                        product.low_stock_threshold ||
-                          0,
-                      );
+                  const stock = Number(
+                    product.stock_quantity || 0,
+                  );
 
-                    const isLowStock =
-                      stock <= lowStockThreshold;
+                  const lowStockThreshold = Number(
+                    product.low_stock_threshold || 0,
+                  );
 
-                    const rawPublished =
-                      (
-                        product as Product & {
-                          is_published?:
-                            | number
-                            | boolean
-                            | string;
-                        }
-                      ).is_published;
+                  const isLowStock =
+                    stock <= lowStockThreshold;
 
-                    const isPublished =
-                      rawPublished === true ||
-                      rawPublished === "true" ||
-                      Number(rawPublished) === 1;
+                  // ==============================
+                  // PUBLISH STATUS
+                  // ==============================
 
-                    const isPublishLoading =
-                      publishLoadingId ===
-                      product.id;
+                  const isPublished = isEnabled(
+                    (
+                      product as Product & {
+                        is_published?:
+                          | boolean
+                          | number
+                          | string;
+                      }
+                    ).is_published,
+                  );
 
-                    const rawTrending =
-                      (
-                        product as Product & {
-                          is_trending?:
-                            | number
-                            | boolean
-                            | string;
-                        }
-                      ).is_trending;
+                  const isPublishLoading =
+                    publishLoadingId === product.id;
 
-                    const isTrending =
-                      rawTrending === true ||
-                      rawTrending === "true" ||
-                      Number(rawTrending) === 1;
+                  // ==============================
+                  // TRENDING STATUS
+                  // ==============================
 
-                    const isTrendingLoading =
-                      trendingLoadingId ===
-                      product.id;
+                  const isTrending = isEnabled(
+                    (
+                      product as Product & {
+                        is_trending?:
+                          | boolean
+                          | number
+                          | string;
+                      }
+                    ).is_trending,
+                  );
 
-                    // ============================
-                    // DEAL OF THE DAY
-                    // ============================
+                  const isTrendingLoading =
+                    trendingLoadingId === product.id;
 
-                    const rawDeal =
-                      (
-                        product as Product & {
-                          is_deal_of_the_day?:
-                            | number
-                            | boolean
-                            | string;
-                        }
-                      ).is_deal_of_the_day;
+                  // ==============================
+                  // PRIMARY STATUS
+                  //
+                  // Reads product.is_primary first.
+                  // If missing, falls back to image status.
+                  // ==============================
 
-                    const isDealOfTheDay =
-                      rawDeal === true ||
-                      rawDeal === "true" ||
-                      Number(rawDeal) === 1;
+                  const isPrimary =
+                    isPrimaryProduct(product);
 
-                    const isDealLoading =
-                      dealLoadingId ===
-                      product.id;
+                  const isSetPrimaryLoading =
+                    setPrimaryLoadingId ===
+                    product.id;
 
-                    return (
-                      <tr
-                        key={product.id}
-                        className="group border-b border-[#2D6FE8]/10 bg-white transition-all duration-200 hover:bg-[#F4F8FD]"
-                      >
-                        {/* S.NO */}
+                  const canSetThisPrimary =
+                    canSetPrimaryImage &&
+                    Boolean(onSetPrimaryImage) &&
+                    Boolean(primaryImage);
 
-                        <td className="px-3 py-3">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                            {serialNumber}
-                          </span>
-                        </td>
+                  // ==============================
+                  // DEAL OF THE DAY
+                  // ==============================
 
-                        {/* IMAGE */}
+                  const isDealOfTheDay = isEnabled(
+                    (
+                      product as Product & {
+                        is_deal_of_the_day?:
+                          | boolean
+                          | number
+                          | string;
+                      }
+                    ).is_deal_of_the_day,
+                  );
 
-                        <td className="px-3 py-3">
-                          {primaryImage ? (
-                            <div
-                              className="relative h-[48px] w-[48px] cursor-pointer overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-0.5 transition-all duration-200 group-hover:border-[#2D6FE8]/35 group-hover:shadow-lg"
-                              onClick={() =>
+                  const isDealLoading =
+                    dealLoadingId === product.id;
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className="group border-b border-[#2D6FE8]/10 bg-white transition-colors duration-200 hover:bg-[#F4F8FD]"
+                    >
+                      {/* S.NO */}
+
+                      <td className="px-3 py-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
+                          {serialNumber}
+                        </span>
+                      </td>
+
+                      {/* IMAGE */}
+
+                      <td className="px-3 py-3">
+                        {primaryImage ? (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              handleImageClick(
+                                primaryImage.image_url,
+                                product.name,
+                              )
+                            }
+                            onKeyDown={(event) => {
+                              if (
+                                event.key === "Enter" ||
+                                event.key === " "
+                              ) {
+                                event.preventDefault();
+
                                 handleImageClick(
                                   primaryImage.image_url,
                                   product.name,
-                                )
+                                );
                               }
-                              title="Click to zoom image"
-                            >
-                              <img
-                                src={
-                                  primaryImage.image_url
-                                }
-                                alt={product.name}
-                                className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
-                                onError={(
-                                  event,
-                                ) => {
-                                  const target =
-                                    event.target as HTMLImageElement;
+                            }}
+                            className="relative h-[48px] w-[48px] cursor-zoom-in overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-0.5 transition-all duration-200 group-hover:border-[#2D6FE8]/35 group-hover:shadow-lg"
+                            title="Click to zoom image"
+                          >
+                            <img
+                              src={primaryImage.image_url}
+                              alt={product.name}
+                              className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(event) => {
+                                (
+                                  event.target as HTMLImageElement
+                                ).style.opacity = "0.15";
+                              }}
+                            />
 
-                                  target.style.display =
-                                    "none";
-                                }}
-                              />
-
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/30">
-                                <FiZoomIn
-                                  size={18}
-                                  className="scale-0 text-white opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100"
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]">
-                              <FiImage
-                                size={21}
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                              <FiZoomIn
+                                size={18}
+                                className="scale-0 text-white opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100"
                               />
                             </div>
-                          )}
-                        </td>
-
-                        {/* PRODUCT — NAME + DESC (TRUNCATED) */}
-
-                        <td className="px-3 py-3">
-                          <div className="w-full min-w-0">
-                            <p
-                              className="truncate text-sm font-bold text-[#111827]"
-                              title={product.name}
-                            >
-                              {product.name}
-                            </p>
-
-                            <p
-                              className="mt-1 truncate text-[10px] leading-5 text-[#6B7280]"
-                              title={
-                                product.description ||
-                                ""
-                              }
-                            >
-                              {product.description ||
-                                "No description available"}
-                            </p>
                           </div>
-                        </td>
+                        ) : (
+                          <div className="flex h-[48px] w-[48px] items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]">
+                            <FiImage size={21} />
+                          </div>
+                        )}
+                      </td>
 
-                        {/* SKU */}
+                      {/* PRODUCT NAME */}
 
-                        <td className="px-3 py-3">
-                          <span
-                            className="inline-block max-w-full truncate rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#111827]"
+                      <td className="px-3 py-3">
+                        <div className="w-full min-w-0">
+                          <p
+                            className="truncate text-sm font-bold text-[#111827]"
+                            title={product.name}
+                          >
+                            {product.name}
+                          </p>
+
+                          <p
+                            className="mt-1 truncate text-[10px] leading-5 text-[#6B7280]"
                             title={
-                              product.product_code ||
-                              "-"
+                              product.description ?? ""
                             }
                           >
-                            {product.product_code ||
-                              "-"}
+                            {product.description ||
+                              "No description available"}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* SKU */}
+
+                      <td className="px-3 py-3">
+                        <span
+                          className="inline-block max-w-full truncate rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#111827]"
+                          title={product.product_code || "-"}
+                        >
+                          {product.product_code || "-"}
+                        </span>
+                      </td>
+
+                      {/* RETAIL PRICE */}
+
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-[#2D6FE8]">
+                            ₹
                           </span>
-                        </td>
 
-                        {/* RETAIL PRICE */}
+                          <span className="truncate text-sm font-bold text-[#111827]">
+                            {Number(
+                              product.retail_price || 0,
+                            ).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </td>
 
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-1">
-                            <span className="text-[11px] font-bold text-[#2D6FE8]">
-                              ₹
-                            </span>
+                      {/* STOCK */}
 
-                            <span className="truncate text-sm font-bold text-[#111827]">
-                              {Number(
-                                product.retail_price ||
-                                  0,
-                              ).toLocaleString(
-                                "en-IN",
+                      <td className="px-3 py-3">
+                        <span
+                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStockClass(
+                            isLowStock,
+                            stock,
+                          )}`}
+                        >
+                          {stock <= 0 ? "Out" : stock}
+                        </span>
+                      </td>
+
+                      {/* STATUS */}
+
+                      <td className="px-3 py-3">
+                        {canPublish ? (
+                          <div className="relative inline-block w-full">
+                            <select
+                              value={
+                                isPublished
+                                  ? "published"
+                                  : "unpublished"
+                              }
+                              disabled={isPublishLoading}
+                              onChange={(event) => {
+                                const nextPublished =
+                                  event.target.value ===
+                                  "published";
+
+                                if (
+                                  nextPublished !==
+                                  isPublished
+                                ) {
+                                  onPublishToggle(
+                                    product,
+                                    nextPublished,
+                                  );
+                                }
+                              }}
+                              className={`h-8 w-full appearance-none rounded-full border py-1.5 pl-3 pr-8 text-[10px] font-bold uppercase tracking-wide outline-none transition-all disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
+                                isPublished,
+                              )} focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10`}
+                            >
+                              <option value="published">
+                                Published
+                              </option>
+
+                              <option value="unpublished">
+                                Unpublished
+                              </option>
+                            </select>
+
+                            <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center">
+                              {isPublishLoading ? (
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
+                              ) : (
+                                <FiChevronDown
+                                  size={14}
+                                  strokeWidth={2.5}
+                                />
                               )}
                             </span>
                           </div>
-                        </td>
-
-                        {/* STOCK */}
-
-                        <td className="px-3 py-3">
+                        ) : (
                           <span
-                            className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStockClass(
-                              isLowStock,
-                              stock,
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getPublishStatusClass(
+                              isPublished,
                             )}`}
                           >
-                            {stock <= 0
-                              ? "Out"
-                              : stock}
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+
+                            {isPublished
+                              ? "Published"
+                              : "Unpublished"}
                           </span>
-                        </td>
+                        )}
+                      </td>
 
-                        {/* STATUS */}
+                      {/* TRENDING */}
 
+                      {canToggleTrending && (
                         <td className="px-3 py-3">
-                          {canPublish ? (
-                            <div className="relative inline-block w-full">
-                              <select
-                                value={
-                                  isPublished
-                                    ? "published"
-                                    : "unpublished"
+                          <div className="flex justify-center">
+                            <label
+                              className={`relative inline-flex items-center ${
+                                isTrendingLoading
+                                  ? "cursor-wait"
+                                  : "cursor-pointer"
+                              }`}
+                              title={
+                                isTrending
+                                  ? "Remove from Trending"
+                                  : "Add to Trending"
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isTrending}
+                                disabled={isTrendingLoading}
+                                onChange={(event) =>
+                                  onTrendingToggle(
+                                    product,
+                                    event.target.checked,
+                                  )
                                 }
-                                disabled={
-                                  isPublishLoading
-                                }
-                                onChange={(
-                                  event,
-                                ) => {
-                                  const nextPublished =
-                                    event
-                                      .target
-                                      .value ===
-                                    "published";
+                                className="peer sr-only"
+                              />
 
-                                  if (
-                                    nextPublished !==
-                                    isPublished
-                                  ) {
-                                    onPublishToggle(
-                                      product,
-                                      nextPublished,
-                                    );
-                                  }
-                                }}
-                                className={`h-8 w-full cursor-pointer appearance-none rounded-full border py-1.5 pl-3 pr-8 text-[10px] font-bold uppercase tracking-wide outline-none transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
-                                  isPublished,
-                                )} focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10`}
+                              <div
+                                className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
+                                  isTrending
+                                    ? "border-[#2D6FE8] bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
+                                    : "border-[#D6E2F0] bg-[#EEF2F9]"
+                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#2D6FE8]/20`}
                               >
-                                <option value="published">
-                                  Published
-                                </option>
+                                <span
+                                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                                    isTrending
+                                      ? "left-[23px]"
+                                      : "left-[3px]"
+                                  }`}
+                                />
+                              </div>
 
-                                <option value="unpublished">
-                                  Unpublished
-                                </option>
-                              </select>
+                              {isTrendingLoading && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#2D6FE8]/25 border-t-[#2D6FE8]" />
+                                </span>
+                              )}
+                            </label>
+                          </div>
+                        </td>
+                      )}
 
-                              <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center">
-                                {isPublishLoading ? (
-                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
-                                ) : (
-                                  <FiChevronDown
-                                    size={14}
-                                    strokeWidth={
-                                      2.5
-                                    }
-                                  />
-                                )}
-                              </span>
-                            </div>
+                      {/* =================================================
+                          PRIMARY STAR COLUMN
+                          PLACED BEFORE DEAL OF DAY
+
+                          is_primary = 1 / true:
+                          Yellow filled star + yellow glow
+
+                          is_primary = 0 / false:
+                          Grey outline star
+                      ================================================= */}
+
+                      <td className="px-2 py-3">
+                        <div className="flex justify-center">
+                          {canSetThisPrimary ? (
+                            <button
+                              type="button"
+                              disabled={
+                                isPrimary ||
+                                isSetPrimaryLoading
+                              }
+                              onClick={() => {
+                                if (
+                                  !primaryImage ||
+                                  isPrimary
+                                ) {
+                                  return;
+                                }
+
+                                onSetPrimaryImage?.(
+                                  product,
+                                  primaryImage.id,
+                                );
+                              }}
+                              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200 ${
+                                isPrimary
+                                  ? "cursor-default border-[#FACC15]/60 bg-[#FEF9C3]"
+                                  : "border-[#D6E2F0] bg-[#F3F6FB] hover:border-[#FACC15] hover:bg-[#FEF9C3]"
+                              } disabled:opacity-100`}
+                              title={
+                                isPrimary
+                                  ? "This product is primary"
+                                  : "Set primary image"
+                              }
+                            >
+                              {isSetPrimaryLoading ? (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#FACC15]/30 border-t-[#A16207]" />
+                              ) : (
+                                <FiStar
+                                  size={18}
+                                  className={
+                                    isPrimary
+                                      ? "fill-[#FACC15] text-[#FACC15] drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
+                                      : "fill-transparent text-[#9CA3AF] transition-all duration-200 hover:fill-[#FACC15] hover:text-[#FACC15] hover:drop-shadow-[0_0_5px_rgba(250,204,21,0.7)]"
+                                  }
+                                />
+                              )}
+                            </button>
                           ) : (
                             <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getPublishStatusClass(
-                                isPublished,
-                              )}`}
+                              className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
+                                isPrimary
+                                  ? "border-[#FACC15]/60 bg-[#FEF9C3]"
+                                  : "border-[#D6E2F0] bg-[#F3F6FB]"
+                              }`}
+                              title={
+                                isPrimary
+                                  ? "Primary product"
+                                  : "Not a primary product"
+                              }
                             >
-                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-
-                              {isPublished
-                                ? "Published"
-                                : "Unpublished"}
+                              <FiStar
+                                size={18}
+                                className={
+                                  isPrimary
+                                    ? "fill-[#FACC15] text-[#FACC15] drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
+                                    : "fill-transparent text-[#9CA3AF]"
+                                }
+                              />
                             </span>
                           )}
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* TRENDING */}
+                      {/* DEAL OF THE DAY */}
 
-                        {canToggleTrending && (
-                          <td className="px-3 py-3">
-                            <div className="flex justify-center">
-                              <label
-                                className={`relative inline-flex items-center ${
-                                  isTrendingLoading
-                                    ? "cursor-wait"
-                                    : "cursor-pointer"
-                                }`}
-                                title={
-                                  isTrending
-                                    ? "Remove from Trending"
-                                    : "Add to Trending"
+                      {canToggleDeal && (
+                        <td className="px-3 py-3">
+                          <div className="flex justify-center">
+                            <label
+                              className={`relative inline-flex items-center ${
+                                isDealLoading
+                                  ? "cursor-wait"
+                                  : "cursor-pointer"
+                              }`}
+                              title={
+                                isDealOfTheDay
+                                  ? "Remove from Deal of the Day"
+                                  : "Add as Deal of the Day"
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isDealOfTheDay}
+                                disabled={isDealLoading}
+                                onChange={(event) =>
+                                  onDealToggle(
+                                    product,
+                                    event.target.checked,
+                                  )
                                 }
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    isTrending
-                                  }
-                                  disabled={
-                                    isTrendingLoading
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    onTrendingToggle(
-                                      product,
-                                      event
-                                        .target
-                                        .checked,
-                                    )
-                                  }
-                                  className="peer sr-only"
-                                />
+                                className="peer sr-only"
+                              />
 
-                                <div
-                                  className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
-                                    isTrending
-                                      ? "border-[#2D6FE8] bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
-                                      : "border-[#D6E2F0] bg-[#EEF2F9]"
-                                  } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#2D6FE8]/20`}
-                                >
-                                  <span
-                                    className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                                      isTrending
-                                        ? "left-[23px]"
-                                        : "left-[3px]"
-                                    }`}
-                                  />
-                                </div>
-
-                                {isTrendingLoading && (
-                                  <span className="absolute inset-0 flex items-center justify-center">
-                                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#2D6FE8]/25 border-t-[#2D6FE8]" />
-                                  </span>
-                                )}
-                              </label>
-                            </div>
-                          </td>
-                        )}
-
-                        {/* DEAL OF THE DAY — TEAL COLOR */}
-
-                        {canToggleDeal && (
-                          <td className="px-3 py-3">
-                            <div className="flex justify-center">
-                              <label
-                                className={`relative inline-flex items-center ${
-                                  isDealLoading
-                                    ? "cursor-wait"
-                                    : "cursor-pointer"
-                                }`}
-                                title={
+                              <div
+                                className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
                                   isDealOfTheDay
-                                    ? "Remove from Deal of the Day"
-                                    : "Add as Deal of the Day"
-                                }
+                                    ? "border-[#0D9488] bg-gradient-to-r from-[#14B8A6] to-[#0D9488]"
+                                    : "border-[#D6E2F0] bg-[#EEF2F9]"
+                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0D9488]/20`}
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={
+                                <span
+                                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
                                     isDealOfTheDay
-                                  }
-                                  disabled={
-                                    isDealLoading
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
-                                    onDealToggle(
-                                      product,
-                                      event
-                                        .target
-                                        .checked,
-                                    )
-                                  }
-                                  className="peer sr-only"
+                                      ? "left-[23px]"
+                                      : "left-[3px]"
+                                  }`}
                                 />
+                              </div>
 
-                                <div
-                                  className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
-                                    isDealOfTheDay
-                                      ? "border-[#0D9488] bg-gradient-to-r from-[#14B8A6] to-[#0D9488]"
-                                      : "border-[#D6E2F0] bg-[#EEF2F9]"
-                                  } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0D9488]/20`}
-                                >
-                                  <span
-                                    className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                                      isDealOfTheDay
-                                        ? "left-[23px]"
-                                        : "left-[3px]"
-                                    }`}
-                                  />
-                                </div>
-
-                                {isDealLoading && (
-                                  <span className="absolute inset-0 flex items-center justify-center">
-                                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D9488]/25 border-t-[#0D9488]" />
-                                  </span>
-                                )}
-                              </label>
-                            </div>
-                          </td>
-                        )}
-
-                        {/* ACTIONS */}
-
-                        {hasAnyAction && (
-                          <td className="px-3 py-3">
-                            <div className="flex justify-end gap-1.5">
-                              {/* VIEW */}
-
-                              {canView && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onView(
-                                      product,
-                                    )
-                                  }
-                                  className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                  title="View Product"
-                                >
-                                  <FiEye
-                                    size={15}
-                                    className="transition-transform group-hover/view:scale-110"
-                                  />
-                                </button>
+                              {isDealLoading && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D9488]/25 border-t-[#0D9488]" />
+                                </span>
                               )}
+                            </label>
+                          </div>
+                        </td>
+                      )}
 
-                              {/* EDIT */}
+                      {/* ACTIONS */}
 
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onEdit(
-                                      product,
-                                    )
-                                  }
-                                  className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Edit Product"
-                                >
-                                  <FiEdit2
-                                    size={15}
-                                    className="transition-transform group-hover/edit:scale-110"
-                                  />
-                                </button>
-                              )}
+                      {hasAnyAction && (
+                        <td className="px-3 py-3">
+                          <div className="flex justify-center gap-1.5">
+                            {/* VIEW */}
 
-                              {/* DELETE */}
+                            {canView && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onView(product)
+                                }
+                                className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                                title="View Product"
+                              >
+                                <FiEye
+                                  size={15}
+                                  className="transition-transform group-hover/view:scale-110"
+                                />
+                              </button>
+                            )}
 
-                              {canDelete && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onDelete?.(
-                                      product,
-                                    )
-                                  }
-                                  className="group/delete flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition-all duration-200 hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                                  title="Delete Product"
-                                >
-                                  <FiTrash2
-                                    size={15}
-                                    className="transition-transform group-hover/delete:scale-110"
-                                  />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  },
-                )
+                            {/* EDIT */}
+
+                            {canEdit && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onEdit(product)
+                                }
+                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                                title="Edit Product"
+                              >
+                                <FiEdit2
+                                  size={15}
+                                  className="transition-transform group-hover/edit:scale-110"
+                                />
+                              </button>
+                            )}
+
+                            {/* DELETE */}
+
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onDelete?.(product)
+                                }
+                                className="group/delete flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition-all duration-200 hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                title="Delete Product"
+                              >
+                                <FiTrash2
+                                  size={15}
+                                  className="transition-transform group-hover/delete:scale-110"
+                                />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
         {/* =================================================
-            PAGINATION
+            SERVER-SIDE PAGINATION
         ================================================= */}
 
         {totalEntries > 0 && (
           <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+              {/* RECORD COUNT */}
+
               <div className="text-center sm:text-left">
                 <p className="text-xs text-[#6B7280]">
                   Showing{" "}
@@ -938,16 +1118,16 @@ const ProductTable: React.FC<
                 </p>
               </div>
 
+              {/* PAGE BUTTONS */}
+
               <div className="flex items-center gap-1.5">
                 {/* PREVIOUS */}
 
                 <button
                   type="button"
-                  disabled={currentPage === 1}
+                  disabled={currentPage <= 1 || loading}
                   onClick={() =>
-                    onPageChange(
-                      currentPage - 1,
-                    )
+                    onPageChange(currentPage - 1)
                   }
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Previous page"
@@ -961,10 +1141,11 @@ const ProductTable: React.FC<
                   <button
                     key={page}
                     type="button"
+                    disabled={loading}
                     onClick={() =>
                       onPageChange(page)
                     }
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all disabled:cursor-wait ${
                       currentPage === page
                         ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
                         : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
@@ -979,13 +1160,12 @@ const ProductTable: React.FC<
                 <button
                   type="button"
                   disabled={
-                    currentPage === totalPages ||
-                    totalPages === 0
+                    currentPage >=
+                      normalizedTotalPages ||
+                    loading
                   }
                   onClick={() =>
-                    onPageChange(
-                      currentPage + 1,
-                    )
+                    onPageChange(currentPage + 1)
                   }
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Next page"
@@ -1040,10 +1220,9 @@ const ProductTable: React.FC<
                 alt={zoomedImage.name}
                 className="max-h-[78vh] max-w-[82vw] rounded-2xl object-contain shadow-2xl"
                 onError={(event) => {
-                  const target =
-                    event.target as HTMLImageElement;
-
-                  target.style.display = "none";
+                  (
+                    event.target as HTMLImageElement
+                  ).style.display = "none";
                 }}
               />
             </div>

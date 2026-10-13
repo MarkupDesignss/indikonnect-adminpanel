@@ -480,19 +480,19 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <div className="space-y-5">
               <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/15">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1100px] border-collapse">
+                  <table className="w-full min-w-[1000px] border-collapse">
                     <thead>
                       <tr className="bg-[#4F8FF7]">
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">#</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Item Reference</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Product</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">SKU</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Qty</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Price</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Total</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Tracking No.</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Status</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Invoice</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">#</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Item Reference</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Product</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">SKU</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Qty</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">Price</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">Total</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Tracking No.</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Status</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Invoice</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -501,33 +501,38 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                           const isDelivered = item.delivery_status?.toLowerCase() === "delivered";
                           return (
                             <tr key={item.id} className="border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF]">
-                              <td className="px-4 py-3 text-sm text-[#2D6FE8]">{idx + 1}</td>
-                              <td className="px-4 py-3">
-                                <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
+                              <td className="px-3 py-2.5 text-xs text-[#2D6FE8]">{idx + 1}</td>
+                              <td className="px-3 py-2.5">
+                                <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
                                   {item.itemReferenceId || "N/A"}
                                 </span>
                               </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-3">
+                              <td className="px-3 py-2.5">
+                                <div className="flex items-center gap-2.5">
                                   {item.image ? (
-                                    <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-xl border border-[#2D6FE8]/15 object-cover" />
+                                    <img src={item.image} alt={item.productName} className="h-8 w-8 flex-shrink-0 rounded-lg border border-[#2D6FE8]/15 object-cover" />
                                   ) : (
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                                      <FiPackage size={15} />
+                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                                      <FiPackage size={13} />
                                     </div>
                                   )}
-                                  <span className="text-sm font-semibold text-[#111827]">{item.productName}</span>
+                                  <span
+                                    title={item.productName}
+                                    className="max-w-[200px] truncate text-xs font-semibold text-[#111827]"
+                                  >
+                                    {item.productName}
+                                  </span>
                                 </div>
                               </td>
-                              <td className="px-4 py-3">
-                                <span className="rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-xs font-semibold text-[#111827]">{item.sku}</span>
+                              <td className="px-3 py-2.5">
+                                <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2 py-1 text-[11px] font-semibold text-[#111827]">{item.sku}</span>
                               </td>
-                              <td className="px-4 py-3 text-center text-sm text-[#111827]">{item.quantity}</td>
-                              <td className="px-4 py-3 text-right text-sm text-[#111827]">{item.price}</td>
-                              <td className="px-4 py-3 text-right text-sm font-bold text-[#111827]">{item.total}</td>
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2.5 text-center text-xs text-[#111827]">{item.quantity}</td>
+                              <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs text-[#111827]">{item.price}</td>
+                              <td className="whitespace-nowrap px-3 py-2.5 text-right text-xs font-bold text-[#111827]">{item.total}</td>
+                              <td className="px-3 py-2.5">
                                 {item.courier_tracking_number ? (
-                                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold text-[#2D6FE8]">
+                                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
                                     <FiTruck size={11} />
                                     {item.courier_tracking_number}
                                   </span>
@@ -535,13 +540,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                   <span className="text-xs text-[#6B7280]">—</span>
                                 )}
                               </td>
-                              <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
+                              <td className="px-3 py-2.5 text-center">
+                                <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
                                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
                                   {getStatusText(item.status)}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2.5 text-center">
                                 {isDelivered && orderDetails?.id && onViewInvoice && (
                                   <button
                                     type="button"
@@ -549,7 +554,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                       const oid = orderDetails?.id;
                                       if (oid) onViewInvoice(oid, item.lineId);
                                     }}
-                                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
                                   >
                                     <FiFileText size={13} />
                                     Invoice
@@ -977,7 +982,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                         )}
                         <div className="min-w-0">
                           <span className="block truncate text-sm font-semibold text-[#111827]">{item.productName}</span>
-                          <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Ref: {item.itemReferenceId || "N/A"}</span>
+                          <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Item: {item.itemReferenceId}</span>
                         </div>
                       </div>
                       <span className="shrink-0 text-xs text-[#6B7280]">
@@ -1046,7 +1051,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any additional notes..."
                   rows={3}
-                  className="w-full resize-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 py-3 text-sm text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+                  className="w-full resize-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 py-4 text-sm text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
                   disabled={loading}
                 />
               </div>
@@ -1056,7 +1061,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-3 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-4 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
                 disabled={loading}
               >
                 Cancel
@@ -1064,7 +1069,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiTruck size={17} />}
                 {loading
@@ -1240,7 +1245,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                       )}
                       <div className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-[#111827]">{item.productName}</span>
-                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Ref: {item.itemReferenceId || "N/A"}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Item: {item.itemReferenceId}</span>
                       </div>
                     </div>
                     <span className="shrink-0 text-xs text-[#6B7280]">Qty: {item.quantity} • SKU: {item.sku}</span>
@@ -1253,7 +1258,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-3 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-4 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
                 disabled={loading}
               >
                 Cancel
@@ -1261,7 +1266,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiSend size={17} />}
                 {loading
@@ -1429,7 +1434,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                       )}
                       <div className="min-w-0">
                         <span className="block truncate text-sm font-semibold text-[#111827]">{item.productName}</span>
-                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Ref: {item.itemReferenceId || "N/A"}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Item: {item.itemReferenceId}</span>
                       </div>
                     </div>
                     <span className="shrink-0 text-xs text-[#6B7280]">Qty: {item.quantity} • SKU: {item.sku}</span>
@@ -1442,7 +1447,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-3 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                className="flex-1 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-4 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
                 disabled={loading}
               >
                 Cancel
@@ -1450,7 +1455,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-4 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {loading ? <FiLoader size={17} className="animate-spin" /> : <FiCheckCircle size={17} />}
                 {loading
@@ -1468,7 +1473,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
 };
 
 // =====================================================
-// ORDERS TABLE — BLUE THEME + PERMISSIONS
+// ORDERS TABLE — ITEM-WISE VIEW ONLY
 // =====================================================
 
 interface OrdersTableProps {
@@ -1558,7 +1563,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [orderTypeFilter, setOrderTypeFilter] = useState("Order Type: All");
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [showViewPopup, setShowViewPopup] = useState(false);
   const [showDispatchPopup, setShowDispatchPopup] = useState(false);
   const [showShipPopup, setShowShipPopup] = useState(false);
@@ -1571,10 +1575,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [selectedItemsForDispatch, setSelectedItemsForDispatch] = useState<OrderItem[]>([]);
   const [selectedItemsForShip, setSelectedItemsForShip] = useState<OrderItem[]>([]);
   const [selectedItemsForDeliver, setSelectedItemsForDeliver] = useState<OrderItem[]>([]);
-  const [selectedItemsMap, setSelectedItemsMap] = useState<Map<string, boolean>>(new Map());
-  const [isFullOrderDispatch, setIsFullOrderDispatch] = useState(false);
-  const [isFullOrderShip, setIsFullOrderShip] = useState(false);
-  const [isFullOrderDeliver, setIsFullOrderDeliver] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1585,7 +1585,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(new Set());
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(new Set());
 
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchOrders();
@@ -1681,8 +1681,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return type.toLowerCase() === "retail" ? "Customer" : formatStatus(type);
   };
 
-  const convertToOrder = (apiOrder: any, index: number): Order => {
-    return {
+  // ✅ Convert to FLAT item-wise array (each item is a row with its order data)
+  // Now the "Order ID" column uses item_reference_id
+  const convertToItemRows = (apiOrder: any): Array<Order & { singleItem: OrderItem }> => {
+    const orderBase = {
       id: apiOrder.order_reference,
       orderId: apiOrder.id,
       orderReference: apiOrder.order_reference,
@@ -1716,42 +1718,48 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
       courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
       shippingDetails: apiOrder.shipping_details || undefined,
-      items:
-        apiOrder.items?.map((item: any) => ({
-          id: String(item.line_id || item.id || ""),
-          lineId: item.line_id || item.id,
-          orderReference: item.order_reference || apiOrder.order_reference || "N/A",
-          itemReferenceId: item.item_reference_id || "N/A",
-          productName: item.product_name || "N/A",
-          sku: item.product_code || "N/A",
-          quantity: item.quantity || 0,
-          price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
-          total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
-          unitPrice: item.unit_price || 0,
-          lineTotal: item.line_total || 0,
-          status:
-            item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
-          delivery_status: item.delivery_status || "pending",
-          image: item.primary_image || item.product_image || undefined,
-          productId: item.product_id,
-          isReturnable: item.is_returnable,
-          availableForReturn: item.available_for_return,
-          gstRate: item.gst_rate,
-          gstAmount: item.gst_amount,
-          categoryId: item.category_id,
-          brandId: item.brand_id,
-          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-          courier_tracking_number: item.courier_tracking_number || undefined,
-          courierTrackingNumber: item.courier_tracking_number || undefined,
-          invoiceNumber: item.invoice?.invoice_number || undefined,
-          invoice_number: item.invoice?.invoice_number || undefined,
-        })) || [],
+      items: apiOrder.items?.map((item: any) => ({
+        id: String(item.line_id || item.id || ""),
+        lineId: item.line_id || item.id,
+        orderReference: item.order_reference || apiOrder.order_reference || "N/A",
+        itemReferenceId: item.item_reference_id || "N/A",   // ✅ this is the new Order ID
+        productName: item.product_name || "N/A",
+        sku: item.product_code || "N/A",
+        quantity: item.quantity || 0,
+        price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
+        total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
+        unitPrice: item.unit_price || 0,
+        lineTotal: item.line_total || 0,
+        status:
+          item.delivery_status?.charAt(0).toUpperCase() +
+          item.delivery_status?.slice(1) || "Pending",
+        delivery_status: item.delivery_status || "pending",
+        image: item.primary_image || item.product_image || undefined,
+        productId: item.product_id,
+        isReturnable: item.is_returnable,
+        availableForReturn: item.available_for_return,
+        gstRate: item.gst_rate,
+        gstAmount: item.gst_amount,
+        categoryId: item.category_id,
+        brandId: item.brand_id,
+        is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+        courier_tracking_number: item.courier_tracking_number || undefined,
+        courierTrackingNumber: item.courier_tracking_number || undefined,
+        invoiceNumber: item.invoice?.invoice_number || undefined,
+        invoice_number: item.invoice?.invoice_number || undefined,
+      })) || [],
     };
+
+    // Return one row per item
+    return (orderBase.items || []).map((item) => ({
+      ...orderBase,
+      singleItem: item,
+    }));
   };
 
-  const uiOrders = useMemo(() => {
-    return orders.map((order, index) => convertToOrder(order, index));
+  // ✅ Flat item-wise rows
+  const allItemRows = useMemo(() => {
+    return orders.flatMap((order) => convertToItemRows(order));
   }, [orders]);
 
   const getFilterStatusValue = (filter: string) => {
@@ -1766,17 +1774,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const normalizePhone = (phone: string) => String(phone || "").replace(/\D/g, "");
 
-  const isItemLevelFilterActive = useMemo(() => {
-    return (
-      search.trim() !== "" ||
-      getFilterStatusValue(statusFilter) !== null ||
-      categoryFilter !== "Category: All" ||
-      brandFilter !== "Brand: All" ||
-      orderTypeFilter !== "Order Type: All"
-    );
-  }, [search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
-
-  const filteredOrders = useMemo(() => {
+  const filteredRows = useMemo(() => {
     const searchText = search.toLowerCase().trim();
     const searchDigits = normalizePhone(searchText);
     const filterStatusValue = getFilterStatusValue(statusFilter);
@@ -1793,128 +1791,51 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         ? null
         : orderTypeFilter.replace("Order Type: ", "");
 
-    const orderMatchesSearch = (order: Order): boolean => {
-      if (!searchText) return true;
-      const phoneDigits = normalizePhone(order.userPhone);
-      const phoneMatch =
-        searchDigits.length > 0 && phoneDigits.includes(searchDigits);
+    return allItemRows.filter((row) => {
+      const item = row.singleItem;
 
-      return (
-        phoneMatch ||
-        (order.id || "").toLowerCase().includes(searchText) ||
-        (order.customer || "").toLowerCase().includes(searchText) ||
-        (order.customerName || "").toLowerCase().includes(searchText) ||
-        (order.userEmail || "").toLowerCase().includes(searchText) ||
-        (order.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
-        (order.trackingNumber || "").toLowerCase().includes(searchText)
-      );
-    };
+      // Order type filter
+      if (orderTypeValue !== null && row.orderType !== orderTypeValue) return false;
 
-    const itemMatchesSearch = (item: OrderItem, order: Order): boolean => {
-      if (!searchText) return true;
-      const phoneDigits = normalizePhone(order.userPhone);
-      const phoneMatch =
-        searchDigits.length > 0 && phoneDigits.includes(searchDigits);
-
-      return (
-        phoneMatch ||
-        (item.productName || "").toLowerCase().includes(searchText) ||
-        (item.sku || "").toLowerCase().includes(searchText) ||
-        (item.itemReferenceId || "").toLowerCase().includes(searchText) ||
-        String((item as any).courier_tracking_number || "")
-          .toLowerCase()
-          .includes(searchText) ||
-        String((item as any).courierTrackingNumber || "")
-          .toLowerCase()
-          .includes(searchText) ||
-        String((item as any).invoiceNumber || "")
-          .toLowerCase()
-          .includes(searchText) ||
-        String((item as any).invoice_number || "")
-          .toLowerCase()
-          .includes(searchText) ||
-        (order.id || "").toLowerCase().includes(searchText) ||
-        (order.customer || "").toLowerCase().includes(searchText) ||
-        (order.userEmail || "").toLowerCase().includes(searchText) ||
-        (order.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
-        (order.trackingNumber || "").toLowerCase().includes(searchText)
-      );
-    };
-
-    const result: Order[] = [];
-
-    uiOrders.forEach((order) => {
-      if (orderTypeValue !== null && order.orderType !== orderTypeValue) return;
-
-      const orderStatusNormalized = String(order.orderStatus || "")
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "_");
-
-      const orderStatusMatches =
-        filterStatusValue === null ||
-        orderStatusNormalized === filterStatusValue ||
-        (order.items || []).some((it) => getItemStatus(it) === filterStatusValue);
-
-      const orderLevelMatch = orderMatchesSearch(order) && orderStatusMatches;
-
-      const itemMatches = (item: OrderItem): boolean => {
-        if (!itemMatchesSearch(item, order)) return false;
-
-        if (filterStatusValue !== null) {
-          const itemStatus = getItemStatus(item);
-          const orderMatches = orderStatusNormalized === filterStatusValue;
-          if (!orderMatches && itemStatus !== filterStatusValue) return false;
-        }
-
-        if (
-          categoryValue !== null &&
-          String(item.categoryId ?? "") !== String(categoryValue)
-        ) {
-          return false;
-        }
-
-        if (
-          brandValue !== null &&
-          String(item.brandId ?? "") !== String(brandValue)
-        ) {
-          return false;
-        }
-
-        return true;
-      };
-
-      if (!isItemLevelFilterActive) {
-        if (orderLevelMatch) result.push(order);
-        return;
+      // Status filter
+      if (filterStatusValue !== null) {
+        const itemStatus = getItemStatus(item);
+        if (itemStatus !== filterStatusValue) return false;
       }
 
-      const matchingItems = (order.items || []).filter(itemMatches);
-
-      if (matchingItems.length > 0) {
-        matchingItems.forEach((item) => {
-          result.push({ ...order, items: [item] });
-        });
-      } else if (
-        (!order.items || order.items.length === 0) &&
-        orderLevelMatch &&
-        categoryValue === null &&
-        brandValue === null
-      ) {
-        result.push(order);
+      // Category filter
+      if (categoryValue !== null && String(item.categoryId ?? "") !== String(categoryValue)) {
+        return false;
       }
+
+      // Brand filter
+      if (brandValue !== null && String(item.brandId ?? "") !== String(brandValue)) {
+        return false;
+      }
+
+      // Search filter
+      if (searchText) {
+        const phoneDigits = normalizePhone(row.userPhone);
+        const phoneMatch = searchDigits.length > 0 && phoneDigits.includes(searchDigits);
+
+        return (
+          phoneMatch ||
+          (row.id || "").toLowerCase().includes(searchText) ||
+          (row.customer || "").toLowerCase().includes(searchText) ||
+          (row.userEmail || "").toLowerCase().includes(searchText) ||
+          (row.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
+          (item.productName || "").toLowerCase().includes(searchText) ||
+          (item.sku || "").toLowerCase().includes(searchText) ||
+          String(item.courier_tracking_number || "").toLowerCase().includes(searchText) ||
+          String(item.invoiceNumber || "").toLowerCase().includes(searchText) ||
+          // Also search in item reference id
+          (item.itemReferenceId || "").toLowerCase().includes(searchText)
+        );
+      }
+
+      return true;
     });
-
-    return result;
-  }, [
-    uiOrders,
-    search,
-    statusFilter,
-    categoryFilter,
-    brandFilter,
-    orderTypeFilter,
-    isItemLevelFilterActive,
-  ]);
+  }, [allItemRows, search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
 
   const activeFilterLabel = useMemo(() => {
     const parts: string[] = [];
@@ -1943,18 +1864,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   useEffect(() => {
     if (onFilteredChange) {
-      onFilteredChange(filteredOrders, activeFilterLabel);
+      const uniqueOrders = filteredRows.reduce((acc, row) => {
+        if (!acc.find((o) => o.id === row.id)) {
+          acc.push({ ...row, items: [row.singleItem] });
+        }
+        return acc;
+      }, [] as Order[]);
+      onFilteredChange(uniqueOrders, activeFilterLabel);
     }
-  }, [filteredOrders, activeFilterLabel, onFilteredChange]);
+  }, [filteredRows, activeFilterLabel, onFilteredChange]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / itemsPerPage));
 
-  const visibleOrders = filteredOrders.slice(
+  const visibleRows = filteredRows.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
-
-  const isItemWiseView = isItemLevelFilterActive;
 
   const changePage = (page: number) => {
     setCurrentPage(Math.min(Math.max(page, 1), totalPages));
@@ -1969,14 +1894,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = isItemLevelFilterActive;
-
-  const toggleRow = (orderId: string) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(orderId)) newExpanded.delete(orderId);
-    else newExpanded.add(orderId);
-    setExpandedRows(newExpanded);
-  };
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    getFilterStatusValue(statusFilter) !== null ||
+    categoryFilter !== "Category: All" ||
+    brandFilter !== "Brand: All" ||
+    orderTypeFilter !== "Order Type: All";
 
   const handleViewOrder = (orderId: string) => {
     const apiOrder = orders.find((o) => o.order_reference === orderId);
@@ -1984,7 +1907,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       setSelectedOrderForView(apiOrder.order_reference);
       setSelectedOrderDataForView(apiOrder);
       setShowViewPopup(true);
-      const uiOrder = uiOrders.find((o) => o.id === orderId);
+      const uiOrder = allItemRows.find((o) => o.id === orderId);
       if (uiOrder) onSelectOrder(uiOrder);
     }
   };
@@ -2006,44 +1929,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const isItemSelectable = (item: OrderItem) => {
-    return canItemDispatch(item) || canItemShip(item) || canItemDeliver(item);
-  };
-
-  const toggleItemSelection = (orderId: string, itemId: string) => {
-    const key = `${orderId}-${itemId}`;
-    const newMap = new Map(selectedItemsMap);
-    newMap.set(key, !newMap.get(key));
-    setSelectedItemsMap(newMap);
-  };
-
-  const toggleAllItems = (orderId: string, items: OrderItem[]) => {
-    if (items.length === 0) return;
-    const selectableItems = items.filter((item) => isItemSelectable(item));
-    if (selectableItems.length === 0) return;
-    const allSelected = selectableItems.every((item) =>
-      selectedItemsMap.get(`${orderId}-${item.id}`),
-    );
-    const newMap = new Map(selectedItemsMap);
-    selectableItems.forEach((item) => {
-      newMap.set(`${orderId}-${item.id}`, !allSelected);
-    });
-    setSelectedItemsMap(newMap);
-  };
-
-  const getSelectedItemsForOrder = (orderId: string, items: OrderItem[]) => {
-    return items.filter((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
-  };
-
-  const getSelectedCount = (orderId: string, items: OrderItem[]) =>
-    getSelectedItemsForOrder(orderId, items).length;
-
-  const allSelectableSelected = (orderId: string, items: OrderItem[]) => {
-    const selectable = items.filter((item) => isItemSelectable(item));
-    if (selectable.length === 0) return false;
-    return selectable.every((item) => selectedItemsMap.get(`${orderId}-${item.id}`));
-  };
-
   const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
 
@@ -2055,134 +1940,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const canItemMarkUndelivered = (item: OrderItem) => getItemStatus(item) === "shipped";
 
   const isFullyDelivered = (item: OrderItem) => getItemStatus(item) === "delivered";
-
-  const getSelectedDispatchableCount = (order: Order) => {
-    return getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDispatch).length;
-  };
-
-  const hasDispatchableItems = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.some((item) => canItemDispatch(item));
-  };
-  const hasShipableItems = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.some((item) => canItemShip(item));
-  };
-  const hasDeliverableItems = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.some((item) => canItemDeliver(item));
-  };
-  const allItemsDispatchable = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.every((item) => canItemDispatch(item));
-  };
-  const allItemsShipable = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.every((item) => canItemShip(item));
-  };
-  const allItemsDeliverable = (order: Order) => {
-    if (!order.items || order.items.length === 0) return false;
-    return order.items.every((item) => canItemDeliver(item));
-  };
-  const getDispatchableItemsCount = (order: Order) => {
-    if (!order.items) return 0;
-    return order.items.filter((item) => canItemDispatch(item)).length;
-  };
-  const getShipableItemsCount = (order: Order) => {
-    if (!order.items) return 0;
-    return order.items.filter((item) => canItemShip(item)).length;
-  };
-  const getDeliverableItemsCount = (order: Order) => {
-    if (!order.items) return 0;
-    return order.items.filter((item) => canItemDeliver(item)).length;
-  };
-
-  const handleDispatchSelected = (order: Order) => {
-    const selectedItems = getSelectedItemsForOrder(order.id, order.items || []).filter(canItemDispatch);
-    if (selectedItems.length === 0) {
-      toast.error("Please select at least one confirmed item to dispatch.");
-      return;
-    }
-    setIsFullOrderDispatch(false);
-    setSelectedOrderForDispatch(order);
-    setSelectedItemsForDispatch(selectedItems);
-    setShowDispatchPopup(true);
-  };
-
-  const handleDispatchFromSelection = (order: Order) => {
-    const selectedDispatchableCount = getSelectedDispatchableCount(order);
-    if (selectedDispatchableCount > 0) {
-      handleDispatchSelected(order);
-      return;
-    }
-    handleDispatchFullOrder(order);
-  };
-
-  const handleDispatchFullOrder = (order: Order) => {
-    if (!order.items || order.items.length === 0) {
-      toast.error("This order has no items to dispatch.");
-      return;
-    }
-    const dispatchableItems = order.items.filter(canItemDispatch);
-    if (dispatchableItems.length === 0) {
-      toast.error("No confirmed items available for dispatch in this order.");
-      return;
-    }
-    const allItemsAreConfirmed = dispatchableItems.length === order.items.length;
-    setIsFullOrderDispatch(allItemsAreConfirmed);
-    setSelectedOrderForDispatch(order);
-    setSelectedItemsForDispatch(allItemsAreConfirmed ? [] : dispatchableItems);
-    setShowDispatchPopup(true);
-  };
-
-  const handleDispatchSubmit = () => {
-    fetchOrders();
-    setSelectedItemsMap(new Map());
-  };
-
-  const handleShipFullOrder = (order: Order) => {
-    if (!order.items || order.items.length === 0) {
-      toast.error("This order has no items to ship.");
-      return;
-    }
-    const shipableItems = order.items.filter(canItemShip);
-    if (shipableItems.length === 0) {
-      toast.error("No dispatched items available for shipping in this order.");
-      return;
-    }
-    const allItemsAreDispatched = shipableItems.length === order.items.length;
-    setIsFullOrderShip(allItemsAreDispatched);
-    setSelectedOrderForShip(order);
-    setSelectedItemsForShip(allItemsAreDispatched ? [] : shipableItems);
-    setShowShipPopup(true);
-  };
-
-  const handleShipSubmit = () => {
-    fetchOrders();
-    setSelectedItemsMap(new Map());
-  };
-
-  const handleDeliverFullOrder = (order: Order) => {
-    if (!order.items || order.items.length === 0) {
-      toast.error("This order has no items to deliver.");
-      return;
-    }
-    const deliverableItems = order.items.filter(canItemDeliver);
-    if (deliverableItems.length === 0) {
-      toast.error("No shipped items available for delivery in this order.");
-      return;
-    }
-    const allItemsAreShipped = deliverableItems.length === order.items.length;
-    setIsFullOrderDeliver(allItemsAreShipped);
-    setSelectedOrderForDeliver(order);
-    setSelectedItemsForDeliver(allItemsAreShipped ? [] : deliverableItems);
-    setShowDeliverPopup(true);
-  };
-
-  const handleDeliverSubmit = () => {
-    fetchOrders();
-    setSelectedItemsMap(new Map());
-  };
 
   const handleToggleCancelReturn = async (order: Order, item: OrderItem) => {
     const lineId = item.lineId || parseInt(item.id);
@@ -2273,7 +2030,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       if (response.data.success) {
         toast.success("Item marked as undelivered");
         await fetchOrders();
-        setSelectedItemsMap(new Map());
       } else {
         toast.error(response.data.message || "Failed to mark as undelivered");
         await fetchOrders();
@@ -2304,19 +2060,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setShowDispatchPopup(false);
     setSelectedOrderForDispatch(null);
     setSelectedItemsForDispatch([]);
-    setIsFullOrderDispatch(false);
   };
   const closeShipPopup = () => {
     setShowShipPopup(false);
     setSelectedOrderForShip(null);
     setSelectedItemsForShip([]);
-    setIsFullOrderShip(false);
   };
   const closeDeliverPopup = () => {
     setShowDeliverPopup(false);
     setSelectedOrderForDeliver(null);
     setSelectedItemsForDeliver([]);
-    setIsFullOrderDeliver(false);
   };
 
   if (loading) {
@@ -2360,7 +2113,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       <div className="space-y-5">
         {/* FILTER BAR */}
         <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-4 shadow-sm sm:p-5">
-
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1 lg:flex-[2]">
               <FiSearch
@@ -2374,7 +2126,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search by Order ID, Mobile, Invoice, Tracking No., Product, SKU..."
+                placeholder="Search by Order ID, Item Reference, Mobile, Invoice, Tracking No., Product, SKU..."
                 className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-9 text-xs text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
               {search && (
@@ -2584,661 +2336,217 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           )}
         </div>
 
-        {/* ORDER TABLE */}
+        {/* ORDER TABLE — ITEM WISE, Order ID column now uses item_reference_id */}
         <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm">
-
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1180px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="w-[45px] px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? <span className="opacity-50">—</span> : <FiChevronDown size={16} className="mx-auto opacity-50" />}
+                  <th className="whitespace-nowrap px-4 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Order ID
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Item Reference" : "Order ID"}
+                  <th className="whitespace-nowrap px-4 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Product
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Product" : "Date"}
+                  <th className="whitespace-nowrap px-4 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    SKU
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "SKU" : "Buyer"}
+                  <th className="whitespace-nowrap px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Qty
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Qty" : "Total"}
+                  <th className="whitespace-nowrap px-4 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                    Price
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Price" : ""}
+                  <th className="whitespace-nowrap px-4 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                    Total
                   </th>
-                  <th className="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Total" : ""}
+                  <th className="whitespace-nowrap px-4 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Tracking No.
                   </th>
-                  <th className="px-6 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Tracking No." : "Status"}
+                  <th className="whitespace-nowrap px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Status
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Status" : "Actions"}
+                  <th className="whitespace-nowrap px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Actions
                   </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Action" : ""}
-                  </th>
-                  <th className="px-6 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    {isItemWiseView ? "Invoice" : ""}
+                  <th className="whitespace-nowrap px-4 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Invoice
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {visibleOrders.length > 0 ? (
-                  visibleOrders.map((order, index) => {
-                    if (isItemWiseView) {
-                      const item = order.items && order.items[0];
-                      if (!item) return null;
-                      const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
+                {visibleRows.length > 0 ? (
+                  visibleRows.map((row, index) => {
+                    const item = row.singleItem;
+                    const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
 
-                      const isDispatchable = canItemDispatch(item) && canDispatch;
-                      const isShipable = canItemShip(item) && canShip;
-                      const isDeliverable = canItemDeliver(item) && canDeliver;
-                      const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
-                      const isDelivered = isFullyDelivered(item);
-                      const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
-
-                      return (
-                        <tr
-                          key={`${order.id}-${item.id}-${index}`}
-                          className="border-b border-[#2D6FE8]/10 bg-white transition hover:bg-[#FAFBFF]"
-                        >
-                          <td className="px-4 py-4 text-center">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                              <FiPackage size={14} />
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#2D6FE8]">
-                              {item.itemReferenceId || "N/A"}
-                            </span>
-                            <p className="mt-1 text-[11px] text-[#6B7280]">{order.id}</p>
-                            <p className="mt-0.5 text-[11px] font-semibold text-[#111827]">{order.customer}</p>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {item.image ? (
-                                <img
-                                  src={item.image}
-                                  alt={item.productName}
-                                  className="h-9 w-9 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                                  <FiPackage size={14} />
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-[#111827]">{item.productName}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
-                              {item.sku}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center text-sm font-semibold text-[#111827]">
-                            {item.quantity}
-                          </td>
-                          <td className="px-6 py-4 text-right text-sm text-[#111827]">
-                            {item.price}
-                          </td>
-                          <td className="px-6 py-4 text-right text-sm font-bold text-[#111827]">
-                            {item.total}
-                          </td>
-                          <td className="px-6 py-4">
-                            {item.courier_tracking_number ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold text-[#2D6FE8]">
-                                <FiTruck size={11} />
-                                {item.courier_tracking_number}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-[#6B7280]">—</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${itemStatusBadge}`}
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                              {formatStatus(item.delivery_status || item.status || "pending")}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                              <button
-                                type="button"
-                                onClick={() => handleViewOrder(order.id)}
-                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                title="View Order"
-                              >
-                                <FiEye size={16} />
-                              </button>
-
-                              {isDispatchable && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsFullOrderDispatch(false);
-                                    setSelectedOrderForDispatch(order);
-                                    setSelectedItemsForDispatch([item]);
-                                    setShowDispatchPopup(true);
-                                  }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Dispatch Item"
-                                >
-                                  <FiTruck size={16} />
-                                </button>
-                              )}
-
-                              {isShipable && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsFullOrderShip(false);
-                                    setSelectedOrderForShip(order);
-                                    setSelectedItemsForShip([item]);
-                                    setShowShipPopup(true);
-                                  }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Ship Item"
-                                >
-                                  <FiSend size={16} />
-                                </button>
-                              )}
-
-                              {isDeliverable && !isDelivered && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setIsFullOrderDeliver(false);
-                                    setSelectedOrderForDeliver(order);
-                                    setSelectedItemsForDeliver([item]);
-                                    setShowDeliverPopup(true);
-                                  }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Deliver Item"
-                                >
-                                  <FiCheckCircle size={16} />
-                                </button>
-                              )}
-
-                              {isUndeliverable && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleMarkUndelivered(order, item)}
-                                  disabled={isMarking}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#EEF5FF] text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
-                                  title="Mark as Undelivered"
-                                >
-                                  {isMarking ? (
-                                    <FiLoader size={16} className="animate-spin" />
-                                  ) : (
-                                    <FiAlertCircle size={16} />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            {isDelivered && order.orderId && canViewInvoice && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                              >
-                                <FiFileText size={13} />
-                                Invoice
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    }
+                    const isDispatchable = canItemDispatch(item) && canDispatch;
+                    const isShipable = canItemShip(item) && canShip;
+                    const isDeliverable = canItemDeliver(item) && canDeliver;
+                    const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
+                    const isDelivered = isFullyDelivered(item);
+                    const isMarking = markingUndelivered.has(`${row.id}-${item.id}`);
 
                     return (
-                      <React.Fragment key={order.id}>
-                        <tr
-                          onClick={() => toggleRow(order.id)}
-                          className={`group cursor-pointer border-b border-[#2D6FE8]/10 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3FF]" : "bg-white hover:bg-[#FAFBFF]"
-                            }`}
-                        >
-                          <td className="px-4 py-4 text-center">
+                      <tr
+                        key={`${row.id}-${item.id}-${index}`}
+                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${selectedOrderId === row.id ? "bg-[#EAF3FF]" : "bg-white"
+                          }`}
+                      >
+                        <td className="px-4 py-4.5">
+                          <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#2D6FE8]">
+                            {item.itemReferenceId || "N/A"}
+                          </span>
+                          <p className="mt-1 max-w-[210px] truncate text-[11px] text-[#6B7280]">
+                            {row.customer} • {row.date}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4.5">
+                          <div className="flex items-center gap-3">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.productName}
+                                className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
+                                <FiPackage size={14} />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p
+                                title={item.productName}
+                                className="max-w-[240px] truncate text-sm font-bold text-[#111827]"
+                              >
+                                {item.productName}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4.5">
+                          <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
+                            {item.sku}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4.5 text-center text-sm font-semibold text-[#111827]">
+                          {item.quantity}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4.5 text-right text-sm text-[#111827]">
+                          {item.price}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4.5 text-right text-sm font-bold text-[#111827]">
+                          {item.total}
+                        </td>
+                        <td className="px-4 py-4.5">
+                          {item.courier_tracking_number ? (
+                            <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold text-[#2D6FE8]">
+                              <FiTruck size={11} />
+                              {item.courier_tracking_number}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[#6B7280]">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4.5 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1 text-[10px] font-bold ${itemStatusBadge}`}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {formatStatus(item.delivery_status || item.status || "pending")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleRow(order.id);
-                              }}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#EAF3FF]"
+                              onClick={() => handleViewOrder(row.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                              title="View Order"
                             >
-                              {expandedRows.has(order.id) ? <FiChevronUp size={16} /> : <FiChevronDown size={16} />}
+                              <FiEye size={15} />
                             </button>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex rounded-lg bg-[#F4F8FD] px-3 py-1.5 text-xs font-bold tracking-wide text-[#111827]">
-                              {order.id}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-xs font-medium text-[#6B7280]">{order.date}</td>
-                          <td className="px-6 py-4">
-                            <p className="text-sm font-bold text-[#111827]">{order.customer}</p>
-                            <p className="mt-0.5 text-xs text-[#6B7280]">{formatOrderType(order.orderType)}</p>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className="text-sm font-bold text-black">{order.total}</span>
-                          </td>
-                          <td className="px-6 py-4 text-right"></td>
-                          <td className="px-6 py-4 text-right"></td>
-                          <td className="px-6 py-4 text-left">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                              {formatStatus(order.orderStatus)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+
+                            {isDispatchable && (
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewOrder(order.id);
+                                onClick={() => {
+                                  setSelectedOrderForDispatch(row);
+                                  setSelectedItemsForDispatch([item]);
+                                  setShowDispatchPopup(true);
                                 }}
-                                className="group/view relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                title="View Order"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                                title="Dispatch Item"
                               >
-                                <FiEye size={16} />
+                                <FiTruck size={15} />
                               </button>
-                              {hasDispatchableItems(order) && canDispatch && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDispatchFullOrder(order);
-                                  }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                  title="Dispatch Order"
-                                >
-                                  <FiTruck size={16} />
-                                </button>
-                              )}
-                              {hasShipableItems(order) && canShip && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleShipFullOrder(order);
-                                  }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                  title="Ship Order"
-                                >
-                                  <FiSend size={16} />
-                                </button>
-                              )}
-                              {hasDeliverableItems(order) && canDeliver && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeliverFullOrder(order);
-                                  }}
-                                  className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                  title="Deliver Order"
-                                >
-                                  <FiCheckCircle size={16} />
-                                </button>
-                              )}
-                              {order.orderStatus === "delivered" && order.orderId && canViewInvoice && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenInvoicePdf(order.orderId!);
-                                  }}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                                  title="View Invoice PDF"
-                                >
-                                  <FiFileText size={16} />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-center"></td>
-                        </tr>
+                            )}
 
-                        {expandedRows.has(order.id) && (
-                          <tr>
-                            <td colSpan={10} className="bg-[#F4F8FD] px-6 py-0">
-                              <div className="overflow-hidden">
-                                <div className="animate-slideDown py-5">
-                                  <div className="space-y-4">
-                                    <div className="flex flex-wrap items-center justify-between gap-3">
-                                      <div className="flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                                          <FiPackage size={16} />
-                                        </div>
-                                        <div>
-                                          <h4 className="text-sm font-bold text-[#111827]">Order Items</h4>
-                                          <p className="text-xs text-[#6B7280]">
-                                            {order.items?.length || 0} items in this order
-                                          </p>
-                                        </div>
-                                      </div>
+                            {isShipable && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForShip(row);
+                                  setSelectedItemsForShip([item]);
+                                  setShowShipPopup(true);
+                                }}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                                title="Ship Item"
+                              >
+                                <FiSend size={15} />
+                              </button>
+                            )}
 
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        {hasDispatchableItems(order) && canDispatch && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDispatchFromSelection(order);
-                                            }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
-                                          >
-                                            <FiTruck size={14} />
-                                            {getSelectedDispatchableCount(order) > 0
-                                              ? `Dispatch ${getSelectedDispatchableCount(order)}`
-                                              : allItemsDispatchable(order)
-                                                ? "Dispatch All"
-                                                : `Dispatch ${getDispatchableItemsCount(order)}`}
-                                          </button>
-                                        )}
-                                        {hasShipableItems(order) && canShip && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleShipFullOrder(order);
-                                            }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
-                                          >
-                                            <FiSend size={14} />
-                                            {allItemsShipable(order) ? "Ship All" : `Ship ${getShipableItemsCount(order)}`}
-                                          </button>
-                                        )}
-                                        {hasDeliverableItems(order) && canDeliver && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeliverFullOrder(order);
-                                            }}
-                                            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-xs font-bold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
-                                          >
-                                            <FiCheckCircle size={14} />
-                                            {allItemsDeliverable(order) ? "Deliver All" : `Deliver ${getDeliverableItemsCount(order)}`}
-                                          </button>
-                                        )}
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleAllItems(order.id, order.items || []);
-                                          }}
-                                          className="text-xs font-bold text-[#2D6FE8]"
-                                        >
-                                          {allSelectableSelected(order.id, order.items || []) ? "Deselect All" : "Select All"}
-                                        </button>
-                                      </div>
-                                    </div>
+                            {isDeliverable && !isDelivered && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderForDeliver(row);
+                                  setSelectedItemsForDeliver([item]);
+                                  setShowDeliverPopup(true);
+                                }}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                                title="Deliver Item"
+                              >
+                                <FiCheckCircle size={15} />
+                              </button>
+                            )}
 
-                                    <div className="overflow-x-auto rounded-2xl border border-[#2D6FE8]/15 bg-white">
-                                      <table className="w-full min-w-[1350px] border-collapse">
-                                        <thead>
-                                          <tr className="border-b border-[#2D6FE8]/10 bg-[#FAFBFF]">
-                                            <th className="w-[45px] px-4 py-3 text-center">
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  toggleAllItems(order.id, order.items || []);
-                                                }}
-                                                className="text-[#2D6FE8] hover:text-[#2D6FE8]"
-                                              >
-                                                {allSelectableSelected(order.id, order.items || []) ? <FiCheck size={16} /> : <FiSquare size={16} />}
-                                              </button>
-                                            </th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Item Reference</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Product</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">SKU</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Qty</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Price</th>
-                                            <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Total</th>
-                                            <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Tracking No.</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Status</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Action</th>
-                                            <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Invoice</th>
-                                            {canToggleCancelReturn && (
-                                              <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">Cancel/Return</th>
-                                            )}
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {(order.items || []).map((item) => {
-                                            const isSelected = selectedItemsMap.get(`${order.id}-${item.id}`);
-                                            const isDispatchable = canItemDispatch(item) && canDispatch;
-                                            const isShipable = canItemShip(item) && canShip;
-                                            const isDeliverable = canItemDeliver(item) && canDeliver;
-                                            const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
-                                            const isDelivered = isFullyDelivered(item);
-                                            const isSelectable = isItemSelectable(item) && (canDispatch || canShip || canDeliver);
-                                            const toggleKey = `${order.id}-${item.id}`;
-                                            const isToggling = togglingCancelReturn.has(toggleKey);
-                                            const isCancelReturnAllowed = Boolean(item.is_cancel_return_allowed);
-                                            const isMarking = markingUndelivered.has(toggleKey);
+                            {isUndeliverable && (
+                              <button
+                                type="button"
+                                onClick={() => handleMarkUndelivered(row, item)}
+                                disabled={isMarking}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#EEF5FF] text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
+                                title="Mark as Undelivered"
+                              >
+                                {isMarking ? (
+                                  <FiLoader size={15} className="animate-spin" />
+                                ) : (
+                                  <FiAlertCircle size={15} />
+                                )}
+                              </button>
+                            )}
 
-                                            return (
-                                              <tr
-                                                key={item.id}
-                                                className={`border-b border-[#2D6FE8]/10 last:border-0 ${isSelected ? "bg-[#EAF3FF]" : "hover:bg-[#FAFBFF]"
-                                                  } ${!isSelectable ? "opacity-60" : ""}`}
-                                              >
-                                                <td className="px-4 py-3 text-center">
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (isSelectable) toggleItemSelection(order.id, item.id);
-                                                    }}
-                                                    className={`text-[#2D6FE8] hover:text-[#2D6FE8] ${!isSelectable ? "cursor-not-allowed opacity-40" : ""
-                                                      }`}
-                                                    disabled={!isSelectable}
-                                                  >
-                                                    {isSelected ? <FiCheck size={17} /> : <FiSquare size={17} />}
-                                                  </button>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                  <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold tracking-wide text-[#2D6FE8]">
-                                                    {item.itemReferenceId || "N/A"}
-                                                  </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                  <div className="flex items-center gap-3">
-                                                    {item.image ? (
-                                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
-                                                    ) : (
-                                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                                                        <FiPackage size={12} />
-                                                      </div>
-                                                    )}
-                                                    <span className="text-sm font-medium text-[#111827]">{item.productName}</span>
-                                                  </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                  <span className="text-xs text-[#6B7280]">{item.sku}</span>
-                                                </td>
-                                                <td className="px-4 py-3 text-center text-sm text-[#111827]">{item.quantity}</td>
-                                                <td className="px-4 py-3 text-right text-sm text-[#6B7280]">{item.price}</td>
-                                                <td className="px-4 py-3 text-right text-sm font-bold text-[#111827]">{item.total}</td>
-                                                <td className="px-4 py-3">
-                                                  {item.courier_tracking_number ? (
-                                                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold text-[#2D6FE8]">
-                                                      <FiTruck size={11} />
-                                                      {item.courier_tracking_number}
-                                                    </span>
-                                                  ) : (
-                                                    <span className="text-xs text-[#6B7280]">—</span>
-                                                  )}
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
-                                                    {formatStatus(item.status)}
-                                                  </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                  <div className="flex items-center justify-center gap-1 flex-wrap">
-                                                    {isDispatchable && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setIsFullOrderDispatch(false);
-                                                          setSelectedOrderForDispatch(order);
-                                                          setSelectedItemsForDispatch([item]);
-                                                          setShowDispatchPopup(true);
-                                                        }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                                        title="Dispatch this item"
-                                                      >
-                                                        <FiTruck size={13} />
-                                                      </button>
-                                                    )}
-                                                    {isShipable && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setIsFullOrderShip(false);
-                                                          setSelectedOrderForShip(order);
-                                                          setSelectedItemsForShip([item]);
-                                                          setShowShipPopup(true);
-                                                        }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                                        title="Ship this item"
-                                                      >
-                                                        <FiSend size={13} />
-                                                      </button>
-                                                    )}
-                                                    {isDeliverable && !isDelivered && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setIsFullOrderDeliver(false);
-                                                          setSelectedOrderForDeliver(order);
-                                                          setSelectedItemsForDeliver([item]);
-                                                          setShowDeliverPopup(true);
-                                                        }}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                                        title="Deliver this item"
-                                                      >
-                                                        <FiCheckCircle size={13} />
-                                                      </button>
-                                                    )}
-                                                    {isUndeliverable && (
-                                                      <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          if (!isMarking) handleMarkUndelivered(order, item);
-                                                        }}
-                                                        disabled={isMarking}
-                                                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EEF5FF] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
-                                                        title="Mark as Undelivered"
-                                                      >
-                                                        {isMarking ? (
-                                                          <FiLoader size={12} className="animate-spin" />
-                                                        ) : (
-                                                          <FiAlertCircle size={12} />
-                                                        )}
-                                                      </button>
-                                                    )}
-                                                    {isDelivered && (
-                                                      <span className="text-[10px] font-bold text-[#2D6FE8]">✓</span>
-                                                    )}
-                                                  </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                  {isDelivered && order.orderId && canViewInvoice && (
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
-                                                      }}
-                                                      className="inline-flex items-center gap-1 rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                                    >
-                                                      <FiFileText size={11} />
-                                                      Invoice
-                                                    </button>
-                                                  )}
-                                                </td>
-                                                {canToggleCancelReturn && (
-                                                  <td className="px-4 py-3 text-center">
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (!isToggling) handleToggleCancelReturn(order, item);
-                                                      }}
-                                                      disabled={isToggling}
-                                                      title={isCancelReturnAllowed ? "Deactivate cancel/return" : "Activate cancel/return"}
-                                                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${isCancelReturnAllowed
-                                                          ? "bg-[#2D6FE8] text-white hover:bg-[#1E40AF]"
-                                                          : "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
-                                                        }`}
-                                                    >
-                                                      {isToggling ? (
-                                                        <FiLoader size={12} className="animate-spin" />
-                                                      ) : isCancelReturnAllowed ? (
-                                                        <FiCheckCircle size={12} />
-                                                      ) : (
-                                                        <FiAlertCircle size={12} />
-                                                      )}
-                                                      {isToggling ? "Saving..." : isCancelReturnAllowed ? "Allowed" : "Not Allowed"}
-                                                    </button>
-                                                  </td>
-                                                )}
-                                              </tr>
-                                            );
-                                          })}
-                                        </tbody>
-                                      </table>
-                                    </div>
-
-                                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#2D6FE8]/10 pt-4">
-                                      <div className="flex min-w-0 items-center gap-2 text-xs text-[#111827]">
-                                        <FiMapPin size={14} className="shrink-0 text-[#2D6FE8]" />
-                                        <span className="truncate">{order.shippingAddress || "No address"}</span>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleViewOrder(order.id);
-                                          }}
-                                          className="rounded-xl border border-[#2D6FE8]/20 bg-white px-4 py-2 text-xs font-semibold text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF]"
-                                        >
-                                          <FiEye size={14} className="mr-1.5 inline" />
-                                          View Details
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
+                            {isDelivered && (
+                              <span className="text-xs font-bold text-[#2D6FE8]">✓</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4.5 text-center">
+                          {isDelivered && row.orderId && canViewInvoice && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenInvoicePdf(row.orderId!, item.lineId || parseInt(item.id))}
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                            >
+                              <FiFileText size={13} />
+                              Invoice
+                            </button>
+                          )}
+                        </td>
+                      </tr>
                     );
                   })
                 ) : (
@@ -3262,329 +2570,121 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
           {/* MOBILE VIEW */}
           <div className="block lg:hidden">
-            {visibleOrders.length > 0 ? (
-              visibleOrders.map((order, index) => {
-                if (isItemWiseView) {
-                  const item = order.items && order.items[0];
-                  if (!item) return null;
-                  const isDispatchable = canItemDispatch(item) && canDispatch;
-                  const isShipable = canItemShip(item) && canShip;
-                  const isDeliverable = canItemDeliver(item) && canDeliver;
-                  const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
-                  const isDelivered = isFullyDelivered(item);
-                  const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
-
-                  return (
-                    <div
-                      key={`${order.id}-${item.id}-${index}`}
-                      className="border-b border-[#2D6FE8]/10 bg-white p-5"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-xs font-bold text-[#111827]">
-                            {order.id}
-                          </span>
-                          <p className="mt-2 text-xs text-[#6B7280]">{order.date}</p>
-                          <p className="mt-0.5 text-xs font-semibold text-[#111827]">{order.customer}</p>
-                        </div>
-                        <span
-                          className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                            item.delivery_status || item.status || "pending",
-                          )}`}
-                        >
-                          {formatStatus(item.delivery_status || item.status || "pending")}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3">
-                        {item.image ? (
-                          <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                            <FiPackage size={14} />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#111827]">{item.productName}</p>
-                          <p className="truncate text-[11px] font-bold text-[#2D6FE8]">Ref: {item.itemReferenceId || "N/A"}</p>
-                          <p className="truncate text-[11px] text-[#6B7280]">SKU: {item.sku} • Qty: {item.quantity}</p>
-                        </div>
-                        <span className="ml-auto shrink-0 text-sm font-bold text-[#2D6FE8]">{item.total}</span>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleViewOrder(order.id)}
-                          className="flex-1 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-xs font-bold text-[#2D6FE8]"
-                        >
-                          View Order
-                        </button>
-                        {isDispatchable && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsFullOrderDispatch(false);
-                              setSelectedOrderForDispatch(order);
-                              setSelectedItemsForDispatch([item]);
-                              setShowDispatchPopup(true);
-                            }}
-                            className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                          >
-                            Dispatch
-                          </button>
-                        )}
-                        {isShipable && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsFullOrderShip(false);
-                              setSelectedOrderForShip(order);
-                              setSelectedItemsForShip([item]);
-                              setShowShipPopup(true);
-                            }}
-                            className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                          >
-                            Ship
-                          </button>
-                        )}
-                        {isDeliverable && !isDelivered && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsFullOrderDeliver(false);
-                              setSelectedOrderForDeliver(order);
-                              setSelectedItemsForDeliver([item]);
-                              setShowDeliverPopup(true);
-                            }}
-                            className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                          >
-                            Delivered
-                          </button>
-                        )}
-                        {isUndeliverable && (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkUndelivered(order, item)}
-                            disabled={isMarking}
-                            className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
-                          >
-                            {isMarking ? "Saving..." : "Undelivered"}
-                          </button>
-                        )}
-                        {isDelivered && order.orderId && canViewInvoice && (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id))}
-                            className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-xs font-bold text-[#2D6FE8]"
-                          >
-                            Invoice PDF
-                          </button>
-                        )}
-                      </div>
-
-                      {canToggleCancelReturn && (
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
-                            onClick={() => handleToggleCancelReturn(order, item)}
-                            className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
-                                ? "bg-[#2D6FE8] text-white"
-                                : "bg-[#EAF3FF] text-[#2D6FE8]"
-                              }`}
-                          >
-                            {togglingCancelReturn.has(`${order.id}-${item.id}`)
-                              ? "Saving..."
-                              : item.is_cancel_return_allowed
-                                ? "Cancel/Return: Allowed"
-                                : "Cancel/Return: Not Allowed"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
+            {visibleRows.length > 0 ? (
+              visibleRows.map((row, index) => {
+                const item = row.singleItem;
+                const isDispatchable = canItemDispatch(item) && canDispatch;
+                const isShipable = canItemShip(item) && canShip;
+                const isDeliverable = canItemDeliver(item) && canDeliver;
+                const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
+                const isDelivered = isFullyDelivered(item);
+                const isMarking = markingUndelivered.has(`${row.id}-${item.id}`);
 
                 return (
                   <div
-                    key={order.id}
-                    onClick={() => toggleRow(order.id)}
-                    className={`cursor-pointer border-b border-[#2D6FE8]/10 p-5 transition-colors ${selectedOrderId === order.id ? "bg-[#EAF3FF]" : "bg-white hover:bg-[#FAFBFF]"
+                    key={`${row.id}-${item.id}-${index}`}
+                    className={`border-b border-[#2D6FE8]/10 bg-white p-5 ${selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
                       }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2.5 py-1 text-xs font-bold text-[#111827]">
-                          {order.id}
+                          {item.itemReferenceId || "N/A"}
                         </span>
-                        <p className="mt-2 text-xs text-[#6B7280]">{order.date}</p>
+                        <p className="mt-2 text-xs text-[#6B7280]">{row.date}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-[#111827]">{row.customer}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewOrder(order.id);
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-[#2D6FE8]"
-                        >
-                          <FiEye size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleRow(order.id);
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-[#111827]"
-                        >
-                          {expandedRows.has(order.id) ? <FiChevronUp size={15} /> : <FiChevronDown size={15} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <p className="text-sm font-bold text-[#111827]">{order.customer}</p>
-                      <p className="mt-0.5 text-xs text-[#6B7280]">{formatOrderType(order.orderType)}</p>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <span className="text-base font-bold text-[#2D6FE8]">{order.total}</span>
-                      <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(order.orderStatus)}`}>
-                        {formatStatus(order.orderStatus)}
+                      <span
+                        className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                          item.delivery_status || item.status || "pending",
+                        )}`}
+                      >
+                        {formatStatus(item.delivery_status || item.status || "pending")}
                       </span>
                     </div>
 
-                    {expandedRows.has(order.id) && (
-                      <div className="mt-4 animate-slideDown border-t border-[#2D6FE8]/10 pt-4">
-                        <div className="space-y-2">
-                          {(order.items || []).map((item) => {
-                            const isDispatchable = canItemDispatch(item) && canDispatch;
-                            const isShipable = canItemShip(item) && canShip;
-                            const isDeliverable = canItemDeliver(item) && canDeliver;
-                            const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
-                            const isDelivered = isFullyDelivered(item);
-                            const isMarking = markingUndelivered.has(`${order.id}-${item.id}`);
-
-                            return (
-                              <div
-                                key={item.id}
-                                className="rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    {item.image && (
-                                      <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
-                                    )}
-                                    <div className="min-w-0">
-                                      <p className="truncate text-sm font-semibold text-black">{item.productName}</p>
-                                      <p className="mt-0.5 truncate text-[11px] font-bold text-[#2D6FE8]">Ref: {item.itemReferenceId || "N/A"}</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="mt-2 flex flex-wrap items-center gap-2">
-                                  {isDispatchable && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsFullOrderDispatch(false);
-                                        setSelectedOrderForDispatch(order);
-                                        setSelectedItemsForDispatch([item]);
-                                        setShowDispatchPopup(true);
-                                      }}
-                                      className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                                    >
-                                      Dispatch
-                                    </button>
-                                  )}
-                                  {isShipable && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsFullOrderShip(false);
-                                        setSelectedOrderForShip(order);
-                                        setSelectedItemsForShip([item]);
-                                        setShowShipPopup(true);
-                                      }}
-                                      className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                                    >
-                                      Ship
-                                    </button>
-                                  )}
-                                  {isDeliverable && !isDelivered && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsFullOrderDeliver(false);
-                                        setSelectedOrderForDeliver(order);
-                                        setSelectedItemsForDeliver([item]);
-                                        setShowDeliverPopup(true);
-                                      }}
-                                      className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
-                                    >
-                                      Delivered
-                                    </button>
-                                  )}
-                                  {isUndeliverable && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleMarkUndelivered(order, item);
-                                      }}
-                                      disabled={isMarking}
-                                      className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
-                                    >
-                                      {isMarking ? "Saving..." : "Undelivered"}
-                                    </button>
-                                  )}
-                                  {isDelivered && order.orderId && canViewInvoice && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleOpenInvoicePdf(order.orderId!, item.lineId || parseInt(item.id));
-                                      }}
-                                      className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-xs font-bold text-[#2D6FE8]"
-                                    >
-                                      Invoice PDF
-                                    </button>
-                                  )}
-                                </div>
-
-                                {canToggleCancelReturn && (
-                                  <div className="mt-2">
-                                    <button
-                                      type="button"
-                                      disabled={togglingCancelReturn.has(`${order.id}-${item.id}`)}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleToggleCancelReturn(order, item);
-                                      }}
-                                      className={`w-full rounded-lg px-3 py-2 text-xs font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
-                                          ? "bg-[#2D6FE8] text-white"
-                                          : "bg-[#EAF3FF] text-[#2D6FE8]"
-                                        }`}
-                                    >
-                                      {togglingCancelReturn.has(`${order.id}-${item.id}`)
-                                        ? "Saving..."
-                                        : item.is_cancel_return_allowed
-                                          ? "Cancel/Return: Allowed"
-                                          : "Cancel/Return: Not Allowed"}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                    <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3">
+                      {item.image ? (
+                        <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
+                          <FiPackage size={14} />
                         </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#111827]">{item.productName}</p>
+                        <p className="truncate text-[11px] text-[#6B7280]">SKU: {item.sku} • Qty: {item.quantity}</p>
                       </div>
-                    )}
+                      <span className="ml-auto shrink-0 text-sm font-bold text-[#2D6FE8]">{item.total}</span>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleViewOrder(row.id)}
+                        className="flex-1 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-xs font-bold text-[#2D6FE8]"
+                      >
+                        View Order
+                      </button>
+                      {isDispatchable && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderForDispatch(row);
+                            setSelectedItemsForDispatch([item]);
+                            setShowDispatchPopup(true);
+                          }}
+                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
+                        >
+                          Dispatch
+                        </button>
+                      )}
+                      {isShipable && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderForShip(row);
+                            setSelectedItemsForShip([item]);
+                            setShowShipPopup(true);
+                          }}
+                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
+                        >
+                          Ship
+                        </button>
+                      )}
+                      {isDeliverable && !isDelivered && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedOrderForDeliver(row);
+                            setSelectedItemsForDeliver([item]);
+                            setShowDeliverPopup(true);
+                          }}
+                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-bold text-white"
+                        >
+                          Delivered
+                        </button>
+                      )}
+                      {isUndeliverable && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkUndelivered(row, item)}
+                          disabled={isMarking}
+                          className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {isMarking ? "Saving..." : "Undelivered"}
+                        </button>
+                      )}
+                      {isDelivered && row.orderId && canViewInvoice && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenInvoicePdf(row.orderId!, item.lineId || parseInt(item.id))}
+                          className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-xs font-bold text-[#2D6FE8]"
+                        >
+                          Invoice PDF
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -3600,7 +2700,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           </div>
 
           {/* PAGINATION */}
-          {filteredOrders.length > 0 && (
+          {filteredRows.length > 0 && (
             <div className="border-t border-[#2D6FE8]/10 bg-[#FAFBFF] px-5 py-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-[#6B7280]">
@@ -3610,10 +2710,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   </span>{" "}
                   to{" "}
                   <span className="font-bold text-[#111827]">
-                    {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
+                    {Math.min(currentPage * itemsPerPage, filteredRows.length)}
                   </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#111827]">{filteredOrders.length}</span> entries
+                  <span className="font-bold text-[#111827]">{filteredRows.length}</span> entries
                 </p>
 
                 <div className="flex items-center justify-center gap-1.5">
@@ -3684,33 +2784,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         onClose={closeDispatchPopup}
         order={selectedOrderForDispatch}
         selectedItems={selectedItemsForDispatch}
-        onDispatch={handleDispatchSubmit}
-        isFullOrder={isFullOrderDispatch}
+        onDispatch={() => {
+          fetchOrders();
+        }}
+        isFullOrder={false}
       />
       <ShipPopup
         isOpen={showShipPopup}
         onClose={closeShipPopup}
         order={selectedOrderForShip}
         selectedItems={selectedItemsForShip}
-        onShip={handleShipSubmit}
-        isFullOrder={isFullOrderShip}
+        onShip={() => {
+          fetchOrders();
+        }}
+        isFullOrder={false}
       />
       <DeliverPopup
         isOpen={showDeliverPopup}
         onClose={closeDeliverPopup}
         order={selectedOrderForDeliver}
         selectedItems={selectedItemsForDeliver}
-        onDeliver={handleDeliverSubmit}
-        isFullOrder={isFullOrderDeliver}
+        onDeliver={() => {
+          fetchOrders();
+        }}
+        isFullOrder={false}
       />
-
-      <style>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-10px); max-height: 0; }
-          to { opacity: 1; transform: translateY(0); max-height: 1000px; }
-        }
-        .animate-slideDown { animation: slideDown 0.35s ease-out forwards; }
-      `}</style>
     </>
   );
 };
@@ -3728,7 +2826,6 @@ interface StatCardProps {
   tileClass?: string;
   tileIconClass?: string;
 }
-
 
 const StatCard: React.FC<StatCardProps> = ({
   title,
@@ -3748,31 +2845,21 @@ const StatCard: React.FC<StatCardProps> = ({
       }}
       className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm"
     >
-      {/* Top Accent */}
       <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
-
-      {/* Decorative Circles */}
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/10" />
-
       <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full border border-[#2D6FE8]/10" />
 
-      {/* Card Content */}
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#111827]">
             {title}
           </p>
-
           <p className="mt-2 text-2xl font-semibold text-[#111827]">
             {value.toLocaleString("en-IN")}
           </p>
-
-          <p className="mt-1 text-xs text-[#111827]">
-            {subtitle}
-          </p>
+          <p className="mt-1 text-xs text-[#111827]">{subtitle}</p>
         </div>
 
-        {/* Smaller Icon */}
         <div
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${tileClass} ${tileIconClass}`}
         >
@@ -3846,73 +2933,17 @@ const Orders: React.FC = () => {
     }
   };
 
-  const convertToOrder = (apiOrder: any, index: number): Order => {
-    return {
-      id: apiOrder.order_reference,
-      orderId: apiOrder.id,
-      orderReference: apiOrder.order_reference,
-      date: apiOrder.order_date
-        ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-        : "N/A",
-      customer: apiOrder.user?.name || "N/A",
-      customerName: apiOrder.user?.name || "N/A",
-      total: `₹${Number(apiOrder.total_payable || 0).toLocaleString("en-IN")}`,
-      totalPayable: Number(apiOrder.total_payable || 0),
-      paymentStatus: apiOrder.payment_status || "N/A",
-      orderStatus: apiOrder.order_status || "N/A",
-      orderType: apiOrder.order_type || "retail",
-      amountPaid: apiOrder.amount_paid || 0,
-      subtotal: apiOrder.subtotal || 0,
-      totalGst: apiOrder.total_gst || 0,
-      shippingCharge: apiOrder.shipping_charge || 0,
-      userId: apiOrder.user?.id || 0,
-      userEmail: apiOrder.user?.email || "N/A",
-      userPhone: apiOrder.user?.phone || "N/A",
-      shippingAddress: apiOrder.shipping_address?.full_address || "N/A",
-      shippingAddressFull: apiOrder.shipping_address?.full_address || "N/A",
-      trackingNumber: apiOrder.gateway_transaction_id || "N/A",
-      paymentGateway: apiOrder.payment_gateway || undefined,
-      gatewayTransactionId: apiOrder.gateway_transaction_id || undefined,
-      courierCompany: apiOrder.courier_company || undefined,
-      courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
-      courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
-      shippingDetails: apiOrder.shipping_details || undefined,
-      items:
-        apiOrder.items?.map((item: any) => ({
-          id: String(item.line_id || item.id || ""),
-          lineId: item.line_id || item.id,
-          orderReference: item.order_reference || apiOrder.order_reference || "N/A",
-          itemReferenceId: item.item_reference_id || "N/A",
-          productName: item.product_name || "N/A",
-          sku: item.product_code || "N/A",
-          quantity: item.quantity,
-          price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
-          total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
-          unitPrice: item.unit_price || 0,
-          lineTotal: item.line_total || 0,
-          status:
-            item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
-          delivery_status: item.delivery_status || "pending",
-          image: item.primary_image || item.product_image || undefined,
-          productId: item.product_id,
-          isReturnable: item.is_returnable,
-          availableForReturn: item.available_for_return,
-          gstRate: item.gst_rate,
-          gstAmount: item.gst_amount,
-          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-          courier_tracking_number: item.courier_tracking_number || undefined,
-          courierTrackingNumber: item.courier_tracking_number || undefined,
-        })) || [],
-    };
-  };
-
-  const uiOrders = useMemo(() => {
-    return ordersData.map((order, index) => convertToOrder(order, index));
+  // ✅ Flatten to item-wise for stats
+  const allItemRows = useMemo(() => {
+    return ordersData.flatMap((apiOrder) => {
+      const items = apiOrder.items || [];
+      return items.map((item: any) => ({
+        orderId: apiOrder.order_reference,
+        orderStatus: apiOrder.order_status,
+        deliveryStatus: item.delivery_status,
+        totalPayable: apiOrder.total_payable || 0,
+      }));
+    });
   }, [ordersData]);
 
   const totalEarnings = useMemo(() => {
@@ -3920,16 +2951,16 @@ const Orders: React.FC = () => {
   }, [ordersData]);
 
   const stats = useMemo(() => {
-    const total = uiOrders.length;
-    const confirmed = uiOrders.filter(
-      (o) => o.orderStatus === "confirmed" || o.orderStatus === "processing",
+    const totalItems = allItemRows.length;
+    const confirmed = allItemRows.filter(
+      (r) => r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing",
     ).length;
-    const delivered = uiOrders.filter(
-      (o) => o.orderStatus === "delivered" || o.orderStatus === "partial_delivered",
+    const delivered = allItemRows.filter(
+      (r) => r.deliveryStatus === "delivered",
     ).length;
 
-    return { total, confirmed, delivered };
-  }, [uiOrders]);
+    return { total: totalItems, confirmed, delivered };
+  }, [allItemRows]);
 
   const handleSelectOrder = (order: Order) => {
     setSelectedOrder(order);
@@ -4030,9 +3061,9 @@ const Orders: React.FC = () => {
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         >
           <StatCard
-            title="Total Orders"
+            title="Total Items"
             value={stats.total}
-            subtitle="All orders placed"
+            subtitle="All items in orders"
             icon={<ClipboardIcon />}
             accent="bg-gradient-to-r from-[#3B82F6] via-[#2563EB] to-[#1E3A8A]"
             tileClass="bg-[#EAF1FF]"

@@ -5,6 +5,10 @@ export type DiscountType = "percentage" | "fixed";
 export type ProductStatus = "active" | "inactive" | "draft";
 export type StockStatus = "active" | "inactive" | "out_of_stock";
 
+/* =========================================================
+   CATEGORY
+========================================================= */
+
 export interface Category {
   id: number;
   title: string;
@@ -50,13 +54,13 @@ export interface ProductImagePayload {
   is_primary: boolean | number;
 }
 
-/* =========================================================
-   MOVE PRODUCT IMAGE PAYLOAD
-========================================================= */
-
 export interface MoveProductImagePayload {
   image_id_1: number;
   image_id_2: number;
+}
+
+export interface DeleteProductImagesPayload {
+  image_ids: number[];
 }
 
 /* =========================================================
@@ -85,98 +89,6 @@ export interface ProductVariant {
   images?: ProductImage[];
 }
 
-export interface ReviewsSummary {
-  average_rating: number;
-  total_reviews: number;
-  recent_reviews: any[];
-}
-
-/* =========================================================
-   PRODUCT
-========================================================= */
-
-export interface Product {
-  id: number;
-
-  product_code: string;
-  name: string;
-  slug: string;
-
-  description: string;
-  specification: string;
-
-  category_id: number;
-  category: Category;
-
-  tax_category_id: number;
-  tax_category: TaxCategory;
-
-  retail_mrp: string | number;
-  retail_price: string | number;
-
-  retail_discount_type: DiscountType;
-  retail_discount_value: string | number;
-  retail_discount_amount: number;
-  retail_discount_percentage: number;
-
-  distributor_mrp: string | number;
-  distributor_price: string | number;
-
-  distributor_discount_type: DiscountType;
-  distributor_discount_value: string | number;
-  distributor_discount_amount: number;
-  distributor_discount_percentage: number;
-
-  stock_quantity: number;
-  low_stock_threshold: number;
-
-  is_published: boolean;
-  is_trending: boolean;
-  trending_sort_order: number;
-
-  is_deal_of_the_day: boolean;
-  is_active_deal: boolean;
-
-  deal_of_the_day_starts_at: string | null;
-  deal_of_the_day_ends_at: string | null;
-
-  stock_status: StockStatus;
-  status: ProductStatus;
-
-  is_wishlisted: boolean;
-
-  // Product Images
-  images: ProductImage[];
-
-  primary_image: string;
-  primary_image_url: string;
-
-  variants?: ProductVariant[];
-
-  reviews_summary: ReviewsSummary;
-
-  commission_value: number;
-  waiting_value: number;
-
-  shipping_charge: number;
-
-  created_at: string;
-  updated_at: string;
-}
-
-/* =========================================================
-   SELECT OPTION
-========================================================= */
-
-export interface SelectOption {
-  id: number;
-  name: string;
-}
-
-/* =========================================================
-   PRODUCT VARIANT PAYLOAD
-========================================================= */
-
 export interface ProductVariantPayload {
   sku: string;
   attributes: Record<string, string>;
@@ -198,21 +110,53 @@ export interface ProductVariantPayload {
   images?: ProductImagePayload[];
 }
 
+/** Body for POST /api/products/{productId}/set-primary */
+export interface SetPrimaryProductImagePayload {
+  image_id: number;
+}
+
 /* =========================================================
-   PRODUCT PAYLOAD
+   REVIEWS
 ========================================================= */
 
-export interface ProductPayload {
+export interface ReviewsSummary {
+  average_rating: number;
+  total_reviews: number;
+  recent_reviews: any[];
+}
+
+/* =========================================================
+   PRODUCT
+========================================================= */
+
+export interface Product {
+  id: number;
   product_code: string;
   name: string;
-
-  slug?: string;
+  slug: string;
 
   description: string;
   specification: string;
 
   category_id: number;
+  category: Category;
+
   tax_category_id: number;
+  tax_category: TaxCategory;
+
+  retail_mrp: string | number;
+  retail_price: string | number;
+  retail_discount_type: DiscountType;
+  retail_discount_value: string | number;
+  retail_discount_amount: number;
+  retail_discount_percentage: number;
+
+  distributor_mrp: string | number;
+  distributor_price: string | number;
+  distributor_discount_type: DiscountType;
+  distributor_discount_value: string | number;
+  distributor_discount_amount: number;
+  distributor_discount_percentage: number;
 
   stock_quantity: number;
   low_stock_threshold: number;
@@ -221,6 +165,101 @@ export interface ProductPayload {
   is_trending: boolean;
   trending_sort_order: number;
 
+  is_deal_of_the_day: boolean;
+  is_active_deal: boolean;
+  deal_of_the_day_starts_at: string | null;
+  deal_of_the_day_ends_at: string | null;
+
+  stock_status: StockStatus;
+  status: ProductStatus;
+  is_wishlisted: boolean;
+
+  images: ProductImage[];
+  primary_image: string;
+  primary_image_url: string;
+
+  variants?: ProductVariant[];
+  reviews_summary: ReviewsSummary;
+
+  commission_value: number;
+  waiting_value: number;
+  shipping_charge: number;
+
+  created_at: string;
+  updated_at: string;
+}
+
+/* =========================================================
+   CATEGORY PRODUCT LIST RESPONSE
+   GET /api/products/category/{categoryId}
+========================================================= */
+
+export interface CategoryProductsResponse {
+  category_id: number;
+  total: number;
+  data: Product[];
+}
+
+/* =========================================================
+   SUBCATEGORY
+   GET /api/subcategories/category/{categoryId}
+========================================================= */
+
+export interface SubcategoryCategory {
+  id: number;
+  title: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Subcategory {
+  id: number;
+  category_id: number;
+  name: string;
+  slug: string;
+  image?: string;
+  status: boolean | "active" | "inactive";
+  created_at: string;
+  updated_at: string;
+  category?: SubcategoryCategory;
+}
+
+export interface SubcategoryListResponse {
+  success: boolean;
+  data: Subcategory[];
+  message?: string;
+}
+
+/* =========================================================
+   SELECT OPTION
+========================================================= */
+
+export interface SelectOption {
+  id: number;
+  name: string;
+}
+
+/* =========================================================
+   PRODUCT PAYLOAD
+========================================================= */
+
+export interface ProductPayload {
+  product_code: string;
+  name: string;
+  slug?: string;
+  description: string;
+  specification: string;
+  category_id: number;
+  tax_category_id: number;
+  stock_quantity: number;
+  low_stock_threshold: number;
+  is_published: boolean;
+  is_trending: boolean;
+  trending_sort_order: number;
   sale_type?: string;
 
   retail_mrp: number;
@@ -233,7 +272,6 @@ export interface ProductPayload {
 
   commission_value: number;
   waiting_value: number;
-
   shipping_charge: number;
 
   product_images?: ProductImagePayload[];
@@ -250,7 +288,6 @@ export interface DealPayload {
   sale_type: string;
 }
 
-/** Optional payload for partial deal update */
 export interface UpdateDealPayload {
   starts_at?: string;
   ends_at?: string;
@@ -266,7 +303,7 @@ export interface PublishProductPayload {
 }
 
 /* =========================================================
-   PAGINATION
+   PAGINATION / FILTERS / API RESPONSE
 ========================================================= */
 
 export interface Pagination {
@@ -278,20 +315,12 @@ export interface Pagination {
   to: number;
 }
 
-/* =========================================================
-   PRODUCT FILTERS
-========================================================= */
-
 export interface ProductFilters {
   price_range: {
     min: number;
     max: number;
   };
 }
-
-/* =========================================================
-   API RESPONSE
-========================================================= */
 
 export interface ApiResponse<T = unknown> {
   data: T;
@@ -302,7 +331,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 /* =========================================================
-   WAREHOUSE TYPES
+   WAREHOUSE
 ========================================================= */
 
 export interface Warehouse {
@@ -324,63 +353,46 @@ export interface WarehouseStockPayload {
 }
 
 /* =========================================================
-   UPLOAD PROGRESS TYPES
+   UPLOAD PROGRESS
 ========================================================= */
 
 export interface UploadProgressMeta {
   /** 0 - 100 */
   percent: number;
-
-  /** bytes uploaded so far */
+  /** Bytes uploaded so far */
   loaded: number;
-
-  /** total bytes (0 if server doesn't send Content-Length) */
+  /** Total bytes (0 if server doesn't send Content-Length) */
   total: number;
-
-  /** bytes per second */
+  /** Bytes per second */
   bytesPerSecond: number;
-
-  /** milliseconds elapsed since upload started */
+  /** Milliseconds elapsed since upload started */
   elapsedMs: number;
-
-  /** estimated ms remaining (null if unknown) */
+  /** Estimated milliseconds remaining (null if unknown) */
   estimatedRemainingMs: number | null;
 }
 
 export type OnUploadProgress = (meta: UploadProgressMeta) => void;
 
-/* =========================================================
-   INTERNAL UPLOAD PROGRESS HELPER
-========================================================= */
-
 function emitUploadProgress(
-  e: AxiosProgressEvent,
+  event: AxiosProgressEvent,
   startedAt: number,
-  cb?: OnUploadProgress,
+  callback?: OnUploadProgress,
 ) {
-  if (!cb) return;
+  if (!callback) return;
 
-  const loaded = e.loaded ?? 0;
-  const total = e.total ?? 0;
-
+  const loaded = event.loaded ?? 0;
+  const total = event.total ?? 0;
   const percent =
-    total > 0
-      ? Math.min(100, Math.round((loaded / total) * 100))
-      : 0;
+    total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
 
   const elapsedMs = Date.now() - startedAt;
-
-  const bytesPerSecond =
-    elapsedMs > 0
-      ? (loaded / elapsedMs) * 1000
-      : 0;
-
+  const bytesPerSecond = elapsedMs > 0 ? (loaded / elapsedMs) * 1000 : 0;
   const estimatedRemainingMs =
     bytesPerSecond > 0 && total > 0
       ? ((total - loaded) / bytesPerSecond) * 1000
       : null;
 
-  cb({
+  callback({
     percent,
     loaded,
     total,
@@ -388,14 +400,6 @@ function emitUploadProgress(
     elapsedMs,
     estimatedRemainingMs,
   });
-}
-
-/* =========================================================
-   DELETE PRODUCT IMAGE
-========================================================= */
-
-export interface DeleteProductImagesPayload {
-  image_ids: number[];
 }
 
 /* =========================================================
@@ -408,39 +412,22 @@ export const productApi = {
   // ============================
 
   getProducts: (params?: Record<string, unknown>) =>
-    apiClient.get<ApiResponse<Product[]>>("/products", {
-      params,
-    }),
+    apiClient.get<ApiResponse<Product[]>>("/products", { params }),
 
   getProductById: (id: number) =>
     apiClient.get<ApiResponse<Product>>(`/products/${id}`),
 
   getProductBySlug: (slug: string) =>
-    apiClient.get<ApiResponse<Product>>(
-      `/products/slug/${slug}`,
-    ),
+    apiClient.get<ApiResponse<Product>>(`/products/slug/${slug}`),
 
-  createProduct: (
-    data: FormData,
-    onUploadProgress?: OnUploadProgress,
-  ) => {
+  createProduct: (data: FormData, onUploadProgress?: OnUploadProgress) => {
     const startedAt = Date.now();
 
-    return apiClient.post<ApiResponse<Product>>(
-      "/products",
-      data,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (e) =>
-          emitUploadProgress(
-            e,
-            startedAt,
-            onUploadProgress,
-          ),
-      },
-    );
+    return apiClient.post<ApiResponse<Product>>("/products", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event: AxiosProgressEvent) =>
+        emitUploadProgress(event, startedAt, onUploadProgress),
+    });
   },
 
   updateProduct: (
@@ -450,57 +437,67 @@ export const productApi = {
   ) => {
     const startedAt = Date.now();
 
-    return apiClient.post<ApiResponse<Product>>(
-      `/products/update/${id}`,
-      data,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (e) =>
-          emitUploadProgress(
-            e,
-            startedAt,
-            onUploadProgress,
-          ),
-      },
-    );
+    return apiClient.post<ApiResponse<Product>>(`/products/update/${id}`, data, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (event: AxiosProgressEvent) =>
+        emitUploadProgress(event, startedAt, onUploadProgress),
+    });
   },
 
-  deleteImages: (
-    productId: number,
-    imageIds: number[],
-  ) =>
-    apiClient.delete<ApiResponse<null>>(
-      `/products/${productId}/images`,
-      {
-        data: {
-          image_ids: imageIds,
-        },
-      },
+  deleteImages: (productId: number, imageIds: number[]) =>
+    apiClient.delete<ApiResponse<null>>(`/products/${productId}/images`, {
+      data: { image_ids: imageIds },
+    }),
+
+  // ============================
+  // PRODUCTS BY CATEGORY
+  // GET /api/products/category/{categoryId}
+  // Example: getProductsByCategory(3)
+  // ============================
+
+  getProductsByCategory: (categoryId: number) =>
+    apiClient.get<CategoryProductsResponse>(`/products/category/${categoryId}`),
+
+  // ============================
+  // SUBCATEGORIES BY CATEGORY
+  // GET /api/subcategories/category/{categoryId}
+  // Example: getSubcategoriesByCategory(3)
+  // ============================
+
+  getSubcategoriesByCategory: (categoryId: number) =>
+    apiClient.get<SubcategoryListResponse>(
+      `/subcategories/category/${categoryId}`,
     ),
 
   // ============================
   // MOVE / SWAP PRODUCT IMAGE
+  // POST /api/move-product-image/{productId}
   // ============================
 
-  moveProductImage: (
-    productId: number,
-    data: MoveProductImagePayload,
-  ) =>
+  moveProductImage: (productId: number, data: MoveProductImagePayload) =>
     apiClient.post<ApiResponse<null>>(
       `/move-product-image/${productId}`,
       data,
     ),
 
   // ============================
+  // SET PRIMARY PRODUCT IMAGE
+  // POST /api/products/{productId}/set-primary
+  // Body: { image_id: number }
+  // Example: setPrimaryImage(18, 64)
+  // ============================
+
+  setPrimaryImage: (productId: number, imageId: number) =>
+    apiClient.post<ApiResponse<Product>>(
+      `/products/${productId}/set-primary`,
+      { image_id: imageId } satisfies SetPrimaryProductImagePayload,
+    ),
+
+  // ============================
   // PUBLISH / UNPUBLISH
   // ============================
 
-  publishProduct: (
-    productId: number,
-    data: PublishProductPayload,
-  ) =>
+  publishProduct: (productId: number, data: PublishProductPayload) =>
     apiClient.post<ApiResponse<Product>>(
       `/publish/${productId}/product`,
       data,
@@ -510,64 +507,29 @@ export const productApi = {
   // DEAL OF THE DAY CRUD
   // ============================
 
-  /**
-   * GET all Deal of the Day products
-   * GET /api/products-deal-of-the-day
-   */
+  /** GET /api/products-deal-of-the-day */
   getDeals: () =>
-    apiClient.get<ApiResponse<Product[]>>(
-      "/products-deal-of-the-day",
-    ),
+    apiClient.get<ApiResponse<Product[]>>("/products-deal-of-the-day"),
 
-  /**
-   * GET a single Deal of the Day product by ID
-   * GET /api/products-deal-of-the-day/{id}
-   */
+  /** GET /api/products-deal-of-the-day/{id} */
   getDealById: (id: number) =>
-    apiClient.get<ApiResponse<Product>>(
-      `/products-deal-of-the-day/${id}`,
-    ),
+    apiClient.get<ApiResponse<Product>>(`/products-deal-of-the-day/${id}`),
 
-  /**
-   * ADD a product as Deal of the Day
-   * POST /api/products-deal-of-the-day/{productId}
-   *
-   * Example:
-   *   productApi.addDeal(34, {
-   *     starts_at: "2026-10-12 10:00:00",
-   *     ends_at:   "2026-10-13 10:00:00",
-   *     sale_type: "deal_of_the_day",
-   *   });
-   */
-  addDeal: (
-    productId: number,
-    data: DealPayload,
-  ) =>
+  /** POST /api/products-deal-of-the-day/{productId} */
+  addDeal: (productId: number, data: DealPayload) =>
     apiClient.post<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
       data,
     ),
 
-  /**
-   * UPDATE an existing Deal of the Day
-   * PUT /api/products-deal-of-the-day/{productId}
-   */
-  updateDeal: (
-    productId: number,
-    data: UpdateDealPayload,
-  ) =>
+  /** PUT /api/products-deal-of-the-day/{productId} */
+  updateDeal: (productId: number, data: UpdateDealPayload) =>
     apiClient.put<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
       data,
     ),
 
-  /**
-   * REMOVE a product from Deal of the Day
-   * DELETE /api/products-deal-of-the-day/{productId}
-   *
-   * Example:
-   *   productApi.removeDeal(34);
-   */
+  /** DELETE /api/products-deal-of-the-day/{productId} */
   removeDeal: (productId: number) =>
     apiClient.delete<ApiResponse<null>>(
       `/products-deal-of-the-day/${productId}`,
@@ -578,15 +540,8 @@ export const productApi = {
   // ============================
 
   getWarehouses: () =>
-    apiClient.get<ApiResponse<Warehouse[]>>(
-      "/warehouses",
-    ),
+    apiClient.get<ApiResponse<Warehouse[]>>("/warehouses"),
 
-  assignProductsToWarehouse: (
-    data: WarehouseStockPayload,
-  ) =>
-    apiClient.post<ApiResponse<unknown>>(
-      "/warehouse-stocks",
-      data,
-    ),
+  assignProductsToWarehouse: (data: WarehouseStockPayload) =>
+    apiClient.post<ApiResponse<unknown>>("/warehouse-stocks", data),
 };

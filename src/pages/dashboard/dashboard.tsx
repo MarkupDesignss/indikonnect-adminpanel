@@ -48,11 +48,8 @@ import adminDashboardApi, {
   DailyBreakdown,
   WeeklyBreakdown,
 } from "../../api/endpoints/adminDashboard";
-import { Link, useNavigate } from "react-router-dom";
 
-// =====================================================
-// ✅ PORTAL + PERMISSIONS HOOKS
-// =====================================================
+import { Link, useNavigate } from "react-router-dom";
 
 import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
 import { usePermissions } from "../../pages/permissions/usePermissions";
@@ -102,7 +99,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 120,
       damping: 18,
     },
@@ -213,7 +210,9 @@ const metricTheme: Record<
 // HELPERS
 // =====================================================
 
-const formatCurrency = (value: string | number | null | undefined) => {
+const formatCurrency = (
+  value: string | number | null | undefined,
+) => {
   const numericValue = Number(value || 0);
 
   return `₹${numericValue.toLocaleString("en-IN", {
@@ -221,11 +220,16 @@ const formatCurrency = (value: string | number | null | undefined) => {
   })}`;
 };
 
-const formatNumber = (value: string | number | null | undefined) => {
+const formatNumber = (
+  value: string | number | null | undefined,
+) => {
   return Number(value || 0).toLocaleString("en-IN");
 };
 
-const getPercentageData = (value: number, positiveLabel = "Up") => {
+const getPercentageData = (
+  value: number,
+  positiveLabel = "Up",
+) => {
   if (value > 0) {
     return {
       change: `${value.toFixed(2)}%`,
@@ -252,7 +256,9 @@ const getPercentageData = (value: number, positiveLabel = "Up") => {
   };
 };
 
-const getRelativeTime = (date: string | null | undefined) => {
+const getRelativeTime = (
+  date: string | null | undefined,
+) => {
   if (!date) return "Not submitted";
 
   const created = new Date(date).getTime();
@@ -285,7 +291,10 @@ const getInventoryName = (item: InventoryAlertItem) => {
   );
 };
 
-const buildSparklineData = (seed: number, trendUp: boolean) => {
+const buildSparklineData = (
+  seed: number,
+  trendUp: boolean,
+) => {
   const points = 8;
   const data: { i: number; v: number }[] = [];
 
@@ -293,7 +302,6 @@ const buildSparklineData = (seed: number, trendUp: boolean) => {
 
   for (let i = 0; i < points; i++) {
     const wiggle = Math.sin(seed + i * 1.35) * 14;
-
     const drift = trendUp ? i * 2.2 : -i * 1.4;
 
     v = 50 + wiggle + drift;
@@ -307,12 +315,13 @@ const buildSparklineData = (seed: number, trendUp: boolean) => {
   return data;
 };
 
-// ---- NEW helpers for the redesigned lower sections ----
-
 const formatDate = (date?: string | null) => {
   if (!date) return "—";
+
   const d = new Date(date);
+
   if (Number.isNaN(d.getTime())) return String(date);
+
   return d.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -322,26 +331,36 @@ const formatDate = (date?: string | null) => {
 
 const daysWaiting = (date?: string | null) => {
   if (!date) return 0;
+
   const t = new Date(date).getTime();
+
   if (Number.isNaN(t)) return 0;
-  return Math.max(0, Math.floor((Date.now() - t) / 86400000));
+
+  return Math.max(
+    0,
+    Math.floor((Date.now() - t) / 86400000),
+  );
 };
 
-// "[Press] Test 112233" -> { category: "Press", body: "Test 112233" }
 const splitCategory = (message?: string) => {
   const raw = String(message || "");
+
   const m = raw.match(/^\[(.+?)\]\s*([\s\S]*)$/);
-  return m ? { category: m[1], body: m[2] } : { category: "General", body: raw };
+
+  return m
+    ? { category: m[1], body: m[2] }
+    : { category: "General", body: raw };
 };
 
 const stockNumber = (item: any) => {
   const n = Number(
     item.stock_quantity ??
-    item.current_stock ??
-    item.stock ??
-    item.quantity ??
-    0,
+      item.current_stock ??
+      item.stock ??
+      item.quantity ??
+      0,
   );
+
   return Number.isNaN(n) ? 0 : n;
 };
 
@@ -429,7 +448,13 @@ const SalesLineDot = (props: any) => {
 
   return (
     <g>
-      <circle cx={cx} cy={cy} r={9} fill={CHART_BLUE_PRIMARY} opacity={0.08} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={9}
+        fill={CHART_BLUE_PRIMARY}
+        opacity={0.08}
+      />
 
       <circle
         cx={cx}
@@ -440,13 +465,18 @@ const SalesLineDot = (props: any) => {
         strokeWidth={2}
       />
 
-      <circle cx={cx} cy={cy} r={2.6} fill={CHART_BLUE_DARK} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={2.6}
+        fill={CHART_BLUE_DARK}
+      />
     </g>
   );
 };
 
 // =====================================================
-// NEW — PANEL SHELL / BADGE / EMPTY STATE
+// PANEL SHELL / BADGE / EMPTY STATE
 // =====================================================
 
 const Panel = ({
@@ -492,7 +522,10 @@ const Panel = ({
             <h3 className="truncate text-[15px] font-bold text-[#111827] sm:text-[16px]">
               {title}
             </h3>
-            <p className="truncate text-[11px] text-[#6B7280]">{subtitle}</p>
+
+            <p className="truncate text-[11px] text-[#6B7280]">
+              {subtitle}
+            </p>
           </div>
         </div>
 
@@ -520,13 +553,19 @@ const CountBadge = ({
   tone: "blue" | "yellow";
 }) => (
   <div
-    className={`flex shrink-0 items-baseline gap-1.5 rounded-full px-3 py-1.5 ring-1 ${tone === "blue"
+    className={`flex shrink-0 items-baseline gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
+      tone === "blue"
         ? "bg-[#EAF3FF] text-[#1E40AF] ring-[#2D6FE8]/20"
         : "bg-[#FEF9C3] text-[#854D0E] ring-[#FACC15]/50"
-      }`}
+    }`}
   >
-    <span className="text-[11px] font-semibold leading-none">{count}</span>
-    <span className="text-[11px] font-semibold">{label}</span>
+    <span className="text-[11px] font-semibold leading-none">
+      {count}
+    </span>
+
+    <span className="text-[11px] font-semibold">
+      {label}
+    </span>
   </div>
 );
 
@@ -543,8 +582,14 @@ const EmptyState = ({
     <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#4F8FF7] shadow-sm ring-1 ring-[#DCE6F2]">
       {icon}
     </div>
-    <div className="text-[12px] font-bold text-[#111827]">{title}</div>
-    <div className="mt-0.5 text-[11px] text-[#6B7280]">{hint}</div>
+
+    <div className="text-[12px] font-bold text-[#111827]">
+      {title}
+    </div>
+
+    <div className="mt-0.5 text-[11px] text-[#6B7280]">
+      {hint}
+    </div>
   </div>
 );
 
@@ -553,36 +598,41 @@ const EmptyState = ({
 // =====================================================
 
 const Dashboard = () => {
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(
+    null,
+  );
 
   const [isLoading, setIsLoading] = useState(true);
-
   const [isRefreshing, setIsRefreshing] = useState(false);
-
   const [isExporting, setIsExporting] = useState(false);
-
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [salesPeriod, setSalesPeriod] = useState<SalesPeriodType>("this_week");
+  const [salesPeriod, setSalesPeriod] =
+    useState<SalesPeriodType>("this_week");
 
   const navigate = useNavigate();
 
   // ===================================================
-  // ✅ PORTAL + PERMISSIONS
+  // PORTAL + PERMISSIONS
   // ===================================================
 
-  const { portalName, warehouseName, warehouseCode } = usePortalInfo();
+  const {
+    portalName,
+    warehouseName,
+    warehouseCode,
+  } = usePortalInfo();
 
   const { hasModuleAccess, hasPermission } = usePermissions();
 
   // ===================================================
-  // ✅ PERMISSION-BASED MODULE VISIBILITY
+  // PERMISSION-BASED MODULE VISIBILITY
   // ===================================================
 
   const canSeeKyc = useMemo(
-    () => hasModuleAccess("user") || hasPermission("user.view"),
+    () =>
+      hasModuleAccess("user") ||
+      hasPermission("user.view"),
     [hasModuleAccess, hasPermission],
   );
 
@@ -595,7 +645,9 @@ const Dashboard = () => {
   );
 
   const canSeeSupport = useMemo(
-    () => hasModuleAccess("contact_us") || hasPermission("contact_us.view"),
+    () =>
+      hasModuleAccess("contact_us") ||
+      hasPermission("contact_us.view"),
     [hasModuleAccess, hasPermission],
   );
 
@@ -623,33 +675,37 @@ const Dashboard = () => {
   // FETCH DASHBOARD
   // ===================================================
 
-  const fetchDashboard = useCallback(async (showRefreshing = false) => {
-    try {
-      if (showRefreshing) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
+  const fetchDashboard = useCallback(
+    async (showRefreshing = false) => {
+      try {
+        if (showRefreshing) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        const response = await adminDashboardApi.getDashboard();
+
+        if (
+          response.data.success &&
+          response.data.data
+        ) {
+          setDashboard(response.data.data);
+          setLastUpdated(new Date());
+          setRefreshKey((prev) => prev + 1);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard:", error);
+      } finally {
+        setIsLoading(false);
+
+        if (showRefreshing) {
+          setTimeout(() => setIsRefreshing(false), 700);
+        }
       }
-
-      const response = await adminDashboardApi.getDashboard();
-
-      if (response.data.success && response.data.data) {
-        setDashboard(response.data.data);
-
-        setLastUpdated(new Date());
-
-        setRefreshKey((prev) => prev + 1);
-      }
-    } catch (error) {
-      console.error("Failed to fetch dashboard:", error);
-    } finally {
-      setIsLoading(false);
-
-      if (showRefreshing) {
-        setTimeout(() => setIsRefreshing(false), 700);
-      }
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     fetchDashboard();
@@ -669,7 +725,8 @@ const Dashboard = () => {
     if (!dashboard) return [];
 
     const weekChange =
-      dashboard.sales_analysis?.percentage_change?.week_over_week ?? 0;
+      dashboard.sales_analysis?.percentage_change
+        ?.week_over_week ?? 0;
 
     const weekTrend = getPercentageData(weekChange);
 
@@ -683,19 +740,18 @@ const Dashboard = () => {
         toneClass: weekTrend.toneClass,
         note: "vs last week",
       },
-
       {
         label: "Total Orders",
         value: formatNumber(dashboard.total_orders),
         icon: "shopping_cart",
         change: `${formatNumber(
-          dashboard.sales_analysis?.this_week?.summary?.orders ?? 0,
+          dashboard.sales_analysis?.this_week?.summary
+            ?.orders ?? 0,
         )}`,
         trendIcon: "trending_up",
         toneClass: "text-[#A16207]",
         note: "this week",
       },
-
       {
         label: "Customers",
         value: formatNumber(dashboard.total_customers),
@@ -705,7 +761,6 @@ const Dashboard = () => {
         toneClass: "text-[#2D6FE8]",
         note: "customers",
       },
-
       {
         label: "Distributors",
         value: formatNumber(dashboard.total_distributors),
@@ -715,12 +770,13 @@ const Dashboard = () => {
         toneClass: "text-[#6B7280]",
         note: "distributors",
       },
-
       {
         label: "Products",
         value: formatNumber(dashboard.total_products),
         icon: "account_balance_wallet",
-        change: `${dashboard.stock_status?.summary?.in_stock_count ?? 0}`,
+        change: `${
+          dashboard.stock_status?.summary?.in_stock_count ?? 0
+        }`,
         trendIcon: "trending_up",
         toneClass: "text-[#2D6FE8]",
         note: "in stock",
@@ -750,15 +806,18 @@ const Dashboard = () => {
 
   const barData: SalesChartItem[] = useMemo(() => {
     return selectedSalesData.map(
-      (item: DailyBreakdown | WeeklyBreakdown, index: number) => {
+      (
+        item: DailyBreakdown | WeeklyBreakdown,
+        index: number,
+      ) => {
         const isWeekly = "week_number" in item;
-
         const revenue = Number(item.revenue || 0);
-
         const orders = Number(item.orders || 0);
 
         return {
-          name: isWeekly ? `Week ${item.week_number}` : item.day.substring(0, 3),
+          name: isWeekly
+            ? `Week ${item.week_number}`
+            : item.day.substring(0, 3),
 
           value: revenue,
           lineValue: revenue,
@@ -770,10 +829,12 @@ const Dashboard = () => {
 
           orders,
 
-          date: `${item.start_date}${item.end_date && item.end_date !== item.start_date
+          date: `${item.start_date}${
+            item.end_date &&
+            item.end_date !== item.start_date
               ? ` - ${item.end_date}`
               : ""
-            }`,
+          }`,
         };
       },
     );
@@ -789,7 +850,8 @@ const Dashboard = () => {
       };
     }
 
-    const summary = dashboard.sales_analysis?.[salesPeriod]?.summary;
+    const summary =
+      dashboard.sales_analysis?.[salesPeriod]?.summary;
 
     return {
       revenue: Number(summary?.revenue || 0),
@@ -803,20 +865,36 @@ const Dashboard = () => {
   // TOP CATEGORIES
   // ===================================================
 
-  const PIE_COLORS = [CHART_BLUE_PRIMARY, CHART_YELLOW, CHART_BLUE_LIGHT];
+  const PIE_COLORS = [
+    CHART_BLUE_PRIMARY,
+    CHART_YELLOW,
+    CHART_BLUE_LIGHT,
+  ];
 
+  // Sirf top 3 categories ko chart mein show karna hai.
   const pieData = useMemo(() => {
     if (!dashboard) return [];
 
-    return dashboard.top_categories.slice(0, 3).map((category) => ({
-      name: category.name,
-      value: Number(category.product_count || 0),
-      maxPrice: Number(category.max_price || 0),
-    }));
+    return (dashboard.top_categories || [])
+      .slice(0, 3)
+      .map((category) => ({
+        name: category.name,
+        value: Number(category.product_count || 0),
+        maxPrice: Number(category.max_price || 0),
+      }));
   }, [dashboard]);
 
+  // ===================================================
+  // FIX: TOTAL PRODUCTS OF TOP 3 CATEGORIES ONLY
+  // ===================================================
+
+  // Dashboard ke total_products (30) ka use nahi karna.
+  // Sirf chart mein present top 3 categories ka total show hoga.
   const pieTotal = useMemo(() => {
-    return pieData.reduce((sum, item) => sum + Number(item.value || 0), 0);
+    return pieData.reduce(
+      (sum, item) => sum + Number(item.value || 0),
+      0,
+    );
   }, [pieData]);
 
   // ===================================================
@@ -824,18 +902,19 @@ const Dashboard = () => {
   // ===================================================
 
   const kycReviews = dashboard?.pending_kyc_reviews || [];
-
   const totalPending = kycReviews.length;
 
   // ===================================================
   // INVENTORY
   // ===================================================
 
-  const lowStockProducts = (dashboard?.stock_status?.low_stock_products ||
-    []) as InventoryAlertItem[];
+  const lowStockProducts = (
+    dashboard?.stock_status?.low_stock_products || []
+  ) as InventoryAlertItem[];
 
-  const outOfStockProducts = (dashboard?.stock_status?.out_of_stock_products ||
-    []) as InventoryAlertItem[];
+  const outOfStockProducts = (
+    dashboard?.stock_status?.out_of_stock_products || []
+  ) as InventoryAlertItem[];
 
   const inventoryAlerts = useMemo(() => {
     return [
@@ -864,10 +943,11 @@ const Dashboard = () => {
   // ===================================================
 
   const tickets = dashboard?.top_contacts || [];
-
   const totalTickets = tickets.length;
 
-  const unreadCount = tickets.filter((t: any) => !t.is_read).length;
+  const unreadCount = tickets.filter(
+    (t: any) => !t.is_read,
+  ).length;
 
   // ===================================================
   // BOTTOM SUMMARY ITEMS
@@ -924,29 +1004,57 @@ const Dashboard = () => {
       ["Total Customers", dashboard.total_customers],
       ["Total Distributors", dashboard.total_distributors],
       ["Total Products", dashboard.total_products],
-      ["This Week Revenue", dashboard.sales_analysis.this_week.summary.revenue],
-      ["This Week Orders", dashboard.sales_analysis.this_week.summary.orders],
-      ["Last Week Revenue", dashboard.sales_analysis.last_week.summary.revenue],
-      ["Last Week Orders", dashboard.sales_analysis.last_week.summary.orders],
+      [
+        "This Week Revenue",
+        dashboard.sales_analysis.this_week.summary.revenue,
+      ],
+      [
+        "This Week Orders",
+        dashboard.sales_analysis.this_week.summary.orders,
+      ],
+      [
+        "Last Week Revenue",
+        dashboard.sales_analysis.last_week.summary.revenue,
+      ],
+      [
+        "Last Week Orders",
+        dashboard.sales_analysis.last_week.summary.orders,
+      ],
       [
         "Week over Week",
-        `${dashboard.sales_analysis.percentage_change.week_over_week}%`,
+        `${
+          dashboard.sales_analysis.percentage_change.week_over_week
+        }%`,
       ],
       [
         "Month over Month",
-        `${dashboard.sales_analysis.percentage_change.month_over_month}%`,
+        `${
+          dashboard.sales_analysis.percentage_change.month_over_month
+        }%`,
       ],
       ["Pending KYC", dashboard.pending_kyc_reviews.length],
-      ["Low Stock", dashboard.stock_status.summary.low_stock_count],
-      ["Out of Stock", dashboard.stock_status.summary.out_of_stock_count],
-      ["In Stock", dashboard.stock_status.summary.in_stock_count],
+      [
+        "Low Stock",
+        dashboard.stock_status.summary.low_stock_count,
+      ],
+      [
+        "Out of Stock",
+        dashboard.stock_status.summary.out_of_stock_count,
+      ],
+      [
+        "In Stock",
+        dashboard.stock_status.summary.in_stock_count,
+      ],
       ["Support Contacts", dashboard.top_contacts.length],
     ];
 
     const csv = rows
       .map((row) =>
         row
-          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+          .map(
+            (value) =>
+              `"${String(value ?? "").replace(/"/g, '""')}"`,
+          )
           .join(","),
       )
       .join("\n");
@@ -956,23 +1064,25 @@ const Dashboard = () => {
     });
 
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
 
     link.href = url;
-
     link.download = `dashboard-export-${Date.now()}.csv`;
 
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
 
     setTimeout(() => setIsExporting(false), 700);
-  }, [dashboard, isExporting, portalName, warehouseName, warehouseCode]);
+  }, [
+    dashboard,
+    isExporting,
+    portalName,
+    warehouseName,
+    warehouseCode,
+  ]);
 
   // ===================================================
   // LOADING / ERROR
@@ -983,9 +1093,7 @@ const Dashboard = () => {
       <div className="relative flex min-h-screen items-center justify-center bg-[#F4F8FD]">
         <div className="flex flex-col items-center gap-4">
           <motion.div
-            animate={{
-              rotate: 360,
-            }}
+            animate={{ rotate: 360 }}
             transition={{
               repeat: Infinity,
               duration: 1,
@@ -1008,7 +1116,10 @@ const Dashboard = () => {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-[#F4F8FD]">
         <div className="rounded-[20px] border border-[#DCE6F2] bg-white p-8 text-center shadow-xl">
-          <FiAlertCircle size={28} className="mx-auto text-[#2D6FE8]" />
+          <FiAlertCircle
+            size={28}
+            className="mx-auto text-[#2D6FE8]"
+          />
 
           <h2 className="mt-3 text-lg font-bold text-[#111827]">
             Unable to load dashboard
@@ -1026,11 +1137,14 @@ const Dashboard = () => {
     );
   }
 
+  // ===================================================
+  // MAIN DASHBOARD UI
+  // ===================================================
+
   return (
     <div className="relative min-h-screen bg-white">
       <motion.div
-        className="min-h-screen bg-white p-3 sm:p-4 lg:p-5
-    bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(250,204,21,0.10),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(45,111,232,0.04),transparent)]"
+        className="min-h-screen bg-white p-3 sm:p-4 lg:p-5 bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(250,204,21,0.10),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(45,111,232,0.04),transparent)]"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -1065,33 +1179,32 @@ const Dashboard = () => {
                   Dashboard
                 </h1>
 
-                {/* PORTAL NAME */}
                 <span className="mb-1 hidden rounded-full border border-[#FACC15]/50 bg-[#FEF9C3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#A16207] sm:inline-flex">
                   {portalName}
                 </span>
 
-                {/* WAREHOUSE */}
                 {warehouseName && (
                   <span
                     className="mb-1 hidden truncate rounded-full border border-[#4F8FF7]/30 bg-[#EAF3FF] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#2D6FE8] sm:inline-flex"
-                    title={`${warehouseName}${warehouseCode ? ` (${warehouseCode})` : ""
-                      }`}
+                    title={`${warehouseName}${
+                      warehouseCode ? ` (${warehouseCode})` : ""
+                    }`}
                   >
                     {warehouseName}
-
                     {warehouseCode && ` (${warehouseCode})`}
                   </span>
                 )}
               </div>
 
               <p className="mt-1 max-w-2xl text-[11px] leading-5 text-[#6B7280] sm:text-xs">
-                Monitor sales performance, customers, operations and important
-                business activity from one place.
+                Monitor sales performance, customers, operations and
+                important business activity from one place.
               </p>
             </div>
 
             <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
               {/* LIVE */}
+
               <div className="hidden items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3 py-2.5 sm:flex">
                 <motion.span
                   className="h-2 w-2 rounded-full bg-[#FACC15] ring-2 ring-[#FACC15]/30"
@@ -1111,49 +1224,56 @@ const Dashboard = () => {
 
                   <div className="text-[8px] text-[#6B7280]">
                     {lastUpdated
-                      ? `Updated ${lastUpdated.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}`
+                      ? `Updated ${lastUpdated.toLocaleTimeString(
+                          [],
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}`
                       : "Fetching data..."}
                   </div>
                 </div>
               </div>
 
               {/* PERFORMANCE */}
+
               <div className="hidden items-center gap-2 rounded-xl border border-[#4F8FF7]/20 bg-[#EAF3FF] px-3 py-2.5 md:flex">
                 <motion.div
                   animate={
                     isRefreshing
                       ? {
-                        rotate: 360,
-                        scale: [1, 1.2, 1],
-                      }
+                          rotate: 360,
+                          scale: [1, 1.2, 1],
+                        }
                       : {
-                        rotate: 0,
-                        scale: 1,
-                      }
+                          rotate: 0,
+                          scale: 1,
+                        }
                   }
                   transition={
                     isRefreshing
                       ? {
-                        rotate: {
-                          repeat: Infinity,
-                          duration: 2,
-                          ease: "linear",
-                        },
-                        scale: {
-                          repeat: Infinity,
-                          duration: 1,
-                          ease: "easeInOut",
-                        },
-                      }
+                          rotate: {
+                            repeat: Infinity,
+                            duration: 2,
+                            ease: "linear",
+                          },
+                          scale: {
+                            repeat: Infinity,
+                            duration: 1,
+                            ease: "easeInOut",
+                          },
+                        }
                       : {
-                        duration: 0.3,
-                      }
+                          duration: 0.3,
+                        }
                   }
                 >
-                  <FiTrendingUp size={14} className="text-[#2D6FE8]" />
+                  <FiTrendingUp
+                    size={14}
+                    className="text-[#2D6FE8]"
+                  />
                 </motion.div>
 
                 <span className="text-[10px] font-bold text-[#2D6FE8]">
@@ -1162,35 +1282,28 @@ const Dashboard = () => {
               </div>
 
               {/* REFRESH */}
+
               <motion.button
                 type="button"
                 onClick={handleRefresh}
-                whileTap={{
-                  scale: 0.95,
-                }}
+                whileTap={{ scale: 0.95 }}
                 disabled={isRefreshing}
                 className="flex h-10 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3.5 text-[10px] font-bold text-[#2D6FE8] shadow-sm transition-all hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:opacity-60"
               >
                 <motion.span
                   animate={
                     isRefreshing
-                      ? {
-                        rotate: 360,
-                      }
-                      : {
-                        rotate: 0,
-                      }
+                      ? { rotate: 360 }
+                      : { rotate: 0 }
                   }
                   transition={
                     isRefreshing
                       ? {
-                        repeat: Infinity,
-                        duration: 0.75,
-                        ease: "linear",
-                      }
-                      : {
-                        duration: 0.2,
-                      }
+                          repeat: Infinity,
+                          duration: 0.75,
+                          ease: "linear",
+                        }
+                      : { duration: 0.2 }
                   }
                   className="flex"
                 >
@@ -1203,12 +1316,11 @@ const Dashboard = () => {
               </motion.button>
 
               {/* EXPORT */}
+
               <motion.button
                 type="button"
                 onClick={handleExport}
-                whileTap={{
-                  scale: 0.95,
-                }}
+                whileTap={{ scale: 0.95 }}
                 disabled={isExporting}
                 className="flex h-10 items-center gap-2 rounded-xl bg-gradient-to-br from-[#FDE047] to-[#FACC15] px-4 text-[10px] font-bold text-[#111827] shadow-[0_8px_20px_-8px_rgba(250,204,21,0.65)] transition-all hover:-translate-y-0.5 hover:from-[#FACC15] hover:to-[#EAB308]"
               >
@@ -1216,27 +1328,29 @@ const Dashboard = () => {
                   animate={
                     isExporting
                       ? {
-                        scale: [1, 1.2, 1],
-                        opacity: [1, 0.5, 1],
-                      }
+                          scale: [1, 1.2, 1],
+                          opacity: [1, 0.5, 1],
+                        }
                       : {
-                        scale: 1,
-                        opacity: 1,
-                      }
+                          scale: 1,
+                          opacity: 1,
+                        }
                   }
                   transition={
                     isExporting
                       ? {
-                        repeat: Infinity,
-                        duration: 0.8,
-                      }
+                          repeat: Infinity,
+                          duration: 0.8,
+                        }
                       : {}
                   }
                 >
                   <FiDownload size={14} />
                 </motion.div>
 
-                <span>{isExporting ? "Exporting..." : "Export"}</span>
+                <span>
+                  {isExporting ? "Exporting..." : "Export"}
+                </span>
               </motion.button>
             </div>
           </div>
@@ -1251,7 +1365,9 @@ const Dashboard = () => {
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
         >
           {metrics.map((metric: any, index: number) => {
-            const theme = metricTheme[metric.icon] || metricTheme.attach_money;
+            const theme =
+              metricTheme[metric.icon] ||
+              metricTheme.attach_money;
 
             return (
               <motion.div
@@ -1263,17 +1379,13 @@ const Dashboard = () => {
                 }}
                 className="group relative flex min-h-[140px] flex-col overflow-hidden rounded-[17px] border border-[#DCE6F2] bg-white px-4 py-5 shadow-[0_3px_14px_rgba(45,111,232,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#4F8FF7]/30 hover:shadow-[0_10px_24px_rgba(45,111,232,0.10)]"
               >
-                {/* Left side vertical line */}
                 <div
                   className={`absolute bottom-0 left-0 top-0 w-[3px] ${theme.bar}`}
                 />
 
-                {/* Subtle gradient glow on hover */}
                 <div className="pointer-events-none absolute inset-0 rounded-[17px] bg-gradient-to-br from-[#4F8FF7]/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-                {/* Icon + Text Row */}
                 <div className="relative flex items-start justify-between gap-2">
-                  {/* Left: Label + Value */}
                   <div className="min-w-0 flex-1">
                     <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] transition-colors duration-300 group-hover:text-[#4F8FF7]">
                       {metric.label}
@@ -1282,14 +1394,16 @@ const Dashboard = () => {
                     <motion.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
+                      transition={{
+                        delay: index * 0.05,
+                        duration: 0.4,
+                      }}
                       className="mt-2 truncate text-[26px] font-bold leading-none tracking-[-0.03em] text-[#111827]"
                     >
                       {metric.value}
                     </motion.div>
                   </div>
 
-                  {/* Right: Icon */}
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] ${theme.tile} ${theme.iconColor} transition-transform duration-300 group-hover:scale-105`}
                   >
@@ -1300,14 +1414,19 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Trend Row pushed to bottom */}
                 <div
-                  className={`relative mt-auto flex items-center  text-[10px] font-bold ${metric.toneClass || "text-[#2D6FE8]"
-                    }`}
+                  className={`relative mt-auto flex items-center text-[10px] font-bold ${
+                    metric.toneClass || "text-[#2D6FE8]"
+                  }`}
                 >
-                  <TrendIcon name={metric.trendIcon} className="h-2.5 w-2.5" />
+                  <TrendIcon
+                    name={metric.trendIcon}
+                    className="h-2.5 w-2.5"
+                  />
 
-                  <span className="ml-1.5">{metric.change}</span>
+                  <span className="ml-1.5">
+                    {metric.change}
+                  </span>
 
                   {metric.note && (
                     <span className="ml-1.5 truncate font-normal text-[#6B7280]">
@@ -1319,6 +1438,7 @@ const Dashboard = () => {
             );
           })}
         </motion.div>
+
         {/* =================================================
             MAIN ANALYTICS
         ================================================= */}
@@ -1328,6 +1448,7 @@ const Dashboard = () => {
           className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3"
         >
           {/* SALES CHART */}
+
           <motion.div
             variants={itemVariants}
             className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 shadow-[0_3px_16px_rgba(45,111,232,0.05)] sm:p-5 xl:col-span-2"
@@ -1343,7 +1464,9 @@ const Dashboard = () => {
                     <motion.span
                       className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]"
                       animate={{
-                        opacity: isRefreshing ? [1, 0.3, 1] : 1,
+                        opacity: isRefreshing
+                          ? [1, 0.3, 1]
+                          : 1,
                       }}
                       transition={{
                         duration: 1,
@@ -1364,19 +1487,20 @@ const Dashboard = () => {
               <select
                 value={salesPeriod}
                 onChange={(e) =>
-                  setSalesPeriod(e.target.value as SalesPeriodType)
+                  setSalesPeriod(
+                    e.target.value as SalesPeriodType,
+                  )
                 }
                 className="h-9 cursor-pointer rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-[10px] font-semibold text-[#111827] outline-none transition focus:border-[#2D6FE8]/40 focus:ring-2 focus:ring-[#2D6FE8]/15"
               >
                 <option value="this_week">This Week</option>
-
                 <option value="last_week">Last Week</option>
-
                 <option value="this_month">This Month</option>
               </select>
             </div>
 
             {/* GRAPH */}
+
             <div className="mt-2 h-[300px] w-full overflow-hidden rounded-[15px] border border-[#DCE6F2] bg-[#F8FBFF]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart
@@ -1397,8 +1521,14 @@ const Dashboard = () => {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor="#4F8FF7" />
-                      <stop offset="100%" stopColor="#2D6FE8" />
+                      <stop
+                        offset="0%"
+                        stopColor="#4F8FF7"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#2D6FE8"
+                      />
                     </linearGradient>
 
                     <linearGradient
@@ -1408,8 +1538,14 @@ const Dashboard = () => {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor="#FDE047" />
-                      <stop offset="100%" stopColor="#FACC15" />
+                      <stop
+                        offset="0%"
+                        stopColor="#FDE047"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#FACC15"
+                      />
                     </linearGradient>
 
                     <linearGradient
@@ -1419,8 +1555,14 @@ const Dashboard = () => {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="0%" stopColor="#60A5FA" />
-                      <stop offset="100%" stopColor="#4F8FF7" />
+                      <stop
+                        offset="0%"
+                        stopColor="#60A5FA"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#4F8FF7"
+                      />
                     </linearGradient>
 
                     <linearGradient
@@ -1430,9 +1572,18 @@ const Dashboard = () => {
                       x2="1"
                       y2="0"
                     >
-                      <stop offset="0%" stopColor="#1E40AF" />
-                      <stop offset="45%" stopColor="#2D6FE8" />
-                      <stop offset="100%" stopColor="#4F8FF7" />
+                      <stop
+                        offset="0%"
+                        stopColor="#1E40AF"
+                      />
+                      <stop
+                        offset="45%"
+                        stopColor="#2D6FE8"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor="#4F8FF7"
+                      />
                     </linearGradient>
                   </defs>
 
@@ -1461,9 +1612,12 @@ const Dashboard = () => {
                     tickLine={false}
                     width={55}
                     tickFormatter={(value) =>
-                      `₹${Number(value) >= 1000
-                        ? `${(Number(value) / 1000).toFixed(0)}k`
-                        : value
+                      `₹${
+                        Number(value) >= 1000
+                          ? `${(
+                              Number(value) / 1000
+                            ).toFixed(0)}k`
+                          : value
                       }`
                     }
                   />
@@ -1474,10 +1628,12 @@ const Dashboard = () => {
                     }}
                     contentStyle={{
                       backgroundColor: "#ffffff",
-                      border: "1px solid rgba(45,111,232,0.14)",
+                      border:
+                        "1px solid rgba(45,111,232,0.14)",
                       borderRadius: "12px",
                       fontSize: "10px",
-                      boxShadow: "0 12px 30px rgba(45,111,232,0.10)",
+                      boxShadow:
+                        "0 12px 30px rgba(45,111,232,0.10)",
                     }}
                     labelStyle={{
                       color: "#111827",
@@ -1485,7 +1641,10 @@ const Dashboard = () => {
                     }}
                     formatter={(value: any, name: any) => {
                       if (name === "Orders") {
-                        return [Number(value || 0), "Orders"];
+                        return [
+                          Number(value || 0),
+                          "Orders",
+                        ];
                       }
 
                       return [formatCurrency(value), name];
@@ -1522,7 +1681,7 @@ const Dashboard = () => {
                     radius={[8, 8, 3, 3]}
                     barSize={30}
                   >
-                    {barData.map((entry, index) => {
+                    {barData.map((_entry, index) => {
                       const palette = [
                         "url(#salesBluePrimary)",
                         "url(#salesAmber)",
@@ -1530,7 +1689,10 @@ const Dashboard = () => {
                       ];
 
                       return (
-                        <Cell key={`sales-${index}`} fill={palette[index % 3]} />
+                        <Cell
+                          key={`sales-${index}`}
+                          fill={palette[index % 3]}
+                        />
                       );
                     })}
                   </Bar>
@@ -1557,12 +1719,14 @@ const Dashboard = () => {
             </div>
 
             {/* FOOTER */}
+
             <div className="mt-1 flex flex-wrap items-center gap-3 border-t border-[#DCE6F2] pt-3">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
                 <span className="text-[9px] text-[#6B7280]">
-                  Revenue: {formatCurrency(currentSalesSummary.revenue)}
+                  Revenue:{" "}
+                  {formatCurrency(currentSalesSummary.revenue)}
                 </span>
               </div>
 
@@ -1572,7 +1736,8 @@ const Dashboard = () => {
                 <span className="h-2 w-2 rounded-full bg-[#FACC15]" />
 
                 <span className="text-[9px] text-[#6B7280]">
-                  Orders: {formatNumber(currentSalesSummary.orders)}
+                  Orders:{" "}
+                  {formatNumber(currentSalesSummary.orders)}
                 </span>
               </div>
 
@@ -1588,7 +1753,10 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
-          {/* TOP CATEGORIES / PIE CHART */}
+          {/* =================================================
+              TOP CATEGORIES / PIE CHART
+          ================================================= */}
+
           <motion.div
             variants={itemVariants}
             className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 shadow-[0_3px_16px_rgba(45,111,232,0.05)] sm:p-5"
@@ -1610,13 +1778,9 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              <button
-                type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:border-[#FACC15]/50 hover:bg-[#FEF9C3] hover:text-[#A16207]"
-              >
-                <FiMoreHorizontal size={15} />
-              </button>
             </div>
+
+            {/* PIE CHART */}
 
             <div className="relative mt-1 h-[255px] sm:h-[270px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -1637,7 +1801,11 @@ const Dashboard = () => {
                     {pieData.map((_item, index) => (
                       <Cell
                         key={`pie-${index}`}
-                        fill={PIE_COLORS[index % PIE_COLORS.length]}
+                        fill={
+                          PIE_COLORS[
+                            index % PIE_COLORS.length
+                          ]
+                        }
                       />
                     ))}
                   </Pie>
@@ -1648,7 +1816,8 @@ const Dashboard = () => {
                       border: "1px solid #DCE6F2",
                       borderRadius: "12px",
                       fontSize: "10px",
-                      boxShadow: "0 12px 30px rgba(45,111,232,0.12)",
+                      boxShadow:
+                        "0 12px 30px rgba(45,111,232,0.12)",
                     }}
                     labelStyle={{
                       color: "#111827",
@@ -1662,32 +1831,37 @@ const Dashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
 
+              {/* =================================================
+                  FIXED CENTER COUNT
+                  Only products from the top 3 categories
+              ================================================= */}
+
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pb-2">
                 <span className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#6B7280]">
-                  Total
+                  Top 3 Total
                 </span>
 
                 <motion.span
                   animate={
                     isRefreshing
                       ? {
-                        scale: [1, 1.05, 1],
-                      }
+                          scale: [1, 1.05, 1],
+                        }
                       : {
-                        scale: 1,
-                      }
+                          scale: 1,
+                        }
                   }
                   transition={
                     isRefreshing
                       ? {
-                        duration: 0.6,
-                        ease: "easeInOut",
-                      }
+                          duration: 0.6,
+                          ease: "easeInOut",
+                        }
                       : {}
                   }
                   className="mt-1 text-[25px] font-extrabold leading-none tracking-[-0.04em] text-[#111827]"
                 >
-                  {formatNumber(dashboard.total_products)}
+                  {formatNumber(pieTotal)}
                 </motion.span>
 
                 <span className="mt-1 text-[8px] font-medium text-[#6B7280]">
@@ -1696,21 +1870,25 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* CATEGORY COUNTS */}
+
             <div className="space-y-2 border-t border-[#DCE6F2] pt-3">
               {pieData.map((item, index) => {
                 const percentage =
                   pieTotal > 0
-                    ? Math.round((Number(item.value || 0) / pieTotal) * 100)
+                    ? Math.round(
+                        (Number(item.value || 0) / pieTotal) *
+                          100,
+                      )
                     : 0;
 
-                const dotColor = PIE_COLORS[index % PIE_COLORS.length];
+                const dotColor =
+                  PIE_COLORS[index % PIE_COLORS.length];
 
                 return (
                   <motion.div
                     key={`${item.name}-${index}`}
-                    whileHover={{
-                      x: 2,
-                    }}
+                    whileHover={{ x: 2 }}
                     className="flex items-center justify-between gap-3"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -1749,15 +1927,19 @@ const Dashboard = () => {
         </motion.div>
 
         {/* =================================================
-            LOWER CONTENT  (REDESIGNED)
+            LOWER CONTENT
         ================================================= */}
 
         <motion.div
           variants={containerVariants}
           className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3"
         >
-          <motion.div variants={itemVariants} className="space-y-5 xl:col-span-2">
+          <motion.div
+            variants={itemVariants}
+            className="space-y-5 xl:col-span-2"
+          >
             {/* ---------------- KYC ---------------- */}
+
             {canSeeKyc && (
               <Panel
                 tone="blue"
@@ -1765,7 +1947,11 @@ const Dashboard = () => {
                 title="Pending KYC reviews"
                 subtitle="Applications waiting for review"
                 badge={
-                  <CountBadge count={totalPending} label="pending" tone="blue" />
+                  <CountBadge
+                    count={totalPending}
+                    label="pending"
+                    tone="blue"
+                  />
                 }
                 footer={
                   totalPending > 4 ? (
@@ -1785,24 +1971,35 @@ const Dashboard = () => {
                         key={review.id}
                         whileHover={{ x: 3 }}
                         animate={
-                          isRefreshing ? { opacity: [1, 0.6, 1] } : { opacity: 1 }
+                          isRefreshing
+                            ? { opacity: [1, 0.6, 1] }
+                            : { opacity: 1 }
                         }
                         transition={
                           isRefreshing
-                            ? { duration: 0.4, delay: idx * 0.06 }
+                            ? {
+                                duration: 0.4,
+                                delay: idx * 0.06,
+                              }
                             : {}
                         }
                         className="group relative flex items-center justify-between gap-3 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white py-3 pl-5 pr-3 transition hover:border-[#4F8FF7]/50 hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)]"
                       >
                         <span
-                          className={`absolute inset-y-0 left-0 w-1 ${urgent ? "bg-[#C23B32]" : "bg-[#2D6FE8]"
-                            }`}
+                          className={`absolute inset-y-0 left-0 w-1 ${
+                            urgent
+                              ? "bg-[#C23B32]"
+                              : "bg-[#2D6FE8]"
+                          }`}
                         />
 
                         <div className="flex min-w-0 items-center gap-3">
                           <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[14px] font-medium shadow ring-2 ring-white ${AVATAR_TONES[idx % AVATAR_TONES.length]
-                              }`}
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[14px] font-medium shadow ring-2 ring-white ${
+                              AVATAR_TONES[
+                                idx % AVATAR_TONES.length
+                              ]
+                            }`}
                           >
                             {String(review.user_name || "?")
                               .charAt(0)
@@ -1817,16 +2014,20 @@ const Dashboard = () => {
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#6B7280]">
                               <span className="inline-flex items-center gap-1">
                                 <FiClock size={11} />
-                                Submitted {formatDate(review.created_at)}
+                                Submitted{" "}
+                                {formatDate(review.created_at)}
                               </span>
 
                               <span
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${urgent
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                  urgent
                                     ? "bg-[#FEF2F2] text-[#C23B32]"
                                     : "bg-[#EAF3FF] text-[#1E40AF]"
-                                  }`}
+                                }`}
                               >
-                                {waited === 0 ? "Today" : `Waiting ${waited}d`}
+                                {waited === 0
+                                  ? "Today"
+                                  : `Waiting ${waited}d`}
                               </span>
                             </div>
                           </div>
@@ -1835,7 +2036,7 @@ const Dashboard = () => {
                         <button
                           type="button"
                           onClick={() => handleReview(review)}
-                          className="flex shrink-0 items-center gap-1 rounded-xl bg-[#2D6FE8] px-3.5 py-2 text-[11px] font-bold text-white  transition hover:bg-[#1E40AF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6FE8] focus-visible:ring-offset-2"
+                          className="flex shrink-0 items-center gap-1 rounded-xl bg-[#2D6FE8] px-3.5 py-2 text-[11px] font-bold text-white transition hover:bg-[#1E40AF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6FE8] focus-visible:ring-offset-2"
                         >
                           Review
                           <FiChevronRight size={12} />
@@ -1856,6 +2057,7 @@ const Dashboard = () => {
             )}
 
             {/* ---------------- INVENTORY ---------------- */}
+
             {canSeeInventory && (
               <Panel
                 tone="yellow"
@@ -1863,76 +2065,103 @@ const Dashboard = () => {
                 title="Inventory alerts"
                 subtitle="Products requiring attention"
                 badge={
-                  <CountBadge count={totalAlerts} label="alerts" tone="yellow" />
+                  <CountBadge
+                    count={totalAlerts}
+                    label="alerts"
+                    tone="yellow"
+                  />
                 }
               >
                 <div className="space-y-2.5">
-                  {inventoryAlerts.slice(0, 5).map((item: any, idx: number) => {
-                    const qty = stockNumber(item);
-                    const out = item.alertType === "Out of Stock" || qty === 0;
-                    // Low-stock bar: 20 units is treated as the "healthy" reference level
-                    const pct = out
-                      ? 0
-                      : Math.min(100, Math.round((qty / 20) * 100));
+                  {inventoryAlerts.slice(0, 5).map(
+                    (item: any, idx: number) => {
+                      const qty = stockNumber(item);
 
-                    return (
-                      <motion.div
-                        key={`${getInventoryName(item)}-${idx}`}
-                        whileHover={{ x: 3 }}
-                        animate={
-                          isRefreshing ? { opacity: [1, 0.6, 1] } : { opacity: 1 }
-                        }
-                        transition={
-                          isRefreshing
-                            ? { duration: 0.4, delay: idx * 0.05 }
-                            : {}
-                        }
-                        className="flex items-center gap-3 rounded-2xl border border-[#DCE6F2] bg-white p-3 transition hover:border-[#FACC15]/70 hover:shadow-[0_8px_20px_-10px_rgba(234,179,8,0.5)]"
-                      >
-                        <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${out
-                              ? "bg-[#FEF2F2] text-[#C23B32]"
-                              : "bg-[#FEF9C3] text-[#A16207]"
-                            }`}
+                      const out =
+                        item.alertType === "Out of Stock" ||
+                        qty === 0;
+
+                      const pct = out
+                        ? 0
+                        : Math.min(
+                            100,
+                            Math.round((qty / 20) * 100),
+                          );
+
+                      return (
+                        <motion.div
+                          key={`${getInventoryName(item)}-${idx}`}
+                          whileHover={{ x: 3 }}
+                          animate={
+                            isRefreshing
+                              ? { opacity: [1, 0.6, 1] }
+                              : { opacity: 1 }
+                          }
+                          transition={
+                            isRefreshing
+                              ? {
+                                  duration: 0.4,
+                                  delay: idx * 0.05,
+                                }
+                              : {}
+                          }
+                          className="flex items-center gap-3 rounded-2xl border border-[#DCE6F2] bg-white p-3 transition hover:border-[#FACC15]/70 hover:shadow-[0_8px_20px_-10px_rgba(234,179,8,0.5)]"
                         >
-                          <FiAlertCircle size={18} />
-                        </div>
+                          <div
+                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                              out
+                                ? "bg-[#FEF2F2] text-[#C23B32]"
+                                : "bg-[#FEF9C3] text-[#A16207]"
+                            }`}
+                          >
+                            <FiAlertCircle size={18} />
+                          </div>
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="truncate text-[13px] font-bold text-[#111827]">
-                              {getInventoryName(item)}
-                            </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="truncate text-[13px] font-bold text-[#111827]">
+                                {getInventoryName(item)}
+                              </div>
 
-                            <span
-                              className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${out
-                                  ? "bg-[#FEF2F2] text-[#C23B32]"
-                                  : "bg-[#FEF9C3] text-[#854D0E]"
+                              <span
+                                className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                                  out
+                                    ? "bg-[#FEF2F2] text-[#C23B32]"
+                                    : "bg-[#FEF9C3] text-[#854D0E]"
                                 }`}
-                            >
-                              {out ? "Out of stock" : "Low stock"}
-                            </span>
-                          </div>
-
-                          <div className="mt-2 flex items-center gap-3">
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#EEF2F7]">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                transition={{ duration: 0.7, delay: idx * 0.06 }}
-                                className={`h-full rounded-full ${out ? "bg-[#C23B32]" : "bg-[#FACC15]"
-                                  }`}
-                              />
+                              >
+                                {out
+                                  ? "Out of stock"
+                                  : "Low stock"}
+                              </span>
                             </div>
 
-                            <span className="shrink-0 text-[11px] font-semibold text-[#374151]">
-                              {qty} {qty === 1 ? "unit" : "units"} left
-                            </span>
+                            <div className="mt-2 flex items-center gap-3">
+                              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#EEF2F7]">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${pct}%` }}
+                                  transition={{
+                                    duration: 0.7,
+                                    delay: idx * 0.06,
+                                  }}
+                                  className={`h-full rounded-full ${
+                                    out
+                                      ? "bg-[#C23B32]"
+                                      : "bg-[#FACC15]"
+                                  }`}
+                                />
+                              </div>
+
+                              <span className="shrink-0 text-[11px] font-semibold text-[#374151]">
+                                {qty} {qty === 1 ? "unit" : "units"} left
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                        </motion.div>
+                      );
+                    },
+                  )}
 
                   {inventoryAlerts.length === 0 && (
                     <EmptyState
@@ -1946,9 +2175,13 @@ const Dashboard = () => {
             )}
 
             {/* EMPTY STATE */}
+
             {!canSeeKyc && !canSeeInventory && (
               <div className="rounded-[20px] border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
-                <FiAlertCircle size={28} className="mx-auto text-[#6B7280]" />
+                <FiAlertCircle
+                  size={28}
+                  className="mx-auto text-[#6B7280]"
+                />
 
                 <h3 className="mt-3 text-sm font-bold text-[#111827]">
                   No modules available
@@ -1962,6 +2195,7 @@ const Dashboard = () => {
           </motion.div>
 
           {/* ---------------- SUPPORT ---------------- */}
+
           {canSeeSupport && (
             <motion.div variants={itemVariants}>
               <Panel
@@ -1970,7 +2204,11 @@ const Dashboard = () => {
                 title="Contact requests"
                 subtitle="Latest customer support activity"
                 badge={
-                  <CountBadge count={totalTickets} label="open" tone="blue" />
+                  <CountBadge
+                    count={totalTickets}
+                    label="open"
+                    tone="blue"
+                  />
                 }
                 footer={
                   <Link to="/contact" className="block">
@@ -1983,23 +2221,30 @@ const Dashboard = () => {
               >
                 <div className="space-y-2.5">
                   {tickets.slice(0, 5).map((ticket, idx) => {
-                    const { category, body } = splitCategory(ticket.message);
+                    const { category, body } = splitCategory(
+                      ticket.message,
+                    );
+
                     const unread = !ticket.is_read;
 
                     return (
                       <motion.div
                         key={ticket.id}
                         whileHover={{ x: 3 }}
-                        className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${unread
+                        className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${
+                          unread
                             ? "border-[#4F8FF7]/40 bg-[#F5F9FF]"
                             : "border-[#DCE6F2] bg-white"
-                          }`}
+                        }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2.5">
                             <div
-                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-extrabold ${AVATAR_TONES[idx % AVATAR_TONES.length]
-                                }`}
+                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-extrabold ${
+                                AVATAR_TONES[
+                                  idx % AVATAR_TONES.length
+                                ]
+                              }`}
                             >
                               {String(ticket.name || "?")
                                 .charAt(0)
@@ -2028,10 +2273,11 @@ const Dashboard = () => {
                           </div>
 
                           <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${unread
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              unread
                                 ? "bg-[#FEF9C3] text-[#854D0E] ring-1 ring-[#FACC15]/50"
                                 : "bg-[#F3F6FB] text-[#6B7280]"
-                              }`}
+                            }`}
                           >
                             {unread ? "Unread" : "Read"}
                           </span>
@@ -2065,18 +2311,19 @@ const Dashboard = () => {
         </motion.div>
 
         {/* =================================================
-            BOTTOM SUMMARY  (REDESIGNED)
+            BOTTOM SUMMARY
         ================================================= */}
 
         {summaryItems.length > 0 && (
           <motion.div
             variants={containerVariants}
-            className={`mt-5 grid grid-cols-1 gap-3 ${summaryItems.length === 1
+            className={`mt-5 grid grid-cols-1 gap-3 ${
+              summaryItems.length === 1
                 ? "sm:grid-cols-1"
                 : summaryItems.length === 2
                   ? "sm:grid-cols-2"
                   : "sm:grid-cols-3"
-              }`}
+            }`}
           >
             {summaryItems.map((item, idx) => {
               const Icon = item.icon;
@@ -2087,14 +2334,23 @@ const Dashboard = () => {
                   variants={itemVariants}
                   whileHover={{ y: -2 }}
                   animate={
-                    isRefreshing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }
+                    isRefreshing
+                      ? { opacity: [1, 0.5, 1] }
+                      : { opacity: 1 }
                   }
                   transition={
-                    isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
+                    isRefreshing
+                      ? {
+                          duration: 0.4,
+                          delay: idx * 0.08,
+                        }
+                      : {}
                   }
                   className="relative flex items-center justify-between overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(45,111,232,0.06)]"
                 >
-                  <span className={`absolute inset-y-0 left-0 w-1.5 ${item.bar}`} />
+                  <span
+                    className={`absolute inset-y-0 left-0 w-1.5 ${item.bar}`}
+                  />
 
                   <div className="flex items-center gap-3.5">
                     <div
@@ -2115,9 +2371,18 @@ const Dashboard = () => {
                   </div>
 
                   <motion.div
-                    animate={isRefreshing ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                    animate={
+                      isRefreshing
+                        ? { scale: [1, 1.15, 1] }
+                        : { scale: 1 }
+                    }
                     transition={
-                      isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}
+                      isRefreshing
+                        ? {
+                            duration: 0.4,
+                            delay: idx * 0.08,
+                          }
+                        : {}
                     }
                     className="text-[26px] font-semibold leading-none tracking-tight text-[#111827]"
                   >

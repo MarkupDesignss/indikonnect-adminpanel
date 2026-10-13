@@ -191,6 +191,24 @@ const getAccountLabel = (accountType: string) => {
 };
 
 // =====================================================
+// ✅ REGISTERED DATE (ACCOUNT TYPE BASED)
+// =====================================================
+
+/**
+ * Distributor  -> registration_completed_at
+ * Customer     -> created_at (credit add / account creation date)
+ * Fallback     -> created_at
+ */
+const getRegisteredDate = (user: RegisteredUser) => {
+  if (user.account_type === "distributor") {
+    return user.registration_completed_at || user.created_at || null;
+  }
+
+  // customer + any other type -> account creation / credit add date
+  return user.created_at || user.registration_completed_at || null;
+};
+
+// =====================================================
 // KYC PROFILE
 // =====================================================
 
@@ -337,6 +355,10 @@ const getExportRows = (
     const profile = getKycProfile(user);
     const kycStatus = getEffectiveKycStatus(user);
 
+    // ✅ Distributor -> registration_completed_at
+    // ✅ Customer    -> created_at (credit add date)
+    const registeredDate = getRegisteredDate(user);
+
     return {
       "S.No.": index + 1,
       "User ID": user.id ?? "",
@@ -359,6 +381,8 @@ const getExportRows = (
       "Email Verified": user.email_verified_at ? "Yes" : "No",
       "Email Verified At": formatDate(user.email_verified_at),
       "Activation Date": formatDate(user.activation_date),
+      // ✅ Registered Date (distributor -> registration_completed_at, customer -> created_at)
+      "Registered Date": formatDateOnly(registeredDate),
       "Registration Completed At": formatDate(user.registration_completed_at),
       Terms: getCsvBoolean(user.terms_condition),
       "Terms Accepted": getCsvBoolean(user.accept_terms),
@@ -860,6 +884,9 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const kycStatus = user ? getEffectiveKycStatus(user) : "";
   const kycProfile = user ? getKycProfile(user) : null;
 
+  // ✅ Registered date as per account type
+  const registeredDate = user ? getRegisteredDate(user) : null;
+
   return (
     <GlobalModal
       isOpen={open}
@@ -1041,6 +1068,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <InfoRow
                     label="Registration Step"
                     value={user.registration_step}
+                  />
+                  {/* ✅ Account type based registered date */}
+                  <InfoRow
+                    label="Registered Date"
+                    value={formatDateOnly(registeredDate)}
                   />
                   <InfoRow
                     label="Created At"
@@ -2345,6 +2377,9 @@ const UserManagement: React.FC = () => {
                     const isHighlighted =
                       highlightedUserId === user.id;
 
+                    // ✅ Account type based registered date
+                    const registeredDate = getRegisteredDate(user);
+
                     return (
                       <tr
                         key={user.id}
@@ -2464,9 +2499,7 @@ const UserManagement: React.FC = () => {
                             />
 
                             <span className="text-xs font-semibold text-[#111827]">
-                              {formatDateOnly(
-                                user.created_at
-                              )}
+                              {formatDateOnly(registeredDate)}
                             </span>
                           </div>
                         </td>
@@ -2515,6 +2548,9 @@ const UserManagement: React.FC = () => {
                   user.distributor_status || "pending";
                 const kycStatus = getEffectiveKycStatus(user);
                 const isHighlighted = highlightedUserId === user.id;
+
+                // ✅ Account type based registered date
+                const registeredDate = getRegisteredDate(user);
 
                 return (
                   <div
@@ -2565,10 +2601,10 @@ const UserManagement: React.FC = () => {
 
                       <div className="rounded-xl border border-[#2D6FE8]/10 bg-[#F4F8FD] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                          Phone
+                          Registered
                         </p>
                         <p className="mt-1 truncate text-xs font-bold text-[#111827]">
-                          {user.phone || "N/A"}
+                          {formatDateOnly(registeredDate)}
                         </p>
                       </div>
                     </div>

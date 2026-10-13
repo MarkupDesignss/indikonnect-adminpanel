@@ -220,11 +220,8 @@ const SidebarContent = ({
 
   return (
     <>
-      {/* AMBIENT BACKGROUND LAYER — SOFT BLUE GLOW */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#2D6FE8] opacity-[0.05] blur-3xl" />
-        <div className="absolute -bottom-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#8BB7FF] opacity-[0.08] blur-3xl" />
-      </div>
+      {/* PURE WHITE BACKGROUND — top to bottom */}
+      <div className="pointer-events-none absolute inset-0 bg-white" />
 
       {/* LOGO / BRAND */}
       <div

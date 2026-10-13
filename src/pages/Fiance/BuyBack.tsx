@@ -11,7 +11,6 @@ import {
   FiEye,
   FiCheck,
   FiX,
-  FiTruck,
   FiRefreshCw,
   FiChevronLeft,
   FiChevronRight,
@@ -255,7 +254,7 @@ const buildTimelineEvents = (
       description: "Order was handed over to courier.",
       date: timeline.dispatched_at ?? null,
       color: "bg-[#4F8FF7]",
-      icon: <FiTruck size={14} />,
+      icon: <FiSend size={14} />,
     },
     {
       key: "shipped_at",
@@ -918,7 +917,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
             {loading ? (
               <FiRefreshCw size={14} className="animate-spin" />
             ) : (
-              <FiTruck size={14} />
+              <FiCheck size={14} />
             )}
 
             {loading ? "Processing..." : "Mark as Received"}
@@ -1117,6 +1116,28 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
     </GlobalModal>
   );
 };
+
+// =====================================================
+// DETAIL MODAL
+// =====================================================
+
+interface ReturnDetailModalProps {
+  open: boolean;
+  loading: boolean;
+  detail: SingleReturnResponse["data"] | null;
+  actionLoading: ActionLoading;
+  onClose: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  onReceived: () => void;
+  onComplete: () => void;
+
+  // ✅ PERMISSIONS
+  canApprove?: boolean;
+  canReject?: boolean;
+  canMarkReceived?: boolean;
+  canComplete?: boolean;
+}
 
 // =====================================================
 // DETAIL MODAL
@@ -1633,7 +1654,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                  <FiTruck size={17} />
+                  <FiPackage size={17} />
                 </div>
 
                 <div>
@@ -1658,8 +1679,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
-          {/* REFUND SECTION */}
-          {hasRefundBreakdown ? (
+          {/* REFUND SECTION — sirf non-completed ke liye */}
+          {!isCompleted && hasRefundBreakdown ? (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
               <div className="flex items-center justify-between gap-3 border-b border-[#DCE6F2] bg-[#F4F8FD] px-4 py-3 sm:px-5">
                 <div className="flex min-w-0 items-center gap-2.5">
@@ -1718,18 +1739,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
-                  <span className="text-xs font-bold text-[#111827]">
-                    Gross Refund
-                  </span>
-
-                  <span className="text-sm font-bold text-[#2D6FE8]">
-                    {formatCurrency(
-                      refundBreakdown?.gross_refund?.total,
-                    )}
-                  </span>
-                </div>
-
                 {refundBreakdown?.deductions?.map(
                   (deduction, index) => (
                     <div
@@ -1775,34 +1784,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </p>
                 </div>
               )}
-
-              {detail.refund_info?.status && (
-                <div className="border-t border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-3 sm:px-5">
-                  <div className="flex items-start gap-3">
-                    <FiCheckCircle
-                      size={18}
-                      className="mt-0.5 shrink-0 text-[#2D6FE8]"
-                    />
-
-                    <div>
-                      <p className="text-sm font-bold text-[#2D6FE8]">
-                        Refund Status:{" "}
-                        {getStatusLabel(detail.refund_info.status)}
-                      </p>
-
-                      <p className="mt-1 text-xs leading-5 text-[#6B7280]">
-                        Refund of{" "}
-                        <span className="font-bold text-[#2D6FE8]">
-                          {formatCurrency(detail.refund_info.amount)}
-                        </span>{" "}
-                        has been successfully processed.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-          ) : (
+          ) : !isCompleted ? (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
               <button
                 type="button"
@@ -1996,33 +1979,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         {formatCurrency(refundDetails?.total)}
                       </span>
                     </div>
-
-                    {isCompleted &&
-                      detail.refund_info?.amount !== undefined &&
-                      detail.refund_info?.amount !== null && (
-                        <div className="flex items-center justify-between gap-4 border-t border-[#DCE6F2] py-2.5">
-                          <div>
-                            <p className="text-xs font-semibold text-[#4F8FF7]">
-                              Refunded Amount
-                            </p>
-
-                            <p className="mt-0.5 text-[9px] text-[#6B7280]">
-                              Amount actually refunded
-                            </p>
-                          </div>
-
-                          <span className="text-sm font-bold text-[#4F8FF7]">
-                            {formatCurrency(
-                              detail.refund_info.amount,
-                            )}
-                          </span>
-                        </div>
-                      )}
                   </div>
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
           {detail.admin_notes && (
             <div className="mt-5 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
@@ -2102,7 +2063,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       className="animate-spin"
                     />
                   ) : (
-                    <FiTruck size={14} />
+                    <FiCheck size={14} />
                   )}
 
                   Mark as Received
@@ -2135,7 +2096,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     </GlobalModal>
   );
 };
-
 // =====================================================
 // MAIN
 // =====================================================
@@ -3366,19 +3326,6 @@ const BuyBack: React.FC = () => {
                                   <FiEye size={15} />
                                 </button>
 
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleView(
-                                      request.id,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#4F8FF7]/25 bg-[#EAF3FF] text-[#2D6FE8] transition hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                  title="Track Order"
-                                >
-                                  <FiTruck size={15} />
-                                </button>
-
                                 {canApprove && (
                                   <button
                                     type="button"
@@ -3432,7 +3379,7 @@ const BuyBack: React.FC = () => {
                                     }
                                     className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
                                   >
-                                    <FiTruck size={13} />
+                                    <FiCheck size={13} />
                                     Received
                                   </button>
                                 )}
@@ -3587,19 +3534,6 @@ const BuyBack: React.FC = () => {
                             <FiEye size={15} />
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleView(
-                                request.id,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4F8FF7]/25 bg-[#EAF3FF] text-[#2D6FE8]"
-                            title="Track"
-                          >
-                            <FiTruck size={15} />
-                          </button>
-
                           {canApprove && (
                             <button
                               type="button"
@@ -3651,7 +3585,7 @@ const BuyBack: React.FC = () => {
                             }
                             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
                           >
-                            <FiTruck size={14} />
+                            <FiCheck size={14} />
                             Mark as Received
                           </button>
                         </div>
