@@ -110,7 +110,7 @@ export interface ProductVariantPayload {
   images?: ProductImagePayload[];
 }
 
-/** Body for POST /api/products/{productId}/set-primary */
+/** Body for POST /products/{productId}/set-primary */
 export interface SetPrimaryProductImagePayload {
   image_id: number;
 }
@@ -165,6 +165,9 @@ export interface Product {
   is_trending: boolean;
   trending_sort_order: number;
 
+  /** Best Seller status */
+  is_best_seller?: boolean | number;
+
   is_deal_of_the_day: boolean;
   is_active_deal: boolean;
   deal_of_the_day_starts_at: string | null;
@@ -191,7 +194,7 @@ export interface Product {
 
 /* =========================================================
    CATEGORY PRODUCT LIST RESPONSE
-   GET /api/products/category/{categoryId}
+   GET /products/category/{categoryId}
 ========================================================= */
 
 export interface CategoryProductsResponse {
@@ -202,7 +205,7 @@ export interface CategoryProductsResponse {
 
 /* =========================================================
    SUBCATEGORY
-   GET /api/subcategories/category/{categoryId}
+   GET /subcategories/category/{categoryId}
 ========================================================= */
 
 export interface SubcategoryCategory {
@@ -303,6 +306,20 @@ export interface PublishProductPayload {
 }
 
 /* =========================================================
+   BEST SELLER
+   POST /best-seller/products/{productId}
+
+   Request body:
+   {
+     "is_best_seller": 1
+   }
+========================================================= */
+
+export interface BestSellerPayload {
+  is_best_seller: 0 | 1;
+}
+
+/* =========================================================
    PAGINATION / FILTERS / API RESPONSE
 ========================================================= */
 
@@ -359,14 +376,19 @@ export interface WarehouseStockPayload {
 export interface UploadProgressMeta {
   /** 0 - 100 */
   percent: number;
+
   /** Bytes uploaded so far */
   loaded: number;
+
   /** Total bytes (0 if server doesn't send Content-Length) */
   total: number;
+
   /** Bytes per second */
   bytesPerSecond: number;
+
   /** Milliseconds elapsed since upload started */
   elapsedMs: number;
+
   /** Estimated milliseconds remaining (null if unknown) */
   estimatedRemainingMs: number | null;
 }
@@ -382,11 +404,15 @@ function emitUploadProgress(
 
   const loaded = event.loaded ?? 0;
   const total = event.total ?? 0;
+
   const percent =
     total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
 
   const elapsedMs = Date.now() - startedAt;
-  const bytesPerSecond = elapsedMs > 0 ? (loaded / elapsedMs) * 1000 : 0;
+
+  const bytesPerSecond =
+    elapsedMs > 0 ? (loaded / elapsedMs) * 1000 : 0;
+
   const estimatedRemainingMs =
     bytesPerSecond > 0 && total > 0
       ? ((total - loaded) / bytesPerSecond) * 1000
@@ -437,11 +463,15 @@ export const productApi = {
   ) => {
     const startedAt = Date.now();
 
-    return apiClient.post<ApiResponse<Product>>(`/products/update/${id}`, data, {
-      headers: { "Content-Type": "multipart/form-data" },
-      onUploadProgress: (event: AxiosProgressEvent) =>
-        emitUploadProgress(event, startedAt, onUploadProgress),
-    });
+    return apiClient.post<ApiResponse<Product>>(
+      `/products/update/${id}`,
+      data,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (event: AxiosProgressEvent) =>
+          emitUploadProgress(event, startedAt, onUploadProgress),
+      },
+    );
   },
 
   deleteImages: (productId: number, imageIds: number[]) =>
@@ -451,17 +481,17 @@ export const productApi = {
 
   // ============================
   // PRODUCTS BY CATEGORY
-  // GET /api/products/category/{categoryId}
-  // Example: getProductsByCategory(3)
+  // GET /products/category/{categoryId}
   // ============================
 
   getProductsByCategory: (categoryId: number) =>
-    apiClient.get<CategoryProductsResponse>(`/products/category/${categoryId}`),
+    apiClient.get<CategoryProductsResponse>(
+      `/products/category/${categoryId}`,
+    ),
 
   // ============================
   // SUBCATEGORIES BY CATEGORY
-  // GET /api/subcategories/category/{categoryId}
-  // Example: getSubcategoriesByCategory(3)
+  // GET /subcategories/category/{categoryId}
   // ============================
 
   getSubcategoriesByCategory: (categoryId: number) =>
@@ -471,7 +501,7 @@ export const productApi = {
 
   // ============================
   // MOVE / SWAP PRODUCT IMAGE
-  // POST /api/move-product-image/{productId}
+  // POST /move-product-image/{productId}
   // ============================
 
   moveProductImage: (productId: number, data: MoveProductImagePayload) =>
@@ -482,9 +512,7 @@ export const productApi = {
 
   // ============================
   // SET PRIMARY PRODUCT IMAGE
-  // POST /api/products/{productId}/set-primary
-  // Body: { image_id: number }
-  // Example: setPrimaryImage(18, 64)
+  // POST /products/{productId}/set-primary
   // ============================
 
   setPrimaryImage: (productId: number, imageId: number) =>
@@ -504,32 +532,51 @@ export const productApi = {
     ),
 
   // ============================
+  // BEST SELLER
+  // POST /best-seller/products/{productId}
+  //
+  // Example:
+  // POST /best-seller/products/7
+  //
+  // Body:
+  // {
+  //   "is_best_seller": 1
+  // }
+  // ============================
+
+  setBestSeller: (productId: number, data: BestSellerPayload) =>
+    apiClient.post<ApiResponse<Product>>(
+      `/best-seller/products/${productId}`,
+      data,
+    ),
+
+  // ============================
   // DEAL OF THE DAY CRUD
   // ============================
 
-  /** GET /api/products-deal-of-the-day */
+  /** GET /products-deal-of-the-day */
   getDeals: () =>
     apiClient.get<ApiResponse<Product[]>>("/products-deal-of-the-day"),
 
-  /** GET /api/products-deal-of-the-day/{id} */
+  /** GET /products-deal-of-the-day/{id} */
   getDealById: (id: number) =>
     apiClient.get<ApiResponse<Product>>(`/products-deal-of-the-day/${id}`),
 
-  /** POST /api/products-deal-of-the-day/{productId} */
+  /** POST /products-deal-of-the-day/{productId} */
   addDeal: (productId: number, data: DealPayload) =>
     apiClient.post<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
       data,
     ),
 
-  /** PUT /api/products-deal-of-the-day/{productId} */
+  /** PUT /products-deal-of-the-day/{productId} */
   updateDeal: (productId: number, data: UpdateDealPayload) =>
     apiClient.put<ApiResponse<Product>>(
       `/products-deal-of-the-day/${productId}`,
       data,
     ),
 
-  /** DELETE /api/products-deal-of-the-day/{productId} */
+  /** DELETE /products-deal-of-the-day/{productId} */
   removeDeal: (productId: number) =>
     apiClient.delete<ApiResponse<null>>(
       `/products-deal-of-the-day/${productId}`,

@@ -993,26 +993,36 @@ const NotificationTemplates = () => {
           <div className="hidden lg:block">
             <table className="w-full table-fixed border-collapse">
               <colgroup>
-                <col className="w-[20%]" />
+                <col className="w-[55px]" />
+                <col className="w-[19%]" />
                 <col className="w-[10%]" />
-                <col className="w-[25%]" />
-                <col className="w-[33%]" />
-                <col className="w-[12%]" />
+                <col className="w-[24%]" />
+                <col className="w-[31%]" />
+                <col className="w-[11%]" />
               </colgroup>
               <thead>
                 <tr className="bg-[#4F8FF7]">
+                  {/* ✅ S.No. */}
                   <th className="rounded-tl-2xl px-3 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                    S.No.
+                  </th>
+
+                  <th className="px-3 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
                     Event
                   </th>
+
                   <th className="px-3 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
                     Channel
                   </th>
+
                   <th className="px-3 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
                     Subject
                   </th>
+
                   <th className="px-3 py-3.5 text-left text-[9px] font-bold uppercase tracking-[0.1em] text-white">
                     Body
                   </th>
+
                   <th className="rounded-tr-2xl px-3 py-3.5 text-right text-[9px] font-bold uppercase tracking-[0.1em] text-white">
                     Action
                   </th>
@@ -1022,7 +1032,7 @@ const NotificationTemplates = () => {
               <tbody>
                 {displayTemplates.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center">
+                    <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="mx-auto max-w-sm">
                         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiSearch size={20} />
@@ -1038,64 +1048,77 @@ const NotificationTemplates = () => {
                     </td>
                   </tr>
                 ) : (
-                  displayTemplates.map((template) => (
-                    <motion.tr
-                      key={template.id}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
-                    >
-                      {/* EVENT */}
-                      <td className="px-3 py-3 align-top">
-                        <p className="text-xs font-bold leading-5 text-[#111827]">
-                          {formatEventType(template.event_type)}
-                        </p>
-                        <p className="mt-1 text-[10px] text-[#6B7280]">
-                          Updated {formatDate(template.updated_at)}
-                        </p>
-                      </td>
+                  displayTemplates.map((template, index) => {
+                    // ✅ Continuous S.No. across pages
+                    const serialNumber =
+                      (currentPage - 1) * PER_PAGE + index + 1;
 
-                      {/* CHANNEL */}
-                      <td className="px-3 py-3 align-top">
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold text-[#2D6FE8]">
-                          {getChannelIcon(template.channel)}
-                          {formatChannel(template.channel)}
-                        </span>
-                      </td>
-
-                      {/* SUBJECT */}
-                      <td className="px-3 py-3 align-top">
-                        <p className="line-clamp-3 text-xs font-bold leading-5 text-[#111827]">
-                          {template.subject}
-                        </p>
-                      </td>
-
-                      {/* BODY */}
-                      <td className="px-3 py-3 align-top">
-                        <p className="line-clamp-3 text-[11px] leading-5 text-[#6B7280]">
-                          {template.body}
-                        </p>
-                      </td>
-
-                      {/* ACTION */}
-                      <td className="px-3 py-3 text-right align-top">
-                        {canUpdateTemplates ? (
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(template)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                          >
-                            <FiEdit3 size={12} />
-                            Edit
-                          </button>
-                        ) : (
-                          <span className="inline-flex items-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1.5 text-[9px] font-bold text-[#6B7280]">
-                            View Only
+                    return (
+                      <motion.tr
+                        key={template.id}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
+                      >
+                        {/* ✅ S.NO */}
+                        <td className="px-3 py-3 align-top">
+                          <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
+                            {serialNumber}
                           </span>
-                        )}
-                      </td>
-                    </motion.tr>
-                  ))
+                        </td>
+
+                        {/* EVENT */}
+                        <td className="px-3 py-3 align-top">
+                          <p className="text-xs font-bold leading-5 text-[#111827]">
+                            {formatEventType(template.event_type)}
+                          </p>
+                          <p className="mt-1 text-[10px] text-[#6B7280]">
+                            Updated {formatDate(template.updated_at)}
+                          </p>
+                        </td>
+
+                        {/* CHANNEL */}
+                        <td className="px-3 py-3 align-top">
+                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold text-[#2D6FE8]">
+                            {getChannelIcon(template.channel)}
+                            {formatChannel(template.channel)}
+                          </span>
+                        </td>
+
+                        {/* SUBJECT */}
+                        <td className="px-3 py-3 align-top">
+                          <p className="line-clamp-3 text-xs font-bold leading-5 text-[#111827]">
+                            {template.subject}
+                          </p>
+                        </td>
+
+                        {/* BODY */}
+                        <td className="px-3 py-3 align-top">
+                          <p className="line-clamp-3 text-[11px] leading-5 text-[#6B7280]">
+                            {template.body}
+                          </p>
+                        </td>
+
+                        {/* ACTION */}
+                        <td className="px-3 py-3 text-right align-top">
+                          {canUpdateTemplates ? (
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(template)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                            >
+                              <FiEdit3 size={12} />
+                              Edit
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1.5 text-[9px] font-bold text-[#6B7280]">
+                              View Only
+                            </span>
+                          )}
+                        </td>
+                      </motion.tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1116,87 +1139,100 @@ const NotificationTemplates = () => {
                 </p>
               </div>
             ) : (
-              displayTemplates.map((template) => (
-                <div key={template.id} className="bg-white p-4 sm:p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
-                        {formatChannel(template.channel)}
-                      </p>
-                      <h3 className="mt-1 text-sm font-bold leading-5 text-[#111827]">
-                        {formatEventType(template.event_type)}
-                      </h3>
-                    </div>
+              displayTemplates.map((template, index) => {
+                // ✅ Continuous S.No.
+                const serialNumber =
+                  (currentPage - 1) * PER_PAGE + index + 1;
 
-                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                      {getChannelIcon(template.channel)}
-                      {formatChannel(template.channel)}
-                    </span>
-                  </div>
+                return (
+                  <div key={template.id} className="bg-white p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        {/* ✅ S.NO badge */}
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
+                          {serialNumber}
+                        </span>
 
-                  <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-3.5">
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Subject
-                    </p>
-                    <p className="text-sm font-bold leading-5 text-[#111827]">
-                      {template.subject}
-                    </p>
-                  </div>
-
-                  <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-white p-3.5">
-                    <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Body
-                    </p>
-                    <p className="text-xs leading-5 text-[#6B7280]">
-                      {template.body}
-                    </p>
-                  </div>
-
-                  {template.placeholders?.length > 0 && (
-                    <div className="mt-3">
-                      <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                        Placeholders
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {template.placeholders.slice(0, 5).map((placeholder) => (
-                          <span
-                            key={placeholder}
-                            className="rounded-md border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2 py-1 font-mono text-[10px] font-bold text-[#2D6FE8]"
-                          >
-                            {`{{${placeholder}}}`}
-                          </span>
-                        ))}
-                        {template.placeholders.length > 5 && (
-                          <span className="rounded-md bg-[#F4F8FD] px-2 py-1 text-[10px] font-bold text-[#6B7280]">
-                            +{template.placeholders.length - 5} more
-                          </span>
-                        )}
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
+                            {formatChannel(template.channel)}
+                          </p>
+                          <h3 className="mt-1 text-sm font-bold leading-5 text-[#111827]">
+                            {formatEventType(template.event_type)}
+                          </h3>
+                        </div>
                       </div>
-                    </div>
-                  )}
 
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <p className="text-[10px] text-[#6B7280]">
-                      Updated {formatDate(template.updated_at)}
-                    </p>
-
-                    {canUpdateTemplates ? (
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(template)}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-3.5 py-2 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5"
-                      >
-                        <FiEdit3 size={14} />
-                        Edit
-                      </button>
-                    ) : (
-                      <span className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3.5 py-2 text-[10px] font-bold text-[#6B7280]">
-                        View Only
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                        {getChannelIcon(template.channel)}
+                        {formatChannel(template.channel)}
                       </span>
+                    </div>
+
+                    <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-3.5">
+                      <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Subject
+                      </p>
+                      <p className="text-sm font-bold leading-5 text-[#111827]">
+                        {template.subject}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-white p-3.5">
+                      <p className="mb-1 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Body
+                      </p>
+                      <p className="text-xs leading-5 text-[#6B7280]">
+                        {template.body}
+                      </p>
+                    </div>
+
+                    {template.placeholders?.length > 0 && (
+                      <div className="mt-3">
+                        <p className="mb-2 text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Placeholders
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {template.placeholders.slice(0, 5).map((placeholder) => (
+                            <span
+                              key={placeholder}
+                              className="rounded-md border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2 py-1 font-mono text-[10px] font-bold text-[#2D6FE8]"
+                            >
+                              {`{{${placeholder}}}`}
+                            </span>
+                          ))}
+                          {template.placeholders.length > 5 && (
+                            <span className="rounded-md bg-[#F4F8FD] px-2 py-1 text-[10px] font-bold text-[#6B7280]">
+                              +{template.placeholders.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <p className="text-[10px] text-[#6B7280]">
+                        Updated {formatDate(template.updated_at)}
+                      </p>
+
+                      {canUpdateTemplates ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(template)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-3.5 py-2 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5"
+                        >
+                          <FiEdit3 size={14} />
+                          Edit
+                        </button>
+                      ) : (
+                        <span className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3.5 py-2 text-[10px] font-bold text-[#6B7280]">
+                          View Only
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

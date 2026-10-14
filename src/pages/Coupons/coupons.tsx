@@ -894,16 +894,21 @@ const Coupons: React.FC = () => {
     [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
+  // ✅ FIX: API returns "add", not "create"
   const canCreateCoupon = useMemo(
-    () => isSuperAdmin || hasPermission("promocode.create"),
+    () =>
+      isSuperAdmin ||
+      hasPermission("promocode.add") ||
+      hasPermission("promocode.create"),
     [isSuperAdmin, hasPermission],
   );
 
+  // ✅ FIX: API returns "edit", not "update"
   const canUpdateCoupon = useMemo(
     () =>
       isSuperAdmin ||
-      hasPermission("promocode.update") ||
-      hasPermission("promocode.edit"),
+      hasPermission("promocode.edit") ||
+      hasPermission("promocode.update"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -1406,7 +1411,7 @@ const Coupons: React.FC = () => {
             <button
               type="button"
               onClick={openAdd}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
+              className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
             >
               <FiPlus size={18} />
               Add Coupon

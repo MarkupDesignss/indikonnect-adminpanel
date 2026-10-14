@@ -86,7 +86,6 @@ const NAV_GROUPS: NavGroup[] = [
       "cooloff",
     ],
   },
-  // ✅ Naya group — Sales (Finance ke baad dikhega)
   {
     key: "sales",
     label: "Sales",
@@ -131,8 +130,6 @@ const FALLBACK_GROUP: Pick<NavGroup, "key" | "label"> = {
   label: "General",
 };
 
-// ✅ Account items ke paths — inhe grouped menu se exclude karenge
-// Update Profile, Change Password, Admin Settings — sab Account section mein
 const ACCOUNT_PATHS = [
   "/UpdateProfile",
   "/ChangePassword",
@@ -220,7 +217,6 @@ const SidebarContent = ({
 
   return (
     <>
-      {/* PURE WHITE BACKGROUND — top to bottom */}
       <div className="pointer-events-none absolute inset-0 bg-white" />
 
       {/* LOGO / BRAND */}
@@ -314,7 +310,7 @@ const SidebarContent = ({
       >
         {navContent}
 
-        {/* ACCOUNT SECTION — Update Profile, Change Password, Admin Settings, Logout */}
+        {/* ACCOUNT SECTION */}
         <div className="mt-3">
           {showLabels ? (
             <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
@@ -325,7 +321,6 @@ const SidebarContent = ({
             <div className="mx-auto mb-2 h-px w-8 bg-[#2D6FE8]/10" />
           )}
 
-          {/* Account menu items: Update Profile, Change Password, Admin Settings */}
           <div>
             {accountItems.map((item) => renderNavItem(item, 0, isMobile))}
           </div>
@@ -409,11 +404,15 @@ const MainLayout = () => {
 
   const location = useLocation();
 
+  // ✅ FIXED: exact match for root paths, prefix match only for real sub-paths
   const isPathActive = (path?: string) => {
     if (!path) return false;
-    return (
-      location.pathname === path || location.pathname.startsWith(`${path}/`)
-    );
+    const current = location.pathname;
+    if (current === path) return true;
+    // only treat as nested if path has more than one segment
+    const segments = path.split("/").filter(Boolean);
+    if (segments.length <= 1) return false;
+    return current.startsWith(`${path}/`);
   };
 
   const isItemActive = (item: any): boolean => {
@@ -423,8 +422,6 @@ const MainLayout = () => {
     return isPathActive(item.path);
   };
 
-  // ✅ Account items (Update Profile, Change Password, Admin Settings)
-  //    — sirf Account section ke liye
   const accountItems = useMemo(
     () =>
       (menuItems as any[]).filter((item) =>
@@ -433,7 +430,6 @@ const MainLayout = () => {
     [menuItems],
   );
 
-  // ✅ Baaki sab menu items grouped menu ke liye (Account items excluded)
   const groupedMenu = useMemo(
     () =>
       groupMenuItems(

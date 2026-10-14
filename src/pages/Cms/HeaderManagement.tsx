@@ -582,7 +582,7 @@ const HeaderManagement: React.FC = () => {
             <table className="w-full min-w-[850px] border-collapse text-left">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">#</th>
+                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">S.No.</th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Menu</th>
                   <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Slug</th>
                   <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">Status</th>

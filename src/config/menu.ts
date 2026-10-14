@@ -20,24 +20,14 @@ export const menuItems: MenuItem[] = [
   },
 
   {
-    path: '/UserManagement',
-    label: 'User Management',
-    icon: 'people',
-    module: 'user',
-    permission: 'user.view',
-    anyOf: ['user.view', 'user.details', 'user.change_status'],
-  },
-
-  // ✅ Orders — top-level, no children
-  {
     path: '/orders',
     label: 'Orders',
     icon: 'shopping_cart',
     module: 'order',
     permission: 'order.view',
-    anyOf: ['order.view', 'order.details'],
+    anyOf: ['order.view', 'order.details', 'order.allow'],
   },
-
+  
   {
     path: '/inventory',
     label: 'Inventory',
@@ -78,7 +68,6 @@ export const menuItems: MenuItem[] = [
         permission: 'tax_category.view',
         module: 'tax_category',
       },
-     
       {
         path: '/inventory/products',
         label: 'Products',
@@ -126,14 +115,14 @@ export const menuItems: MenuItem[] = [
         module: 'warehouse',
       },
       {
-        path: 'warehouse/inventory',
+        path: '/warehouse/inventory',
         label: 'Inventory Update',
         icon: 'inventory_2',
         permission: 'warehouse.update',
         module: 'warehouse_inventory',
       },
       {
-        path: 'warehouse/products',
+        path: '/warehouse/products',
         label: 'Warehouse Products',
         icon: 'shopping_bag',
         permission: 'warehouse.update',
@@ -187,8 +176,7 @@ export const menuItems: MenuItem[] = [
     ],
   },
 
-  // ✅ Sales Report — Finance ke niche, top-level (exactly like Orders)
-  // API permission: "sales": ["report"]  →  slug = "sales.report"
+  // ✅ Sales Report — top-level
   {
     path: '/sales/report',
     label: 'Sales Report',
@@ -266,14 +254,14 @@ export const menuItems: MenuItem[] = [
     module: 'content',
     children: [
       {
-        path: 'cms/SectionManagement',
+        path: '/cms/SectionManagement',
         label: 'Section Management',
         icon: 'view_agenda',
         permission: 'content.view',
         module: 'content',
       },
       {
-        path: 'cms/FAQManagement',
+        path: '/cms/FAQManagement',
         label: 'FAQ Management',
         icon: 'quiz',
         permission: 'content.view',
@@ -335,7 +323,7 @@ export const menuItems: MenuItem[] = [
     module: 'contact_us',
   },
 
-  // ✅ Account section items (rendered inside Account group in sidebar)
+  // ✅ Account section items
   {
     path: '/UpdateProfile',
     label: 'Update Profile',
@@ -349,10 +337,10 @@ export const menuItems: MenuItem[] = [
     isHeading: true,
   },
   {
-    path: "/SettingsManagement",
-    label: "Admin Settings",
-    icon: "settings",
-    module: "Admin Settings",
-    permission: "Admin Settings.view",
+    path: '/SettingsManagement',
+    label: 'Admin Settings',
+    icon: 'settings',
+    module: 'Admin Settings',
+    permission: 'Admin Settings.view',
   },
 ];

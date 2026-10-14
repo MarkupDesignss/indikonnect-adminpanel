@@ -491,22 +491,31 @@ const WarehouseProducts = () => {
             ================================================= */}
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] table-fixed border-collapse">
+              <table className="w-full min-w-[1080px] table-fixed border-collapse">
+                {/* ✅ COLUMN WIDTHS — S.No. added */}
+
                 <colgroup>
-                  <col className="w-[26%]" />
+                  <col className="w-[55px]" />
+                  <col className="w-[24%]" />
                   <col className="w-[9%]" />
-                  <col className="w-[15%]" />
                   <col className="w-[14%]" />
-                  <col className="w-[11%]" />
+                  <col className="w-[13%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[15%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[14%]" />
                 </colgroup>
 
                 {/* HEADER */}
 
                 <thead>
                   <tr className="bg-[#4F8FF7]">
+                    {/* ✅ S.No. */}
+
                     <th className="rounded-tl-xl px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                      S.No.
+                    </th>
+
+                    <th className="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                       Product
                     </th>
 
@@ -565,6 +574,14 @@ const WarehouseProducts = () => {
                         }}
                         className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
                       >
+                        {/* ✅ S.No. — starts from 1 on every page */}
+
+                        <td className="px-3 py-2.5 align-top">
+                          <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
+                            {idx + 1}
+                          </span>
+                        </td>
+
                         {/* PRODUCT */}
 
                         <td className="px-3 py-2.5">

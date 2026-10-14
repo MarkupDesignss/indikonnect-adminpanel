@@ -1093,6 +1093,12 @@ const Addwarehouse: React.FC = () => {
   }
 
   // ===================================================
+  // COLUMN COUNT (with S.No.)
+  // ===================================================
+
+  const columnCount = canUpdateWarehouse ? 8 : 7;
+
+  // ===================================================
   // RENDER
   // ===================================================
 
@@ -1233,37 +1239,43 @@ const Addwarehouse: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
       >
-     
+
         <div className="overflow-x-auto ">
           <table className="w-full min-w-[1180px] border-collapse">
             <thead>
               <tr className="bg-[#4F8FF7]">
-                <th className="px-5 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                {/* ✅ S.No. */}
+
+                <th className="w-[60px] px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                  S.No.
+                </th>
+
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Warehouse
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Location
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Contact
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Capacity
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Working Hours 
                 </th>
 
-                <th className="px-4 py-4 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   Status
                 </th>
 
                 {canUpdateWarehouse && (
-                  <th className="px-5 py-4 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-white">
+                  <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                     Action
                   </th>
                 )}
@@ -1276,13 +1288,16 @@ const Addwarehouse: React.FC = () => {
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
                   <tr key={index} className="border-b border-[#DCE6F2]">
-                    {Array.from({
-                      length: canUpdateWarehouse ? 7 : 6,
-                    }).map((__, cellIndex) => (
-                      <td key={cellIndex} className="px-4 py-4">
-                        <div className="h-10 animate-pulse rounded-lg bg-[#F4F8FD]" />
-                      </td>
-                    ))}
+                    {Array.from({ length: columnCount }).map(
+                      (__, cellIndex) => (
+                        <td
+                          key={cellIndex}
+                          className="px-4 py-2.5"
+                        >
+                          <div className="h-8 animate-pulse rounded-lg bg-[#F4F8FD]" />
+                        </td>
+                      ),
+                    )}
                   </tr>
                 ))
               ) : filteredWarehouses.length === 0 ? (
@@ -1290,7 +1305,7 @@ const Addwarehouse: React.FC = () => {
 
                 <tr>
                   <td
-                    colSpan={canUpdateWarehouse ? 7 : 6}
+                    colSpan={columnCount}
                     className="px-5 py-14 text-center"
                   >
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1311,19 +1326,27 @@ const Addwarehouse: React.FC = () => {
               ) : (
                 /* DATA */
 
-                filteredWarehouses.map((warehouse) => (
+                filteredWarehouses.map((warehouse, index) => (
                   <motion.tr
                     key={warehouse.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="border-b border-[#DCE6F2] transition hover:bg-[#F8FBFF]"
                   >
+                    {/* ✅ S.No. */}
+
+                    <td className="px-4 py-2.5">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
+                        {(currentPage - 1) * ITEMS_PER_PAGE + index + 1}
+                      </span>
+                    </td>
+
                     {/* WAREHOUSE */}
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiDatabase size={16} />
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiDatabase size={13} />
                         </div>
 
                         <div className="min-w-0">
@@ -1331,8 +1354,8 @@ const Addwarehouse: React.FC = () => {
                             {warehouse.name}
                           </div>
 
-                          <div className="mt-1 flex items-center gap-1.5">
-                            <span className="rounded-md bg-[#F4F8FD] px-2 py-0.5 text-[9px] font-bold text-[#111827]">
+                          <div className="mt-0.5 flex items-center gap-1.5">
+                            <span className="rounded-md bg-[#F4F8FD] px-1.5 py-0.5 text-[9px] font-bold text-[#111827]">
                               {warehouse.code}
                             </span>
                           </div>
@@ -1342,29 +1365,23 @@ const Addwarehouse: React.FC = () => {
 
                     {/* LOCATION */}
 
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-start gap-2">
                         <FiMapPin
-                          size={13}
+                          size={12}
                           className="mt-0.5 shrink-0 text-[#2D6FE8]"
                         />
 
                         <div>
-                          <div className="text-xs font-semibold text-[#111827]">
+                          <div className="text-[11px] font-semibold text-[#111827]">
                             {warehouse.city}, {warehouse.state}
                           </div>
 
-                          <div className="mt-0.5 max-w-[220px] text-[10px] leading-4 text-[#6B7280]">
+                          <div className="mt-0.5 max-w-[200px] truncate text-[10px] leading-4 text-[#6B7280]">
                             {warehouse.address_line_1}
                           </div>
 
-                          {warehouse.address_line_2 && (
-                            <div className="text-[10px] leading-4 text-[#6B7280]">
-                              {warehouse.address_line_2}
-                            </div>
-                          )}
-
-                          <div className="mt-1 text-[9px] font-semibold text-[#111827]">
+                          <div className="mt-0.5 text-[9px] font-semibold text-[#111827]">
                             PIN: {warehouse.pincode}
                           </div>
                         </div>
@@ -1373,21 +1390,21 @@ const Addwarehouse: React.FC = () => {
 
                     {/* CONTACT */}
 
-                    <td className="px-4 py-4">
-                      <div className="text-xs font-semibold text-[#111827]">
+                    <td className="px-4 py-2.5">
+                      <div className="text-[11px] font-semibold text-[#111827]">
                         {warehouse.contact_person}
                       </div>
 
-                      <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
-                        <FiPhone size={11} className="text-[#2D6FE8]" />
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+                        <FiPhone size={10} className="text-[#2D6FE8]" />
                         {warehouse.contact_number}
                       </div>
 
                       {warehouse.contact_email && (
-                        <div className="mt-1 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
-                          <FiMail size={11} className="text-[#2D6FE8]" />
+                        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
+                          <FiMail size={10} className="text-[#2D6FE8]" />
 
-                          <span className="max-w-[170px] truncate">
+                          <span className="max-w-[160px] truncate">
                             {warehouse.contact_email}
                           </span>
                         </div>
@@ -1396,28 +1413,28 @@ const Addwarehouse: React.FC = () => {
 
                     {/* CAPACITY */}
 
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="text-xs font-bold text-[#111827]">
                         {Number(
                           warehouse.total_capacity || 0,
                         ).toLocaleString("en-IN")}
                       </div>
 
-                      <div className="mt-1 text-[9px] uppercase tracking-[0.1em] text-[#6B7280]">
+                      <div className="mt-0.5 text-[9px] uppercase tracking-[0.1em] text-[#6B7280]">
                         Units
                       </div>
                     </td>
 
                     {/* HOURS */}
 
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiClock size={13} />
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiClock size={12} />
                         </div>
 
                         <div>
-                          <div className="text-xs font-semibold text-[#111827]">
+                          <div className="text-[11px] font-semibold text-[#111827]">
                             {normalizeTime(warehouse.opening_time)}
                             {" - "}
                             {normalizeTime(warehouse.closing_time)}
@@ -1432,32 +1449,30 @@ const Addwarehouse: React.FC = () => {
 
                     {/* STATUS */}
 
-                    <td className="px-4 py-4">
-                      <div className="flex flex-col items-start gap-1.5">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${
-                            warehouse.is_active
-                              ? "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
-                              : "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]"
-                          }`}
-                        >
-                          {warehouse.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </div>
+                    <td className="px-4 py-2.5">
+                      <span
+                        className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${
+                          warehouse.is_active
+                            ? "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
+                            : "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]"
+                        }`}
+                      >
+                        {warehouse.is_active ? "Active" : "Inactive"}
+                      </span>
                     </td>
 
                     {/* ACTION — PERMISSION BASED */}
 
                     {canUpdateWarehouse && (
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         <motion.button
                           type="button"
                           whileHover={{ y: -1 }}
                           whileTap={{ scale: 0.96 }}
                           onClick={() => openEditModal(warehouse)}
-                          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-[10px] font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-[10px] font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
                         >
-                          <FiEdit2 size={12} />
+                          <FiEdit2 size={11} />
                           Edit
                         </motion.button>
                       </td>

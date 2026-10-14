@@ -159,7 +159,7 @@ const StatusBadge = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${config.className}`}
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${config.className}`}
     >
       {config.label}
     </span>
@@ -209,7 +209,7 @@ const StockBadge = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${config.className}`}
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${config.className}`}
     >
       {config.label}
     </span>
@@ -388,7 +388,6 @@ const Productsaasignment: React.FC = () => {
 
   // =====================================================
   // SEARCH / FILTER RESET
-  // Reset page only when filters change.
   // =====================================================
 
   useEffect(() => {
@@ -698,6 +697,13 @@ const Productsaasignment: React.FC = () => {
   }
 
   // =====================================================
+  // COLUMN COUNT (with S.No.)
+  // =====================================================
+
+  const columnCount =
+    (selectionMode ? 1 : 0) + 9;
+
+  // =====================================================
   // RENDER
   // =====================================================
 
@@ -705,7 +711,7 @@ const Productsaasignment: React.FC = () => {
     <div className="min-h-screen bg-white p-4 font-poppins md:p-6">
       {/* HEADER */}
 
-      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#EAF3FF]">
@@ -716,11 +722,11 @@ const Productsaasignment: React.FC = () => {
             </div>
 
             <div>
-            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+              <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
                 All Products
               </h1>
 
-              <p className="mt-0.5 text-sm text-[#111827]">
+              <p className="text-sm text-[#111827]">
                 View, search and assign products to warehouses
               </p>
             </div>
@@ -807,7 +813,7 @@ const Productsaasignment: React.FC = () => {
 
       {/* FILTER CARD */}
 
-      <div className="mb-5 rounded-2xl border border-[#DCE6F2] bg-white p-3">
+      <div className="mb-4 rounded-2xl border border-[#DCE6F2] bg-white p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative flex-1">
             <Search
@@ -864,10 +870,10 @@ const Productsaasignment: React.FC = () => {
       {/* SELECTED INFO */}
 
       {selectionMode && (
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-4">
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-3">
           <div className="flex items-center gap-2">
             <Check
-              size={17}
+              size={16}
               className="text-[#2D6FE8]"
             />
 
@@ -889,11 +895,26 @@ const Productsaasignment: React.FC = () => {
 
       <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.04)]">
         <div className="overflow-x-auto">
-          <table className="min-w-[1200px] w-full">
+          <table className="min-w-[1080px] table-fixed w-full">
+            {/* ✅ COLUMN WIDTHS */}
+
+            <colgroup>
+              {selectionMode && <col style={{ width: "45px" }} />}
+              <col style={{ width: "55px" }} />
+              <col style={{ width: "260px" }} />
+              <col style={{ width: "120px" }} />
+              <col style={{ width: "130px" }} />
+              <col style={{ width: "120px" }} />
+              <col style={{ width: "140px" }} />
+              <col style={{ width: "110px" }} />
+              <col style={{ width: "120px" }} />
+              <col style={{ width: "120px" }} />
+            </colgroup>
+
             <thead>
               <tr className="bg-[#4F8FF7]">
                 {selectionMode && (
-                  <th className="w-12 px-4 py-4 text-left">
+                  <th className="px-3 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={allCurrentSelected}
@@ -901,40 +922,46 @@ const Productsaasignment: React.FC = () => {
                         toggleSelectAllCurrentPage
                       }
                       disabled={!products.length}
-                      className="h-4 w-4 cursor-pointer accent-[#2D6FE8]"
+                      className="h-3.5 w-3.5 cursor-pointer accent-white"
                     />
                   </th>
                 )}
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                {/* ✅ S.No. */}
+
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
+                  S.No.
+                </th>
+
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Product
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Code
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Category
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Retail Price
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Distributor Price
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Stock
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
-                  Product Status
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
+                  Status
                 </th>
 
-                <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wide text-white">
+                <th className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                   Stock Status
                 </th>
               </tr>
@@ -949,18 +976,22 @@ const Productsaasignment: React.FC = () => {
                       className="border-b border-[#DCE6F2]"
                     >
                       {selectionMode && (
-                        <td className="px-4 py-4">
-                          <div className="h-4 w-4 animate-pulse rounded bg-[#EAF3FF]" />
+                        <td className="px-3 py-3">
+                          <div className="h-3.5 w-3.5 animate-pulse rounded bg-[#EAF3FF]" />
                         </td>
                       )}
 
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-12 w-12 animate-pulse rounded-lg bg-[#EAF3FF]" />
+                      <td className="px-3 py-3">
+                        <div className="h-6 w-6 animate-pulse rounded-md bg-[#EAF3FF]" />
+                      </td>
 
-                          <div className="space-y-2">
-                            <div className="h-3 w-40 animate-pulse rounded bg-[#EAF3FF]" />
-                            <div className="h-3 w-24 animate-pulse rounded bg-[#F4F8FD]" />
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 animate-pulse rounded-lg bg-[#EAF3FF]" />
+
+                          <div className="space-y-1.5">
+                            <div className="h-3 w-32 animate-pulse rounded bg-[#EAF3FF]" />
+                            <div className="h-2.5 w-20 animate-pulse rounded bg-[#F4F8FD]" />
                           </div>
                         </div>
                       </td>
@@ -969,9 +1000,9 @@ const Productsaasignment: React.FC = () => {
                         (__, i) => (
                           <td
                             key={i}
-                            className="px-4 py-4"
+                            className="px-3 py-3"
                           >
-                            <div className="h-3 w-20 animate-pulse rounded bg-[#F4F8FD]" />
+                            <div className="h-3 w-16 animate-pulse rounded bg-[#F4F8FD]" />
                           </td>
                         ),
                       )}
@@ -981,7 +1012,7 @@ const Productsaasignment: React.FC = () => {
               ) : products.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={selectionMode ? 9 : 8}
+                    colSpan={columnCount}
                     className="px-6 py-16"
                   >
                     <div className="flex flex-col items-center justify-center text-center">
@@ -1003,7 +1034,7 @@ const Productsaasignment: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                products.map((product) => {
+                products.map((product, index) => {
                   const selected = isSelected(product.id);
                   const image = getProductImage(product);
 
@@ -1017,23 +1048,31 @@ const Productsaasignment: React.FC = () => {
                       }`}
                     >
                       {selectionMode && (
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3 align-top">
                           <input
                             type="checkbox"
                             checked={selected}
                             onChange={() =>
                               toggleProduct(product)
                             }
-                            className="h-4 w-4 cursor-pointer accent-[#2D6FE8]"
+                            className="mt-1.5 h-3.5 w-3.5 cursor-pointer accent-[#2D6FE8]"
                           />
                         </td>
                       )}
 
+                      {/* ✅ S.No. — starts from 1 on every page */}
+
+                      <td className="px-3 py-3 align-top">
+                        <span className="mt-1.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
+                          {index + 1}
+                        </span>
+                      </td>
+
                       {/* PRODUCT */}
 
-                      <td className="px-4 py-4">
-                        <div className="flex min-w-[250px] items-center gap-3">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-[#F4F8FD]">
+                      <td className="px-3 py-3 align-top">
+                        <div className="flex items-start gap-2.5">
+                          <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-[#F4F8FD]">
                             {image ? (
                               <img
                                 src={image}
@@ -1042,22 +1081,22 @@ const Productsaasignment: React.FC = () => {
                               />
                             ) : (
                               <ImageIcon
-                                size={18}
+                                size={14}
                                 className="text-[#6B7280]"
                               />
                             )}
                           </div>
 
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1 pt-0.5">
                             <p
-                              className="truncate text-sm font-semibold text-[#111827]"
+                              className="line-clamp-2 break-words text-[11px] font-semibold leading-4 text-[#111827]"
                               title={product.name}
                             >
                               {product.name}
                             </p>
 
                             {product.is_trending && (
-                              <span className="mt-1 inline-flex rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[10px] font-semibold text-[#A16207]">
+                              <span className="mt-1 inline-flex rounded-full bg-[#FEF9C3] px-1.5 py-0.5 text-[9px] font-semibold text-[#A16207]">
                                 Trending
                               </span>
                             )}
@@ -1067,16 +1106,16 @@ const Productsaasignment: React.FC = () => {
 
                       {/* CODE */}
 
-                      <td className="px-4 py-4">
-                        <span className="rounded-md bg-[#F4F8FD] px-2.5 py-1 font-mono text-xs font-semibold text-[#111827]">
+                      <td className="px-3 py-3 align-top">
+                        <span className="mt-1 inline-block rounded-md bg-[#F4F8FD] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#111827]">
                           {product.product_code || "-"}
                         </span>
                       </td>
 
                       {/* CATEGORY */}
 
-                      <td className="px-4 py-4">
-                        <span className="text-sm text-[#111827]">
+                      <td className="px-3 py-3 align-top">
+                        <span className="mt-1 inline-block text-[11px] text-[#111827]">
                           {product.category?.title ||
                             product.category?.name ||
                             "-"}
@@ -1085,9 +1124,9 @@ const Productsaasignment: React.FC = () => {
 
                       {/* RETAIL PRICE */}
 
-                      <td className="px-4 py-4">
-                        <div>
-                          <p className="text-sm font-bold text-[#111827]">
+                      <td className="px-3 py-3 align-top">
+                        <div className="mt-1">
+                          <p className="text-[11px] font-bold text-[#111827]">
                             {formatCurrency(
                               product.retail_price,
                             )}
@@ -1095,7 +1134,7 @@ const Productsaasignment: React.FC = () => {
 
                           {Number(product.retail_mrp) >
                             Number(product.retail_price) && (
-                            <p className="text-xs text-[#6B7280] line-through">
+                            <p className="text-[10px] text-[#6B7280] line-through">
                               {formatCurrency(
                                 product.retail_mrp,
                               )}
@@ -1106,9 +1145,9 @@ const Productsaasignment: React.FC = () => {
 
                       {/* DISTRIBUTOR PRICE */}
 
-                      <td className="px-4 py-4">
-                        <div>
-                          <p className="text-sm font-bold text-[#2D6FE8]">
+                      <td className="px-3 py-3 align-top">
+                        <div className="mt-1">
+                          <p className="text-[11px] font-bold text-[#2D6FE8]">
                             {formatCurrency(
                               product.distributor_price,
                             )}
@@ -1116,7 +1155,7 @@ const Productsaasignment: React.FC = () => {
 
                           {Number(product.distributor_mrp) >
                             Number(product.distributor_price) && (
-                            <p className="text-xs text-[#6B7280] line-through">
+                            <p className="text-[10px] text-[#6B7280] line-through">
                               {formatCurrency(
                                 product.distributor_mrp,
                               )}
@@ -1127,19 +1166,19 @@ const Productsaasignment: React.FC = () => {
 
                       {/* STOCK */}
 
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 py-3 align-top">
+                        <div className="mt-1 flex items-start gap-1.5">
                           <Boxes
-                            size={16}
-                            className="text-[#2D6FE8]"
+                            size={13}
+                            className="mt-0.5 text-[#2D6FE8]"
                           />
 
                           <div>
-                            <p className="text-sm font-bold text-[#111827]">
+                            <p className="text-[11px] font-bold text-[#111827]">
                               {product.stock_quantity ?? 0}
                             </p>
 
-                            <p className="text-[10px] text-[#6B7280]">
+                            <p className="text-[9px] text-[#6B7280]">
                               Min: {product.low_stock_threshold ?? 0}
                             </p>
                           </div>
@@ -1148,23 +1187,26 @@ const Productsaasignment: React.FC = () => {
 
                       {/* PRODUCT STATUS */}
 
-                      <td className="px-4 py-4">
-                        <StatusBadge
-                          status={
-                            (product.status ??
-                              (product.is_published
-                                ? "active"
-                                : "inactive")) as Product["status"]
-                          }
-                        />
+                      <td className="px-3 py-3 align-top">
+                        <div className="mt-1.5">
+                          <StatusBadge
+                            status={
+                              (product.status ??
+                                (product.is_published
+                                  ? "active"
+                                  : "inactive")) as Product["status"]
+                            }
+                          />
+                        </div>
                       </td>
 
                       {/* STOCK STATUS */}
 
-                      <td className="px-4 py-4">
-                        <StockBadge
-                          status={product.stock_status}
-                        />
+                      <td className="px-3 py-3 align-top">
+                        <div className="mt-1.5">
+                          <StockBadge                            status={product.stock_status}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1177,7 +1219,7 @@ const Productsaasignment: React.FC = () => {
         {/* PAGINATION */}
 
         {!loading && products.length > 0 && (
-          <div className="flex flex-col gap-3 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs font-medium text-[#6B7280]">
               {paginationText}
             </p>
@@ -1191,12 +1233,12 @@ const Productsaasignment: React.FC = () => {
                     Math.max(1, page - 1),
                   )
                 }
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={15} />
               </button>
 
-              <div className="flex h-9 min-w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-3 text-xs font-bold text-white">
+              <div className="flex h-8 min-w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-3 text-xs font-bold text-white">
                 {currentPage}
               </div>
 
@@ -1208,9 +1250,9 @@ const Productsaasignment: React.FC = () => {
                     Math.min(lastPage, page + 1),
                   )
                 }
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={15} />
               </button>
             </div>
           </div>
@@ -1309,7 +1351,7 @@ const Productsaasignment: React.FC = () => {
               {/* PRODUCTS */}
 
               <div className="rounded-xl border border-[#DCE6F2] bg-[#F8FBFF]">
-                <div className="border-b border-[#DCE6F2] px-4 py-4">
+                <div className="border-b border-[#DCE6F2] px-4 py-3">
                   <h3 className="text-sm font-bold text-[#111827]">
                     Selected Products
                   </h3>
@@ -1319,11 +1361,11 @@ const Productsaasignment: React.FC = () => {
                   {selectedProducts.map((product) => (
                     <div
                       key={product.id}
-                      className="bg-white px-4 py-4"
+                      className="bg-white px-4 py-3"
                     >
                       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-[#F4F8FD]">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-[#F4F8FD]">
                             {getProductImage(product) ? (
                               <img
                                 src={getProductImage(product)}
@@ -1332,7 +1374,7 @@ const Productsaasignment: React.FC = () => {
                               />
                             ) : (
                               <Package
-                                size={17}
+                                size={16}
                                 className="text-[#6B7280]"
                               />
                             )}
@@ -1387,7 +1429,7 @@ const Productsaasignment: React.FC = () => {
 
             {/* FOOTER */}
 
-            <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
+            <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 disabled={assignLoading}

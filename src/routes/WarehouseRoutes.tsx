@@ -17,7 +17,6 @@ import Productsaasignment from "@/pages/Warehouse/Productsaasignment";
 
 import ScrollToTop from "../ScrollToTop";
 import WarehouseLayout from "@/components/layout/WarehouseLayout";
-import Orders from "@/pages/orders";
 import WarehouseProducts from "@/pages/Warehouse/WarehouseProducts";
 import Inventorywarehouse from "@/pages/Warehouse/Inventorywarehouse";
 
@@ -71,7 +70,7 @@ export const warehouseRouter = createBrowserRouter(
             { path: "Addwarehouse", element: <Addwarehouse /> },
             { path: "Productsaasignment", element: <Productsaasignment /> },
 
-            { path: "warehouse/orders", element: <Orders /> },
+
 
       
             // ── Products ──

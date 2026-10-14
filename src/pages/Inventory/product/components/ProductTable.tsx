@@ -1,8 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-
 import {
-  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
   FiEdit2,
@@ -11,1227 +8,707 @@ import {
   FiPackage,
   FiStar,
   FiTrash2,
+  FiTrendingUp,
+  FiTag,
   FiX,
   FiZoomIn,
 } from "react-icons/fi";
 
 import type { Product } from "@/types/product";
-
 import GlobalModal from "@/components/common/GlobalModal";
-
-// =====================================================
-// PROPS
-// =====================================================
 
 interface ProductTableProps {
   products: Product[];
   loading: boolean;
-
   currentPage: number;
   totalPages: number;
   totalEntries: number;
   startEntry: number;
   endEntry: number;
-
   onPageChange: (page: number) => void;
   onEdit: (product: Product) => void;
   onView: (product: Product) => void;
-
-  onTrendingToggle: (
-    product: Product,
-    checked: boolean,
-  ) => void;
-
+  onTrendingToggle: (product: Product, checked: boolean) => void;
   trendingLoadingId: number | null;
-
-  onDealToggle: (
-    product: Product,
-    checked: boolean,
-  ) => void;
-
+  onDealToggle: (product: Product, checked: boolean) => void;
   dealLoadingId: number | null;
-
-  onPublishToggle: (
-    product: Product,
-    isPublished: boolean,
-  ) => void;
-
+  onBestSellerToggle: (product: Product, checked: boolean) => void;
+  bestSellerLoadingId: number | null;
+  onPublishToggle: (product: Product, isPublished: boolean) => void;
   publishLoadingId: number | null;
-
-  onSetPrimaryImage?: (
-    product: Product,
-    imageId: number,
-  ) => void;
-
+  onSetPrimaryImage?: (product: Product, imageId: number) => void;
   setPrimaryLoadingId?: number | null;
-
   onDelete?: (product: Product) => void;
-
   canView?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
   canPublish?: boolean;
   canToggleTrending?: boolean;
   canToggleDeal?: boolean;
+  canToggleBestSeller?: boolean;
   canSetPrimaryImage?: boolean;
+  highlightedProductId?: number | null;
 }
 
-// =====================================================
-// CONSTANTS
-// =====================================================
-
 const ITEMS_PER_PAGE = 10;
+type FlagValue = boolean | number | string | null | undefined;
 
-// =====================================================
-// BOOLEAN / NUMBER FLAG
-// =====================================================
+const isEnabled = (value: FlagValue): boolean =>
+  value === true || value === 1 || value === "1" || (typeof value === "string" && value.toLowerCase() === "true");
 
-const isEnabled = (value: unknown): boolean => {
-  return (
-    value === true ||
-    value === 1 ||
-    value === "1" ||
-    (typeof value === "string" &&
-      value.toLowerCase() === "true")
-  );
+const getProductFlag = (product: Product, key: string): boolean =>
+  isEnabled((product as any)?.[key] as FlagValue);
+
+const isPrimaryImage = (image: { is_primary?: FlagValue }) => isEnabled(image?.is_primary);
+
+const isPrimaryProduct = (product: Product): boolean => {
+  const productFlag = (product as Product & { is_primary?: FlagValue }).is_primary;
+  if (productFlag !== undefined && productFlag !== null) return isEnabled(productFlag);
+  return (product.images ?? []).some(isPrimaryImage);
 };
 
-// =====================================================
-// PRIMARY IMAGE STATUS
-// =====================================================
-
-const isPrimaryImage = (
-  image: { is_primary?: boolean | number | string },
-): boolean => {
-  return isEnabled(image?.is_primary);
-};
-
-// =====================================================
-// PRODUCT PRIMARY STATUS
-//
-// API example:
-// { is_primary: 1 }  => yellow star
-// { is_primary: 0 }  => grey star
-//
-// If the product-level field is missing,
-// check the image-level primary status.
-// =====================================================
-
-const isPrimaryProduct = (
-  product: Product,
-): boolean => {
-  const productWithPrimary = product as Product & {
-    is_primary?: boolean | number | string | null;
-  };
-
-  const productPrimary = productWithPrimary.is_primary;
-
-  if (
-    productPrimary !== undefined &&
-    productPrimary !== null
-  ) {
-    return isEnabled(productPrimary);
-  }
-
-  return (product.images ?? []).some((image) =>
-    isPrimaryImage(image),
-  );
-};
-
-// =====================================================
-// PUBLISH STATUS
-// =====================================================
-
-const getPublishStatusClass = (
-  published: boolean,
-) => {
-  return published
+const publishClass = (published: boolean) =>
+  published
     ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
     : "border-[#D6E2F0] bg-[#F3F6FB] text-[#6B7280]";
+
+const stockClass = (stock: number, threshold: number) => {
+  if (stock <= 0) return "border-red-200 bg-red-50 text-red-600";
+  if (stock <= threshold) return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-blue-100 bg-blue-50 text-blue-700";
 };
-
-// =====================================================
-// STOCK STATUS
-// =====================================================
-
-const getStockClass = (
-  isLowStock: boolean,
-  stock: number,
-) => {
-  if (stock <= 0) {
-    return "border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]";
-  }
-
-  if (isLowStock) {
-    return "border-[#FACC15]/45 bg-[#FEF9C3] text-[#A16207]";
-  }
-
-  return "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]";
-};
-
-// =====================================================
-// BODY SCROLL LOCK RESET
-// =====================================================
 
 const resetBodyScrollLock = () => {
   if (typeof document === "undefined") return;
-
   document.body.style.overflow = "";
   document.body.style.overflowY = "";
   document.body.style.paddingRight = "";
-
   document.documentElement.style.overflow = "";
 };
 
-// =====================================================
-// COMPONENT
-// =====================================================
+interface SlimSwitchProps {
+  checked: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+  title: string;
+  onChange: (checked: boolean) => void;
+  activeColor?: "blue" | "teal" | "yellow";
+}
+
+/** Small, thin toggle used in the table and mobile product cards. */
+const SlimSwitch: React.FC<SlimSwitchProps> = ({
+  checked,
+  disabled = false,
+  loading = false,
+  title,
+  onChange,
+  activeColor = "blue",
+}) => {
+  const activeTrack =
+    activeColor === "teal"
+      ? "border-teal-600 bg-teal-500"
+      : activeColor === "yellow"
+        ? "border-amber-500 bg-amber-400"
+        : "border-[#2D6FE8] bg-[#3B82F6]";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={title}
+      title={title}
+      disabled={disabled || loading}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border p-[2px] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20 disabled:cursor-not-allowed disabled:opacity-60 ${checked ? activeTrack : "border-[#D6E2F0] bg-[#EEF2F9]"
+        }`}
+    >
+      <span
+        className={`block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? "translate-x-[16px]" : "translate-x-0"
+          }`}
+      />
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-white/65">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#2D6FE8]/25 border-t-[#2D6FE8]" />
+        </span>
+      )}
+    </button>
+  );
+};
 
 const ProductTable: React.FC<ProductTableProps> = ({
   products,
   loading,
-
   currentPage,
   totalPages,
   totalEntries,
   startEntry,
   endEntry,
-
   onPageChange,
   onEdit,
   onView,
-
   onTrendingToggle,
   trendingLoadingId,
-
   onDealToggle,
   dealLoadingId,
-
+  onBestSellerToggle,
+  bestSellerLoadingId,
   onPublishToggle,
   publishLoadingId,
-
   onSetPrimaryImage,
   setPrimaryLoadingId = null,
-
   onDelete,
-
   canView = true,
   canEdit = false,
   canDelete = false,
   canPublish = false,
   canToggleTrending = false,
   canToggleDeal = false,
+  canToggleBestSeller = false,
   canSetPrimaryImage = false,
+  highlightedProductId = null,
 }) => {
-  // ===================================================
-  // ACTIONS
-  // ===================================================
+  const [zoomedImage, setZoomedImage] = useState<{ url: string; name: string } | null>(null);
+  const safeTotalPages = Math.max(1, Number(totalPages) || 1);
+  const hasAnyAction = canView || canEdit || canDelete;
 
-  const hasAnyAction =
-    canView || canEdit || canDelete;
-
-  // ===================================================
-  // IMAGE ZOOM STATE
-  // ===================================================
-
-  const [zoomedImage, setZoomedImage] =
-    useState<{
-      url: string;
-      name: string;
-    } | null>(null);
-
-  // ===================================================
-  // NORMALIZE TOTAL PAGES
-  // ===================================================
-
-  const normalizedTotalPages = Math.max(
-    1,
-    Number(totalPages) || 1,
-  );
-
-  // ===================================================
-  // PAGINATION
-  // ===================================================
-
-  const getPaginationPages = () => {
-    if (normalizedTotalPages <= 5) {
-      return Array.from(
-        { length: normalizedTotalPages },
-        (_, index) => index + 1,
-      );
-    }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
-    if (
-      currentPage >=
-      normalizedTotalPages - 2
-    ) {
-      return [
-        normalizedTotalPages - 4,
-        normalizedTotalPages - 3,
-        normalizedTotalPages - 2,
-        normalizedTotalPages - 1,
-        normalizedTotalPages,
-      ];
-    }
-
-    return [
-      currentPage - 2,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
-  };
-
-  const paginationPages = getPaginationPages();
-
-  // ===================================================
-  // IMAGE ZOOM
-  // ===================================================
-
-  const handleImageClick = (
-    imageUrl: string,
-    productName: string,
-  ) => {
-    if (!imageUrl) return;
-
-    setZoomedImage({
-      url: imageUrl,
-      name: productName,
-    });
-  };
-
-  const handleCloseZoom = () => {
-    setZoomedImage(null);
-  };
-
-  // ===================================================
-  // ESCAPE KEY
-  // ===================================================
+  const paginationPages = safeTotalPages <= 5
+    ? Array.from({ length: safeTotalPages }, (_, i) => i + 1)
+    : currentPage <= 3
+      ? [1, 2, 3, 4, 5]
+      : currentPage >= safeTotalPages - 2
+        ? [safeTotalPages - 4, safeTotalPages - 3, safeTotalPages - 2, safeTotalPages - 1, safeTotalPages]
+        : [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
 
   useEffect(() => {
-    const handleEsc = (
-      event: KeyboardEvent,
-    ) => {
-      if (event.key === "Escape") {
-        handleCloseZoom();
-      }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setZoomedImage(null);
     };
-
-    document.addEventListener(
-      "keydown",
-      handleEsc,
-    );
-
-    return () => {
-      document.removeEventListener(
-        "keydown",
-        handleEsc,
-      );
-    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // ===================================================
-  // LOCK SCROLL WHEN ZOOMED
-  // ===================================================
-
   useEffect(() => {
-    if (zoomedImage) {
-      document.body.style.overflow = "hidden";
-    } else {
-      resetBodyScrollLock();
-    }
-
-    return () => {
-      resetBodyScrollLock();
-    };
+    if (zoomedImage) document.body.style.overflow = "hidden";
+    else resetBodyScrollLock();
+    return () => resetBodyScrollLock();
   }, [zoomedImage]);
 
-  // ===================================================
-  // TABLE COLUMN COUNT
-  //
-  // 7 normal columns:
-  // S.No, Image, Product, SKU, Retail Price, Stock, Status
-  //
-  // + Primary column
-  // + optional Trending
-  // + optional Deal of Day
-  // + optional Actions
-  // ===================================================
+  const openZoom = (url?: string, name?: string) => {
+    if (url) setZoomedImage({ url, name: name || "Product image" });
+  };
 
-  const totalColumns =
-    8 +
-    (canToggleTrending ? 1 : 0) +
-    (canToggleDeal ? 1 : 0) +
-    (hasAnyAction ? 1 : 0);
+  const renderActions = (product: Product, compact = false) => (
+    <div className={`flex items-center ${compact ? "gap-1.5" : "justify-center gap-1"}`}>
+      {canView && (
+        <button type="button" onClick={() => onView(product)} title="View product" className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-blue-50 text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white">
+          <FiEye size={14} />
+        </button>
+      )}
+      {canEdit && (
+        <button type="button" onClick={() => onEdit(product)} title="Edit product" className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white">
+          <FiEdit2 size={14} />
+        </button>
+      )}
+      {canDelete && (
+        <button type="button" onClick={() => onDelete?.(product)} title="Delete product" className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:bg-red-600 hover:text-white">
+          <FiTrash2 size={14} />
+        </button>
+      )}
+    </div>
+  );
 
-  // ===================================================
-  // RENDER
-  // ===================================================
-
+  const renderLoadingOrEmpty = () => (
+    <div className="flex flex-col items-center justify-center px-5 py-14 text-center">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+        {loading ? <FiPackage className="animate-pulse" size={22} /> : <FiPackage size={22} />}
+      </div>
+      <p className="text-sm font-semibold text-slate-900">{loading ? "Loading products..." : "No products found"}</p>
+      <p className="mt-1 max-w-sm text-xs text-slate-500">{loading ? "Please wait while we fetch your product inventory." : "There are no products matching your current search or filter."}</p>
+    </div>
+  );
   return (
     <>
-      {/* =================================================
-          PRODUCT TABLE
-      ================================================= */}
+      {/* Same table on desktop, tablet and mobile.
+          Narrow screens par horizontal scroll aayega. */}
+      <div className="w-full max-w-full overflow-x-auto overscroll-x-contain bg-white">
+        <table className="w-full min-w-[1120px] table-fixed border-collapse">
+          <colgroup>
+            <col style={{ width: "4%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "17%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "10%" }} />
 
-      <div className="overflow-hidden bg-white font-poppins">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1220px] table-fixed border-collapse">
-            {/* =================================================
-                COLUMN WIDTHS
-            ================================================= */}
+            {canToggleTrending && <col style={{ width: "7%" }} />}
 
-            <colgroup>
-              <col className="w-[55px]" />
-              <col className="w-[90px]" />
-              <col className="w-[200px]" />
-              <col className="w-[130px]" />
-              <col className="w-[110px]" />
-              <col className="w-[95px]" />
-              <col className="w-[130px]" />
+            <col style={{ width: "7%" }} />
+
+            {canToggleBestSeller && <col style={{ width: "8%" }} />}
+
+            {canToggleDeal && <col style={{ width: "8%" }} />}
+
+            {hasAnyAction && <col style={{ width: "10%" }} />}
+          </colgroup>
+
+          <thead>
+            <tr className="bg-[#4F8FF7] text-left">
+              {[
+                "S.No",
+                "Image",
+                "Product",
+                "SKU",
+                "Retail Price",
+                "Stock",
+                "Status",
+              ].map((title) => (
+                <th
+                  key={title}
+                  className="whitespace-nowrap px-3 py-3.5 text-[11px] font-bold uppercase tracking-wide text-white"
+                >
+                  {title}
+                </th>
+              ))}
 
               {canToggleTrending && (
-                <col className="w-[85px]" />
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                  Trending
+                </th>
               )}
 
-              {/* PRIMARY COLUMN — BEFORE DEAL OF DAY */}
+              <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                Primary
+              </th>
 
-              <col className="w-[75px]" />
+              {canToggleBestSeller && (
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                  Best Seller
+                </th>
+              )}
 
               {canToggleDeal && (
-                <col className="w-[90px]" />
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                  Deal of Day
+                </th>
               )}
 
               {hasAnyAction && (
-                <col className="w-[160px]" />
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                  Actions
+                </th>
               )}
-            </colgroup>
+            </tr>
+          </thead>
 
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
-            <thead>
-              <tr className="bg-[#4F8FF7] text-left">
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  S.No
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  Image
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  Product
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  SKU
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  Retail Price
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  Stock
-                </th>
-
-                <th className="whitespace-nowrap px-3 py-3.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                  Status
-                </th>
-
-                {/* TRENDING */}
-
-                {canToggleTrending && (
-                  <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                    Trending
-                  </th>
-                )}
-
-                {/* PRIMARY — BEFORE DEAL OF DAY */}
-
-                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                  Primary
-                </th>
-
-                {/* DEAL OF DAY */}
-
-                {canToggleDeal && (
-                  <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                    Deal of Day
-                  </th>
-                )}
-
-                {/* ACTIONS */}
-
-                {hasAnyAction && (
-                  <th className="whitespace-nowrap px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                    Actions
-                  </th>
-                )}
+          <tbody>
+            {loading || products.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={
+                    8 +
+                    Number(canToggleTrending) +
+                    Number(canToggleBestSeller) +
+                    Number(canToggleDeal) +
+                    Number(hasAnyAction)
+                  }
+                >
+                  {renderLoadingOrEmpty()}
+                </td>
               </tr>
-            </thead>
+            ) : (
+              products.map((product, index) => {
+                const rowNumber =
+                  (currentPage - 1) * ITEMS_PER_PAGE + index + 1;
 
-            {/* =================================================
-                TABLE BODY
-            ================================================= */}
+                const images = product.images ?? [];
+                const image =
+                  images.find(isPrimaryImage) ?? images[0];
 
-            <tbody>
-              {/* LOADING */}
+                const primaryImage = image;
+                const isPrimary = isPrimaryProduct(product);
+                const isPrimaryLoading =
+                  setPrimaryLoadingId === product.id;
 
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={totalColumns}
-                    className="px-5 py-16 text-center"
+                const stock = Number(product.stock_quantity || 0);
+                const threshold = Number(
+                  product.low_stock_threshold || 0
+                );
+
+                const published = getProductFlag(
+                  product,
+                  "is_published"
+                );
+
+                const publishing =
+                  publishLoadingId === product.id;
+
+                const isHighlighted =
+                  highlightedProductId === product.id;
+
+                return (
+                  <tr
+                    key={product.id}
+                    className={`border-b border-[#DCE6F2] transition-colors hover:bg-[#F7FAFF] ${isHighlighted ? "bg-amber-50" : "bg-white"
+                      }`}
                   >
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="mb-4 flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                        <FiPackage size={22} />
-                      </div>
+                    {/* S.No */}
+                    <td className="px-3 py-3.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-[11px] font-bold text-[#2D6FE8]">
+                        {rowNumber}
+                      </span>
+                    </td>
 
-                      <p className="text-sm font-bold text-[#111827]">
-                        Loading products...
-                      </p>
-
-                      <p className="mt-1 text-xs text-[#6B7280]">
-                        Please wait while we fetch your product inventory.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
-                /* EMPTY */
-
-                <tr>
-                  <td
-                    colSpan={totalColumns}
-                    className="px-5 py-16 text-center"
-                  >
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-[#EAF3FF] text-[#2D6FE8]">
-                        <FiPackage size={24} />
-                      </div>
-
-                      <p className="text-sm font-bold text-[#111827]">
-                        No products found
-                      </p>
-
-                      <p className="mt-1 max-w-sm text-xs text-[#6B7280]">
-                        There are no products matching your current search or
-                        filter.
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                /* PRODUCTS */
-
-                products.map((product, index) => {
-                  const serialNumber =
-                    (currentPage - 1) *
-                      ITEMS_PER_PAGE +
-                    index +
-                    1;
-
-                  const images = product.images ?? [];
-
-                  const primaryImage =
-                    images.find((image) =>
-                      isPrimaryImage(image),
-                    ) ?? images[0];
-
-                  const stock = Number(
-                    product.stock_quantity || 0,
-                  );
-
-                  const lowStockThreshold = Number(
-                    product.low_stock_threshold || 0,
-                  );
-
-                  const isLowStock =
-                    stock <= lowStockThreshold;
-
-                  // ==============================
-                  // PUBLISH STATUS
-                  // ==============================
-
-                  const isPublished = isEnabled(
-                    (
-                      product as Product & {
-                        is_published?:
-                          | boolean
-                          | number
-                          | string;
-                      }
-                    ).is_published,
-                  );
-
-                  const isPublishLoading =
-                    publishLoadingId === product.id;
-
-                  // ==============================
-                  // TRENDING STATUS
-                  // ==============================
-
-                  const isTrending = isEnabled(
-                    (
-                      product as Product & {
-                        is_trending?:
-                          | boolean
-                          | number
-                          | string;
-                      }
-                    ).is_trending,
-                  );
-
-                  const isTrendingLoading =
-                    trendingLoadingId === product.id;
-
-                  // ==============================
-                  // PRIMARY STATUS
-                  //
-                  // Reads product.is_primary first.
-                  // If missing, falls back to image status.
-                  // ==============================
-
-                  const isPrimary =
-                    isPrimaryProduct(product);
-
-                  const isSetPrimaryLoading =
-                    setPrimaryLoadingId ===
-                    product.id;
-
-                  const canSetThisPrimary =
-                    canSetPrimaryImage &&
-                    Boolean(onSetPrimaryImage) &&
-                    Boolean(primaryImage);
-
-                  // ==============================
-                  // DEAL OF THE DAY
-                  // ==============================
-
-                  const isDealOfTheDay = isEnabled(
-                    (
-                      product as Product & {
-                        is_deal_of_the_day?:
-                          | boolean
-                          | number
-                          | string;
-                      }
-                    ).is_deal_of_the_day,
-                  );
-
-                  const isDealLoading =
-                    dealLoadingId === product.id;
-
-                  return (
-                    <tr
-                      key={product.id}
-                      className="group border-b border-[#2D6FE8]/10 bg-white transition-colors duration-200 hover:bg-[#F4F8FD]"
-                    >
-                      {/* S.NO */}
-
-                      <td className="px-3 py-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                          {serialNumber}
-                        </span>
-                      </td>
-
-                      {/* IMAGE */}
-
-                      <td className="px-3 py-3">
-                        {primaryImage ? (
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={() =>
-                              handleImageClick(
-                                primaryImage.image_url,
-                                product.name,
-                              )
-                            }
-                            onKeyDown={(event) => {
-                              if (
-                                event.key === "Enter" ||
-                                event.key === " "
-                              ) {
-                                event.preventDefault();
-
-                                handleImageClick(
-                                  primaryImage.image_url,
-                                  product.name,
-                                );
-                              }
-                            }}
-                            className="relative h-[48px] w-[48px] cursor-zoom-in overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-0.5 transition-all duration-200 group-hover:border-[#2D6FE8]/35 group-hover:shadow-lg"
-                            title="Click to zoom image"
-                          >
-                            <img
-                              src={primaryImage.image_url}
-                              alt={product.name}
-                              className="h-full w-full rounded-[9px] object-cover transition-transform duration-300 group-hover:scale-105"
-                              onError={(event) => {
-                                (
-                                  event.target as HTMLImageElement
-                                ).style.opacity = "0.15";
-                              }}
-                            />
-
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-                              <FiZoomIn
-                                size={18}
-                                className="scale-0 text-white opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex h-[48px] w-[48px] items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]">
-                            <FiImage size={21} />
-                          </div>
-                        )}
-                      </td>
-
-                      {/* PRODUCT NAME */}
-
-                      <td className="px-3 py-3">
-                        <div className="w-full min-w-0">
-                          <p
-                            className="truncate text-sm font-bold text-[#111827]"
-                            title={product.name}
-                          >
-                            {product.name}
-                          </p>
-
-                          <p
-                            className="mt-1 truncate text-[10px] leading-5 text-[#6B7280]"
-                            title={
-                              product.description ?? ""
-                            }
-                          >
-                            {product.description ||
-                              "No description available"}
-                          </p>
-                        </div>
-                      </td>
-
-                      {/* SKU */}
-
-                      <td className="px-3 py-3">
-                        <span
-                          className="inline-block max-w-full truncate rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold tracking-wide text-[#111827]"
-                          title={product.product_code || "-"}
+                    {/* Product Image */}
+                    <td className="px-3 py-3.5">
+                      {image ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openZoom(image.image_url, product.name)
+                          }
+                          title="Zoom product image"
+                          className="group relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
                         >
-                          {product.product_code || "-"}
+                          <img
+                            src={image.image_url}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white transition group-hover:bg-black/35">
+                            <FiZoomIn
+                              className="opacity-0 group-hover:opacity-100"
+                              size={16}
+                            />
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400">
+                          <FiImage size={19} />
                         </span>
-                      </td>
+                      )}
+                    </td>
 
-                      {/* RETAIL PRICE */}
+                    {/* Product Name & Description */}
+                    <td className="px-3 py-3.5">
+                      <p
+                        className="truncate text-[12px] font-semibold text-slate-900"
+                        title={product.name}
+                      >
+                        {product.name}
+                      </p>
 
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[11px] font-bold text-[#2D6FE8]">
-                            ₹
-                          </span>
+                      <p
+                        className="mt-1 truncate text-[11px] leading-4 text-slate-500"
+                        title={product.description || ""}
+                      >
+                        {product.description || "No description"}
+                      </p>
+                    </td>
 
-                          <span className="truncate text-sm font-bold text-[#111827]">
-                            {Number(
-                              product.retail_price || 0,
-                            ).toLocaleString("en-IN")}
-                          </span>
-                        </div>
-                      </td>
+                    {/* SKU */}
+                    <td className="px-3 py-3.5">
+                      <span
+                        className="block truncate rounded-md bg-slate-50 px-2 py-1.5 font-mono text-[11px] text-slate-700"
+                        title={product.product_code || "-"}
+                      >
+                        {product.product_code || "-"}
+                      </span>
+                    </td>
 
-                      {/* STOCK */}
+                    {/* Retail Price */}
+                    <td className="whitespace-nowrap px-3 py-3.5">
+                      <span className="text-[12px] font-bold text-slate-900">
+                        ₹
+                        {Number(
+                          product.retail_price || 0
+                        ).toLocaleString("en-IN")}
+                      </span>
+                    </td>
 
-                      <td className="px-3 py-3">
-                        <span
-                          className={`inline-flex min-w-[55px] items-center justify-center rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStockClass(
-                            isLowStock,
-                            stock,
+                    {/* Stock */}
+                    <td className="px-3 py-3.5">
+                      <span
+                        className={`inline-flex min-w-10 justify-center whitespace-nowrap rounded-full border px-2 py-1.5 text-[11px] font-semibold ${stockClass(
+                          stock,
+                          threshold
+                        )}`}
+                      >
+                        {stock <= 0 ? "Out" : stock}
+                      </span>
+                    </td>
+
+                    {/* Publishing Status */}
+                    <td className="px-3 py-3.5">
+                      {canPublish ? (
+                        <select
+                          value={
+                            published ? "published" : "unpublished"
+                          }
+                          disabled={publishing}
+                          onChange={(event) =>
+                            onPublishToggle(
+                              product,
+                              event.target.value === "published"
+                            )
+                          }
+                          className={`h-8 w-full rounded-full border px-2 text-[10px] font-bold outline-none disabled:opacity-60 ${publishClass(
+                            published
                           )}`}
                         >
-                          {stock <= 0 ? "Out" : stock}
+                          <option value="published">
+                            Published
+                          </option>
+                          <option value="unpublished">
+                            Unpublished
+                          </option>
+                        </select>
+                      ) : (
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1.5 text-[10px] font-bold ${publishClass(
+                            published
+                          )}`}
+                        >
+                          {published ? "Published" : "Unpublished"}
                         </span>
-                      </td>
-
-                      {/* STATUS */}
-
-                      <td className="px-3 py-3">
-                        {canPublish ? (
-                          <div className="relative inline-block w-full">
-                            <select
-                              value={
-                                isPublished
-                                  ? "published"
-                                  : "unpublished"
-                              }
-                              disabled={isPublishLoading}
-                              onChange={(event) => {
-                                const nextPublished =
-                                  event.target.value ===
-                                  "published";
-
-                                if (
-                                  nextPublished !==
-                                  isPublished
-                                ) {
-                                  onPublishToggle(
-                                    product,
-                                    nextPublished,
-                                  );
-                                }
-                              }}
-                              className={`h-8 w-full appearance-none rounded-full border py-1.5 pl-3 pr-8 text-[10px] font-bold uppercase tracking-wide outline-none transition-all disabled:cursor-not-allowed disabled:opacity-60 ${getPublishStatusClass(
-                                isPublished,
-                              )} focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10`}
-                            >
-                              <option value="published">
-                                Published
-                              </option>
-
-                              <option value="unpublished">
-                                Unpublished
-                              </option>
-                            </select>
-
-                            <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center justify-center">
-                              {isPublishLoading ? (
-                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current/25 border-t-current" />
-                              ) : (
-                                <FiChevronDown
-                                  size={14}
-                                  strokeWidth={2.5}
-                                />
-                              )}
-                            </span>
-                          </div>
-                        ) : (
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getPublishStatusClass(
-                              isPublished,
-                            )}`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-
-                            {isPublished
-                              ? "Published"
-                              : "Unpublished"}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* TRENDING */}
-
-                      {canToggleTrending && (
-                        <td className="px-3 py-3">
-                          <div className="flex justify-center">
-                            <label
-                              className={`relative inline-flex items-center ${
-                                isTrendingLoading
-                                  ? "cursor-wait"
-                                  : "cursor-pointer"
-                              }`}
-                              title={
-                                isTrending
-                                  ? "Remove from Trending"
-                                  : "Add to Trending"
-                              }
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isTrending}
-                                disabled={isTrendingLoading}
-                                onChange={(event) =>
-                                  onTrendingToggle(
-                                    product,
-                                    event.target.checked,
-                                  )
-                                }
-                                className="peer sr-only"
-                              />
-
-                              <div
-                                className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
-                                  isTrending
-                                    ? "border-[#2D6FE8] bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
-                                    : "border-[#D6E2F0] bg-[#EEF2F9]"
-                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#2D6FE8]/20`}
-                              >
-                                <span
-                                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                                    isTrending
-                                      ? "left-[23px]"
-                                      : "left-[3px]"
-                                  }`}
-                                />
-                              </div>
-
-                              {isTrendingLoading && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#2D6FE8]/25 border-t-[#2D6FE8]" />
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                        </td>
                       )}
+                    </td>
 
-                      {/* =================================================
-                          PRIMARY STAR COLUMN
-                          PLACED BEFORE DEAL OF DAY
-
-                          is_primary = 1 / true:
-                          Yellow filled star + yellow glow
-
-                          is_primary = 0 / false:
-                          Grey outline star
-                      ================================================= */}
-
-                      <td className="px-2 py-3">
+                    {/* Trending */}
+                    {canToggleTrending && (
+                      <td className="px-2 py-3.5">
                         <div className="flex justify-center">
-                          {canSetThisPrimary ? (
-                            <button
-                              type="button"
-                              disabled={
-                                isPrimary ||
-                                isSetPrimaryLoading
-                              }
-                              onClick={() => {
-                                if (
-                                  !primaryImage ||
-                                  isPrimary
-                                ) {
-                                  return;
-                                }
-
-                                onSetPrimaryImage?.(
-                                  product,
-                                  primaryImage.id,
-                                );
-                              }}
-                              className={`flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200 ${
-                                isPrimary
-                                  ? "cursor-default border-[#FACC15]/60 bg-[#FEF9C3]"
-                                  : "border-[#D6E2F0] bg-[#F3F6FB] hover:border-[#FACC15] hover:bg-[#FEF9C3]"
-                              } disabled:opacity-100`}
-                              title={
-                                isPrimary
-                                  ? "This product is primary"
-                                  : "Set primary image"
-                              }
-                            >
-                              {isSetPrimaryLoading ? (
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#FACC15]/30 border-t-[#A16207]" />
-                              ) : (
-                                <FiStar
-                                  size={18}
-                                  className={
-                                    isPrimary
-                                      ? "fill-[#FACC15] text-[#FACC15] drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
-                                      : "fill-transparent text-[#9CA3AF] transition-all duration-200 hover:fill-[#FACC15] hover:text-[#FACC15] hover:drop-shadow-[0_0_5px_rgba(250,204,21,0.7)]"
-                                  }
-                                />
-                              )}
-                            </button>
-                          ) : (
-                            <span
-                              className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
-                                isPrimary
-                                  ? "border-[#FACC15]/60 bg-[#FEF9C3]"
-                                  : "border-[#D6E2F0] bg-[#F3F6FB]"
-                              }`}
-                              title={
-                                isPrimary
-                                  ? "Primary product"
-                                  : "Not a primary product"
-                              }
-                            >
-                              <FiStar
-                                size={18}
-                                className={
-                                  isPrimary
-                                    ? "fill-[#FACC15] text-[#FACC15] drop-shadow-[0_0_7px_rgba(250,204,21,0.95)]"
-                                    : "fill-transparent text-[#9CA3AF]"
-                                }
-                              />
-                            </span>
-                          )}
+                          <SlimSwitch
+                            checked={getProductFlag(
+                              product,
+                              "is_trending"
+                            )}
+                            loading={
+                              trendingLoadingId === product.id
+                            }
+                            title="Toggle Trending"
+                            onChange={(checked) =>
+                              onTrendingToggle(product, checked)
+                            }
+                          />
                         </div>
                       </td>
+                    )}
 
-                      {/* DEAL OF THE DAY */}
-
-                      {canToggleDeal && (
-                        <td className="px-3 py-3">
-                          <div className="flex justify-center">
-                            <label
-                              className={`relative inline-flex items-center ${
-                                isDealLoading
-                                  ? "cursor-wait"
-                                  : "cursor-pointer"
+                    {/* Primary Image */}
+                    <td className="px-2 py-3.5">
+                      <div className="flex justify-center">
+                        {canSetPrimaryImage &&
+                          onSetPrimaryImage &&
+                          primaryImage ? (
+                          <button
+                            type="button"
+                            disabled={isPrimary || isPrimaryLoading}
+                            onClick={() =>
+                              onSetPrimaryImage(
+                                product,
+                                primaryImage.id
+                              )
+                            }
+                            title={
+                              isPrimary
+                                ? "Primary image selected"
+                                : "Set primary image"
+                            }
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg border transition disabled:cursor-default ${isPrimary
+                                ? "border-amber-300 bg-amber-50 text-amber-500"
+                                : "border-slate-200 bg-slate-50 text-slate-400 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-500"
                               }`}
-                              title={
-                                isDealOfTheDay
-                                  ? "Remove from Deal of the Day"
-                                  : "Add as Deal of the Day"
-                              }
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isDealOfTheDay}
-                                disabled={isDealLoading}
-                                onChange={(event) =>
-                                  onDealToggle(
-                                    product,
-                                    event.target.checked,
-                                  )
+                          >
+                            {isPrimaryLoading ? (
+                              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-amber-300 border-t-amber-600" />
+                            ) : (
+                              <FiStar
+                                className={
+                                  isPrimary ? "fill-current" : ""
                                 }
-                                className="peer sr-only"
+                                size={17}
                               />
-
-                              <div
-                                className={`relative h-7 w-12 rounded-full border transition-all duration-200 ${
-                                  isDealOfTheDay
-                                    ? "border-[#0D9488] bg-gradient-to-r from-[#14B8A6] to-[#0D9488]"
-                                    : "border-[#D6E2F0] bg-[#EEF2F9]"
-                                } peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0D9488]/20`}
-                              >
-                                <span
-                                  className={`absolute top-[3px] h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
-                                    isDealOfTheDay
-                                      ? "left-[23px]"
-                                      : "left-[3px]"
-                                  }`}
-                                />
-                              </div>
-
-                              {isDealLoading && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0D9488]/25 border-t-[#0D9488]" />
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                        </td>
-                      )}
-
-                      {/* ACTIONS */}
-
-                      {hasAnyAction && (
-                        <td className="px-3 py-3">
-                          <div className="flex justify-center gap-1.5">
-                            {/* VIEW */}
-
-                            {canView && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onView(product)
-                                }
-                                className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                title="View Product"
-                              >
-                                <FiEye
-                                  size={15}
-                                  className="transition-transform group-hover/view:scale-110"
-                                />
-                              </button>
                             )}
+                          </button>
+                        ) : (
+                          <span
+                            title={
+                              isPrimary
+                                ? "Primary image"
+                                : "Not primary"
+                            }
+                            className={`flex h-8 w-8 items-center justify-center rounded-lg border ${isPrimary
+                                ? "border-amber-300 bg-amber-50 text-amber-500"
+                                : "border-slate-200 bg-slate-50 text-slate-400"
+                              }`}
+                          >
+                            <FiStar
+                              className={
+                                isPrimary ? "fill-current" : ""
+                              }
+                              size={17}
+                            />
+                          </span>
+                        )}
+                      </div>
+                    </td>
 
-                            {/* EDIT */}
+                    {/* Best Seller */}
+                    {canToggleBestSeller && (
+                      <td className="px-2 py-3.5">
+                        <div className="flex items-center justify-center gap-2">
+                         
 
-                            {canEdit && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onEdit(product)
-                                }
-                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                title="Edit Product"
-                              >
-                                <FiEdit2
-                                  size={15}
-                                  className="transition-transform group-hover/edit:scale-110"
-                                />
-                              </button>
+                          <SlimSwitch
+                            checked={getProductFlag(
+                              product,
+                              "is_best_seller"
                             )}
+                            loading={
+                              bestSellerLoadingId === product.id
+                            }
+                            title="Toggle Best Seller"
+                            activeColor="yellow"
+                            onChange={(checked) =>
+                              onBestSellerToggle(product, checked)
+                            }
+                          />
+                        </div>
+                      </td>
+                    )}
 
-                            {/* DELETE */}
-
-                            {canDelete && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onDelete?.(product)
-                                }
-                                className="group/delete flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition-all duration-200 hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                                title="Delete Product"
-                              >
-                                <FiTrash2
-                                  size={15}
-                                  className="transition-transform group-hover/delete:scale-110"
-                                />
-                              </button>
+                    {/* Deal of the Day */}
+                    {canToggleDeal && (
+                      <td className="px-2 py-3.5">
+                        <div className="flex justify-center">
+                          <SlimSwitch
+                            checked={getProductFlag(
+                              product,
+                              "is_deal_of_the_day"
                             )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                            loading={dealLoadingId === product.id}
+                            title="Toggle Deal of the Day"
+                            activeColor="teal"
+                            onChange={(checked) =>
+                              onDealToggle(product, checked)
+                            }
+                          />
+                        </div>
+                      </td>
+                    )}
 
-        {/* =================================================
-            SERVER-SIDE PAGINATION
-        ================================================= */}
-
-        {totalEntries > 0 && (
-          <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
-            <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-              {/* RECORD COUNT */}
-
-              <div className="text-center sm:text-left">
-                <p className="text-xs text-[#6B7280]">
-                  Showing{" "}
-                  <span className="font-bold text-[#111827]">
-                    {startEntry}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#111827]">
-                    {endEntry}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#111827]">
-                    {totalEntries}
-                  </span>{" "}
-                  entries
-                </p>
-              </div>
-
-              {/* PAGE BUTTONS */}
-
-              <div className="flex items-center gap-1.5">
-                {/* PREVIOUS */}
-
-                <button
-                  type="button"
-                  disabled={currentPage <= 1 || loading}
-                  onClick={() =>
-                    onPageChange(currentPage - 1)
-                  }
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
-                  title="Previous page"
-                >
-                  <FiChevronLeft size={17} />
-                </button>
-
-                {/* PAGE NUMBERS */}
-
-                {paginationPages.map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    disabled={loading}
-                    onClick={() =>
-                      onPageChange(page)
-                    }
-                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all disabled:cursor-wait ${
-                      currentPage === page
-                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
-                        : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-
-                {/* NEXT */}
-
-                <button
-                  type="button"
-                  disabled={
-                    currentPage >=
-                      normalizedTotalPages ||
-                    loading
-                  }
-                  onClick={() =>
-                    onPageChange(currentPage + 1)
-                  }
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
-                  title="Next page"
-                >
-                  <FiChevronRight size={17} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                    {/* Actions */}
+                    {hasAnyAction && (
+                      <td className="px-2 py-3.5">
+                        {renderActions(product)}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* =================================================
-          IMAGE ZOOM MODAL
-      ================================================= */}
+      {/* Pagination */}
+      {totalEntries > 0 && (
+        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-3 py-3 sm:px-5">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-center text-[12px] text-slate-600 sm:text-left">
+              Showing{" "}
+              <span className="font-bold text-slate-900">
+                {startEntry}
+              </span>{" "}
+              to{" "}
+              <span className="font-bold text-slate-900">
+                {endEntry}
+              </span>{" "}
+              of{" "}
+              <span className="font-bold text-slate-900">
+                {totalEntries}
+              </span>{" "}
+              entries
+            </p>
 
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || loading}
+                onClick={() => onPageChange(currentPage - 1)}
+                aria-label="Previous page"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-35"
+              >
+                <FiChevronLeft size={17} />
+              </button>
+
+              {paginationPages.map((page) => (
+                <button
+                  key={page}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => onPageChange(page)}
+                  className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[12px] font-bold ${currentPage === page
+                      ? "bg-[#2D6FE8] text-white"
+                      : "border border-transparent text-slate-700 hover:bg-blue-50"
+                    }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                disabled={currentPage >= safeTotalPages || loading}
+                onClick={() => onPageChange(currentPage + 1)}
+                aria-label="Next page"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-35"
+              >
+                <FiChevronRight size={17} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
       <GlobalModal
-        isOpen={!!zoomedImage}
-        onClose={handleCloseZoom}
+        isOpen={Boolean(zoomedImage)}
+        onClose={() => setZoomedImage(null)}
         closeOnOverlayClick
         className="!max-h-[90vh] !max-w-[90vw] !bg-transparent !shadow-none"
       >
         {zoomedImage && (
-          <div className="relative flex items-center justify-center font-poppins">
-            {/* CLOSE */}
-
+          <div className="relative flex items-center justify-center">
             <button
               type="button"
-              onClick={handleCloseZoom}
-              className="absolute -right-2 -top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white transition hover:scale-110 hover:bg-black/70 sm:-right-4"
-              aria-label="Close zoom"
+              onClick={() => setZoomedImage(null)}
+              aria-label="Close image preview"
+              className="absolute -right-2 -top-12 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white"
             >
-              <FiX size={22} />
+              <FiX size={20} />
             </button>
 
-            {/* PRODUCT NAME */}
-
-            <div className="absolute -top-12 left-0 max-w-[75%] rounded-lg bg-black/50 px-3 py-2 backdrop-blur-sm">
-              <p className="truncate text-xs font-semibold text-white sm:text-sm">
+            <div className="absolute -top-11 left-0 max-w-[75%] rounded-lg bg-black/60 px-3 py-2">
+              <p className="truncate text-xs font-semibold text-white">
                 {zoomedImage.name}
               </p>
             </div>
 
-            {/* IMAGE */}
-
-            <div
-              className="relative max-h-[80vh] max-w-[85vw] cursor-zoom-out"
-              onClick={handleCloseZoom}
+            <button
+              type="button"
+              onClick={() => setZoomedImage(null)}
+              className="cursor-zoom-out"
             >
               <img
                 src={zoomedImage.url}
                 alt={zoomedImage.name}
-                className="max-h-[78vh] max-w-[82vw] rounded-2xl object-contain shadow-2xl"
-                onError={(event) => {
-                  (
-                    event.target as HTMLImageElement
-                  ).style.display = "none";
-                }}
+                className="max-h-[78vh] max-w-[82vw] rounded-xl object-contain shadow-2xl"
               />
-            </div>
-
-            {/* HINT */}
-
-            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[10px] text-white/60 sm:text-xs">
-              Click anywhere to close • ESC to exit
-            </div>
+            </button>
           </div>
         )}
       </GlobalModal>

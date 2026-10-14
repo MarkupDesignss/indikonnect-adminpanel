@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet } from "react-router-dom";
+import { createBrowserRouter, Outlet, Navigate } from "react-router-dom";
 
 import Login from "../pages/User/Login";
 import MainLayout from "../components/layout/MainLayout";
@@ -54,41 +54,25 @@ import Productsaasignment from "@/pages/Warehouse/Productsaasignment";
 import WarehouseProducts from "@/pages/Warehouse/WarehouseProducts";
 import Inventorywarehouse from "@/pages/Warehouse/Inventorywarehouse";
 import SalesReport from "@/pages/SalesReport/SalesReport";
+import Orders from "@/pages/orders/Orders";
 
-const ScrollLayout = () => {
-  return (
-    <>
-      <ScrollToTop />
-      <Outlet />
-    </>
-  );
-};
+
+const ScrollLayout = () => (
+  <>
+    <ScrollToTop />
+    <Outlet />
+  </>
+);
 
 export const adminRouter = createBrowserRouter(
   [
-    // ==========================================
     // AUTH ROUTES
-    // ==========================================
-    {
-      path: "/login",
-      element: <Login />,
-    },
-    {
-      path: "/forgot-password",
-      element: <ForgotPassword />,
-    },
-    {
-      path: "/reset-password",
-      element: <ResetPassword />,
-    },
-    {
-      path: "/otp-verification",
-      element: <OTPVerification />,
-    },
+    { path: "/login", element: <Login /> },
+    { path: "/forgot-password", element: <ForgotPassword /> },
+    { path: "/reset-password", element: <ResetPassword /> },
+    { path: "/otp-verification", element: <OTPVerification /> },
 
-    // ==========================================
     // ADMIN ROUTES
-    // ==========================================
     {
       path: "/",
       element: <ScrollLayout />,
@@ -96,174 +80,79 @@ export const adminRouter = createBrowserRouter(
         {
           element: <MainLayout />,
           children: [
-            // Dashboard
-            {
-              index: true,
-              element: <Dashboard />,
-            },
+            { index: true, element: <Dashboard /> },
+
+            // Orders: keep one canonical URL (/orders).
+            { path: "orders", element: <Orders /> },
+            // Backwards compatibility for existing links/bookmarks.
+            { path: "totalOrders", element: <Navigate to="/orders" replace /> },
 
             // INVENTORY
-            {
-              path: "inventory/Taxcategories",
-              element: <Taxcategories />,
-            },
-            {
-              path: "inventory/AttributesManagement",
-              element: <AttributesManagement />,
-            },
-            {
-              path: "inventory/SubCategories",
-              element: <SubCategories />,
-            },
+            { path: "inventory/Taxcategories", element: <Taxcategories /> },
+            { path: "inventory/AttributesManagement", element: <AttributesManagement /> },
+            { path: "inventory/SubCategories", element: <SubCategories /> },
 
             // USERS
-            {
-              path: "UserManagement",
-              element: <UserManagement />,
-            },
+            { path: "UserManagement", element: <UserManagement /> },
 
             // NOTIFICATIONS
-            {
-              path: "Notifications",
-              element: <Notifications />,
-            },
+            { path: "Notifications", element: <Notifications /> },
 
             // SUBSCRIBERS
-            {
-              path: "Subscribers",
-              element: <Subscribers />,
-            },
+            { path: "Subscribers", element: <Subscribers /> },
 
             // PAYMENT
-            {
-              path: "Payout",
-              element: <Payout />,
-            },
-            {
-              path: "Payment",
-              element: <Payment />,
-            },
+            { path: "Payout", element: <Payout /> },
+            { path: "Payment", element: <Payment /> },
 
             // CONTACT
-            {
-              path: "Contact",
-              element: <Contact />,
-            },
+            { path: "Contact", element: <Contact /> },
 
             // COUPONS
-            {
-              path: "Coupons",
-              element: <Coupons />,
-            },
+            { path: "Coupons", element: <Coupons /> },
 
             // ROLE MANAGEMENT
-            {
-              path: "RoleManagement/role",
-              element: <RoleManagement />,
-            },
-            {
-              path: "RoleManagement/addmember",
-              element: <AdminManagement />,
-            },
+            { path: "RoleManagement/role", element: <RoleManagement /> },
+            { path: "RoleManagement/addmember", element: <AdminManagement /> },
 
             // WAREHOUSE
-            {
-              path: "Addwarehouse",
-              element: <Addwarehouse />,
-            },
-            {
-              path: "Productsaasignment",
-              element: <Productsaasignment />,
-            },
-
-            // CMS
-            {
-              path: "cms/header",
-              element: <HeaderManagement />,
-            },
-            {
-              path: "cms/footer",
-              element: <FooterManagement />,
-            },
-            {
-              path: "cms/growth",
-              element: <GrowthSteps />,
-            },
-            {
-              path: "cms/content",
-              element: <ContentsManagement />,
-            },
-            {
-              path: "cms/brands",
-              element: <BrandsManagement />,
-            },
-            {
-              path: "cms/ReelsManagement",
-              element: <ReelsManagement />,
-            },
-            {
-              path: "cms/FAQManagement",
-              element: <FAQManagement />,
-            },
-            {
-              path: "cms/TestimonialsManagement",
-              element: <TestimonialsManagement />,
-            },
-            {
-              path: "cms/NotificationTemplates",
-              element: <NotificationTemplates />,
-            },
-            {
-              path: "cms/SectionManagement",
-              element: <SectionManagement />,
-            },
-            {
-              path: "cms/LandingPageManagement",
-              element: <LandingPageManagement />,
-            },
-
-            // CREDIT NOTES
-            {
-              path: "CreditNotes",
-              element: <CreditNotes />,
-            },
-
-            // PROFILE
-            {
-              path: "UpdateProfile",
-              element: <UpdateProfile />,
-            },
-            {
-              path: "ChangePassword",
-              element: <ChangePassword />,
-            },
-
-            // FINANCE EXISTING ADMIN PAGES
-            {
-              path: "Fiance/CoolOff",
-              element: <CoolOff />,
-            },
-            {
-              path: "Fiance/BuyBack",
-              element: <BuyBack />,
-            },
-            {
-              path: "Fiance/CancelRefund",
-              element: <CancelRefund />,
-            },
-
+            { path: "Addwarehouse", element: <Addwarehouse /> },
+            { path: "Productsaasignment", element: <Productsaasignment /> },
             { path: "warehouse/products", element: <WarehouseProducts /> },
-
             { path: "warehouse/inventory", element: <Inventorywarehouse /> },
 
-            { path: "/sales/report", element: <SalesReport /> },
-            // SETTINGS
-            {
-              path: "SettingsManagement",
-              element: <SettingsManagement />,
-            },
+            // CMS
+            { path: "cms/header", element: <HeaderManagement /> },
+            { path: "cms/footer", element: <FooterManagement /> },
+            { path: "cms/growth", element: <GrowthSteps /> },
+            { path: "cms/content", element: <ContentsManagement /> },
+            { path: "cms/brands", element: <BrandsManagement /> },
+            { path: "cms/ReelsManagement", element: <ReelsManagement /> },
+            { path: "cms/FAQManagement", element: <FAQManagement /> },
+            { path: "cms/TestimonialsManagement", element: <TestimonialsManagement /> },
+            { path: "cms/NotificationTemplates", element: <NotificationTemplates /> },
+            { path: "cms/SectionManagement", element: <SectionManagement /> },
+            { path: "cms/LandingPageManagement", element: <LandingPageManagement /> },
 
-            // OTHER ADMIN ROUTES
+            // CREDIT NOTES
+            { path: "CreditNotes", element: <CreditNotes /> },
+
+            // PROFILE
+            { path: "UpdateProfile", element: <UpdateProfile /> },
+            { path: "ChangePassword", element: <ChangePassword /> },
+
+            // FINANCE
+            { path: "Fiance/CoolOff", element: <CoolOff /> },
+            { path: "Fiance/BuyBack", element: <BuyBack /> },
+            { path: "Fiance/CancelRefund", element: <CancelRefund /> },
+
+            // SALES
+            { path: "sales/report", element: <SalesReport /> },
+        
+            // SETTINGS
+            { path: "SettingsManagement", element: <SettingsManagement /> },
+
+            // Existing routes from the rest of the app.
             ...appRoutes,
           ],
         },
@@ -271,8 +160,8 @@ export const adminRouter = createBrowserRouter(
     },
   ],
   {
-    basename: "/indiekonnect-admin",   // ✅ Subfolder fix
-  }
+    basename: "/indiekonnect-admin",
+  },
 );
 
 export default adminRouter;

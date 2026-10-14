@@ -494,8 +494,7 @@ export const openInvoicePdfInNewTab = (
 
     if (isItemSpecific) {
       const item = filteredItems[0];
-      subtotal =
-        parseFloat(item.line_total || 0) - parseFloat(item.gst_amount || 0);
+      subtotal =item.unit_price * item.quantity;
       totalTax = parseFloat(item.gst_amount || 0);
       totalPayable = parseFloat(item.line_total || 0);
       const totalOrderItems = orderItems.length || 1;
@@ -503,10 +502,7 @@ export const openInvoicePdfInNewTab = (
         totalOrderItems > 0
           ? parseFloat(invoice.coupon_discount || 0) / totalOrderItems
           : 0;
-      shippingCharge =
-        totalOrderItems > 0
-          ? parseFloat(invoice.shipping_charge || 0) / totalOrderItems
-          : 0;
+      shippingCharge = parseFloat(item.total_shipping_charge || 0);
     } else {
       subtotal = parseFloat(invoice.subtotal_before_redemption || 0);
       totalPayable = parseFloat(invoice.total_payable || 0);

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
@@ -579,7 +578,6 @@ const Addcategories: React.FC = () => {
         {/* STATUS SUMMARY */}
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* TOTAL */}
           <div className="rounded-xl border border-[#DCE6F2] bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Total Categories
@@ -590,7 +588,6 @@ const Addcategories: React.FC = () => {
             </div>
           </div>
 
-          {/* ACTIVE */}
           <div className="rounded-xl border border-[#2D6FE8]/15 bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#2D6FE8]">
               Active
@@ -601,7 +598,6 @@ const Addcategories: React.FC = () => {
             </div>
           </div>
 
-          {/* INACTIVE */}
           <div className="rounded-xl border border-[#D6E2F0] bg-white px-4 py-2.5 shadow-sm">
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
               Inactive
@@ -622,8 +618,6 @@ const Addcategories: React.FC = () => {
         variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 shadow-[0_10px_35px_-24px_rgba(42,65,104,0.35)] sm:p-5"
       >
-   
-
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#2D6FE8]/10" />
 
         <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#2D6FE8]/10" />
@@ -631,8 +625,6 @@ const Addcategories: React.FC = () => {
         <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* SEARCH */}
-
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
               size={17}
@@ -650,11 +642,7 @@ const Addcategories: React.FC = () => {
             />
           </div>
 
-          {/* ACTIONS */}
-
           <div className="flex items-center gap-2">
-            {/* REFRESH */}
-
             <motion.button
               type="button"
               onClick={fetchCategories}
@@ -672,8 +660,6 @@ const Addcategories: React.FC = () => {
 
               Refresh
             </motion.button>
-
-            {/* ADD CATEGORY */}
 
             {canCreateCategory && (
               <motion.button
@@ -706,26 +692,23 @@ const Addcategories: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white "
       >
-  
- 
-          <CategoryTable
-            categories={paginatedCategories}
-            loading={loading}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalEntries={filteredCategories.length}
-            startEntry={startEntry}
-            endEntry={endEntry}
-            onPageChange={handlePageChange}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onStatusToggle={handleStatusToggle}
-            statusLoadingId={statusLoadingId}
-            canEdit={canUpdateCategory}
-            canDelete={canDeleteCategory}
-            canToggleStatus={canUpdateCategory}
-          />
-      
+        <CategoryTable
+          categories={paginatedCategories}
+          loading={loading}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalEntries={filteredCategories.length}
+          startEntry={startEntry}
+          endEntry={endEntry}
+          onPageChange={handlePageChange}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onStatusToggle={handleStatusToggle}
+          statusLoadingId={statusLoadingId}
+          canEdit={canUpdateCategory}
+          canDelete={canDeleteCategory}
+          canToggleStatus={canUpdateCategory}
+        />
       </motion.div>
 
       {/* =================================================

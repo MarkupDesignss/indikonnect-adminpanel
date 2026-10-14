@@ -601,7 +601,7 @@ const SubcategoryFormModal: React.FC<
 
         {/* FOOTER */}
 
-        <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+        <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3 sm:flex-row sm:justify-end sm:px-6">
           <button
             type="button"
             onClick={onClose}
@@ -1532,7 +1532,7 @@ const SubCategories: React.FC = () => {
                         >
                           {/* S.NO */}
 
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
                               {serialNumber}
                             </span>
@@ -1540,7 +1540,7 @@ const SubCategories: React.FC = () => {
 
                           {/* SUB CATEGORY */}
 
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] transition group-hover:border-[#2D6FE8]/25">
                                 {image ? (
@@ -1578,7 +1578,7 @@ const SubCategories: React.FC = () => {
 
                           {/* PARENT CATEGORY */}
 
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
                                 <FiLayers
@@ -1594,7 +1594,7 @@ const SubCategories: React.FC = () => {
 
                           {/* SLUG */}
 
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3">
                             <span className="rounded-lg bg-[#F4F8FD] px-3 py-1.5 font-mono text-[10px] font-semibold text-[#111827]">
                               {
                                 subcategory.slug
@@ -1604,7 +1604,7 @@ const SubCategories: React.FC = () => {
 
                           {/* STATUS */}
 
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3">
                             {canUpdateSubCategory ? (
                               <div className="relative inline-block">
                                 <select
@@ -1685,7 +1685,7 @@ const SubCategories: React.FC = () => {
                           {/* ACTIONS */}
 
                           {canUpdateSubCategory && (
-                            <td className="px-4 py-4">
+                            <td className="px-4 py-3">
                               <div className="flex justify-center gap-1.5">
                                 <button
                                   type="button"
@@ -1718,7 +1718,7 @@ const SubCategories: React.FC = () => {
 
           {filteredSubCategories.length >
             0 && (
-              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                   <p className="text-xs text-[#6B7280]">
                     Showing{" "}
