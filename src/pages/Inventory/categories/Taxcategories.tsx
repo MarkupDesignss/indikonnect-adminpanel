@@ -892,7 +892,7 @@ const Taxcategories: React.FC = () => {
                       >
                         {/* S.NO */}
 
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-3.5">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
                             {
                               serialNumber
@@ -902,7 +902,7 @@ const Taxcategories: React.FC = () => {
 
                         {/* TAX NAME */}
 
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
@@ -916,7 +916,7 @@ const Taxcategories: React.FC = () => {
 
                         {/* RATE */}
 
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-3.5">
                           <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
                             <FiPercent
                               size={12}
@@ -930,7 +930,7 @@ const Taxcategories: React.FC = () => {
 
                         {/* CREATED */}
 
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-3.5">
                           <span className="text-xs font-medium text-[#111827]">
                             {formatDate(
                               item.created_at,
@@ -942,7 +942,7 @@ const Taxcategories: React.FC = () => {
 
                         {(canViewTaxCategories ||
                           canUpdateTaxCategory) && (
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-3.5">
                             <div className="flex justify-center gap-1.5">
                               {/* VIEW */}
 
@@ -1000,7 +1000,7 @@ const Taxcategories: React.FC = () => {
         ================================================= */}
 
         {filteredCategories.length > 0 && (
-          <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+          <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3.5 sm:px-5">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
               <p className="text-xs text-[#6B7280]">
                 Showing{" "}
@@ -1208,7 +1208,7 @@ const Taxcategories: React.FC = () => {
 
               {/* FOOTER */}
 
-              <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+              <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3.5">
                 <button
                   type="button"
                   onClick={() =>
@@ -1437,7 +1437,7 @@ const Taxcategories: React.FC = () => {
 
             {/* FOOTER */}
 
-            <div className="flex items-center justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+            <div className="flex items-center justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3.5">
               <button
                 type="button"
                 onClick={() => {

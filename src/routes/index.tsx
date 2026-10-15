@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet, Navigate } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
 
 import Login from "../pages/User/Login";
 import MainLayout from "../components/layout/MainLayout";
@@ -6,8 +6,6 @@ import MainLayout from "../components/layout/MainLayout";
 import ForgotPassword from "@/pages/User/ForgotPassword";
 import OTPVerification from "@/pages/User/OTPVerification";
 import ResetPassword from "@/pages/User/ResetPassword";
-
-import { appRoutes } from "../pages/index";
 
 import Dashboard from "@/pages/dashboard";
 import Taxcategories from "@/pages/Inventory/categories/Taxcategories";
@@ -55,7 +53,10 @@ import WarehouseProducts from "@/pages/Warehouse/WarehouseProducts";
 import Inventorywarehouse from "@/pages/Warehouse/Inventorywarehouse";
 import SalesReport from "@/pages/SalesReport/SalesReport";
 import Orders from "@/pages/orders/Orders";
-
+import Addcategories from "@/pages/Inventory/categories";
+import Products from "@/pages/Inventory/product";
+import Stock from "@/pages/Inventory/Stock";
+import ReturnRefund from "@/pages/Fiance/ReturnRefund";
 
 const ScrollLayout = () => (
   <>
@@ -80,17 +81,22 @@ export const adminRouter = createBrowserRouter(
         {
           element: <MainLayout />,
           children: [
+            // ✅ DASHBOARD — index AND /dashboard dono
             { index: true, element: <Dashboard /> },
+            { path: "dashboard", element: <Dashboard /> },
 
-            // Orders: keep one canonical URL (/orders).
+            // ✅ ORDERS — ek canonical URL
             { path: "orders", element: <Orders /> },
-            // Backwards compatibility for existing links/bookmarks.
-            { path: "totalOrders", element: <Navigate to="/orders" replace /> },
 
-            // INVENTORY
-            { path: "inventory/Taxcategories", element: <Taxcategories /> },
+            // 
+            { path: "/inventory/categories", element: <Addcategories /> },
+            { path: "/inventory/tax-categories", element: <Taxcategories /> },
             { path: "inventory/AttributesManagement", element: <AttributesManagement /> },
             { path: "inventory/SubCategories", element: <SubCategories /> },
+            { path: "/inventory/products", element: <Products /> },
+            { path: "/inventory/stock", element: <Stock /> },
+
+            { path: "/return-refund", element: <ReturnRefund /> },
 
             // USERS
             { path: "UserManagement", element: <UserManagement /> },
@@ -114,7 +120,7 @@ export const adminRouter = createBrowserRouter(
             // ROLE MANAGEMENT
             { path: "RoleManagement/role", element: <RoleManagement /> },
             { path: "RoleManagement/addmember", element: <AdminManagement /> },
-
+          
             // WAREHOUSE
             { path: "Addwarehouse", element: <Addwarehouse /> },
             { path: "Productsaasignment", element: <Productsaasignment /> },
@@ -148,12 +154,11 @@ export const adminRouter = createBrowserRouter(
 
             // SALES
             { path: "sales/report", element: <SalesReport /> },
-        
+
             // SETTINGS
             { path: "SettingsManagement", element: <SettingsManagement /> },
 
-            // Existing routes from the rest of the app.
-            ...appRoutes,
+            //  appRoutes REMOVED — yahi problem tha
           ],
         },
       ],

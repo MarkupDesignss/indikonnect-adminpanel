@@ -620,10 +620,9 @@ const MainLayout = () => {
               focus-visible:ring-2
               focus-visible:ring-[#2D6FE8]/40
 
-              ${
-                parentActive
-                  ? "bg-[#EAF3FF] text-[#2D6FE8]"
-                  : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+              ${parentActive
+                ? "bg-[#EAF3FF] text-[#2D6FE8]"
+                : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
               }
 
               ${depth > 0 ? "ml-3" : ""}
@@ -642,10 +641,9 @@ const MainLayout = () => {
                 rounded-lg
                 transition-colors
                 duration-200
-                ${
-                  parentActive
-                    ? "bg-white shadow-sm"
-                    : "bg-[#F2F7FC] group-hover:bg-white"
+                ${parentActive
+                  ? "bg-white shadow-sm"
+                  : "bg-[#F2F7FC] group-hover:bg-white"
                 }
               `}
             >
@@ -687,10 +685,9 @@ const MainLayout = () => {
                 ease-in-out
                 motion-reduce:transition-none
 
-                ${
-                  isExpanded
-                    ? "mt-1 max-h-[800px] opacity-100"
-                    : "max-h-0 opacity-0"
+                ${isExpanded
+                  ? "mt-1 max-h-[800px] opacity-100"
+                  : "max-h-0 opacity-0"
                 }
               `}
             >
@@ -732,10 +729,9 @@ const MainLayout = () => {
 
           ${depth === 0 ? "px-2 py-1.5" : "px-2.5 py-1.5"}
 
-          ${
-            isActive
-              ? "bg-[#2D6FE8] font-semibold text-white"
-              : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+          ${isActive
+            ? "bg-[#2D6FE8] font-semibold text-white"
+            : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
           }
 
           ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
@@ -752,10 +748,9 @@ const MainLayout = () => {
                   rounded-full
                   transition-colors
                   duration-200
-                  ${
-                    isActive
-                      ? "bg-white"
-                      : "bg-[#8C97B2]/60 group-hover:bg-[#2D6FE8]/70"
+                  ${isActive
+                    ? "bg-white"
+                    : "bg-[#8C97B2]/60 group-hover:bg-[#2D6FE8]/70"
                   }
                 `}
               />
@@ -771,10 +766,9 @@ const MainLayout = () => {
                   rounded-lg
                   transition-colors
                   duration-200
-                  ${
-                    isActive
-                      ? "bg-white/20"
-                      : "bg-[#F2F7FC] group-hover:bg-white"
+                  ${isActive
+                    ? "bg-white/20"
+                    : "bg-[#F2F7FC] group-hover:bg-white"
                   }
                 `}
               >
@@ -782,10 +776,9 @@ const MainLayout = () => {
                   className={`
                     material-symbols-outlined
                     text-[18px]
-                    ${
-                      isActive
-                        ? "text-white"
-                        : "text-[#4A5778] group-hover:text-[#2D6FE8]"
+                    ${isActive
+                      ? "text-white"
+                      : "text-[#4A5778] group-hover:text-[#2D6FE8]"
                     }
                   `}
                 >
@@ -903,10 +896,9 @@ const MainLayout = () => {
           transition-opacity
           duration-300
           md:hidden
-          ${
-            isMobileSidebarOpen
-              ? "opacity-100"
-              : "pointer-events-none opacity-0"
+          ${isMobileSidebarOpen
+            ? "opacity-100"
+            : "pointer-events-none opacity-0"
           }
         `}
         onClick={toggleMobileSidebar}
@@ -976,10 +968,9 @@ const MainLayout = () => {
           ease-in-out
           motion-reduce:transition-none
 
-          ${
-            isSidebarOpen
-              ? "md:ml-[280px] md:w-[calc(100%-280px)]"
-              : "md:ml-[84px] md:w-[calc(100%-84px)]"
+          ${isSidebarOpen
+            ? "md:ml-[280px] md:w-[calc(100%-280px)]"
+            : "md:ml-[84px] md:w-[calc(100%-84px)]"
           }
         `}
       >
@@ -991,7 +982,10 @@ const MainLayout = () => {
         />
 
         <main className="flex-1 pt-[72px]">
-          <div className="mx-auto max-w-full">
+          <div
+            className="mx-auto max-w-full"
+            key={`${location.pathname}${location.search}`}
+          >
             <Outlet />
           </div>
         </main>

@@ -1,5 +1,10 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
 import {
   FiSearch,
   FiChevronDown,
@@ -33,10 +38,7 @@ import GlobalModal from "@/components/common/GlobalModal";
 import { categoryApi } from "../../api/endpoints/category";
 import brandsApi from "../../api/endpoints/brands";
 
-import {
-  downloadOrdersCsv,
-  openInvoicePdfInNewTab,
-} from "./csvUtils";
+import { downloadOrdersCsv, openInvoicePdfInNewTab } from "./csvUtils";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
@@ -165,7 +167,7 @@ export interface Order {
 }
 
 // =====================================================
-// PERMISSION LOADING STATE — BLUE THEME
+// PERMISSION LOADING STATE
 // =====================================================
 
 const PermissionLoadingState: React.FC = () => {
@@ -189,7 +191,7 @@ const PermissionLoadingState: React.FC = () => {
 };
 
 // =====================================================
-// COMMON LOADER / ERROR — BLUE THEME
+// COMMON LOADER / ERROR
 // =====================================================
 
 interface ModalLoaderProps {
@@ -243,7 +245,7 @@ const ModalError: React.FC<ModalErrorProps> = ({
 );
 
 // =====================================================
-// VIEW ORDER POPUP — BLUE THEME
+// VIEW ORDER POPUP
 // =====================================================
 
 interface ViewOrderPopupProps {
@@ -449,10 +451,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "items"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -460,10 +463,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "details"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
               {orderDetails?.order_type === "retail" ? "Customer Details" : "Distributor Details"}
@@ -471,10 +475,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "tracking"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
@@ -524,10 +529,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     </div>
                                   )}
                                   <div className="min-w-0 max-w-[220px]">
-                                    <p
-                                      title={item.productName}
-                                      className="truncate text-xs font-normal leading-4 text-[#111827]"
-                                    >
+                                    <p title={item.productName} className="truncate text-xs font-normal leading-4 text-[#111827]">
                                       {item.productName}
                                     </p>
                                     {(item.categoryName || item.brandName) && (
@@ -812,7 +814,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 };
 
 // =====================================================
-// DISPATCH POPUP — BLUE THEME
+// DISPATCH POPUP
 // =====================================================
 
 interface DispatchPopupProps {
@@ -1122,7 +1124,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 };
 
 // =====================================================
-// SHIP POPUP — BLUE THEME
+// SHIP POPUP
 // =====================================================
 
 interface ShipPopupProps {
@@ -1329,7 +1331,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
 };
 
 // =====================================================
-// DELIVER POPUP — BLUE THEME
+// DELIVER POPUP
 // =====================================================
 
 interface DeliverPopupProps {
@@ -1542,57 +1544,30 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   selectedOrderId,
   onFilteredChange,
 }) => {
-  // ===================================================
-  // ✅ PERMISSIONS — ALL CONTROLLED BY "order.allow"
-  // ===================================================
+  const { hasPermission, hasModuleAccess, isSuperAdmin } = usePermissions();
 
-  const {
-    hasPermission,
-    hasModuleAccess,
-    isSuperAdmin,
-  } = usePermissions();
-
-  const canViewOrders = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("order") ||
-      hasPermission("order.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
-  );
-
-  // ✅ ALL these actions are now controlled by "order.allow"
   const canDispatch = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("order.allow"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
   const canShip = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("order.allow"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
   const canDeliver = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("order.allow"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
   const canMarkUndelivered = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("order.allow"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
   const canToggleCancelReturn = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("order.allow"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -1603,10 +1578,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       hasPermission("order.details"),
     [isSuperAdmin, hasPermission],
   );
-
-  // ===================================================
-  // STATE
-  // ===================================================
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Status: All");
@@ -1644,6 +1615,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     fetchStatuses();
     fetchCategories();
     fetchBrands();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCategories = async () => {
@@ -1728,18 +1700,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  // ✅ Convert to FLAT item-wise array (each item is a row with its order data)
-  const convertToItemRows = (apiOrder: any): Array<Order & { singleItem: OrderItem }> => {
+  const convertToItemRows = (
+    apiOrder: any,
+  ): Array<Order & { singleItem: OrderItem }> => {
     const orderBase = {
       id: apiOrder.order_reference,
       orderId: apiOrder.id,
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -1764,45 +1737,49 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
       courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
       shippingDetails: apiOrder.shipping_details || undefined,
-      items: apiOrder.items?.map((item: any) => ({
-        id: String(item.line_id || item.id || ""),
-        lineId: item.line_id || item.id,
-        orderReference: item.order_reference || apiOrder.order_reference || "N/A",
-        itemReferenceId: item.item_reference_id || "N/A",
-        productName: item.product_name || "N/A",
-        categoryName:
-          item.category_name ||
-          categories.find((category) => String(category.id) === String(item.category_id))?.title ||
-          undefined,
-        brandName:
-          item.brand_name ||
-          brands.find((brand) => String(brand.id) === String(item.brand_id))?.title ||
-          undefined,
-        sku: item.product_code || "N/A",
-        quantity: item.quantity || 0,
-        price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
-        total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
-        unitPrice: item.unit_price || 0,
-        lineTotal: item.line_total || 0,
-        status:
-          item.delivery_status?.charAt(0).toUpperCase() +
-          item.delivery_status?.slice(1) || "Pending",
-        delivery_status: item.delivery_status || "pending",
-        image: item.primary_image || item.product_image || undefined,
-        productId: item.product_id,
-        isReturnable: item.is_returnable,
-        availableForReturn: item.available_for_return,
-        gstRate: item.gst_rate,
-        gstAmount: item.gst_amount,
-        categoryId: item.category_id,
-        brandId: item.brand_id,
-        is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-        courier_tracking_number: item.courier_tracking_number || undefined,
-        courierTrackingNumber: item.courier_tracking_number || undefined,
-        invoiceNumber: item.invoice?.invoice_number || undefined,
-        invoice_number: item.invoice?.invoice_number || undefined,
-        invoice: item.invoice || null,
-      })) || [],
+      items:
+        apiOrder.items?.map((item: any) => ({
+          id: String(item.line_id || item.id || ""),
+          lineId: item.line_id || item.id,
+          orderReference: item.order_reference || apiOrder.order_reference || "N/A",
+          itemReferenceId: item.item_reference_id || "N/A",
+          productName: item.product_name || "N/A",
+          categoryName:
+            item.category_name ||
+            categories.find(
+              (category) => String(category.id) === String(item.category_id),
+            )?.title ||
+            undefined,
+          brandName:
+            item.brand_name ||
+            brands.find((brand) => String(brand.id) === String(item.brand_id))
+              ?.title ||
+            undefined,
+          sku: item.product_code || "N/A",
+          quantity: item.quantity || 0,
+          price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
+          total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
+          unitPrice: item.unit_price || 0,
+          lineTotal: item.line_total || 0,
+          status:
+            item.delivery_status?.charAt(0).toUpperCase() +
+              item.delivery_status?.slice(1) || "Pending",
+          delivery_status: item.delivery_status || "pending",
+          image: item.primary_image || item.product_image || undefined,
+          productId: item.product_id,
+          isReturnable: item.is_returnable,
+          availableForReturn: item.available_for_return,
+          gstRate: item.gst_rate,
+          gstAmount: item.gst_amount,
+          categoryId: item.category_id,
+          brandId: item.brand_id,
+          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+          courier_tracking_number: item.courier_tracking_number || undefined,
+          courierTrackingNumber: item.courier_tracking_number || undefined,
+          invoiceNumber: item.invoice?.invoice_number || undefined,
+          invoice_number: item.invoice?.invoice_number || undefined,
+          invoice: item.invoice || null,
+        })) || [],
     };
 
     return (orderBase.items || []).map((item) => ({
@@ -1811,9 +1788,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }));
   };
 
-  // ✅ Flat item-wise rows
   const allItemRows = useMemo(() => {
     return orders.flatMap((order) => convertToItemRows(order));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, categories, brands]);
 
   const getFilterStatusValue = (filter: string) => {
@@ -1826,7 +1803,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return String(rawStatus).trim().toLowerCase().replace(/\s+/g, "_");
   };
 
-  const normalizePhone = (phone: string) => String(phone || "").replace(/\D/g, "");
+  const normalizePhone = (phone: string) =>
+    String(phone || "").replace(/\D/g, "");
 
   const filteredRows = useMemo(() => {
     const searchText = search.toLowerCase().trim();
@@ -1837,9 +1815,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         ? null
         : categoryFilter.replace("Category: ", "");
     const brandValue =
-      brandFilter === "Brand: All"
-        ? null
-        : brandFilter.replace("Brand: ", "");
+      brandFilter === "Brand: All" ? null : brandFilter.replace("Brand: ", "");
     const orderTypeValue =
       orderTypeFilter === "Order Type: All"
         ? null
@@ -1848,24 +1824,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return allItemRows.filter((row) => {
       const item = row.singleItem;
 
-      if (orderTypeValue !== null && row.orderType !== orderTypeValue) return false;
+      if (orderTypeValue !== null && row.orderType !== orderTypeValue)
+        return false;
 
       if (filterStatusValue !== null) {
         const itemStatus = getItemStatus(item);
         if (itemStatus !== filterStatusValue) return false;
       }
 
-      if (categoryValue !== null && String(item.categoryId ?? "") !== String(categoryValue)) {
+      if (
+        categoryValue !== null &&
+        String(item.categoryId ?? "") !== String(categoryValue)
+      ) {
         return false;
       }
 
-      if (brandValue !== null && String(item.brandId ?? "") !== String(brandValue)) {
+      if (
+        brandValue !== null &&
+        String(item.brandId ?? "") !== String(brandValue)
+      ) {
         return false;
       }
 
       if (searchText) {
         const phoneDigits = normalizePhone(row.userPhone);
-        const phoneMatch = searchDigits.length > 0 && phoneDigits.includes(searchDigits);
+        const phoneMatch =
+          searchDigits.length > 0 && phoneDigits.includes(searchDigits);
 
         return (
           phoneMatch ||
@@ -1875,7 +1859,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           (row.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
           (item.productName || "").toLowerCase().includes(searchText) ||
           (item.sku || "").toLowerCase().includes(searchText) ||
-          String(item.courier_tracking_number || "").toLowerCase().includes(searchText) ||
+          String(item.courier_tracking_number || "")
+            .toLowerCase()
+            .includes(searchText) ||
           String(item.invoiceNumber || "").toLowerCase().includes(searchText) ||
           (item.itemReferenceId || "").toLowerCase().includes(searchText)
         );
@@ -1883,7 +1869,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       return true;
     });
-  }, [allItemRows, search, statusFilter, categoryFilter, brandFilter, orderTypeFilter]);
+  }, [
+    allItemRows,
+    search,
+    statusFilter,
+    categoryFilter,
+    brandFilter,
+    orderTypeFilter,
+  ]);
 
   const activeFilterLabel = useMemo(() => {
     const parts: string[] = [];
@@ -1908,19 +1901,37 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
     if (search.trim()) parts.push("Search");
     return parts.length > 0 ? parts.join(" • ") : "All Orders";
-  }, [orderTypeFilter, statusFilter, categoryFilter, brandFilter, search, categories, brands]);
+  }, [
+    orderTypeFilter,
+    statusFilter,
+    categoryFilter,
+    brandFilter,
+    search,
+    categories,
+    brands,
+  ]);
+
+  // =====================================================
+  // ✅ FIX: onFilteredChange ko ref mein rakho — infinite loop band
+  // =====================================================
+
+  const onFilteredChangeRef = useRef(onFilteredChange);
 
   useEffect(() => {
-    if (onFilteredChange) {
+    onFilteredChangeRef.current = onFilteredChange;
+  }, [onFilteredChange]);
+
+  useEffect(() => {
+    if (onFilteredChangeRef.current) {
       const uniqueOrders = filteredRows.reduce((acc, row) => {
         if (!acc.find((o) => o.id === row.id)) {
           acc.push({ ...row, items: [row.singleItem] });
         }
         return acc;
       }, [] as Order[]);
-      onFilteredChange(uniqueOrders, activeFilterLabel);
+      onFilteredChangeRef.current(uniqueOrders, activeFilterLabel);
     }
-  }, [filteredRows, activeFilterLabel, onFilteredChange]);
+  }, [filteredRows, activeFilterLabel]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / itemsPerPage));
 
@@ -1977,7 +1988,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const canItemDispatch = (item: OrderItem) => getItemStatus(item) === "confirmed";
+  const canItemDispatch = (item: OrderItem) =>
+    getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
 
   const canItemDeliver = (item: OrderItem) => {
@@ -1985,14 +1997,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return s === "shipped" || s === "undelivered";
   };
 
-  const canItemMarkUndelivered = (item: OrderItem) => getItemStatus(item) === "shipped";
+  const canItemMarkUndelivered = (item: OrderItem) =>
+    getItemStatus(item) === "shipped";
 
-  const isFullyDelivered = (item: OrderItem) => getItemStatus(item) === "delivered";
+  const isFullyDelivered = (item: OrderItem) =>
+    getItemStatus(item) === "delivered";
 
-  // ✅ TERMINAL STATUSES — Hide cancel/return toggle button and show "Closed"
-  // Includes all return/replacement/buyback/cancel related statuses
   const TERMINAL_STATUSES = [
-    // Return related
     "return_pending",
     "return_initiated",
     "return_approved",
@@ -2002,22 +2013,18 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     "partial_return",
     "refunded",
     "partial_refunded",
-    // Replacement related
     "replacement_pending",
     "replacement_approved",
     "replacement_rejected",
     "replaced",
-    // Buyback related
     "buyback_pending",
     "buyback_approved",
     "buyback_rejected",
     "buyback_refunded",
     "buyback_cancelled",
-    // Cancel related
     "cancelled",
     "cancel_pending",
     "cancel_rejected",
-    // Others
     "closed",
     "completed",
   ];
@@ -2124,8 +2131,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to mark as undelivered",
+          err?.message ||
+          "Failed to mark as undelivered",
       );
       await fetchOrders();
     } finally {
@@ -2315,10 +2322,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${hasActiveFilters
-                  ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
-                  : "text-[#9CA3AF] hover:text-[#2D6FE8]"
-                  }`}
+                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
+                  hasActiveFilters
+                    ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
+                    : "text-[#9CA3AF] hover:text-[#2D6FE8]"
+                }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
                 Clear
@@ -2358,7 +2366,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={16}
+                />
               </div>
               <div className="relative">
                 <select
@@ -2373,7 +2384,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <option value="Order Type: retail">Customer</option>
                   <option value="Order Type: distributor">Distributor</option>
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={16}
+                />
               </div>
               <div className="relative">
                 <select
@@ -2391,7 +2405,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={16}
+                />
               </div>
               <div className="relative">
                 <select
@@ -2409,7 +2426,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </option>
                   ))}
                 </select>
-                <FiChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" size={16} />
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={16}
+                />
               </div>
               <button
                 type="button"
@@ -2468,23 +2488,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 {visibleRows.length > 0 ? (
                   visibleRows.map((row, index) => {
                     const item = row.singleItem;
-                    const itemStatusBadge = getStatusBadge(item.delivery_status || item.status || "pending");
+                    const itemStatusBadge = getStatusBadge(
+                      item.delivery_status || item.status || "pending",
+                    );
 
                     const isDispatchable = canItemDispatch(item) && canDispatch;
                     const isShipable = canItemShip(item) && canShip;
                     const isDeliverable = canItemDeliver(item) && canDeliver;
-                    const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
+                    const isUndeliverable =
+                      canItemMarkUndelivered(item) && canMarkUndelivered;
                     const isDelivered = isFullyDelivered(item);
-                    const isMarking = markingUndelivered.has(`${row.id}-${item.id}`);
-                    const isTogglingReturn = togglingCancelReturn.has(`${row.id}-${item.id}`);
+                    const isMarking = markingUndelivered.has(
+                      `${row.id}-${item.id}`,
+                    );
+                    const isTogglingReturn = togglingCancelReturn.has(
+                      `${row.id}-${item.id}`,
+                    );
                     const hasInvoice = Boolean(item.invoiceNumber);
-                    const isClosed = isTerminalStatus(item); // ✅ NEW
+                    const isClosed = isTerminalStatus(item);
 
                     return (
                       <tr
                         key={`${row.id}-${item.id}-${index}`}
-                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${selectedOrderId === row.id ? "bg-[#EAF3FF]" : "bg-white"
-                          }`}
+                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${
+                          selectedOrderId === row.id ? "bg-[#EAF3FF]" : "bg-white"
+                        }`}
                       >
                         <td className="px-3 py-3">
                           <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
@@ -2514,7 +2542,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 title={item.productName}
                                 className="break-words text-xs font-normal leading-4 text-[#111827]"
                               >
-                                {item.productName?.trim().split(/\s+/).slice(0, 3).join(" ")}
+                                {item.productName
+                                  ?.trim()
+                                  .split(/\s+/)
+                                  .slice(0, 3)
+                                  .join(" ")}
                               </p>
 
                               {(item.categoryName || item.brandName) && (
@@ -2527,7 +2559,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       <span className="font-medium text-[#374151]">
                                         Category:
                                       </span>{" "}
-                                      {item.categoryName.trim().split(/\s+/).slice(0, 3).join(" ")}
+                                      {item.categoryName
+                                        .trim()
+                                        .split(/\s+/)
+                                        .slice(0, 3)
+                                        .join(" ")}
                                     </p>
                                   )}
 
@@ -2539,7 +2575,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                       <span className="font-medium text-[#374151]">
                                         Brand:
                                       </span>{" "}
-                                      {item.brandName.trim().split(/\s+/).slice(0, 3).join(" ")}
+                                      {item.brandName
+                                        .trim()
+                                        .split(/\s+/)
+                                        .slice(0, 3)
+                                        .join(" ")}
                                     </p>
                                   )}
                                 </div>
@@ -2577,14 +2617,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${itemStatusBadge}`}
                           >
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {formatStatus(item.delivery_status || item.status || "pending")}
+                            {formatStatus(
+                              item.delivery_status || item.status || "pending",
+                            )}
                           </span>
                         </td>
 
-                        {/* ✅ RETURN COLUMN — Toggle Button or Closed Badge */}
                         <td className="px-3 py-3 text-center">
                           {isClosed ? (
-                            // ✅ For terminal statuses, show a clean grayed-out disabled badge
                             <span className="inline-flex min-w-[90px] cursor-not-allowed items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-[#D6E2F0] bg-[#F4F8FD] px-3 py-1.5 text-[10px] font-bold text-[#9CA3AF] opacity-70">
                               <FiCheckCircle size={12} />
                               Closed
@@ -2594,10 +2634,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               type="button"
                               onClick={() => handleToggleCancelReturn(row, item)}
                               disabled={isTogglingReturn}
-                              className={`inline-flex min-w-[90px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[10px] font-bold transition-all disabled:opacity-60 ${item.is_cancel_return_allowed
+                              className={`inline-flex min-w-[90px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[10px] font-bold transition-all disabled:opacity-60 ${
+                                item.is_cancel_return_allowed
                                   ? "border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
                                   : "border-[#D6E2F0] bg-[#F4F8FD] text-[#6B7280] hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                                }`}
+                              }`}
                             >
                               {isTogglingReturn ? (
                                 <FiLoader size={12} className="animate-spin" />
@@ -2691,7 +2732,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             )}
 
                             {isDelivered && (
-                              <span className="text-xs font-bold text-[#2D6FE8]">✓</span>
+                              <span className="text-xs font-bold text-[#2D6FE8]">
+                                ✓
+                              </span>
                             )}
                           </div>
                         </td>
@@ -2699,7 +2742,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           {hasInvoice && row.orderId && canViewInvoice && (
                             <button
                               type="button"
-                              onClick={() => handleOpenInvoicePdf(row.orderId!, item.lineId || parseInt(item.id))}
+                              onClick={() =>
+                                handleOpenInvoicePdf(
+                                  row.orderId!,
+                                  item.lineId || parseInt(item.id),
+                                )
+                              }
                               className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
                             >
                               <FiFileText size={13} />
@@ -2717,7 +2765,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiSearch size={24} />
                         </div>
-                        <p className="mt-4 text-sm font-bold text-[#111827]">No orders found</p>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          No orders found
+                        </p>
                         <p className="mt-1 text-xs text-[#6B7280]">
                           Try adjusting your filters or search criteria.
                         </p>
@@ -2737,65 +2787,91 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 const isDispatchable = canItemDispatch(item) && canDispatch;
                 const isShipable = canItemShip(item) && canShip;
                 const isDeliverable = canItemDeliver(item) && canDeliver;
-                const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
+                const isUndeliverable =
+                  canItemMarkUndelivered(item) && canMarkUndelivered;
                 const isDelivered = isFullyDelivered(item);
-                const isMarking = markingUndelivered.has(`${row.id}-${item.id}`);
-                const isTogglingReturn = togglingCancelReturn.has(`${row.id}-${item.id}`);
+                const isMarking = markingUndelivered.has(
+                  `${row.id}-${item.id}`,
+                );
+                const isTogglingReturn = togglingCancelReturn.has(
+                  `${row.id}-${item.id}`,
+                );
                 const hasInvoice = Boolean(item.invoiceNumber);
-                const isClosed = isTerminalStatus(item); // ✅ NEW
+                const isClosed = isTerminalStatus(item);
 
                 return (
                   <div
                     key={`${row.id}-${item.id}-${index}`}
-                    className={`border-b border-[#2D6FE8]/10 bg-white p-4 ${selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
-                      }`}
+                    className={`border-b border-[#2D6FE8]/10 bg-white p-4 ${
+                      selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2 py-0.5 text-[11px] font-bold text-[#111827]">
                           {item.itemReferenceId || "N/A"}
                         </span>
-                        <p className="mt-1.5 text-[10px] text-[#6B7280]">{row.date}</p>
-                        <p className="mt-0.5 text-xs font-semibold text-[#111827]">{row.customer}</p>
+                        <p className="mt-1.5 text-[10px] text-[#6B7280]">
+                          {row.date}
+                        </p>
+                        <p className="mt-0.5 text-xs font-semibold text-[#111827]">
+                          {row.customer}
+                        </p>
                       </div>
                       <span
                         className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
                           item.delivery_status || item.status || "pending",
                         )}`}
                       >
-                        {formatStatus(item.delivery_status || item.status || "pending")}
+                        {formatStatus(
+                          item.delivery_status || item.status || "pending",
+                        )}
                       </span>
                     </div>
 
                     <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3">
                       {item.image ? (
-                        <img src={item.image} alt={item.productName} className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
+                        <img
+                          src={item.image}
+                          alt={item.productName}
+                          className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
+                        />
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
                           <FiPackage size={14} />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="break-words text-xs font-normal leading-4 text-[#111827]">{item.productName}</p>
+                        <p className="break-words text-xs font-normal leading-4 text-[#111827]">
+                          {item.productName}
+                        </p>
                         {(item.categoryName || item.brandName) && (
                           <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
                             {item.categoryName && (
                               <p className="break-words">
-                                <span className="font-medium text-[#374151]">Category:</span>{" "}
+                                <span className="font-medium text-[#374151]">
+                                  Category:
+                                </span>{" "}
                                 {item.categoryName}
                               </p>
                             )}
                             {item.brandName && (
                               <p className="break-words">
-                                <span className="font-medium text-[#374151]">Brand:</span>{" "}
+                                <span className="font-medium text-[#374151]">
+                                  Brand:
+                                </span>{" "}
                                 {item.brandName}
                               </p>
                             )}
                           </div>
                         )}
-                        <p className="mt-1 break-words text-[11px] text-[#4B5563]">SKU: {item.sku} • Qty: {item.quantity}</p>
+                        <p className="mt-1 break-words text-[11px] text-[#4B5563]">
+                          SKU: {item.sku} • Qty: {item.quantity}
+                        </p>
                       </div>
-                      <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">{item.total}</span>
+                      <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">
+                        {item.total}
+                      </span>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -2807,9 +2883,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         View
                       </button>
 
-                      {/* ✅ Return Toggle Button — Mobile */}
                       {isClosed ? (
-                        // ✅ Closed grayed-out badge for terminal statuses
                         <span className="flex-1 cursor-not-allowed rounded-lg bg-[#F4F8FD] px-3 py-2 text-center text-[11px] font-bold text-[#9CA3AF] opacity-70">
                           Closed
                         </span>
@@ -2818,10 +2892,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           type="button"
                           onClick={() => handleToggleCancelReturn(row, item)}
                           disabled={isTogglingReturn}
-                          className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
+                          className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
+                            item.is_cancel_return_allowed
                               ? "bg-[#EAF3FF] text-[#2D6FE8]"
                               : "bg-[#F4F8FD] text-[#6B7280]"
-                            }`}
+                          }`}
                         >
                           {isTogglingReturn
                             ? "Saving..."
@@ -2883,7 +2958,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       {hasInvoice && row.orderId && canViewInvoice && (
                         <button
                           type="button"
-                          onClick={() => handleOpenInvoicePdf(row.orderId!, item.lineId || parseInt(item.id))}
+                          onClick={() =>
+                            handleOpenInvoicePdf(
+                              row.orderId!,
+                              item.lineId || parseInt(item.id),
+                            )
+                          }
                           className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
                         >
                           Invoice
@@ -2898,8 +2978,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiSearch size={24} />
                 </div>
-                <p className="mt-4 text-sm font-bold text-[#111827]">No orders found</p>
-                <p className="mt-1 text-xs text-[#6B7280]">Try adjusting your filters.</p>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  No orders found
+                </p>
+                <p className="mt-1 text-xs text-[#6B7280]">
+                  Try adjusting your filters.
+                </p>
               </div>
             )}
           </div>
@@ -2918,7 +3002,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     {Math.min(currentPage * itemsPerPage, filteredRows.length)}
                   </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#111827]">{filteredRows.length}</span> entries
+                  <span className="font-bold text-[#111827]">
+                    {filteredRows.length}
+                  </span>{" "}
+                  entries
                 </p>
 
                 <div className="flex items-center justify-center gap-1.5">
@@ -2937,10 +3024,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         key={page}
                         type="button"
                         onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                        }`}
                       >
                         {page}
                       </button>
@@ -2952,10 +3040,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === totalPages
+                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
+                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                        }`}
                       >
                         {totalPages}
                       </button>
@@ -3019,7 +3108,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 };
 
 // =====================================================
-// STAT CARD — REUSABLE CARD FOR STATS
+// STAT CARD
 // =====================================================
 
 interface StatCardProps {
@@ -3082,27 +3171,12 @@ const StatCard: React.FC<StatCardProps> = ({
 // =====================================================
 
 const Orders: React.FC = () => {
-  // Route guard: Orders ka UI sirf Orders routes par hi render hoga.
-  // BrowserRouter basename agar pathname mein ho ya na ho, dono handle honge.
-  const location = useLocation();
-  const normalizedPath =
-    location.pathname
-      .replace(/^\/indiekonnect-admin(?=\/|$)/i, "")
-      .replace(/\/+$/, "")
-      .toLowerCase() || "/";
-  const isOrdersRoute =
-    normalizedPath === "/orders" || normalizedPath === "/totalorders";
-
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [ordersData, setOrdersData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [filteredForExport, setFilteredForExport] = useState<Order[]>([]);
   const [filterLabel, setFilterLabel] = useState<string>("All Orders");
-
-  // ===================================================
-  // ✅ PERMISSIONS
-  // ===================================================
 
   const {
     hasPermission,
@@ -3145,19 +3219,11 @@ const Orders: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Navigation ke baad agar router Orders component ko retain bhi kare,
-    // to non-Orders route par orders API call nahi hogi.
-    if (!isOrdersRoute) {
-      setLoading(false);
-      return;
-    }
-
     if (!permissionsLoading) {
       void fetchOrders();
     }
-  }, [isOrdersRoute, permissionsLoading, fetchOrders]);
+  }, [permissionsLoading, fetchOrders]);
 
-  // ✅ Flatten to item-wise for stats
   const allItemRows = useMemo(() => {
     return ordersData.flatMap((apiOrder) => {
       const items = apiOrder.items || [];
@@ -3177,7 +3243,8 @@ const Orders: React.FC = () => {
   const stats = useMemo(() => {
     const totalItems = allItemRows.length;
     const confirmed = allItemRows.filter(
-      (r) => r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing",
+      (r) =>
+        r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing",
     ).length;
     const delivered = allItemRows.filter(
       (r) => r.deliveryStatus === "delivered",
@@ -3189,6 +3256,15 @@ const Orders: React.FC = () => {
   const handleSelectOrder = (order: Order) => {
     setSelectedOrder(order);
   };
+
+  // ✅ FIX: stable callback — infinite loop band
+  const handleFilteredChange = useCallback(
+    (list: Order[], label: string) => {
+      setFilteredForExport(list);
+      setFilterLabel(label);
+    },
+    [],
+  );
 
   const handleDownloadFilteredCsv = () => {
     if (!filteredForExport || filteredForExport.length === 0) {
@@ -3202,27 +3278,9 @@ const Orders: React.FC = () => {
     downloadOrdersCsv(filteredForExport, `orders-${slug || "filtered"}`);
   };
 
-  // ===================================================
-  // ROUTE GUARD
-  // ===================================================
-
-  // Orders ko /cms/brands, /inventory/products ya kisi aur route par
-  // stale/retained render hone se roko. Sab hooks upar call ho chuke hain.
-  if (!isOrdersRoute) {
-    return null;
-  }
-
-  // ===================================================
-  // ✅ LOADING STATE
-  // ===================================================
-
   if (permissionsLoading) {
     return <PermissionLoadingState />;
   }
-
-  // ===================================================
-  // ✅ ACCESS DENIED
-  // ===================================================
 
   if (!canViewOrders && !loading) {
     return (
@@ -3253,7 +3311,9 @@ const Orders: React.FC = () => {
               Order Management
             </span>
           </div>
-          <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">Orders</h1>
+          <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+            Orders
+          </h1>
           <p className="mt-0.5 text-sm text-[#111827]">
             Manage orders, dispatch, shipping, and delivery from one place.
           </p>
@@ -3341,10 +3401,7 @@ const Orders: React.FC = () => {
         <OrdersTable
           onSelectOrder={handleSelectOrder}
           selectedOrderId={selectedOrder?.id}
-          onFilteredChange={(list, label) => {
-            setFilteredForExport(list);
-            setFilterLabel(label);
-          }}
+          onFilteredChange={handleFilteredChange}
         />
       </div>
     </div>

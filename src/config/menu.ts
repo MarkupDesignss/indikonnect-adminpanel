@@ -186,6 +186,16 @@ export const menuItems: MenuItem[] = [
     anyOf: ['sales.report'],
   },
 
+  // ✅ USER MANAGEMENT — NEW ADDED
+  {
+    path: '/UserManagement',
+    label: 'User Management',
+    icon: 'group',
+    module: 'user',
+    permission: 'user.view',
+    anyOf: ['user.view', 'user.create', 'user.update', 'user.delete'],
+  },
+
   {
     path: '/cms',
     label: 'CMS Management',
@@ -323,7 +333,7 @@ export const menuItems: MenuItem[] = [
     module: 'contact_us',
   },
 
-  // ✅ Account section items
+  // Account section items
   {
     path: '/UpdateProfile',
     label: 'Update Profile',

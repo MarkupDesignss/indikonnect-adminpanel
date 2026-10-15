@@ -1163,7 +1163,7 @@ const CancellationDetailModal: React.FC<
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]" />
 
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-3 sm:px-6">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
@@ -1271,7 +1271,7 @@ const CancellationDetailModal: React.FC<
 
           {/* ITEM CARD */}
           <div className="overflow-hidden rounded-2xl border border-[#DCE6F2]">
-            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={17} />
@@ -1511,7 +1511,7 @@ const CancellationDetailModal: React.FC<
 
           {/* TIMELINE */}
           <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
-            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiTruck size={17} />
@@ -1554,7 +1554,7 @@ const CancellationDetailModal: React.FC<
         </div>
 
         {/* FOOTER */}
-        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
+        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -2609,35 +2609,35 @@ const CancelRefund: React.FC = () => {
             <table className="w-full min-w-[1100px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Reference
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Buyer
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Quantity
                   </th>
 
-                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
                     Cancellation Amount
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Reason
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Actions
                   </th>
                 </tr>
@@ -2652,41 +2652,41 @@ const CancelRefund: React.FC = () => {
                       key={`skeleton-${i}`}
                       className="animate-pulse border-b border-[#DCE6F2]"
                     >
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
 
                         <div className="mt-2 h-3 w-24 rounded bg-[#F4F8FD]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-4 w-32 rounded bg-[#EAF3FF]" />
 
                         <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-4 w-8 rounded bg-[#EAF3FF]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="ml-auto h-4 w-20 rounded bg-[#EAF3FF]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-3 w-40 rounded bg-[#F4F8FD]" />
 
                         <div className="mt-2 h-3 w-32 rounded bg-[#F4F8FD]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="h-6 w-24 rounded-full bg-[#EAF3FF]" />
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-3">
                         <div className="flex justify-center gap-2">
                           <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
 
@@ -2731,7 +2731,7 @@ const CancelRefund: React.FC = () => {
                           key={`${requestId}-${index}`}
                           className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                         >
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                               {startIndex +
                                 index +
@@ -2739,7 +2739,7 @@ const CancelRefund: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <div>
                               <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
                                 {
@@ -2755,7 +2755,7 @@ const CancelRefund: React.FC = () => {
                             </div>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <p className="text-sm font-bold text-[#111827]">
                               {getCustomerName(
                                 request.user,
@@ -2777,14 +2777,14 @@ const CancelRefund: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <p className="text-sm font-bold text-[#111827]">
                               {request.items_count ||
                                 1}
                             </p>
                           </td>
 
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-5 py-3 text-right">
                             <p className="text-sm font-bold text-[#2D6FE8]">
                               {formatCurrency(
                                 getRowAmount(
@@ -2794,14 +2794,14 @@ const CancelRefund: React.FC = () => {
                             </p>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4B5563]">
                               {request.reason ||
                                 "No reason provided."}
                             </p>
                           </td>
 
-                          <td className="px-5 py-4 text-center">
+                          <td className="px-5 py-3 text-center">
                             <span
                               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
                                 request.status,
@@ -2819,7 +2819,7 @@ const CancelRefund: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <div className="flex flex-nowrap items-center justify-center gap-2">
                               <button
                                 type="button"
@@ -3217,7 +3217,7 @@ const CancelRefund: React.FC = () => {
           {!loading &&
             filteredRequests.length >
               0 && (
-              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                   <p className="text-xs text-[#6B7280]">
                     Showing{" "}

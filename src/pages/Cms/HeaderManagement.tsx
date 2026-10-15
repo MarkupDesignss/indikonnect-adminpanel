@@ -159,7 +159,7 @@ const BrandingModal: React.FC<BrandingModalProps> = ({ open, loading, logoUrl, f
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[560px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#FACC15] via-[#4F8FF7] to-[#2D6FE8]" />
-        <div className="flex items-center justify-between border-b border-[#DCE6F2] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[#DCE6F2] px-5 py-3.5">
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]"><FiImage size={16} /></div>
@@ -175,7 +175,7 @@ const BrandingModal: React.FC<BrandingModalProps> = ({ open, loading, logoUrl, f
             <ImageSelector label="Logo" file={logo} existingUrl={logoUrl} icon={<FiImage size={15} />} onChange={setLogo} />
             <ImageSelector label="Favicon" file={favicon} existingUrl={faviconUrl} icon={<FiGlobe size={15} />} compact onChange={setFavicon} />
           </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3.5 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} disabled={loading} className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#111827] disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50">
               {loading ? <FiRefreshCw size={15} className="animate-spin" /> : <FiUploadCloud size={15} />}
@@ -257,7 +257,7 @@ const MenuModal: React.FC<MenuModalProps> = ({ open, editingMenu, loading, onClo
               </button>
             </div>
           </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3.5 sm:flex-row sm:justify-end">
             <button type="button" onClick={onClose} disabled={loading} className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#111827] disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={loading} className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:opacity-50">
               {loading ? <FiRefreshCw size={15} className="animate-spin" /> : editingMenu ? <FiEdit3 size={15} /> : <FiPlus size={15} />}
@@ -582,21 +582,21 @@ const HeaderManagement: React.FC = () => {
             <table className="w-full min-w-[850px] border-collapse text-left">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">S.No.</th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Menu</th>
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Slug</th>
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">Status</th>
-                  {(canUpdateMenu || canDeleteMenu) && <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">Actions</th>}
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">S.No.</th>
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Menu</th>
+                  <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">Slug</th>
+                  <th className="px-5 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">Status</th>
+                  {(canUpdateMenu || canDeleteMenu) && <th className="px-5 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {homeMenu && (
                   <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border-b border-[#DCE6F2] bg-[#EAF3FF]">
-                    <td className="px-5 py-4"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs font-bold text-[#2D6FE8]">1</span></td>
-                    <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"><FiMenu size={17} /></div><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-bold text-[#111827]">Home</p><span className="rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#A16207]">Permanent</span></div><p className="mt-1 text-[10px] text-[#6B7280]">Main website home navigation</p></div></div></td>
-                    <td className="px-5 py-4"><span className="rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#111827]">{homeMenu.slug}</span></td>
-                    <td className="px-5 py-4 text-center"><span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(true)}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />Enabled</span></td>
-                    {(canUpdateMenu || canDeleteMenu) && <td className="px-5 py-4"><div className="flex items-center justify-center">{canUpdateBranding && <button type="button" title="Update Home Branding" onClick={() => setBrandingModalOpen(true)} className="flex h-9 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3 text-[10px] font-bold text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"><FiEdit3 size={14} />Update Branding</button>}</div></td>}
+                    <td className="px-5 py-3.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-xs font-bold text-[#2D6FE8]">1</span></td>
+                    <td className="px-5 py-3.5"><div className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"><FiMenu size={17} /></div><div><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-bold text-[#111827]">Home</p><span className="rounded-full bg-[#FEF9C3] px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#A16207]">Permanent</span></div><p className="mt-1 text-[10px] text-[#6B7280]">Main website home navigation</p></div></div></td>
+                    <td className="px-5 py-3.5"><span className="rounded-lg bg-white px-3 py-2 font-mono text-xs font-semibold text-[#111827]">{homeMenu.slug}</span></td>
+                    <td className="px-5 py-3.5 text-center"><span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(true)}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />Enabled</span></td>
+                    {(canUpdateMenu || canDeleteMenu) && <td className="px-5 py-3.5"><div className="flex items-center justify-center">{canUpdateBranding && <button type="button" title="Update Home Branding" onClick={() => setBrandingModalOpen(true)} className="flex h-9 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3 text-[10px] font-bold text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"><FiEdit3 size={14} />Update Branding</button>}</div></td>}
                   </motion.tr>
                 )}
                 {loading ? (
@@ -605,11 +605,11 @@ const HeaderManagement: React.FC = () => {
                   <tr><td colSpan={canUpdateMenu || canDeleteMenu ? 5 : 4} className="px-5 py-14 text-center"><div className="flex flex-col items-center"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]"><FiMenu size={21} /></div><p className="mt-3 text-sm font-bold text-[#111827]">No other menus found</p><p className="mt-1 text-[10px] text-[#6B7280]">Add a new header menu to get started.</p></div></td></tr>
                 ) : paginatedMenus.map((menu, index) => (
                   <motion.tr key={menu.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.03 }} className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
-                    <td className="px-5 py-4"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">{startIndex + index + 2}</span></td>
-                    <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]"><FiMenu size={17} /></div><div><p className="text-sm font-bold text-[#111827]">{menu.title}</p><p className="mt-1 text-[10px] text-[#6B7280]">Menu #{menu.id}</p></div></div></td>
-                    <td className="px-5 py-4"><div className="flex items-center gap-2"><FiLink size={14} className="text-[#2D6FE8]" /><span className="rounded-lg bg-[#F4F8FD] px-3 py-2 font-mono text-xs font-semibold text-[#111827]">{menu.slug}</span></div></td>
-                    <td className="px-5 py-4 text-center"><span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(menu.status)}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />{menu.status ? "Enabled" : "Disabled"}</span></td>
-                    {(canUpdateMenu || canDeleteMenu) && <td className="px-5 py-4"><div className="flex items-center justify-center gap-1.5">{canUpdateMenu && <button type="button" title="Edit menu" onClick={() => openEditMenu(menu)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"><FiEdit3 size={15} /></button>}{canDeleteMenu && <button type="button" title="Delete menu" onClick={() => openDelete(menu)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"><FiTrash2 size={15} /></button>}</div></td>}
+                    <td className="px-5 py-3.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">{startIndex + index + 2}</span></td>
+                    <td className="px-5 py-3.5"><div className="flex items-center gap-3"><div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]"><FiMenu size={17} /></div><div><p className="text-sm font-bold text-[#111827]">{menu.title}</p><p className="mt-1 text-[10px] text-[#6B7280]">Menu #{menu.id}</p></div></div></td>
+                    <td className="px-5 py-3.5"><div className="flex items-center gap-2"><FiLink size={14} className="text-[#2D6FE8]" /><span className="rounded-lg bg-[#F4F8FD] px-3 py-2 font-mono text-xs font-semibold text-[#111827]">{menu.slug}</span></div></td>
+                    <td className="px-5 py-3.5 text-center"><span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(menu.status)}`}><span className="h-1.5 w-1.5 rounded-full bg-current" />{menu.status ? "Enabled" : "Disabled"}</span></td>
+                    {(canUpdateMenu || canDeleteMenu) && <td className="px-5 py-3.5"><div className="flex items-center justify-center gap-1.5">{canUpdateMenu && <button type="button" title="Edit menu" onClick={() => openEditMenu(menu)} className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"><FiEdit3 size={15} /></button>}{canDeleteMenu && <button type="button" title="Delete menu" onClick={() => openDelete(menu)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"><FiTrash2 size={15} /></button>}</div></td>}
                   </motion.tr>
                 ))}
               </tbody>
@@ -618,7 +618,7 @@ const HeaderManagement: React.FC = () => {
 
           {/* PAGINATION */}
           {filteredMenus.length > 0 && (
-            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3.5 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
                 <p className="text-[10px] text-[#6B7280]">Showing <strong className="text-[#111827]">{startEntry}</strong> to <strong className="text-[#111827]">{endEntry}</strong> of <strong className="text-[#111827]">{filteredMenus.length}</strong> menus</p>
                 <div className="flex items-center gap-1.5">

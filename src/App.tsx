@@ -27,20 +27,26 @@ function App() {
     hostname === "admin.localhost" ||
     hostname.startsWith("admin.") ||
     pathname.startsWith("/indiekonnect-admin") ||
-    (!isFinance && !isWarehouse); // default fallback
+    (!isFinance && !isWarehouse);
 
   // ── Router Selection ──
   let router = adminRouter;
+  let portalKey = "admin";
 
   if (isFinance) {
     router = financeRouter;
+    portalKey = "finance";
   } else if (isWarehouse) {
     router = warehouseRouter;
+    portalKey = "warehouse";
   } else if (isAdmin) {
     router = adminRouter;
+    portalKey = "admin";
   }
 
-  return <RouterProvider router={router} />;
+  // ✅ FIX: key lagao — portal change hone par router remount hoga
+  // Note: pathname ko key mein nahi daal sakte warna infinite remount hoga
+  return <RouterProvider router={router} key={portalKey} />;
 }
 
 export default App;

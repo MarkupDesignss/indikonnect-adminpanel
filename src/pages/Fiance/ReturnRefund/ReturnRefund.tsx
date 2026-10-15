@@ -1495,7 +1495,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
         {/* HEADER */}
 
-        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-3 sm:px-6">
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
@@ -1534,7 +1534,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
           {isCompleted && (
             <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
-              <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-5 py-4">
+              <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
                     {isReplacement ? (
@@ -1715,7 +1715,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           {/* RETURNED ITEMS */}
 
           <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2]">
-            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1851,7 +1851,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
           {orderLinesTimeline.length > 0 && (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
-              <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+              <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                     <FiTruck size={17} />
@@ -2086,7 +2086,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     onClick={() =>
                       setRefundBreakdownOpen((prev) => !prev)
                     }
-                    className="flex w-full items-center justify-between gap-3 bg-[#F4F8FD] px-4 py-3 transition hover:bg-[#EAF3FF] sm:px-5 sm:py-3.5"
+                    className="flex w-full items-center justify-between gap-3 bg-[#F4F8FD] px-4 py-3 transition hover:bg-[#EAF3FF] sm:px-5 sm:py-3"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
@@ -2298,7 +2298,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
         {/* FOOTER ACTIONS */}
 
-        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
+        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -3164,35 +3164,35 @@ const ReturnRefund: React.FC = () => {
             <table className="w-full min-w-[1200px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     S.No.
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Reference
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Buyer
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Quantity
                   </th>
 
-                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
                     Return Amount
                   </th>
 
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Reason
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
 
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Actions
                   </th>
                 </tr>
@@ -3255,19 +3255,19 @@ const ReturnRefund: React.FC = () => {
                     return (
                       <React.Fragment key={request.id}>
                         <tr className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
                               {startIndex + index + 1}
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <span className="inline-flex rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
                               {request.order_reference || "—"}
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <p className="text-sm font-bold text-[#111827]">
                               {getCustomerName(request.user)}
                             </p>
@@ -3282,13 +3282,13 @@ const ReturnRefund: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4 text-center">
+                          <td className="px-5 py-3 text-center">
                             <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
                               {request.items_count}
                             </span>
                           </td>
 
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-5 py-3 text-right">
                             <span className="text-sm font-bold text-[#2D6FE8]">
                               {formatCurrency(request.refund_amount)}
                             </span>
@@ -3306,7 +3306,7 @@ const ReturnRefund: React.FC = () => {
                             )}
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <p
                               title={request.reason || ""}
                               className="max-w-[210px] truncate text-xs text-[#4B5563]"
@@ -3315,7 +3315,7 @@ const ReturnRefund: React.FC = () => {
                             </p>
                           </td>
 
-                          <td className="px-5 py-4 text-center">
+                          <td className="px-5 py-3 text-center">
                             <span
                               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
                                 request.status,
@@ -3331,7 +3331,7 @@ const ReturnRefund: React.FC = () => {
                             </span>
                           </td>
 
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             <div className="flex flex-nowrap items-center justify-center gap-2">
                               <button
                                 type="button"
@@ -3597,7 +3597,7 @@ const ReturnRefund: React.FC = () => {
           {/* PAGINATION */}
 
           {filteredRequests.length > 0 && (
-            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">
                   Showing{" "}
