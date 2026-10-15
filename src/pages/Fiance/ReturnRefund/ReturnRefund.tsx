@@ -183,6 +183,12 @@ const getAccountTypeLabel = (accountType?: string | null) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+// ✅ NEW: Lowercase account type for use in sentences
+const getAccountTypeLower = (accountType?: string | null) => {
+  if (!accountType) return "customer";
+  return accountType.toLowerCase();
+};
+
 const getAccountTypeClass = (accountType?: string | null) => {
   switch (accountType) {
     case "distributor":
@@ -247,10 +253,15 @@ interface TimelineEvent {
   icon: React.ReactNode;
 }
 
+// ✅ UPDATED: Accepts accountType to dynamically replace "customer"
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
+  accountType?: string | null,
 ): TimelineEvent[] => {
   if (!timeline) return [];
+
+  const accountLabel = getAccountTypeLower(accountType);
+  const accountTitle = getAccountTypeLabel(accountType);
 
   const rawEvents: Array<{
     key: string;
@@ -263,7 +274,7 @@ const buildTimelineEvents = (
     {
       key: "created_at",
       label: "Order Created",
-      description: "Order was placed by the customer.",
+      description: `Order was placed by the ${accountLabel}.`,
       date: timeline.created_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiPackage size={14} />,
@@ -287,7 +298,7 @@ const buildTimelineEvents = (
     {
       key: "delivered_at",
       label: "Delivered",
-      description: "Package delivered to the customer.",
+      description: `Package delivered to the ${accountLabel}.`,
       date: timeline.delivered_at ?? null,
       color: "bg-[#1E40AF]",
       icon: <FiCheckCircle size={14} />,
@@ -295,7 +306,7 @@ const buildTimelineEvents = (
     {
       key: "cancellation_requested_at",
       label: "Cancellation Requested",
-      description: "Customer requested order cancellation.",
+      description: `${accountTitle} requested order cancellation.`,
       date: timeline.cancellation_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiClock size={14} />,
@@ -319,7 +330,7 @@ const buildTimelineEvents = (
     {
       key: "return_requested_at",
       label: "Return Requested",
-      description: "Customer requested a return.",
+      description: `${accountTitle} requested a return.`,
       date: timeline.return_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiRotateCcw size={14} />,
@@ -351,7 +362,7 @@ const buildTimelineEvents = (
     {
       key: "buyback_requested_at",
       label: "Buyback Requested",
-      description: "Customer requested buyback.",
+      description: `${accountTitle} requested buyback.`,
       date: timeline.buyback_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiRotateCw size={14} />,
@@ -466,6 +477,7 @@ interface ApprovePopupProps {
   loading: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   suggestedAmount: number;
   onClose: () => void;
   onConfirm: (adminNotes: string) => void;
@@ -476,6 +488,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
   loading,
   orderReference,
   customerName,
+  customerLabel,
   suggestedAmount,
   onClose,
   onConfirm,
@@ -540,7 +553,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -734,6 +747,7 @@ interface MarkReceivedPopupProps {
   open: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   loading: boolean;
   onClose: () => void;
   onConfirm: (adminNotes: string) => void;
@@ -743,6 +757,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   open,
   orderReference,
   customerName,
+  customerLabel,
   loading,
   onClose,
   onConfirm,
@@ -806,7 +821,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -875,6 +890,7 @@ interface CompletePopupProps {
   loading: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   suggestedAmount: number;
   onClose: () => void;
   onConfirm: (
@@ -889,6 +905,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
   loading,
   orderReference,
   customerName,
+  customerLabel,
   suggestedAmount,
   onClose,
   onConfirm,
@@ -971,7 +988,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -1128,8 +1145,8 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
           <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5">
             <p className="text-[11px] leading-4 text-[#4B5563]">
               {resolution === "refund"
-                ? "⚠️ Refund will be sent back to the customer. This cannot be undone."
-                : "⚠️ Replacement product will be shipped to the customer. This cannot be undone."}
+                ? `⚠️ Refund will be sent back to the ${customerLabel.toLowerCase()}. This cannot be undone.`
+                : `⚠️ Replacement product will be shipped to the ${customerLabel.toLowerCase()}. This cannot be undone.`}
             </p>
           </div>
         </div>
@@ -1185,6 +1202,7 @@ interface ReplacementConfirmPopupProps {
   loading: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -1196,6 +1214,7 @@ const ReplacementConfirmPopup: React.FC<
   loading,
   orderReference,
   customerName,
+  customerLabel,
   onClose,
   onConfirm,
 }) => {
@@ -1234,7 +1253,7 @@ const ReplacementConfirmPopup: React.FC<
             </div>
 
             <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
-              <span className="text-[11px] text-[#6B7280]">Customer</span>
+              <span className="text-[11px] text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-xs font-semibold text-[#111827]">
                 {customerName}
@@ -1244,8 +1263,8 @@ const ReplacementConfirmPopup: React.FC<
 
           <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
             <p className="text-[11px] leading-4 text-[#4B5563]">
-              ⚠️ The replacement product will be shipped to the customer. This
-              action cannot be undone.
+              ⚠️ The replacement product will be shipped to the{" "}
+              {customerLabel.toLowerCase()}. This action cannot be undone.
             </p>
           </div>
         </div>
@@ -1484,6 +1503,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const orderLinesTimeline: any[] =
     (detail as any).order_lines_timeline || [];
 
+  // ✅ Get account type for dynamic text
+  const accountType = detail.user?.account_type;
+
   return (
     <GlobalModal
       isOpen={open}
@@ -1622,10 +1644,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   <FiUser size={17} />
                 </div>
 
+                {/* ✅ Dynamic title based on account type */}
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {detail.user?.account_type?.toLowerCase() === "distributor"
-                    ? "Distributor Information"
-                    : "Customer Information"}
+                  {getAccountTypeLabel(accountType)} Information
                 </h3>
               </div>
 
@@ -1650,11 +1671,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                     <span
                       className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                        detail.user?.account_type,
+                        accountType,
                       )}`}
                     >
                       <FiBriefcase size={10} />
-                      {getAccountTypeLabel(detail.user?.account_type)}
+                      {getAccountTypeLabel(accountType)}
                     </span>
                   </div>
                 </div>
@@ -1871,7 +1892,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
               <div className="divide-y divide-[#DCE6F2]">
                 {orderLinesTimeline.map((line) => {
-                  const events = buildTimelineEvents(line.timeline);
+                  // ✅ Pass accountType to buildTimelineEvents
+                  const events = buildTimelineEvents(
+                    line.timeline,
+                    accountType,
+                  );
 
                   return (
                     <div key={line.line_id} className="p-5">
@@ -3683,6 +3708,9 @@ const ReturnRefund: React.FC = () => {
             selectedDetail?.order?.order_reference || "N/A"
           }
           customerName={getCustomerName(selectedDetail?.user)}
+          customerLabel={getAccountTypeLabel(
+            selectedDetail?.user?.account_type,
+          )}
           suggestedAmount={selectedDetail?.refund_details?.total || 0}
           onClose={() => setApproveModalOpen(false)}
           onConfirm={handleApprove}
@@ -3709,6 +3737,9 @@ const ReturnRefund: React.FC = () => {
             selectedDetail?.order?.order_reference || "N/A"
           }
           customerName={getCustomerName(selectedDetail?.user)}
+          customerLabel={getAccountTypeLabel(
+            selectedDetail?.user?.account_type,
+          )}
           loading={receivedLoading}
           onClose={() => setReceivedModalOpen(false)}
           onConfirm={handleMarkReceived}
@@ -3725,6 +3756,9 @@ const ReturnRefund: React.FC = () => {
             selectedDetail?.order?.order_reference || "N/A"
           }
           customerName={getCustomerName(selectedDetail?.user)}
+          customerLabel={getAccountTypeLabel(
+            selectedDetail?.user?.account_type,
+          )}
           suggestedAmount={selectedDetail?.refund_details?.total || 0}
           onClose={() => setCompleteModalOpen(false)}
           onConfirm={handleComplete}
@@ -3741,6 +3775,9 @@ const ReturnRefund: React.FC = () => {
             selectedDetail?.order?.order_reference || "N/A"
           }
           customerName={getCustomerName(selectedDetail?.user)}
+          customerLabel={getAccountTypeLabel(
+            selectedDetail?.user?.account_type,
+          )}
           onClose={() => {
             setReplacementConfirmOpen(false);
             setPendingReplacementData(null);

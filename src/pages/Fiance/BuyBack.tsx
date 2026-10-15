@@ -195,6 +195,12 @@ const getAccountTypeLabel = (accountType?: string | null) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+// ✅ NEW: Lowercase account type for use in sentences
+const getAccountTypeLower = (accountType?: string | null) => {
+  if (!accountType) return "customer";
+  return accountType.toLowerCase();
+};
+
 // ✅ SAME ACCOUNT TYPE COLORS
 const getAccountTypeClass = (accountType?: string | null) => {
   switch (accountType) {
@@ -223,14 +229,80 @@ const formatMethodLabel = (method?: string | null) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
+/* -------------------------------------------------------------------------- */
+/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Returns the actual refunded amount for a buyback record.
+ *
+ * Priority:
+ *   1. `refunded_amount` directly on the record (most accurate)
+ *   2. `refund_info.amount` (from detail payload)
+ *   3. `refund_details.total` (from detail payload)
+ *   4. `total_refund_amount` (fallback from return record)
+ *   5. `refund_amount` (fallback)
+ */
+function getRefundedAmount(record: any): number | null {
+  if (!record) return null;
+
+  const candidates = [
+    record.refunded_amount,
+    record.refund_info?.amount,
+    record.refund_details?.total,
+    record.total_refund_amount,
+    record.refund_amount,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") {
+      continue;
+    }
+
+    const amount =
+      typeof candidate === "number"
+        ? candidate
+        : parseFloat(String(candidate));
+
+    if (Number.isFinite(amount) && amount > 0) {
+      return amount;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns true if the buyback record has been refunded.
+ */
+function isRefundProcessed(record: any): boolean {
+  if (!record) return false;
+
+  const status = String(record.status || "").toLowerCase();
+  const refundStatus = String(record.refund_status || "").toLowerCase();
+
+  if (status === "completed" || status === "refunded") return true;
+
+  if (refundStatus === "completed" || refundStatus === "processed") {
+    return true;
+  }
+
+  return getRefundedAmount(record) !== null;
+}
+
 // =====================================================
 // TIMELINE BUILDER
 // =====================================================
 
+// ✅ UPDATED: Accepts accountType to dynamically replace "customer"
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
+  accountType?: string | null,
 ): TimelineEvent[] => {
   if (!timeline) return [];
+
+  const accountLabel = getAccountTypeLower(accountType);
+  const accountTitle = getAccountTypeLabel(accountType);
 
   const rawEvents: Array<{
     key: string;
@@ -243,7 +315,7 @@ const buildTimelineEvents = (
     {
       key: "created_at",
       label: "Order Created",
-      description: "Order was placed by the customer.",
+      description: `Order was placed by the ${accountLabel}.`,
       date: timeline.created_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiPackage size={14} />,
@@ -267,7 +339,7 @@ const buildTimelineEvents = (
     {
       key: "delivered_at",
       label: "Delivered",
-      description: "Package delivered to the customer.",
+      description: `Package delivered to the ${accountLabel}.`,
       date: timeline.delivered_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiCheckCircle size={14} />,
@@ -275,7 +347,7 @@ const buildTimelineEvents = (
     {
       key: "cancellation_requested_at",
       label: "Cancellation Requested",
-      description: "Customer requested order cancellation.",
+      description: `${accountTitle} requested order cancellation.`,
       date: timeline.cancellation_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiClock size={14} />,
@@ -299,7 +371,7 @@ const buildTimelineEvents = (
     {
       key: "return_requested_at",
       label: "Return Requested",
-      description: "Customer requested a return.",
+      description: `${accountTitle} requested a return.`,
       date: timeline.return_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiRotateCcw size={14} />,
@@ -331,7 +403,7 @@ const buildTimelineEvents = (
     {
       key: "buyback_requested_at",
       label: "Buyback Requested",
-      description: "Customer requested a buyback.",
+      description: `${accountTitle} requested a buyback.`,
       date: timeline.buyback_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiRotateCw size={14} />,
@@ -526,6 +598,7 @@ interface ApprovePopupProps {
   loading: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   suggestedAmount: number;
   onClose: () => void;
   onConfirm: (adminNotes: string) => void;
@@ -536,6 +609,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
   loading,
   orderReference,
   customerName,
+  customerLabel,
   suggestedAmount,
   onClose,
   onConfirm,
@@ -599,7 +673,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -677,6 +751,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
 interface RejectPopupProps {
   open: boolean;
   loading: boolean;
+  customerLabel: string;
   onClose: () => void;
   onConfirm: (adminNotes: string) => void;
 }
@@ -684,6 +759,7 @@ interface RejectPopupProps {
 const RejectPopup: React.FC<RejectPopupProps> = ({
   open,
   loading,
+  customerLabel,
   onClose,
   onConfirm,
 }) => {
@@ -753,8 +829,8 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 
           <div className="rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] p-2.5">
             <p className="text-[11px] leading-4 text-[#C23B32]">
-              ⚠️ Rejecting will mark this buyback as rejected. Customer will be
-              notified.
+              ⚠️ Rejecting will mark this buyback as rejected. {customerLabel}{" "}
+              will be notified.
             </p>
           </div>
         </div>
@@ -795,6 +871,7 @@ interface MarkReceivedPopupProps {
   open: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   loading: boolean;
   onClose: () => void;
   onConfirm: (adminNotes: string) => void;
@@ -804,6 +881,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   open,
   orderReference,
   customerName,
+  customerLabel,
   loading,
   onClose,
   onConfirm,
@@ -867,7 +945,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -937,6 +1015,7 @@ interface CompletePopupProps {
   loading: boolean;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   suggestedAmount: number;
   onClose: () => void;
   onConfirm: (refundAmount: number, adminNotes: string) => void;
@@ -947,6 +1026,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
   loading,
   orderReference,
   customerName,
+  customerLabel,
   suggestedAmount,
   onClose,
   onConfirm,
@@ -995,7 +1075,8 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             </h2>
 
             <p className="mt-0.5 text-[11px] text-[#6B7280]">
-              Enter the refund amount to return to the customer.
+              Enter the refund amount to return to the{" "}
+              {customerLabel.toLowerCase()}.
             </p>
           </div>
 
@@ -1020,7 +1101,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
 
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
@@ -1081,8 +1162,8 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
           <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5">
             <p className="text-[11px] leading-4 text-[#6B7280]">
               ⚠️ By confirming, the buyback will be completed and the entered
-              refund amount will be sent back to the customer. This action
-              cannot be undone.
+              refund amount will be sent back to the{" "}
+              {customerLabel.toLowerCase()}. This action cannot be undone.
             </p>
           </div>
         </div>
@@ -1116,28 +1197,6 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
     </GlobalModal>
   );
 };
-
-// =====================================================
-// DETAIL MODAL
-// =====================================================
-
-interface ReturnDetailModalProps {
-  open: boolean;
-  loading: boolean;
-  detail: SingleReturnResponse["data"] | null;
-  actionLoading: ActionLoading;
-  onClose: () => void;
-  onApprove: () => void;
-  onReject: () => void;
-  onReceived: () => void;
-  onComplete: () => void;
-
-  // ✅ PERMISSIONS
-  canApprove?: boolean;
-  canReject?: boolean;
-  canMarkReceived?: boolean;
-  canComplete?: boolean;
-}
 
 // =====================================================
 // DETAIL MODAL
@@ -1262,37 +1321,48 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const rawDetail: any = detail;
 
+  // ✅ NEW: compute actual refunded amount (prioritizes refunded_amount)
+  const actualRefundedAmount = getRefundedAmount(rawDetail);
+  const isRefunded = isRefundProcessed(rawDetail);
+
+  // ✅ Get account type for dynamic text
+  const accountType = detail.user?.account_type;
+
   const timelineSource =
     rawDetail.timeline ||
     rawDetail.order_lines_timeline?.[0]?.timeline ||
     rawDetail.order_line_timeline?.timeline ||
     null;
 
+  // ✅ Pass accountType to buildTimelineEvents
   const timelineEvents = timelineSource
-    ? buildTimelineEvents(timelineSource)
-    : buildTimelineEvents({
-        created_at:
-          rawDetail.order_created_at || rawDetail.created_at || null,
+    ? buildTimelineEvents(timelineSource, accountType)
+    : buildTimelineEvents(
+        {
+          created_at:
+            rawDetail.order_created_at || rawDetail.created_at || null,
 
-        buyback_requested_at:
-          rawDetail.buyback_requested_at ||
-          rawDetail.created_at ||
-          null,
+          buyback_requested_at:
+            rawDetail.buyback_requested_at ||
+            rawDetail.created_at ||
+            null,
 
-        buyback_approved_at: rawDetail.approved_at || null,
+          buyback_approved_at: rawDetail.approved_at || null,
 
-        buyback_rejected_at:
-          detail.status === "rejected"
-            ? rawDetail.updated_at
-            : null,
+          buyback_rejected_at:
+            detail.status === "rejected"
+              ? rawDetail.updated_at
+              : null,
 
-        buyback_refunded_at:
-          detail.status === "completed"
-            ? rawDetail.refunded_at || rawDetail.updated_at
-            : null,
+          buyback_refunded_at:
+            detail.status === "completed"
+              ? rawDetail.refunded_at || rawDetail.updated_at
+              : null,
 
-        updated_at: rawDetail.updated_at || null,
-      });
+          updated_at: rawDetail.updated_at || null,
+        },
+        accountType,
+      );
 
   return (
     <GlobalModal
@@ -1338,7 +1408,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
         {/* BODY */}
         <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          {/* COMPLETED BANNER */}
+          {/* ✅ COMPLETED BANNER — Now uses actualRefundedAmount */}
           {isCompleted && (
             <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-5 py-4">
@@ -1371,9 +1441,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       Refund Amount
                     </p>
 
+                    {/* ✅ Prioritize actual refunded_amount */}
                     <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
                       {formatCurrency(
-                        detail.refund_info?.amount ??
+                        actualRefundedAmount ??
+                          detail.refund_info?.amount ??
                           detail.refund_details?.total,
                       )}
                     </p>
@@ -1416,10 +1488,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   <FiUser size={17} />
                 </div>
 
+                {/* ✅ Dynamic title based on account type */}
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {detail.user?.account_type?.toLowerCase() === "distributor"
-                    ? "Distributor Information"
-                    : "Customer Information"}
+                  {getAccountTypeLabel(accountType)} Information
                 </h3>
               </div>
 
@@ -1444,14 +1515,12 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                     <span
                       className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                        detail.user?.account_type,
+                        accountType,
                       )}`}
                     >
                       <FiBriefcase size={10} />
 
-                      {getAccountTypeLabel(
-                        detail.user?.account_type,
-                      )}
+                      {getAccountTypeLabel(accountType)}
                     </span>
                   </div>
                 </div>
@@ -1679,7 +1748,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
-          {/* REFUND SECTION — sirf non-completed ke liye */}
+          {/* ✅ REFUND SECTION — Now uses actualRefundedAmount in the summary */}
           {!isCompleted && hasRefundBreakdown ? (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
               <div className="flex items-center justify-between gap-3 border-b border-[#DCE6F2] bg-[#F4F8FD] px-4 py-3 sm:px-5">
@@ -1811,8 +1880,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2.5">
+                  {/* ✅ Prioritize actualRefundedAmount */}
                   <span className="text-sm font-bold text-[#2D6FE8]">
-                    {formatCurrency(refundDetails?.total)}
+                    {formatCurrency(
+                      actualRefundedAmount ?? refundDetails?.total,
+                    )}
                   </span>
 
                   <span
@@ -1976,7 +2048,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </div>
 
                       <span className="rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
-                        {formatCurrency(refundDetails?.total)}
+                        {/* ✅ Prioritize actualRefundedAmount */}
+                        {formatCurrency(
+                          actualRefundedAmount ?? refundDetails?.total,
+                        )}
                       </span>
                     </div>
                   </div>
@@ -3214,6 +3289,10 @@ const BuyBack: React.FC = () => {
                           "received" &&
                         canCompleteBuyback;
 
+                      // ✅ NEW: compute actual refunded amount for row
+                      const rowRefunded = getRefundedAmount(request);
+                      const rowIsRefunded = isRefundProcessed(request);
+
                       return (
                         <React.Fragment
                           key={request.id}
@@ -3260,6 +3339,7 @@ const BuyBack: React.FC = () => {
                               </span>
                             </td>
 
+                            {/* ✅ Buyback Amount — now shows refunded_amount when available */}
                             <td className="px-5 py-4 text-right">
                               <div className="inline-flex flex-col items-end">
                                 <span className="text-sm font-bold text-[#2D6FE8]">
@@ -3268,16 +3348,13 @@ const BuyBack: React.FC = () => {
                                   )}
                                 </span>
 
-                                {request.status ===
-                                  "completed" && (
-                                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
-                                    Refunded{" "}
-                                    {formatCurrency(
-                                      request.refund_info
-                                        ?.amount,
-                                    )}
-                                  </p>
-                                )}
+                                {rowIsRefunded &&
+                                  rowRefunded !== null && (
+                                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
+                                      Refunded{" "}
+                                      {formatCurrency(rowRefunded)}
+                                    </p>
+                                  )}
                               </div>
                             </td>
 
@@ -3439,6 +3516,10 @@ const BuyBack: React.FC = () => {
                     request.can_reject &&
                     canRejectBuyback;
 
+                  // ✅ NEW: refunded amount for mobile
+                  const rowRefunded = getRefundedAmount(request);
+                  const rowIsRefunded = isRefundProcessed(request);
+
                   return (
                     <div
                       key={request.id}
@@ -3490,6 +3571,13 @@ const BuyBack: React.FC = () => {
                               request.refund_amount,
                             )}
                           </p>
+
+                          {/* ✅ Refunded amount shown below */}
+                          {rowIsRefunded && rowRefunded !== null && (
+                            <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                              Refunded {formatCurrency(rowRefunded)}
+                            </p>
+                          )}
                         </div>
 
                         <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
@@ -3629,6 +3717,19 @@ const BuyBack: React.FC = () => {
                             )}
                           </span>
                         </div>
+
+                        {/* ✅ Refunded amount in bottom box */}
+                        {rowIsRefunded && rowRefunded !== null && (
+                          <div className="mt-1.5 flex items-center justify-between border-t border-[#2D6FE8]/15 pt-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F8FF7]">
+                              Refunded
+                            </span>
+
+                            <span className="text-sm font-bold text-[#4F8FF7]">
+                              {formatCurrency(rowRefunded)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -3763,6 +3864,9 @@ const BuyBack: React.FC = () => {
         customerName={getCustomerName(
           selectedDetail?.user,
         )}
+        customerLabel={getAccountTypeLabel(
+          selectedDetail?.user?.account_type,
+        )}
         suggestedAmount={
           selectedDetail?.refund_details
             ?.total || 0
@@ -3779,6 +3883,9 @@ const BuyBack: React.FC = () => {
         loading={
           actionLoading.type === "reject"
         }
+        customerLabel={getAccountTypeLabel(
+          selectedDetail?.user?.account_type,
+        )}
         onClose={() =>
           setRejectModalOpen(false)
         }
@@ -3794,6 +3901,9 @@ const BuyBack: React.FC = () => {
         }
         customerName={getCustomerName(
           selectedDetail?.user,
+        )}
+        customerLabel={getAccountTypeLabel(
+          selectedDetail?.user?.account_type,
         )}
         loading={receivedLoading}
         onClose={() =>
@@ -3812,6 +3922,9 @@ const BuyBack: React.FC = () => {
         }
         customerName={getCustomerName(
           selectedDetail?.user,
+        )}
+        customerLabel={getAccountTypeLabel(
+          selectedDetail?.user?.account_type,
         )}
         suggestedAmount={
           selectedDetail?.refund_details

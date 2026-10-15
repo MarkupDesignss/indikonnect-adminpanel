@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -20,11 +21,11 @@ import {
   FiCheckCircle,
   FiCreditCard,
   FiBriefcase,
-  FiTruck,
   FiSend,
   FiClock,
   FiXCircle,
   FiRotateCcw,
+  FiUser,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -37,7 +38,6 @@ import cancellationApi, {
   CancellationStatus,
 } from "../../api/endpoints/cancellationApi";
 
-// ✅ PERMISSIONS
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
@@ -296,14 +296,24 @@ const getRowAccountType = (row: any): string => {
   );
 };
 
+const getAccountTypeLower = (
+  accountType?: string | null,
+) => {
+  if (!accountType) return "customer";
+  return accountType.toLowerCase();
+};
+
 // =====================================================
 // TIMELINE
 // =====================================================
 
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
+  accountType?: string | null,
 ): TimelineEvent[] => {
   if (!timeline) return [];
+
+  const accountLabel = getAccountTypeLower(accountType);
 
   const rawEvents: Array<{
     key: string;
@@ -316,8 +326,7 @@ const buildTimelineEvents = (
     {
       key: "created_at",
       label: "Order Created",
-      description:
-        "Order was placed by the customer.",
+      description: `Order was placed by the ${accountLabel}.`,
       date: timeline.created_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiPackage size={14} />,
@@ -325,17 +334,15 @@ const buildTimelineEvents = (
     {
       key: "dispatched_at",
       label: "Dispatched",
-      description:
-        "Order was handed over to courier.",
+      description: "Order was handed over to courier.",
       date: timeline.dispatched_at ?? null,
       color: "bg-[#2D6FE8]",
-      icon: <FiTruck size={14} />,
+      icon: <FiSend size={14} />,
     },
     {
       key: "shipped_at",
       label: "Shipped",
-      description:
-        "Package is in transit.",
+      description: "Package is in transit.",
       date: timeline.shipped_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiSend size={14} />,
@@ -343,8 +350,7 @@ const buildTimelineEvents = (
     {
       key: "delivered_at",
       label: "Delivered",
-      description:
-        "Package delivered to the customer.",
+      description: `Package delivered to the ${accountLabel}.`,
       date: timeline.delivered_at ?? null,
       color: "bg-[#1E40AF]",
       icon: <FiCheckCircle size={14} />,
@@ -352,19 +358,15 @@ const buildTimelineEvents = (
     {
       key: "cancellation_requested_at",
       label: "Cancellation Requested",
-      description:
-        "Customer requested order cancellation.",
-      date:
-        timeline.cancellation_requested_at ??
-        null,
+      description: `${getAccountTypeLabel(accountType)} requested order cancellation.`,
+      date: timeline.cancellation_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiClock size={14} />,
     },
     {
       key: "cancelled_at",
       label: "Cancelled",
-      description:
-        "Order cancellation was processed.",
+      description: "Order cancellation was processed.",
       date: timeline.cancelled_at ?? null,
       color: "bg-[#C23B32]",
       icon: <FiXCircle size={14} />,
@@ -372,19 +374,15 @@ const buildTimelineEvents = (
     {
       key: "cancellation_rejected_at",
       label: "Cancellation Rejected",
-      description:
-        "Cancellation request was rejected.",
-      date:
-        timeline.cancellation_rejected_at ??
-        null,
+      description: "Cancellation request was rejected.",
+      date: timeline.cancellation_rejected_at ?? null,
       color: "bg-[#C23B32]",
       icon: <FiXCircle size={14} />,
     },
     {
       key: "return_requested_at",
       label: "Return Requested",
-      description:
-        "Customer requested a return.",
+      description: `${getAccountTypeLabel(accountType)} requested a return.`,
       date: timeline.return_requested_at ?? null,
       color: "bg-[#FACC15]",
       icon: <FiRotateCcw size={14} />,
@@ -392,8 +390,7 @@ const buildTimelineEvents = (
     {
       key: "return_approved_at",
       label: "Return Approved",
-      description:
-        "Return request was approved.",
+      description: "Return request was approved.",
       date: timeline.return_approved_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiCheckCircle size={14} />,
@@ -401,8 +398,7 @@ const buildTimelineEvents = (
     {
       key: "return_rejected_at",
       label: "Return Rejected",
-      description:
-        "Return request was rejected.",
+      description: "Return request was rejected.",
       date: timeline.return_rejected_at ?? null,
       color: "bg-[#C23B32]",
       icon: <FiXCircle size={14} />,
@@ -410,18 +406,15 @@ const buildTimelineEvents = (
     {
       key: "return_completed_at",
       label: "Return Completed",
-      description:
-        "Return process was completed.",
-      date:
-        timeline.return_completed_at ?? null,
+      description: "Return process was completed.",
+      date: timeline.return_completed_at ?? null,
       color: "bg-[#1E40AF]",
       icon: <FiCheckCircle size={14} />,
     },
     {
       key: "updated_at",
       label: "Last Updated",
-      description:
-        "Last status change recorded.",
+      description: "Last status change recorded.",
       date: timeline.updated_at ?? null,
       color: "bg-[#2D6FE8]",
       icon: <FiClock size={14} />,
@@ -436,12 +429,8 @@ const buildTimelineEvents = (
     }))
     .sort(
       (a, b) =>
-        new Date(
-          a.date.replace(" ", "T"),
-        ).getTime() -
-        new Date(
-          b.date.replace(" ", "T"),
-        ).getTime(),
+        new Date(a.date.replace(" ", "T")).getTime() -
+        new Date(b.date.replace(" ", "T")).getTime(),
     );
 };
 
@@ -460,9 +449,7 @@ interface StatCardProps {
   tileIconClass: string;
 }
 
-const CancellationStatCard: React.FC<
-  StatCardProps
-> = ({
+const CancellationStatCard: React.FC<StatCardProps> = ({
   title,
   value,
   subtitle,
@@ -474,24 +461,15 @@ const CancellationStatCard: React.FC<
 }) => {
   return (
     <motion.div
-      initial={{
-        opacity: 0,
-        y: 15,
-      }}
-      animate={{
-        opacity: 1,
-        y: 0,
-      }}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
       whileHover={{
         y: -4,
-        boxShadow:
-          "0 16px 30px -18px rgba(30,58,138,0.28)",
+        boxShadow: "0 16px 30px -18px rgba(30,58,138,0.28)",
       }}
       className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white p-5 shadow-sm"
     >
-      <div
-        className={`absolute left-0 top-0 h-1 w-full ${accent}`}
-      />
+      <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
 
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/15" />
 
@@ -535,18 +513,14 @@ interface TimelineStepperProps {
   emptyText?: string;
 }
 
-const TimelineStepper: React.FC<
-  TimelineStepperProps
-> = ({
+const TimelineStepper: React.FC<TimelineStepperProps> = ({
   events,
   emptyText = "No timeline events available.",
 }) => {
   if (!events || events.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-[#DCE6F2] bg-[#F8FBFF] p-4 text-center">
-        <p className="text-xs text-[#6B7280]">
-          {emptyText}
-        </p>
+        <p className="text-xs text-[#6B7280]">{emptyText}</p>
       </div>
     );
   }
@@ -554,8 +528,7 @@ const TimelineStepper: React.FC<
   return (
     <div className="relative">
       {events.map((event, index) => {
-        const isLast =
-          index === events.length - 1;
+        const isLast = index === events.length - 1;
 
         return (
           <div
@@ -617,19 +590,14 @@ interface RejectPopupProps {
   ) => void;
 }
 
-const RejectPopup: React.FC<
-  RejectPopupProps
-> = ({
+const RejectPopup: React.FC<RejectPopupProps> = ({
   open,
   loading,
   onClose,
   onConfirm,
 }) => {
-  const [rejectionReason, setRejectionReason] =
-    useState("");
-
-  const [adminNotes, setAdminNotes] =
-    useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -681,17 +649,12 @@ const RejectPopup: React.FC<
         <div className="space-y-3 p-4">
           <div>
             <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
-              Rejection Reason{" "}
-              <span className="text-[#C23B32]">*</span>
+              Rejection Reason <span className="text-[#C23B32]">*</span>
             </label>
 
             <textarea
               value={rejectionReason}
-              onChange={(e) =>
-                setRejectionReason(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => setRejectionReason(e.target.value)}
               rows={3}
               placeholder="Enter rejection reason..."
               disabled={loading}
@@ -706,11 +669,7 @@ const RejectPopup: React.FC<
 
             <textarea
               value={adminNotes}
-              onChange={(e) =>
-                setAdminNotes(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
               disabled={loading}
@@ -720,9 +679,8 @@ const RejectPopup: React.FC<
 
           <div className="rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] p-2.5">
             <p className="text-[11px] leading-4 text-[#C23B32]">
-              ⚠️ Rejecting will mark this cancellation
-              request as rejected. Customer will be
-              notified.
+              ⚠️ Rejecting will mark this cancellation request as rejected.
+              Customer will be notified.
             </p>
           </div>
         </div>
@@ -739,10 +697,7 @@ const RejectPopup: React.FC<
 
           <button
             type="button"
-            disabled={
-              loading ||
-              !rejectionReason.trim()
-            }
+            disabled={loading || !rejectionReason.trim()}
             onClick={() =>
               onConfirm(
                 rejectionReason.trim(),
@@ -752,12 +707,8 @@ const RejectPopup: React.FC<
             className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#a8322b] disabled:opacity-50"
           >
             {loading && (
-              <FiRefreshCw
-                size={14}
-                className="animate-spin"
-              />
+              <FiRefreshCw size={14} className="animate-spin" />
             )}
-
             Reject Cancellation
           </button>
         </div>
@@ -794,17 +745,13 @@ const PayPopup: React.FC<PayPopupProps> = ({
   onConfirm,
 }) => {
   const [amount, setAmount] = useState("");
-  const [adminNotes, setAdminNotes] =
-    useState("");
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (open) {
       setAmount(
-        defaultAmount > 0
-          ? defaultAmount.toFixed(2)
-          : "",
+        defaultAmount > 0 ? defaultAmount.toFixed(2) : "",
       );
-
       setAdminNotes("");
     }
   }, [open, defaultAmount]);
@@ -814,8 +761,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
   const numericAmount = Number(amount);
 
   const isValid =
-    Number.isFinite(numericAmount) &&
-    numericAmount > 0;
+    Number.isFinite(numericAmount) && numericAmount > 0;
 
   return (
     <GlobalModal
@@ -858,20 +804,14 @@ const PayPopup: React.FC<PayPopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">
-                Order
-              </span>
-
+              <span className="text-xs text-[#6B7280]">Order</span>
               <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">
-                Customer
-              </span>
-
+              <span className="text-xs text-[#6B7280]">Customer</span>
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
               </span>
@@ -880,8 +820,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
 
           <div>
             <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-[#4B5563]">
-              Payment Amount{" "}
-              <span className="text-[#C23B32]">*</span>
+              Payment Amount <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="relative">
@@ -894,9 +833,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 min="0.01"
                 step="0.01"
                 value={amount}
-                onChange={(e) =>
-                  setAmount(e.target.value)
-                }
+                onChange={(e) => setAmount(e.target.value)}
                 placeholder="Enter amount"
                 disabled={loading}
                 className="h-10 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-8 pr-3 text-sm font-semibold text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
@@ -911,11 +848,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
 
             <textarea
               value={adminNotes}
-              onChange={(e) =>
-                setAdminNotes(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
               disabled={loading}
@@ -933,11 +866,8 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                   Amount To Pay
                 </p>
-
                 <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
-                  {formatCurrency(
-                    numericAmount,
-                  )}
+                  {formatCurrency(numericAmount)}
                 </p>
               </div>
             </div>
@@ -956,29 +886,16 @@ const PayPopup: React.FC<PayPopupProps> = ({
 
           <button
             type="button"
-            disabled={
-              loading || !isValid
-            }
-            onClick={() =>
-              onConfirm(
-                numericAmount,
-                adminNotes.trim(),
-              )
-            }
+            disabled={loading || !isValid}
+            onClick={() => onConfirm(numericAmount, adminNotes.trim())}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-5 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
-              <FiRefreshCw
-                size={15}
-                className="animate-spin"
-              />
+              <FiRefreshCw size={15} className="animate-spin" />
             ) : (
               <FiCheck size={15} />
             )}
-
-            {loading
-              ? "Processing..."
-              : "Approve & Pay"}
+            {loading ? "Processing..." : "Approve & Pay"}
           </button>
         </div>
       </div>
@@ -997,14 +914,11 @@ interface CancellationDetailModalProps {
   onClose: () => void;
   onApprove: () => void;
   onReject: () => void;
-
   canApprove?: boolean;
   canReject?: boolean;
 }
 
-const CancellationDetailModal: React.FC<
-  CancellationDetailModalProps
-> = ({
+const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   open,
   detail,
   actionLoading,
@@ -1049,13 +963,8 @@ const CancellationDetailModal: React.FC<
   }
 
   const raw: any = detail;
-
-  const amount =
-    getCancellationAmount(raw);
-
-  const status =
-    detail.status ||
-    deriveStatus(raw);
+  const amount = getCancellationAmount(raw);
+  const status = detail.status || deriveStatus(raw);
 
   const orderReference =
     raw.order_reference ||
@@ -1068,33 +977,23 @@ const CancellationDetailModal: React.FC<
       raw.order?.user?.full_name ||
       raw.order?.user?.name ||
       null,
-
     name:
       raw.user?.name ||
       raw.order?.user?.name ||
       null,
-
     email:
       raw.user?.email ||
       raw.order?.user?.email ||
       "",
-
     phone:
       raw.user?.phone ||
       raw.order?.user?.phone ||
       "",
   };
 
-  const accountType =
-    getRowAccountType(raw);
-
-  const quantity = Number(
-    raw.quantity ?? 1,
-  );
-
-  const unitPrice = Number(
-    raw.unit_price ?? 0,
-  );
+  const accountType = getRowAccountType(raw);
+  const quantity = Number(raw.quantity ?? 1);
+  const unitPrice = Number(raw.unit_price ?? 0);
 
   const subtotal =
     raw.refund_amount ??
@@ -1111,47 +1010,36 @@ const CancellationDetailModal: React.FC<
     raw.cancellation_reason ??
     "No reason provided.";
 
-  const itemReference =
-    raw.item_reference_id || "N/A";
+  const itemReference = raw.item_reference_id || "N/A";
 
   const timelineSource =
     raw.timeline ||
-    raw.order_lines_timeline?.[0]
-      ?.timeline ||
+    raw.order_lines_timeline?.[0]?.timeline ||
     raw.order_line_timeline?.timeline ||
     null;
 
-  const timelineEvents =
-    timelineSource
-      ? buildTimelineEvents(
-          timelineSource,
-        )
-      : buildTimelineEvents({
+  const timelineEvents = timelineSource
+    ? buildTimelineEvents(timelineSource, accountType)
+    : buildTimelineEvents(
+        {
           created_at:
             raw.order_created_at ||
             raw.created_at ||
             null,
-
           cancellation_requested_at:
             raw.cancellation_requested_at ||
             raw.created_at ||
             null,
-
           cancelled_at:
             raw.cancelled_at ||
-            (status === "approved"
-              ? raw.updated_at
-              : null),
-
+            (status === "approved" ? raw.updated_at : null),
           cancellation_rejected_at:
             raw.cancellation_rejected_at ||
-            (status === "rejected"
-              ? raw.updated_at
-              : null),
-
-          updated_at:
-            raw.updated_at || null,
-        });
+            (status === "rejected" ? raw.updated_at : null),
+          updated_at: raw.updated_at || null,
+        },
+        accountType,
+      );
 
   return (
     <GlobalModal
@@ -1167,7 +1055,6 @@ const CancellationDetailModal: React.FC<
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
                 Cancellation Requests
               </span>
@@ -1178,30 +1065,19 @@ const CancellationDetailModal: React.FC<
             </h2>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-              <span>
-                Item Ref: {itemReference}
-              </span>
+              <span>Item Ref: {itemReference}</span>
 
-              {orderReference !==
-                "N/A" && (
+              {orderReference !== "N/A" && (
                 <>
                   <span>•</span>
-
-                  <span>
-                    {orderReference}
-                  </span>
+                  <span>{orderReference}</span>
                 </>
               )}
 
               {raw.created_at && (
                 <>
                   <span>•</span>
-
-                  <span>
-                    {formatDate(
-                      raw.created_at,
-                    )}
-                  </span>
+                  <span>{formatDate(raw.created_at)}</span>
                 </>
               )}
             </div>
@@ -1242,11 +1118,8 @@ const CancellationDetailModal: React.FC<
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
                     Current Status
                   </p>
-
                   <p className="mt-1 text-sm font-bold text-[#111827]">
-                    {getStatusLabel(
-                      status,
-                    )}
+                    {getStatusLabel(status)}
                   </p>
                 </div>
 
@@ -1260,10 +1133,7 @@ const CancellationDetailModal: React.FC<
                       status,
                     )}`}
                   />
-
-                  {getStatusLabel(
-                    status,
-                  )}
+                  {getStatusLabel(status)}
                 </span>
               </div>
             </div>
@@ -1281,7 +1151,6 @@ const CancellationDetailModal: React.FC<
                   <h3 className="text-sm font-bold text-[#111827]">
                     Cancellation Item
                   </h3>
-
                   <p className="mt-0.5 text-xs text-[#6B7280]">
                     {quantity} item(s)
                   </p>
@@ -1294,10 +1163,7 @@ const CancellationDetailModal: React.FC<
                 {raw.product?.image ? (
                   <img
                     src={raw.product.image}
-                    alt={
-                      raw.product.name ||
-                      "Product"
-                    }
+                    alt={raw.product.name || "Product"}
                     className="h-16 w-16 shrink-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] object-cover"
                   />
                 ) : (
@@ -1308,15 +1174,11 @@ const CancellationDetailModal: React.FC<
 
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-[#111827]">
-                    {raw.product?.name ||
-                      "Cancellation Item"}
+                    {raw.product?.name || "Cancellation Item"}
                   </h4>
 
                   <p className="mt-1 text-xs text-[#6B7280]">
-                    SKU:{" "}
-                    {raw.product
-                      ?.product_code ||
-                      "N/A"}
+                    SKU: {raw.product?.product_code || "N/A"}
                   </p>
 
                   <p className="mt-2 text-sm font-semibold text-[#2D6FE8]">
@@ -1330,11 +1192,8 @@ const CancellationDetailModal: React.FC<
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Price
                   </p>
-
                   <p className="mt-1 text-sm font-bold text-[#111827]">
-                    {formatCurrency(
-                      unitPrice,
-                    )}
+                    {formatCurrency(unitPrice)}
                   </p>
                 </div>
 
@@ -1342,7 +1201,6 @@ const CancellationDetailModal: React.FC<
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Tax
                   </p>
-
                   <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(tax)}
                   </p>
@@ -1352,11 +1210,8 @@ const CancellationDetailModal: React.FC<
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Total
                   </p>
-
                   <p className="mt-1 text-sm font-bold text-[#111827]">
-                    {formatCurrency(
-                      subtotal,
-                    )}
+                    {formatCurrency(subtotal)}
                   </p>
                 </div>
 
@@ -1364,7 +1219,6 @@ const CancellationDetailModal: React.FC<
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                     Reason
                   </p>
-
                   <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#4B5563]">
                     {reason}
                   </p>
@@ -1382,23 +1236,15 @@ const CancellationDetailModal: React.FC<
                 </div>
 
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {detail.user?.account_type?.toLowerCase() ===
-                  "distributor"
-                    ? "Distributor Information"
-                    : "Customer Information"}
+                  {getAccountTypeLabel(accountType)} Information
                 </h3>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
-                    Name
-                  </span>
-
+                  <span className="text-xs text-[#6B7280]">Name</span>
                   <span className="text-right text-sm font-semibold text-[#111827]">
-                    {getCustomerName(
-                      customer,
-                    )}
+                    {getCustomerName(customer)}
                   </span>
                 </div>
 
@@ -1409,8 +1255,7 @@ const CancellationDetailModal: React.FC<
 
                   <div className="min-w-0 text-right">
                     <p className="truncate text-sm font-semibold text-[#111827]">
-                      {customer.email ||
-                        "N/A"}
+                      {customer.email || "N/A"}
                     </p>
 
                     <span
@@ -1418,25 +1263,16 @@ const CancellationDetailModal: React.FC<
                         accountType,
                       )}`}
                     >
-                      <FiBriefcase
-                        size={10}
-                      />
-
-                      {getAccountTypeLabel(
-                        accountType,
-                      )}
+                      <FiBriefcase size={10} />
+                      {getAccountTypeLabel(accountType)}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#6B7280]">
-                    Phone
-                  </span>
-
+                  <span className="text-xs text-[#6B7280]">Phone</span>
                   <span className="text-sm font-semibold text-[#111827]">
-                    {customer.phone ||
-                      "N/A"}
+                    {customer.phone || "N/A"}
                   </span>
                 </div>
               </div>
@@ -1458,7 +1294,6 @@ const CancellationDetailModal: React.FC<
                   <span className="text-xs text-[#6B7280]">
                     Order Reference
                   </span>
-
                   <span className="text-right text-sm font-bold text-[#2D6FE8]">
                     {orderReference}
                   </span>
@@ -1468,7 +1303,6 @@ const CancellationDetailModal: React.FC<
                   <span className="text-xs text-[#6B7280]">
                     Item Reference
                   </span>
-
                   <span className="text-sm font-semibold text-[#111827]">
                     {itemReference}
                   </span>
@@ -1478,12 +1312,8 @@ const CancellationDetailModal: React.FC<
                   <span className="text-xs text-[#6B7280]">
                     Delivery Status
                   </span>
-
                   <span className="text-sm font-semibold capitalize text-[#111827]">
-                    {getStatusLabel(
-                      raw.delivery_status ||
-                        "N/A",
-                    )}
+                    {getStatusLabel(raw.delivery_status || "N/A")}
                   </span>
                 </div>
               </div>
@@ -1497,7 +1327,6 @@ const CancellationDetailModal: React.FC<
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2D6FE8]">
                   Cancellation Amount
                 </p>
-
                 <p className="mt-1 text-2xl font-bold text-[#2D6FE8]">
                   {formatCurrency(amount)}
                 </p>
@@ -1514,14 +1343,13 @@ const CancellationDetailModal: React.FC<
             <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                  <FiTruck size={17} />
+                  <FiPackage size={17} />
                 </div>
 
                 <div>
                   <h3 className="text-sm font-bold text-[#111827]">
                     Track Order
                   </h3>
-
                   <p className="mt-0.5 text-xs text-[#6B7280]">
                     Full timeline of this cancellation request
                   </p>
@@ -1545,7 +1373,6 @@ const CancellationDetailModal: React.FC<
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Admin Notes
               </p>
-
               <p className="mt-2 text-sm leading-6 text-[#4B5563]">
                 {raw.admin_notes}
               </p>
@@ -1565,55 +1392,37 @@ const CancellationDetailModal: React.FC<
             </button>
 
             <div className="flex flex-wrap justify-end gap-2">
-              {detail.can_approve &&
-                canApprove && (
-                  <button
-                    type="button"
-                    onClick={onApprove}
-                    disabled={
-                      actionLoading.type ===
-                      "approve"
-                    }
-                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
-                  >
-                    {actionLoading.type ===
-                    "approve" ? (
-                      <FiRefreshCw
-                        size={14}
-                        className="animate-spin"
-                      />
-                    ) : (
-                      <FiCheck size={14} />
-                    )}
+              {detail.can_approve && canApprove && (
+                <button
+                  type="button"
+                  onClick={onApprove}
+                  disabled={actionLoading.type === "approve"}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                >
+                  {actionLoading.type === "approve" ? (
+                    <FiRefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <FiCheck size={14} />
+                  )}
+                  Approve & Pay
+                </button>
+              )}
 
-                    Approve & Pay
-                  </button>
-                )}
-
-              {detail.can_reject &&
-                canReject && (
-                  <button
-                    type="button"
-                    onClick={onReject}
-                    disabled={
-                      actionLoading.type ===
-                      "reject"
-                    }
-                    className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
-                  >
-                    {actionLoading.type ===
-                    "reject" ? (
-                      <FiRefreshCw
-                        size={14}
-                        className="animate-spin"
-                      />
-                    ) : (
-                      <FiX size={14} />
-                    )}
-
-                    Reject
-                  </button>
-                )}
+              {detail.can_reject && canReject && (
+                <button
+                  type="button"
+                  onClick={onReject}
+                  disabled={actionLoading.type === "reject"}
+                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                >
+                  {actionLoading.type === "reject" ? (
+                    <FiRefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <FiX size={14} />
+                  )}
+                  Reject
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1627,10 +1436,6 @@ const CancellationDetailModal: React.FC<
 // =====================================================
 
 const CancelRefund: React.FC = () => {
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
-
   const {
     hasPermission,
     hasModuleAccess,
@@ -1638,86 +1443,48 @@ const CancelRefund: React.FC = () => {
     loading: permissionsLoading,
   } = usePermissions();
 
-  // ✅ EXACT BACKEND PERMISSION KEYS
-  // API:
-  // "Cancel": ["details", "approve", "reject"]
-
+  // API permission keys: Cancel.details, Cancel.approve, Cancel.reject
   const canViewCancellation = useMemo(
     () =>
       isSuperAdmin ||
       hasModuleAccess("Cancel") ||
       hasPermission("Cancel.details"),
-    [
-      isSuperAdmin,
-      hasModuleAccess,
-      hasPermission,
-    ],
+    [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
   const canApproveCancellation = useMemo(
     () =>
       isSuperAdmin ||
       hasPermission("Cancel.approve"),
-    [
-      isSuperAdmin,
-      hasPermission,
-    ],
+    [isSuperAdmin, hasPermission],
   );
 
   const canRejectCancellation = useMemo(
     () =>
       isSuperAdmin ||
       hasPermission("Cancel.reject"),
-    [
-      isSuperAdmin,
-      hasPermission,
-    ],
+    [isSuperAdmin, hasPermission],
   );
 
   // ===================================================
   // STATE
   // ===================================================
 
-  const [requests, setRequests] =
-    useState<CancellationListItem[]>(
-      [],
-    );
-
+  const [requests, setRequests] = useState<CancellationListItem[]>([]);
   const [activeFilter, setActiveFilter] =
-    useState<CancellationFilterTab>(
-      "All",
-    );
-
-  const [searchQuery, setSearchQuery] =
-    useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  const [loading, setLoading] =
-    useState(false);
+    useState<CancellationFilterTab>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const [selectedDetail, setSelectedDetail] =
-    useState<CancellationListItem | null>(
-      null,
-    );
+    useState<CancellationListItem | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [payModalOpen, setPayModalOpen] = useState(false);
 
-  const [detailModalOpen, setDetailModalOpen] =
-    useState(false);
-
-  const [rejectModalOpen, setRejectModalOpen] =
-    useState(false);
-
-  const [payModalOpen, setPayModalOpen] =
-    useState(false);
-
-  const [
-    selectedPayRequest,
-    setSelectedPayRequest,
-  ] =
-    useState<CancellationListItem | null>(
-      null,
-    );
+  const [selectedPayRequest, setSelectedPayRequest] =
+    useState<CancellationListItem | null>(null);
 
   const [actionLoading, setActionLoading] =
     useState<ActionLoading>({
@@ -1732,192 +1499,152 @@ const CancelRefund: React.FC = () => {
   // ===================================================
 
   const listFetchInFlightRef =
-    useRef<Promise<void> | null>(
-      null,
-    );
-
-  const hasFetchedListRef =
-    useRef(false);
+    useRef<Promise<void> | null>(null);
+  const hasFetchedListRef = useRef(false);
 
   // ===================================================
   // FETCH ALL
   // ===================================================
 
-  const fetchCancellationRequests = async (
-    force = false,
-  ) => {
-    // ✅ Same request already running
+  const fetchCancellationRequests = async (force = false) => {
     if (listFetchInFlightRef.current) {
       return listFetchInFlightRef.current;
     }
 
-    // ✅ Initial request already completed
-    if (
-      !force &&
-      hasFetchedListRef.current
-    ) {
+    if (!force && hasFetchedListRef.current) {
       return;
     }
 
-    const requestPromise =
-      (async () => {
-        try {
-          setLoading(true);
+    const requestPromise = (async () => {
+      try {
+        setLoading(true);
 
-          const response =
-            await cancellationApi.getAll(
-              1,
-              100,
-              undefined,
-              "all",
-              "created_at",
-              "desc",
-            );
+        const response = await cancellationApi.getAll(
+          1,
+          100,
+          undefined,
+          "all",
+          "created_at",
+          "desc",
+        );
 
-          if (response.data.success) {
-            const rawList: any[] =
-              response.data.data?.data ||
-              [];
+        if (response.data.success) {
+          const rawList: any[] =
+            response.data.data?.data || [];
 
-            const normalized: CancellationListItem[] =
-              rawList.map((row) => {
-                const status =
-                  deriveStatus(row);
+          const normalized: CancellationListItem[] =
+            rawList.map((row) => {
+              const status = deriveStatus(row);
 
-                return {
-                  ...row,
+              return {
+                ...row,
+                id: row.id,
 
-                  id: row.id,
+                order_line_id:
+                  row.order_line_id ?? row.id,
 
-                  order_line_id:
-                    row.order_line_id ??
-                    row.id,
+                order_reference:
+                  row.order_reference ||
+                  row.order?.order_reference ||
+                  "N/A",
 
-                  order_reference:
-                    row.order
-                      ?.order_reference ||
-                    "N/A",
+                item_reference_id:
+                  row.item_reference_id || "N/A",
 
-                  item_reference_id:
-                    row.item_reference_id ||
-                    "N/A",
-
-                  user: row.order?.user
+                user: row.user
+                  ? {
+                      id: row.user.id,
+                      name:
+                        row.user.full_name ||
+                        row.user.name ||
+                        null,
+                      email: row.user.email || "",
+                      phone: row.user.phone || null,
+                      account_type:
+                        row.user.account_type || null,
+                    }
+                  : row.order?.user
                     ? {
-                        id: row
-                          .order.user
-                          .id,
-
+                        id: row.order.user.id,
                         name:
-                          row.order.user
-                            .full_name ||
-                          row.order.user
-                            .name ||
+                          row.order.user.full_name ||
+                          row.order.user.name ||
                           null,
-
-                        email:
-                          row.order.user
-                            .email || "",
-
-                        phone:
-                          row.order.user
-                            .phone ||
-                          null,
-
+                        email: row.order.user.email || "",
+                        phone: row.order.user.phone || null,
                         account_type:
-                          row.order.user
-                            .account_type ||
-                          row.order
-                            ?.order_type ||
+                          row.order.user.account_type ||
+                          row.order?.order_type ||
                           null,
                       }
                     : undefined,
 
-                  status,
+                status,
+                items_count:
+                  row.items_count ?? row.quantity ?? 1,
 
-                  items_count:
-                    row.quantity ?? 1,
+                refund_amount: getRowAmount(row),
+                amount: getRowAmount(row),
 
-                  refund_amount:
-                    getRowAmount(row),
+                reason:
+                  row.reason ||
+                  row.cancellation_reason ||
+                  null,
 
-                  amount:
-                    getRowAmount(row),
+                created_at:
+                  row.created_at ||
+                  row.cancellation_requested_at ||
+                  "",
 
-                  reason:
-                    row.cancellation_reason ||
-                    null,
+                can_approve:
+                  row.can_approve ?? status === "pending",
 
-                  created_at:
-                    row.created_at ||
-                    row.cancellation_requested_at ||
-                    "",
+                can_reject:
+                  row.can_reject ?? status === "pending",
 
-                  can_approve:
-                    status === "pending",
+                can_pay: status === "approved",
+                product: row.product,
+              } as CancellationListItem;
+            });
 
-                  can_reject:
-                    status === "pending",
+          setRequests(normalized);
 
-                  can_pay:
-                    status === "approved",
-
-                  product: row.product,
-                } as CancellationListItem;
-              });
-
-            setRequests(
-              normalized,
-            );
-
-            const maxPage =
-              Math.max(
-                1,
-                Math.ceil(
-                  normalized.length /
-                    ITEMS_PER_PAGE,
-                ),
-              );
-
-            setCurrentPage((page) =>
-              Math.min(
-                page,
-                maxPage,
-              ),
-            );
-
-            // ✅ Only mark fetched after success
-            hasFetchedListRef.current =
-              true;
-          } else {
-            toast.error(
-              "Unable to fetch cancellation requests.",
-            );
-          }
-        } catch (error: any) {
-          console.error(
-            "Get cancellation requests error:",
-            error,
+          const maxPage = Math.max(
+            1,
+            Math.ceil(normalized.length / ITEMS_PER_PAGE),
           );
 
+          setCurrentPage((page) =>
+            Math.min(page, maxPage),
+          );
+
+          hasFetchedListRef.current = true;
+        } else {
           toast.error(
-            error?.response?.data
-              ?.message ||
-              "Unable to fetch cancellation requests.",
+            "Unable to fetch cancellation requests.",
           );
-        } finally {
-          setLoading(false);
         }
-      })();
+      } catch (error: any) {
+        console.error(
+          "Get cancellation requests error:",
+          error,
+        );
 
-    listFetchInFlightRef.current =
-      requestPromise;
+        toast.error(
+          error?.response?.data?.message ||
+            "Unable to fetch cancellation requests.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    listFetchInFlightRef.current = requestPromise;
 
     try {
       await requestPromise;
     } finally {
-      listFetchInFlightRef.current =
-        null;
+      listFetchInFlightRef.current = null;
     }
   };
 
@@ -1933,10 +1660,7 @@ const CancelRefund: React.FC = () => {
     ) {
       fetchCancellationRequests();
     }
-  }, [
-    permissionsLoading,
-    canViewCancellation,
-  ]);
+  }, [permissionsLoading, canViewCancellation]);
 
   // ===================================================
   // STATS
@@ -1945,15 +1669,12 @@ const CancelRefund: React.FC = () => {
   const stats = useMemo(
     () => ({
       total: requests.length,
-
       pending: requests.filter(
         (i) => i.status === "pending",
       ).length,
-
       approved: requests.filter(
         (i) => i.status === "approved",
       ).length,
-
       rejected: requests.filter(
         (i) => i.status === "rejected",
       ).length,
@@ -1966,52 +1687,31 @@ const CancelRefund: React.FC = () => {
   // ===================================================
 
   const filteredRequests = useMemo(() => {
-    const query =
-      searchQuery
-        .trim()
-        .toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
 
-    return requests.filter(
-      (request) => {
-        const matchesSearch =
-          !query ||
-          [
-            request.order_reference,
-            (request as any)
-              .item_reference_id ||
-              "",
-            request.user?.name ||
-              "",
-            request.user?.email ||
-              "",
-            request.user
-              ?.account_type ||
-              "",
-            request.reason || "",
-            String(
-              request.order_line_id,
-            ),
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(query);
+    return requests.filter((request) => {
+      const matchesSearch =
+        !query ||
+        [
+          request.order_reference,
+          (request as any).item_reference_id || "",
+          request.user?.name || "",
+          request.user?.email || "",
+          request.user?.account_type || "",
+          request.reason || "",
+          String(request.order_line_id),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
 
-        const matchesStatus =
-          activeFilter === "All" ||
-          request.status ===
-            activeFilter;
+      const matchesStatus =
+        activeFilter === "All" ||
+        request.status === activeFilter;
 
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-      },
-    );
-  }, [
-    requests,
-    searchQuery,
-    activeFilter,
-  ]);
+      return matchesSearch && matchesStatus;
+    });
+  }, [requests, searchQuery, activeFilter]);
 
   // ===================================================
   // PAGINATION
@@ -2019,22 +1719,16 @@ const CancelRefund: React.FC = () => {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(
-      filteredRequests.length /
-        ITEMS_PER_PAGE,
-    ),
+    Math.ceil(filteredRequests.length / ITEMS_PER_PAGE),
   );
 
   const startIndex =
-    (currentPage - 1) *
-    ITEMS_PER_PAGE;
+    (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const paginatedRequests =
-    filteredRequests.slice(
-      startIndex,
-      startIndex +
-        ITEMS_PER_PAGE,
-    );
+  const paginatedRequests = filteredRequests.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
+  );
 
   const startEntry =
     filteredRequests.length === 0
@@ -2042,57 +1736,46 @@ const CancelRefund: React.FC = () => {
       : startIndex + 1;
 
   const endEntry = Math.min(
-    startIndex +
-      ITEMS_PER_PAGE,
+    startIndex + ITEMS_PER_PAGE,
     filteredRequests.length,
   );
 
-  const paginationPages = useMemo(
-    () => {
-      if (totalPages <= 5) {
-        return Array.from(
-          {
-            length: totalPages,
-          },
-          (_, i) => i + 1,
-        );
-      }
+  const paginationPages = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from(
+        { length: totalPages },
+        (_, i) => i + 1,
+      );
+    }
 
-      if (currentPage <= 3) {
-        return [1, 2, 3, 4, 5];
-      }
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
 
-      if (
-        currentPage >=
-        totalPages - 2
-      ) {
-        return [
-          totalPages - 4,
-          totalPages - 3,
-          totalPages - 2,
-          totalPages - 1,
-          totalPages,
-        ];
-      }
-
+    if (currentPage >= totalPages - 2) {
       return [
-        currentPage - 2,
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        currentPage + 2,
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
       ];
-    },
-    [currentPage, totalPages],
-  );
+    }
+
+    return [
+      currentPage - 2,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      currentPage + 2,
+    ];
+  }, [currentPage, totalPages]);
 
   // ===================================================
   // VIEW
   // ===================================================
 
-  const handleView = (
-    request: CancellationListItem,
-  ) => {
+  const handleView = (request: CancellationListItem) => {
     setSelectedDetail(request);
     setDetailModalOpen(true);
   };
@@ -2122,105 +1805,81 @@ const CancelRefund: React.FC = () => {
     setPayModalOpen(true);
   };
 
-  const handleApproveWithPay =
-    async (
-      amount: number,
-      adminNotes: string,
-    ) => {
-      if (
-        !canApproveCancellation
-      ) {
-        toast.error(
-          "You do not have permission to approve cancellation requests.",
+  const handleApproveWithPay = async (
+    amount: number,
+    adminNotes: string,
+  ) => {
+    if (!canApproveCancellation) {
+      toast.error(
+        "You do not have permission to approve cancellation requests.",
+      );
+      return;
+    }
+
+    const orderLineId =
+      selectedPayRequest?.order_line_id;
+
+    if (!orderLineId) {
+      toast.error("Cancellation request not found.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Please enter a valid payment amount.");
+      return;
+    }
+
+    try {
+      setActionLoading({
+        type: "approve",
+        id: orderLineId,
+      });
+
+      const response = await cancellationApi.approve(
+        orderLineId,
+        {
+          refund_amount: amount,
+          admin_notes: adminNotes || undefined,
+        },
+      );
+
+      if (response.data.success) {
+        toast.success(
+          response.data.message ||
+            "Cancellation approved successfully.",
         );
-        return;
-      }
 
-      const orderLineId =
-        selectedPayRequest
-          ?.order_line_id;
+        setPayModalOpen(false);
+        setSelectedPayRequest(null);
 
-      if (!orderLineId) {
-        toast.error(
-          "Cancellation request not found.",
-        );
-        return;
-      }
+        await fetchCancellationRequests(true);
 
-      if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-      ) {
-        toast.error(
-          "Please enter a valid payment amount.",
-        );
-        return;
-      }
-
-      try {
-        setActionLoading({
-          type: "approve",
-          id: orderLineId,
-        });
-
-        const response =
-          await cancellationApi.approve(
-            orderLineId,
-            {
-              refund_amount: amount,
-              admin_notes:
-                adminNotes ||
-                undefined,
-            },
-          );
-
-        if (response.data.success) {
-          toast.success(
-            response.data.message ||
-              "Cancellation approved successfully.",
-          );
-
-          setPayModalOpen(false);
-          setSelectedPayRequest(
-            null,
-          );
-
-          // ✅ Force fresh API after action
-          await fetchCancellationRequests(
-            true,
-          );
-
-          if (
-            selectedDetail?.order_line_id ===
-            orderLineId
-          ) {
-            setDetailModalOpen(false);
-            setSelectedDetail(null);
-          }
-        } else {
-          toast.error(
-            response.data.message ||
-              "Unable to approve cancellation.",
-          );
+        if (
+          selectedDetail?.order_line_id === orderLineId
+        ) {
+          setDetailModalOpen(false);
+          setSelectedDetail(null);
         }
-      } catch (error: any) {
-        console.error(
-          "Approve cancellation error:",
-          error,
-        );
-
+      } else {
         toast.error(
-          error?.response?.data
-            ?.message ||
+          response.data.message ||
             "Unable to approve cancellation.",
         );
-      } finally {
-        setActionLoading({
-          type: null,
-          id: null,
-        });
       }
-    };
+    } catch (error: any) {
+      console.error("Approve cancellation error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to approve cancellation.",
+      );
+    } finally {
+      setActionLoading({
+        type: null,
+        id: null,
+      });
+    }
+  };
 
   // ===================================================
   // REJECT
@@ -2247,99 +1906,79 @@ const CancelRefund: React.FC = () => {
     setRejectModalOpen(true);
   };
 
-  const handleReject =
-    async (
-      rejectionReason: string,
-      adminNotes: string,
-    ) => {
-      if (
-        !canRejectCancellation
-      ) {
-        toast.error(
-          "You do not have permission to reject cancellation requests.",
-        );
-        return;
-      }
+  const handleReject = async (
+    rejectionReason: string,
+    adminNotes: string,
+  ) => {
+    if (!canRejectCancellation) {
+      toast.error(
+        "You do not have permission to reject cancellation requests.",
+      );
+      return;
+    }
 
-      const orderLineId =
-        selectedDetail
-          ?.order_line_id;
+    const orderLineId =
+      selectedDetail?.order_line_id;
 
-      if (!orderLineId) {
-        toast.error(
-          "Cancellation request not found.",
-        );
-        return;
-      }
+    if (!orderLineId) {
+      toast.error("Cancellation request not found.");
+      return;
+    }
 
-      try {
-        setActionLoading({
-          type: "reject",
-          id: orderLineId,
-        });
+    try {
+      setActionLoading({
+        type: "reject",
+        id: orderLineId,
+      });
 
-        const response =
-          await cancellationApi.reject(
-            orderLineId,
-            rejectionReason,
-            adminNotes ||
-              undefined,
-          );
+      const response = await cancellationApi.reject(
+        orderLineId,
+        rejectionReason,
+        adminNotes || undefined,
+      );
 
-        if (response.data.success) {
-          toast.success(
-            response.data.message ||
-              "Cancellation rejected successfully.",
-          );
-
-          setRejectModalOpen(false);
-          setDetailModalOpen(false);
-          setSelectedDetail(null);
-
-          // ✅ Force fresh API after action
-          await fetchCancellationRequests(
-            true,
-          );
-        } else {
-          toast.error(
-            response.data.message ||
-              "Unable to reject cancellation.",
-          );
-        }
-      } catch (error: any) {
-        console.error(
-          "Reject cancellation error:",
-          error,
+      if (response.data.success) {
+        toast.success(
+          response.data.message ||
+            "Cancellation rejected successfully.",
         );
 
+        setRejectModalOpen(false);
+        setDetailModalOpen(false);
+        setSelectedDetail(null);
+
+        await fetchCancellationRequests(true);
+      } else {
         toast.error(
-          error?.response?.data
-            ?.message ||
+          response.data.message ||
             "Unable to reject cancellation.",
         );
-      } finally {
-        setActionLoading({
-          type: null,
-          id: null,
-        });
       }
-    };
+    } catch (error: any) {
+      console.error("Reject cancellation error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          "Unable to reject cancellation.",
+      );
+    } finally {
+      setActionLoading({
+        type: null,
+        id: null,
+      });
+    }
+  };
 
   // ===================================================
   // REFRESH
   // ===================================================
 
   const handleRefresh = async () => {
-    if (
-      !canViewCancellation ||
-      loading
-    ) {
+    if (!canViewCancellation || loading) {
       return;
     }
 
-    await fetchCancellationRequests(
-      true,
-    );
+    await fetchCancellationRequests(true);
 
     toast.success(
       "Cancellation requests refreshed.",
@@ -2347,7 +1986,7 @@ const CancelRefund: React.FC = () => {
   };
 
   // ===================================================
-  // FILTER
+  // FILTER / SEARCH / PAGINATION HANDLERS
   // ===================================================
 
   const handleFilterChange = (
@@ -2357,28 +1996,13 @@ const CancelRefund: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // ===================================================
-  // SEARCH
-  // ===================================================
-
-  const handleSearchChange = (
-    value: string,
-  ) => {
+  const handleSearchChange = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1);
   };
 
-  // ===================================================
-  // PAGINATION
-  // ===================================================
-
-  const handlePageChange = (
-    page: number,
-  ) => {
-    if (
-      page < 1 ||
-      page > totalPages
-    ) {
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) {
       return;
     }
 
@@ -2412,6 +2036,9 @@ const CancelRefund: React.FC = () => {
     );
   }
 
+  // ===================================================
+  // MAIN UI
+  // ===================================================
 
   return (
     <>
@@ -2432,9 +2059,7 @@ const CancelRefund: React.FC = () => {
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
-
               <div className="h-2 w-2 rounded-full bg-[#FACC15]" />
-
               <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
@@ -2460,13 +2085,8 @@ const CancelRefund: React.FC = () => {
           >
             <FiRefreshCw
               size={16}
-              className={
-                loading
-                  ? "animate-spin"
-                  : ""
-              }
+              className={loading ? "animate-spin" : ""}
             />
-
             Refresh
           </button>
         </motion.div>
@@ -2524,9 +2144,9 @@ const CancelRefund: React.FC = () => {
         {/* TOOLBAR */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white "
+          className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white"
         >
-          <div className="border-b border-[#DCE6F2] p-3 sm:p-3">
+          <div className="border-b border-[#DCE6F2] p-3">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[540px]">
                 <FiSearch
@@ -2538,9 +2158,7 @@ const CancelRefund: React.FC = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) =>
-                    handleSearchChange(
-                      e.target.value,
-                    )
+                    handleSearchChange(e.target.value)
                   }
                   placeholder="Search order, customer, email..."
                   disabled={loading}
@@ -2561,9 +2179,7 @@ const CancelRefund: React.FC = () => {
                     filter === "All"
                       ? requests.length
                       : requests.filter(
-                          (item) =>
-                            item.status ===
-                            filter,
+                          (item) => item.status === filter,
                         ).length;
 
                   return (
@@ -2572,21 +2188,15 @@ const CancelRefund: React.FC = () => {
                       type="button"
                       disabled={loading}
                       onClick={() =>
-                        handleFilterChange(
-                          filter,
-                        )
+                        handleFilterChange(filter)
                       }
                       className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
-                        activeFilter ===
-                        filter
+                        activeFilter === filter
                           ? "bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
                           : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                       } disabled:opacity-60`}
                     >
-                      {getStatusLabel(
-                        filter,
-                      )}
-
+                      {getStatusLabel(filter)}
                       <span className="ml-1.5 opacity-80">
                         ({count})
                       </span>
@@ -2603,7 +2213,6 @@ const CancelRefund: React.FC = () => {
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-sm"
         >
-         
           {/* DESKTOP */}
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1100px] border-collapse">
@@ -2612,31 +2221,24 @@ const CancelRefund: React.FC = () => {
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     S.No.
                   </th>
-
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Reference
                   </th>
-
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Buyer
                   </th>
-
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Quantity
                   </th>
-
                   <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
                     Cancellation Amount
                   </th>
-
                   <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Reason
                   </th>
-
                   <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
-
                   <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Actions
                   </th>
@@ -2645,9 +2247,7 @@ const CancelRefund: React.FC = () => {
 
               <tbody>
                 {loading ? (
-                  Array.from({
-                    length: 6,
-                  }).map((_, i) => (
+                  Array.from({ length: 6 }).map((_, i) => (
                     <tr
                       key={`skeleton-${i}`}
                       className="animate-pulse border-b border-[#DCE6F2]"
@@ -2655,273 +2255,189 @@ const CancelRefund: React.FC = () => {
                       <td className="px-5 py-3">
                         <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
-
                         <div className="mt-2 h-3 w-24 rounded bg-[#F4F8FD]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="h-4 w-32 rounded bg-[#EAF3FF]" />
-
                         <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="h-4 w-8 rounded bg-[#EAF3FF]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="ml-auto h-4 w-20 rounded bg-[#EAF3FF]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="h-3 w-40 rounded bg-[#F4F8FD]" />
-
                         <div className="mt-2 h-3 w-32 rounded bg-[#F4F8FD]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="h-6 w-24 rounded-full bg-[#EAF3FF]" />
                       </td>
-
                       <td className="px-5 py-3">
                         <div className="flex justify-center gap-2">
                           <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
-
                           <div className="h-9 w-20 rounded-xl bg-[#EAF3FF]" />
                         </div>
                       </td>
                     </tr>
                   ))
                 ) : paginatedRequests.length > 0 ? (
-                  paginatedRequests.map(
-                    (
-                      request,
-                      index,
-                    ) => {
-                      const requestId =
-                        request.order_line_id;
+                  paginatedRequests.map((request, index) => {
+                    const requestId = request.order_line_id;
 
-                      const approveLoading =
-                        actionLoading.type ===
-                          "approve" &&
-                        actionLoading.id ===
-                          requestId;
+                    const approveLoading =
+                      actionLoading.type === "approve" &&
+                      actionLoading.id === requestId;
 
-                      const canApprove =
-                        request.can_approve &&
-                        canApproveCancellation;
+                    const canApprove =
+                      request.can_approve &&
+                      canApproveCancellation;
 
-                      const canReject =
-                        request.can_reject &&
-                        canRejectCancellation;
+                    const canReject =
+                      request.can_reject &&
+                      canRejectCancellation;
 
-                      const raw: any =
-                        request;
+                    const raw: any = request;
+                    const accountType = getRowAccountType(raw);
 
-                      const accountType =
-                        getRowAccountType(
-                          raw,
-                        );
+                    return (
+                      <tr
+                        key={`${requestId}-${index}`}
+                        className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
+                      >
+                        <td className="px-5 py-3">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
+                            {startIndex + index + 1}
+                          </span>
+                        </td>
 
-                      return (
-                        <tr
-                          key={`${requestId}-${index}`}
-                          className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
-                        >
-                          <td className="px-5 py-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
-                              {startIndex +
-                                index +
-                                1}
+                        <td className="px-5 py-3">
+                          <div>
+                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
+                              {request.order_reference}
                             </span>
-                          </td>
 
-                          <td className="px-5 py-3">
-                            <div>
-                              <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
-                                {
-                                  request.order_reference
-                                }
-                              </span>
-
-                              <p className="mt-2 text-[11px] text-[#6B7280]">
-                                Item Ref:{" "}
-                                {raw.item_reference_id ||
-                                  "N/A"}
-                              </p>
-                            </div>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <p className="text-sm font-bold text-[#111827]">
-                              {getCustomerName(
-                                request.user,
-                              )}
+                            <p className="mt-2 text-[11px] text-[#6B7280]">
+                              Item Ref: {raw.item_reference_id || "N/A"}
                             </p>
+                          </div>
+                        </td>
 
+                        <td className="px-5 py-3">
+                          <p className="text-sm font-bold text-[#111827]">
+                            {getCustomerName(request.user)}
+                          </p>
+
+                          <span
+                            className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                              accountType,
+                            )}`}
+                          >
+                            <FiBriefcase size={9} />
+                            {getAccountTypeLabel(accountType)}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-3">
+                          <p className="text-sm font-bold text-[#111827]">
+                            {request.items_count || 1}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-3 text-right">
+                          <p className="text-sm font-bold text-[#2D6FE8]">
+                            {formatCurrency(getRowAmount(request))}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-3">
+                          <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4B5563]">
+                            {request.reason || "No reason provided."}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-3 text-center">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                              request.status,
+                            )}`}
+                          >
                             <span
-                              className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                                accountType,
-                              )}`}
-                            >
-                              <FiBriefcase
-                                size={9}
-                              />
-
-                              {getAccountTypeLabel(
-                                accountType,
-                              )}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <p className="text-sm font-bold text-[#111827]">
-                              {request.items_count ||
-                                1}
-                            </p>
-                          </td>
-
-                          <td className="px-5 py-3 text-right">
-                            <p className="text-sm font-bold text-[#2D6FE8]">
-                              {formatCurrency(
-                                getRowAmount(
-                                  request,
-                                ),
-                              )}
-                            </p>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4B5563]">
-                              {request.reason ||
-                                "No reason provided."}
-                            </p>
-                          </td>
-
-                          <td className="px-5 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                              className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
                                 request.status,
                               )}`}
+                            />
+                            {getStatusLabel(request.status)}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-3">
+                          <div className="flex flex-nowrap items-center justify-center gap-2">
+                            {/* VIEW: delivery/track icon button removed */}
+                            <button
+                              type="button"
+                              onClick={() => handleView(request)}
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                              title="View"
                             >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                                  request.status,
-                                )}`}
-                              />
+                              <FiEye size={15} />
+                            </button>
 
-                              {getStatusLabel(
-                                request.status,
-                              )}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <div className="flex flex-nowrap items-center justify-center gap-2">
+                            {canApprove && (
                               <button
                                 type="button"
+                                disabled={approveLoading}
                                 onClick={() =>
-                                  handleView(
-                                    request,
-                                  )
+                                  handleOpenApprove(request)
                                 }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                title="View"
+                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                               >
-                                <FiEye
-                                  size={15}
-                                />
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleView(
-                                    request,
-                                  )
-                                }
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8] transition hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Track Order"
-                              >
-                                <FiTruck
-                                  size={15}
-                                />
-                              </button>
-
-                              {canApprove && (
-                                <button
-                                  type="button"
-                                  disabled={
-                                    approveLoading
-                                  }
-                                  onClick={() =>
-                                    handleOpenApprove(
-                                      request,
-                                    )
-                                  }
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
-                                >
-                                  {approveLoading ? (
-                                    <FiRefreshCw
-                                      size={13}
-                                      className="animate-spin"
-                                    />
-                                  ) : (
-                                    <FiCheck
-                                      size={13}
-                                    />
-                                  )}
-
-                                  Approve
-                                </button>
-                              )}
-
-                              {canReject && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenReject(
-                                      request,
-                                    )
-                                  }
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiX
+                                {approveLoading ? (
+                                  <FiRefreshCw
                                     size={13}
+                                    className="animate-spin"
                                   />
+                                ) : (
+                                  <FiCheck size={13} />
+                                )}
+                                Approve
+                              </button>
+                            )}
 
-                                  Reject
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )
+                            {canReject && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenReject(request)
+                                }
+                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                              >
+                                <FiX size={13} />
+                                Reject
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td
-                      colSpan={8}
-                      className="px-5 py-16 text-center"
-                    >
+                    <td colSpan={8} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#2D6FE8]">
                           <FiPackage size={24} />
                         </div>
 
                         <p className="mt-4 text-sm font-bold text-[#111827]">
-                          No cancellation requests
-                          found
+                          No cancellation requests found
                         </p>
 
                         <p className="mt-1 text-xs text-[#6B7280]">
-                          Try changing your
-                          search or status
-                          filter.
+                          Try changing your search or status filter.
                         </p>
                       </div>
                     </td>
@@ -2934,266 +2450,192 @@ const CancelRefund: React.FC = () => {
           {/* MOBILE */}
           <div className="block lg:hidden">
             {loading ? (
-              Array.from({
-                length: 4,
-              }).map((_, i) => (
+              Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={`mobile-skeleton-${i}`}
                   className="animate-pulse border-b border-[#DCE6F2] bg-white p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
-
                     <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
                   </div>
 
                   <div className="mt-4">
                     <div className="h-4 w-28 rounded bg-[#EAF3FF]" />
-
                     <div className="mt-2 h-3 w-40 rounded bg-[#F4F8FD]" />
-
                     <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <div className="h-16 rounded-xl bg-[#EAF3FF]" />
-
                     <div className="h-16 rounded-xl bg-[#EAF3FF]" />
                   </div>
 
                   <div className="mt-4 flex gap-2">
                     <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
-
                     <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
                   </div>
                 </div>
               ))
             ) : paginatedRequests.length > 0 ? (
-              paginatedRequests.map(
-                (
-                  request,
-                  index,
-                ) => {
-                  const requestId =
-                    request.order_line_id;
+              paginatedRequests.map((request, index) => {
+                const requestId = request.order_line_id;
 
-                  const approveLoading =
-                    actionLoading.type ===
-                      "approve" &&
-                    actionLoading.id ===
-                      requestId;
+                const approveLoading =
+                  actionLoading.type === "approve" &&
+                  actionLoading.id === requestId;
 
-                  const canApprove =
-                    request.can_approve &&
-                    canApproveCancellation;
+                const canApprove =
+                  request.can_approve &&
+                  canApproveCancellation;
 
-                  const canReject =
-                    request.can_reject &&
-                    canRejectCancellation;
+                const canReject =
+                  request.can_reject &&
+                  canRejectCancellation;
 
-                  const accountType =
-                    getRowAccountType(
-                      request,
-                    );
+                const accountType = getRowAccountType(request);
 
-                  return (
-                    <div
-                      key={`${requestId}-${index}`}
-                      className="border-b border-[#DCE6F2] bg-white p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
-                            {
-                              request.order_reference
-                            }
-                          </span>
-
-                          <p className="mt-2 text-[10px] text-[#6B7280]">
-                            Item Ref:{" "}
-                            {(request as any)
-                              .item_reference_id ||
-                              "N/A"}
-                          </p>
-                        </div>
-
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
-                          {startIndex +
-                            index +
-                            1}
+                return (
+                  <div
+                    key={`${requestId}-${index}`}
+                    className="border-b border-[#DCE6F2] bg-white p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
+                          {request.order_reference}
                         </span>
-                      </div>
 
-                      <div className="mt-4">
-                        <p className="text-sm font-bold text-[#111827]">
-                          {getCustomerName(
-                            request.user,
-                          )}
-                        </p>
-
-                        <p className="mt-1 truncate text-xs text-[#6B7280]">
-                          {
-                            request.user
-                              ?.email
-                          }
-                        </p>
-
-                        <span
-                          className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                            accountType,
-                          )}`}
-                        >
-                          <FiBriefcase
-                            size={10}
-                          />
-
-                          {getAccountTypeLabel(
-                            accountType,
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                            Amount
-                          </p>
-
-                          <p className="mt-1 text-base font-bold text-[#2D6FE8]">
-                            {formatCurrency(
-                              getRowAmount(
-                                request,
-                              ),
-                            )}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                            Items
-                          </p>
-
-                          <p className="mt-1 text-base font-bold text-[#111827]">
-                            {request.items_count ||
-                              1}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                            request.status,
-                          )}`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                              request.status,
-                            )}`}
-                          />
-
-                          {getStatusLabel(
-                            request.status,
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleView(
-                              request,
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]"
-                          title="View"
-                        >
-                          <FiEye size={15} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleView(
-                              request,
-                            )
-                          }
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
-                          title="Track"
-                        >
-                          <FiTruck size={15} />
-                        </button>
-
-                        {canApprove && (
-                          <button
-                            type="button"
-                            disabled={
-                              approveLoading
-                            }
-                            onClick={() =>
-                              handleOpenApprove(
-                                request,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2D6FE8] text-white disabled:opacity-50"
-                            title="Approve"
-                          >
-                            {approveLoading ? (
-                              <FiRefreshCw
-                                size={15}
-                                className="animate-spin"
-                              />
-                            ) : (
-                              <FiCheck
-                                size={15}
-                              />
-                            )}
-                          </button>
-                        )}
-
-                        {canReject && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleOpenReject(
-                                request,
-                              )
-                            }
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#C23B32]"
-                            title="Reject"
-                          >
-                            <FiX size={15} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                        <p className="text-xs leading-5 text-[#4B5563]">
-                          {request.reason ||
-                            "No reason provided."}
+                        <p className="mt-2 text-[10px] text-[#6B7280]">
+                          Item Ref: {(request as any).item_reference_id || "N/A"}
                         </p>
                       </div>
 
-                      <div className="mt-3 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#2D6FE8]">
-                            Cancellation Amount
-                          </span>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
+                        {startIndex + index + 1}
+                      </span>
+                    </div>
 
-                          <span className="text-sm font-bold text-[#2D6FE8]">
-                            {formatCurrency(
-                              getRowAmount(
-                                request,
-                              ),
-                            )}
-                          </span>
-                        </div>
+                    <div className="mt-4">
+                      <p className="text-sm font-bold text-[#111827]">
+                        {getCustomerName(request.user)}
+                      </p>
+
+                      <p className="mt-1 truncate text-xs text-[#6B7280]">
+                        {request.user?.email}
+                      </p>
+
+                      <span
+                        className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                          accountType,
+                        )}`}
+                      >
+                        <FiBriefcase size={10} />
+                        {getAccountTypeLabel(accountType)}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Amount
+                        </p>
+                        <p className="mt-1 text-base font-bold text-[#2D6FE8]">
+                          {formatCurrency(getRowAmount(request))}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Items
+                        </p>
+                        <p className="mt-1 text-base font-bold text-[#111827]">
+                          {request.items_count || 1}
+                        </p>
                       </div>
                     </div>
-                  );
-                },
-              )
+
+                    <div className="mt-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                          request.status,
+                        )}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                            request.status,
+                          )}`}
+                        />
+                        {getStatusLabel(request.status)}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {/* VIEW: delivery/track icon button removed */}
+                      <button
+                        type="button"
+                        onClick={() => handleView(request)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8]"
+                        title="View"
+                      >
+                        <FiEye size={15} />
+                      </button>
+
+                      {canApprove && (
+                        <button
+                          type="button"
+                          disabled={approveLoading}
+                          onClick={() =>
+                            handleOpenApprove(request)
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2D6FE8] text-white disabled:opacity-50"
+                          title="Approve"
+                        >
+                          {approveLoading ? (
+                            <FiRefreshCw
+                              size={15}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <FiCheck size={15} />
+                          )}
+                        </button>
+                      )}
+
+                      {canReject && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOpenReject(request)
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#FEF2F2] text-[#C23B32]"
+                          title="Reject"
+                        >
+                          <FiX size={15} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <p className="text-xs leading-5 text-[#4B5563]">
+                        {request.reason || "No reason provided."}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#2D6FE8]">
+                          Cancellation Amount
+                        </span>
+
+                        <span className="text-sm font-bold text-[#2D6FE8]">
+                          {formatCurrency(getRowAmount(request))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#2D6FE8]">
@@ -3201,106 +2643,77 @@ const CancelRefund: React.FC = () => {
                 </div>
 
                 <p className="mt-4 text-sm font-bold text-[#111827]">
-                  No cancellation requests
-                  found
+                  No cancellation requests found
                 </p>
 
                 <p className="mt-1 text-xs text-[#6B7280]">
-                  Try changing your search
-                  or status filter.
+                  Try changing your search or status filter.
                 </p>
               </div>
             )}
           </div>
 
           {/* PAGINATION */}
-          {!loading &&
-            filteredRequests.length >
-              0 && (
-              <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
-                <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                  <p className="text-xs text-[#6B7280]">
-                    Showing{" "}
-                    <span className="font-bold text-[#111827]">
-                      {startEntry}
-                    </span>{" "}
-                    to{" "}
-                    <span className="font-bold text-[#111827]">
-                      {endEntry}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-bold text-[#111827]">
-                      {
-                        filteredRequests.length
-                      }
-                    </span>{" "}
-                    entries
-                  </p>
+          {!loading && filteredRequests.length > 0 && (
+            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
+              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                <p className="text-xs text-[#6B7280]">
+                  Showing{" "}
+                  <span className="font-bold text-[#111827]">
+                    {startEntry}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-bold text-[#111827]">
+                    {endEntry}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-bold text-[#111827]">
+                    {filteredRequests.length}
+                  </span>{" "}
+                  entries
+                </p>
 
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() =>
+                      handlePageChange(currentPage - 1)
+                    }
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <FiChevronLeft size={17} />
+                  </button>
+
+                  {paginationPages.map((page) => (
                     <button
+                      key={page}
                       type="button"
-                      disabled={
-                        currentPage ===
-                        1
-                      }
-                      onClick={() =>
-                        handlePageChange(
-                          currentPage -
-                            1,
-                        )
-                      }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                      onClick={() => handlePageChange(page)}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+                        currentPage === page
+                          ? "bg-gradient-to-br from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                          : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                      }`}
                     >
-                      <FiChevronLeft
-                        size={17}
-                      />
+                      {page}
                     </button>
+                  ))}
 
-                    {paginationPages.map(
-                      (page) => (
-                        <button
-                          key={page}
-                          type="button"
-                          onClick={() =>
-                            handlePageChange(
-                              page,
-                            )
-                          }
-                          className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                            currentPage ===
-                            page
-                              ? "bg-gradient-to-br from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
-                              : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ),
-                    )}
-
-                    <button
-                      type="button"
-                      disabled={
-                        currentPage ===
-                        totalPages
-                      }
-                      onClick={() =>
-                        handlePageChange(
-                          currentPage +
-                            1,
-                        )
-                      }
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
-                    >
-                      <FiChevronRight
-                        size={17}
-                      />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() =>
+                      handlePageChange(currentPage + 1)
+                    }
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <FiChevronRight size={17} />
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
+          )}
         </motion.div>
       </motion.div>
 
@@ -3308,25 +2721,14 @@ const CancelRefund: React.FC = () => {
       <CancellationDetailModal
         open={detailModalOpen}
         detail={selectedDetail}
-        actionLoading={
-          actionLoading
-        }
-        canApprove={
-          canApproveCancellation
-        }
-        canReject={
-          canRejectCancellation
-        }
-        onClose={() =>
-          setDetailModalOpen(false)
-        }
+        actionLoading={actionLoading}
+        canApprove={canApproveCancellation}
+        canReject={canRejectCancellation}
+        onClose={() => setDetailModalOpen(false)}
         onApprove={() => {
-          if (!selectedDetail)
-            return;
+          if (!selectedDetail) return;
 
-          if (
-            !canApproveCancellation
-          ) {
+          if (!canApproveCancellation) {
             toast.error(
               "You do not have permission to approve cancellation requests.",
             );
@@ -3334,18 +2736,12 @@ const CancelRefund: React.FC = () => {
           }
 
           setDetailModalOpen(false);
-
-          handleOpenApprove(
-            selectedDetail,
-          );
+          handleOpenApprove(selectedDetail);
         }}
         onReject={() => {
-          if (!selectedDetail)
-            return;
+          if (!selectedDetail) return;
 
-          if (
-            !canRejectCancellation
-          ) {
+          if (!canRejectCancellation) {
             toast.error(
               "You do not have permission to reject cancellation requests.",
             );
@@ -3353,23 +2749,15 @@ const CancelRefund: React.FC = () => {
           }
 
           setDetailModalOpen(false);
-
-          handleOpenReject(
-            selectedDetail,
-          );
+          handleOpenReject(selectedDetail);
         }}
       />
 
       {/* REJECT POPUP */}
       <RejectPopup
         open={rejectModalOpen}
-        loading={
-          actionLoading.type ===
-          "reject"
-        }
-        onClose={() =>
-          setRejectModalOpen(false)
-        }
+        loading={actionLoading.type === "reject"}
+        onClose={() => setRejectModalOpen(false)}
         onConfirm={handleReject}
       />
 
@@ -3377,32 +2765,22 @@ const CancelRefund: React.FC = () => {
       <PayPopup
         open={payModalOpen}
         orderLineId={
-          selectedPayRequest?.order_line_id ||
-          null
+          selectedPayRequest?.order_line_id || null
         }
         orderReference={
-          selectedPayRequest?.order_reference ||
-          "N/A"
+          selectedPayRequest?.order_reference || "N/A"
         }
         customerName={getCustomerName(
           selectedPayRequest?.user,
         )}
         defaultAmount={Number(
-          selectedPayRequest
-            ?.refund_amount ||
+          selectedPayRequest?.refund_amount ||
             selectedPayRequest?.amount ||
             0,
         )}
-        loading={
-          actionLoading.type ===
-          "approve"
-        }
-        onClose={() =>
-          setPayModalOpen(false)
-        }
-        onConfirm={
-          handleApproveWithPay
-        }
+        loading={actionLoading.type === "approve"}
+        onClose={() => setPayModalOpen(false)}
+        onConfirm={handleApproveWithPay}
       />
     </>
   );

@@ -43,11 +43,7 @@ import {
   FiMail,
 } from "react-icons/fi";
 
-import adminDashboardApi, {
-  DashboardData,
-  DailyBreakdown,
-  WeeklyBreakdown,
-} from "../../api/endpoints/adminDashboard";
+import adminDashboardApi from "../../api/endpoints/adminDashboard";
 
 import { Link, useNavigate } from "react-router-dom";
 
@@ -138,6 +134,465 @@ interface InventoryAlertItem {
   stock_quantity?: number | string;
   status?: string;
 }
+
+// =====================================================
+// NORMALIZED DASHBOARD TYPE
+// =====================================================
+
+interface NormalizedDashboard {
+  // From admin
+  total_revenue: string | number;
+  total_orders: number;
+  total_customers: number;
+  total_distributors: number;
+  total_products: number;
+  sales_analysis: {
+    this_week: {
+      summary: {
+        revenue: string | number;
+        orders: number;
+        start_date: string;
+        end_date: string;
+      };
+      daily_breakdown: Array<{
+        date: string;
+        day: string;
+        revenue: string | number;
+        orders: number;
+      }>;
+    };
+    last_week: {
+      summary: {
+        revenue: string | number;
+        orders: number;
+        start_date: string;
+        end_date: string;
+      };
+      daily_breakdown: Array<{
+        date: string;
+        day: string;
+        revenue: string | number;
+        orders: number;
+      }>;
+    };
+    this_month: {
+      summary: {
+        revenue: string | number;
+        orders: number;
+        start_date: string;
+        end_date: string;
+      };
+      weekly_breakdown: Array<{
+        week_number: number;
+        start_date: string;
+        end_date: string;
+        revenue: string | number;
+        orders: number;
+      }>;
+    };
+    percentage_change: {
+      week_over_week: number;
+      month_over_month: number;
+    };
+  };
+  top_categories: Array<{
+    id: number;
+    name: string;
+    slug: string;
+    product_count: number;
+    max_price: number;
+  }>;
+  pending_kyc_reviews: Array<{
+    id: number;
+    user_id: number;
+    user_name: string;
+    user_email: string;
+    user_phone: string;
+    account_type: string;
+    title: string;
+    type_of_entity: string;
+    bank_name: string;
+    kyc_status: string;
+    submitted_at: string;
+    created_at: string;
+  }>;
+  stock_status: {
+    summary: {
+      low_stock_count: number;
+      out_of_stock_count: number;
+      in_stock_count: number;
+      total_products: number;
+    };
+    low_stock_products: InventoryAlertItem[];
+    out_of_stock_products: InventoryAlertItem[];
+  };
+  top_contacts: Array<{
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    message: string;
+    is_read: boolean;
+    read_at: string | null;
+    created_at: string;
+  }>;
+  // From finance
+  finance: {
+    revenue: {
+      total_line_revenue: string | number;
+      this_month_line_revenue: string | number;
+      last_month_line_revenue: string | number;
+      revenue_change_percentage: number;
+    };
+    tax: {
+      total_gst: string | number;
+      total_cgst: string | number;
+      total_sgst: string | number;
+      total_igst: string | number;
+    };
+    payments: {
+      pending_payments_count: number;
+      pending_payments_amount: string | number;
+    };
+    refunds: {
+      pending_refunds_count: number;
+      pending_refunds_amount: number;
+      refunded_orders_count: number;
+      refunded_orders_amount: number;
+      refunded_lines_count: number;
+      refunded_lines_amount: number;
+      buyback_refunded_count: number;
+      buyback_refunded_amount: number;
+    };
+    cancellations: {
+      cancelled_lines_count: number;
+      cancelled_lines_amount: string | number;
+    };
+  };
+  // From support
+  support: {
+    contacts: {
+      unread_count: number;
+      total_count: number;
+      top_contacts: Array<{
+        id: number;
+        name: string;
+        email: string;
+        phone: string;
+        message: string;
+        is_read: boolean;
+        read_at: string | null;
+        created_at: string;
+      }>;
+    };
+    order_lines: {
+      cancel_pending_count: number;
+      return_pending_count: number;
+      buyback_pending_count: number;
+      total_pending_support_lines: number;
+      recent_support_lines: Array<{
+        id: number;
+        item_reference_id: string;
+        order_id: number;
+        order_reference: string;
+        product_id: number;
+        product_name: string;
+        product_code: string;
+        quantity: number;
+        delivery_status: string;
+        cancellation_requested_at: string | null;
+        return_requested_at: string | null;
+        buyback_requested_at: string | null;
+        cancellation_reason: string | null;
+        return_reason: string | null;
+        updated_at: string;
+      }>;
+    };
+  };
+  // From warehouse
+  warehouse: {
+    stock_status: {
+      summary: {
+        low_stock_count: number;
+        out_of_stock_count: number;
+        in_stock_count: number;
+        total_products: number;
+      };
+      low_stock_products: InventoryAlertItem[];
+      out_of_stock_products: InventoryAlertItem[];
+    };
+    order_lines: {
+      pending_dispatch_lines: number;
+      processing_lines: number;
+      ready_to_ship_lines: number;
+      in_transit_lines: number;
+      delivered_lines: number;
+      recent_lines: Array<{
+        id: number;
+        item_reference_id: string;
+        order_id: number;
+        order_reference: string;
+        product_id: number;
+        product_name: string;
+        product_code: string;
+        quantity: number;
+        delivery_status: string;
+        dispatched_at: string | null;
+        delivered_at: string | null;
+        created_at: string;
+      }>;
+    };
+    products: {
+      total_products: number;
+      needs_restock: Array<{
+        id: number;
+        name: string;
+        product_code: string;
+        stock_quantity: number;
+        low_stock_threshold: number;
+        needs_restock: boolean;
+      }>;
+    };
+  };
+}
+
+// =====================================================
+// NORMALIZE API RESPONSE
+// =====================================================
+
+const normalizeDashboardData = (rawData: any): NormalizedDashboard | null => {
+  if (!rawData) return null;
+
+  const admin = rawData.admin || {};
+  const warehouse = rawData.warehouse || {};
+  const finance = rawData.finance || {};
+  const support = rawData.support || {};
+
+  // Helper to ensure sales_analysis exists
+  const salesAnalysis = admin.sales_analysis || {};
+  const thisWeek = salesAnalysis.this_week || {
+    summary: { revenue: 0, orders: 0, start_date: "", end_date: "" },
+    daily_breakdown: [],
+  };
+  const lastWeek = salesAnalysis.last_week || {
+    summary: { revenue: 0, orders: 0, start_date: "", end_date: "" },
+    daily_breakdown: [],
+  };
+  const thisMonth = salesAnalysis.this_month || {
+    summary: { revenue: 0, orders: 0, start_date: "", end_date: "" },
+    weekly_breakdown: [],
+  };
+  const percentageChange = salesAnalysis.percentage_change || {
+    week_over_week: 0,
+    month_over_month: 0,
+  };
+
+  // Ensure stock_status
+  const stockStatus = admin.stock_status || {
+    summary: {
+      low_stock_count: 0,
+      out_of_stock_count: 0,
+      in_stock_count: 0,
+      total_products: 0,
+    },
+    low_stock_products: [],
+    out_of_stock_products: [],
+  };
+
+  // Ensure finance
+  const financeRevenue = finance.revenue || {
+    total_line_revenue: 0,
+    this_month_line_revenue: 0,
+    last_month_line_revenue: 0,
+    revenue_change_percentage: 0,
+  };
+  const financeTax = finance.tax || {
+    total_gst: 0,
+    total_cgst: 0,
+    total_sgst: 0,
+    total_igst: 0,
+  };
+  const financePayments = finance.payments || {
+    pending_payments_count: 0,
+    pending_payments_amount: 0,
+  };
+  const financeRefunds = finance.refunds || {
+    pending_refunds_count: 0,
+    pending_refunds_amount: 0,
+    refunded_orders_count: 0,
+    refunded_orders_amount: 0,
+    refunded_lines_count: 0,
+    refunded_lines_amount: 0,
+    buyback_refunded_count: 0,
+    buyback_refunded_amount: 0,
+  };
+  const financeCancellations = finance.cancellations || {
+    cancelled_lines_count: 0,
+    cancelled_lines_amount: 0,
+  };
+
+  // Ensure support
+  const supportContacts = support.contacts || {
+    unread_count: 0,
+    total_count: 0,
+    top_contacts: [],
+  };
+  const supportOrderLines = support.order_lines || {
+    cancel_pending_count: 0,
+    return_pending_count: 0,
+    buyback_pending_count: 0,
+    total_pending_support_lines: 0,
+    recent_support_lines: [],
+  };
+
+  // Ensure warehouse
+  const warehouseStockStatus = warehouse.stock_status || {
+    summary: {
+      low_stock_count: 0,
+      out_of_stock_count: 0,
+      in_stock_count: 0,
+      total_products: 0,
+    },
+    low_stock_products: [],
+    out_of_stock_products: [],
+  };
+  const warehouseOrderLines = warehouse.order_lines || {
+    pending_dispatch_lines: 0,
+    processing_lines: 0,
+    ready_to_ship_lines: 0,
+    in_transit_lines: 0,
+    delivered_lines: 0,
+    recent_lines: [],
+  };
+  const warehouseProducts = warehouse.products || {
+    total_products: 0,
+    needs_restock: [],
+  };
+
+  return {
+    total_revenue: admin.total_revenue ?? 0,
+    total_orders: admin.total_orders ?? 0,
+    total_customers: admin.total_customers ?? 0,
+    total_distributors: admin.total_distributors ?? 0,
+    total_products: admin.total_products ?? 0,
+    sales_analysis: {
+      this_week: {
+        summary: {
+          revenue: thisWeek.summary?.revenue ?? 0,
+          orders: thisWeek.summary?.orders ?? 0,
+          start_date: thisWeek.summary?.start_date ?? "",
+          end_date: thisWeek.summary?.end_date ?? "",
+        },
+        daily_breakdown: thisWeek.daily_breakdown || [],
+      },
+      last_week: {
+        summary: {
+          revenue: lastWeek.summary?.revenue ?? 0,
+          orders: lastWeek.summary?.orders ?? 0,
+          start_date: lastWeek.summary?.start_date ?? "",
+          end_date: lastWeek.summary?.end_date ?? "",
+        },
+        daily_breakdown: lastWeek.daily_breakdown || [],
+      },
+      this_month: {
+        summary: {
+          revenue: thisMonth.summary?.revenue ?? 0,
+          orders: thisMonth.summary?.orders ?? 0,
+          start_date: thisMonth.summary?.start_date ?? "",
+          end_date: thisMonth.summary?.end_date ?? "",
+        },
+        weekly_breakdown: thisMonth.weekly_breakdown || [],
+      },
+      percentage_change: {
+        week_over_week: percentageChange.week_over_week ?? 0,
+        month_over_month: percentageChange.month_over_month ?? 0,
+      },
+    },
+    top_categories: admin.top_categories || [],
+    pending_kyc_reviews: admin.pending_kyc_reviews || [],
+    stock_status: {
+      summary: {
+        low_stock_count: stockStatus.summary?.low_stock_count ?? 0,
+        out_of_stock_count: stockStatus.summary?.out_of_stock_count ?? 0,
+        in_stock_count: stockStatus.summary?.in_stock_count ?? 0,
+        total_products: stockStatus.summary?.total_products ?? 0,
+      },
+      low_stock_products: stockStatus.low_stock_products || [],
+      out_of_stock_products: stockStatus.out_of_stock_products || [],
+    },
+    top_contacts: admin.top_contacts || [],
+    finance: {
+      revenue: {
+        total_line_revenue: financeRevenue.total_line_revenue ?? 0,
+        this_month_line_revenue: financeRevenue.this_month_line_revenue ?? 0,
+        last_month_line_revenue: financeRevenue.last_month_line_revenue ?? 0,
+        revenue_change_percentage: financeRevenue.revenue_change_percentage ?? 0,
+      },
+      tax: {
+        total_gst: financeTax.total_gst ?? 0,
+        total_cgst: financeTax.total_cgst ?? 0,
+        total_sgst: financeTax.total_sgst ?? 0,
+        total_igst: financeTax.total_igst ?? 0,
+      },
+      payments: {
+        pending_payments_count: financePayments.pending_payments_count ?? 0,
+        pending_payments_amount: financePayments.pending_payments_amount ?? 0,
+      },
+      refunds: {
+        pending_refunds_count: financeRefunds.pending_refunds_count ?? 0,
+        pending_refunds_amount: financeRefunds.pending_refunds_amount ?? 0,
+        refunded_orders_count: financeRefunds.refunded_orders_count ?? 0,
+        refunded_orders_amount: financeRefunds.refunded_orders_amount ?? 0,
+        refunded_lines_count: financeRefunds.refunded_lines_count ?? 0,
+        refunded_lines_amount: financeRefunds.refunded_lines_amount ?? 0,
+        buyback_refunded_count: financeRefunds.buyback_refunded_count ?? 0,
+        buyback_refunded_amount: financeRefunds.buyback_refunded_amount ?? 0,
+      },
+      cancellations: {
+        cancelled_lines_count: financeCancellations.cancelled_lines_count ?? 0,
+        cancelled_lines_amount: financeCancellations.cancelled_lines_amount ?? 0,
+      },
+    },
+    support: {
+      contacts: {
+        unread_count: supportContacts.unread_count ?? 0,
+        total_count: supportContacts.total_count ?? 0,
+        top_contacts: supportContacts.top_contacts || [],
+      },
+      order_lines: {
+        cancel_pending_count: supportOrderLines.cancel_pending_count ?? 0,
+        return_pending_count: supportOrderLines.return_pending_count ?? 0,
+        buyback_pending_count: supportOrderLines.buyback_pending_count ?? 0,
+        total_pending_support_lines: supportOrderLines.total_pending_support_lines ?? 0,
+        recent_support_lines: supportOrderLines.recent_support_lines || [],
+      },
+    },
+    warehouse: {
+      stock_status: {
+        summary: {
+          low_stock_count: warehouseStockStatus.summary?.low_stock_count ?? 0,
+          out_of_stock_count: warehouseStockStatus.summary?.out_of_stock_count ?? 0,
+          in_stock_count: warehouseStockStatus.summary?.in_stock_count ?? 0,
+          total_products: warehouseStockStatus.summary?.total_products ?? 0,
+        },
+        low_stock_products: warehouseStockStatus.low_stock_products || [],
+        out_of_stock_products: warehouseStockStatus.out_of_stock_products || [],
+      },
+      order_lines: {
+        pending_dispatch_lines: warehouseOrderLines.pending_dispatch_lines ?? 0,
+        processing_lines: warehouseOrderLines.processing_lines ?? 0,
+        ready_to_ship_lines: warehouseOrderLines.ready_to_ship_lines ?? 0,
+        in_transit_lines: warehouseOrderLines.in_transit_lines ?? 0,
+        delivered_lines: warehouseOrderLines.delivered_lines ?? 0,
+        recent_lines: warehouseOrderLines.recent_lines || [],
+      },
+      products: {
+        total_products: warehouseProducts.total_products ?? 0,
+        needs_restock: warehouseProducts.needs_restock || [],
+      },
+    },
+  };
+};
 
 // =====================================================
 // ICON MAP
@@ -598,7 +1053,7 @@ const EmptyState = ({
 // =====================================================
 
 const Dashboard = () => {
-  const [dashboard, setDashboard] = useState<DashboardData | null>(
+  const [dashboard, setDashboard] = useState<NormalizedDashboard | null>(
     null,
   );
 
@@ -690,7 +1145,8 @@ const Dashboard = () => {
           response.data.success &&
           response.data.data
         ) {
-          setDashboard(response.data.data);
+          const normalized = normalizeDashboardData(response.data.data);
+          setDashboard(normalized);
           setLastUpdated(new Date());
           setRefreshKey((prev) => prev + 1);
         }
@@ -793,6 +1249,8 @@ const Dashboard = () => {
 
     const salesAnalysis = dashboard.sales_analysis;
 
+    if (!salesAnalysis) return [];
+
     if (salesPeriod === "this_month") {
       return salesAnalysis.this_month?.weekly_breakdown || [];
     }
@@ -807,7 +1265,7 @@ const Dashboard = () => {
   const barData: SalesChartItem[] = useMemo(() => {
     return selectedSalesData.map(
       (
-        item: DailyBreakdown | WeeklyBreakdown,
+        item: any,
         index: number,
       ) => {
         const isWeekly = "week_number" in item;
@@ -829,7 +1287,7 @@ const Dashboard = () => {
 
           orders,
 
-          date: `${item.start_date}${
+          date: `${item.start_date || item.date}${
             item.end_date &&
             item.end_date !== item.start_date
               ? ` - ${item.end_date}`
@@ -871,7 +1329,6 @@ const Dashboard = () => {
     CHART_BLUE_LIGHT,
   ];
 
-  // Sirf top 3 categories ko chart mein show karna hai.
   const pieData = useMemo(() => {
     if (!dashboard) return [];
 
@@ -884,12 +1341,6 @@ const Dashboard = () => {
       }));
   }, [dashboard]);
 
-  // ===================================================
-  // FIX: TOTAL PRODUCTS OF TOP 3 CATEGORIES ONLY
-  // ===================================================
-
-  // Dashboard ke total_products (30) ka use nahi karna.
-  // Sirf chart mein present top 3 categories ka total show hoga.
   const pieTotal = useMemo(() => {
     return pieData.reduce(
       (sum, item) => sum + Number(item.value || 0),
