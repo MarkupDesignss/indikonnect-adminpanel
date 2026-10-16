@@ -7,6 +7,7 @@ import {
   FiCheck,
   FiX,
   FiTruck,
+  FiHash,
   FiRefreshCw,
   FiChevronLeft,
   FiChevronRight,
@@ -215,6 +216,103 @@ const formatMethodLabel = (method?: string | null) => {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NEW: RETURN METHOD LABEL HELPER                                          */
+/* -------------------------------------------------------------------------- */
+
+function getReturnMethodLabel(returnMethod?: string | null): string {
+  if (!returnMethod) return "Doorstep";
+
+  return returnMethod
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
+/* -------------------------------------------------------------------------- */
+
+function getRefundedAmount(record: any): number | null {
+  if (!record) return null;
+
+  const candidates = [
+    record.refunded_amount,
+    record.refund_info?.amount,
+    record.refund_info?.deduction_breakdown?.net_refund,
+    record.refund_details?.total,
+    record.refund_details?.net_refund,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") {
+      continue;
+    }
+
+    const amount =
+      typeof candidate === "number"
+        ? candidate
+        : parseFloat(String(candidate));
+
+    if (Number.isFinite(amount) && amount > 0) {
+      return amount;
+    }
+  }
+
+  return null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NEW: RETURN AMOUNT EXTRACTOR (Buyback Amount Equivalent)                */
+/* -------------------------------------------------------------------------- */
+
+function getReturnAmount(record: any): number | null {
+  if (!record) return null;
+
+  // If refunded, prefer the actual refunded amount
+  const refunded = getRefundedAmount(record);
+  if (refunded !== null) return refunded;
+
+  const candidates = [
+    record.refund_amount,
+    record.refund_info?.deduction_breakdown?.net_refund,
+    record.refund_details?.total,
+    record.refund_details?.net_refund,
+    record.refund_subtotal,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") {
+      continue;
+    }
+
+    const amount =
+      typeof candidate === "number"
+        ? candidate
+        : parseFloat(String(candidate));
+
+    if (Number.isFinite(amount) && amount > 0) {
+      return amount;
+    }
+  }
+
+  return null;
+}
+
+function isRefundProcessed(record: any): boolean {
+  if (!record) return false;
+
+  const status = String(record.status || "").toLowerCase();
+  const refundStatus = String(record.refund_status || "").toLowerCase();
+
+  if (status === "completed" || status === "refunded") return true;
+
+  if (refundStatus === "completed" || refundStatus === "processed") {
+    return true;
+  }
+
+  return getRefundedAmount(record) !== null;
+}
 
 // =====================================================
 // PERMISSION LOADING STATE
@@ -579,7 +677,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               disabled={loading}
             />
           </div>
@@ -698,7 +796,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={3}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               disabled={loading}
             />
           </div>
@@ -839,7 +937,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               disabled={loading}
             />
           </div>
@@ -1137,7 +1235,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               disabled={loading}
             />
           </div>
@@ -1471,7 +1569,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white"
+              className="mt-5 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-3 text-sm font-bold text-white"
             >
               Close
             </button>
@@ -1506,6 +1604,17 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   // ✅ Get account type for dynamic text
   const accountType = detail.user?.account_type;
 
+  // ✅ Get return method, tracking, courier
+  const rawDetail: any = detail;
+  const returnMethod = rawDetail.return_method || null;
+  const trackingId = rawDetail.tracking_id || null;
+  const courier = rawDetail.courier || null;
+  const returnMethodLabel = getReturnMethodLabel(returnMethod);
+
+  // ✅ Refunded amount
+  const actualRefundedAmount = getRefundedAmount(rawDetail);
+  const returnAmount = getReturnAmount(rawDetail);
+
   return (
     <GlobalModal
       isOpen={open}
@@ -1515,38 +1624,94 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
-        {/* HEADER */}
+        {/* ============================================================ */}
+        {/* HEADER — WITH TRACKING DETAILS                                */}
+        {/* ============================================================ */}
+        <div className="border-b border-[#DCE6F2] px-5 py-3 sm:px-6">
+          {/* Top Row: Title + Close */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-3 sm:px-6">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Returns & Refunds
+                </span>
+              </div>
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
-                Returns & Refunds
-              </span>
+              <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+                Return Request
+              </h1>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
+                <span>{detail.order?.order_reference || "—"}</span>
+
+                <span>•</span>
+
+                <span>{formatDate(detail.created_at)}</span>
+              </div>
             </div>
 
-            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
-              Return Request
-            </h1>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-              <span>{detail.order?.order_reference || "—"}</span>
-
-              <span>•</span>
-
-              <span>{formatDate(detail.created_at)}</span>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+            >
+              <FiX size={18} />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-          >
-            <FiX size={18} />
-          </button>
+          {/* ✅ Tracking Details Row */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+            {/* Return Method Badge — ALWAYS SHOWN */}
+            <div className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2">
+              <FiTruck size={14} className="text-[#2D6FE8]" />
+
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                  Return Method
+                </span>
+
+                <span className="text-xs font-bold text-[#2D6FE8]">
+                  {returnMethodLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Courier Badge — only if courier exists */}
+            {courier && (
+              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiPackage size={14} className="text-[#4F8FF7]" />
+
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Courier
+                  </span>
+
+                  <span className="text-xs font-bold text-[#111827]">
+                    {courier}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Tracking ID Badge — only if trackingId exists */}
+            {trackingId && (
+              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiHash size={14} className="text-[#4F8FF7]" />
+
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Tracking ID
+                  </span>
+
+                  <span className="text-xs font-bold text-[#111827]">
+                    {trackingId}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* BODY */}
@@ -1598,7 +1763,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Replacement"
                         : formatCurrency(
-                            detail.refund_info?.amount ??
+                            actualRefundedAmount ??
+                              detail.refund_info?.amount ??
                               detail.refund_details?.total,
                           )}
                     </p>
@@ -1690,6 +1856,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </div>
             </div>
 
+            {/* ✅ ORDER INFORMATION with Return Method, Courier, Tracking */}
             <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1721,6 +1888,44 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     {getStatusLabel(detail.order?.status || "")}
                   </span>
                 </div>
+
+                {/* Return Method Row */}
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="text-xs text-[#6B7280]">
+                    Return Method
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                    <FiTruck size={10} />
+                    {returnMethodLabel}
+                  </span>
+                </div>
+
+                {/* Courier Row */}
+                {courier && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="text-xs text-[#6B7280]">
+                      Courier
+                    </span>
+
+                    <span className="text-sm font-semibold text-[#111827]">
+                      {courier}
+                    </span>
+                  </div>
+                )}
+
+                {/* Tracking ID Row */}
+                {trackingId && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="text-xs text-[#6B7280]">
+                      Tracking ID
+                    </span>
+
+                    <span className="text-sm font-semibold text-[#111827]">
+                      {trackingId}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between gap-4">
                   <span className="text-xs text-[#6B7280]">Delivered At</span>
@@ -1892,7 +2097,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
               <div className="divide-y divide-[#DCE6F2]">
                 {orderLinesTimeline.map((line) => {
-                  // ✅ Pass accountType to buildTimelineEvents
                   const events = buildTimelineEvents(
                     line.timeline,
                     accountType,
@@ -1988,7 +2192,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
 
                   <div className="px-4 sm:px-5">
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                       <span className="text-xs font-semibold text-[#4B5563]">
                         Subtotal
                       </span>
@@ -2000,7 +2204,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                       <span className="text-xs font-semibold text-[#4B5563]">
                         Tax
                       </span>
@@ -2010,7 +2214,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                       <span className="text-xs font-semibold text-[#4B5563]">
                         Shipping
                       </span>
@@ -2022,7 +2226,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                       <span className="text-xs font-bold text-[#111827]">
                         Gross Refund
                       </span>
@@ -2036,7 +2240,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       (deduction, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5"
+                          className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3"
                         >
                           <span className="text-xs font-semibold text-[#C23B32]">
                             - {deduction.label}
@@ -2131,7 +2335,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                     <div className="flex shrink-0 items-center gap-2.5">
                       <span className="text-sm font-bold text-[#2D6FE8]">
-                        {formatCurrency(refundDetails?.total)}
+                        {formatCurrency(
+                          returnAmount ?? refundDetails?.total,
+                        )}
                       </span>
 
                       <span
@@ -2147,7 +2353,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   {refundBreakdownOpen && (
                     <div className="border-t border-[#DCE6F2] bg-white">
                       <div className="px-4 sm:px-5">
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Method
@@ -2163,7 +2369,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Subtotal
@@ -2179,7 +2385,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Added Tax
@@ -2195,7 +2401,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Shipping
@@ -2211,7 +2417,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Amount with Tax & Shipping
@@ -2229,7 +2435,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Deducted Shipping Charge
@@ -2248,7 +2454,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Deducted Tax
@@ -2264,7 +2470,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                        <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                           <div>
                             <p className="text-xs font-semibold text-[#4B5563]">
                               Gateway Charges
@@ -2295,7 +2501,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </div>
 
                           <span className="rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
-                            {formatCurrency(refundDetails?.total)}
+                            {formatCurrency(
+                              returnAmount ?? refundDetails?.total,
+                            )}
                           </span>
                         </div>
                       </div>
@@ -2328,7 +2536,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-3 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
             >
               Close
             </button>
@@ -2339,7 +2547,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onApprove}
                   disabled={actionLoading.type === "approve"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                 >
                   {actionLoading.type === "approve" ? (
                     <FiRefreshCw size={14} className="animate-spin" />
@@ -2356,7 +2564,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReject}
                   disabled={actionLoading.type === "reject"}
-                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-3 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                 >
                   {actionLoading.type === "reject" ? (
                     <FiRefreshCw size={14} className="animate-spin" />
@@ -2373,7 +2581,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReceived}
                   disabled={actionLoading.type === "received"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                 >
                   {actionLoading.type === "received" ? (
                     <FiRefreshCw size={14} className="animate-spin" />
@@ -2390,7 +2598,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onComplete}
                   disabled={actionLoading.type === "complete"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                 >
                   {actionLoading.type === "complete" ? (
                     <FiRefreshCw size={14} className="animate-spin" />
@@ -3170,7 +3378,7 @@ const ReturnRefund: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
-                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
+                    className={`rounded-xl px-3.5 py-3 text-xs font-bold transition-all ${
                       activeFilter === filter.key
                         ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
                         : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
@@ -3185,252 +3393,278 @@ const ReturnRefund: React.FC = () => {
 
           {/* DESKTOP TABLE */}
 
-          <div className="hidden overflow-x-auto rounded-2xl lg:block">
-            <table className="w-full min-w-[1200px] border-collapse">
-              <thead>
-                <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    S.No.
-                  </th>
+       
+<div className="hidden w-full overflow-hidden rounded-xl lg:block">
+  <table className="w-full table-fixed border-collapse text-[11px]">
+    <thead>
+      <tr className="bg-[#4F8FF7]">
+        <th className="w-[5%] px-2 py-3 text-left text-[12px] font-semibold text-white">S.No.</th>
+        <th className="w-[11%] px-2 py-3 text-left text-[12px] font-semibold text-white">Order Reference</th>
+        <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Buyer</th>
+        <th className="w-[6%] px-1 py-3 text-center text-[12px] font-semibold text-white">Quantity</th>
+        <th className="w-[10%] px-2 py-3 text-right text-[12px] font-semibold text-white">Return Amount</th>
+        <th className="w-[10%] px-2 py-3 text-left text-[12px] font-semibold text-white">Return Method</th>
+        <th className="w-[12%] px-2 py-3 text-left text-[12] font-semibold text-white">Tracking Details</th>
+        <th className="w-[10%] px-2 py-3 text-left text-[12px] font-semibold text-white">Reason</th>
+        <th className="w-[9%] px-1 py-3 text-center text-[12px] font-semibold text-white">Status</th>
+        <th className="w-[15%] px-1 py-3 text-center text-[12px] font-semibold text-white">Actions</th>
+      </tr>
+    </thead>
 
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Order Reference
-                  </th>
+    <tbody>
+      {loading ? (
+        <tr>
+          <td colSpan={10} className="px-3 py-8 text-center">
+            <div className="flex flex-col items-center">
+              <FiRefreshCw
+                size={20}
+                className="animate-spin text-[#2D6FE8]"
+              />
+              <p className="mt-2 text-sm font-semibold text-[#111827]">
+                Loading return requests...
+              </p>
+            </div>
+          </td>
+        </tr>
+      ) : paginatedRequests.length === 0 ? (
+        <tr>
+          <td colSpan={10} className="px-3 py-8 text-center">
+            <FiPackage size={22} className="mx-auto text-[#2D6FE8]" />
+            <p className="mt-2 text-sm font-semibold text-[#111827]">
+              No return requests found
+            </p>
+            <p className="mt-1 text-xs text-[#6B7280]">
+              Try changing the search or status filter.
+            </p>
+          </td>
+        </tr>
+      ) : (
+        paginatedRequests.map((request, index) => {
+          const canApprove =
+            request.can_approve && canApproveReturn;
 
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Buyer
-                  </th>
+          const canReject =
+            request.can_reject && canRejectReturn;
 
-                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Quantity
-                  </th>
+          const approveLoading =
+            actionLoading.type === "approve" &&
+            actionLoading.id === request.id;
 
-                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
-                    Return Amount
-                  </th>
+          const showMarkReceived =
+            request.status === "approved" && canMarkReceived;
 
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Reason
-                  </th>
+          const showComplete =
+            request.status === "received" && canCompleteReturn;
 
-                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Status
-                  </th>
+          const rowRefunded = getRefundedAmount(request);
+          const rowIsRefunded = isRefundProcessed(request);
+          const rowReturnAmount = getReturnAmount(request);
 
-                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
+          const rowRaw: any = request;
+          const rowReturnMethod = rowRaw.return_method || null;
+          const rowCourier = rowRaw.courier || null;
+          const rowTrackingId = rowRaw.tracking_id || null;
 
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+          const rowReturnMethodLabel =
+            getReturnMethodLabel(rowReturnMethod);
+
+          return (
+            <React.Fragment key={request.id}>
+              <tr className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
+                <td className="px-2 py-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EAF3FF] text-[11px] font-bold text-[#2D6FE8]">
+                    {startIndex + index + 1}
+                  </span>
+                </td>
+
+                <td className="break-words px-2 py-3">
+                  <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                    {request.order_reference || "—"}
+                  </span>
+                </td>
+
+                <td className="break-words px-2 py-3">
+                  <p className="break-words text-xs font-semibold text-[#111827]">
+                    {getCustomerName(request.user)}
+                  </p>
+
+                  <span
+                    className={`mt-1 inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                      request.user.account_type,
+                    )}`}
+                  >
+                    <FiBriefcase size={10} />
+                    {getAccountTypeLabel(request.user.account_type)}
+                  </span>
+                </td>
+
+                <td className="px-1 py-3 text-center">
+                  <span className="inline-flex min-w-[28px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
+                    {request.items_count}
+                  </span>
+                </td>
+
+                <td className="break-words px-2 py-3 text-right">
+                  <div className="inline-flex max-w-full flex-col items-end">
+                    <span className="break-words text-xs font-bold text-[#2D6FE8]">
+                      {formatCurrency(rowReturnAmount)}
+                    </span>
+
+                    {rowIsRefunded && rowRefunded !== null && (
+                      <p className="mt-1 break-words text-[10px] font-bold text-[#4F8FF7]">
+                        Refunded {formatCurrency(rowRefunded)}
+                      </p>
+                    )}
+
+                    {request.status === "completed" &&
+                      request.resolution === "replacement" && (
+                        <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                          Replaced
+                        </p>
+                      )}
+                  </div>
+                </td>
+
+                <td className="break-words px-2 py-3">
+                  <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-1.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                    <FiTruck size={11} className="shrink-0" />
+                    <span className="break-words">
+                      {rowReturnMethodLabel}
+                    </span>
+                  </span>
+                </td>
+
+                <td className="break-words px-2 py-3">
+                  {rowCourier || rowTrackingId ? (
+                    <div className="flex min-w-0 flex-col gap-1">
+                      {rowCourier && (
+                        <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#111827]">
+                          <FiPackage
+                            size={11}
+                            className="mt-0.5 shrink-0 text-[#4F8FF7]"
+                          />
+                          <span className="break-all">{rowCourier}</span>
+                        </span>
+                      )}
+
+                      {rowTrackingId && (
+                        <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#6B7280]">
+                          <FiHash
+                            size={11}
+                            className="mt-0.5 shrink-0 text-[#4F8FF7]"
+                          />
+                          <span className="break-all">{rowTrackingId}</span>
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-[11px] text-[#6B7280]">
+                      —
+                    </span>
+                  )}
+                </td>
+
+                <td className="px-2 py-3">
+                  <p
+                    title={request.reason || ""}
+                    className="max-w-full break-words text-[10px] text-[#4B5563]"
+                  >
+                    {request.reason || "No reason provided"}
+                  </p>
+                </td>
+
+                <td className="px-1 py-3 text-center">
+                  <span
+                    className={`inline-flex max-w-full items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-bold ${getStatusClass(
+                      request.status,
+                    )}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${getStatusDot(
+                        request.status,
+                      )}`}
+                    />
+                    <span className="break-words">
+                      {getStatusLabel(request.status)}
+                    </span>
+                  </span>
+                </td>
+
+                <td className="px-1 py-3">
+                  <div className="flex flex-wrap items-center justify-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleView(request.id)}
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                      title="View"
+                    >
+                      <FiEye size={13} />
+                    </button>
+
+                    {canApprove && (
+                      <button
+                        type="button"
+                        disabled={approveLoading}
+                        onClick={() =>
+                          handleOpenApproveFromTable(request.id)
+                        }
+                        className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white disabled:opacity-50"
+                      >
+                        {approveLoading ? (
                           <FiRefreshCw
-                            size={23}
+                            size={11}
                             className="animate-spin"
                           />
-                        </div>
+                        ) : (
+                          <FiCheck size={11} />
+                        )}
+                        Approve
+                      </button>
+                    )}
 
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
-                          Loading return requests...
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : paginatedRequests.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center">
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiPackage size={24} />
-                        </div>
+                    {canReject && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenReject(request.id)}
+                        className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#C23B32]/25 bg-[#FEF2F2] px-1.5 text-[10px] font-semibold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
+                      >
+                        <FiX size={11} />
+                        Reject
+                      </button>
+                    )}
 
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
-                          No return requests found
-                        </p>
+                    {showMarkReceived && (
+                      <button
+                        type="button"
+                        onClick={() => handleView(request.id)}
+                        className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white"
+                      >
+                        <FiTruck size={11} />
+                        Received
+                      </button>
+                    )}
 
-                        <p className="mt-1 text-xs text-[#6B7280]">
-                          Try changing the search or status filter.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedRequests.map((request, index) => {
-                    const canApprove =
-                      request.can_approve && canApproveReturn;
+                    {showComplete && (
+                      <button
+                        type="button"
+                        onClick={() => handleView(request.id)}
+                        className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white"
+                      >
+                        <FiCheckCircle size={11} />
+                        Complete
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            </React.Fragment>
+          );
+        })
+      )}
+    </tbody>
+  </table>
+</div>
 
-                    const canReject =
-                      request.can_reject && canRejectReturn;
-
-                    const approveLoading =
-                      actionLoading.type === "approve" &&
-                      actionLoading.id === request.id;
-
-                    const showMarkReceived =
-                      request.status === "approved" && canMarkReceived;
-
-                    const showComplete =
-                      request.status === "received" && canCompleteReturn;
-
-                    return (
-                      <React.Fragment key={request.id}>
-                        <tr className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
-                          <td className="px-5 py-3">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                              {startIndex + index + 1}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
-                              {request.order_reference || "—"}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <p className="text-sm font-bold text-[#111827]">
-                              {getCustomerName(request.user)}
-                            </p>
-
-                            <span
-                              className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                                request.user.account_type,
-                              )}`}
-                            >
-                              <FiBriefcase size={9} />
-                              {getAccountTypeLabel(request.user.account_type)}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3 text-center">
-                            <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
-                              {request.items_count}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3 text-right">
-                            <span className="text-sm font-bold text-[#2D6FE8]">
-                              {formatCurrency(request.refund_amount)}
-                            </span>
-
-                            {request.status === "completed" && (
-                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
-                                {request.resolution === "replacement"
-                                  ? "Replaced"
-                                  : "Refunded"}{" "}
-                                {request.resolution === "refund" &&
-                                  formatCurrency(
-                                    request.refund_info?.amount,
-                                  )}
-                              </p>
-                            )}
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <p
-                              title={request.reason || ""}
-                              className="max-w-[210px] truncate text-xs text-[#4B5563]"
-                            >
-                              {request.reason || "No reason provided"}
-                            </p>
-                          </td>
-
-                          <td className="px-5 py-3 text-center">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                                request.status,
-                              )}`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                                  request.status,
-                                )}`}
-                              />
-
-                              {getStatusLabel(request.status)}
-                            </span>
-                          </td>
-
-                          <td className="px-5 py-3">
-                            <div className="flex flex-nowrap items-center justify-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleView(request.id)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                title="View"
-                              >
-                                <FiEye size={15} />
-                              </button>
-
-                              {canApprove && (
-                                <button
-                                  type="button"
-                                  disabled={approveLoading}
-                                  onClick={() =>
-                                    handleOpenApproveFromTable(request.id)
-                                  }
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
-                                >
-                                  {approveLoading ? (
-                                    <FiRefreshCw
-                                      size={13}
-                                      className="animate-spin"
-                                    />
-                                  ) : (
-                                    <FiCheck size={13} />
-                                  )}
-
-                                  Approve
-                                </button>
-                              )}
-
-                              {canReject && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenReject(request.id)}
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiX size={13} />
-                                  Reject
-                                </button>
-                              )}
-
-                              {showMarkReceived && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleView(request.id)}
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
-                                >
-                                  <FiTruck size={13} />
-                                  Received
-                                </button>
-                              )}
-
-                              {showComplete && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleView(request.id)}
-                                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
-                                >
-                                  <FiCheckCircle size={13} />
-                                  Complete
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      </React.Fragment>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
 
           {/* MOBILE */}
 
@@ -3446,6 +3680,19 @@ const ReturnRefund: React.FC = () => {
 
                 const showComplete =
                   request.status === "received" && canCompleteReturn;
+
+                // ✅ Refunded / Return amount
+                const rowRefunded = getRefundedAmount(request);
+                const rowIsRefunded = isRefundProcessed(request);
+                const rowReturnAmount = getReturnAmount(request);
+
+                // ✅ Tracking info
+                const rowRaw: any = request;
+                const rowReturnMethod = rowRaw.return_method || null;
+                const rowCourier = rowRaw.courier || null;
+                const rowTrackingId = rowRaw.tracking_id || null;
+                const rowReturnMethodLabel =
+                  getReturnMethodLabel(rowReturnMethod);
 
                 return (
                   <div
@@ -3486,8 +3733,14 @@ const ReturnRefund: React.FC = () => {
                         </p>
 
                         <p className="mt-1 text-base font-bold text-[#2D6FE8]">
-                          {formatCurrency(request.refund_amount)}
+                          {formatCurrency(rowReturnAmount)}
                         </p>
+
+                        {rowIsRefunded && rowRefunded !== null && (
+                          <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                            Refunded {formatCurrency(rowRefunded)}
+                          </p>
+                        )}
                       </div>
 
                       <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
@@ -3499,6 +3752,34 @@ const ReturnRefund: React.FC = () => {
                           {request.items_count}
                         </p>
                       </div>
+                    </div>
+
+                    {/* ✅ Return Method + Tracking details (mobile) */}
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                        <FiTruck size={10} />
+                        {rowReturnMethodLabel}
+                      </span>
+
+                      {rowCourier && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
+                          <FiPackage
+                            size={10}
+                            className="text-[#4F8FF7]"
+                          />
+                          {rowCourier}
+                        </span>
+                      )}
+
+                      {rowTrackingId && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
+                          <FiHash
+                            size={10}
+                            className="text-[#4F8FF7]"
+                          />
+                          {rowTrackingId}
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
@@ -3561,7 +3842,7 @@ const ReturnRefund: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleView(request.id)}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiTruck size={14} />
                           Mark as Received
@@ -3574,7 +3855,7 @@ const ReturnRefund: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleView(request.id)}
-                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiCheckCircle size={14} />
                           Complete Return
@@ -3595,9 +3876,21 @@ const ReturnRefund: React.FC = () => {
                         </span>
 
                         <span className="text-sm font-bold text-[#2D6FE8]">
-                          {formatCurrency(request.refund_amount)}
+                          {formatCurrency(rowReturnAmount)}
                         </span>
                       </div>
+
+                      {rowIsRefunded && rowRefunded !== null && (
+                        <div className="mt-1.5 flex items-center justify-between border-t border-[#2D6FE8]/15 pt-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#2D6FE8]">
+                            Refunded
+                          </span>
+
+                          <span className="text-sm font-bold text-[#4F8FF7]">
+                            {formatCurrency(rowRefunded)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

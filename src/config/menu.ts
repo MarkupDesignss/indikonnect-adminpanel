@@ -40,19 +40,20 @@ export const menuItems: MenuItem[] = [
       'tax_category.view',
     ],
     children: [
-      {
-        path: '/cms/brands',
-        label: 'Brands',
-        icon: 'sell',
-        permission: 'brand.view',
-        module: 'brand',
-      },
+     
       {
         path: '/inventory/categories',
         label: 'Categories',
         icon: 'category',
         permission: 'category.view',
         module: 'category',
+      },
+      {
+        path: '/cms/brands',
+        label: 'Brands',
+        icon: 'sell',
+        permission: 'brand.view',
+        module: 'brand',
       },
       {
         path: '/inventory/SubCategories',

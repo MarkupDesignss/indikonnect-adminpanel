@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -26,6 +25,7 @@ import {
   FiXCircle,
   FiRotateCcw,
   FiUser,
+  FiHash,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -124,9 +124,7 @@ const deriveStatus = (row: any): CancellationStatus => {
 const getRowAmount = (row: any): number => {
   if (!row) return 0;
 
-  if (row.refund_amount != null) {
-    return Number(row.refund_amount);
-  }
+
 
   if (row.amount != null) {
     return Number(row.amount);
@@ -152,6 +150,146 @@ const getRowAmount = (row: any): number => {
 const getCancellationAmount = (row: any): number => {
   return getRowAmount(row);
 };
+
+/* -------------------------------------------------------------------------- */
+/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Returns the actual refunded amount for a cancellation record.
+ *
+ * Priority:
+ *   1. `refunds[0].amount` — most accurate (actual refund processed)
+ *   2. `refunds[0].adjusted_amount` — if adjustment exists
+ *   3. `refunded_amount` (top-level)
+ *   4. `refund_amount` (fallback)
+ */
+function getRefundedAmount(record: any): number | null {
+  if (!record) return null;
+
+  // ✅ Check refunds array first (most accurate)
+  const refundsArray = record.refunds;
+
+  if (Array.isArray(refundsArray) && refundsArray.length > 0) {
+    // Find completed refund
+    const completedRefund = refundsArray.find(
+      (r: any) =>
+        String(r.status || "").toLowerCase() === "completed" ||
+        String(r.status || "").toLowerCase() === "processed",
+    );
+
+    const targetRefund = completedRefund || refundsArray[0];
+
+    const candidates = [
+      targetRefund?.amount,
+      targetRefund?.adjusted_amount,
+    ];
+
+    for (const candidate of candidates) {
+      if (
+        candidate === null ||
+        candidate === undefined ||
+        candidate === ""
+      ) {
+        continue;
+      }
+
+      const amount =
+        typeof candidate === "number"
+          ? candidate
+          : parseFloat(String(candidate));
+
+      if (Number.isFinite(amount) && amount > 0) {
+        return amount;
+      }
+    }
+  }
+
+  // ✅ Fallback to top-level fields
+  const topLevelCandidates = [
+    record.refunded_amount,
+    record.refund_amount,
+  ];
+
+  for (const candidate of topLevelCandidates) {
+    if (
+      candidate === null ||
+      candidate === undefined ||
+      candidate === ""
+    ) {
+      continue;
+    }
+
+    const amount =
+      typeof candidate === "number"
+        ? candidate
+        : parseFloat(String(candidate));
+
+    if (Number.isFinite(amount) && amount > 0) {
+      return amount;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns true if the cancellation record has been refunded.
+ */
+function isRefundProcessed(record: any): boolean {
+  if (!record) return false;
+
+  const status = String(record.status || "").toLowerCase();
+  const refundStatus = String(
+    record.refund_status || "",
+  ).toLowerCase();
+
+  if (status === "completed" || status === "refunded") {
+    return true;
+  }
+
+  if (
+    refundStatus === "completed" ||
+    refundStatus === "processed"
+  ) {
+    return true;
+  }
+
+  // Check refunds array
+  const refundsArray = record.refunds;
+
+  if (Array.isArray(refundsArray) && refundsArray.length > 0) {
+    return refundsArray.some(
+      (r: any) =>
+        String(r.status || "").toLowerCase() === "completed" ||
+        String(r.status || "").toLowerCase() === "processed",
+    );
+  }
+
+  return getRefundedAmount(record) !== null;
+}
+
+/**
+ * Returns the amount to display in the "Cancellation Amount" column.
+ *
+ * Priority:
+ *   1. If refunded, use actual refunded amount
+ *   2. Original cancellation amount
+ */
+function getDisplayAmount(record: any): number | null {
+  if (!record) return null;
+
+  // If refunded, show actual refunded amount
+  const refunded = getRefundedAmount(record);
+
+  if (refunded !== null && isRefundProcessed(record)) {
+    return refunded;
+  }
+
+  // Otherwise, show original cancellation amount
+  const original = getRowAmount(record);
+  return original > 0 ? original : null;
+}
 
 const getStatusLabel = (status: string) => {
   if (!status) return "N/A";
@@ -964,6 +1102,9 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
 
   const raw: any = detail;
   const amount = getCancellationAmount(raw);
+  const refundedAmount = getRefundedAmount(raw);
+  const isRefunded = isRefundProcessed(raw);
+  const displayAmount = getDisplayAmount(raw) ?? amount;
   const status = detail.status || deriveStatus(raw);
 
   const orderReference =
@@ -1011,6 +1152,11 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
     "No reason provided.";
 
   const itemReference = raw.item_reference_id || "N/A";
+
+  // ✅ Refund details from refunds array
+  const refundDetails = Array.isArray(raw.refunds) && raw.refunds.length > 0
+    ? raw.refunds[0]
+    : null;
 
   const timelineSource =
     raw.timeline ||
@@ -1138,6 +1284,72 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* ✅ REFUND COMPLETED BANNER */}
+          {isRefunded && refundedAmount !== null && (
+            <div className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
+              <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
+                    <FiCreditCard size={17} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[#2D6FE8]">
+                      Refund Completed
+                    </h3>
+
+                    <p className="mt-0.5 text-xs text-[#4B5563]">
+                      The refund has been processed successfully.
+                    </p>
+                  </div>
+                </div>
+
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                  Refunded
+                </span>
+              </div>
+
+              <div className="bg-white p-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                      Refund Amount
+                    </p>
+
+                    <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
+                      {formatCurrency(refundedAmount)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                      Refund Method
+                    </p>
+
+                    <p className="mt-1 text-sm font-bold capitalize text-[#111827]">
+                      {refundDetails?.refund_method || "Original Payment"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                      Refunded At
+                    </p>
+
+                    <p className="mt-1 text-sm font-bold text-[#111827]">
+                      {formatDate(
+                        refundDetails?.completed_at ||
+                          refundDetails?.created_at ||
+                          raw.updated_at,
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ITEM CARD */}
           <div className="overflow-hidden rounded-2xl border border-[#DCE6F2]">
@@ -1320,16 +1532,28 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* AMOUNT */}
+          {/* ✅ AMOUNT — Now shows refunded amount if available */}
           <div className="mt-5 rounded-2xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2D6FE8]">
-                  Cancellation Amount
+                  {isRefunded && refundedAmount !== null
+                    ? "Refunded Amount"
+                    : "Cancellation Amount"}
                 </p>
                 <p className="mt-1 text-2xl font-bold text-[#2D6FE8]">
-                  {formatCurrency(amount)}
+                  {formatCurrency(displayAmount)}
                 </p>
+
+                {/* ✅ Show original amount as secondary info when refunded */}
+                {isRefunded &&
+                  refundedAmount !== null &&
+                  amount > 0 &&
+                  amount !== refundedAmount && (
+                    <p className="mt-1 text-[11px] font-semibold text-[#6B7280]">
+                      Original: {formatCurrency(amount)}
+                    </p>
+                  )}
               </div>
 
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
@@ -1337,6 +1561,102 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
               </div>
             </div>
           </div>
+
+          {/* ✅ REFUND DETAILS (if available) */}
+          {isRefunded && refundDetails && (
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
+              <div className="border-b border-[#DCE6F2] bg-[#F4F8FD] px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiCreditCard size={14} />
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-bold text-[#111827]">
+                      Refund Details
+                    </h3>
+                    <p className="mt-0.5 text-[10px] text-[#6B7280]">
+                      Complete refund transaction information
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-5">
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                  <span className="text-xs font-semibold text-[#4B5563]">
+                    Refund Amount
+                  </span>
+                  <span className="text-xs font-bold text-[#111827]">
+                    {formatCurrency(refundDetails.amount)}
+                  </span>
+                </div>
+
+                {Number(refundDetails.adjusted_amount) > 0 && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <span className="text-xs font-semibold text-[#4B5563]">
+                      Adjusted Amount
+                    </span>
+                    <span className="text-xs font-bold text-[#111827]">
+                      {formatCurrency(refundDetails.adjusted_amount)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                  <span className="text-xs font-semibold text-[#4B5563]">
+                    Refund Method
+                  </span>
+                  <span className="rounded-md bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold capitalize text-[#2D6FE8]">
+                    {refundDetails.refund_method || "—"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                  <span className="text-xs font-semibold text-[#4B5563]">
+                    Status
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusClass(
+                      refundDetails.status,
+                    )}`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
+                        refundDetails.status,
+                      )}`}
+                    />
+                    {getStatusLabel(refundDetails.status)}
+                  </span>
+                </div>
+
+                {refundDetails.gateway_reference && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <span className="text-xs font-semibold text-[#4B5563]">
+                      Gateway Reference
+                    </span>
+                    <span className="max-w-[180px] truncate text-xs font-semibold text-[#111827]">
+                      {refundDetails.gateway_reference}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between gap-4 py-3">
+                  <div>
+                    <p className="text-xs font-bold text-[#2D6FE8]">
+                      Completed At
+                    </p>
+                    <p className="mt-0.5 text-[9px] text-[#4F8FF7]">
+                      Refund completion timestamp
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-[#111827]">
+                    {formatDate(refundDetails.completed_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* TIMELINE */}
           <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
@@ -2208,38 +2528,38 @@ const CancelRefund: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* MAIN TABLE */}
-        <motion.div
+      {/* MAIN TABLE */}
+      <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-sm"
         >
           {/* DESKTOP */}
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1100px] border-collapse">
+          <div className="hidden w-full overflow-hidden lg:block">
+            <table className="w-full table-fixed border-collapse text-[11px]">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[6%] break-words">
                     S.No.
                   </th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[16%] break-words">
                     Order Reference
                   </th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[15%] break-words">
                     Buyer
                   </th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[8%] break-words">
                     Quantity
                   </th>
-                  <th className="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-white w-[15%] break-words">
                     Cancellation Amount
                   </th>
-                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[16%] break-words">
                     Reason
                   </th>
-                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[12%] break-words">
                     Status
                   </th>
-                  <th className="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[12%] break-words">
                     Actions
                   </th>
                 </tr>
@@ -2252,31 +2572,31 @@ const CancelRefund: React.FC = () => {
                       key={`skeleton-${i}`}
                       className="animate-pulse border-b border-[#DCE6F2]"
                     >
-                      <td className="px-5 py-3">
-                        <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
+                      <td className="px-2 py-2">
+                        <div className="h-6 w-6 rounded-md bg-[#EAF3FF]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
                         <div className="mt-2 h-3 w-24 rounded bg-[#F4F8FD]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="h-4 w-32 rounded bg-[#EAF3FF]" />
                         <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="h-4 w-8 rounded bg-[#EAF3FF]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="ml-auto h-4 w-20 rounded bg-[#EAF3FF]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="h-3 w-40 rounded bg-[#F4F8FD]" />
                         <div className="mt-2 h-3 w-32 rounded bg-[#F4F8FD]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="h-6 w-24 rounded-full bg-[#EAF3FF]" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-2 py-2">
                         <div className="flex justify-center gap-2">
                           <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
                           <div className="h-9 w-20 rounded-xl bg-[#EAF3FF]" />
@@ -2303,20 +2623,26 @@ const CancelRefund: React.FC = () => {
                     const raw: any = request;
                     const accountType = getRowAccountType(raw);
 
+                    // ✅ Refunded amount logic
+                    const rowRefunded = getRefundedAmount(raw);
+                    const rowIsRefunded = isRefundProcessed(raw);
+                    const rowDisplayAmount =
+                      getDisplayAmount(raw) ?? getRowAmount(raw);
+
                     return (
                       <tr
                         key={`${requestId}-${index}`}
                         className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                       >
-                        <td className="px-5 py-3">
+                        <td className="px-2 py-2">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                             {startIndex + index + 1}
                           </span>
                         </td>
 
-                        <td className="px-5 py-3">
+                        <td className="px-2 py-2">
                           <div>
-                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
+                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
                               {request.order_reference}
                             </span>
 
@@ -2326,8 +2652,8 @@ const CancelRefund: React.FC = () => {
                           </div>
                         </td>
 
-                        <td className="px-5 py-3">
-                          <p className="text-sm font-bold text-[#111827]">
+                        <td className="px-2 py-2">
+                          <p className="text-xs font-bold text-[#111827]">
                             {getCustomerName(request.user)}
                           </p>
 
@@ -2341,27 +2667,36 @@ const CancelRefund: React.FC = () => {
                           </span>
                         </td>
 
-                        <td className="px-5 py-3">
-                          <p className="text-sm font-bold text-[#111827]">
+                        <td className="px-2 py-2">
+                          <p className="text-xs font-bold text-[#111827]">
                             {request.items_count || 1}
                           </p>
                         </td>
 
-                        <td className="px-5 py-3 text-right">
-                          <p className="text-sm font-bold text-[#2D6FE8]">
-                            {formatCurrency(getRowAmount(request))}
-                          </p>
-                        </td>
+                        {/* ✅ Cancellation Amount — shows refunded amount if refunded */}
+                        <td className="px-2 py-2 text-right">
+                          <div className="inline-flex flex-col items-end">
+                            <span className="text-xs font-bold text-[#2D6FE8]">
+                              {formatCurrency(rowDisplayAmount)}
+                            </span>
 
-                        <td className="px-5 py-3">
-                          <p className="line-clamp-2 max-w-[230px] text-xs leading-5 text-[#4B5563]">
+                            {rowIsRefunded && rowRefunded !== null && (
+                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
+                                Refunded {formatCurrency(rowRefunded)}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+ 
+                        <td className="px-2 py-2 text-center">
+                          <p className="line-clamp-2 max-w-full break-words text-[10px] leading-4 text-[#4B5563]">
                             {request.reason || "No reason provided."}
                           </p>
                         </td>
 
-                        <td className="px-5 py-3 text-center">
+                        <td className="px-2 py-2 text-center">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] font-bold ${getStatusClass(
                               request.status,
                             )}`}
                           >
@@ -2374,13 +2709,12 @@ const CancelRefund: React.FC = () => {
                           </span>
                         </td>
 
-                        <td className="px-5 py-3">
+                        <td className="px-2 py-2">
                           <div className="flex flex-nowrap items-center justify-center gap-2">
-                            {/* VIEW: delivery/track icon button removed */}
                             <button
                               type="button"
                               onClick={() => handleView(request)}
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                               title="View"
                             >
                               <FiEye size={15} />
@@ -2393,7 +2727,7 @@ const CancelRefund: React.FC = () => {
                                 onClick={() =>
                                   handleOpenApprove(request)
                                 }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-2 text-[9px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                               >
                                 {approveLoading ? (
                                   <FiRefreshCw
@@ -2413,7 +2747,7 @@ const CancelRefund: React.FC = () => {
                                 onClick={() =>
                                   handleOpenReject(request)
                                 }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#C23B32]/25 bg-[#FEF2F2] px-2 text-[9px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
                               >
                                 <FiX size={13} />
                                 Reject
@@ -2432,7 +2766,7 @@ const CancelRefund: React.FC = () => {
                           <FiPackage size={24} />
                         </div>
 
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                        <p className="mt-4 text-xs font-bold text-[#111827]">
                           No cancellation requests found
                         </p>
 
@@ -2466,7 +2800,7 @@ const CancelRefund: React.FC = () => {
                     <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <div className="h-16 rounded-xl bg-[#EAF3FF]" />
                     <div className="h-16 rounded-xl bg-[#EAF3FF]" />
                   </div>
@@ -2495,14 +2829,20 @@ const CancelRefund: React.FC = () => {
 
                 const accountType = getRowAccountType(request);
 
+                // ✅ Refunded amount logic
+                const rowRefunded = getRefundedAmount(request);
+                const rowIsRefunded = isRefundProcessed(request);
+                const rowDisplayAmount =
+                  getDisplayAmount(request) ?? getRowAmount(request);
+
                 return (
                   <div
                     key={`${requestId}-${index}`}
-                    className="border-b border-[#DCE6F2] bg-white p-4"
+                    className="min-w-0 border-b border-[#DCE6F2] bg-white p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
+                        <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
                           {request.order_reference}
                         </span>
 
@@ -2517,7 +2857,7 @@ const CancelRefund: React.FC = () => {
                     </div>
 
                     <div className="mt-4">
-                      <p className="text-sm font-bold text-[#111827]">
+                      <p className="text-xs font-bold text-[#111827]">
                         {getCustomerName(request.user)}
                       </p>
 
@@ -2535,21 +2875,27 @@ const CancelRefund: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Amount
+                          {rowIsRefunded ? "Refunded" : "Amount"}
                         </p>
-                        <p className="mt-1 text-base font-bold text-[#2D6FE8]">
-                          {formatCurrency(getRowAmount(request))}
+                        <p className="mt-1 text-xs font-bold text-[#2D6FE8]">
+                          {formatCurrency(rowDisplayAmount)}
                         </p>
+
+                        {rowIsRefunded && rowRefunded !== null && (
+                          <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                            Refunded {formatCurrency(rowRefunded)}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Items
                         </p>
-                        <p className="mt-1 text-base font-bold text-[#111827]">
+                        <p className="mt-1 text-sm font-bold text-[#111827]">
                           {request.items_count || 1}
                         </p>
                       </div>
@@ -2570,8 +2916,7 @@ const CancelRefund: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {/* VIEW: delivery/track icon button removed */}
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => handleView(request)}
@@ -2616,8 +2961,8 @@ const CancelRefund: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                      <p className="text-xs leading-5 text-[#4B5563]">
+                    <div className="mt-3 min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
+                      <p className="break-words text-[11px] leading-4 text-[#4B5563]">
                         {request.reason || "No reason provided."}
                       </p>
                     </div>
@@ -2625,13 +2970,29 @@ const CancelRefund: React.FC = () => {
                     <div className="mt-3 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-3">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-[#2D6FE8]">
-                          Cancellation Amount
+                          {rowIsRefunded
+                            ? "Refunded Amount"
+                            : "Cancellation Amount"}
                         </span>
 
-                        <span className="text-sm font-bold text-[#2D6FE8]">
-                          {formatCurrency(getRowAmount(request))}
+                        <span className="text-xs font-bold text-[#2D6FE8]">
+                          {formatCurrency(rowDisplayAmount)}
                         </span>
                       </div>
+
+                      {rowIsRefunded &&
+                        rowRefunded !== null &&
+                        getRowAmount(request) !== rowRefunded && (
+                          <div className="mt-1.5 flex items-center justify-between border-t border-[#2D6FE8]/15 pt-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F8FF7]">
+                              Original
+                            </span>
+
+                            <span className="text-xs font-bold text-[#4F8FF7]">
+                              {formatCurrency(getRowAmount(request))}
+                            </span>
+                          </div>
+                        )}
                     </div>
                   </div>
                 );
@@ -2642,7 +3003,7 @@ const CancelRefund: React.FC = () => {
                   <FiPackage size={24} />
                 </div>
 
-                <p className="mt-4 text-sm font-bold text-[#111827]">
+                <p className="mt-4 text-xs font-bold text-[#111827]">
                   No cancellation requests found
                 </p>
 
@@ -2680,7 +3041,7 @@ const CancelRefund: React.FC = () => {
                     onClick={() =>
                       handlePageChange(currentPage - 1)
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
@@ -2690,7 +3051,7 @@ const CancelRefund: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => handlePageChange(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+                      className={`flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-[11px] font-bold transition ${
                         currentPage === page
                           ? "bg-gradient-to-br from-[#1E40AF] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
                           : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
@@ -2706,7 +3067,7 @@ const CancelRefund: React.FC = () => {
                     onClick={() =>
                       handlePageChange(currentPage + 1)
                     }
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronRight size={17} />
                   </button>

@@ -22,33 +22,13 @@ import {
   FiTag,
   FiPercent,
   FiCheckCircle,
+  FiGrid,
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
 
 import brandsApi, { Brand, BrandPayload } from "../../api/endpoints/brands";
-
-// =====================================================
-// THEME (BLUE + YELLOW) — matches UserManagement
-// =====================================================
-
-const BLUE = "#2D6FE8";
-const BLUE_LIGHT = "#4F8FF7";
-const BLUE_MID = "#5A95F6";
-const BLUE_TINT = "#EAF3FF";
-const BLUE_SOFT_BG = "#F4F8FD";
-const BLUE_BORDER = "#D6E2F0";
-const BLUE_BORDER_SOFT = "#DCE6F2";
-
-const AMBER = "#F2C94C";
-const AMBER_BG = "#FFF7D6";
-const AMBER_TEXT = "#A16207";
-
-const RED = "#C23B32";
-const RED_BG = "#EEF5FF";
-
-const TEXT = "#111827";
-const TEXT_MUTED = "#6B7280";
+import { categoryApi, Category } from "../../api/endpoints/category";
 
 const PAGE_BG = "#F4F8FD";
 
@@ -86,6 +66,8 @@ interface BrandFormModalProps {
   loading: boolean;
   mode: "add" | "edit";
   brand: Brand | null;
+  categories: Category[];
+  categoriesLoading: boolean;
   onClose: () => void;
   onSubmit: (payload: BrandPayload) => void;
 }
@@ -134,10 +116,13 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
   loading,
   mode,
   brand,
+  categories,
+  categoriesLoading,
   onClose,
   onSubmit,
 }) => {
   const [title, setTitle] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [discountPercentage, setDiscountPercentage] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -179,6 +164,11 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
 
     if (mode === "edit" && brand) {
       setTitle(brand.title || "");
+      setCategoryId(
+        brand.category_id !== undefined && brand.category_id !== null
+          ? String(brand.category_id)
+          : ""
+      );
       setDiscountPercentage(
         brand.discount_percentage !== undefined &&
           brand.discount_percentage !== null
@@ -191,6 +181,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       setBannerPreview(getImageUrl(brand.banner));
     } else {
       setTitle("");
+      setCategoryId("");
       setDiscountPercentage("");
       setLogoFile(null);
       setLogoPreview("");
@@ -320,6 +311,11 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       return;
     }
 
+    if (!categoryId) {
+      toast.error("Please select a category.");
+      return;
+    }
+
     if (discountPercentage.trim() === "") {
       toast.error("Please enter discount percentage.");
       return;
@@ -349,6 +345,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
 
     const payload: BrandPayload = {
       title: trimmedTitle,
+      category_id: Number(categoryId),
       discount_percentage: percentage,
     };
 
@@ -416,7 +413,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
         {/* BODY */}
         <div className="max-h-[72vh] overflow-y-auto px-5 py-5">
           <div className="space-y-4">
-            {/* TITLE + PERCENTAGE ROW */}
+            {/* TITLE + CATEGORY ROW */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {/* TITLE */}
               <div>
@@ -442,7 +439,45 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                 </div>
               </div>
 
-              {/* PERCENTAGE */}
+              {/* CATEGORY */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
+                  Category
+                  <span className="ml-1 text-[#C23B32]">*</span>
+                </label>
+
+                <div className="relative">
+                  <FiGrid
+                    size={15}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
+                  />
+
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    disabled={loading || categoriesLoading}
+                    className="h-11 w-full appearance-none rounded-lg border border-[#D6E2F0] bg-white pl-10 pr-9 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:bg-[#F4F8FD]"
+                  >
+                    <option value="">
+                      {categoriesLoading ? "Loading..." : "Select category"}
+                    </option>
+
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.title}
+                      </option>
+                    ))}
+                  </select>
+
+                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]">
+                    ▾
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* PERCENTAGE ROW */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
                   Discount Percentage
@@ -472,6 +507,8 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                   </span>
                 </div>
               </div>
+
+              <div className="hidden sm:block" />
             </div>
 
             {/* LOGO */}
@@ -794,6 +831,13 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
         <div className="absolute right-3 top-3 rounded-full border border-[#F2C94C]/50 bg-[#FFF7D6]/95 px-2.5 py-1 text-[11px] font-bold text-[#A16207] shadow-sm backdrop-blur-sm">
           {Number(brand.discount_percentage) || 0}% OFF
         </div>
+
+        {/* CATEGORY PILL */}
+        {brand.category?.title && (
+          <div className="absolute left-3 top-3 max-w-[70%] truncate rounded-full border border-white/50 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#2D6FE8] shadow-sm backdrop-blur-sm">
+            {brand.category.title}
+          </div>
+        )}
       </div>
 
       {/* BODY */}
@@ -859,8 +903,11 @@ const BrandsManagement: React.FC = () => {
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
   // =================================================
-  // FETCH
+  // FETCH BRANDS
   // =================================================
 
   const fetchBrands = async () => {
@@ -883,11 +930,35 @@ const BrandsManagement: React.FC = () => {
   };
 
   // =================================================
+  // FETCH CATEGORIES
+  // =================================================
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+
+      const response = await categoryApi.getAll();
+
+      if (response.data.success) {
+        setCategories(response.data.data || []);
+      } else {
+        toast.error(response.data.message || "Unable to fetch categories.");
+      }
+    } catch (error: any) {
+      console.error("Fetch categories error:", error);
+      toast.error(getApiErrorMessage(error, "Unable to fetch categories."));
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  // =================================================
   // INITIAL
   // =================================================
 
   useEffect(() => {
     fetchBrands();
+    fetchCategories();
   }, []);
 
   // =================================================
@@ -901,7 +972,8 @@ const BrandsManagement: React.FC = () => {
     return brands.filter(
       (brand) =>
         brand.title?.toLowerCase().includes(query) ||
-        String(brand.discount_percentage).includes(query)
+        String(brand.discount_percentage).includes(query) ||
+        brand.category?.title?.toLowerCase().includes(query)
     );
   }, [brands, search]);
 
@@ -1026,7 +1098,10 @@ const BrandsManagement: React.FC = () => {
             {/* REFRESH */}
             <button
               type="button"
-              onClick={fetchBrands}
+              onClick={() => {
+                fetchBrands();
+                fetchCategories();
+              }}
               disabled={loading}
               className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#D6E2F0] bg-white px-4 text-sm font-medium text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -1079,7 +1154,7 @@ const BrandsManagement: React.FC = () => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search brand..."
+                placeholder="Search brand or category..."
                 className="h-11 w-full rounded-lg border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
 
@@ -1146,6 +1221,8 @@ const BrandsManagement: React.FC = () => {
         loading={saveLoading}
         mode={modalMode}
         brand={selectedBrand}
+        categories={categories}
+        categoriesLoading={categoriesLoading}
         onClose={() => {
           if (!saveLoading) {
             setAddEditOpen(false);

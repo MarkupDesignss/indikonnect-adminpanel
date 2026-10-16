@@ -26,6 +26,8 @@ import {
   FiRotateCcw,
   FiRotateCw,
   FiDollarSign,
+  FiTruck,
+  FiHash,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -230,19 +232,21 @@ const formatMethodLabel = (method?: string | null) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
+/* ✅ RETURN METHOD LABEL HELPER                                               */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Returns the actual refunded amount for a buyback record.
- *
- * Priority:
- *   1. `refunded_amount` directly on the record (most accurate)
- *   2. `refund_info.amount` (from detail payload)
- *   3. `refund_details.total` (from detail payload)
- *   4. `total_refund_amount` (fallback from return record)
- *   5. `refund_amount` (fallback)
- */
+function getReturnMethodLabel(returnMethod?: string | null): string {
+  if (!returnMethod) return "Doorstep";
+
+  return returnMethod
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ REFUNDED AMOUNT EXTRACTOR                                                */
+/* -------------------------------------------------------------------------- */
+
 function getRefundedAmount(record: any): number | null {
   if (!record) return null;
 
@@ -250,8 +254,6 @@ function getRefundedAmount(record: any): number | null {
     record.refunded_amount,
     record.refund_info?.amount,
     record.refund_details?.total,
-    record.total_refund_amount,
-    record.refund_amount,
   ];
 
   for (const candidate of candidates) {
@@ -272,9 +274,6 @@ function getRefundedAmount(record: any): number | null {
   return null;
 }
 
-/**
- * Returns true if the buyback record has been refunded.
- */
 function isRefundProcessed(record: any): boolean {
   if (!record) return false;
 
@@ -294,7 +293,6 @@ function isRefundProcessed(record: any): boolean {
 // TIMELINE BUILDER
 // =====================================================
 
-// ✅ UPDATED: Accepts accountType to dynamically replace "customer"
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
   accountType?: string | null,
@@ -312,135 +310,135 @@ const buildTimelineEvents = (
     color: string;
     icon: React.ReactNode;
   }> = [
-    {
-      key: "created_at",
-      label: "Order Created",
-      description: `Order was placed by the ${accountLabel}.`,
-      date: timeline.created_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiPackage size={14} />,
-    },
-    {
-      key: "dispatched_at",
-      label: "Dispatched",
-      description: "Order was handed over to courier.",
-      date: timeline.dispatched_at ?? null,
-      color: "bg-[#4F8FF7]",
-      icon: <FiSend size={14} />,
-    },
-    {
-      key: "shipped_at",
-      label: "Shipped",
-      description: "Package is in transit.",
-      date: timeline.shipped_at ?? null,
-      color: "bg-[#4F8FF7]",
-      icon: <FiSend size={14} />,
-    },
-    {
-      key: "delivered_at",
-      label: "Delivered",
-      description: `Package delivered to the ${accountLabel}.`,
-      date: timeline.delivered_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "cancellation_requested_at",
-      label: "Cancellation Requested",
-      description: `${accountTitle} requested order cancellation.`,
-      date: timeline.cancellation_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiClock size={14} />,
-    },
-    {
-      key: "cancelled_at",
-      label: "Cancelled",
-      description: "Order was cancelled.",
-      date: timeline.cancelled_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "cancellation_rejected_at",
-      label: "Cancellation Rejected",
-      description: "Cancellation request was rejected.",
-      date: timeline.cancellation_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "return_requested_at",
-      label: "Return Requested",
-      description: `${accountTitle} requested a return.`,
-      date: timeline.return_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiRotateCcw size={14} />,
-    },
-    {
-      key: "return_approved_at",
-      label: "Return Approved",
-      description: "Return request was approved.",
-      date: timeline.return_approved_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "return_rejected_at",
-      label: "Return Rejected",
-      description: "Return request was rejected.",
-      date: timeline.return_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "return_completed_at",
-      label: "Return Completed",
-      description: "Return process was completed.",
-      date: timeline.return_completed_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "buyback_requested_at",
-      label: "Buyback Requested",
-      description: `${accountTitle} requested a buyback.`,
-      date: timeline.buyback_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiRotateCw size={14} />,
-    },
-    {
-      key: "buyback_approved_at",
-      label: "Buyback Approved",
-      description: "Buyback request was approved.",
-      date: timeline.buyback_approved_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "buyback_rejected_at",
-      label: "Buyback Rejected",
-      description: "Buyback request was rejected.",
-      date: timeline.buyback_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "buyback_refunded_at",
-      label: "Buyback Refunded",
-      description: "Buyback refund was processed.",
-      date: timeline.buyback_refunded_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiDollarSign size={14} />,
-    },
-    {
-      key: "updated_at",
-      label: "Last Updated",
-      description: "Last status change recorded.",
-      date: timeline.updated_at ?? null,
-      color: "bg-[#4F8FF7]",
-      icon: <FiClock size={14} />,
-    },
-  ];
+      {
+        key: "created_at",
+        label: "Order Created",
+        description: `Order was placed by the ${accountLabel}.`,
+        date: timeline.created_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiPackage size={14} />,
+      },
+      {
+        key: "dispatched_at",
+        label: "Dispatched",
+        description: "Order was handed over to courier.",
+        date: timeline.dispatched_at ?? null,
+        color: "bg-[#4F8FF7]",
+        icon: <FiSend size={14} />,
+      },
+      {
+        key: "shipped_at",
+        label: "Shipped",
+        description: "Package is in transit.",
+        date: timeline.shipped_at ?? null,
+        color: "bg-[#4F8FF7]",
+        icon: <FiSend size={14} />,
+      },
+      {
+        key: "delivered_at",
+        label: "Delivered",
+        description: `Package delivered to the ${accountLabel}.`,
+        date: timeline.delivered_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "cancellation_requested_at",
+        label: "Cancellation Requested",
+        description: `${accountTitle} requested order cancellation.`,
+        date: timeline.cancellation_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiClock size={14} />,
+      },
+      {
+        key: "cancelled_at",
+        label: "Cancelled",
+        description: "Order was cancelled.",
+        date: timeline.cancelled_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "cancellation_rejected_at",
+        label: "Cancellation Rejected",
+        description: "Cancellation request was rejected.",
+        date: timeline.cancellation_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_requested_at",
+        label: "Return Requested",
+        description: `${accountTitle} requested a return.`,
+        date: timeline.return_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiRotateCcw size={14} />,
+      },
+      {
+        key: "return_approved_at",
+        label: "Return Approved",
+        description: "Return request was approved.",
+        date: timeline.return_approved_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "return_rejected_at",
+        label: "Return Rejected",
+        description: "Return request was rejected.",
+        date: timeline.return_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_completed_at",
+        label: "Return Completed",
+        description: "Return process was completed.",
+        date: timeline.return_completed_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_requested_at",
+        label: "Buyback Requested",
+        description: `${accountTitle} requested a buyback.`,
+        date: timeline.buyback_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiRotateCw size={14} />,
+      },
+      {
+        key: "buyback_approved_at",
+        label: "Buyback Approved",
+        description: "Buyback request was approved.",
+        date: timeline.buyback_approved_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_rejected_at",
+        label: "Buyback Rejected",
+        description: "Buyback request was rejected.",
+        date: timeline.buyback_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "buyback_refunded_at",
+        label: "Buyback Refunded",
+        description: "Buyback refund was processed.",
+        date: timeline.buyback_refunded_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiDollarSign size={14} />,
+      },
+      {
+        key: "updated_at",
+        label: "Last Updated",
+        description: "Last status change recorded.",
+        date: timeline.updated_at ?? null,
+        color: "bg-[#4F8FF7]",
+        icon: <FiClock size={14} />,
+      },
+    ];
 
   return rawEvents
     .filter((event) => Boolean(event.date))
@@ -701,7 +699,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               disabled={loading}
             />
           </div>
@@ -822,7 +820,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={3}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               disabled={loading}
             />
           </div>
@@ -963,7 +961,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               disabled={loading}
             />
           </div>
@@ -1154,7 +1152,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
               onChange={(e) => setAdminNotes(e.target.value)}
               rows={2}
               placeholder="Optional internal notes..."
-              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              className="w-full resize-none rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-3.5 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               disabled={loading}
             />
           </div>
@@ -1213,7 +1211,6 @@ interface ReturnDetailModalProps {
   onReceived: () => void;
   onComplete: () => void;
 
-  // ✅ PERMISSIONS
   canApprove?: boolean;
   canReject?: boolean;
   canMarkReceived?: boolean;
@@ -1296,7 +1293,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white"
+              className="mt-5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-6 py-3.5 text-sm font-bold text-white"
             >
               Close
             </button>
@@ -1321,12 +1318,16 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const rawDetail: any = detail;
 
-  // ✅ NEW: compute actual refunded amount (prioritizes refunded_amount)
   const actualRefundedAmount = getRefundedAmount(rawDetail);
-  const isRefunded = isRefundProcessed(rawDetail);
 
-  // ✅ Get account type for dynamic text
   const accountType = detail.user?.account_type;
+
+  // ✅ Return method / courier / tracking
+  const returnMethod = rawDetail.return_method || null;
+  const trackingId = rawDetail.tracking_id || null;
+  const courier = rawDetail.courier || null;
+
+  const returnMethodLabel = getReturnMethodLabel(returnMethod);
 
   const timelineSource =
     rawDetail.timeline ||
@@ -1334,35 +1335,34 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     rawDetail.order_line_timeline?.timeline ||
     null;
 
-  // ✅ Pass accountType to buildTimelineEvents
   const timelineEvents = timelineSource
     ? buildTimelineEvents(timelineSource, accountType)
     : buildTimelineEvents(
-        {
-          created_at:
-            rawDetail.order_created_at || rawDetail.created_at || null,
+      {
+        created_at:
+          rawDetail.order_created_at || rawDetail.created_at || null,
 
-          buyback_requested_at:
-            rawDetail.buyback_requested_at ||
-            rawDetail.created_at ||
-            null,
+        buyback_requested_at:
+          rawDetail.buyback_requested_at ||
+          rawDetail.created_at ||
+          null,
 
-          buyback_approved_at: rawDetail.approved_at || null,
+        buyback_approved_at: rawDetail.approved_at || null,
 
-          buyback_rejected_at:
-            detail.status === "rejected"
-              ? rawDetail.updated_at
-              : null,
+        buyback_rejected_at:
+          detail.status === "rejected"
+            ? rawDetail.updated_at
+            : null,
 
-          buyback_refunded_at:
-            detail.status === "completed"
-              ? rawDetail.refunded_at || rawDetail.updated_at
-              : null,
+        buyback_refunded_at:
+          detail.status === "completed"
+            ? rawDetail.refunded_at || rawDetail.updated_at
+            : null,
 
-          updated_at: rawDetail.updated_at || null,
-        },
-        accountType,
-      );
+        updated_at: rawDetail.updated_at || null,
+      },
+      accountType,
+    );
 
   return (
     <GlobalModal
@@ -1373,42 +1373,93 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
 
-        {/* HEADER */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+        {/* HEADER — WITH TRACKING DETAILS */}
+        <div className="border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
-              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
-                Buyback & Refunds
-              </span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Buyback & Refunds
+                </span>
+              </div>
+
+              <h2 className="text-xl font-bold text-[#111827]">
+                Buyback Request
+              </h2>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
+                <span>{detail.order?.order_reference || "—"}</span>
+
+                <span>•</span>
+
+                <span>{formatDate(detail.created_at)}</span>
+              </div>
             </div>
 
-            <h2 className="text-xl font-bold text-[#111827]">
-              Buyback Request
-            </h2>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-              <span>{detail.order?.order_reference || "—"}</span>
-
-              <span>•</span>
-
-              <span>{formatDate(detail.created_at)}</span>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+            >
+              <FiX size={18} />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-          >
-            <FiX size={18} />
-          </button>
+          {/* Tracking Details Row */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2">
+              <FiTruck size={14} className="text-[#2D6FE8]" />
+
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                  Return Method
+                </span>
+
+                <span className="text-xs font-bold text-[#2D6FE8]">
+                  {returnMethodLabel}
+                </span>
+              </div>
+            </div>
+
+            {courier && (
+              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiPackage size={14} className="text-[#4F8FF7]" />
+
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Courier
+                  </span>
+
+                  <span className="text-xs font-bold text-[#111827]">
+                    {courier}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {trackingId && (
+              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiHash size={14} className="text-[#4F8FF7]" />
+
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Tracking ID
+                  </span>
+
+                  <span className="text-xs font-bold text-[#111827]">
+                    {trackingId}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* BODY */}
         <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          {/* ✅ COMPLETED BANNER — Now uses actualRefundedAmount */}
+          {/* COMPLETED BANNER */}
           {isCompleted && (
             <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-5 py-4">
@@ -1441,12 +1492,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       Refund Amount
                     </p>
 
-                    {/* ✅ Prioritize actual refunded_amount */}
                     <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
                       {formatCurrency(
                         actualRefundedAmount ??
-                          detail.refund_info?.amount ??
-                          detail.refund_details?.total,
+                        detail.refund_info?.amount ??
+                        detail.refund_details?.total,
                       )}
                     </p>
                   </div>
@@ -1470,8 +1520,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-sm font-bold text-[#111827]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
-                          detail.refunded_at ||
-                          detail.updated_at,
+                        detail.refunded_at ||
+                        detail.updated_at,
                       )}
                     </p>
                   </div>
@@ -1488,7 +1538,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   <FiUser size={17} />
                 </div>
 
-                {/* ✅ Dynamic title based on account type */}
                 <h3 className="text-sm font-bold text-[#111827]">
                   {getAccountTypeLabel(accountType)} Information
                 </h3>
@@ -1566,6 +1615,41 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     {getStatusLabel(detail.order?.status || "")}
                   </span>
                 </div>
+
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="text-xs text-[#6B7280]">
+                    Return Method
+                  </span>
+
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                    <FiTruck size={10} />
+                    {returnMethodLabel}
+                  </span>
+                </div>
+
+                {courier && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="text-xs text-[#6B7280]">
+                      Courier
+                    </span>
+
+                    <span className="text-sm font-semibold text-[#111827]">
+                      {courier}
+                    </span>
+                  </div>
+                )}
+
+                {trackingId && (
+                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="text-xs text-[#6B7280]">
+                      Tracking ID
+                    </span>
+
+                    <span className="text-sm font-semibold text-[#111827]">
+                      {trackingId}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex justify-between gap-4">
                   <span className="text-xs text-[#6B7280]">
@@ -1652,9 +1736,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                               >
                                 <img
                                   src={imageUrl}
-                                  alt={`Buyback evidence ${
-                                    imageIndex + 1
-                                  }`}
+                                  alt={`Buyback evidence ${imageIndex + 1
+                                    }`}
                                   className="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
                                 />
 
@@ -1748,7 +1831,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ REFUND SECTION — Now uses actualRefundedAmount in the summary */}
+          {/* REFUND SECTION */}
           {!isCompleted && hasRefundBreakdown ? (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
               <div className="flex items-center justify-between gap-3 border-b border-[#DCE6F2] bg-[#F4F8FD] px-4 py-3 sm:px-5">
@@ -1774,7 +1857,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </div>
 
               <div className="px-4 sm:px-5">
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Subtotal
                   </span>
@@ -1786,7 +1869,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Tax
                   </span>
@@ -1796,7 +1879,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Shipping
                   </span>
@@ -1812,7 +1895,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   (deduction, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5"
+                      className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5"
                     >
                       <span className="text-xs font-semibold text-[#C23B32]">
                         - {deduction.label}
@@ -1880,7 +1963,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2.5">
-                  {/* ✅ Prioritize actualRefundedAmount */}
                   <span className="text-sm font-bold text-[#2D6FE8]">
                     {formatCurrency(
                       actualRefundedAmount ?? refundDetails?.total,
@@ -1888,9 +1970,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
 
                   <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${
-                      refundBreakdownOpen ? "rotate-180" : ""
-                    }`}
+                    className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
+                      }`}
                   >
                     <FiChevronDown size={15} />
                   </span>
@@ -1900,7 +1981,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               {refundBreakdownOpen && (
                 <div className="border-t border-[#DCE6F2] bg-white">
                   <div className="px-4 sm:px-5">
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Method
@@ -1916,7 +1997,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Subtotal
@@ -1932,7 +2013,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Added Tax
@@ -1948,7 +2029,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Shipping
@@ -1964,7 +2045,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Amount with Tax & Shipping
@@ -1982,7 +2063,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Deducted Shipping Charge
@@ -2001,7 +2082,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Deducted Tax
@@ -2017,7 +2098,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-2.5">
+                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
                       <div>
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Gateway Charges
@@ -2048,7 +2129,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </div>
 
                       <span className="rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
-                        {/* ✅ Prioritize actualRefundedAmount */}
                         {formatCurrency(
                           actualRefundedAmount ?? refundDetails?.total,
                         )}
@@ -2079,7 +2159,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-3.5 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
             >
               Close
             </button>
@@ -2090,7 +2170,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onApprove}
                   disabled={actionLoading.type === "approve"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
                 >
                   {actionLoading.type === "approve" ? (
                     <FiRefreshCw
@@ -2110,7 +2190,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReject}
                   disabled={actionLoading.type === "reject"}
-                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-3.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                 >
                   {actionLoading.type === "reject" ? (
                     <FiRefreshCw
@@ -2130,7 +2210,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReceived}
                   disabled={actionLoading.type === "received"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
                 >
                   {actionLoading.type === "received" ? (
                     <FiRefreshCw
@@ -2150,7 +2230,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onComplete}
                   disabled={actionLoading.type === "complete"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
                 >
                   {actionLoading.type === "complete" ? (
                     <FiRefreshCw
@@ -2171,24 +2251,18 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     </GlobalModal>
   );
 };
+
 // =====================================================
 // MAIN
 // =====================================================
 
 const BuyBack: React.FC = () => {
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
-
   const {
     hasPermission,
     hasModuleAccess,
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
-
-  // ✅ API PERMISSION KEYS:
-  // Buyback: details, approve, reject, received, completed
 
   const canViewBuyback = useMemo(
     () =>
@@ -2225,10 +2299,6 @@ const BuyBack: React.FC = () => {
       hasPermission("Buyback.completed"),
     [isSuperAdmin, hasPermission],
   );
-
-  // ===================================================
-  // STATE
-  // ===================================================
 
   const [requests, setRequests] = useState<ReturnListItem[]>([]);
 
@@ -2268,13 +2338,8 @@ const BuyBack: React.FC = () => {
 
   const ITEMS_PER_PAGE = 10;
 
-  // ✅ PREVENT DUPLICATE GET-ALL API CALL
   const listFetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasFetchedListRef = useRef(false);
-
-  // ===================================================
-  // CLOSE ALL MODALS
-  // ===================================================
 
   const closeAllModals = () => {
     setDetailModalOpen(false);
@@ -2284,17 +2349,11 @@ const BuyBack: React.FC = () => {
     setCompleteModalOpen(false);
   };
 
-  // ===================================================
-  // FETCH ALL
-  // ===================================================
-
   const fetchReturnRequests = async (force = false) => {
-    // ✅ Already fetching -> do not create another same request
     if (listFetchInFlightRef.current) {
       return listFetchInFlightRef.current;
     }
 
-    // ✅ Initial data already loaded -> don't hit GET ALL again
     if (!force && hasFetchedListRef.current) {
       return;
     }
@@ -2321,7 +2380,6 @@ const BuyBack: React.FC = () => {
 
           setRequests(buybackRequests);
 
-          // ✅ Mark only after successful response
           hasFetchedListRef.current = true;
         } else {
           toast.error(
@@ -2336,7 +2394,7 @@ const BuyBack: React.FC = () => {
 
         toast.error(
           error?.response?.data?.message ||
-            "Unable to fetch buyback requests.",
+          "Unable to fetch buyback requests.",
         );
       } finally {
         setLoading(false);
@@ -2352,10 +2410,6 @@ const BuyBack: React.FC = () => {
     }
   };
 
-  // ===================================================
-  // INITIAL FETCH
-  // ===================================================
-
   useEffect(() => {
     if (
       !permissionsLoading &&
@@ -2365,10 +2419,6 @@ const BuyBack: React.FC = () => {
       fetchReturnRequests();
     }
   }, [permissionsLoading, canViewBuyback]);
-
-  // ===================================================
-  // STATS
-  // ===================================================
 
   const stats = useMemo(() => {
     return {
@@ -2387,10 +2437,6 @@ const BuyBack: React.FC = () => {
       ).length,
     };
   }, [requests]);
-
-  // ===================================================
-  // FILTER
-  // ===================================================
 
   const filteredRequests = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -2418,10 +2464,6 @@ const BuyBack: React.FC = () => {
     });
   }, [requests, searchQuery, activeFilter]);
 
-  // ===================================================
-  // PAGINATION
-  // ===================================================
-
   const totalPages = Math.max(
     1,
     Math.ceil(
@@ -2447,10 +2489,6 @@ const BuyBack: React.FC = () => {
     filteredRequests.length,
   );
 
-  // ===================================================
-  // FETCH DETAIL
-  // ===================================================
-
   const fetchReturnDetail = async (id: number) => {
     try {
       setDetailLoading(true);
@@ -2472,16 +2510,12 @@ const BuyBack: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to fetch buyback details.",
+        "Unable to fetch buyback details.",
       );
     } finally {
       setDetailLoading(false);
     }
   };
-
-  // ===================================================
-  // OPEN DETAIL
-  // ===================================================
 
   const handleView = async (id: number) => {
     setDetailModalOpen(true);
@@ -2489,10 +2523,6 @@ const BuyBack: React.FC = () => {
 
     await fetchReturnDetail(id);
   };
-
-  // ===================================================
-  // OPEN APPROVE POPUP
-  // ===================================================
 
   const handleOpenApproveFromTable = async (
     id: number,
@@ -2523,10 +2553,6 @@ const BuyBack: React.FC = () => {
     setApproveModalOpen(true);
   };
 
-  // ===================================================
-  // SUBMIT APPROVE
-  // ===================================================
-
   const handleApprove = async (
     adminNotes: string,
   ) => {
@@ -2555,17 +2581,16 @@ const BuyBack: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Buyback approved successfully.",
+          "Buyback approved successfully.",
         );
 
-        // ✅ FORCE refresh after successful action
         await fetchReturnRequests(true);
 
         closeAllModals();
       } else {
         toast.error(
           response.data.message ||
-            "Unable to approve buyback.",
+          "Unable to approve buyback.",
         );
       }
     } catch (error: any) {
@@ -2576,7 +2601,7 @@ const BuyBack: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to approve buyback.",
+        "Unable to approve buyback.",
       );
     } finally {
       setActionLoading({
@@ -2585,10 +2610,6 @@ const BuyBack: React.FC = () => {
       });
     }
   };
-
-  // ===================================================
-  // OPEN REJECT
-  // ===================================================
 
   const handleOpenReject = async (
     id: number,
@@ -2620,10 +2641,6 @@ const BuyBack: React.FC = () => {
     setRejectModalOpen(true);
   };
 
-  // ===================================================
-  // SUBMIT REJECT
-  // ===================================================
-
   const handleReject = async (
     adminNotes: string,
   ) => {
@@ -2652,17 +2669,16 @@ const BuyBack: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Buyback rejected successfully.",
+          "Buyback rejected successfully.",
         );
 
-        // ✅ FORCE refresh after successful action
         await fetchReturnRequests(true);
 
         closeAllModals();
       } else {
         toast.error(
           response.data.message ||
-            "Unable to reject buyback.",
+          "Unable to reject buyback.",
         );
       }
     } catch (error: any) {
@@ -2673,7 +2689,7 @@ const BuyBack: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to reject buyback.",
+        "Unable to reject buyback.",
       );
     } finally {
       setActionLoading({
@@ -2682,10 +2698,6 @@ const BuyBack: React.FC = () => {
       });
     }
   };
-
-  // ===================================================
-  // OPEN MARK RECEIVED
-  // ===================================================
 
   const handleOpenReceived = () => {
     if (!selectedDetail) return;
@@ -2707,10 +2719,6 @@ const BuyBack: React.FC = () => {
 
     setReceivedModalOpen(true);
   };
-
-  // ===================================================
-  // MARK RECEIVED
-  // ===================================================
 
   const handleMarkReceived = async (
     adminNotes: string,
@@ -2744,17 +2752,16 @@ const BuyBack: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Buyback marked as received successfully.",
+          "Buyback marked as received successfully.",
         );
 
-        // ✅ FORCE refresh after successful action
         await fetchReturnRequests(true);
 
         closeAllModals();
       } else {
         toast.error(
           response.data.message ||
-            "Unable to mark buyback as received.",
+          "Unable to mark buyback as received.",
         );
       }
     } catch (error: any) {
@@ -2765,7 +2772,7 @@ const BuyBack: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to mark buyback as received.",
+        "Unable to mark buyback as received.",
       );
     } finally {
       setReceivedLoading(false);
@@ -2776,10 +2783,6 @@ const BuyBack: React.FC = () => {
       });
     }
   };
-
-  // ===================================================
-  // OPEN COMPLETE
-  // ===================================================
 
   const handleOpenComplete = () => {
     if (!selectedDetail) return;
@@ -2801,10 +2804,6 @@ const BuyBack: React.FC = () => {
 
     setCompleteModalOpen(true);
   };
-
-  // ===================================================
-  // SUBMIT COMPLETE
-  // ===================================================
 
   const handleComplete = async (
     refundAmount: number,
@@ -2841,17 +2840,16 @@ const BuyBack: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Buyback completed successfully.",
+          "Buyback completed successfully.",
         );
 
-        // ✅ FORCE refresh after successful action
         await fetchReturnRequests(true);
 
         closeAllModals();
       } else {
         toast.error(
           response.data.message ||
-            "Unable to complete buyback.",
+          "Unable to complete buyback.",
         );
       }
     } catch (error: any) {
@@ -2862,7 +2860,7 @@ const BuyBack: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to complete buyback.",
+        "Unable to complete buyback.",
       );
     } finally {
       setCompleteLoading(false);
@@ -2873,10 +2871,6 @@ const BuyBack: React.FC = () => {
       });
     }
   };
-
-  // ===================================================
-  // REFRESH
-  // ===================================================
 
   const handleRefresh = async () => {
     if (!canViewBuyback || loading) return;
@@ -2894,10 +2888,6 @@ const BuyBack: React.FC = () => {
     );
   };
 
-  // ===================================================
-  // FILTER
-  // ===================================================
-
   const handleFilterChange = (
     filter: ReturnFilterTab,
   ) => {
@@ -2905,20 +2895,12 @@ const BuyBack: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // ===================================================
-  // SEARCH
-  // ===================================================
-
   const handleSearch = (
     value: string,
   ) => {
     setSearchQuery(value);
     setCurrentPage(1);
   };
-
-  // ===================================================
-  // PAGINATION
-  // ===================================================
 
   const handlePageChange = (
     page: number,
@@ -2967,10 +2949,6 @@ const BuyBack: React.FC = () => {
     ];
   }, [currentPage, totalPages]);
 
-  // ===================================================
-  // PERMISSION LOADING
-  // ===================================================
-
   if (permissionsLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
@@ -2993,7 +2971,6 @@ const BuyBack: React.FC = () => {
       </div>
     );
   }
-
 
   return (
     <>
@@ -3099,7 +3076,6 @@ const BuyBack: React.FC = () => {
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-sm"
         >
-     
           {/* TOOLBAR */}
           <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -3167,11 +3143,10 @@ const BuyBack: React.FC = () => {
                         filter.key,
                       )
                     }
-                    className={`rounded-xl px-3.5 py-2.5 text-xs font-bold transition-all ${
-                      activeFilter === filter.key
+                    className={`rounded-xl px-3.5 py-3.5 text-xs font-bold transition-all ${activeFilter === filter.key
                         ? "bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
                         : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                    }`}
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -3181,60 +3156,31 @@ const BuyBack: React.FC = () => {
           </div>
 
           {/* DESKTOP TABLE */}
-          <div className="hidden overflow-x-auto lg:block rounded-2xl">
-            <table className="w-full min-w-[1200px] border-collapse">
+
+          <div className="hidden w-full overflow-hidden rounded-xl lg:block">
+            <table className="w-full table-fixed border-collapse text-[11px]">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    S.No.
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Order Reference
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Buyer
-                  </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Quantity
-                  </th>
-
-                  <th className="px-5 py-4 text-right text-[10px] font-bold uppercase tracking-wider text-white">
-                    Buyback Amount
-                  </th>
-
-                  <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
-                    Reason
-                  </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Status
-                  </th>
-
-                  <th className="px-5 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Actions
-                  </th>
+                  <th className="w-[5%] px-2 py-3.5 text-left text-[12px] font-semibold text-white">S.No.</th>
+                  <th className="w-[11%] px-2 py-3.5 text-left text-[12px]  font-semibold text-white">Order Reference</th>
+                  <th className="w-[12%] px-2 py-3.5 text-left text-[12px]  font-semibold text-white">Buyer</th>
+                  <th className="w-[6%] px-1 py-3.5 text-center text-[12px]  font-semibold text-white">Quantity</th>
+                  <th className="w-[10%] px-2 py-3.5 text-right text-[12px]  font-semibold text-white">Buyback Amount</th>
+                  <th className="w-[10%] px-2 py-3.5 text-left text-[12px]  font-semibold text-white">Return Method</th>
+                  <th className="w-[12%] px-2 py-3.5 text-left text-[12px]  font-semibold text-white">Tracking Details</th>
+                  <th className="w-[10%] px-2 py-3.5 text-left text-[12px]  font-semibold text-white">Reason</th>
+                  <th className="w-[9%] px-1 py-3.5 text-center text-[12px]  font-semibold text-white">Status</th>
+                  <th className="w-[15%] px-1 py-3.5 text-center text-[12px]  font-semibold text-white">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
                 {loading ? (
                   <tr>
-                    <td
-                      colSpan={8}
-                      className="px-5 py-16 text-center"
-                    >
+                    <td colSpan={10} className="px-3 py-8 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiRefreshCw
-                            size={23}
-                            className="animate-spin"
-                          />
-                        </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                        <FiRefreshCw size={20} className="animate-spin text-[#2D6FE8]" />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
                           Loading buyback requests...
                         </p>
                       </div>
@@ -3242,250 +3188,230 @@ const BuyBack: React.FC = () => {
                   </tr>
                 ) : paginatedRequests.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={8}
-                      className="px-5 py-16 text-center"
-                    >
-                      <div className="flex flex-col items-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#2D6FE8]">
-                          <FiPackage size={24} />
-                        </div>
-
-                        <p className="mt-4 text-sm font-bold text-[#111827]">
-                          No buyback requests found
-                        </p>
-
-                        <p className="mt-1 text-xs text-[#6B7280]">
-                          Try changing the search
-                          or status filter.
-                        </p>
-                      </div>
+                    <td colSpan={10} className="px-3 py-8 text-center">
+                      <FiPackage size={22} className="mx-auto text-[#2D6FE8]" />
+                      <p className="mt-2 text-sm font-semibold text-[#111827]">
+                        No buyback requests found
+                      </p>
+                      <p className="mt-1 text-xs text-[#6B7280]">
+                        Try changing the search or status filter.
+                      </p>
                     </td>
                   </tr>
                 ) : (
-                  paginatedRequests.map(
-                    (request, index) => {
-                      const canApprove =
-                        request.can_approve &&
-                        canApproveBuyback;
+                  paginatedRequests.map((request, index) => {
+                    const canApprove =
+                      request.can_approve && canApproveBuyback;
 
-                      const canReject =
-                        request.can_reject &&
-                        canRejectBuyback;
+                    const canReject =
+                      request.can_reject && canRejectBuyback;
 
-                      const approveLoading =
-                        actionLoading.type ===
-                          "approve" &&
-                        actionLoading.id ===
-                          request.id;
+                    const approveLoading =
+                      actionLoading.type === "approve" &&
+                      actionLoading.id === request.id;
 
-                      const showMarkReceived =
-                        request.status ===
-                          "approved" &&
-                        canMarkReceived;
+                    const showMarkReceived =
+                      request.status === "approved" && canMarkReceived;
 
-                      const showComplete =
-                        request.status ===
-                          "received" &&
-                        canCompleteBuyback;
+                    const showComplete =
+                      request.status === "received" && canCompleteBuyback;
 
-                      // ✅ NEW: compute actual refunded amount for row
-                      const rowRefunded = getRefundedAmount(request);
-                      const rowIsRefunded = isRefundProcessed(request);
+                    const rowRefunded = getRefundedAmount(request);
+                    const rowIsRefunded = isRefundProcessed(request);
 
-                      return (
-                        <React.Fragment
-                          key={request.id}
-                        >
-                          <tr className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
-                            <td className="px-5 py-4">
-                              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
-                                {startIndex +
-                                  index +
-                                  1}
-                              </span>
-                            </td>
+                    const rowRaw: any = request;
+                    const rowReturnMethod = rowRaw.return_method || null;
+                    const rowCourier = rowRaw.courier || null;
+                    const rowTrackingId = rowRaw.tracking_id || null;
 
-                            <td className="px-5 py-4">
-                              <span className="inline-flex rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
-                                {request.order_reference ||
-                                  "—"}
-                              </span>
-                            </td>
+                    const rowReturnMethodLabel =
+                      getReturnMethodLabel(rowReturnMethod);
 
-                            <td className="px-5 py-4">
-                              <p className="text-sm font-bold text-[#111827]">
-                                {getCustomerName(
-                                  request.user,
-                                )}
-                              </p>
+                    return (
+                      <tr
+                        key={request.id}
+                        className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
+                      >
+                        <td className="px-2 py-3.5">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#F4F8FD] text-[11px] font-bold text-[#2D6FE8]">
+                            {startIndex + index + 1}
+                          </span>
+                        </td>
 
-                              <span
-                                className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                                  request.user.account_type,
-                                )}`}
-                              >
-                                <FiBriefcase size={9} />
+                        <td className="break-words px-2 py-3.5">
+                          <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                            {request.order_reference || "—"}
+                          </span>
+                        </td>
 
-                                {getAccountTypeLabel(
-                                  request.user.account_type,
-                                )}
-                              </span>
-                            </td>
+                        <td className="break-words px-2 py-3.5">
+                          <p className="break-words text-xs font-semibold text-[#111827]">
+                            {getCustomerName(request.user)}
+                          </p>
 
-                            <td className="px-5 py-4 text-center">
-                              <span className="inline-flex min-w-[42px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
-                                {request.items_count}
-                              </span>
-                            </td>
+                          <span
+                            className={`mt-1 inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                              request.user.account_type,
+                            )}`}
+                          >
+                            <FiBriefcase size={10} />
+                            {getAccountTypeLabel(request.user.account_type)}
+                          </span>
+                        </td>
 
-                            {/* ✅ Buyback Amount — now shows refunded_amount when available */}
-                            <td className="px-5 py-4 text-right">
-                              <div className="inline-flex flex-col items-end">
-                                <span className="text-sm font-bold text-[#2D6FE8]">
-                                  {formatCurrency(
-                                    request.refund_amount,
-                                  )}
+                        <td className="px-1 py-3.5 text-center">
+                          <span className="inline-flex min-w-[28px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
+                            {request.items_count}
+                          </span>
+                        </td>
+
+                        <td className="break-words px-2 py-3.5 text-right">
+                          <span className="text-xs font-bold text-[#2D6FE8]">
+                            {formatCurrency(request.refund_amount)}
+                          </span>
+
+                          {rowIsRefunded && rowRefunded !== null && (
+                            <p className="mt-1 break-words text-[10px] font-bold text-[#4F8FF7]">
+                              Refunded {formatCurrency(rowRefunded)}
+                            </p>
+                          )}
+                        </td>
+
+                        <td className="break-words px-2 py-3.5">
+                          <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-1.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                            <FiTruck size={11} className="shrink-0" />
+                            <span className="break-words">{rowReturnMethodLabel}</span>
+                          </span>
+                        </td>
+
+                        <td className="break-words px-2 py-3.5">
+                          {rowCourier || rowTrackingId ? (
+                            <div className="flex min-w-0 flex-col gap-1">
+                              {rowCourier && (
+                                <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#111827]">
+                                  <FiPackage
+                                    size={11}
+                                    className="mt-0.5 shrink-0 text-[#4F8FF7]"
+                                  />
+                                  <span className="break-all">{rowCourier}</span>
                                 </span>
+                              )}
 
-                                {rowIsRefunded &&
-                                  rowRefunded !== null && (
-                                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
-                                      Refunded{" "}
-                                      {formatCurrency(rowRefunded)}
-                                    </p>
-                                  )}
-                              </div>
-                            </td>
+                              {rowTrackingId && (
+                                <span className="flex min-w-0 items-start gap-1 text-[10px] text-[#6B7280]">
+                                  <FiHash
+                                    size={11}
+                                    className="mt-0.5 shrink-0 text-[#4F8FF7]"
+                                  />
+                                  <span className="break-all">{rowTrackingId}</span>
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-[#6B7280]">—</span>
+                          )}
+                        </td>
 
-                            <td className="px-5 py-4">
-                              <p
-                                title={
-                                  request.reason || ""
+                        <td className="px-2 py-3.5">
+                          <p
+                            title={request.reason || ""}
+                            className="max-w-full break-words text-[10px] text-[#6B7280]"
+                          >
+                            {request.reason || "No reason provided"}
+                          </p>
+                        </td>
+
+                        <td className="px-1 py-3.5 text-center">
+                          <span
+                            className={`inline-flex max-w-full items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-bold ${getStatusClass(
+                              request.status,
+                            )}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${getStatusDot(
+                                request.status,
+                              )}`}
+                            />
+                            <span className="break-words">
+                              {getStatusLabel(request.status)}
+                            </span>
+                          </span>
+                        </td>
+
+                        <td className="px-1 py-3.5">
+                          <div className="flex flex-wrap items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleView(request.id)}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                              title="View"
+                            >
+                              <FiEye size={13} />
+                            </button>
+
+                            {canApprove && (
+                              <button
+                                type="button"
+                                disabled={approveLoading}
+                                onClick={() =>
+                                  handleOpenApproveFromTable(request.id)
                                 }
-                                className="max-w-[210px] truncate text-xs text-[#6B7280]"
+                                className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white disabled:opacity-50"
                               >
-                                {request.reason ||
-                                  "No reason provided"}
-                              </p>
-                            </td>
+                                {approveLoading ? (
+                                  <FiRefreshCw
+                                    size={11}
+                                    className="animate-spin"
+                                  />
+                                ) : (
+                                  <FiCheck size={11} />
+                                )}
+                                Approve
+                              </button>
+                            )}
 
-                            <td className="px-5 py-4 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                                  request.status,
-                                )}`}
+                            {canReject && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenReject(request.id)}
+                                className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#C23B32]/25 bg-[#FEF2F2] px-1.5 text-[10px] font-semibold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
                               >
-                                <span
-                                  className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                                    request.status,
-                                  )}`}
-                                />
+                                <FiX size={11} />
+                                Reject
+                              </button>
+                            )}
 
-                                {getStatusLabel(
-                                  request.status,
-                                )}
-                              </span>
-                            </td>
+                            {showMarkReceived && (
+                              <button
+                                type="button"
+                                onClick={() => handleView(request.id)}
+                                className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white"
+                              >
+                                <FiCheck size={11} />
+                                Received
+                              </button>
+                            )}
 
-                            <td className="px-5 py-4">
-                              <div className="flex flex-nowrap items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleView(
-                                      request.id,
-                                    )
-                                  }
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                  title="View"
-                                >
-                                  <FiEye size={15} />
-                                </button>
-
-                                {canApprove && (
-                                  <button
-                                    type="button"
-                                    disabled={
-                                      approveLoading
-                                    }
-                                    onClick={() =>
-                                      handleOpenApproveFromTable(
-                                        request.id,
-                                      )
-                                    }
-                                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
-                                  >
-                                    {approveLoading ? (
-                                      <FiRefreshCw
-                                        size={13}
-                                        className="animate-spin"
-                                      />
-                                    ) : (
-                                      <FiCheck
-                                        size={13}
-                                      />
-                                    )}
-
-                                    Approve
-                                  </button>
-                                )}
-
-                                {canReject && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleOpenReject(
-                                        request.id,
-                                      )
-                                    }
-                                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 text-[10px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
-                                  >
-                                    <FiX size={13} />
-                                    Reject
-                                  </button>
-                                )}
-
-                                {showMarkReceived && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleView(
-                                        request.id,
-                                      )
-                                    }
-                                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
-                                  >
-                                    <FiCheck size={13} />
-                                    Received
-                                  </button>
-                                )}
-
-                                {showComplete && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleView(
-                                        request.id,
-                                      )
-                                    }
-                                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 text-[10px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
-                                  >
-                                    <FiCheckCircle size={13} />
-                                    Complete
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        </React.Fragment>
-                      );
-                    },
-                  )
+                            {showComplete && (
+                              <button
+                                type="button"
+                                onClick={() => handleView(request.id)}
+                                className="flex h-7 shrink-0 items-center gap-1 rounded-md bg-[#2D6FE8] px-1.5 text-[10px] font-semibold text-white"
+                              >
+                                <FiCheckCircle size={11} />
+                                Complete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
 
           {/* MOBILE */}
           <div className="block lg:hidden">
@@ -3494,18 +3420,18 @@ const BuyBack: React.FC = () => {
                 (request, index) => {
                   const approveLoading =
                     actionLoading.type ===
-                      "approve" &&
+                    "approve" &&
                     actionLoading.id ===
-                      request.id;
+                    request.id;
 
                   const showMarkReceived =
                     request.status ===
-                      "approved" &&
+                    "approved" &&
                     canMarkReceived;
 
                   const showComplete =
                     request.status ===
-                      "received" &&
+                    "received" &&
                     canCompleteBuyback;
 
                   const canApprove =
@@ -3516,9 +3442,16 @@ const BuyBack: React.FC = () => {
                     request.can_reject &&
                     canRejectBuyback;
 
-                  // ✅ NEW: refunded amount for mobile
                   const rowRefunded = getRefundedAmount(request);
                   const rowIsRefunded = isRefundProcessed(request);
+
+                  // ✅ Get return method / courier / tracking for mobile card
+                  const rowRaw: any = request;
+                  const rowReturnMethod = rowRaw.return_method || null;
+                  const rowCourier = rowRaw.courier || null;
+                  const rowTrackingId = rowRaw.tracking_id || null;
+                  const rowReturnMethodLabel =
+                    getReturnMethodLabel(rowReturnMethod);
 
                   return (
                     <div
@@ -3572,7 +3505,6 @@ const BuyBack: React.FC = () => {
                             )}
                           </p>
 
-                          {/* ✅ Refunded amount shown below */}
                           {rowIsRefunded && rowRefunded !== null && (
                             <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
                               Refunded {formatCurrency(rowRefunded)}
@@ -3589,6 +3521,34 @@ const BuyBack: React.FC = () => {
                             {request.items_count}
                           </p>
                         </div>
+                      </div>
+
+                      {/* ✅ Return Method + Tracking details (mobile) */}
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                          <FiTruck size={10} />
+                          {rowReturnMethodLabel}
+                        </span>
+
+                        {rowCourier && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
+                            <FiPackage
+                              size={10}
+                              className="text-[#4F8FF7]"
+                            />
+                            {rowCourier}
+                          </span>
+                        )}
+
+                        {rowTrackingId && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
+                            <FiHash
+                              size={10}
+                              className="text-[#4F8FF7]"
+                            />
+                            {rowTrackingId}
+                          </span>
+                        )}
                       </div>
 
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
@@ -3671,7 +3631,7 @@ const BuyBack: React.FC = () => {
                                 request.id,
                               )
                             }
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
                           >
                             <FiCheck size={14} />
                             Mark as Received
@@ -3688,7 +3648,7 @@ const BuyBack: React.FC = () => {
                                 request.id,
                               )
                             }
-                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
                           >
                             <FiCheckCircle
                               size={14}
@@ -3718,7 +3678,6 @@ const BuyBack: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* ✅ Refunded amount in bottom box */}
                         {rowIsRefunded && rowRefunded !== null && (
                           <div className="mt-1.5 flex items-center justify-between border-t border-[#2D6FE8]/15 pt-1.5">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#4F8FF7]">
@@ -3799,11 +3758,10 @@ const BuyBack: React.FC = () => {
                             page,
                           )
                         }
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                          currentPage === page
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
                             ? "bg-gradient-to-br from-[#2D6FE8] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
                             : "text-[#6B7280] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                        }`}
+                          }`}
                       >
                         {page}
                       </button>
