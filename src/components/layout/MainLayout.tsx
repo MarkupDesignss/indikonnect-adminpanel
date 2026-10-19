@@ -1,14 +1,30 @@
 // src/layouts/MainLayout.tsx
 
-import { Outlet, NavLink, useLocation } from "react-router-dom";
-import { useMenuItems } from "../../pages/permissions/useMenuItems";
+import {
+  Outlet,
+  NavLink,
+  useLocation,
+} from "react-router-dom";
+
+import { useMenuItemsState } from "../../pages/permissions/useMenuItems";
 import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
+
 import Header from "./Header";
-import { useState, useEffect, useRef, useMemo } from "react";
-import type { ReactNode, RefObject } from "react";
+
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
+
+import type {
+  ReactNode,
+  RefObject,
+} from "react";
+
 import { adminApi } from "../../api/endpoints/Auth";
 import { FiX, FiLogOut } from "react-icons/fi";
-
 import { getPortalLoginUrl } from "../../config/portalConfig";
 
 // =====================================================
@@ -136,13 +152,35 @@ const ACCOUNT_PATHS = [
   "/SettingsManagement",
 ];
 
+// =====================================================
+// MENU SIGNATURE
+// =====================================================
+
+const getMenuSignature = (items: any[]): string => {
+  return JSON.stringify(
+    items.map((item) => ({
+      path: item?.path ?? "",
+      label: item?.label ?? "",
+      icon: item?.icon ?? "",
+      group: item?.group ?? "",
+      children: Array.isArray(item?.children)
+        ? getMenuSignature(item.children)
+        : "",
+    })),
+  );
+};
+
 const resolveGroupKey = (item: any): string => {
   if (item?.group && typeof item.group === "string") {
     return item.group.toLowerCase();
   }
 
-  const haystack = `${item?.path ?? ""} ${item?.label ?? ""}`.toLowerCase();
-  const found = NAV_GROUPS.find((g) => g.match.some((m) => haystack.includes(m)));
+  const haystack =
+    `${item?.path ?? ""} ${item?.label ?? ""}`.toLowerCase();
+
+  const found = NAV_GROUPS.find((group) =>
+    group.match.some((match) => haystack.includes(match)),
+  );
 
   return found ? found.key : FALLBACK_GROUP.key;
 };
@@ -158,17 +196,27 @@ const groupMenuItems = (items: any[]): GroupedMenu[] => {
 
   items.forEach((item) => {
     const key = resolveGroupKey(item);
-    if (!buckets.has(key)) buckets.set(key, []);
+
+    if (!buckets.has(key)) {
+      buckets.set(key, []);
+    }
+
     buckets.get(key)!.push(item);
   });
 
   const result: GroupedMenu[] = [];
 
-  NAV_GROUPS.forEach((g) => {
-    const list = buckets.get(g.key);
+  NAV_GROUPS.forEach((group) => {
+    const list = buckets.get(group.key);
+
     if (list?.length) {
-      result.push({ key: g.key, label: g.label, items: list });
-      buckets.delete(g.key);
+      result.push({
+        key: group.key,
+        label: group.label,
+        items: list,
+      });
+
+      buckets.delete(group.key);
     }
   });
 
@@ -177,7 +225,12 @@ const groupMenuItems = (items: any[]): GroupedMenu[] => {
       key === FALLBACK_GROUP.key
         ? FALLBACK_GROUP.label
         : key.charAt(0).toUpperCase() + key.slice(1);
-    result.push({ key, label, items: list });
+
+    result.push({
+      key,
+      label,
+      items: list,
+    });
   });
 
   return result;
@@ -190,21 +243,240 @@ const groupMenuItems = (items: any[]): GroupedMenu[] => {
 interface SidebarContentProps {
   isSidebarOpen: boolean;
   isMobile: boolean;
+  isSidebarLoading: boolean;
   navContent: ReactNode;
   navRef?: RefObject<HTMLDivElement | null>;
   onLogout: () => void;
   isLoggingOut: boolean;
   accountItems: any[];
-  renderNavItem: (item: any, depth?: number, isMobile?: boolean) => ReactNode;
+  renderNavItem: (
+    item: any,
+    depth?: number,
+    isMobile?: boolean,
+  ) => ReactNode;
 }
 
 // =====================================================
-// STABLE SIDEBAR CONTENT
+// SKELETON LINE
+// =====================================================
+
+const SkeletonLine = ({
+  className = "",
+}: {
+  className?: string;
+}) => (
+  <div
+    className={`
+      animate-pulse
+      rounded-md
+      bg-[#E8EFF8]
+      ${className}
+    `}
+  />
+);
+
+// =====================================================
+// SIDEBAR SKELETON
+// =====================================================
+
+const SidebarSkeleton = ({
+  isMobile,
+  showLabels,
+  navRef,
+  warehouseName,
+}: {
+  isMobile: boolean;
+  showLabels: boolean;
+  navRef?: RefObject<HTMLDivElement | null>;
+  warehouseName?: string;
+}) => {
+  const sections = showLabels ? 5 : 7;
+
+  return (
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      aria-busy="true"
+      aria-label="Loading sidebar"
+    >
+      {/* BRAND SKELETON */}
+      <div
+        className={`
+          mb-4
+          flex
+          flex-shrink-0
+          items-center
+          gap-3
+          ${showLabels ? "px-1" : "justify-center"}
+        `}
+      >
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-white p-1.5">
+          <img
+            src={`${import.meta.env.BASE_URL}assets/logo.png`}
+            alt="IndieKonnect Logo"
+            className="h-full w-full object-contain"
+          />
+        </div>
+
+        {showLabels && (
+          <div className="min-w-0 flex-1 space-y-2">
+            <SkeletonLine className="h-4 w-32" />
+            <SkeletonLine className="h-2.5 w-24" />
+          </div>
+        )}
+      </div>
+
+      {/* WAREHOUSE SKELETON */}
+      {showLabels && (
+        <div className="mb-4 flex-shrink-0">
+          <div className="flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-[#F7FAFE] px-3 py-3">
+            <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
+
+            <div className="min-w-0 flex-1 space-y-2">
+              {warehouseName ? (
+                <>
+                  <p className="truncate text-[12px] font-semibold text-[#1E40AF]">
+                    {warehouseName}
+                  </p>
+
+                  <SkeletonLine className="h-2.5 w-20" />
+                </>
+              ) : (
+                <>
+                  <SkeletonLine className="h-3 w-28" />
+                  <SkeletonLine className="h-2.5 w-16" />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!showLabels && (
+        <div className="relative mb-3 h-px w-full flex-shrink-0 bg-[#2D6FE8]/10" />
+      )}
+
+      {/* NAVIGATION SKELETON */}
+      <div
+        ref={navRef}
+        className={`
+          relative
+          min-h-0
+          flex-1
+          overflow-y-auto
+          overflow-x-hidden
+          overscroll-contain
+          px-0.5
+          py-1
+          ${isMobile ? "pb-8" : ""}
+          [&::-webkit-scrollbar]:w-1.5
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:bg-[#2D6FE8]/20
+          [&::-webkit-scrollbar-track]:bg-transparent
+        `}
+      >
+        <span className="sr-only">
+          Loading navigation menu...
+        </span>
+
+        {Array.from({ length: sections }).map((_, sectionIndex) => (
+          <section
+            key={`sidebar-skeleton-section-${sectionIndex}`}
+            className={
+              sectionIndex === 0
+                ? ""
+                : showLabels
+                  ? "mt-3"
+                  : "mt-2"
+            }
+          >
+            {showLabels ? (
+              <div className="mb-1 flex items-center gap-2 px-2.5">
+                <SkeletonLine
+                  className={`h-2.5 ${
+                    sectionIndex % 2 === 0 ? "w-20" : "w-24"
+                  }`}
+                />
+
+                <SkeletonLine className="h-px flex-1" />
+              </div>
+            ) : sectionIndex !== 0 ? (
+              <div className="mx-auto mb-2 h-px w-8 bg-[#2D6FE8]/10" />
+            ) : null}
+
+            <div className="space-y-0.5">
+              {Array.from({
+                length: showLabels
+                  ? sectionIndex === 0
+                    ? 3
+                    : 2
+                  : 2,
+              }).map((__, itemIndex) => (
+                <div
+                  key={`sidebar-skeleton-item-${sectionIndex}-${itemIndex}`}
+                  className={`
+                    flex
+                    items-center
+                    gap-2.5
+                    rounded-lg
+                    ${
+                      showLabels
+                        ? "px-2 py-1.5"
+                        : "justify-center px-0 py-1.5"
+                    }
+                  `}
+                >
+                  <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
+
+                  {showLabels && (
+                    <SkeletonLine
+                      className={`h-3 ${
+                        (sectionIndex + itemIndex) % 2 === 0
+                          ? "w-28"
+                          : "w-20"
+                      }`}
+                    />
+                  )}
+
+                  {showLabels &&
+                    itemIndex === 0 &&
+                    sectionIndex === 1 && (
+                      <SkeletonLine className="ml-auto h-3 w-3 rounded-full" />
+                    )}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {/* ACCOUNT SKELETON */}
+        {showLabels ? (
+          <div className="mt-3">
+            <div className="mb-2 flex items-center gap-2 px-2.5">
+              <SkeletonLine className="h-2.5 w-14" />
+              <SkeletonLine className="h-px flex-1" />
+            </div>
+
+            <div className="flex items-center gap-2.5 px-2 py-1.5">
+              <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
+              <SkeletonLine className="h-3 w-20" />
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto mt-3 h-px w-8 bg-[#2D6FE8]/10" />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
+// SIDEBAR CONTENT
 // =====================================================
 
 const SidebarContent = ({
   isSidebarOpen,
   isMobile,
+  isSidebarLoading,
   navContent,
   navRef,
   onLogout,
@@ -212,8 +484,25 @@ const SidebarContent = ({
   accountItems,
   renderNavItem,
 }: SidebarContentProps) => {
+  const {
+    portalName,
+    warehouseName,
+    warehouseCode,
+  } = usePortalInfo();
+
   const showLabels = isMobile || isSidebarOpen;
-  const { portalName, warehouseName, warehouseCode } = usePortalInfo();
+
+  // Permissions load hone tak real sidebar render nahi hogi.
+  if (isSidebarLoading) {
+    return (
+      <SidebarSkeleton
+        isMobile={isMobile}
+        showLabels={showLabels}
+        navRef={navRef}
+        warehouseName={warehouseName}
+      />
+    );
+  }
 
   return (
     <>
@@ -251,6 +540,7 @@ const SidebarContent = ({
               <h1 className="text-lg font-bold leading-tight tracking-tight text-[#0F1B3D]">
                 IndieKonnect
               </h1>
+
               <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[#2D6FE8]">
                 {portalName}
               </p>
@@ -264,15 +554,19 @@ const SidebarContent = ({
         <div className="relative mb-4 flex-shrink-0">
           <div
             className="flex items-center gap-2.5 rounded-xl border border-[#2D6FE8]/10 bg-[#F2F7FC] px-3 py-2.5"
-            title={`${warehouseName}${warehouseCode ? ` (${warehouseCode})` : ""}`}
+            title={`${warehouseName}${
+              warehouseCode ? ` (${warehouseCode})` : ""
+            }`}
           >
             <span className="material-symbols-outlined flex-shrink-0 text-[18px] text-[#2D6FE8]">
               warehouse
             </span>
+
             <div className="min-w-0">
               <p className="truncate text-[12px] font-semibold leading-tight text-[#1E40AF]">
                 {warehouseName}
               </p>
+
               {warehouseCode && (
                 <p className="mt-0.5 text-[11px] leading-tight text-[#8C97B2]">
                   {warehouseCode}
@@ -301,7 +595,6 @@ const SidebarContent = ({
           px-0.5
           py-1
           ${isMobile ? "pb-8" : ""}
-
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-thumb]:rounded-full
           [&::-webkit-scrollbar-thumb]:bg-[#2D6FE8]/20
@@ -322,10 +615,12 @@ const SidebarContent = ({
           )}
 
           <div>
-            {accountItems.map((item) => renderNavItem(item, 0, isMobile))}
+            {accountItems.map((item) =>
+              renderNavItem(item, 0, isMobile),
+            )}
           </div>
 
-          {/* Logout button */}
+          {/* LOGOUT */}
           <button
             type="button"
             onClick={onLogout}
@@ -342,33 +637,18 @@ const SidebarContent = ({
               rounded-lg
               transition-colors
               duration-200
-
               focus-visible:outline-none
               focus-visible:ring-2
               focus-visible:ring-[#E11D48]/40
-
               ${showLabels ? "px-2 py-1.5" : "justify-center px-0 py-1.5"}
-
-              text-[#4A5778] hover:bg-[#FEF2F2] hover:text-[#E11D48]
-
+              text-[#4A5778]
+              hover:bg-[#FEF2F2]
+              hover:text-[#E11D48]
               disabled:cursor-not-allowed
               disabled:opacity-60
             `}
           >
-            <span
-              className={`
-                flex
-                h-8
-                w-8
-                flex-shrink-0
-                items-center
-                justify-center
-                rounded-lg
-                transition-colors
-                duration-200
-                bg-[#F2F7FC] group-hover:bg-white
-              `}
-            >
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F2F7FC] transition-colors duration-200 group-hover:bg-white">
               {isLoggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E11D48] border-t-transparent" />
               ) : (
@@ -393,7 +673,13 @@ const SidebarContent = ({
 // =====================================================
 
 const MainLayout = () => {
-  const menuItems = useMenuItems();
+  // Single source of truth:
+  // menuItems aur loading dono same permissions hook se aate hain.
+  const {
+    menuItems,
+    loading: isSidebarLoading,
+  } = useMenuItemsState();
+
   const { portalName } = usePortalInfo();
 
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
@@ -404,23 +690,49 @@ const MainLayout = () => {
 
   const location = useLocation();
 
-  // ✅ FIXED: exact match for root paths, prefix match only for real sub-paths
+  // =====================================================
+  // MENU SIGNATURE
+  // =====================================================
+
+  const menuSignature = useMemo(
+    () => getMenuSignature(menuItems as any[]),
+    [menuItems],
+  );
+
+  // =====================================================
+  // ACTIVE PATH HANDLING
+  // =====================================================
+
   const isPathActive = (path?: string) => {
     if (!path) return false;
+
     const current = location.pathname;
+
     if (current === path) return true;
-    // only treat as nested if path has more than one segment
+
     const segments = path.split("/").filter(Boolean);
+
     if (segments.length <= 1) return false;
+
     return current.startsWith(`${path}/`);
   };
 
   const isItemActive = (item: any): boolean => {
-    if (Array.isArray(item.children) && item.children.length > 0) {
-      return item.children.some((c: any) => isItemActive(c));
+    if (
+      Array.isArray(item.children) &&
+      item.children.length > 0
+    ) {
+      return item.children.some((child: any) =>
+        isItemActive(child),
+      );
     }
+
     return isPathActive(item.path);
   };
+
+  // =====================================================
+  // ACCOUNT / GROUPED MENU
+  // =====================================================
 
   const accountItems = useMemo(
     () =>
@@ -440,24 +752,38 @@ const MainLayout = () => {
     [menuItems],
   );
 
+  // =====================================================
+  // MOBILE SCROLL
+  // =====================================================
+
   const mobileNavRef = useRef<HTMLDivElement>(null);
   const mobileScrollTopRef = useRef(0);
 
-  const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+  const toggleSidebar = () => {
+    setIsSidebarOpen((previous) => !previous);
+  };
 
   const toggleMobileSidebar = () => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
-    setIsMobileSidebarOpen((prev) => !prev);
+
+    setIsMobileSidebarOpen((previous) => !previous);
   };
 
   useEffect(() => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
+
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  // =====================================================
+  // AUTOMATICALLY EXPAND ACTIVE PARENTS
+  // =====================================================
 
   useEffect(() => {
     const parents: string[] = [];
@@ -479,12 +805,22 @@ const MainLayout = () => {
 
     if (parents.length === 0) return;
 
-    setExpandedMenus((prev) => {
-      const missing = parents.filter((p) => !prev.includes(p));
-      return missing.length ? [...prev, ...missing] : prev;
+    setExpandedMenus((previous) => {
+      const missing = parents.filter(
+        (path) => !previous.includes(path),
+      );
+
+      return missing.length
+        ? [...previous, ...missing]
+        : previous;
     });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, (menuItems as any[]).length]);
+  }, [location.pathname, menuSignature]);
+
+  // =====================================================
+  // PREVENT BACKGROUND SCROLL ON MOBILE
+  // =====================================================
 
   useEffect(() => {
     if (isMobileSidebarOpen) {
@@ -501,45 +837,84 @@ const MainLayout = () => {
     };
   }, [isMobileSidebarOpen]);
 
+  // =====================================================
+  // ESCAPE KEY
+  // =====================================================
+
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (isLogoutModalOpen && !isLoggingOut) setIsLogoutModalOpen(false);
-      else if (isMobileSidebarOpen) setIsMobileSidebarOpen(false);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      if (isLogoutModalOpen && !isLoggingOut) {
+        setIsLogoutModalOpen(false);
+      } else if (isMobileSidebarOpen) {
+        setIsMobileSidebarOpen(false);
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isLogoutModalOpen, isLoggingOut, isMobileSidebarOpen]);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [
+    isLogoutModalOpen,
+    isLoggingOut,
+    isMobileSidebarOpen,
+  ]);
+
+  // =====================================================
+  // RESTORE MOBILE SCROLL
+  // =====================================================
 
   useEffect(() => {
     if (!isMobileSidebarOpen) return;
 
     const frame = requestAnimationFrame(() => {
       if (!mobileNavRef.current) return;
-      mobileNavRef.current.scrollTop = mobileScrollTopRef.current;
+
+      mobileNavRef.current.scrollTop =
+        mobileScrollTopRef.current;
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [isMobileSidebarOpen, expandedMenus, location.pathname]);
+  }, [
+    isMobileSidebarOpen,
+    expandedMenus,
+    location.pathname,
+    isSidebarLoading,
+  ]);
+
+  // =====================================================
+  // TOGGLE MENU
+  // =====================================================
 
   const toggleMenu = (path: string) => {
     if (mobileNavRef.current) {
-      mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+      mobileScrollTopRef.current =
+        mobileNavRef.current.scrollTop;
     }
 
-    setExpandedMenus((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
+    setExpandedMenus((previous) =>
+      previous.includes(path)
+        ? previous.filter((item) => item !== path)
+        : [...previous, path],
     );
   };
 
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
   const openLogoutModal = () => {
     if (isLoggingOut) return;
+
     setIsLogoutModalOpen(true);
   };
 
   const closeLogoutModal = () => {
     if (isLoggingOut) return;
+
     setIsLogoutModalOpen(false);
   };
 
@@ -564,16 +939,20 @@ const MainLayout = () => {
         const cookieName = cookie.split("=")[0].trim();
 
         if (cookieName) {
-          document.cookie = `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+          document.cookie =
+            `${cookieName}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
         }
       });
 
       setIsLogoutModalOpen(false);
+
       window.location.href = loginUrl;
     } catch (error) {
       console.error("Logout failed:", error);
+
       localStorage.clear();
       sessionStorage.clear();
+
       window.location.href = getPortalLoginUrl();
     } finally {
       setIsLoggingOut(false);
@@ -590,11 +969,16 @@ const MainLayout = () => {
     isMobile: boolean = false,
   ): ReactNode => {
     const hasChildren =
-      Array.isArray(item.children) && item.children.length > 0;
+      Array.isArray(item.children) &&
+      item.children.length > 0;
 
     const isExpanded = expandedMenus.includes(item.path);
-    const shouldShowLabels = isMobile || isSidebarOpen || depth > 0;
-    const parentActive = hasChildren && isItemActive(item);
+
+    const shouldShowLabels =
+      isMobile || isSidebarOpen || depth > 0;
+
+    const parentActive =
+      hasChildren && isItemActive(item);
 
     if (hasChildren) {
       return (
@@ -603,7 +987,11 @@ const MainLayout = () => {
             type="button"
             onClick={() => toggleMenu(item.path)}
             aria-expanded={isExpanded}
-            title={!shouldShowLabels && depth === 0 ? item.label : undefined}
+            title={
+              !shouldShowLabels && depth === 0
+                ? item.label
+                : undefined
+            }
             className={`
               group
               flex
@@ -615,19 +1003,20 @@ const MainLayout = () => {
               py-1.5
               transition-colors
               duration-200
-
               focus-visible:outline-none
               focus-visible:ring-2
               focus-visible:ring-[#2D6FE8]/40
-
-              ${parentActive
-                ? "bg-[#EAF3FF] text-[#2D6FE8]"
-                : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+              ${
+                parentActive
+                  ? "bg-[#EAF3FF] text-[#2D6FE8]"
+                  : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
               }
-
               ${depth > 0 ? "ml-3" : ""}
-
-              ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
+              ${
+                !shouldShowLabels && depth === 0
+                  ? "justify-center px-0"
+                  : ""
+              }
             `}
           >
             <span
@@ -641,9 +1030,10 @@ const MainLayout = () => {
                 rounded-lg
                 transition-colors
                 duration-200
-                ${parentActive
-                  ? "bg-white shadow-sm"
-                  : "bg-[#F2F7FC] group-hover:bg-white"
+                ${
+                  parentActive
+                    ? "bg-white shadow-sm"
+                    : "bg-[#F2F7FC] group-hover:bg-white"
                 }
               `}
             >
@@ -684,16 +1074,20 @@ const MainLayout = () => {
                 duration-300
                 ease-in-out
                 motion-reduce:transition-none
-
-                ${isExpanded
-                  ? "mt-1 max-h-[800px] opacity-100"
-                  : "max-h-0 opacity-0"
+                ${
+                  isExpanded
+                    ? "mt-1 max-h-[800px] opacity-100"
+                    : "max-h-0 opacity-0"
                 }
               `}
             >
               <div className="ml-[22px] space-y-0.5 border-l border-[#2D6FE8]/15 pl-3">
                 {item.children.map((child: any) =>
-                  renderNavItem(child, depth + 1, isMobile),
+                  renderNavItem(
+                    child,
+                    depth + 1,
+                    isMobile,
+                  ),
                 )}
               </div>
             </div>
@@ -706,10 +1100,15 @@ const MainLayout = () => {
       <NavLink
         key={item.path}
         to={item.path}
-        title={!shouldShowLabels && depth === 0 ? item.label : undefined}
+        title={
+          !shouldShowLabels && depth === 0
+            ? item.label
+            : undefined
+        }
         onClick={() => {
           if (isMobile && mobileNavRef.current) {
-            mobileScrollTopRef.current = mobileNavRef.current.scrollTop;
+            mobileScrollTopRef.current =
+              mobileNavRef.current.scrollTop;
           }
         }}
         className={({ isActive }) => `
@@ -722,19 +1121,20 @@ const MainLayout = () => {
           rounded-lg
           transition-colors
           duration-200
-
           focus-visible:outline-none
           focus-visible:ring-2
           focus-visible:ring-[#2D6FE8]/40
-
           ${depth === 0 ? "px-2 py-1.5" : "px-2.5 py-1.5"}
-
-          ${isActive
-            ? "bg-[#2D6FE8] font-semibold text-white"
-            : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+          ${
+            isActive
+              ? "bg-[#2D6FE8] font-semibold text-white"
+              : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
           }
-
-          ${!shouldShowLabels && depth === 0 ? "justify-center px-0" : ""}
+          ${
+            !shouldShowLabels && depth === 0
+              ? "justify-center px-0"
+              : ""
+          }
         `}
       >
         {({ isActive }) => (
@@ -748,9 +1148,10 @@ const MainLayout = () => {
                   rounded-full
                   transition-colors
                   duration-200
-                  ${isActive
-                    ? "bg-white"
-                    : "bg-[#8C97B2]/60 group-hover:bg-[#2D6FE8]/70"
+                  ${
+                    isActive
+                      ? "bg-white"
+                      : "bg-[#8C97B2]/60 group-hover:bg-[#2D6FE8]/70"
                   }
                 `}
               />
@@ -766,9 +1167,10 @@ const MainLayout = () => {
                   rounded-lg
                   transition-colors
                   duration-200
-                  ${isActive
-                    ? "bg-white/20"
-                    : "bg-[#F2F7FC] group-hover:bg-white"
+                  ${
+                    isActive
+                      ? "bg-white/20"
+                      : "bg-[#F2F7FC] group-hover:bg-white"
                   }
                 `}
               >
@@ -776,9 +1178,10 @@ const MainLayout = () => {
                   className={`
                     material-symbols-outlined
                     text-[18px]
-                    ${isActive
-                      ? "text-white"
-                      : "text-[#4A5778] group-hover:text-[#2D6FE8]"
+                    ${
+                      isActive
+                        ? "text-white"
+                        : "text-[#4A5778] group-hover:text-[#2D6FE8]"
                     }
                   `}
                 >
@@ -805,6 +1208,10 @@ const MainLayout = () => {
     );
   };
 
+  // =====================================================
+  // GROUPED NAVIGATION
+  // =====================================================
+
   const renderGroupedNav = (isMobile: boolean) => {
     const showLabels = isMobile || isSidebarOpen;
 
@@ -814,7 +1221,13 @@ const MainLayout = () => {
           <section
             key={group.key}
             aria-label={group.label}
-            className={index === 0 ? "" : showLabels ? "mt-3" : "mt-2"}
+            className={
+              index === 0
+                ? ""
+                : showLabels
+                  ? "mt-3"
+                  : "mt-2"
+            }
           >
             {showLabels ? (
               <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
@@ -828,7 +1241,9 @@ const MainLayout = () => {
             )}
 
             <div>
-              {group.items.map((item) => renderNavItem(item, 0, isMobile))}
+              {group.items.map((item) =>
+                renderNavItem(item, 0, isMobile),
+              )}
             </div>
           </section>
         ))}
@@ -848,6 +1263,7 @@ const MainLayout = () => {
       {/* DESKTOP SIDEBAR */}
       <nav
         aria-label="Main navigation"
+        aria-busy={isSidebarLoading}
         className={`
           fixed
           left-0
@@ -876,6 +1292,7 @@ const MainLayout = () => {
         <SidebarContent
           isSidebarOpen={isSidebarOpen}
           isMobile={false}
+          isSidebarLoading={isSidebarLoading}
           navContent={desktopNavContent}
           onLogout={openLogoutModal}
           isLoggingOut={isLoggingOut}
@@ -896,9 +1313,10 @@ const MainLayout = () => {
           transition-opacity
           duration-300
           md:hidden
-          ${isMobileSidebarOpen
-            ? "opacity-100"
-            : "pointer-events-none opacity-0"
+          ${
+            isMobileSidebarOpen
+              ? "opacity-100"
+              : "pointer-events-none opacity-0"
           }
         `}
         onClick={toggleMobileSidebar}
@@ -908,6 +1326,7 @@ const MainLayout = () => {
       {/* MOBILE SIDEBAR */}
       <nav
         aria-label="Main navigation"
+        aria-busy={isSidebarLoading}
         className={`
           fixed
           left-0
@@ -931,8 +1350,11 @@ const MainLayout = () => {
           ease-in-out
           motion-reduce:transition-none
           md:hidden
-
-          ${isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          ${
+            isMobileSidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
         `}
       >
         <button
@@ -947,6 +1369,7 @@ const MainLayout = () => {
         <SidebarContent
           isSidebarOpen={true}
           isMobile={true}
+          isSidebarLoading={isSidebarLoading}
           navContent={mobileNavContent}
           navRef={mobileNavRef}
           onLogout={openLogoutModal}
@@ -967,10 +1390,10 @@ const MainLayout = () => {
           duration-300
           ease-in-out
           motion-reduce:transition-none
-
-          ${isSidebarOpen
-            ? "md:ml-[280px] md:w-[calc(100%-280px)]"
-            : "md:ml-[84px] md:w-[calc(100%-84px)]"
+          ${
+            isSidebarOpen
+              ? "md:ml-[280px] md:w-[calc(100%-280px)]"
+              : "md:ml-[84px] md:w-[calc(100%-84px)]"
           }
         `}
       >
@@ -1031,7 +1454,9 @@ const MainLayout = () => {
 
               <p className="mt-2 px-2 text-center text-sm leading-6 text-[#4A5778]">
                 You&apos;re about to log out of the{" "}
-                <span className="font-bold text-[#2D6FE8]">{portalName}</span>.
+                <span className="font-bold text-[#2D6FE8]">
+                  {portalName}
+                </span>.
               </p>
 
               <p className="mt-1 text-center text-xs text-[#8C97B2]">

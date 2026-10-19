@@ -57,6 +57,7 @@ import Addcategories from "@/pages/Inventory/categories";
 import Products from "@/pages/Inventory/product";
 import Stock from "@/pages/Inventory/Stock";
 import ReturnRefund from "@/pages/Fiance/ReturnRefund";
+import ReviewsModeration from "@/pages/ReviewsModeration";
 
 const ScrollLayout = () => (
   <>
@@ -97,6 +98,8 @@ export const adminRouter = createBrowserRouter(
             { path: "/inventory/stock", element: <Stock /> },
 
             { path: "/return-refund", element: <ReturnRefund /> },
+
+            { path: "/reviews", element: <ReviewsModeration /> },
 
             // USERS
             { path: "UserManagement", element: <UserManagement /> },

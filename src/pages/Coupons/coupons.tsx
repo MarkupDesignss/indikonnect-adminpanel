@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   FiPlus,
   FiSearch,
@@ -29,8 +34,17 @@ import couponApi, {
   CouponType,
 } from "../../api/endpoints/coupons";
 
+import logoApi from "../../api/endpoints/logoApi";
+
 // ✅ PERMISSIONS
 import { usePermissions } from "../permissions/usePermissions";
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // ANIMATION
@@ -58,6 +72,54 @@ const itemVariants = {
 };
 
 // =====================================================
+// LOGO LOADING STATE
+// Same file component — content area only
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<
+  PermissionLoadingStateProps
+> = ({ logoUrl }) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{ opacity: 0.6, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+// =====================================================
 // HELPERS
 // =====================================================
 
@@ -65,6 +127,7 @@ const formatDate = (value?: string | null) => {
   if (!value) return "—";
 
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString("en-IN", {
@@ -80,6 +143,7 @@ const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
 
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("en-IN", {
@@ -91,13 +155,16 @@ const formatDateOnly = (value?: string | null) => {
 
 const formatMoney = (value?: string | number | null) => {
   const amount = Number(value ?? 0);
+
   return `₹${amount.toLocaleString("en-IN")}`;
 };
 
 const formatCouponValue = (coupon: Coupon) => {
   const value = Number(coupon.value ?? 0);
 
-  if (coupon.type === "percentage") return `${value}%`;
+  if (coupon.type === "percentage") {
+    return `${value}%`;
+  }
 
   return formatMoney(value);
 };
@@ -120,7 +187,10 @@ const getInitials = (title: string) => {
   const parts = title.trim().split(/\s+/).filter(Boolean);
 
   if (!parts.length) return "CP";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
 
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
@@ -132,30 +202,6 @@ const getExpiryState = (expiresAt: string) => {
   const now = Date.now();
 
   return expiry < now ? "expired" : "active";
-};
-
-// =====================================================
-// PERMISSION LOADING STATE
-// =====================================================
-
-const PermissionLoadingState: React.FC = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#6B7280]">
-          Please wait while we verify your access.
-        </p>
-      </div>
-    </div>
-  );
 };
 
 // =====================================================
@@ -178,7 +224,9 @@ const emptyForm: CouponPayload = {
 // STATUS BADGE
 // =====================================================
 
-const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
+const StatusBadge: React.FC<{ active: boolean }> = ({
+  active,
+}) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${getStatusClass(
       active,
@@ -189,6 +237,7 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
         active ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
       }`}
     />
+
     {active ? "Active" : "Inactive"}
   </span>
 );
@@ -203,7 +252,12 @@ const TypeBadge: React.FC<{ type: string }> = ({ type }) => (
       type,
     )}`}
   >
-    {type === "percentage" ? <FiPercent size={12} /> : <FiTag size={12} />}
+    {type === "percentage" ? (
+      <FiPercent size={12} />
+    ) : (
+      <FiTag size={12} />
+    )}
+
     {type}
   </span>
 );
@@ -212,15 +266,18 @@ const TypeBadge: React.FC<{ type: string }> = ({ type }) => (
 // DETAIL ITEM
 // =====================================================
 
-const DetailItem: React.FC<{ label: string; value: string }> = ({
-  label,
-  value,
-}) => (
+const DetailItem: React.FC<{
+  label: string;
+  value: string;
+}> = ({ label, value }) => (
   <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
     <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
       {label}
     </p>
-    <p className="mt-1.5 text-sm font-bold text-[#111827]">{value}</p>
+
+    <p className="mt-1.5 text-sm font-bold text-[#111827]">
+      {value}
+    </p>
   </div>
 );
 
@@ -228,12 +285,13 @@ const DetailItem: React.FC<{ label: string; value: string }> = ({
 // DETAIL ROW
 // =====================================================
 
-const DetailRow: React.FC<{ label: string; value: string }> = ({
-  label,
-  value,
-}) => (
+const DetailRow: React.FC<{
+  label: string;
+  value: string;
+}> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-3 last:border-0 last:pb-0">
     <span className="text-xs text-[#6B7280]">{label}</span>
+
     <span className="max-w-[65%] text-right text-xs font-bold text-[#111827]">
       {value}
     </span>
@@ -282,8 +340,8 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
               </h2>
 
               <p className="mt-1 text-sm leading-6 text-[#6B7280]">
-                This coupon will be removed permanently. This action cannot be
-                undone.
+                This coupon will be removed permanently. This
+                action cannot be undone.
               </p>
             </div>
           </div>
@@ -325,7 +383,10 @@ const DeleteCouponModal: React.FC<DeleteModalProps> = ({
               className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#C23B32] to-[#A62F27] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(194,59,50,0.6)] transition hover:-translate-y-0.5 disabled:opacity-50"
             >
               {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
+                <FiRefreshCw
+                  size={15}
+                  className="animate-spin"
+                />
               ) : (
                 <FiTrash2 size={15} />
               )}
@@ -403,13 +464,16 @@ const CouponForm: React.FC<CouponFormProps> = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-              Coupon Code <span className="text-[#C23B32]">*</span>
+              Coupon Code{" "}
+              <span className="text-[#C23B32]">*</span>
             </label>
 
             <input
               type="text"
               value={form.code || ""}
-              onChange={(e) => onChange("code", e.target.value.toUpperCase())}
+              onChange={(e) =>
+                onChange("code", e.target.value.toUpperCase())
+              }
               placeholder="SAVE10"
               className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm font-bold uppercase text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
@@ -417,13 +481,16 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-              Coupon Title <span className="text-[#C23B32]">*</span>
+              Coupon Title{" "}
+              <span className="text-[#C23B32]">*</span>
             </label>
 
             <input
               type="text"
               value={form.title || ""}
-              onChange={(e) => onChange("title", e.target.value)}
+              onChange={(e) =>
+                onChange("title", e.target.value)
+              }
               placeholder="10% Off on Your Order"
               className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
@@ -434,7 +501,8 @@ const CouponForm: React.FC<CouponFormProps> = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-              Discount Type <span className="text-[#C23B32]">*</span>
+              Discount Type{" "}
+              <span className="text-[#C23B32]">*</span>
             </label>
 
             <select
@@ -451,7 +519,8 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-              Discount Value <span className="text-[#C23B32]">*</span>
+              Discount Value{" "}
+              <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="relative">
@@ -461,9 +530,14 @@ const CouponForm: React.FC<CouponFormProps> = ({
                 step="0.01"
                 value={form.value || ""}
                 onChange={(e) =>
-                  onChange("value", Number(e.target.value) || 0)
+                  onChange(
+                    "value",
+                    Number(e.target.value) || 0,
+                  )
                 }
-                placeholder={form.type === "percentage" ? "10" : "500"}
+                placeholder={
+                  form.type === "percentage" ? "10" : "500"
+                }
                 className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 pr-12 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
 
@@ -513,7 +587,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
                   step="0.01"
                   value={form.min_order || ""}
                   onChange={(e) =>
-                    onChange("min_order", Number(e.target.value) || 0)
+                    onChange(
+                      "min_order",
+                      Number(e.target.value) || 0,
+                    )
                   }
                   className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white pl-8 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
                 />
@@ -536,7 +613,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
                   step="0.01"
                   value={form.max_order || ""}
                   onChange={(e) =>
-                    onChange("max_order", Number(e.target.value) || 0)
+                    onChange(
+                      "max_order",
+                      Number(e.target.value) || 0,
+                    )
                   }
                   className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-white pl-8 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10"
                 />
@@ -563,7 +643,10 @@ const CouponForm: React.FC<CouponFormProps> = ({
                 min="1"
                 value={form.max_uses || ""}
                 onChange={(e) =>
-                  onChange("max_uses", Number(e.target.value) || 1)
+                  onChange(
+                    "max_uses",
+                    Number(e.target.value) || 1,
+                  )
                 }
                 className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
@@ -572,7 +655,8 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-              Expiry Date <span className="text-[#C23B32]">*</span>
+              Expiry Date{" "}
+              <span className="text-[#C23B32]">*</span>
             </label>
 
             <div className="relative">
@@ -584,7 +668,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
               <input
                 type="datetime-local"
                 value={form.expires_at || ""}
-                onChange={(e) => onChange("expires_at", e.target.value)}
+                onChange={(e) =>
+                  onChange("expires_at", e.target.value)
+                }
                 className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
             </div>
@@ -605,7 +691,9 @@ const CouponForm: React.FC<CouponFormProps> = ({
 
           <button
             type="button"
-            onClick={() => onChange("is_active", !form.is_active)}
+            onClick={() =>
+              onChange("is_active", !form.is_active)
+            }
             aria-label="Toggle coupon status"
             aria-pressed={Boolean(form.is_active)}
             className={`relative h-7 w-12 rounded-full transition ${
@@ -641,7 +729,12 @@ const CouponForm: React.FC<CouponFormProps> = ({
         disabled={loading}
         className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading && <FiRefreshCw size={14} className="animate-spin" />}
+        {loading && (
+          <FiRefreshCw
+            size={14}
+            className="animate-spin"
+          />
+        )}
 
         {loading
           ? editing
@@ -695,7 +788,9 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
                 Coupon Details
               </h2>
 
-              <p className="text-xs text-[#6B7280]">{coupon.code}</p>
+              <p className="text-xs text-[#6B7280]">
+                {coupon.code}
+              </p>
             </div>
           </div>
 
@@ -730,6 +825,7 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
 
                 <div className="flex flex-col items-start gap-2 sm:items-end">
                   <StatusBadge active={coupon.is_active} />
+
                   <TypeBadge type={coupon.type} />
                 </div>
               </div>
@@ -765,7 +861,10 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
             {/* ORDER RULES */}
             <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <FiTag size={16} className="text-[#2D6FE8]" />
+                <FiTag
+                  size={16}
+                  className="text-[#2D6FE8]"
+                />
 
                 <h3 className="text-sm font-bold text-[#111827]">
                   Order Rules
@@ -788,7 +887,10 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
             {/* TIMELINE */}
             <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5">
               <div className="mb-4 flex items-center gap-2">
-                <FiCalendar size={16} className="text-[#2D6FE8]" />
+                <FiCalendar
+                  size={16}
+                  className="text-[#2D6FE8]"
+                />
 
                 <h3 className="text-sm font-bold text-[#111827]">
                   Coupon Timeline
@@ -861,6 +963,7 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
               className="flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
             >
               <FiEdit2 size={14} />
+
               Edit Coupon
             </button>
           )}
@@ -876,7 +979,7 @@ const ViewCouponModal: React.FC<ViewModalProps> = ({
 
 const Coupons: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
 
   const {
@@ -894,7 +997,7 @@ const Coupons: React.FC = () => {
     [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
-  // ✅ FIX: API returns "add", not "create"
+  // API returns "add", not only "create"
   const canCreateCoupon = useMemo(
     () =>
       isSuperAdmin ||
@@ -903,7 +1006,7 @@ const Coupons: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
-  // ✅ FIX: API returns "edit", not "update"
+  // API returns "edit", not only "update"
   const canUpdateCoupon = useMemo(
     () =>
       isSuperAdmin ||
@@ -913,7 +1016,8 @@ const Coupons: React.FC = () => {
   );
 
   const canDeleteCoupon = useMemo(
-    () => isSuperAdmin || hasPermission("promocode.delete"),
+    () =>
+      isSuperAdmin || hasPermission("promocode.delete"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -922,7 +1026,22 @@ const Coupons: React.FC = () => {
   // ===================================================
 
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+
+  // Regular table/refresh loading
   const [loading, setLoading] = useState(false);
+
+  // Initial page fetch loading
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  // Logo API loading
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Logo fallback is used until the API returns a logo
+  const [logoUrl, setLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
+  );
+
   const [actionLoading, setActionLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -935,50 +1054,136 @@ const Coupons: React.FC = () => {
   >("all");
 
   const [currentPage, setCurrentPage] = useState(1);
+
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
-  const [form, setForm] = useState<CouponPayload>({ ...emptyForm });
+
+  const [selectedCoupon, setSelectedCoupon] =
+    useState<Coupon | null>(null);
+
+  const [form, setForm] = useState<CouponPayload>({
+    ...emptyForm,
+  });
+
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
-  // FETCH
+  // FETCH LOGO
   // ===================================================
 
-  const fetchCoupons = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    let isMounted = true;
 
-      const response = await couponApi.getAll(1, 100);
+    const fetchLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
 
-      if (response.data.success) {
-        setCoupons(response.data.data?.data || []);
-      } else {
-        toast.error(
-          response.data.message || "Unable to fetch coupons.",
-        );
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch logo error:", error);
+
+        // Keep the default logo if the logo API fails.
+        if (isMounted) {
+          setLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
       }
-    } catch (error: any) {
-      console.error("Fetch coupons error:", error);
+    };
 
-      toast.error(
-        error?.response?.data?.message ||
-        "Unable to fetch coupons.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH COUPONS
+  // ===================================================
+
+  const fetchCoupons = useCallback(
+    async (isInitialLoad = false) => {
+      try {
+        setLoading(true);
+
+        const response = await couponApi.getAll(1, 100);
+
+        if (response.data.success) {
+          setCoupons(response.data.data?.data || []);
+        } else {
+          toast.error(
+            response.data.message ||
+              "Unable to fetch coupons.",
+          );
+        }
+      } catch (error: any) {
+        console.error("Fetch coupons error:", error);
+
+        toast.error(
+          error?.response?.data?.message ||
+            "Unable to fetch coupons.",
+        );
+      } finally {
+        setLoading(false);
+
+        // Only release initial-page loading for the first fetch.
+        // Refresh/create/update will keep using the table spinner.
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // ===================================================
+  // INITIAL FETCH AFTER PERMISSIONS
+  // ===================================================
 
   useEffect(() => {
-    if (!permissionsLoading && canViewCoupons) {
-      fetchCoupons();
+    if (permissionsLoading) return;
+
+    if (!canViewCoupons) {
+      setInitialDataLoading(false);
+      return;
     }
-  }, [permissionsLoading, canViewCoupons]);
+
+    fetchCoupons(true);
+  }, [
+    permissionsLoading,
+    canViewCoupons,
+    fetchCoupons,
+  ]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // ===================================================
   // FORM CHANGE
@@ -1015,7 +1220,8 @@ const Coupons: React.FC = () => {
           .includes(query);
 
       const matchesType =
-        typeFilter === "all" || coupon.type === typeFilter;
+        typeFilter === "all" ||
+        coupon.type === typeFilter;
 
       const matchesStatus =
         statusFilter === "all" ||
@@ -1120,7 +1326,9 @@ const Coupons: React.FC = () => {
       form.type === "percentage" &&
       Number(form.value) > 100
     ) {
-      toast.error("Percentage discount cannot be more than 100.");
+      toast.error(
+        "Percentage discount cannot be more than 100.",
+      );
       return false;
     }
 
@@ -1130,7 +1338,9 @@ const Coupons: React.FC = () => {
     }
 
     if (Number(form.max_order) < Number(form.min_order)) {
-      toast.error("Maximum order must be greater than minimum order.");
+      toast.error(
+        "Maximum order must be greater than minimum order.",
+      );
       return false;
     }
 
@@ -1171,15 +1381,20 @@ const Coupons: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Coupon created successfully.",
+          response.data.message ||
+            "Coupon created successfully.",
         );
 
         setAddOpen(false);
+
+        // Regular fetch: keep the page mounted and use table spinner.
         await fetchCoupons();
+
         setCurrentPage(1);
       } else {
         toast.error(
-          response.data.message || "Unable to create coupon.",
+          response.data.message ||
+            "Unable to create coupon.",
         );
       }
     } catch (error: any) {
@@ -1187,7 +1402,7 @@ const Coupons: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to create coupon.",
+          "Unable to create coupon.",
       );
     } finally {
       setActionLoading(false);
@@ -1213,7 +1428,7 @@ const Coupons: React.FC = () => {
     ) {
       const local = new Date(
         expiryDate.getTime() -
-        expiryDate.getTimezoneOffset() * 60000,
+          expiryDate.getTimezoneOffset() * 60000,
       );
 
       formattedExpiry = local.toISOString().slice(0, 16);
@@ -1240,6 +1455,7 @@ const Coupons: React.FC = () => {
 
   const handleUpdate = async () => {
     if (!selectedCoupon) return;
+
     if (!validateForm()) return;
 
     try {
@@ -1262,15 +1478,19 @@ const Coupons: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Coupon updated successfully.",
+          response.data.message ||
+            "Coupon updated successfully.",
         );
 
         setEditOpen(false);
         setSelectedCoupon(null);
+
+        // Regular fetch: keep the page mounted and use table spinner.
         await fetchCoupons();
       } else {
         toast.error(
-          response.data.message || "Unable to update coupon.",
+          response.data.message ||
+            "Unable to update coupon.",
         );
       }
     } catch (error: any) {
@@ -1278,7 +1498,7 @@ const Coupons: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to update coupon.",
+          "Unable to update coupon.",
       );
     } finally {
       setActionLoading(false);
@@ -1305,11 +1525,14 @@ const Coupons: React.FC = () => {
     try {
       setDeleteLoading(true);
 
-      const response = await couponApi.delete(selectedCoupon.id);
+      const response = await couponApi.delete(
+        selectedCoupon.id,
+      );
 
       if (response.data.success) {
         toast.success(
-          response.data.message || "Coupon deleted successfully.",
+          response.data.message ||
+            "Coupon deleted successfully.",
         );
 
         setCoupons((prev) =>
@@ -1322,7 +1545,8 @@ const Coupons: React.FC = () => {
         setSelectedCoupon(null);
       } else {
         toast.error(
-          response.data.message || "Unable to delete coupon.",
+          response.data.message ||
+            "Unable to delete coupon.",
         );
       }
     } catch (error: any) {
@@ -1330,7 +1554,7 @@ const Coupons: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to delete coupon.",
+          "Unable to delete coupon.",
       );
     } finally {
       setDeleteLoading(false);
@@ -1338,20 +1562,21 @@ const Coupons: React.FC = () => {
   };
 
   // ===================================================
-  // ✅ LOADING STATE
+  // COMBINED LOGO LOADING STATE
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
-  // ✅ ACCESS DENIED
+  // ACCESS DENIED
+  // Content-area only — no full-screen container
   // ===================================================
 
   if (!canViewCoupons) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
@@ -1422,7 +1647,7 @@ const Coupons: React.FC = () => {
         {/* TOP BAR */}
         <motion.div
           variants={itemVariants}
-          className="mb-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white "
+          className="mb-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white"
         >
           <div className="flex flex-col gap-4 p-2 sm:p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-[480px]">
@@ -1449,10 +1674,11 @@ const Coupons: React.FC = () => {
                 onChange={(e) => {
                   setTypeFilter(
                     e.target.value as
-                    | "all"
-                    | "percentage"
-                    | "fixed",
+                      | "all"
+                      | "percentage"
+                      | "fixed",
                   );
+
                   setCurrentPage(1);
                 }}
                 className="h-10 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs font-semibold text-[#111827] outline-none focus:border-[#2D6FE8]"
@@ -1467,10 +1693,11 @@ const Coupons: React.FC = () => {
                 onChange={(e) => {
                   setStatusFilter(
                     e.target.value as
-                    | "all"
-                    | "active"
-                    | "inactive",
+                      | "all"
+                      | "active"
+                      | "inactive",
                   );
+
                   setCurrentPage(1);
                 }}
                 className="h-10 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs font-semibold text-[#111827] outline-none focus:border-[#2D6FE8]"
@@ -1482,7 +1709,7 @@ const Coupons: React.FC = () => {
 
               <button
                 type="button"
-                onClick={fetchCoupons}
+                onClick={() => fetchCoupons()}
                 disabled={loading}
                 className="flex h-10 items-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-3 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:opacity-50"
               >
@@ -1490,6 +1717,7 @@ const Coupons: React.FC = () => {
                   size={14}
                   className={loading ? "animate-spin" : ""}
                 />
+
                 Refresh
               </button>
             </div>
@@ -1524,34 +1752,44 @@ const Coupons: React.FC = () => {
 
           {/* DESKTOP TABLE */}
           <div className="hidden lg:block">
-            <table className="w-full border-collapse table-fixed">
+            <table className="w-full table-fixed border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white w-[50px]">
+                  <th className="w-[50px] px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     S.No.
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Coupon
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Type
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Discount
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Order Limit
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Usage
                   </th>
+
                   <th className="px-2 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Expires
                   </th>
+
                   <th className="px-2 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Status
                   </th>
-                  {(canViewCoupons || canUpdateCoupon || canDeleteCoupon) && (
+
+                  {(canViewCoupons ||
+                    canUpdateCoupon ||
+                    canDeleteCoupon) && (
                     <th className="px-2 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                       Actions
                     </th>
@@ -1565,14 +1803,22 @@ const Coupons: React.FC = () => {
                     <td
                       colSpan={
                         8 +
-                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon ? 1 : 0)
+                        (canViewCoupons ||
+                        canUpdateCoupon ||
+                        canDeleteCoupon
+                          ? 1
+                          : 0)
                       }
                       className="px-5 py-20 text-center"
                     >
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiRefreshCw size={21} className="animate-spin" />
+                          <FiRefreshCw
+                            size={21}
+                            className="animate-spin"
+                          />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading coupons...
                         </p>
@@ -1584,7 +1830,11 @@ const Coupons: React.FC = () => {
                     <td
                       colSpan={
                         8 +
-                        (canViewCoupons || canUpdateCoupon || canDeleteCoupon ? 1 : 0)
+                        (canViewCoupons ||
+                        canUpdateCoupon ||
+                        canDeleteCoupon
+                          ? 1
+                          : 0)
                       }
                       className="px-5 py-20 text-center"
                     >
@@ -1592,9 +1842,11 @@ const Coupons: React.FC = () => {
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiTag size={24} />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           No coupons found
                         </p>
+
                         <p className="mt-1 text-xs text-[#6B7280]">
                           Try changing your search or filters.
                         </p>
@@ -1618,10 +1870,12 @@ const Coupons: React.FC = () => {
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[9px] font-bold text-white">
                             {getInitials(coupon.title)}
                           </div>
+
                           <div className="min-w-0">
-                            <p className="text-xs font-black tracking-wide text-[#111827] truncate">
+                            <p className="truncate text-xs font-black tracking-wide text-[#111827]">
                               {coupon.code}
                             </p>
+
                             <p className="mt-1 max-w-[130px] truncate text-[10px] font-semibold text-[#111827]">
                               {coupon.title}
                             </p>
@@ -1644,6 +1898,7 @@ const Coupons: React.FC = () => {
                           <p className="text-[10px] font-semibold text-[#111827]">
                             Min: {formatMoney(coupon.min_order)}
                           </p>
+
                           <p className="text-[9px] text-[#6B7280]">
                             Max: {formatMoney(coupon.max_order)}
                           </p>
@@ -1656,19 +1911,24 @@ const Coupons: React.FC = () => {
                             <span className="text-[10px] font-bold text-[#111827]">
                               {coupon.used_count}
                             </span>
+
                             <span className="text-[9px] text-[#6B7280]">
                               / {coupon.max_uses}
                             </span>
                           </div>
+
                           <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#EAF3FF]">
                             <div
                               className="h-full rounded-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
                               style={{
                                 width: `${Math.min(
                                   (Number(coupon.used_count) /
-                                    Math.max(Number(coupon.max_uses), 1)) *
+                                    Math.max(
+                                      Number(coupon.max_uses),
+                                      1,
+                                    )) *
                                     100,
-                                  100
+                                  100,
                                 )}%`,
                               }}
                             />
@@ -1678,13 +1938,19 @@ const Coupons: React.FC = () => {
 
                       <td className="px-2 py-4">
                         <div className="flex items-center gap-1.5">
-                          <FiCalendar size={13} className="text-[#2D6FE8] shrink-0" />
+                          <FiCalendar
+                            size={13}
+                            className="shrink-0 text-[#2D6FE8]"
+                          />
+
                           <div>
-                            <p className="text-[10px] font-semibold text-[#111827] whitespace-nowrap">
+                            <p className="whitespace-nowrap text-[10px] font-semibold text-[#111827]">
                               {formatDateOnly(coupon.expires_at)}
                             </p>
+
                             <p className="mt-1 text-[9px] text-[#6B7280]">
-                              {getExpiryState(coupon.expires_at) === "expired"
+                              {getExpiryState(coupon.expires_at) ===
+                              "expired"
                                 ? "Expired"
                                 : "Valid"}
                             </p>
@@ -1696,7 +1962,9 @@ const Coupons: React.FC = () => {
                         <StatusBadge active={coupon.is_active} />
                       </td>
 
-                      {(canViewCoupons || canUpdateCoupon || canDeleteCoupon) && (
+                      {(canViewCoupons ||
+                        canUpdateCoupon ||
+                        canDeleteCoupon) && (
                         <td className="px-2 py-4">
                           <div className="flex justify-center gap-1">
                             {canViewCoupons && (
@@ -1743,7 +2011,20 @@ const Coupons: React.FC = () => {
 
           {/* MOBILE CARDS */}
           <div className="block lg:hidden">
-            {paginatedCoupons.length > 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw
+                    size={21}
+                    className="animate-spin"
+                  />
+                </div>
+
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading coupons...
+                </p>
+              </div>
+            ) : paginatedCoupons.length > 0 ? (
               paginatedCoupons.map((coupon, index) => (
                 <div
                   key={coupon.id}
@@ -1820,6 +2101,7 @@ const Coupons: React.FC = () => {
                   <div className="mt-3 flex items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <TypeBadge type={coupon.type} />
+
                       <StatusBadge active={coupon.is_active} />
                     </div>
 
@@ -1950,7 +2232,9 @@ const Coupons: React.FC = () => {
         <GlobalModal
           isOpen={addOpen}
           onClose={() => {
-            if (!actionLoading) setAddOpen(false);
+            if (!actionLoading) {
+              setAddOpen(false);
+            }
           }}
           closeOnOverlayClick={!actionLoading}
         >

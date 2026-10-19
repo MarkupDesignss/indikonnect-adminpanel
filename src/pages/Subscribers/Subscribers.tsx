@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   FiSearch,
@@ -26,45 +32,35 @@ import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
 
-import subscriberApi, { Subscriber } from "../../api/endpoints/subscribers";
+import subscriberApi, {
+  Subscriber,
+} from "../../api/endpoints/subscribers";
+
+import logoApi from "../../api/endpoints/logoApi";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer, Admin)
+// DEFAULT LOGO
 // =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
 
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
 
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
 
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
-
-// =====================================================
-// TYPES
-// =====================================================
 type SubscriberFilter = "all" | "active" | "inactive";
 
 // =====================================================
 // ANIMATION
 // =====================================================
+
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 },
+  },
 };
 
 const itemVariants = {
@@ -72,17 +68,25 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring" as const, stiffness: 110, damping: 15 },
+    transition: {
+      type: "spring" as const,
+      stiffness: 110,
+      damping: 15,
+    },
   },
 };
 
 // =====================================================
 // HELPERS
 // =====================================================
+
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -94,8 +98,11 @@ const formatDate = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -105,8 +112,11 @@ const formatDateOnly = (value?: string | null) => {
 
 const formatTime = (value?: string | null) => {
   if (!value) return "";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return "";
+
   return date.toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
@@ -116,12 +126,14 @@ const formatTime = (value?: string | null) => {
 const getInitials = (email: string) => {
   const name = email?.split("@")[0]?.trim() || "U";
   const cleanName = name.replace(/[^a-zA-Z]/g, "");
+
   return cleanName.slice(0, 2).toUpperCase() || "U";
 };
 
 // =====================================================
 // STATUS BADGE — BLUE THEME
 // =====================================================
+
 const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${
@@ -140,35 +152,71 @@ const StatusBadge: React.FC<{ active: boolean }> = ({ active }) => (
 );
 
 // =====================================================
-// PERMISSION LOADING
+// LOGO LOADER
+// Content-area loader only — sidebar/navbar remain visible.
 // =====================================================
-const PermissionLoading: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
-    <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-        <FiRefreshCw size={27} className="animate-spin" />
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
-      </p>
-      <p className="mt-1 text-xs text-[#6B7280]">
-        Verifying subscriber management access.
-      </p>
+
+interface PermissionLoadingProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoading: React.FC<PermissionLoadingProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // =====================================================
 // ACCESS DENIED
+// Content-area only — sidebar/navbar remain visible.
 // =====================================================
+
 const AccessDenied: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
     <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiAlertCircle size={26} />
       </div>
 
-      <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
+      <h2 className="text-lg font-bold text-[#111827]">
+        Access Denied
+      </h2>
 
       <p className="mt-2 text-sm text-[#6B7280]">
         You don't have permission to access the Subscriber Management module.
@@ -184,6 +232,7 @@ const AccessDenied: React.FC = () => (
 // =====================================================
 // DELETE MODAL — BLUE THEME
 // =====================================================
+
 interface DeleteModalProps {
   open: boolean;
   loading: boolean;
@@ -220,6 +269,7 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
               <h2 className="text-lg font-bold text-[#111827]">
                 Delete Subscriber
               </h2>
+
               <p className="mt-1 text-sm leading-6 text-[#6B7280]">
                 This subscriber will be permanently removed from the subscriber
                 list.
@@ -231,6 +281,7 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
             <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
               Subscriber Email
             </p>
+
             <p className="mt-1 break-all text-sm font-bold text-[#111827]">
               {email}
             </p>
@@ -257,6 +308,7 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
               ) : (
                 <FiTrash2 size={15} />
               )}
+
               {loading ? "Deleting..." : "Delete Subscriber"}
             </button>
           </div>
@@ -269,6 +321,7 @@ const DeleteSubscriberModal: React.FC<DeleteModalProps> = ({
 // =====================================================
 // INFO CARD — BLUE THEME
 // =====================================================
+
 interface InfoCardProps {
   label: string;
   value: string;
@@ -291,6 +344,7 @@ const InfoCard: React.FC<InfoCardProps> = ({
   <div className="rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-4">
     <div className="mb-2 flex items-center gap-2 text-[#2D6FE8]">
       {icon}
+
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
         {label}
       </p>
@@ -327,19 +381,24 @@ const InfoCard: React.FC<InfoCardProps> = ({
 // =====================================================
 // DETAIL ROW — BLUE THEME
 // =====================================================
+
 const DetailRow: React.FC<{ label: string; value: string }> = ({
   label,
   value,
 }) => (
   <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-3 last:border-0 last:pb-0">
     <span className="text-xs text-[#6B7280]">{label}</span>
-    <span className="text-right text-xs font-bold text-[#111827]">{value}</span>
+
+    <span className="text-right text-xs font-bold text-[#111827]">
+      {value}
+    </span>
   </div>
 );
 
 // =====================================================
 // TIMELINE ITEM — BLUE THEME
 // =====================================================
+
 const TimelineItem: React.FC<{
   icon: React.ReactNode;
   title: string;
@@ -358,13 +417,18 @@ const TimelineItem: React.FC<{
       >
         {icon}
       </div>
+
       <div className="mt-1 h-full w-px bg-[#DCE6F2]" />
     </div>
 
     <div className="pb-4">
       <p className="text-sm font-bold text-[#111827]">{title}</p>
+
       <p className="mt-0.5 text-xs font-bold text-[#2D6FE8]">{date}</p>
-      <p className="mt-1 text-xs leading-5 text-[#6B7280]">{description}</p>
+
+      <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+        {description}
+      </p>
     </div>
   </div>
 );
@@ -372,6 +436,7 @@ const TimelineItem: React.FC<{
 // =====================================================
 // SUBSCRIBER DETAIL — BLUE THEME
 // =====================================================
+
 interface SubscriberDetailProps {
   subscriber: Subscriber;
   onDelete: (subscriber: Subscriber) => void;
@@ -388,8 +453,10 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(subscriber.email);
+
       setCopied(true);
       toast.success("Email copied successfully.");
+
       setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Unable to copy email.");
@@ -399,8 +466,8 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-sm">
       {/* HEADER */}
-      <div className="relative border-b border-[#DCE6F2] bg-white p-5 sm:p-6">
 
+      <div className="relative border-b border-[#DCE6F2] bg-white p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-sm font-bold text-white shadow-[0_10px_22px_-10px_rgba(45,111,232,0.5)]">
@@ -412,9 +479,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                 <h2 className="truncate text-lg font-bold text-[#111827] sm:text-xl">
                   {subscriber.email}
                 </h2>
+
                 <StatusBadge active={subscriber.is_active} />
               </div>
-            
             </div>
           </div>
 
@@ -425,6 +492,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
               className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-2.5 text-xs font-bold text-[#2D6FE8] transition hover:border-[#2D6FE8]/35 hover:bg-[#EAF3FF]/70"
             >
               {copied ? <FiCheck size={15} /> : <FiCopy size={15} />}
+
               {copied ? "Copied" : "Copy Email"}
             </button>
 
@@ -443,18 +511,21 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
       </div>
 
       {/* BODY */}
+
       <div className="flex-1 overflow-y-auto bg-[#F4F8FD] p-5 sm:p-6">
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           {/* MAIN */}
+
           <div className="space-y-5 xl:col-span-2">
             {/* OVERVIEW */}
+
             <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm sm:p-6">
-         
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-[#111827]">
                     Subscriber Overview
                   </h3>
+
                   <p className="mt-1 text-xs text-[#6B7280]">
                     Subscription and account information
                   </p>
@@ -482,7 +553,9 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                       : "Inactive Subscriber"
                   }
                   icon={<FiActivity size={15} />}
-                  customValue={<StatusBadge active={subscriber.is_active} />}
+                  customValue={
+                    <StatusBadge active={subscriber.is_active} />
+                  }
                 />
 
                 <InfoCard
@@ -501,8 +574,8 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
             </div>
 
             {/* TIMELINE */}
+
             <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm sm:p-6">
-        
               <div className="mb-5 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiCalendar size={17} />
@@ -512,6 +585,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   <h3 className="text-base font-bold text-[#111827]">
                     Subscription Timeline
                   </h3>
+
                   <p className="mt-1 text-xs text-[#6B7280]">
                     Important subscriber activity dates
                   </p>
@@ -526,6 +600,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   description="Subscriber joined the newsletter."
                   active
                 />
+
                 <TimelineItem
                   icon={<FiClock size={14} />}
                   title="Created"
@@ -533,6 +608,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   description="Subscriber record was created."
                   active
                 />
+
                 <TimelineItem
                   icon={<FiActivity size={14} />}
                   title="Last Updated"
@@ -545,10 +621,11 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
           </div>
 
           {/* RIGHT SIDEBAR */}
+
           <div className="space-y-5">
             {/* STATUS */}
+
             <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
-             
               <h4 className="mb-4 border-b border-[#DCE6F2] pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                 Current Status
               </h4>
@@ -573,6 +650,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                       Newsletter Access
                     </p>
+
                     <p className="mt-1 text-sm font-bold text-[#111827]">
                       {subscriber.is_active ? "Active" : "Inactive"}
                     </p>
@@ -582,8 +660,8 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
             </div>
 
             {/* DETAILS */}
+
             <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
-          
               <h4 className="mb-4 border-b border-[#DCE6F2] pb-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#6B7280]">
                 Record Details
               </h4>
@@ -593,18 +671,22 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   label="Subscriber ID"
                   value={`#${subscriber.id}`}
                 />
+
                 <DetailRow
                   label="Subscribed Date"
                   value={formatDateOnly(subscriber.subscribed_at)}
                 />
+
                 <DetailRow
                   label="Subscribed Time"
                   value={formatTime(subscriber.subscribed_at)}
                 />
+
                 <DetailRow
                   label="Created At"
                   value={formatDateOnly(subscriber.created_at)}
                 />
+
                 <DetailRow
                   label="Updated At"
                   value={formatDateOnly(subscriber.updated_at)}
@@ -613,8 +695,8 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
             </div>
 
             {/* PRIVACY */}
+
             <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
-            
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiShield size={17} />
@@ -624,6 +706,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
                   <h4 className="text-sm font-bold text-[#111827]">
                     Subscriber Information
                   </h4>
+
                   <p className="mt-1 text-xs leading-5 text-[#6B7280]">
                     The subscriber's email and subscription details are stored
                     for newsletter communication and management.
@@ -636,14 +719,17 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
       </div>
 
       {/* FOOTER */}
+
       <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="hidden items-center gap-2 sm:flex">
             <span className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
+
             <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
               Subscriber #{subscriber.id}
             </span>
           </div>
+
           <span className="text-[10px] text-[#6B7280]">
             Last updated {formatDate(subscriber.updated_at)}
           </span>
@@ -656,6 +742,7 @@ const SubscriberDetail: React.FC<SubscriberDetailProps> = ({
 // =====================================================
 // SUBSCRIBER LIST SIDEBAR — BLUE THEME
 // =====================================================
+
 interface SubscriberSidebarProps {
   subscribers: Subscriber[];
   selectedId: number | null;
@@ -679,17 +766,18 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
 }) => (
   <aside className="flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-sm lg:w-[380px] xl:w-[410px]">
     {/* HEADER */}
+
     <div className="relative border-b border-[#DCE6F2] p-4 sm:p-5">
-    
-      {/* TITLE */}
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="flex items-center gap-2 text-base font-bold text-[#111827]">
             Subscribers
+
             <span className="inline-flex items-center justify-center rounded-full bg-[#EAF3FF] px-2.5 py-0.5 text-xs font-bold text-[#2D6FE8]">
               {subscribers.length}
             </span>
           </h3>
+
           <p className="mt-1 text-xs text-[#6B7280]">
             Manage newsletter subscribers
           </p>
@@ -701,6 +789,7 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
       </div>
 
       {/* FILTERS */}
+
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {[
           { key: "all" as SubscriberFilter, label: "All" },
@@ -723,6 +812,7 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
       </div>
 
       {/* SEARCH */}
+
       <div className="relative mt-4">
         <FiSearch
           size={17}
@@ -732,7 +822,7 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           placeholder="Search subscriber email..."
           className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-3 text-xs text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
         />
@@ -750,11 +840,13 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
     </div>
 
     {/* LIST HEADER */}
+
     <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#6B7280]">
           Subscriber List
         </span>
+
         <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
           {subscribers.length}
         </span>
@@ -762,12 +854,14 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
     </div>
 
     {/* LIST */}
+
     <div className="flex-1 overflow-y-auto">
       {loading ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
             <FiRefreshCw size={21} className="animate-spin" />
           </div>
+
           <p className="mt-4 text-sm font-bold text-[#111827]">
             Loading subscribers...
           </p>
@@ -777,9 +871,11 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
             <FiMail size={23} />
           </div>
+
           <p className="mt-4 text-sm font-bold text-[#111827]">
             No subscribers found
           </p>
+
           <p className="mt-1 text-xs text-[#6B7280]">
             Try another search or filter.
           </p>
@@ -787,13 +883,16 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
       ) : (
         subscribers.map((subscriber) => {
           const selected = subscriber.id === selectedId;
+
           return (
             <motion.div
               key={subscriber.id}
               whileHover={{ x: 2 }}
               onClick={() => onSelect(subscriber)}
               className={`relative cursor-pointer border-b border-[#DCE6F2] p-4 transition-all ${
-                selected ? "bg-[#EAF3FF]/60" : "bg-white hover:bg-[#F8FBFF]"
+                selected
+                  ? "bg-[#EAF3FF]/60"
+                  : "bg-white hover:bg-[#F8FBFF]"
               }`}
             >
               {selected && (
@@ -801,27 +900,16 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
               )}
 
               <div className="flex items-start gap-3">
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[10px] font-bold text-white ${
-                    selected
-                      ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8]"
-                      : "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8]"
-                  }`}
-                >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-[10px] font-bold text-white">
                   {getInitials(subscriber.email)}
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p
-                      className={`truncate text-sm ${
-                        selected
-                          ? "font-bold text-[#111827]"
-                          : "font-bold text-[#111827]"
-                      }`}
-                    >
+                    <p className="truncate text-sm font-bold text-[#111827]">
                       {subscriber.email}
                     </p>
+
                     <FiChevronRight
                       size={15}
                       className={`mt-0.5 shrink-0 ${
@@ -830,10 +918,9 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
                     />
                   </div>
 
-              
-               
                   <div className="mt-2 flex items-center gap-2">
                     <FiCalendar size={12} className="text-[#2D6FE8]" />
+
                     <span className="text-[10px] text-[#6B7280]">
                       {formatDateOnly(subscriber.subscribed_at)}
                     </span>
@@ -847,12 +934,14 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
     </div>
 
     {/* FOOTER */}
+
     <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[#6B7280]">
           Showing {subscribers.length} subscriber
           {subscribers.length === 1 ? "" : "s"}
         </span>
+
         <span className="flex items-center gap-1 text-[10px] font-bold text-[#2D6FE8]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
           Live
@@ -865,10 +954,12 @@ const SubscriberSidebar: React.FC<SubscriberSidebarProps> = ({
 // =====================================================
 // MAIN
 // =====================================================
+
 const Subscribers: React.FC = () => {
   // ===================================================
   // PERMISSIONS
   // ===================================================
+
   const {
     hasPermission,
     hasModuleAccess,
@@ -892,68 +983,217 @@ const Subscribers: React.FC = () => {
   // ===================================================
   // STATE
   // ===================================================
+
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+
+  // Regular API loading for subsequent fetches.
   const [loading, setLoading] = useState(false);
+
+  // Initial subscribers data loading.
+  const [initialDataLoading, setInitialDataLoading] = useState(true);
+
+  // Loader logo API loading.
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Loader logo URL.
+  const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
+  );
+
   const [search, setSearch] = useState("");
+
   const [filter, setFilter] = useState<SubscriberFilter>("all");
+
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
   const [deleteOpen, setDeleteOpen] = useState(false);
+
   const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [selectedDeleteSubscriber, setSelectedDeleteSubscriber] =
     useState<Subscriber | null>(null);
 
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
+  const hasInitialFetchRef = useRef(false);
+
+  // ===================================================
+  // FETCH LOGO
+  // API failure falls back to the default logo.
+  // ===================================================
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLoaderLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLoaderLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch loader logo error:", error);
+
+        if (isMounted) {
+          setLoaderLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLoaderLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // ===================================================
   // GET SUBSCRIBERS
+  // isInitialLoad affects only the initial page loader.
   // ===================================================
-  const fetchSubscribers = async () => {
-    try {
-      setLoading(true);
-      const response = await subscriberApi.getAll();
 
-      if (response.data.success) {
-        const data = response.data.data || [];
-        setSubscribers(data);
-        setSelectedId((current) => current ?? data[0]?.id ?? null);
-      } else {
-        toast.error(
-          response.data.message || "Unable to fetch subscribers.",
-        );
+  const fetchSubscribers = useCallback(
+    async (isInitialLoad = false, force = false) => {
+      if (!canViewSubscribers) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
       }
-    } catch (error: any) {
-      console.error("Fetch subscribers error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to fetch subscribers.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      // Reuse a running request instead of making another API call.
+      if (fetchInFlightRef.current) {
+        try {
+          await fetchInFlightRef.current;
+        } finally {
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+
+        return;
+      }
+
+      if (!force && hasInitialFetchRef.current) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
+      }
+
+      const requestPromise = (async () => {
+        try {
+          setLoading(true);
+
+          const response = await subscriberApi.getAll();
+
+          if (response.data.success) {
+            const responseData = response.data.data;
+            const data: Subscriber[] = Array.isArray(responseData)
+              ? responseData
+              : [];
+
+            setSubscribers(data);
+
+            setSelectedId(
+              (current) => current ?? data[0]?.id ?? null,
+            );
+          } else {
+            toast.error(
+              response.data.message || "Unable to fetch subscribers.",
+            );
+          }
+        } catch (error: any) {
+          console.error("Fetch subscribers error:", error);
+
+          toast.error(
+            error?.response?.data?.message ||
+              "Unable to fetch subscribers.",
+          );
+        } finally {
+          setLoading(false);
+          hasInitialFetchRef.current = true;
+
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+      })();
+
+      fetchInFlightRef.current = requestPromise;
+
+      try {
+        await requestPromise;
+      } finally {
+        fetchInFlightRef.current = null;
+      }
+    },
+    [canViewSubscribers],
+  );
 
   // ===================================================
   // FETCH AFTER PERMISSIONS
   // ===================================================
+
   useEffect(() => {
     if (permissionsLoading) return;
-    if (canViewSubscribers) fetchSubscribers();
-  }, [permissionsLoading, canViewSubscribers]);
+
+    if (!canViewSubscribers) {
+      setInitialDataLoading(false);
+      return;
+    }
+
+    if (!hasInitialFetchRef.current) {
+      void fetchSubscribers(true);
+    }
+  }, [
+    permissionsLoading,
+    canViewSubscribers,
+    fetchSubscribers,
+  ]);
 
   // ===================================================
   // FILTERED LIST
   // ===================================================
+
   const filteredSubscribers = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return subscribers.filter((subscriber) => {
       const matchesSearch =
         !query ||
-        [subscriber.email, subscriber.ip_address, String(subscriber.id)]
+        [
+          subscriber.email,
+          subscriber.ip_address,
+          String(subscriber.id),
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query);
 
       if (!matchesSearch) return false;
+
       if (filter === "active") return subscriber.is_active;
+
       if (filter === "inactive") return !subscriber.is_active;
+
       return true;
     });
   }, [subscribers, search, filter]);
@@ -961,14 +1201,17 @@ const Subscribers: React.FC = () => {
   // ===================================================
   // KEEP SELECTION VALID
   // ===================================================
+
   useEffect(() => {
     if (filteredSubscribers.length === 0) {
       setSelectedId(null);
       return;
     }
+
     const currentExists = filteredSubscribers.some(
       (item) => item.id === selectedId,
     );
+
     if (!currentExists) {
       setSelectedId(filteredSubscribers[0].id);
     }
@@ -982,15 +1225,19 @@ const Subscribers: React.FC = () => {
   // ===================================================
   // STATS
   // ===================================================
+
   const stats = useMemo(() => {
     const total = subscribers.length;
-    const active = subscribers.filter((s) => s.is_active).length;
+    const active = subscribers.filter((subscriber) => subscriber.is_active)
+      .length;
+
     return { total, active };
   }, [subscribers]);
 
   // ===================================================
   // DELETE
   // ===================================================
+
   const openDeleteModal = (subscriber: Subscriber) => {
     setSelectedDeleteSubscriber(subscriber);
     setDeleteOpen(true);
@@ -998,6 +1245,7 @@ const Subscribers: React.FC = () => {
 
   const closeDeleteModal = () => {
     if (deleteLoading) return;
+
     setDeleteOpen(false);
     setSelectedDeleteSubscriber(null);
   };
@@ -1005,23 +1253,33 @@ const Subscribers: React.FC = () => {
   const handleDelete = async () => {
     if (!selectedDeleteSubscriber) return;
 
+    if (!canDeleteSubscriber) {
+      toast.error("You do not have permission to delete subscribers.");
+      return;
+    }
+
     try {
       setDeleteLoading(true);
+
       const response = await subscriberApi.delete(
         selectedDeleteSubscriber.email,
       );
 
       if (response.data.success) {
         const deletedId = selectedDeleteSubscriber.id;
-        setSubscribers((prev) =>
-          prev.filter((item) => item.id !== deletedId),
+
+        setSubscribers((previous) =>
+          previous.filter((item) => item.id !== deletedId),
         );
 
-        if (selectedId === deletedId) setSelectedId(null);
+        if (selectedId === deletedId) {
+          setSelectedId(null);
+        }
 
         toast.success(
           response.data.message || "Subscriber deleted successfully.",
         );
+
         setDeleteOpen(false);
         setSelectedDeleteSubscriber(null);
       } else {
@@ -1031,8 +1289,10 @@ const Subscribers: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Delete subscriber error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to delete subscriber.",
+        error?.response?.data?.message ||
+          "Unable to delete subscriber.",
       );
     } finally {
       setDeleteLoading(false);
@@ -1040,14 +1300,26 @@ const Subscribers: React.FC = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING
+  // COMBINED INITIAL LOADING STATE
   // ===================================================
-  if (permissionsLoading) return <PermissionLoading />;
-  if (!canViewSubscribers) return <AccessDenied />;
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
+
+  if (pageLoading) {
+    return <PermissionLoading logoUrl={loaderLogoUrl} />;
+  }
+
+  if (!canViewSubscribers) {
+    return <AccessDenied />;
+  }
 
   // ===================================================
   // UI
   // ===================================================
+
   return (
     <>
       <motion.div
@@ -1057,6 +1329,7 @@ const Subscribers: React.FC = () => {
         className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-7"
       >
         {/* MASTER DETAIL */}
+
         <motion.div
           variants={itemVariants}
           className="flex min-h-[680px] flex-col gap-5 lg:flex-row"
@@ -1098,7 +1371,8 @@ const Subscribers: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* DELETE MODAL — permission based */}
+      {/* DELETE MODAL — PERMISSION BASED */}
+
       {canDeleteSubscriber && (
         <DeleteSubscriberModal
           open={deleteOpen}

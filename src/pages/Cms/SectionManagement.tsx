@@ -33,7 +33,16 @@ import faqSectionsApi, {
   FAQSection,
 } from "../../api/endpoints/faqSectionsApi";
 
+import logoApi from "../../api/endpoints/logoApi";
+
 import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
+// DEFAULT LOADER LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // BLUE / YELLOW THEME
@@ -59,19 +68,8 @@ const DANGER_BG = "#FEF2F2";
 // =====================================================
 // FAQ PERMISSIONS
 //
-// Section Management uses the existing FAQ permissions.
-// Separate faq_section / faq_sections permissions
-// are intentionally not checked.
-//
-// Supported permission formats:
-// faq.view
-// faq.create
-// faq.update
-// faq.edit
-// faq.delete
-//
-// If the existing FAQ module uses "faqs" instead of
-// "faq", plural aliases are supported as well.
+// Section Management uses existing FAQ permissions.
+// No faq_section / faq_sections permissions are checked.
 // =====================================================
 
 const VIEW_PERMISSION_KEYS = [
@@ -158,6 +156,57 @@ const truncateText = (
 const sectionGradient = `linear-gradient(135deg, ${BLUE}, ${PRIMARY})`;
 
 const accentGradient = `linear-gradient(to right, ${BLUE}, ${PRIMARY}, ${YELLOW})`;
+
+// =====================================================
+// LOGO LOADER
+// Content area only. Sidebar/navbar stay visible.
+// =====================================================
+
+interface PermissionLoadingProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoading: React.FC<PermissionLoadingProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
 
 // =====================================================
 // ADD / EDIT SECTION MODAL
@@ -362,9 +411,7 @@ interface DeleteSectionModalProps {
   onConfirm: () => void;
 }
 
-const DeleteSectionModal: React.FC<
-  DeleteSectionModalProps
-> = ({
+const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
   open,
   loading,
   section,
@@ -455,32 +502,12 @@ const DeleteSectionModal: React.FC<
 };
 
 // =====================================================
-// PERMISSION / LOADING STATES
+// ACCESS DENIED
+// Content area only — sidebar/navbar remain visible.
 // =====================================================
 
-const PermissionLoading: React.FC = () => (
-  <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-    <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2D6FE8] shadow-sm">
-        <FiRefreshCw
-          size={23}
-          className="animate-spin"
-        />
-      </div>
-
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
-      </p>
-
-      <p className="mt-1 text-[10px] text-[#6B7280]">
-        Verifying FAQ access.
-      </p>
-    </div>
-  </div>
-);
-
 const AccessDenied: React.FC = () => (
-  <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
     <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiAlertCircle size={26} />
@@ -513,9 +540,9 @@ const SectionManagement: React.FC = () => {
     loading: permissionsLoading,
   } = usePermissions();
 
-  // ---------------------------------------------------
-  // CHECK THE EXISTING FAQ PERMISSIONS
-  // ---------------------------------------------------
+  // ===================================================
+  // PERMISSIONS
+  // ===================================================
 
   const hasAnyPermission = useCallback(
     (permissions: string[]) =>
@@ -524,13 +551,6 @@ const SectionManagement: React.FC = () => {
       ),
     [hasPermission],
   );
-
-  // ---------------------------------------------------
-  // VIEW PERMISSION
-  //
-  // Uses the FAQ module only.
-  // No faq_section / faq_sections module checks.
-  // ---------------------------------------------------
 
   const canViewSections = useMemo(
     () =>
@@ -545,20 +565,12 @@ const SectionManagement: React.FC = () => {
     ],
   );
 
-  // ---------------------------------------------------
-  // CREATE PERMISSION
-  // ---------------------------------------------------
-
   const canCreateSection = useMemo(
     () =>
       isSuperAdmin ||
       hasAnyPermission(CREATE_PERMISSION_KEYS),
     [isSuperAdmin, hasAnyPermission],
   );
-
-  // ---------------------------------------------------
-  // UPDATE PERMISSION
-  // ---------------------------------------------------
 
   const canUpdateSection = useMemo(
     () =>
@@ -567,10 +579,6 @@ const SectionManagement: React.FC = () => {
     [isSuperAdmin, hasAnyPermission],
   );
 
-  // ---------------------------------------------------
-  // DELETE PERMISSION
-  // ---------------------------------------------------
-
   const canDeleteSection = useMemo(
     () =>
       isSuperAdmin ||
@@ -578,15 +586,27 @@ const SectionManagement: React.FC = () => {
     [isSuperAdmin, hasAnyPermission],
   );
 
-  // ---------------------------------------------------
+  // ===================================================
   // STATE
-  // ---------------------------------------------------
+  // ===================================================
 
-  const [sections, setSections] = useState<FAQSection[]>(
-    [],
+  const [sections, setSections] = useState<FAQSection[]>([]);
+
+  // Normal API loading for refresh and CRUD-related refreshes.
+  const [loading, setLoading] = useState(false);
+
+  // Initial data loader state.
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  // Loader logo API state.
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Loader logo URL.
+  const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
   );
 
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -600,32 +620,98 @@ const SectionManagement: React.FC = () => {
     useState(false);
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteLoading, setDeleteLoading] =
-    useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [selectedSection, setSelectedSection] =
     useState<FAQSection | null>(null);
 
   const ITEMS_PER_PAGE = 7;
 
-  const fetchInFlightRef =
-    useRef<Promise<void> | null>(null);
-
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasInitialFetchRef = useRef(false);
 
   // ===================================================
+  // FETCH LOGO FOR INITIAL LOADER
+  // API failure falls back to DEFAULT_LOGO_URL.
+  // ===================================================
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLoaderLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLoaderLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch loader logo error:", error);
+
+        if (isMounted) {
+          setLoaderLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLoaderLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
   // FETCH FAQ SECTIONS
+  // The optional initial-load flag affects only the
+  // initial logo loader, not refresh or normal updates.
   // ===================================================
 
   const fetchSections = useCallback(
-    async (force = false) => {
-      if (!canViewSections) return;
+    async (
+      force = false,
+      isInitialLoad = false,
+    ) => {
+      if (!canViewSections) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
+      }
 
       if (fetchInFlightRef.current) {
-        return fetchInFlightRef.current;
+        try {
+          await fetchInFlightRef.current;
+        } finally {
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+
+        return;
       }
 
       if (!force && hasInitialFetchRef.current) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
         return;
       }
 
@@ -656,6 +742,10 @@ const SectionManagement: React.FC = () => {
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
         }
       })();
 
@@ -672,15 +762,19 @@ const SectionManagement: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
+  // Wait for permission resolution before fetching data.
   // ===================================================
 
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewSections &&
-      !hasInitialFetchRef.current
-    ) {
-      void fetchSections();
+    if (permissionsLoading) return;
+
+    if (!canViewSections) {
+      setInitialDataLoading(false);
+      return;
+    }
+
+    if (!hasInitialFetchRef.current) {
+      void fetchSections(false, true);
     }
   }, [
     permissionsLoading,
@@ -791,6 +885,7 @@ const SectionManagement: React.FC = () => {
       toast.error(
         "You do not have permission to create FAQ sections.",
       );
+
       return;
     }
 
@@ -807,6 +902,7 @@ const SectionManagement: React.FC = () => {
       toast.error(
         "You do not have permission to update FAQ sections.",
       );
+
       return;
     }
 
@@ -831,6 +927,7 @@ const SectionManagement: React.FC = () => {
           ? "You do not have permission to update FAQ sections."
           : "You do not have permission to create FAQ sections.",
       );
+
       return;
     }
 
@@ -843,9 +940,7 @@ const SectionManagement: React.FC = () => {
             {
               name: payload.name,
               description: payload.description,
-              is_active: editingSection.is_active
-                ? 1
-                : 0,
+              is_active: editingSection.is_active ? 1 : 0,
             },
           )
         : await faqSectionsApi.create({
@@ -865,6 +960,7 @@ const SectionManagement: React.FC = () => {
         setSectionModalOpen(false);
         setEditingSection(null);
 
+        // Refresh data without reopening the initial logo loader.
         await fetchSections(true);
       } else {
         toast.error(
@@ -897,6 +993,7 @@ const SectionManagement: React.FC = () => {
       toast.error(
         "You do not have permission to delete FAQ sections.",
       );
+
       return;
     }
 
@@ -915,6 +1012,7 @@ const SectionManagement: React.FC = () => {
       toast.error(
         "You do not have permission to delete FAQ sections.",
       );
+
       return;
     }
 
@@ -934,6 +1032,7 @@ const SectionManagement: React.FC = () => {
         setDeleteOpen(false);
         setSelectedSection(null);
 
+        // Refresh data without reopening the initial logo loader.
         await fetchSections(true);
       } else {
         toast.error(
@@ -957,20 +1056,30 @@ const SectionManagement: React.FC = () => {
   };
 
   // ===================================================
-  // ACCESS STATES
+  // COMBINED INITIAL LOADING STATE
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoading />;
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
+
+  if (pageLoading) {
+    return <PermissionLoading logoUrl={loaderLogoUrl} />;
   }
 
   if (!canViewSections) {
     return <AccessDenied />;
   }
 
+  // ===================================================
+  // CONTENT-AREA REFRESH LOADER
+  // Used only if the list is empty during a later fetch.
+  // ===================================================
+
   if (loading && sections.length === 0) {
     return (
-      <div className="flex min-h-[500px] items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="flex min-h-[500px] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
         <div className="flex flex-col items-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2D6FE8] shadow-sm">
             <FiRefreshCw
@@ -1020,7 +1129,7 @@ const SectionManagement: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-           <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
+            <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Section Management
             </h1>
 
@@ -1030,8 +1139,7 @@ const SectionManagement: React.FC = () => {
           </div>
 
           <p className="mt-0.5 text-sm text-[#111827]">
-            Manage your FAQ sections, descriptions,
-            ordering and active status.
+            Manage your FAQ sections, descriptions, ordering and active status.
           </p>
         </div>
 
@@ -1040,12 +1148,13 @@ const SectionManagement: React.FC = () => {
             type="button"
             onClick={() => void fetchSections(true)}
             disabled={loading}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#2D6FE8]  transition hover:border-[#4F8FF7] hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7] hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiRefreshCw
               size={15}
               className={loading ? "animate-spin" : ""}
             />
+
             Refresh
           </button>
 
@@ -1074,8 +1183,6 @@ const SectionManagement: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[20px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
       >
-
-
         {/* TOOLBAR */}
 
         <div className="border-b border-[#DCE6F2] p-4">
@@ -1097,15 +1204,12 @@ const SectionManagement: React.FC = () => {
                 className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-4 text-xs text-[#111827] outline-none placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
               />
             </div>
-
           </div>
-
-          
         </div>
 
         {/* DESKTOP TABLE */}
 
-        <div className="hidden overflow-x-auto lg:block rounded-2xl">
+        <div className="hidden overflow-x-auto rounded-2xl lg:block">
           <table className="w-full min-w-[900px] border-collapse">
             <thead>
               <tr className="bg-[#4F8FF7]">

@@ -1,4 +1,11 @@
-import { useEffect, useState, useMemo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -23,10 +30,19 @@ import warehouseStocksApi, {
   WarehouseProduct,
 } from "@/api/endpoints/warehouseStocks";
 
+import logoApi from "@/api/endpoints/logoApi";
+
 import { usePermissions } from "@/pages/permissions/usePermissions";
 
 // =====================================================
-// TYPES & CONSTANTS
+// CONSTANTS
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// =====================================================
+// TYPES
 // =====================================================
 
 const STOCK_STATUS_META = {
@@ -84,28 +100,52 @@ const StatBadge = ({
 );
 
 // =====================================================
-// PERMISSION LOADING
+// LOGO LOADING STATE
+// Same-file component — content area only
 // =====================================================
 
-const PermissionLoading: React.FC = () => {
+interface PermissionLoadingProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoading: React.FC<PermissionLoadingProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
-      <div className="flex flex-col items-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8] shadow-sm">
-          <FiRefreshCw
-            size={23}
-            className="animate-spin"
-          />
-        </div>
-
-        <p className="mt-4 text-sm font-bold text-[#111827]">
-          Checking permissions...
-        </p>
-
-        <p className="mt-1 text-[10px] text-[#6B7280]">
-          Verifying warehouse product access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -116,7 +156,7 @@ const PermissionLoading: React.FC = () => {
 
 const AccessDenied: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+    <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
       <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-[0_8px_30px_rgba(45,111,232,0.08)]">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
           <FiAlertCircle size={26} />
@@ -154,26 +194,6 @@ const WarehouseProducts = () => {
   const warehouseId = Number(paramWarehouseId) || 1;
 
   // ===================================================
-  // STATE
-  // ===================================================
-
-  const [products, setProducts] = useState<WarehouseProduct[]>([]);
-
-  const [warehouseName, setWarehouseName] = useState<string>("");
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [page, setPage] = useState(1);
-
-  const [perPage] = useState(25);
-
-  const [search, setSearch] = useState("");
-
-  const [totalPages, setTotalPages] = useState(1);
-
-  const [total, setTotal] = useState(0);
-
-  // ===================================================
   // PERMISSIONS
   // ===================================================
 
@@ -195,50 +215,145 @@ const WarehouseProducts = () => {
   );
 
   // ===================================================
+  // INITIAL LOADING STATES
+  // ===================================================
+
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  const [logoLoading, setLogoLoading] =
+    useState(true);
+
+  const [logoUrl, setLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
+  );
+
+  // Track the first products request separately from refreshes.
+  const hasStartedInitialFetch = useRef(false);
+
+  // ===================================================
+  // STATE
+  // ===================================================
+
+  const [products, setProducts] = useState<WarehouseProduct[]>([]);
+
+  const [warehouseName, setWarehouseName] = useState<string>("");
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [page, setPage] = useState(1);
+
+  const [perPage] = useState(25);
+
+  const [search, setSearch] = useState("");
+
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [total, setTotal] = useState(0);
+
+  // ===================================================
+  // FETCH LOGO
+  // ===================================================
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch logo error:", error);
+
+        // Keep the default logo if the logo API fails.
+        if (isMounted) {
+          setLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
   // FETCH PRODUCTS
   // ===================================================
 
-  const fetchProducts = async () => {
-    try {
-      setIsLoading(true);
+  const fetchProducts = useCallback(
+    async (isInitialLoad = false) => {
+      try {
+        setIsLoading(true);
 
-      const res = await warehouseStocksApi.getByWarehouse(
-        warehouseId,
-        {
-          page,
-          per_page: perPage,
-        },
-      );
-
-      if (res.data) {
-        setProducts(res.data.data ?? []);
-
-        setWarehouseName(
-          res.data.warehouse?.name ?? "",
+        const res = await warehouseStocksApi.getByWarehouse(
+          warehouseId,
+          {
+            page,
+            per_page: perPage,
+          },
         );
 
-        setTotal(
-          res.data.pagination?.total ?? 0,
+        if (res.data) {
+          setProducts(res.data.data ?? []);
+
+          setWarehouseName(
+            res.data.warehouse?.name ?? "",
+          );
+
+          setTotal(
+            res.data.pagination?.total ?? 0,
+          );
+
+          setTotalPages(
+            Math.max(
+              res.data.pagination?.last_page ?? 1,
+              1,
+            ),
+          );
+        }
+      } catch (err: any) {
+        console.error(
+          "Warehouse products fetch error:",
+          err,
         );
 
-        setTotalPages(
-          res.data.pagination?.last_page ?? 1,
+        toast.error(
+          err?.response?.data?.message ||
+            "Failed to load warehouse products",
         );
+      } finally {
+        setIsLoading(false);
+
+        // Only the first request releases initial-page loading.
+        // Refresh and pagination keep using the table spinner.
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
       }
-    } catch (err: any) {
-      console.error(
-        "Warehouse products fetch error:",
-        err,
-      );
-
-      toast.error(
-        err?.response?.data?.message ||
-          "Failed to load warehouse products",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [warehouseId, page, perPage],
+  );
 
   // ===================================================
   // FETCH AFTER PERMISSION CHECK
@@ -249,20 +364,31 @@ const WarehouseProducts = () => {
       return;
     }
 
-    if (canViewWarehouseProducts) {
-      fetchProducts();
-    } else {
+    if (!canViewWarehouseProducts) {
       setIsLoading(false);
+      setInitialDataLoading(false);
+      return;
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const isInitialLoad = !hasStartedInitialFetch.current;
+
+    hasStartedInitialFetch.current = true;
+
+    void fetchProducts(isInitialLoad);
   }, [
     permissionsLoading,
     canViewWarehouseProducts,
-    warehouseId,
-    page,
-    perPage,
+    fetchProducts,
   ]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // ===================================================
   // CLIENT-SIDE SEARCH
@@ -321,11 +447,11 @@ const WarehouseProducts = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING
+  // LOGO LOADING STATE
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoading />;
+  if (pageLoading) {
+    return <PermissionLoading logoUrl={logoUrl} />;
   }
 
   // ===================================================
@@ -374,9 +500,7 @@ const WarehouseProducts = () => {
                   : "Warehouse inventory"}
 
                 {total > 0 &&
-                  ` • ${total} product${
-                    total > 1 ? "s" : ""
-                  }`}
+                  ` • ${total} product${total > 1 ? "s" : ""}`}
               </p>
             </div>
           </div>
@@ -450,7 +574,6 @@ const WarehouseProducts = () => {
       ================================================= */}
 
       <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-[0_4px_20px_rgba(45,111,232,0.06)]">
-  
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -486,14 +609,10 @@ const WarehouseProducts = () => {
           </div>
         ) : (
           <>
-            {/* =================================================
-                TABLE
-            ================================================= */}
+            {/* TABLE */}
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1080px] table-fixed border-collapse">
-                {/* ✅ COLUMN WIDTHS — S.No. added */}
-
                 <colgroup>
                   <col className="w-[55px]" />
                   <col className="w-[24%]" />
@@ -505,12 +624,8 @@ const WarehouseProducts = () => {
                   <col className="w-[14%]" />
                 </colgroup>
 
-                {/* HEADER */}
-
                 <thead>
                   <tr className="bg-[#4F8FF7]">
-                    {/* ✅ S.No. */}
-
                     <th className="rounded-tl-xl px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                       S.No.
                     </th>
@@ -545,14 +660,10 @@ const WarehouseProducts = () => {
                   </tr>
                 </thead>
 
-                {/* BODY */}
-
                 <tbody>
                   {filteredProducts.map((product, idx) => {
                     const status = getStockStatus(product);
-
                     const meta = STOCK_STATUS_META[status];
-
                     const StatusIcon = meta.icon;
 
                     const stockQty =
@@ -574,7 +685,7 @@ const WarehouseProducts = () => {
                         }}
                         className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
                       >
-                        {/* ✅ S.No. — starts from 1 on every page */}
+                        {/* S.NO. */}
 
                         <td className="px-3 py-2.5 align-top">
                           <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
@@ -700,9 +811,7 @@ const WarehouseProducts = () => {
               </table>
             </div>
 
-            {/* =================================================
-                PAGINATION
-            ================================================= */}
+            {/* PAGINATION */}
 
             {totalPages > 1 && (
               <div className="flex flex-col items-center justify-between gap-3 border-t border-[#DCE6F2] px-4 py-4 md:flex-row">
@@ -725,7 +834,7 @@ const WarehouseProducts = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={page === 1}
+                    disabled={page === 1 || isLoading}
                     onClick={() =>
                       setPage((p) => Math.max(1, p - 1))
                     }
@@ -736,7 +845,7 @@ const WarehouseProducts = () => {
 
                   <button
                     type="button"
-                    disabled={page === totalPages}
+                    disabled={page === totalPages || isLoading}
                     onClick={() =>
                       setPage((p) =>
                         Math.min(totalPages, p + 1),

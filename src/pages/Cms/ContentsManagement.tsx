@@ -41,6 +41,16 @@ import contentsApi, {
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
+// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products)
+import logoApi from "../../api/endpoints/logoApi";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 // =====================================================
 // PERMISSION KEYS
 // =====================================================
@@ -208,26 +218,55 @@ const isExistingVideo = (image: ExistingImage) => {
 };
 
 // =====================================================
-// PERMISSION STATES
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products
 // =====================================================
-const PermissionLoadingState: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-    <div className="text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-        <FiRefreshCw size={27} className="animate-spin" />
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
-      </p>
-      <p className="mt-1 text-xs text-[#6B7280]">
-        Please wait while we verify your access.
-      </p>
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 const AccessDeniedState: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
     <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiFileText size={24} />
@@ -1418,10 +1457,21 @@ const ContentsManagement: React.FC = () => {
   );
 
   // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
   const [pages, setPages] = useState<ContentPage[]>([]);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialContentsLoading, setInitialContentsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [saveLoading, setSaveLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -1441,10 +1491,55 @@ const ContentsManagement: React.FC = () => {
   const hasInitialFetchRef = useRef(false);
 
   // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
   // FETCH
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
   const fetchContents = useCallback(
-    async (force = false) => {
+    async (force = false, isInitialLoad = false) => {
       if (!canViewContents) return;
       if (fetchInFlightRef.current) return fetchInFlightRef.current;
       if (!force && hasInitialFetchRef.current) return;
@@ -1467,6 +1562,10 @@ const ContentsManagement: React.FC = () => {
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialContentsLoading(false);
+          }
         }
       })();
 
@@ -1483,16 +1582,30 @@ const ContentsManagement: React.FC = () => {
     [canViewContents],
   );
 
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING CONTENTS
+  // ===================================================
   useEffect(() => {
-    if (
-      permissionsLoading ||
-      !canViewContents ||
-      hasInitialFetchRef.current
-    ) {
-      return;
+    if (permissionsLoading) return;
+
+    if (canViewContents && !hasInitialFetchRef.current) {
+      void fetchContents(false, true);
+    } else if (!canViewContents) {
+      setLoading(false);
+      setInitialContentsLoading(false);
     }
-    void fetchContents();
-  }, [permissionsLoading, canViewContents, fetchContents]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionsLoading, canViewContents]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialContentsLoading;
 
   // ===================================================
   // GROUP PAGES
@@ -1754,21 +1867,19 @@ const ContentsManagement: React.FC = () => {
   }, [canViewContents, fetchContents]);
 
   // ===================================================
-  // PERMISSION LOADING
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) return <PermissionLoadingState />;
-  if (!canViewContents) return <AccessDeniedState />;
 
-  if (loading && pages.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">Loading pages...</p>
-        </div>
-      </div>
-    );
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewContents) return <AccessDeniedState />;
 
   // ===================================================
   // UI
@@ -2023,7 +2134,21 @@ const ContentsManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {loading ? (
+                {/* ✅ initialContentsLoading par full spinner — refresh/CRUD par nahi */}
+                {initialContentsLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading pages...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && pages.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
@@ -2152,7 +2277,17 @@ const ContentsManagement: React.FC = () => {
 
           {/* MOBILE CARDS */}
           <div className="block lg:hidden">
-            {loading ? (
+            {/* ✅ initialContentsLoading par full spinner — refresh/CRUD par nahi */}
+            {initialContentsLoading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading pages...
+                </p>
+              </div>
+            ) : loading && pages.length === 0 ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiRefreshCw size={22} className="animate-spin" />
@@ -2264,7 +2399,7 @@ const ContentsManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredGroups.length > 0 && (
+          {!pageLoading && filteredGroups.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4  py-3.5 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">

@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   FiPlus,
@@ -23,6 +28,7 @@ import GlobalModal from "@/components/common/GlobalModal";
 import AddTaxCategoryModal from "./components/AddTaxCategoryModal";
 
 import { taxApi } from "../../../api/endpoints/taxApi";
+import logoApi from "../../../api/endpoints/logoApi";
 
 // =====================================================
 // PERMISSIONS
@@ -63,6 +69,13 @@ interface ApiResponse {
 }
 
 // =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// =====================================================
 // ANIMATION VARIANTS
 // =====================================================
 
@@ -85,7 +98,7 @@ const itemVariants = {
     y: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 110,
       damping: 16,
     },
@@ -117,28 +130,52 @@ const formatDate = (value?: string | null) => {
 };
 
 // =====================================================
-// PERMISSION LOADING STATE
+// COMPONENT-LEVEL LOGO LOADING STATE
+// SIDEBAR AND NAVBAR REMAIN VISIBLE
 // =====================================================
 
-const PermissionLoadingState: React.FC = () => {
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<
+  PermissionLoadingStateProps
+> = ({ logoUrl }) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D6E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-          <FiRefreshCw
-            size={24}
-            className="animate-spin"
-          />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#6B7280]">
-          Please wait while we verify your access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -191,13 +228,30 @@ const Taxcategories: React.FC = () => {
   );
 
   // ===================================================
-  // STATE
+  // LOGO STATE
   // ===================================================
 
-  const [taxCategories, setTaxCategories] =
-    useState<TaxCategory[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL,
+  );
 
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
+  // DATA STATE
+  // ===================================================
+
+  const [taxCategories, setTaxCategories] = useState<
+    TaxCategory[]
+  >([]);
+
+  // Normal refresh/table loading.
   const [loading, setLoading] = useState(false);
+
+  // First load only.
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -210,21 +264,15 @@ const Taxcategories: React.FC = () => {
   // ADD MODAL
   // ===================================================
 
-  const [addModalOpen, setAddModalOpen] =
-    useState(false);
-
-  const [addLoading, setAddLoading] =
-    useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
 
   // ===================================================
   // EDIT MODAL
   // ===================================================
 
-  const [editModalOpen, setEditModalOpen] =
-    useState(false);
-
-  const [editLoading, setEditLoading] =
-    useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
 
   const [selectedTaxCategory, setSelectedTaxCategory] =
     useState<TaxCategory | null>(null);
@@ -233,8 +281,7 @@ const Taxcategories: React.FC = () => {
   // VIEW MODAL
   // ===================================================
 
-  const [viewModalOpen, setViewModalOpen] =
-    useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
 
   const [viewTaxCategory, setViewTaxCategory] =
     useState<TaxCategory | null>(null);
@@ -247,10 +294,72 @@ const Taxcategories: React.FC = () => {
   const [editRate, setEditRate] = useState("");
 
   // ===================================================
+  // FETCH LOGO
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        /*
+         * Handles:
+         * response.data.data.logo
+         * response.data.logo
+         * response.data.data.data.logo
+         * response.logo
+         */
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
+        );
+
+        console.log("Tax category logo API response:", response);
+
+        console.log(
+          "Resolved logo URL:",
+          resolvedLogo ?? null,
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+
+        // API fail hone par default logo available rahega.
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
   // GET TAX CATEGORIES
   // ===================================================
 
-  const fetchTaxCategories = async () => {
+  const fetchTaxCategories = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -261,10 +370,7 @@ const Taxcategories: React.FC = () => {
       setTaxCategories(data.data || []);
       setPagination(data.pagination || null);
     } catch (error: any) {
-      console.error(
-        "Get tax categories error:",
-        error,
-      );
+      console.error("Get tax categories error:", error);
 
       toast.error(
         error?.response?.data?.message ||
@@ -273,23 +379,57 @@ const Taxcategories: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // ===================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE FETCHING TABLE DATA
   // ===================================================
 
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewTaxCategories
-    ) {
-      fetchTaxCategories();
+    if (permissionsLoading) {
+      return;
     }
+
+    let cancelled = false;
+
+    const loadInitialData = async () => {
+      if (!canViewTaxCategories) {
+        setInitialDataLoading(false);
+        return;
+      }
+
+      setInitialDataLoading(true);
+
+      try {
+        await fetchTaxCategories();
+      } finally {
+        if (!cancelled) {
+          setInitialDataLoading(false);
+        }
+      }
+    };
+
+    void loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     permissionsLoading,
     canViewTaxCategories,
+    fetchTaxCategories,
   ]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // PERMISSIONS + LOGO API + TAX CATEGORY DATA
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // ===================================================
   // SEARCH
@@ -319,28 +459,20 @@ const Taxcategories: React.FC = () => {
   // ===================================================
 
   const totalPages = Math.ceil(
-    filteredCategories.length /
-      ITEMS_PER_PAGE,
+    filteredCategories.length / ITEMS_PER_PAGE,
   );
 
-  const safeTotalPages = Math.max(
-    totalPages,
-    1,
+  const safeTotalPages = Math.max(totalPages, 1);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedCategories = filteredCategories.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
   );
-
-  const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const paginatedCategories =
-    filteredCategories.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE,
-    );
 
   const startEntry =
-    filteredCategories.length === 0
-      ? 0
-      : startIndex + 1;
+    filteredCategories.length === 0 ? 0 : startIndex + 1;
 
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
@@ -355,10 +487,7 @@ const Taxcategories: React.FC = () => {
     if (currentPage > safeTotalPages) {
       setCurrentPage(safeTotalPages);
     }
-  }, [
-    currentPage,
-    safeTotalPages,
-  ]);
+  }, [currentPage, safeTotalPages]);
 
   // ===================================================
   // SEARCH HANDLER
@@ -394,10 +523,7 @@ const Taxcategories: React.FC = () => {
           "Tax category added successfully.",
       );
     } catch (error: any) {
-      console.error(
-        "Add tax category error:",
-        error,
-      );
+      console.error("Add tax category error:", error);
 
       toast.error(
         error?.response?.data?.message ||
@@ -412,9 +538,7 @@ const Taxcategories: React.FC = () => {
   // EDIT OPEN
   // ===================================================
 
-  const handleEdit = (
-    category: TaxCategory,
-  ) => {
+  const handleEdit = (category: TaxCategory) => {
     setSelectedTaxCategory(category);
     setEditName(category.name);
     setEditRate(String(category.rate));
@@ -435,45 +559,32 @@ const Taxcategories: React.FC = () => {
     }
 
     if (!editName.trim()) {
-      toast.error(
-        "Please enter tax category name",
-      );
+      toast.error("Please enter tax category name");
       return;
     }
 
-    if (
-      !editRate.trim() ||
-      isNaN(Number(editRate))
-    ) {
-      toast.error(
-        "Please enter a valid tax rate",
-      );
+    if (!editRate.trim() || isNaN(Number(editRate))) {
+      toast.error("Please enter a valid tax rate");
       return;
     }
 
     const rateNum = Number(editRate);
 
-    if (
-      rateNum < 0 ||
-      rateNum > 100
-    ) {
-      toast.error(
-        "Tax rate must be between 0 and 100",
-      );
+    if (rateNum < 0 || rateNum > 100) {
+      toast.error("Tax rate must be between 0 and 100");
       return;
     }
 
     try {
       setEditLoading(true);
 
-      const response =
-        await taxApi.update(
-          selectedTaxCategory.id,
-          {
-            name: editName.trim(),
-            rate: rateNum,
-          },
-        );
+      const response = await taxApi.update(
+        selectedTaxCategory.id,
+        {
+          name: editName.trim(),
+          rate: rateNum,
+        },
+      );
 
       await fetchTaxCategories();
 
@@ -485,10 +596,7 @@ const Taxcategories: React.FC = () => {
           "Tax category updated successfully.",
       );
     } catch (error: any) {
-      console.error(
-        "Update tax category error:",
-        error,
-      );
+      console.error("Update tax category error:", error);
 
       toast.error(
         error?.response?.data?.message ||
@@ -503,15 +611,13 @@ const Taxcategories: React.FC = () => {
   // VIEW
   // ===================================================
 
-  const handleView = (
-    category: TaxCategory,
-  ) => {
+  const handleView = (category: TaxCategory) => {
     setViewTaxCategory(category);
     setViewModalOpen(true);
   };
 
   // ===================================================
-  // RESET FORM
+  // RESET EDIT FORM
   // ===================================================
 
   const resetEditForm = () => {
@@ -524,17 +630,12 @@ const Taxcategories: React.FC = () => {
   // PAGE CHANGE
   // ===================================================
 
-  const handlePageChange = (
-    page: number,
-  ) => {
+  const handlePageChange = (page: number) => {
     if (page < 1) {
       return;
     }
 
-    if (
-      totalPages > 0 &&
-      page > totalPages
-    ) {
+    if (totalPages > 0 && page > totalPages) {
       return;
     }
 
@@ -557,10 +658,7 @@ const Taxcategories: React.FC = () => {
       return [1, 2, 3, 4, 5];
     }
 
-    if (
-      currentPage >=
-      totalPages - 2
-    ) {
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -580,11 +678,12 @@ const Taxcategories: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // LOADING STATE
+  // COMBINED LOADING STATE
+  // LOADER IS ONLY INSIDE THIS COMPONENT
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
@@ -593,7 +692,7 @@ const Taxcategories: React.FC = () => {
 
   if (!canViewTaxCategories) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+      <div className="flex min-h-[80vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
@@ -604,8 +703,7 @@ const Taxcategories: React.FC = () => {
           </h2>
 
           <p className="mt-2 text-sm text-[#6B7280]">
-            You don't have permission to
-            access this section.
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
@@ -618,14 +716,12 @@ const Taxcategories: React.FC = () => {
 
   return (
     <motion.div
-      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
+      className="min-h-screen w-full bg-white p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* =================================================
-          PAGE HEADER
-      ================================================= */}
+      {/* PAGE HEADER */}
 
       <motion.div
         variants={itemVariants}
@@ -649,8 +745,7 @@ const Taxcategories: React.FC = () => {
           </h1>
 
           <p className="mt-0.5 text-sm text-[#111827]">
-            Manage tax categories, rates, and
-            applicable tax information.
+            Manage tax categories, rates, and applicable tax information.
           </p>
         </div>
 
@@ -662,22 +757,17 @@ const Taxcategories: React.FC = () => {
           </div>
 
           <div className="mt-0.5 text-lg font-bold text-[#111827]">
-            {pagination?.total ??
-              taxCategories.length}
+            {pagination?.total ?? taxCategories.length}
           </div>
         </div>
       </motion.div>
 
-      {/* =================================================
-          SEARCH + ACTION
-      ================================================= */}
+      {/* SEARCH + ACTION */}
 
       <motion.div
         variants={itemVariants}
-        className="relative mb-5 overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4  sm:p-5"
+        className="relative mb-5 overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white p-4 sm:p-5"
       >
-   
-
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full border border-[#2D6FE8]/10" />
 
         <div className="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full border border-[#2D6FE8]/10" />
@@ -696,11 +786,7 @@ const Taxcategories: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) =>
-                handleSearch(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search tax categories..."
               className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
@@ -714,7 +800,7 @@ const Taxcategories: React.FC = () => {
             <motion.button
               type="button"
               onClick={() => {
-                fetchTaxCategories();
+                void fetchTaxCategories();
                 setCurrentPage(1);
               }}
               disabled={loading}
@@ -724,16 +810,10 @@ const Taxcategories: React.FC = () => {
             >
               <FiRefreshCw
                 size={14}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
+                className={loading ? "animate-spin" : ""}
               />
 
-              <span className="hidden sm:inline">
-                Refresh
-              </span>
+              <span className="hidden sm:inline">Refresh</span>
             </motion.button>
 
             {/* ADD */}
@@ -741,17 +821,12 @@ const Taxcategories: React.FC = () => {
             {canCreateTaxCategory && (
               <motion.button
                 type="button"
-                onClick={() =>
-                  setAddModalOpen(true)
-                }
+                onClick={() => setAddModalOpen(true)}
                 whileHover={{ y: -2 }}
-                whileTap={{
-                  scale: 0.97,
-                }}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white  transition hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
+                whileTap={{ scale: 0.97 }}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white transition hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
               >
                 <FiPlus size={15} />
-
                 Add Tax Category
               </motion.button>
             )}
@@ -759,17 +834,12 @@ const Taxcategories: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* =================================================
-          TABLE CARD
-      ================================================= */}
+      {/* TABLE CARD */}
 
       <motion.div
         variants={itemVariants}
         className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white shadow-[0_10px_35px_-24px_rgba(42,65,104,0.35)]"
       >
-   
-        {/* TABLE */}
-
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px] border-collapse">
             <thead>
@@ -790,8 +860,7 @@ const Taxcategories: React.FC = () => {
                   Created At
                 </th>
 
-                {(canViewTaxCategories ||
-                  canUpdateTaxCategory) && (
+                {(canViewTaxCategories || canUpdateTaxCategory) && (
                   <th className="px-4 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                     Actions
                   </th>
@@ -800,22 +869,20 @@ const Taxcategories: React.FC = () => {
             </thead>
 
             <tbody>
-              {/* LOADING */}
+              {/* REFRESH LOADING */}
 
               {loading ? (
                 <tr>
                   <td
-                    colSpan={
-                      canViewTaxCategories ||
-                      canUpdateTaxCategory
-                        ? 5
-                        : 4
-                    }
+                    colSpan={5}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
-                      <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                        <FiPercent size={22} />
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                        <FiRefreshCw
+                          size={23}
+                          className="animate-spin"
+                        />
                       </div>
 
                       <p className="mt-4 text-sm font-bold text-[#111827]">
@@ -828,176 +895,128 @@ const Taxcategories: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ) : paginatedCategories.length ===
-                0 ? (
-                /* EMPTY */
+              ) : paginatedCategories.length === 0 ? (
+                /* EMPTY STATE */
 
                 <tr>
                   <td
-                    colSpan={
-                      canViewTaxCategories ||
-                      canUpdateTaxCategory
-                        ? 5
-                        : 4
-                    }
+                    colSpan={5}
                     className="px-5 py-16 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
                       <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-[#EAF3FF] text-[#2D6FE8]">
-                        <FiLayers
-                          size={24}
-                        />
+                        <FiLayers size={24} />
                       </div>
 
                       <p className="mt-4 text-sm font-bold text-[#111827]">
-                        No tax categories
-                        found
+                        No tax categories found
                       </p>
 
                       <p className="mt-1 max-w-sm text-xs text-[#6B7280]">
-                        There are no tax
-                        categories matching
-                        your current search.
+                        There are no tax categories matching your current search.
                       </p>
                     </div>
                   </td>
                 </tr>
               ) : (
-                /* ROWS */
+                /* TAX CATEGORY ROWS */
 
-                paginatedCategories.map(
-                  (item, index) => {
-                    const serialNumber =
-                      startIndex +
-                      index +
-                      1;
+                paginatedCategories.map((item, index) => {
+                  const serialNumber = startIndex + index + 1;
 
-                    return (
-                      <motion.tr
-                        key={item.id}
-                        initial={{
-                          opacity: 0,
-                          y: 5,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          delay:
-                            index *
-                            0.03,
-                        }}
-                        className="group border-b border-[#2D6FE8]/10 bg-white transition-all duration-200 hover:bg-[#F4F8FD]"
-                      >
-                        {/* S.NO */}
+                  return (
+                    <motion.tr
+                      key={item.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="group border-b border-[#2D6FE8]/10 bg-white transition-all duration-200 hover:bg-[#F4F8FD]"
+                    >
+                      {/* S.NO */}
 
-                        <td className="px-4 py-3.5">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                            {
-                              serialNumber
-                            }
+                      <td className="px-4 py-3.5">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
+                          {serialNumber}
+                        </span>
+                      </td>
+
+                      {/* TAX NAME */}
+
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+
+                          <span className="text-sm font-bold text-[#111827]">
+                            {item.name}
                           </span>
-                        </td>
+                        </div>
+                      </td>
 
-                        {/* TAX NAME */}
+                      {/* RATE */}
 
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
+                          <FiPercent size={12} />
+                          {item.rate_formatted}
+                        </span>
+                      </td>
+
+                      {/* CREATED */}
+
+                      <td className="px-4 py-3.5">
+                        <span className="text-xs font-medium text-[#111827]">
+                          {formatDate(item.created_at)}
+                        </span>
+                      </td>
+
+                      {/* ACTIONS */}
+
+                      {(canViewTaxCategories || canUpdateTaxCategory) && (
                         <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                          <div className="flex justify-center gap-1.5">
+                            {/* VIEW */}
 
-                            <span className="text-sm font-bold text-[#111827]">
-                              {
-                                item.name
-                              }
-                            </span>
+                            {canViewTaxCategories && (
+                              <button
+                                type="button"
+                                title="View Details"
+                                onClick={() => handleView(item)}
+                                className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                              >
+                                <FiEye
+                                  size={15}
+                                  className="transition-transform group-hover/view:scale-110"
+                                />
+                              </button>
+                            )}
+
+                            {/* EDIT */}
+
+                            {canUpdateTaxCategory && (
+                              <button
+                                type="button"
+                                title="Edit Tax Category"
+                                onClick={() => handleEdit(item)}
+                                className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                              >
+                                <FiEdit2
+                                  size={15}
+                                  className="transition-transform group-hover/edit:scale-110"
+                                />
+                              </button>
+                            )}
                           </div>
                         </td>
-
-                        {/* RATE */}
-
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-3 py-1.5 text-xs font-bold text-[#2D6FE8]">
-                            <FiPercent
-                              size={12}
-                            />
-
-                            {
-                              item.rate_formatted
-                            }
-                          </span>
-                        </td>
-
-                        {/* CREATED */}
-
-                        <td className="px-4 py-3.5">
-                          <span className="text-xs font-medium text-[#111827]">
-                            {formatDate(
-                              item.created_at,
-                            )}
-                          </span>
-                        </td>
-
-                        {/* ACTIONS */}
-
-                        {(canViewTaxCategories ||
-                          canUpdateTaxCategory) && (
-                          <td className="px-4 py-3.5">
-                            <div className="flex justify-center gap-1.5">
-                              {/* VIEW */}
-
-                              {canViewTaxCategories && (
-                                <button
-                                  type="button"
-                                  title="View Details"
-                                  onClick={() =>
-                                    handleView(
-                                      item,
-                                    )
-                                  }
-                                  className="group/view flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] text-[#2D6FE8] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                >
-                                  <FiEye
-                                    size={15}
-                                    className="transition-transform group-hover/view:scale-110"
-                                  />
-                                </button>
-                              )}
-
-                              {/* EDIT */}
-
-                              {canUpdateTaxCategory && (
-                                <button
-                                  type="button"
-                                  title="Edit Tax Category"
-                                  onClick={() =>
-                                    handleEdit(
-                                      item,
-                                    )
-                                  }
-                                  className="group/edit flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-white text-[#111827] transition-all duration-200 hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                                >
-                                  <FiEdit2
-                                    size={15}
-                                    className="transition-transform group-hover/edit:scale-110"
-                                  />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </motion.tr>
-                    );
-                  },
-                )
+                      )}
+                    </motion.tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
+        {/* PAGINATION */}
 
         {filteredCategories.length > 0 && (
           <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3.5 sm:px-5">
@@ -1013,9 +1032,7 @@ const Taxcategories: React.FC = () => {
                 </span>{" "}
                 of{" "}
                 <span className="font-bold text-[#111827]">
-                  {
-                    filteredCategories.length
-                  }
+                  {filteredCategories.length}
                 </span>{" "}
                 entries
               </p>
@@ -1025,66 +1042,43 @@ const Taxcategories: React.FC = () => {
 
                 <button
                   type="button"
-                  disabled={
-                    currentPage === 1
-                  }
-                  onClick={() =>
-                    handlePageChange(
-                      currentPage - 1,
-                    )
-                  }
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Previous page"
                 >
-                  <FiChevronLeft
-                    size={17}
-                  />
+                  <FiChevronLeft size={17} />
                 </button>
 
                 {/* PAGE NUMBERS */}
 
-                {paginationPages.map(
-                  (page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() =>
-                        handlePageChange(
-                          page,
-                        )
-                      }
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                        currentPage ===
-                        page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
-                          : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
+                {paginationPages.map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => handlePageChange(page)}
+                    className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                      currentPage === page
+                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
+                        : "border border-transparent text-[#111827] hover:border-[#2D6FE8]/15 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 {/* NEXT */}
 
                 <button
                   type="button"
                   disabled={
-                    currentPage ===
-                      totalPages ||
-                    totalPages === 0
+                    currentPage === totalPages || totalPages === 0
                   }
-                  onClick={() =>
-                    handlePageChange(
-                      currentPage + 1,
-                    )
-                  }
+                  onClick={() => handlePageChange(currentPage + 1)}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-30"
                   title="Next page"
                 >
-                  <FiChevronRight
-                    size={17}
-                  />
+                  <FiChevronRight size={17} />
                 </button>
               </div>
             </div>
@@ -1099,14 +1093,13 @@ const Taxcategories: React.FC = () => {
       {canViewTaxCategories && (
         <GlobalModal
           isOpen={viewModalOpen}
-          onClose={() =>
-            setViewModalOpen(false)
-          }
+          onClose={() => setViewModalOpen(false)}
           closeOnOverlayClick
         >
           {viewTaxCategory && (
             <div className="relative w-full max-w-[500px] overflow-hidden rounded-[20px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
-   
+              {/* HEADER */}
+
               <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-5">
                 <div>
                   <div className="mb-1.5 flex items-center gap-2">
@@ -1122,18 +1115,13 @@ const Taxcategories: React.FC = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-[#6B7280]">
-                    View tax category
-                    information
+                    View tax category information
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setViewModalOpen(
-                      false,
-                    )
-                  }
+                  onClick={() => setViewModalOpen(false)}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#111827] transition hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 >
                   <FiX size={18} />
@@ -1152,9 +1140,7 @@ const Taxcategories: React.FC = () => {
                     </p>
 
                     <p className="text-sm font-bold text-[#111827]">
-                      {
-                        viewTaxCategory.name
-                      }
+                      {viewTaxCategory.name}
                     </p>
                   </div>
 
@@ -1166,13 +1152,8 @@ const Taxcategories: React.FC = () => {
                     </p>
 
                     <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
-                      <FiPercent
-                        size={14}
-                      />
-
-                      {
-                        viewTaxCategory.rate_formatted
-                      }
+                      <FiPercent size={14} />
+                      {viewTaxCategory.rate_formatted}
                     </span>
                   </div>
 
@@ -1184,9 +1165,7 @@ const Taxcategories: React.FC = () => {
                     </p>
 
                     <p className="text-xs font-semibold text-[#111827]">
-                      {formatDate(
-                        viewTaxCategory.created_at,
-                      )}
+                      {formatDate(viewTaxCategory.created_at)}
                     </p>
                   </div>
 
@@ -1198,9 +1177,7 @@ const Taxcategories: React.FC = () => {
                     </p>
 
                     <p className="text-xs font-semibold text-[#111827]">
-                      {formatDate(
-                        viewTaxCategory.updated_at,
-                      )}
+                      {formatDate(viewTaxCategory.updated_at)}
                     </p>
                   </div>
                 </div>
@@ -1211,11 +1188,7 @@ const Taxcategories: React.FC = () => {
               <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3.5">
                 <button
                   type="button"
-                  onClick={() =>
-                    setViewModalOpen(
-                      false,
-                    )
-                  }
+                  onClick={() => setViewModalOpen(false)}
                   className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#111827] transition hover:border-[#2D6FE8]/20 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 >
                   Close
@@ -1225,12 +1198,8 @@ const Taxcategories: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      setViewModalOpen(
-                        false,
-                      );
-                      handleEdit(
-                        viewTaxCategory,
-                      );
+                      setViewModalOpen(false);
+                      handleEdit(viewTaxCategory);
                     }}
                     className="rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)]"
                   >
@@ -1273,9 +1242,7 @@ const Taxcategories: React.FC = () => {
               resetEditForm();
             }
           }}
-          closeOnOverlayClick={
-            !editLoading
-          }
+          closeOnOverlayClick={!editLoading}
         >
           <div className="relative w-full max-w-[500px] overflow-hidden rounded-[20px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
             {/* ACCENT */}
@@ -1299,8 +1266,7 @@ const Taxcategories: React.FC = () => {
                 </h2>
 
                 <p className="mt-1 text-xs text-[#6B7280]">
-                  Update tax category
-                  information
+                  Update tax category information
                 </p>
               </div>
 
@@ -1308,9 +1274,7 @@ const Taxcategories: React.FC = () => {
                 type="button"
                 onClick={() => {
                   if (!editLoading) {
-                    setEditModalOpen(
-                      false,
-                    );
+                    setEditModalOpen(false);
                     resetEditForm();
                   }
                 }}
@@ -1325,9 +1289,7 @@ const Taxcategories: React.FC = () => {
             <div className="max-h-[calc(100vh-155px)] overflow-y-auto bg-[#F8FBFF] px-5 py-5">
               <form
                 id="edit-tax-category-form"
-                onSubmit={
-                  handleUpdateTaxCategory
-                }
+                onSubmit={handleUpdateTaxCategory}
                 className="space-y-5"
               >
                 {/* TAX NAME */}
@@ -1335,19 +1297,13 @@ const Taxcategories: React.FC = () => {
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
                     Tax Name{" "}
-                    <span className="text-[#C23B32]">
-                      *
-                    </span>
+                    <span className="text-[#C23B32]">*</span>
                   </label>
 
                   <input
                     type="text"
                     value={editName}
-                    onChange={(e) =>
-                      setEditName(
-                        e.target.value,
-                      )
-                    }
+                    onChange={(e) => setEditName(e.target.value)}
                     placeholder="e.g. GST, VAT, Sales Tax"
                     className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15"
                   />
@@ -1358,20 +1314,14 @@ const Taxcategories: React.FC = () => {
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
                     Tax Rate (%){" "}
-                    <span className="text-[#C23B32]">
-                      *
-                    </span>
+                    <span className="text-[#C23B32]">*</span>
                   </label>
 
                   <div className="relative">
                     <input
                       type="number"
                       value={editRate}
-                      onChange={(e) =>
-                        setEditRate(
-                          e.target.value,
-                        )
-                      }
+                      onChange={(e) => setEditRate(e.target.value)}
                       placeholder="e.g. 18"
                       min="0"
                       max="100"
@@ -1385,8 +1335,7 @@ const Taxcategories: React.FC = () => {
                   </div>
 
                   <p className="mt-1.5 text-[9px] text-[#6B7280]">
-                    Enter a percentage
-                    between 0 and 100.
+                    Enter a percentage between 0 and 100.
                   </p>
                 </div>
 
@@ -1398,27 +1347,15 @@ const Taxcategories: React.FC = () => {
                   </label>
 
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      "0",
-                      "5",
-                      "12",
-                      "18",
-                      "28",
-                    ].map(
+                    {["0", "5", "12", "18", "28"].map(
                       (gstRate) => {
-                        const isSelected =
-                          editRate ===
-                          gstRate;
+                        const isSelected = editRate === gstRate;
 
                         return (
                           <button
                             key={gstRate}
                             type="button"
-                            onClick={() =>
-                              setEditRate(
-                                gstRate,
-                              )
-                            }
+                            onClick={() => setEditRate(gstRate)}
                             className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                               isSelected
                                 ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.55)]"
@@ -1442,9 +1379,7 @@ const Taxcategories: React.FC = () => {
                 type="button"
                 onClick={() => {
                   if (!editLoading) {
-                    setEditModalOpen(
-                      false,
-                    );
+                    setEditModalOpen(false);
                     resetEditForm();
                   }
                 }}
@@ -1467,9 +1402,7 @@ const Taxcategories: React.FC = () => {
                   />
                 )}
 
-                {editLoading
-                  ? "Updating..."
-                  : "Update Category"}
+                {editLoading ? "Updating..." : "Update Category"}
               </button>
             </div>
           </div>

@@ -40,6 +40,16 @@ import cancellationApi, {
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
+// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / BrandsManagement)
+import logoApi from "../../api/endpoints/logoApi";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 // =====================================================
 // ANIMATIONS
 // =====================================================
@@ -155,23 +165,12 @@ const getCancellationAmount = (row: any): number => {
 /* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Returns the actual refunded amount for a cancellation record.
- *
- * Priority:
- *   1. `refunds[0].amount` — most accurate (actual refund processed)
- *   2. `refunds[0].adjusted_amount` — if adjustment exists
- *   3. `refunded_amount` (top-level)
- *   4. `refund_amount` (fallback)
- */
 function getRefundedAmount(record: any): number | null {
   if (!record) return null;
 
-  // ✅ Check refunds array first (most accurate)
   const refundsArray = record.refunds;
 
   if (Array.isArray(refundsArray) && refundsArray.length > 0) {
-    // Find completed refund
     const completedRefund = refundsArray.find(
       (r: any) =>
         String(r.status || "").toLowerCase() === "completed" ||
@@ -205,7 +204,6 @@ function getRefundedAmount(record: any): number | null {
     }
   }
 
-  // ✅ Fallback to top-level fields
   const topLevelCandidates = [
     record.refunded_amount,
     record.refund_amount,
@@ -233,9 +231,6 @@ function getRefundedAmount(record: any): number | null {
   return null;
 }
 
-/**
- * Returns true if the cancellation record has been refunded.
- */
 function isRefundProcessed(record: any): boolean {
   if (!record) return false;
 
@@ -255,7 +250,6 @@ function isRefundProcessed(record: any): boolean {
     return true;
   }
 
-  // Check refunds array
   const refundsArray = record.refunds;
 
   if (Array.isArray(refundsArray) && refundsArray.length > 0) {
@@ -269,24 +263,15 @@ function isRefundProcessed(record: any): boolean {
   return getRefundedAmount(record) !== null;
 }
 
-/**
- * Returns the amount to display in the "Cancellation Amount" column.
- *
- * Priority:
- *   1. If refunded, use actual refunded amount
- *   2. Original cancellation amount
- */
 function getDisplayAmount(record: any): number | null {
   if (!record) return null;
 
-  // If refunded, show actual refunded amount
   const refunded = getRefundedAmount(record);
 
   if (refunded !== null && isRefundProcessed(record)) {
     return refunded;
   }
 
-  // Otherwise, show original cancellation amount
   const original = getRowAmount(record);
   return original > 0 ? original : null;
 }
@@ -368,8 +353,10 @@ const getCustomerName = (
     full_name?: string | null;
     email?: string;
   } | null,
+  accountType?: string | null,
 ) => {
-  if (!user) return "Customer";
+  const fallbackName = getAccountTypeLabel(accountType);
+  if (!user) return fallbackName;
 
   if (user.full_name?.trim()) {
     return user.full_name;
@@ -383,7 +370,7 @@ const getCustomerName = (
     return user.email.split("@")[0];
   }
 
-  return "Customer";
+  return fallbackName;
 };
 
 // =====================================================
@@ -426,12 +413,14 @@ const getAccountTypeClass = (
 const getRowAccountType = (row: any): string => {
   if (!row) return "customer";
 
-  return (
+  return String(
     row.user?.account_type ||
-    row.order?.user?.account_type ||
-    row.order?.order_type ||
-    "customer"
-  );
+      row.order?.user?.account_type ||
+      row.order?.order_type ||
+      "customer",
+  )
+    .trim()
+    .toLowerCase();
 };
 
 const getAccountTypeLower = (
@@ -570,6 +559,54 @@ const buildTimelineEvents = (
         new Date(a.date.replace(" ", "T")).getTime() -
         new Date(b.date.replace(" ", "T")).getTime(),
     );
+};
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / BrandsManagement / Addcategories
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 // =====================================================
@@ -721,6 +758,7 @@ const TimelineStepper: React.FC<TimelineStepperProps> = ({
 interface RejectPopupProps {
   open: boolean;
   loading: boolean;
+  customerLabel: string;
   onClose: () => void;
   onConfirm: (
     rejectionReason: string,
@@ -731,6 +769,7 @@ interface RejectPopupProps {
 const RejectPopup: React.FC<RejectPopupProps> = ({
   open,
   loading,
+  customerLabel = "Customer",
   onClose,
   onConfirm,
 }) => {
@@ -818,7 +857,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
           <div className="rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] p-2.5">
             <p className="text-[11px] leading-4 text-[#C23B32]">
               ⚠️ Rejecting will mark this cancellation request as rejected.
-              Customer will be notified.
+              {customerLabel} will be notified.
             </p>
           </div>
         </div>
@@ -864,6 +903,7 @@ interface PayPopupProps {
   orderLineId: number | null;
   orderReference: string;
   customerName: string;
+  customerLabel: string;
   defaultAmount: number;
   loading: boolean;
   onClose: () => void;
@@ -877,6 +917,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
   open,
   orderReference,
   customerName,
+  customerLabel,
   defaultAmount,
   loading,
   onClose,
@@ -925,7 +966,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
             </h2>
 
             <p className="mt-0.5 text-[11px] text-[#6B7280]">
-              Enter the amount to be refunded to the customer.
+              Enter the amount to be refunded to the {customerLabel.toLowerCase()}.
             </p>
           </div>
 
@@ -942,14 +983,14 @@ const PayPopup: React.FC<PayPopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Order</span>
+              <span className="text-xs text-[#6B7280]">Order Reference</span>
               <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">Customer</span>
+              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
               </span>
@@ -1108,6 +1149,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   const status = detail.status || deriveStatus(raw);
 
   const orderReference =
+    raw.item_reference_id ||
     raw.order_reference ||
     raw.order?.order_reference ||
     "N/A";
@@ -1123,40 +1165,26 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
       raw.order?.user?.name ||
       null,
     email:
-      raw.user?.email ||
-      raw.order?.user?.email ||
-      "",
+      raw.user?.email || raw.order?.user?.email || "",
     phone:
-      raw.user?.phone ||
-      raw.order?.user?.phone ||
-      "",
+      raw.user?.phone || raw.order?.user?.phone || "",
   };
 
   const accountType = getRowAccountType(raw);
   const quantity = Number(raw.quantity ?? 1);
   const unitPrice = Number(raw.unit_price ?? 0);
 
-  const subtotal =
-    raw.refund_amount ??
-    unitPrice * quantity;
+  const subtotal = raw.refund_amount ?? unitPrice * quantity;
 
-  const tax =
-    raw.tax ??
-    raw.gst_amount ??
-    raw.igst_amount ??
-    0;
+  const tax = raw.tax ?? raw.gst_amount ?? raw.igst_amount ?? 0;
 
   const reason =
-    raw.reason ??
-    raw.cancellation_reason ??
-    "No reason provided.";
+    raw.reason ?? raw.cancellation_reason ?? "No reason provided.";
 
-  const itemReference = raw.item_reference_id || "N/A";
-
-  // ✅ Refund details from refunds array
-  const refundDetails = Array.isArray(raw.refunds) && raw.refunds.length > 0
-    ? raw.refunds[0]
-    : null;
+  const refundDetails =
+    Array.isArray(raw.refunds) && raw.refunds.length > 0
+      ? raw.refunds[0]
+      : null;
 
   const timelineSource =
     raw.timeline ||
@@ -1169,13 +1197,9 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
     : buildTimelineEvents(
         {
           created_at:
-            raw.order_created_at ||
-            raw.created_at ||
-            null,
+            raw.order_created_at || raw.created_at || null,
           cancellation_requested_at:
-            raw.cancellation_requested_at ||
-            raw.created_at ||
-            null,
+            raw.cancellation_requested_at || raw.created_at || null,
           cancelled_at:
             raw.cancelled_at ||
             (status === "approved" ? raw.updated_at : null),
@@ -1211,14 +1235,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </h2>
 
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-              <span>Item Ref: {itemReference}</span>
-
-              {orderReference !== "N/A" && (
-                <>
-                  <span>•</span>
-                  <span>{orderReference}</span>
-                </>
-              )}
+              <span>Order Reference: {orderReference}</span>
 
               {raw.created_at && (
                 <>
@@ -1285,7 +1302,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ REFUND COMPLETED BANNER */}
+          {/* REFUND COMPLETED BANNER */}
           {isRefunded && refundedAmount !== null && (
             <div className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-5 py-3">
@@ -1456,7 +1473,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
                   <span className="text-xs text-[#6B7280]">Name</span>
                   <span className="text-right text-sm font-semibold text-[#111827]">
-                    {getCustomerName(customer)}
+                    {getCustomerName(customer, accountType)}
                   </span>
                 </div>
 
@@ -1511,15 +1528,6 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   </span>
                 </div>
 
-                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
-                    Item Reference
-                  </span>
-                  <span className="text-sm font-semibold text-[#111827]">
-                    {itemReference}
-                  </span>
-                </div>
-
                 <div className="flex justify-between gap-4">
                   <span className="text-xs text-[#6B7280]">
                     Delivery Status
@@ -1532,7 +1540,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ AMOUNT — Now shows refunded amount if available */}
+          {/* AMOUNT */}
           <div className="mt-5 rounded-2xl border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] p-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -1545,7 +1553,6 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   {formatCurrency(displayAmount)}
                 </p>
 
-                {/* ✅ Show original amount as secondary info when refunded */}
                 {isRefunded &&
                   refundedAmount !== null &&
                   amount > 0 &&
@@ -1562,7 +1569,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* ✅ REFUND DETAILS (if available) */}
+          {/* REFUND DETAILS */}
           {isRefunded && refundDetails && (
             <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
               <div className="border-b border-[#DCE6F2] bg-[#F4F8FD] px-5 py-3">
@@ -1787,6 +1794,13 @@ const CancelRefund: React.FC = () => {
   );
 
   // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
 
@@ -1795,6 +1809,11 @@ const CancelRefund: React.FC = () => {
     useState<CancellationFilterTab>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // ✅ first load only
+  const [initialCancellationsLoading, setInitialCancellationsLoading] =
+    useState(true);
+  // ✅ subsequent fetch (refresh/CRUD) — does NOT block page
   const [loading, setLoading] = useState(false);
 
   const [selectedDetail, setSelectedDetail] =
@@ -1823,10 +1842,58 @@ const CancelRefund: React.FC = () => {
   const hasFetchedListRef = useRef(false);
 
   // ===================================================
-  // FETCH ALL
+  // LOGO FETCH (same as Orders / ReturnRefund / BrandsManagement)
   // ===================================================
 
-  const fetchCancellationRequests = async (force = false) => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH ALL
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+
+  const fetchCancellationRequests = async (
+    force = false,
+    isInitialLoad = false,
+  ) => {
     if (listFetchInFlightRef.current) {
       return listFetchInFlightRef.current;
     }
@@ -1863,7 +1930,9 @@ const CancelRefund: React.FC = () => {
                 order_line_id:
                   row.order_line_id ?? row.id,
 
+                // Use the item reference as the primary reference throughout this screen.
                 order_reference:
+                  row.item_reference_id ||
                   row.order_reference ||
                   row.order?.order_reference ||
                   "N/A",
@@ -1956,6 +2025,10 @@ const CancelRefund: React.FC = () => {
         );
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialCancellationsLoading(false);
+        }
       }
     })();
 
@@ -1970,17 +2043,29 @@ const CancelRefund: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING CANCELLATIONS
   // ===================================================
 
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewCancellation &&
-      !hasFetchedListRef.current
-    ) {
-      fetchCancellationRequests();
+    if (permissionsLoading) return;
+
+    if (canViewCancellation && !hasFetchedListRef.current) {
+      void fetchCancellationRequests(false, true);
+    } else if (!canViewCancellation) {
+      setLoading(false);
+      setInitialCancellationsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewCancellation]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialCancellationsLoading;
 
   // ===================================================
   // STATS
@@ -2290,22 +2375,6 @@ const CancelRefund: React.FC = () => {
   };
 
   // ===================================================
-  // REFRESH
-  // ===================================================
-
-  const handleRefresh = async () => {
-    if (!canViewCancellation || loading) {
-      return;
-    }
-
-    await fetchCancellationRequests(true);
-
-    toast.success(
-      "Cancellation requests refreshed.",
-    );
-  };
-
-  // ===================================================
   // FILTER / SEARCH / PAGINATION HANDLERS
   // ===================================================
 
@@ -2330,26 +2399,32 @@ const CancelRefund: React.FC = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING UI
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
 
-  if (permissionsLoading) {
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewCancellation) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw
-              size={27}
-              className="animate-spin"
-            />
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <FiAlertCircle size={26} />
           </div>
 
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
 
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Please wait while we verify your access.
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
@@ -2392,23 +2467,9 @@ const CancelRefund: React.FC = () => {
             </h1>
 
             <p className="mt-0.5 text-sm text-[#111827]">
-              Review, approve, reject and pay customer
-              cancellation requests.
+              Review, approve, reject and pay cancellation requests.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] disabled:opacity-50"
-          >
-            <FiRefreshCw
-              size={16}
-              className={loading ? "animate-spin" : ""}
-            />
-            Refresh
-          </button>
         </motion.div>
 
         {/* STATS */}
@@ -2421,7 +2482,7 @@ const CancelRefund: React.FC = () => {
             value={stats.total}
             subtitle="All cancellation requests"
             icon={<FiPackage size={21} />}
-            loading={loading}
+            loading={initialCancellationsLoading}
             accent="bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#2D6FE8]"
             tileClass="bg-[#EAF3FF]"
             tileIconClass="text-[#2D6FE8]"
@@ -2432,7 +2493,7 @@ const CancelRefund: React.FC = () => {
             value={stats.pending}
             subtitle="Waiting for review"
             icon={<FiClock size={21} />}
-            loading={loading}
+            loading={initialCancellationsLoading}
             accent="bg-gradient-to-r from-[#FDE047] to-[#FACC15]"
             tileClass="bg-[#FEF9C3]"
             tileIconClass="text-[#A16207]"
@@ -2443,7 +2504,7 @@ const CancelRefund: React.FC = () => {
             value={stats.approved}
             subtitle="Approved requests"
             icon={<FiCheckCircle size={21} />}
-            loading={loading}
+            loading={initialCancellationsLoading}
             accent="bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
             tileClass="bg-[#EAF3FF]"
             tileIconClass="text-[#1E40AF]"
@@ -2454,7 +2515,7 @@ const CancelRefund: React.FC = () => {
             value={stats.rejected}
             subtitle="Rejected requests"
             icon={<FiX size={21} />}
-            loading={loading}
+            loading={initialCancellationsLoading}
             accent="bg-gradient-to-r from-[#EF4444] to-[#C23B32]"
             tileClass="bg-[#FEF2F2]"
             tileIconClass="text-[#C23B32]"
@@ -2480,7 +2541,7 @@ const CancelRefund: React.FC = () => {
                   onChange={(e) =>
                     handleSearchChange(e.target.value)
                   }
-                  placeholder="Search order, customer, email..."
+                  placeholder="Search reference, buyer, email..."
                   disabled={loading}
                   className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
                 />
@@ -2538,72 +2599,63 @@ const CancelRefund: React.FC = () => {
             <table className="w-full table-fixed border-collapse text-[11px]">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[6%] break-words">
+                  <th className="w-[5%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     S.No.
                   </th>
-                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[16%] break-words">
+                  <th className="w-[15%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Order Reference
                   </th>
-                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[15%] break-words">
+                  <th className="w-[14%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Buyer
                   </th>
-                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white w-[8%] break-words">
+                  <th className="w-[7%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Quantity
                   </th>
-                  <th className="px-2 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-white w-[15%] break-words">
+                  <th className="w-[14%] break-words px-2 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-white">
                     Cancellation Amount
                   </th>
-                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[16%] break-words">
+                  <th className="w-[15%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Reason
                   </th>
-                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[12%] break-words">
+                  <th className="w-[12%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Status
                   </th>
-                  <th className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white w-[12%] break-words">
+                  <th className="w-[18%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Actions
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <tr
-                      key={`skeleton-${i}`}
-                      className="animate-pulse border-b border-[#DCE6F2]"
-                    >
-                      <td className="px-2 py-2">
-                        <div className="h-6 w-6 rounded-md bg-[#EAF3FF]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
-                        <div className="mt-2 h-3 w-24 rounded bg-[#F4F8FD]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="h-4 w-32 rounded bg-[#EAF3FF]" />
-                        <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="h-4 w-8 rounded bg-[#EAF3FF]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="ml-auto h-4 w-20 rounded bg-[#EAF3FF]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="h-3 w-40 rounded bg-[#F4F8FD]" />
-                        <div className="mt-2 h-3 w-32 rounded bg-[#F4F8FD]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="h-6 w-24 rounded-full bg-[#EAF3FF]" />
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="flex justify-center gap-2">
-                          <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
-                          <div className="h-9 w-20 rounded-xl bg-[#EAF3FF]" />
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                {/* ✅ initialCancellationsLoading par full spinner — refresh/CRUD par nahi */}
+                {initialCancellationsLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-10 text-center">
+                      <div className="flex flex-col items-center">
+                        <FiRefreshCw
+                          size={22}
+                          className="animate-spin text-[#2D6FE8]"
+                        />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
+                          Loading cancellation requests...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-10 text-center">
+                      <div className="flex flex-col items-center">
+                        <FiRefreshCw
+                          size={22}
+                          className="animate-spin text-[#2D6FE8]"
+                        />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
+                          Loading cancellation requests...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
                 ) : paginatedRequests.length > 0 ? (
                   paginatedRequests.map((request, index) => {
                     const requestId = request.order_line_id;
@@ -2623,7 +2675,6 @@ const CancelRefund: React.FC = () => {
                     const raw: any = request;
                     const accountType = getRowAccountType(raw);
 
-                    // ✅ Refunded amount logic
                     const rowRefunded = getRefundedAmount(raw);
                     const rowIsRefunded = isRefundProcessed(raw);
                     const rowDisplayAmount =
@@ -2640,21 +2691,15 @@ const CancelRefund: React.FC = () => {
                           </span>
                         </td>
 
-                        <td className="px-2 py-2">
-                          <div>
-                            <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                              {request.order_reference}
-                            </span>
-
-                            <p className="mt-2 text-[11px] text-[#6B7280]">
-                              Item Ref: {raw.item_reference_id || "N/A"}
-                            </p>
-                          </div>
+                        <td className="min-w-0 px-2 py-2">
+                          <span className="inline-flex max-w-full rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8] break-all">
+                            {raw.item_reference_id || request.order_reference || "N/A"}
+                          </span>
                         </td>
 
                         <td className="px-2 py-2">
                           <p className="text-xs font-bold text-[#111827]">
-                            {getCustomerName(request.user)}
+                            {getCustomerName(request.user, accountType)}
                           </p>
 
                           <span
@@ -2673,7 +2718,6 @@ const CancelRefund: React.FC = () => {
                           </p>
                         </td>
 
-                        {/* ✅ Cancellation Amount — shows refunded amount if refunded */}
                         <td className="px-2 py-2 text-right">
                           <div className="inline-flex flex-col items-end">
                             <span className="text-xs font-bold text-[#2D6FE8]">
@@ -2687,7 +2731,7 @@ const CancelRefund: React.FC = () => {
                             )}
                           </div>
                         </td>
- 
+
                         <td className="px-2 py-2 text-center">
                           <p className="line-clamp-2 max-w-full break-words text-[10px] leading-4 text-[#4B5563]">
                             {request.reason || "No reason provided."}
@@ -2709,12 +2753,12 @@ const CancelRefund: React.FC = () => {
                           </span>
                         </td>
 
-                        <td className="px-2 py-2">
-                          <div className="flex flex-nowrap items-center justify-center gap-2">
+                        <td className="px-1.5 py-2 text-center align-middle">
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => handleView(request)}
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                               title="View"
                             >
                               <FiEye size={15} />
@@ -2727,7 +2771,7 @@ const CancelRefund: React.FC = () => {
                                 onClick={() =>
                                   handleOpenApprove(request)
                                 }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-2 text-[9px] font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
+                                className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-2 text-[9px] font-bold whitespace-nowrap text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {approveLoading ? (
                                   <FiRefreshCw
@@ -2747,7 +2791,7 @@ const CancelRefund: React.FC = () => {
                                 onClick={() =>
                                   handleOpenReject(request)
                                 }
-                                className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#C23B32]/25 bg-[#FEF2F2] px-2 text-[9px] font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
+                                className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#C23B32]/25 bg-[#FEF2F2] px-2 text-[9px] font-bold whitespace-nowrap text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white"
                               >
                                 <FiX size={13} />
                                 Reject
@@ -2783,34 +2827,27 @@ const CancelRefund: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {loading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={`mobile-skeleton-${i}`}
-                  className="animate-pulse border-b border-[#DCE6F2] bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="h-6 w-32 rounded-lg bg-[#EAF3FF]" />
-                    <div className="h-8 w-8 rounded-lg bg-[#EAF3FF]" />
-                  </div>
-
-                  <div className="mt-4">
-                    <div className="h-4 w-28 rounded bg-[#EAF3FF]" />
-                    <div className="mt-2 h-3 w-40 rounded bg-[#F4F8FD]" />
-                    <div className="mt-2 h-4 w-20 rounded-full bg-[#F4F8FD]" />
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="h-16 rounded-xl bg-[#EAF3FF]" />
-                    <div className="h-16 rounded-xl bg-[#EAF3FF]" />
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
-                    <div className="h-9 w-9 rounded-xl bg-[#EAF3FF]" />
-                  </div>
-                </div>
-              ))
+            {/* ✅ initialCancellationsLoading par full spinner — refresh/CRUD par nahi */}
+            {initialCancellationsLoading ? (
+              <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                <FiRefreshCw
+                  size={22}
+                  className="animate-spin text-[#2D6FE8]"
+                />
+                <p className="mt-2 text-sm font-semibold text-[#111827]">
+                  Loading cancellation requests...
+                </p>
+              </div>
+            ) : loading && requests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                <FiRefreshCw
+                  size={22}
+                  className="animate-spin text-[#2D6FE8]"
+                />
+                <p className="mt-2 text-sm font-semibold text-[#111827]">
+                  Loading cancellation requests...
+                </p>
+              </div>
             ) : paginatedRequests.length > 0 ? (
               paginatedRequests.map((request, index) => {
                 const requestId = request.order_line_id;
@@ -2829,7 +2866,6 @@ const CancelRefund: React.FC = () => {
 
                 const accountType = getRowAccountType(request);
 
-                // ✅ Refunded amount logic
                 const rowRefunded = getRefundedAmount(request);
                 const rowIsRefunded = isRefundProcessed(request);
                 const rowDisplayAmount =
@@ -2841,24 +2877,23 @@ const CancelRefund: React.FC = () => {
                     className="min-w-0 border-b border-[#DCE6F2] bg-white p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                          {request.order_reference}
-                        </span>
-
-                        <p className="mt-2 text-[10px] text-[#6B7280]">
-                          Item Ref: {(request as any).item_reference_id || "N/A"}
+                      <div className="min-w-0 flex-1">
+                        <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                          Order Reference
                         </p>
+                        <span className="inline-flex max-w-full break-all rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                          {(request as any).item_reference_id || request.order_reference || "N/A"}
+                        </span>
                       </div>
 
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                         {startIndex + index + 1}
                       </span>
                     </div>
 
                     <div className="mt-4">
                       <p className="text-xs font-bold text-[#111827]">
-                        {getCustomerName(request.user)}
+                        {getCustomerName(request.user, accountType)}
                       </p>
 
                       <p className="mt-1 truncate text-xs text-[#6B7280]">
@@ -2916,7 +2951,7 @@ const CancelRefund: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleView(request)}
@@ -3015,7 +3050,7 @@ const CancelRefund: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {!loading && filteredRequests.length > 0 && (
+          {!pageLoading && filteredRequests.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">
@@ -3118,6 +3153,9 @@ const CancelRefund: React.FC = () => {
       <RejectPopup
         open={rejectModalOpen}
         loading={actionLoading.type === "reject"}
+        customerLabel={getAccountTypeLabel(
+          selectedDetail ? getRowAccountType(selectedDetail) : "customer",
+        )}
         onClose={() => setRejectModalOpen(false)}
         onConfirm={handleReject}
       />
@@ -3133,6 +3171,10 @@ const CancelRefund: React.FC = () => {
         }
         customerName={getCustomerName(
           selectedPayRequest?.user,
+          selectedPayRequest ? getRowAccountType(selectedPayRequest) : "customer",
+        )}
+        customerLabel={getAccountTypeLabel(
+          selectedPayRequest ? getRowAccountType(selectedPayRequest) : "customer",
         )}
         defaultAmount={Number(
           selectedPayRequest?.refund_amount ||

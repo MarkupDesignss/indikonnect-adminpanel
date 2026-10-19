@@ -45,6 +45,16 @@ import { FaRupeeSign } from "react-icons/fa";
 // ✅ PERMISSIONS
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
+// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CancelRefund)
+import logoApi from "../../api/endpoints/logoApi";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 // =====================================================
 // ANIMATION
 // =====================================================
@@ -174,6 +184,35 @@ const formatCurrency = (amount?: number | null) => {
   })}`;
 };
 
+/**
+ * ✅ UPDATED: Prefer the line item's reference ID (item_reference).
+ * Falls back through order_lines_timeline -> items[0] -> order_reference.
+ */
+const getItemReferenceId = (record: any): string => {
+  const reference =
+    // 1. Direct item_reference
+    record?.item_reference_id ??
+    record?.item_reference ??
+    // 2. Nested order_line variants
+    record?.order_line?.item_reference_id ??
+    record?.order_line?.item_reference ??
+    record?.orderLine?.item_reference_id ??
+    record?.orderLine?.item_reference ??
+    record?.line?.item_reference_id ??
+    record?.line?.item_reference ??
+    // 3. First entry in order_lines_timeline (list response)
+    record?.order_lines_timeline?.[0]?.item_reference ??
+    // 4. First item in items array
+    record?.items?.[0]?.item_reference_id ??
+    record?.items?.[0]?.item_reference ??
+    // 5. Legacy fallbacks
+    record?.order?.item_reference_id ??
+    record?.order_reference ??
+    record?.order?.order_reference;
+
+  return reference ? String(reference) : "—";
+};
+
 const getCustomerName = (user?: {
   name?: string | null;
   email?: string;
@@ -288,6 +327,54 @@ function isRefundProcessed(record: any): boolean {
 
   return getRefundedAmount(record) !== null;
 }
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CancelRefund / BrandsManagement
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
 
 // =====================================================
 // TIMELINE BUILDER
@@ -663,7 +750,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Order</span>
+              <span className="text-xs text-[#6B7280]">Item Reference</span>
 
               <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
@@ -935,7 +1022,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Order</span>
+              <span className="text-xs text-[#6B7280]">Item Reference</span>
 
               <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
@@ -1091,7 +1178,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Order</span>
+              <span className="text-xs text-[#6B7280]">Item Reference</span>
 
               <span className="text-right text-sm font-bold text-[#111827]">
                 {orderReference}
@@ -1390,7 +1477,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </h2>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-                <span>{detail.order?.order_reference || "—"}</span>
+                <span>{getItemReferenceId(detail)}</span>
 
                 <span>•</span>
 
@@ -1598,11 +1685,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
                   <span className="text-xs text-[#6B7280]">
-                    Order Reference
+                    Item Reference
                   </span>
 
                   <span className="text-right text-sm font-bold text-[#2D6FE8]">
-                    {detail.order?.order_reference || "—"}
+                    {getItemReferenceId(detail)}
                   </span>
                 </div>
 
@@ -2300,6 +2387,13 @@ const BuyBack: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
+  // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CancelRefund)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
   const [requests, setRequests] = useState<ReturnListItem[]>([]);
 
   const [activeFilter, setActiveFilter] =
@@ -2309,6 +2403,9 @@ const BuyBack: React.FC = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ✅ first load only
+  const [initialBuybacksLoading, setInitialBuybacksLoading] = useState(true);
+  // ✅ subsequent fetch (refresh/CRUD) — does NOT block page
   const [loading, setLoading] = useState(false);
 
   const [detailLoading, setDetailLoading] = useState(false);
@@ -2341,6 +2438,50 @@ const BuyBack: React.FC = () => {
   const listFetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasFetchedListRef = useRef(false);
 
+  // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CancelRefund)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const closeAllModals = () => {
     setDetailModalOpen(false);
     setApproveModalOpen(false);
@@ -2349,7 +2490,15 @@ const BuyBack: React.FC = () => {
     setCompleteModalOpen(false);
   };
 
-  const fetchReturnRequests = async (force = false) => {
+  // ===================================================
+  // FETCH ALL
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+
+  const fetchReturnRequests = async (
+    force = false,
+    isInitialLoad = false,
+  ) => {
     if (listFetchInFlightRef.current) {
       return listFetchInFlightRef.current;
     }
@@ -2398,6 +2547,10 @@ const BuyBack: React.FC = () => {
         );
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialBuybacksLoading(false);
+        }
       }
     })();
 
@@ -2410,15 +2563,31 @@ const BuyBack: React.FC = () => {
     }
   };
 
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING BUYBACKS
+  // ===================================================
+
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewBuyback &&
-      !hasFetchedListRef.current
-    ) {
-      fetchReturnRequests();
+    if (permissionsLoading) return;
+
+    if (canViewBuyback && !hasFetchedListRef.current) {
+      void fetchReturnRequests(false, true);
+    } else if (!canViewBuyback) {
+      setLoading(false);
+      setInitialBuybacksLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewBuyback]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialBuybacksLoading;
 
   const stats = useMemo(() => {
     return {
@@ -2445,7 +2614,7 @@ const BuyBack: React.FC = () => {
       const matchesSearch =
         !query ||
         [
-          request.order_reference,
+          getItemReferenceId(request),
           request.user.name || "",
           request.user.email || "",
           request.user.account_type || "",
@@ -2949,23 +3118,33 @@ const BuyBack: React.FC = () => {
     ];
   }, [currentPage, totalPages]);
 
-  if (permissionsLoading) {
+  // ===================================================
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
+  // ===================================================
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewBuyback) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw
-              size={26}
-              className="animate-spin"
-            />
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <FiAlertCircle size={26} />
           </div>
 
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
 
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Please wait.
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
@@ -3091,7 +3270,7 @@ const BuyBack: React.FC = () => {
                   onChange={(e) =>
                     handleSearch(e.target.value)
                   }
-                  placeholder="Search order, customer, email..."
+                  placeholder="Search item reference, customer, email..."
                   className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
                 />
 
@@ -3175,11 +3354,23 @@ const BuyBack: React.FC = () => {
               </thead>
 
               <tbody>
-                {loading ? (
+                {/* ✅ initialBuybacksLoading par full spinner — refresh/CRUD par nahi */}
+                {initialBuybacksLoading ? (
                   <tr>
-                    <td colSpan={10} className="px-3 py-8 text-center">
+                    <td colSpan={10} className="px-3 py-10 text-center">
                       <div className="flex flex-col items-center">
-                        <FiRefreshCw size={20} className="animate-spin text-[#2D6FE8]" />
+                        <FiRefreshCw size={22} className="animate-spin text-[#2D6FE8]" />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
+                          Loading buyback requests...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-10 text-center">
+                      <div className="flex flex-col items-center">
+                        <FiRefreshCw size={22} className="animate-spin text-[#2D6FE8]" />
                         <p className="mt-2 text-sm font-semibold text-[#111827]">
                           Loading buyback requests...
                         </p>
@@ -3240,7 +3431,8 @@ const BuyBack: React.FC = () => {
 
                         <td className="break-words px-2 py-3.5">
                           <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                            {request.order_reference || "—"}
+                            {/* ✅ CHANGED: show item_reference instead of order_reference */}
+                            {getItemReferenceId(request)}
                           </span>
                         </td>
 
@@ -3415,7 +3607,28 @@ const BuyBack: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {paginatedRequests.length > 0 ? (
+            {/* ✅ initialBuybacksLoading par full spinner — refresh/CRUD par nahi */}
+            {initialBuybacksLoading ? (
+              <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                <FiRefreshCw
+                  size={22}
+                  className="animate-spin text-[#2D6FE8]"
+                />
+                <p className="mt-2 text-sm font-semibold text-[#111827]">
+                  Loading buyback requests...
+                </p>
+              </div>
+            ) : loading && requests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                <FiRefreshCw
+                  size={22}
+                  className="animate-spin text-[#2D6FE8]"
+                />
+                <p className="mt-2 text-sm font-semibold text-[#111827]">
+                  Loading buyback requests...
+                </p>
+              </div>
+            ) : paginatedRequests.length > 0 ? (
               paginatedRequests.map(
                 (request, index) => {
                   const approveLoading =
@@ -3461,8 +3674,8 @@ const BuyBack: React.FC = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
-                            {request.order_reference ||
-                              "—"}
+                            {/* ✅ CHANGED: show item_reference instead of order_reference */}
+                            {getItemReferenceId(request)}
                           </span>
                         </div>
 
@@ -3713,7 +3926,7 @@ const BuyBack: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredRequests.length > 0 && (
+          {!pageLoading && filteredRequests.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">
@@ -3816,8 +4029,7 @@ const BuyBack: React.FC = () => {
           actionLoading.type === "approve"
         }
         orderReference={
-          selectedDetail?.order
-            ?.order_reference || "N/A"
+          getItemReferenceId(selectedDetail) || "N/A"
         }
         customerName={getCustomerName(
           selectedDetail?.user,
@@ -3854,8 +4066,7 @@ const BuyBack: React.FC = () => {
       <MarkReceivedPopup
         open={receivedModalOpen}
         orderReference={
-          selectedDetail?.order
-            ?.order_reference || "N/A"
+          getItemReferenceId(selectedDetail) || "N/A"
         }
         customerName={getCustomerName(
           selectedDetail?.user,
@@ -3875,8 +4086,7 @@ const BuyBack: React.FC = () => {
         open={completeModalOpen}
         loading={completeLoading}
         orderReference={
-          selectedDetail?.order
-            ?.order_reference || "N/A"
+          getItemReferenceId(selectedDetail) || "N/A"
         }
         customerName={getCustomerName(
           selectedDetail?.user,

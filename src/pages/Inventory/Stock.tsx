@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   FiSearch,
   FiPackage,
@@ -14,16 +20,34 @@ import {
   FiChevronRight,
   FiImage,
 } from "react-icons/fi";
+
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
+
 import { productApi } from "../../api/endpoints/product";
 import { stockApi } from "../../api/endpoints/stockApi";
+import logoApi from "../../api/endpoints/logoApi";
+
 import { Product } from "@/types/product";
 
-// ✅ PERMISSIONS
+// =====================================================
+// PERMISSIONS
+// =====================================================
+
 import { usePermissions } from "../permissions/usePermissions";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// =====================================================
+// ANIMATIONS
+// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,7 +63,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 120,
       damping: 16,
     },
@@ -50,7 +74,11 @@ const itemVariants = {
 // TYPES
 // =====================================================
 
-type StockFilter = "all" | "in_stock" | "low_stock" | "out_of_stock";
+type StockFilter =
+  | "all"
+  | "in_stock"
+  | "low_stock"
+  | "out_of_stock";
 
 interface StockUpdatePayload {
   operation: "add" | "subtract";
@@ -58,25 +86,52 @@ interface StockUpdatePayload {
 }
 
 // =====================================================
-// PERMISSION LOADING STATE
+// COMPONENT-LEVEL LOGO LOADER
+// SIDEBAR AND NAVBAR REMAIN VISIBLE
 // =====================================================
 
-const PermissionLoadingState: React.FC = () => {
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<
+  PermissionLoadingStateProps
+> = ({ logoUrl }) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#6B7280]">
-          Please wait while we verify your access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -95,7 +150,9 @@ interface InventoryStatCardProps {
   tileIconClass?: string;
 }
 
-const InventoryStatCard: React.FC<InventoryStatCardProps> = ({
+const InventoryStatCard: React.FC<
+  InventoryStatCardProps
+> = ({
   title,
   value,
   subtitle,
@@ -109,7 +166,9 @@ const InventoryStatCard: React.FC<InventoryStatCardProps> = ({
       variants={itemVariants}
       className="group relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 transition-colors"
     >
-      <div className={`absolute left-0 top-0 h-1 w-full ${accentClass}`} />
+      <div
+        className={`absolute left-0 top-0 h-1 w-full ${accentClass}`}
+      />
 
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div>
@@ -121,7 +180,9 @@ const InventoryStatCard: React.FC<InventoryStatCardProps> = ({
             {value.toLocaleString("en-IN")}
           </p>
 
-          <p className="mt-1 text-xs text-[#6B7280]">{subtitle}</p>
+          <p className="mt-1 text-xs text-[#6B7280]">
+            {subtitle}
+          </p>
         </div>
 
         <div
@@ -143,7 +204,10 @@ interface StockBadgeProps {
   threshold: number;
 }
 
-const StockBadge: React.FC<StockBadgeProps> = ({ stock, threshold }) => {
+const StockBadge: React.FC<StockBadgeProps> = ({
+  stock,
+  threshold,
+}) => {
   if (stock <= 0) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-[#C23B32]/20 bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#C23B32]">
@@ -182,7 +246,9 @@ interface UpdateStockModalProps {
   onSubmit: (payload: StockUpdatePayload) => void;
 }
 
-const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
+const UpdateStockModal: React.FC<
+  UpdateStockModalProps
+> = ({
   open,
   product,
   loading,
@@ -190,7 +256,10 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
   onSubmit,
 }) => {
   const [quantity, setQuantity] = useState(1);
-  const [operation, setOperation] = useState<"add" | "subtract">("add");
+
+  const [operation, setOperation] = useState<
+    "add" | "subtract"
+  >("add");
 
   useEffect(() => {
     if (product) {
@@ -199,19 +268,30 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
     }
   }, [product]);
 
-  if (!open || !product) return null;
+  if (!open || !product) {
+    return null;
+  }
 
-  const currentStock = Number(product.stock_quantity || 0);
-  const threshold = Number(product.low_stock_threshold || 0);
+  const currentStock = Number(
+    product.stock_quantity || 0,
+  );
+
+  const threshold = Number(
+    product.low_stock_threshold || 0,
+  );
 
   const previewStock =
     operation === "add"
       ? currentStock + quantity
       : Math.max(0, currentStock - quantity);
 
-  const increase = () => setQuantity((prev) => prev + 1);
+  const increase = () => {
+    setQuantity((prev) => prev + 1);
+  };
 
-  const decrease = () => setQuantity((prev) => Math.max(1, prev - 1));
+  const decrease = () => {
+    setQuantity((prev) => Math.max(1, prev - 1));
+  };
 
   const handleQuantityChange = (value: string) => {
     if (value === "") {
@@ -221,7 +301,9 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
 
     const parsed = Number(value);
 
-    if (Number.isNaN(parsed) || parsed < 1) return;
+    if (Number.isNaN(parsed) || parsed < 1) {
+      return;
+    }
 
     setQuantity(Math.floor(parsed));
   };
@@ -230,11 +312,16 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
     e.preventDefault();
 
     if (quantity <= 0) {
-      toast.error("Stock quantity must be greater than 0.");
+      toast.error(
+        "Stock quantity must be greater than 0.",
+      );
       return;
     }
 
-    if (operation === "subtract" && quantity > currentStock) {
+    if (
+      operation === "subtract" &&
+      quantity > currentStock
+    ) {
       toast.error(
         `You cannot subtract more than current stock (${currentStock}).`,
       );
@@ -255,9 +342,11 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
     >
       <div className="relative w-full max-w-[500px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins">
         {/* TOP ACCENT */}
+
         <div className="h-[3px] w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
         {/* HEADER */}
+
         <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] px-5 py-4">
           <div>
             <div className="mb-0.5 flex items-center gap-2">
@@ -288,9 +377,11 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
         </div>
 
         {/* BODY */}
+
         <form onSubmit={handleSubmit}>
           <div className="p-4">
             {/* PRODUCT */}
+
             <div className="flex items-center gap-3 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
               {product.images?.[0]?.image_url ? (
                 <img
@@ -323,6 +414,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
             </div>
 
             {/* OPERATION */}
+
             <div className="mt-4">
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Stock Operation
@@ -360,6 +452,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
             </div>
 
             {/* QUANTITY */}
+
             <div className="mt-4">
               <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Quantity
@@ -399,6 +492,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
             </div>
 
             {/* QUICK QUANTITIES */}
+
             <div className="mt-3">
               <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Quick Update
@@ -424,6 +518,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
             </div>
 
             {/* CURRENT / CHANGE / NEW */}
+
             <div className="mt-3 grid grid-cols-3 gap-2">
               <div className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
                 <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
@@ -441,7 +536,9 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
                 </p>
 
                 <p className="mt-0.5 text-lg font-bold text-[#2D6FE8]">
-                  {operation === "add" ? `+${quantity}` : `-${quantity}`}
+                  {operation === "add"
+                    ? `+${quantity}`
+                    : `-${quantity}`}
                 </p>
               </div>
 
@@ -456,7 +553,8 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
               </div>
             </div>
 
-            {/* THRESHOLD + API INFO */}
+            {/* THRESHOLD + OPERATION INFO */}
+
             <div className="mt-2 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-[#DCE6F2] bg-white p-2.5">
                 <p className="text-[10px] text-[#6B7280]">
@@ -484,6 +582,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
           </div>
 
           {/* FOOTER */}
+
           <div className="flex justify-end gap-2.5 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-3">
             <button
               type="button"
@@ -527,7 +626,7 @@ const UpdateStockModal: React.FC<UpdateStockModalProps> = ({
 
 const Stock: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
 
   const {
@@ -556,51 +655,164 @@ const Stock: React.FC = () => {
   );
 
   // ===================================================
-  // STATE
+  // LOGO STATE
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL,
+  );
+
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
+  // INVENTORY STATE
   // ===================================================
 
   const [products, setProducts] = useState<Product[]>([]);
+
+  // Refresh and mutation loading.
   const [loading, setLoading] = useState(false);
+
+  // Initial products data loading only.
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
   const [stockUpdating, setStockUpdating] = useState(false);
   const [search, setSearch] = useState("");
+
   const [stockFilter, setStockFilter] =
     useState<StockFilter>("all");
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+
+  const [updateModalOpen, setUpdateModalOpen] =
+    useState(false);
+
   const [selectedProduct, setSelectedProduct] =
     useState<Product | null>(null);
 
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
-  // FETCH PRODUCTS
+  // FETCH LOGO
   // ===================================================
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
 
-      const response = await productApi.getProducts();
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
 
-      setProducts(response.data?.data ?? []);
-    } catch (error: any) {
-      console.error("Fetch inventory products error:", error);
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
 
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Unable to fetch inventory.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
+        );
+
+        console.log("Stock logo API response:", response);
+
+        console.log(
+          "Resolved stock logo URL:",
+          resolvedLogo ?? null,
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Stock logo API error:", error);
+
+        // API fail hone par default logo use hoga.
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH PRODUCTS
+  // isInitialLoad = true ONLY FOR THE FIRST FETCH
+  // ===================================================
+
+  const fetchProducts = useCallback(
+    async (isInitialLoad = false) => {
+      try {
+        setLoading(true);
+
+        const response = await productApi.getProducts();
+
+        setProducts(response.data?.data ?? []);
+      } catch (error: any) {
+        console.error(
+          "Fetch inventory products error:",
+          error,
+        );
+
+        toast.error(
+          error?.response?.data?.message ||
+            error?.message ||
+            "Unable to fetch inventory.",
+        );
+      } finally {
+        setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE FETCHING PRODUCTS
+  // ===================================================
 
   useEffect(() => {
-    if (!permissionsLoading && canViewStock) {
-      fetchProducts();
+    if (permissionsLoading) {
+      return;
     }
-  }, [permissionsLoading, canViewStock]);
+
+    if (!canViewStock) {
+      setInitialDataLoading(false);
+      return;
+    }
+
+    void fetchProducts(true);
+  }, [
+    permissionsLoading,
+    canViewStock,
+    fetchProducts,
+  ]);
+
+  // ===================================================
+  // COMBINED LOADING
+  // PERMISSIONS + LOGO + INITIAL INVENTORY DATA
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // ===================================================
   // INVENTORY METRICS
@@ -611,6 +823,7 @@ const Stock: React.FC = () => {
 
     const inStock = products.filter((product) => {
       const stock = Number(product.stock_quantity || 0);
+
       const threshold = Number(
         product.low_stock_threshold || 0,
       );
@@ -620,6 +833,7 @@ const Stock: React.FC = () => {
 
     const lowStock = products.filter((product) => {
       const stock = Number(product.stock_quantity || 0);
+
       const threshold = Number(
         product.low_stock_threshold || 0,
       );
@@ -649,6 +863,7 @@ const Stock: React.FC = () => {
 
     return products.filter((product) => {
       const stock = Number(product.stock_quantity || 0);
+
       const threshold = Number(
         product.low_stock_threshold || 0,
       );
@@ -669,7 +884,8 @@ const Stock: React.FC = () => {
 
       switch (stockFilter) {
         case "in_stock":
-          matchesFilter = stock > threshold;
+          matchesFilter =
+            stock > 0 && stock > threshold;
           break;
 
         case "low_stock":
@@ -700,8 +916,7 @@ const Stock: React.FC = () => {
     ),
   );
 
-  const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const paginatedProducts = filteredProducts.slice(
     startIndex,
@@ -718,21 +933,29 @@ const Stock: React.FC = () => {
     filteredProducts.length,
   );
 
+  // ===================================================
+  // SEARCH HANDLER
+  // ===================================================
+
   const handleSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
   };
 
-  const handleFilterChange = (
-    filter: StockFilter,
-  ) => {
+  // ===================================================
+  // FILTER HANDLER
+  // ===================================================
+
+  const handleFilterChange = (filter: StockFilter) => {
     setStockFilter(filter);
     setCurrentPage(1);
   };
 
-  const handleOpenStockUpdate = (
-    product: Product,
-  ) => {
+  // ===================================================
+  // OPEN STOCK UPDATE
+  // ===================================================
+
+  const handleOpenStockUpdate = (product: Product) => {
     setSelectedProduct(product);
     setUpdateModalOpen(true);
   };
@@ -744,18 +967,18 @@ const Stock: React.FC = () => {
   const handleUpdateStock = async (
     payload: StockUpdatePayload,
   ) => {
-    if (!selectedProduct) return;
+    if (!selectedProduct) {
+      return;
+    }
 
     try {
       setStockUpdating(true);
 
-      const response =
-        await stockApi.updateStock({
-          product_id: selectedProduct.id,
-          operation: payload.operation,
-          stock_quantity:
-            payload.stock_quantity,
-        });
+      const response = await stockApi.updateStock({
+        product_id: selectedProduct.id,
+        operation: payload.operation,
+        stock_quantity: payload.stock_quantity,
+      });
 
       await fetchProducts();
 
@@ -779,32 +1002,46 @@ const Stock: React.FC = () => {
     }
   };
 
+  // ===================================================
+  // CLOSE STOCK MODAL
+  // ===================================================
+
   const closeUpdateModal = () => {
-    if (stockUpdating) return;
+    if (stockUpdating) {
+      return;
+    }
 
     setUpdateModalOpen(false);
     setSelectedProduct(null);
   };
 
+  // ===================================================
+  // REFRESH
+  // ===================================================
+
   const handleRefresh = async () => {
     await fetchProducts();
+
     toast.success("Inventory refreshed.");
   };
 
-  const handlePageChange = (
-    page: number,
-  ) => {
-    if (
-      page < 1 ||
-      page > totalPages
-    ) {
+  // ===================================================
+  // PAGE CHANGE
+  // ===================================================
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) {
       return;
     }
 
     setCurrentPage(page);
   };
 
-  const getPaginationPages = () => {
+  // ===================================================
+  // PAGINATION PAGES
+  // ===================================================
+
+  const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from(
         { length: totalPages },
@@ -816,10 +1053,7 @@ const Stock: React.FC = () => {
       return [1, 2, 3, 4, 5];
     }
 
-    if (
-      currentPage >=
-      totalPages - 2
-    ) {
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -836,26 +1070,24 @@ const Stock: React.FC = () => {
       currentPage + 1,
       currentPage + 2,
     ];
-  };
-
-  const paginationPages =
-    getPaginationPages();
+  }, [currentPage, totalPages]);
 
   // ===================================================
-  // ✅ LOADING STATE
+  // COMBINED INITIAL LOADING STATE
+  // ONLY THE STOCK COMPONENT CONTENT IS REPLACED
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
-  // ✅ ACCESS DENIED
+  // ACCESS DENIED
   // ===================================================
 
   if (!canViewStock) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertTriangle size={26} />
@@ -866,8 +1098,7 @@ const Stock: React.FC = () => {
           </h2>
 
           <p className="mt-2 text-sm text-[#6B7280]">
-            You don't have permission to access this
-            section.
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
@@ -881,12 +1112,13 @@ const Stock: React.FC = () => {
   return (
     <>
       <motion.div
-        className="min-h-screen bg-white p-4 font-poppins"
+        className="min-h-screen w-full bg-white p-4 font-poppins"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
         {/* HEADER */}
+
         <motion.div
           variants={itemVariants}
           className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
@@ -920,9 +1152,7 @@ const Stock: React.FC = () => {
           >
             <FiRefreshCw
               size={16}
-              className={
-                loading ? "animate-spin" : ""
-              }
+              className={loading ? "animate-spin" : ""}
             />
 
             Refresh
@@ -930,6 +1160,7 @@ const Stock: React.FC = () => {
         </motion.div>
 
         {/* STAT CARDS */}
+
         <motion.div
           className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           variants={containerVariants}
@@ -976,12 +1207,13 @@ const Stock: React.FC = () => {
         </motion.div>
 
         {/* MAIN INVENTORY CARD */}
+
         <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white"
         >
-       
           {/* TOOLBAR */}
+
           <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[560px]">
@@ -1003,15 +1235,15 @@ const Stock: React.FC = () => {
                 {search && (
                   <button
                     type="button"
-                    onClick={() =>
-                      handleSearch("")
-                    }
+                    onClick={() => handleSearch("")}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#2D6FE8]"
                   >
                     <FiX size={16} />
                   </button>
                 )}
               </div>
+
+              {/* STOCK FILTERS */}
 
               <div className="flex flex-wrap items-center gap-2">
                 {[
@@ -1036,9 +1268,7 @@ const Stock: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() =>
-                      handleFilterChange(
-                        filter.key,
-                      )
+                      handleFilterChange(filter.key)
                     }
                     className={`rounded-lg px-4 py-2.5 text-xs font-semibold transition-colors ${
                       stockFilter === filter.key
@@ -1054,8 +1284,9 @@ const Stock: React.FC = () => {
           </div>
 
           {/* DESKTOP TABLE */}
-          <div className="hidden overflow-x-auto lg:block rounded-2xl">
-            <table className="w-full min-w-[1100px] border-collapse ">
+
+          <div className="hidden overflow-x-auto rounded-2xl lg:block">
+            <table className="w-full min-w-[1100px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
                   <th className="w-[70px] px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
@@ -1098,11 +1329,7 @@ const Stock: React.FC = () => {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={
-                        canUpdateStock
-                          ? 8
-                          : 7
-                      }
+                      colSpan={canUpdateStock ? 8 : 7}
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center">
@@ -1113,21 +1340,15 @@ const Stock: React.FC = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#6B7280]">
-                          Fetching current product
-                          stock.
+                          Fetching current product stock.
                         </p>
                       </div>
                     </td>
                   </tr>
-                ) : paginatedProducts.length ===
-                  0 ? (
+                ) : paginatedProducts.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={
-                        canUpdateStock
-                          ? 8
-                          : 7
-                      }
+                      colSpan={canUpdateStock ? 8 : 7}
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center">
@@ -1140,150 +1361,150 @@ const Stock: React.FC = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#6B7280]">
-                          Try another search or
-                          stock filter.
+                          Try another search or stock filter.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedProducts.map(
-                    (product, index) => {
-                      const stock = Number(
-                        product.stock_quantity ||
-                          0,
-                      );
+                  paginatedProducts.map((product, index) => {
+                    const stock = Number(
+                      product.stock_quantity || 0,
+                    );
 
-                      const threshold =
-                        Number(
-                          product.low_stock_threshold ||
-                            0,
-                        );
+                    const threshold = Number(
+                      product.low_stock_threshold || 0,
+                    );
 
-                      const primaryImage =
-                        product.images?.find(
-                          (image) =>
-                            image.is_primary ===
-                            true,
-                        ) ||
-                        product.images?.[0];
+                    const primaryImage =
+                      product.images?.find(
+                        (image) =>
+                          image.is_primary === true,
+                      ) || product.images?.[0];
 
-                      return (
-                        <tr
-                          key={product.id}
-                          className="border-b border-[#DCE6F2] bg-white transition-colors hover:bg-[#F8FBFF]"
-                        >
-                          <td className="px-4 py-3.5">
-                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                              {startIndex +
-                                index +
-                                1}
-                            </span>
-                          </td>
+                    return (
+                      <tr
+                        key={product.id}
+                        className="border-b border-[#DCE6F2] bg-white transition-colors hover:bg-[#F8FBFF]"
+                      >
+                        {/* S.NO */}
 
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-3">
-                              {primaryImage?.image_url ? (
-                                <img
-                                  src={
-                                    primaryImage.image_url
-                                  }
-                                  alt={product.name}
-                                  className="h-11 w-11 rounded-lg border border-[#DCE6F2] object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8]">
-                                  <FiImage size={18} />
-                                </div>
-                              )}
+                        <td className="px-4 py-3.5">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
+                            {startIndex + index + 1}
+                          </span>
+                        </td>
 
-                              <div className="max-w-[230px]">
-                                <p className="truncate text-sm font-semibold text-[#111827]">
-                                  {product.name}
-                                </p>
+                        {/* PRODUCT */}
 
-                                <p className="mt-1 truncate text-xs text-[#6B7280]">
-                                  {product.description ||
-                                    "No description available"}
-                                </p>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-3">
+                            {primaryImage?.image_url ? (
+                              <img
+                                src={primaryImage.image_url}
+                                alt={product.name}
+                                className="h-11 w-11 rounded-lg border border-[#DCE6F2] object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8]">
+                                <FiImage size={18} />
                               </div>
+                            )}
+
+                            <div className="max-w-[230px]">
+                              <p className="truncate text-sm font-semibold text-[#111827]">
+                                {product.name}
+                              </p>
+
+                              <p className="mt-1 truncate text-xs text-[#6B7280]">
+                                {product.description ||
+                                  "No description available"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* SKU */}
+
+                        <td className="px-4 py-3.5">
+                          <span className="rounded-lg bg-[#F4F8FD] px-3 py-1.5 text-xs font-semibold text-[#111827]">
+                            {product.product_code || "N/A"}
+                          </span>
+                        </td>
+
+                        {/* CATEGORY */}
+
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+
+                            <span className="text-sm font-medium text-[#111827]">
+                              {product.category?.name || "-"}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* CURRENT STOCK */}
+
+                        <td className="px-4 py-3.5 text-center">
+                          <span
+                            className={`inline-flex min-w-[58px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
+                              stock <= 0
+                                ? "border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
+                                : stock <= threshold
+                                  ? "border-[#FACC15]/40 bg-[#FEF9C3] text-[#A16207]"
+                                  : "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
+                            }`}
+                          >
+                            {stock}
+                          </span>
+                        </td>
+
+                        {/* THRESHOLD */}
+
+                        <td className="px-4 py-3.5 text-center">
+                          <span className="text-xs font-semibold text-[#111827]">
+                            {threshold}
+                          </span>
+                        </td>
+
+                        {/* STATUS */}
+
+                        <td className="px-4 py-3.5 text-center">
+                          <StockBadge
+                            stock={stock}
+                            threshold={threshold}
+                          />
+                        </td>
+
+                        {/* ACTION */}
+
+                        {canUpdateStock && (
+                          <td className="px-4 py-3.5">
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenStockUpdate(product)
+                                }
+                                className="flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
+                              >
+                                <FiEdit2 size={14} />
+                                Update Stock
+                              </button>
                             </div>
                           </td>
-
-                          <td className="px-4 py-3.5">
-                            <span className="rounded-lg bg-[#F4F8FD] px-3 py-1.5 text-xs font-semibold text-[#111827]">
-                              {product.product_code ||
-                                "N/A"}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-
-                              <span className="text-sm font-medium text-[#111827]">
-                                {product.category
-                                  ?.name || "-"}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-3.5 text-center">
-                            <span
-                              className={`inline-flex min-w-[58px] items-center justify-center rounded-full border px-3 py-1.5 text-xs font-bold ${
-                                stock <= 0
-                                  ? "border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
-                                  : stock <=
-                                      threshold
-                                    ? "border-[#FACC15]/40 bg-[#FEF9C3] text-[#A16207]"
-                                    : "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
-                              }`}
-                            >
-                              {stock}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3.5 text-center">
-                            <span className="text-xs font-semibold text-[#111827]">
-                              {threshold}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3.5 text-center">
-                            <StockBadge
-                              stock={stock}
-                              threshold={threshold}
-                            />
-                          </td>
-
-                          {canUpdateStock && (
-                            <td className="px-4 py-3.5">
-                              <div className="flex justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenStockUpdate(
-                                      product,
-                                    )
-                                  }
-                                  className="flex items-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
-                                >
-                                  <FiEdit2 size={14} />
-                                  Update Stock
-                                </button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    },
-                  )
+                        )}
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
 
           {/* MOBILE CARDS */}
+
           <div className="block lg:hidden">
             {loading ? (
               <div className="flex flex-col items-center px-5 py-16">
@@ -1293,8 +1514,7 @@ const Stock: React.FC = () => {
                   Loading inventory...
                 </p>
               </div>
-            ) : paginatedProducts.length ===
-              0 ? (
+            ) : paginatedProducts.length === 0 ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={24} />
@@ -1309,126 +1529,111 @@ const Stock: React.FC = () => {
                 </p>
               </div>
             ) : (
-              paginatedProducts.map(
-                (product, index) => {
-                  const stock = Number(
-                    product.stock_quantity || 0,
-                  );
+              paginatedProducts.map((product, index) => {
+                const stock = Number(
+                  product.stock_quantity || 0,
+                );
 
-                  const threshold = Number(
-                    product.low_stock_threshold ||
-                      0,
-                  );
+                const threshold = Number(
+                  product.low_stock_threshold || 0,
+                );
 
-                  const primaryImage =
-                    product.images?.find(
-                      (image) =>
-                        image.is_primary ===
-                        true,
-                    ) ||
-                    product.images?.[0];
+                const primaryImage =
+                  product.images?.find(
+                    (image) =>
+                      image.is_primary === true,
+                  ) || product.images?.[0];
 
-                  return (
-                    <div
-                      key={product.id}
-                      className="border-b border-[#DCE6F2] bg-white p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        {primaryImage?.image_url ? (
-                          <img
-                            src={
-                              primaryImage.image_url
-                            }
-                            alt={product.name}
-                            className="h-14 w-14 shrink-0 rounded-lg border border-[#DCE6F2] object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                            <FiImage size={20} />
-                          </div>
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-[#111827]">
-                                {product.name}
-                              </p>
-
-                              <p className="mt-1 text-xs text-[#6B7280]">
-                                SKU:{" "}
-                                {product.product_code ||
-                                  "N/A"}
-                              </p>
-                            </div>
-
-                            <span className="shrink-0 rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                              #
-                              {startIndex +
-                                index +
-                                1}
-                            </span>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <StockBadge
-                              stock={stock}
-                              threshold={threshold}
-                            />
-
-                            <span className="rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1 text-[10px] font-semibold text-[#111827]">
-                              Threshold:{" "}
-                              {threshold}
-                            </span>
-                          </div>
+                return (
+                  <div
+                    key={product.id}
+                    className="border-b border-[#DCE6F2] bg-white p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      {primaryImage?.image_url ? (
+                        <img
+                          src={primaryImage.image_url}
+                          alt={product.name}
+                          className="h-14 w-14 shrink-0 rounded-lg border border-[#DCE6F2] object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiImage size={20} />
                         </div>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                            Current Stock
-                          </p>
-
-                          <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
-                            {stock}
-                          </p>
-                        </div>
-
-                        <div className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                            Category
-                          </p>
-
-                          <p className="mt-1 truncate text-sm font-semibold text-[#111827]">
-                            {product.category
-                              ?.name || "-"}
-                          </p>
-                        </div>
-                      </div>
-
-                      {canUpdateStock && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleOpenStockUpdate(
-                              product,
-                            )
-                          }
-                          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
-                        >
-                          <FiEdit2 size={15} />
-                          Update Stock
-                        </button>
                       )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#111827]">
+                              {product.name}
+                            </p>
+
+                            <p className="mt-1 text-xs text-[#6B7280]">
+                              SKU: {product.product_code || "N/A"}
+                            </p>
+                          </div>
+
+                          <span className="shrink-0 rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                            #{startIndex + index + 1}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <StockBadge
+                            stock={stock}
+                            threshold={threshold}
+                          />
+
+                          <span className="rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1 text-[10px] font-semibold text-[#111827]">
+                            Threshold: {threshold}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  );
-                },
-              )
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Current Stock
+                        </p>
+
+                        <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
+                          {stock}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                          Category
+                        </p>
+
+                        <p className="mt-1 truncate text-sm font-semibold text-[#111827]">
+                          {product.category?.name || "-"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {canUpdateStock && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleOpenStockUpdate(product)
+                        }
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-semibold text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
+                      >
+                        <FiEdit2 size={15} />
+                        Update Stock
+                      </button>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
 
           {/* PAGINATION */}
+
           {filteredProducts.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
@@ -1449,48 +1654,43 @@ const Stock: React.FC = () => {
                 </p>
 
                 <div className="flex items-center gap-1.5">
+                  {/* PREVIOUS */}
+
                   <button
                     type="button"
                     disabled={currentPage === 1}
                     onClick={() =>
-                      handlePageChange(
-                        currentPage - 1,
-                      )
+                      handlePageChange(currentPage - 1)
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
 
-                  {paginationPages.map(
-                    (page) => (
-                      <button
-                        key={page}
-                        type="button"
-                        onClick={() =>
-                          handlePageChange(page)
-                        }
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-colors ${
-                          currentPage === page
-                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                            : "text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  {/* PAGE NUMBERS */}
+
+                  {paginationPages.map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => handlePageChange(page)}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-colors ${
+                        currentPage === page
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  {/* NEXT */}
 
                   <button
                     type="button"
-                    disabled={
-                      currentPage ===
-                      totalPages
-                    }
+                    disabled={currentPage === totalPages}
                     onClick={() =>
-                      handlePageChange(
-                        currentPage + 1,
-                      )
+                      handlePageChange(currentPage + 1)
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
@@ -1503,7 +1703,8 @@ const Stock: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* UPDATE STOCK MODAL — PERMISSION BASED */}
+      {/* UPDATE STOCK MODAL */}
+
       {canUpdateStock && (
         <UpdateStockModal
           open={updateModalOpen}
@@ -1518,10 +1719,10 @@ const Stock: React.FC = () => {
 };
 
 // =====================================================
-// LOADER HELPER
+// TABLE LOADER HELPER
 // =====================================================
 
-const FiLoaderIcon = () => (
+const FiLoaderIcon: React.FC = () => (
   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
     <FiRefreshCw
       size={22}

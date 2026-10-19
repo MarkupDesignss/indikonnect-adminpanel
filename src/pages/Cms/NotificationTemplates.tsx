@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
 import {
+  FiAlertCircle,
   FiBell,
   FiChevronLeft,
   FiChevronRight,
@@ -29,34 +30,11 @@ import {
 import { notificationTemplateApi } from "../../api/endpoints/notificationTemplates";
 import type { NotificationTemplate } from "../../api/endpoints/notificationTemplates";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-/* =========================================================
-   THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer)
-========================================================= */
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
-
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
-
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
-
-/* =========================================================
-   PERMISSIONS
-========================================================= */
 const VIEW_PERMISSION_KEYS = [
   "notification_template.view",
   "notification_templates.view",
@@ -123,6 +101,54 @@ const formatDate = (dateString: string) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+/* =========================================================
+   ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+   Same pattern as Orders / ReturnRefund / CreditNotes / Payment
+========================================================= */
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 /* =========================================================
@@ -372,13 +398,24 @@ const NotificationTemplates = () => {
   );
 
   /* =======================================================
+     LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  ======================================================= */
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  /* =======================================================
      STATE
   ======================================================= */
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [allTemplates, setAllTemplates] = useState<
     NotificationTemplate[] | null
   >(null);
-  const [loading, setLoading] = useState(true);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialTemplatesLoading, setInitialTemplatesLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const [refreshing, setRefreshing] = useState(false);
   const [filterLoading, setFilterLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -406,6 +443,50 @@ const NotificationTemplates = () => {
   const hasInitialFetchRef = useRef(false);
 
   /* =======================================================
+     LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  ======================================================= */
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* =======================================================
      FILTER ACTIVE
   ======================================================= */
   const isFilterActive =
@@ -415,9 +496,15 @@ const NotificationTemplates = () => {
 
   /* =======================================================
      FETCH SINGLE API PAGE
+     isInitialLoad = true ONLY FOR THE FIRST LOAD
   ======================================================= */
   const fetchPage = useCallback(
-    async (page: number, isRefresh = false, force = false) => {
+    async (
+      page: number,
+      isRefresh = false,
+      force = false,
+      isInitialLoad = false,
+    ) => {
       if (!canViewTemplates) return;
       if (pageFetchInFlightRef.current) return pageFetchInFlightRef.current;
       if (!force && !isRefresh && hasInitialFetchRef.current && page === 1)
@@ -462,6 +549,10 @@ const NotificationTemplates = () => {
         } finally {
           setLoading(false);
           setRefreshing(false);
+
+          if (isInitialLoad) {
+            setInitialTemplatesLoading(false);
+          }
         }
       })();
 
@@ -559,16 +650,28 @@ const NotificationTemplates = () => {
 
   /* =======================================================
      INITIAL LOAD
+     WAIT FOR PERMISSIONS BEFORE REQUESTING TEMPLATES
   ======================================================= */
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewTemplates &&
-      !hasInitialFetchRef.current
-    ) {
-      fetchPage(1);
+    if (permissionsLoading) return;
+
+    if (canViewTemplates && !hasInitialFetchRef.current) {
+      void fetchPage(1, false, false, true);
+    } else if (!canViewTemplates) {
+      setLoading(false);
+      setInitialTemplatesLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewTemplates, fetchPage]);
+
+  /* =======================================================
+     COMBINED INITIAL LOADING
+  ======================================================= */
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialTemplatesLoading;
 
   /* =======================================================
      LOAD COMPLETE DATA WHEN FILTER IS USED
@@ -799,33 +902,30 @@ const NotificationTemplates = () => {
   };
 
   /* =======================================================
-     PERMISSION LOADING
+     COMPONENT-LEVEL LOADING (PULSING LOGO)
+     SIDEBAR / NAVBAR UNTOUCHED
   ======================================================= */
-  if (permissionsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Verifying notification template access.
-          </p>
-        </div>
-      </div>
-    );
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  if (loading) {
+  /* =======================================================
+     ACCESS DENIED
+  ======================================================= */
+
+  if (!canViewTemplates) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">
-            Loading notification templates...
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="mt-5 text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+            You do not have permission to view notification templates.
           </p>
         </div>
       </div>
@@ -1030,7 +1130,34 @@ const NotificationTemplates = () => {
               </thead>
 
               <tbody>
-                {displayTemplates.length === 0 ? (
+                {/* ✅ initialTemplatesLoading par full spinner — refresh/pagination par nahi */}
+                {initialTemplatesLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <div className="mx-auto max-w-sm">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading notification templates...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && templates.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <div className="mx-auto max-w-sm">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading notification templates...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : displayTemplates.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-20 text-center">
                       <div className="mx-auto max-w-sm">
@@ -1126,7 +1253,26 @@ const NotificationTemplates = () => {
 
           {/* MOBILE CARDS */}
           <div className="block divide-y divide-[#DCE6F2] lg:hidden">
-            {displayTemplates.length === 0 ? (
+            {/* ✅ initialTemplatesLoading par full spinner — refresh/pagination par nahi */}
+            {initialTemplatesLoading ? (
+              <div className="px-5 py-16 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading notification templates...
+                </p>
+              </div>
+            ) : loading && templates.length === 0 ? (
+              <div className="px-5 py-16 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading notification templates...
+                </p>
+              </div>
+            ) : displayTemplates.length === 0 ? (
               <div className="px-5 py-16 text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiSearch size={20} />
@@ -1237,7 +1383,7 @@ const NotificationTemplates = () => {
           </div>
 
           {/* PAGINATION */}
-          {resultTotal > 0 && totalPages > 1 && (
+          {!pageLoading && resultTotal > 0 && totalPages > 1 && (
             <div className="flex flex-col gap-3 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="text-xs text-[#6B7280]">
                 Showing{" "}

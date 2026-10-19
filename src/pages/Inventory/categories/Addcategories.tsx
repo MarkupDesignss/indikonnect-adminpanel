@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   FiPlus,
@@ -8,7 +13,6 @@ import {
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
-
 import { toast } from "react-hot-toast";
 
 import CategoryTable from "./components/CategoryTable";
@@ -23,6 +27,8 @@ import {
   Category,
 } from "../../../api/endpoints/category";
 
+import logoApi from "../../../api/endpoints/logoApi";
+
 import { usePermissions } from "../../permissions/usePermissions";
 
 // =====================================================
@@ -36,6 +42,13 @@ interface CategoryPayload {
   image?: File | string | null;
   parentCategory?: string | number | null;
 }
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // ANIMATION
@@ -55,39 +68,59 @@ const itemVariants = {
     y: 0,
     opacity: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 110,
       damping: 16,
     },
   },
 };
 
-// =====================================================
-// PERMISSION LOADING STATE
-// =====================================================
 
-const PermissionLoadingState: React.FC = () => {
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<
+  PermissionLoadingStateProps
+> = ({ logoUrl }) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D6E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#6B7280]">
-          Please wait while we verify your access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
 
 // =====================================================
-// COMPONENT
+// MAIN COMPONENT
 // =====================================================
 
 const Addcategories: React.FC = () => {
@@ -102,38 +135,28 @@ const Addcategories: React.FC = () => {
     loading: permissionsLoading,
   } = usePermissions();
 
-  const canViewCategories = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("category") ||
-      hasPermission("category.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
+  // ===================================================
+  // LOGO STATE
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL,
   );
 
-  const canCreateCategory = useMemo(
-    () => isSuperAdmin || hasPermission("category.create"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canUpdateCategory = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("category.update") ||
-      hasPermission("category.edit"),
-    [isSuperAdmin, hasPermission],
-  );
-
-  const canDeleteCategory = useMemo(
-    () => isSuperAdmin || hasPermission("category.delete"),
-    [isSuperAdmin, hasPermission],
-  );
+  const [logoLoading, setLogoLoading] = useState(true);
 
   // ===================================================
-  // CATEGORIES
+  // CATEGORY STATE
   // ===================================================
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // First page load only.
+  // Refresh and CRUD requests use the table loading state.
+  const [initialCategoriesLoading, setInitialCategoriesLoading] =
+    useState(true);
+
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -167,42 +190,152 @@ const Addcategories: React.FC = () => {
   // STATUS LOADING
   // ===================================================
 
-  const [statusLoadingId, setStatusLoadingId] = useState<number | null>(
-    null,
-  );
+  const [statusLoadingId, setStatusLoadingId] =
+    useState<number | null>(null);
 
   // ===================================================
-  // GET CATEGORIES
-  // ===================================================
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-
-      const response = await categoryApi.getAll();
-
-      setCategories(response.data?.data || []);
-    } catch (error: any) {
-      console.error("Get categories error:", error);
-
-      toast.error(
-        error?.response?.data?.message ||
-          "Unable to fetch categories.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ===================================================
-  // INITIAL FETCH
+  // FETCH LOGO
   // ===================================================
 
   useEffect(() => {
-    if (!permissionsLoading && canViewCategories) {
-      fetchCategories();
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        // Supports standard Axios and unwrapped responses.
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
+        );
+
+       
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+        // Keep the default logo if the request fails.
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // CATEGORY PERMISSIONS
+  // ===================================================
+
+  const canViewCategories = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("category") ||
+      hasPermission("category.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission],
+  );
+
+  const canCreateCategory = useMemo(
+    () => isSuperAdmin || hasPermission("category.create"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canUpdateCategory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("category.update") ||
+      hasPermission("category.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  const canDeleteCategory = useMemo(
+    () => isSuperAdmin || hasPermission("category.delete"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // FETCH CATEGORIES
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+
+  const fetchCategories = useCallback(
+    async (isInitialLoad = false) => {
+      try {
+        setLoading(true);
+
+        const response = await categoryApi.getAll();
+
+        setCategories(response.data?.data || []);
+      } catch (error: any) {
+        console.error("Get categories error:", error);
+
+        toast.error(
+          error?.response?.data?.message ||
+            "Unable to fetch categories.",
+        );
+
+        setCategories([]);
+      } finally {
+        setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialCategoriesLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING CATEGORIES
+  // ===================================================
+
+  useEffect(() => {
+    if (permissionsLoading) {
+      return;
     }
-  }, [permissionsLoading, canViewCategories]);
+
+    if (canViewCategories) {
+      void fetchCategories(true);
+    } else {
+      setLoading(false);
+      setInitialCategoriesLoading(false);
+    }
+  }, [
+    permissionsLoading,
+    canViewCategories,
+    fetchCategories,
+  ]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ONLY THE COMPONENT CONTENT AREA IS REPLACED
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialCategoriesLoading;
 
   // ===================================================
   // STATUS COUNTS
@@ -229,7 +362,9 @@ const Addcategories: React.FC = () => {
   const filteredCategories = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) return categories;
+    if (!query) {
+      return categories;
+    }
 
     return categories.filter((item: any) =>
       [
@@ -325,9 +460,9 @@ const Addcategories: React.FC = () => {
       setAddLoading(true);
 
       const formData = buildFormData(payload);
-
       const response = await categoryApi.add(formData);
 
+      // Subsequent fetch: don't replace the whole component.
       await fetchCategories();
 
       setAddModalOpen(false);
@@ -364,7 +499,9 @@ const Addcategories: React.FC = () => {
   const handleUpdateCategory = async (
     payload: CategoryPayload,
   ) => {
-    if (!selectedCategory) return;
+    if (!selectedCategory) {
+      return;
+    }
 
     try {
       setEditLoading(true);
@@ -406,8 +543,7 @@ const Addcategories: React.FC = () => {
     nextStatus: "active" | "inactive",
   ) => {
     if (
-      String(category.status).toLowerCase() ===
-      nextStatus
+      String(category.status).toLowerCase() === nextStatus
     ) {
       return;
     }
@@ -416,7 +552,6 @@ const Addcategories: React.FC = () => {
       setStatusLoadingId(category.id);
 
       const formData = new FormData();
-
       formData.append("status", nextStatus);
 
       const response = await categoryApi.update(
@@ -461,7 +596,9 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const handleConfirmDelete = async () => {
-    if (!selectedCategory) return;
+    if (!selectedCategory) {
+      return;
+    }
 
     try {
       setDeleteLoading(true);
@@ -496,19 +633,24 @@ const Addcategories: React.FC = () => {
   // ===================================================
 
   const handlePageChange = (page: number) => {
-    if (page < 1) return;
+    if (page < 1) {
+      return;
+    }
 
-    if (totalPages > 0 && page > totalPages) return;
+    if (totalPages > 0 && page > totalPages) {
+      return;
+    }
 
     setCurrentPage(page);
   };
 
   // ===================================================
-  // LOADING STATE
+  // COMPONENT-LEVEL LOADING
+  // SIDEBAR AND NAVBAR ARE NOT COVERED
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
@@ -517,7 +659,7 @@ const Addcategories: React.FC = () => {
 
   if (!canViewCategories) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
             <FiAlertCircle size={26} />
@@ -536,19 +678,17 @@ const Addcategories: React.FC = () => {
   }
 
   // ===================================================
-  // RENDER
+  // PAGE RENDER
   // ===================================================
 
   return (
     <motion.div
-      className="min-h-screen bg-white p-4 font-poppins sm:p-5 lg:p-6"
+      className="min-h-screen w-full bg-white p-4 font-poppins sm:p-5 lg:p-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <motion.div
         variants={itemVariants}
@@ -610,9 +750,7 @@ const Addcategories: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* =================================================
-          SEARCH + ACTIONS
-      ================================================= */}
+      {/* SEARCH + ACTIONS */}
 
       <motion.div
         variants={itemVariants}
@@ -634,9 +772,7 @@ const Addcategories: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) =>
-                handleSearch(e.target.value)
-              }
+              onChange={(e) => handleSearch(e.target.value)}
               placeholder="Search categories..."
               className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
             />
@@ -645,7 +781,7 @@ const Addcategories: React.FC = () => {
           <div className="flex items-center gap-2">
             <motion.button
               type="button"
-              onClick={fetchCategories}
+              onClick={() => void fetchCategories()}
               disabled={loading}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
@@ -653,9 +789,7 @@ const Addcategories: React.FC = () => {
             >
               <FiRefreshCw
                 size={14}
-                className={
-                  loading ? "animate-spin" : ""
-                }
+                className={loading ? "animate-spin" : ""}
               />
 
               Refresh
@@ -664,9 +798,7 @@ const Addcategories: React.FC = () => {
             {canCreateCategory && (
               <motion.button
                 type="button"
-                onClick={() =>
-                  setAddModalOpen(true)
-                }
+                onClick={() => setAddModalOpen(true)}
                 whileHover={{
                   y: -2,
                   boxShadow:
@@ -676,7 +808,6 @@ const Addcategories: React.FC = () => {
                 className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white transition"
               >
                 <FiPlus size={15} />
-
                 <span>Add Category</span>
               </motion.button>
             )}
@@ -684,13 +815,11 @@ const Addcategories: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* =================================================
-          CATEGORY TABLE
-      ================================================= */}
+      {/* CATEGORY TABLE */}
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white "
+        className="relative w-full overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white"
       >
         <CategoryTable
           categories={paginatedCategories}
@@ -711,17 +840,16 @@ const Addcategories: React.FC = () => {
         />
       </motion.div>
 
-      {/* =================================================
-          ADD CATEGORY MODAL
-      ================================================= */}
+      {/* ADD CATEGORY MODAL */}
 
       {canCreateCategory && (
         <GlobalModal
           isOpen={addModalOpen}
-          onClose={() =>
-            !addLoading &&
-            setAddModalOpen(false)
-          }
+          onClose={() => {
+            if (!addLoading) {
+              setAddModalOpen(false);
+            }
+          }}
           closeOnOverlayClick={!addLoading}
         >
           <AddCategoryModal
@@ -737,9 +865,7 @@ const Addcategories: React.FC = () => {
         </GlobalModal>
       )}
 
-      {/* =================================================
-          EDIT CATEGORY MODAL
-      ================================================= */}
+      {/* EDIT CATEGORY MODAL */}
 
       {canUpdateCategory && (
         <GlobalModal
@@ -767,9 +893,7 @@ const Addcategories: React.FC = () => {
         </GlobalModal>
       )}
 
-      {/* =================================================
-          DELETE CATEGORY MODAL
-      ================================================= */}
+      {/* DELETE CATEGORY MODAL */}
 
       {canDeleteCategory && (
         <GlobalModal
@@ -785,9 +909,7 @@ const Addcategories: React.FC = () => {
           <DeleteCategoryModal
             open={deleteModalOpen}
             loading={deleteLoading}
-            categoryName={
-              selectedCategory?.title || ""
-            }
+            categoryName={selectedCategory?.title || ""}
             onClose={() => {
               if (!deleteLoading) {
                 setDeleteModalOpen(false);

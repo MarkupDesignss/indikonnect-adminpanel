@@ -31,15 +31,11 @@ import userManagementApi, {
   RegisteredUser,
 } from "../../api/endpoints/user";
 
-// =====================================================
-// ✅ PERMISSIONS
-// =====================================================
-
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-// =====================================================
-// FILTER TYPE
-// =====================================================
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 type UserFilter =
   | "all"
@@ -1424,25 +1420,49 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 };
 
 // =====================================================
-// PERMISSION LOADING STATE
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement / ReelsManagement / FooterManagement / NotificationTemplates / FAQManagement
 // =====================================================
 
-const PermissionLoadingState: React.FC = () => {
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#D6E2F0] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#111827]">
-          Please wait while we verify your access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -1505,6 +1525,13 @@ const UserManagement: React.FC = () => {
   );
 
   // ===================================================
+  // ✅ LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // LOCATION STATE
   // ===================================================
 
@@ -1527,7 +1554,11 @@ const UserManagement: React.FC = () => {
   // ===================================================
 
   const [users, setUsers] = useState<RegisteredUser[]>([]);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialUsersLoading, setInitialUsersLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<UserFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1550,10 +1581,55 @@ const UserManagement: React.FC = () => {
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
-  // FETCH USERS
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
   // ===================================================
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH USERS
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+
+  const fetchUsers = async (isInitialLoad = false) => {
     try {
       setLoading(true);
 
@@ -1638,14 +1714,38 @@ const UserManagement: React.FC = () => {
       );
     } finally {
       setLoading(false);
+
+      if (isInitialLoad) {
+        setInitialUsersLoading(false);
+      }
     }
   };
 
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING USERS
+  // ===================================================
+
   useEffect(() => {
-    if (!permissionsLoading) {
-      fetchUsers();
+    if (permissionsLoading) return;
+
+    if (canViewUsers && isInitialLoad) {
+      void fetchUsers(true);
+    } else if (!canViewUsers) {
+      setLoading(false);
+      setInitialUsersLoading(false);
     }
-  }, [permissionsLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionsLoading, canViewUsers]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialUsersLoading;
 
   // ===================================================
   // STATS
@@ -2038,11 +2138,12 @@ const UserManagement: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // ✅ LOADING STATE
+  // ✅ COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
@@ -2051,7 +2152,7 @@ const UserManagement: React.FC = () => {
 
   if (!canViewUsers && !loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins p-4">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] font-poppins p-4">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
             <FiAlertCircle size={26} />
@@ -2133,7 +2234,7 @@ const UserManagement: React.FC = () => {
             {/* REFRESH */}
             <button
               type="button"
-              onClick={fetchUsers}
+              onClick={() => fetchUsers()}
               disabled={loading}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#F4F8FD] disabled:opacity-50"
             >
@@ -2326,7 +2427,22 @@ const UserManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {loading ? (
+                {/* ✅ initialUsersLoading par full spinner — refresh/CRUD par nahi */}
+                {initialUsersLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-3 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading users...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && users.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
@@ -2528,7 +2644,17 @@ const UserManagement: React.FC = () => {
           </div>
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {loading ? (
+            {/* ✅ initialUsersLoading par full spinner — refresh/CRUD par nahi */}
+            {initialUsersLoading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
+                  <FiRefreshCw size={24} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading users...
+                </p>
+              </div>
+            ) : loading && users.length === 0 ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                   <FiRefreshCw size={24} className="animate-spin" />
@@ -2659,7 +2785,7 @@ const UserManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredUsers.length > 0 && (
+          {!pageLoading && filteredUsers.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#111827]">

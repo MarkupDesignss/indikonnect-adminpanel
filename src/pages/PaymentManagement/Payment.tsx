@@ -11,32 +11,21 @@ import {
   FiActivity,
   FiUser,
   FiDownload,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import paymentManagementApi, { PaymentRecord } from "../../api/endpoints/payment";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
 // =====================================================
-// THEME - BLUE / YELLOW
+// DEFAULT LOGO
 // =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-const WARNING = "#FACC15";
-const WARNING_TEXT = "#A16207";
-const WARNING_BG = "#FEF9C3";
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 
 // =====================================================
 // ANIMATION
@@ -192,6 +181,54 @@ const generateCsv = (records: PaymentRecord[]): string => {
 };
 
 // =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CancelRefund / BuyBack / CreditNotes
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+// =====================================================
 // STAT CARD
 // =====================================================
 interface StatCardProps {
@@ -240,10 +277,22 @@ const Payment: React.FC = () => {
   );
 
   // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+
+  // ✅ first load only
+  const [initialPaymentsLoading, setInitialPaymentsLoading] = useState(true);
+  // ✅ subsequent fetch (refresh) — does NOT block page
   const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -257,9 +306,54 @@ const Payment: React.FC = () => {
   const hasInitialFetchRef = useRef(false);
 
   // ===================================================
-  // GET PAYMENTS
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes)
   // ===================================================
-  const fetchPayments = async (force = false) => {
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // GET PAYMENTS
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+  const fetchPayments = async (force = false, isInitialLoad = false) => {
     if (fetchInFlightRef.current) return fetchInFlightRef.current;
     if (!force && hasInitialFetchRef.current) return;
 
@@ -278,6 +372,10 @@ const Payment: React.FC = () => {
         toast.error(error?.response?.data?.message || "Unable to fetch payment records.");
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialPaymentsLoading(false);
+        }
       }
     })();
 
@@ -291,12 +389,28 @@ const Payment: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING PAYMENTS
   // ===================================================
   useEffect(() => {
-    if (!permissionsLoading && canViewPayments && !hasInitialFetchRef.current) {
-      fetchPayments();
+    if (permissionsLoading) return;
+
+    if (canViewPayments && !hasInitialFetchRef.current) {
+      void fetchPayments(false, true);
+    } else if (!canViewPayments) {
+      setLoading(false);
+      setInitialPaymentsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewPayments]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialPaymentsLoading;
 
   // ===================================================
   // STATUS OPTIONS
@@ -417,28 +531,33 @@ const Payment: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // PERMISSION LOADING
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">Checking permissions...</p>
-          <p className="mt-1 text-xs text-[#6B7280]">Please wait while we verify your access.</p>
-        </div>
-      </div>
-    );
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  if (loading && payments.length === 0) {
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewPayments) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">Loading payments...</p>
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access this section.
+          </p>
         </div>
       </div>
     );
@@ -584,7 +703,24 @@ const Payment: React.FC = () => {
       </tr>
     </thead>
     <tbody>
-      {loading ? (
+      {/* ✅ initialPaymentsLoading par full spinner — refresh ke baad nahi */}
+      {initialPaymentsLoading ? (
+        <tr>
+          <td colSpan={9} className="px-5 py-16 text-center">
+            <div className="flex flex-col items-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiRefreshCw size={22} className="animate-spin" />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">
+                Loading payments...
+              </p>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                Please wait while payment records are fetched.
+              </p>
+            </div>
+          </td>
+        </tr>
+      ) : loading && payments.length === 0 ? (
         <tr>
           <td colSpan={9} className="px-5 py-16 text-center">
             <div className="flex flex-col items-center">
@@ -749,7 +885,16 @@ const Payment: React.FC = () => {
         {/* MOBILE CARDS */}
         {/* ============================================ */}
         <div className="block lg:hidden">
-          {loading ? (
+          {/* ✅ initialPaymentsLoading par full spinner — refresh ke baad nahi */}
+          {initialPaymentsLoading ? (
+            <div className="flex flex-col items-center px-5 py-16 text-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiRefreshCw size={22} className="animate-spin" />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">Loading payments...</p>
+              <p className="mt-1 text-xs text-[#6B7280]">Please wait while payment records are fetched.</p>
+            </div>
+          ) : loading && payments.length === 0 ? (
             <div className="flex flex-col items-center px-5 py-16 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiRefreshCw size={22} className="animate-spin" />
@@ -837,7 +982,7 @@ const Payment: React.FC = () => {
         </div>
 
         {/* PAGINATION */}
-        {filteredPayments.length > 0 && (
+        {!pageLoading && filteredPayments.length > 0 && (
           <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
             <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
               <p className="text-xs text-[#6B7280]">

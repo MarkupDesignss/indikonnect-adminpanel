@@ -21,6 +21,17 @@ import creditNotesApi, {
   CreditNote,
 } from "../../api/endpoints/creditNotes";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CancelRefund / BuyBack)
+import logoApi from "../../api/endpoints/logoApi";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 // =====================================================
 // ANIMATIONS
 // =====================================================
@@ -160,6 +171,55 @@ const getCreditNoteAccountType = (note: any): string => {
   if (!note) return "customer";
   return note.buyer_type || note.order?.order_type || "customer";
 };
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CancelRefund / BuyBack
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 // =====================================================
 // VIEW MODAL — BLUE & YELLOW THEME
 // =====================================================
@@ -470,10 +530,23 @@ const CreditNotes: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
   // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / BuyBack)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+
+  // ✅ first load only
+  const [initialCreditNotesLoading, setInitialCreditNotesLoading] =
+    useState(true);
+  // ✅ subsequent fetch (refresh/pagination) — does NOT block page
   const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState<
     "all" | "return" | "other"
@@ -489,10 +562,60 @@ const CreditNotes: React.FC = () => {
   // ===================================================
   const fetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasInitialFetchRef = useRef(false);
+
+  // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / BuyBack)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ===================================================
   // FETCH
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
-  const fetchCreditNotes = async (page = currentPage, force = false) => {
+  const fetchCreditNotes = async (
+    page = currentPage,
+    force = false,
+    isInitialLoad = false,
+  ) => {
     if (fetchInFlightRef.current) {
       return fetchInFlightRef.current;
     }
@@ -524,6 +647,10 @@ const CreditNotes: React.FC = () => {
         );
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialCreditNotesLoading(false);
+        }
       }
     })();
     fetchInFlightRef.current = requestPromise;
@@ -535,16 +662,29 @@ const CreditNotes: React.FC = () => {
   };
   // ===================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING CREDIT NOTES
   // ===================================================
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewCreditNotes &&
-      !hasInitialFetchRef.current
-    ) {
-      fetchCreditNotes(1);
+    if (permissionsLoading) return;
+
+    if (canViewCreditNotes && !hasInitialFetchRef.current) {
+      void fetchCreditNotes(1, false, true);
+    } else if (!canViewCreditNotes) {
+      setLoading(false);
+      setInitialCreditNotesLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewCreditNotes]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialCreditNotesLoading;
+
   // ===================================================
   // FILTER
   // ===================================================
@@ -862,38 +1002,40 @@ const CreditNotes: React.FC = () => {
       currentPage + 2,
     ];
   }, [currentPage, lastPage]);
+
   // ===================================================
-  // PERMISSION LOADING
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) {
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewCreditNotes) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <FiAlertCircle size={26} />
           </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Please wait while we verify your access.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  if (loading && creditNotes.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="text-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">
-            Loading credit notes...
+
+          <h2 className="text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
     );
   }
+
   // ===================================================
   // UI
   // ===================================================
@@ -1037,7 +1179,21 @@ const CreditNotes: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {loading ? (
+                  {/* ✅ initialCreditNotesLoading par full spinner — refresh/pagination par nahi */}
+                  {initialCreditNotesLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-16 text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                            <FiRefreshCw size={22} className="animate-spin" />
+                          </div>
+                          <p className="mt-4 text-sm font-bold text-[#111827]">
+                            Loading credit notes...
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : loading && creditNotes.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
@@ -1197,24 +1353,25 @@ const CreditNotes: React.FC = () => {
             </div>
             {/* MOBILE */}
             <div className="block lg:hidden">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={`mobile-skeleton-${i}`}
-                    className="animate-pulse border-b border-[#DCE6F2] bg-white p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-[#EAF3FF]" />
-                      <div className="h-4 w-16 rounded bg-[#F4F8FD]" />
-                    </div>
-                    <div className="mt-4 h-4 w-40 rounded bg-[#EAF3FF]" />
-                    <div className="mt-2 h-3 w-28 rounded bg-[#F4F8FD]" />
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="h-16 rounded-xl bg-[#EAF3FF]" />
-                      <div className="h-16 rounded-xl bg-[#F4F8FD]" />
-                    </div>
+              {/* ✅ initialCreditNotesLoading par full spinner — refresh/pagination par nahi */}
+              {initialCreditNotesLoading ? (
+                <div className="flex flex-col items-center justify-center bg-white px-5 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiRefreshCw size={22} className="animate-spin" />
                   </div>
-                ))
+                  <p className="mt-4 text-sm font-bold text-[#111827]">
+                    Loading credit notes...
+                  </p>
+                </div>
+              ) : loading && creditNotes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center bg-white px-5 py-16 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiRefreshCw size={22} className="animate-spin" />
+                  </div>
+                  <p className="mt-4 text-sm font-bold text-[#111827]">
+                    Loading credit notes...
+                  </p>
+                </div>
               ) : filteredCreditNotes.length > 0 ? (
                 filteredCreditNotes.map((note, index) => {
                   const accountType = getCreditNoteAccountType(note);
@@ -1329,7 +1486,7 @@ const CreditNotes: React.FC = () => {
               )}
             </div>
             {/* PAGINATION */}
-            {lastPage > 1 && (
+            {!pageLoading && lastPage > 1 && (
               <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                   <p className="text-xs text-[#6B7280]">

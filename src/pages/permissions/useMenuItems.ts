@@ -1,11 +1,24 @@
 // src/hooks/useMenuItems.ts
 
 import { useMemo } from "react";
-import { menuItems, type MenuItem } from "../../config/menu";
+
+import {
+  menuItems,
+  type MenuItem,
+} from "../../config/menu";
+
 import { filterMenuByPermissions } from "./filterMenuByPermissions";
 import usePermissions from "./usePermissions";
 
-export const useMenuItems = (): MenuItem[] => {
+// Stable empty array: loading ke time full menu kabhi return nahi hoga.
+const EMPTY_MENU: MenuItem[] = [];
+
+interface MenuItemsState {
+  menuItems: MenuItem[];
+  loading: boolean;
+}
+
+export const useMenuItemsState = (): MenuItemsState => {
   const {
     hasPermission,
     hasAnyPermission,
@@ -15,12 +28,13 @@ export const useMenuItems = (): MenuItem[] => {
     loading,
   } = usePermissions();
 
-  return useMemo(() => {
-    // Loading ke time full menu (flicker avoid karne ke liye)
+  const visibleMenuItems = useMemo(() => {
+    // Permissions load hone tak menu items render mat karo.
     if (loading) {
-      return menuItems;
+      return EMPTY_MENU;
     }
 
+    // Permissions resolve hone ke baad sirf authorized menu return karo.
     return filterMenuByPermissions(menuItems, {
       hasPermission,
       hasAnyPermission,
@@ -36,6 +50,18 @@ export const useMenuItems = (): MenuItem[] => {
     hasModuleAccess,
     isSuperAdmin,
   ]);
+
+  return {
+    menuItems: visibleMenuItems,
+    loading,
+  };
+};
+
+// Existing components ke liye backward-compatible hook.
+export const useMenuItems = (): MenuItem[] => {
+  const { menuItems: visibleMenuItems } = useMenuItemsState();
+
+  return visibleMenuItems;
 };
 
 export default useMenuItems;

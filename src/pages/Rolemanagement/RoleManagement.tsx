@@ -23,21 +23,25 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
+
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import GlobalModal from "@/components/common/GlobalModal";
+
 import adminManagementApi, {
   Permission,
   Role,
   RolePayload,
   PermissionGroups,
 } from "@/api/endpoints/rolemanagement";
+
+import logoApi from "@/api/endpoints/logoApi";
+
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
-// =====================================================
-// BLUE + YELLOW THEME
-// =====================================================
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 const PRIMARY = "#2D6FE8";
 const PRIMARY_DARK = "#1D4FB8";
@@ -160,6 +164,99 @@ interface SelectedPermissionsModalProps {
 }
 
 // =====================================================
+// LOGO LOADER
+// Content area only — sidebar/navbar remain visible.
+// =====================================================
+
+interface PermissionLoadingProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoading: FC<PermissionLoadingProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+// =====================================================
+// ACCESS DENIED
+// Content area only — sidebar/navbar remain visible.
+// =====================================================
+
+const AccessDenied: FC = () => (
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+    <div
+      className="max-w-md rounded-2xl border bg-white p-8 text-center shadow-sm"
+      style={{ borderColor: BORDER }}
+    >
+      <div
+        className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
+        style={{
+          backgroundColor: LIGHT_YELLOW,
+          color: YELLOW_TEXT,
+        }}
+      >
+        <FiShield size={24} />
+      </div>
+
+      <h2
+        className="mt-4 text-lg font-bold"
+        style={{ color: TEXT_PRIMARY }}
+      >
+        Access Denied
+      </h2>
+
+      <p
+        className="mt-2 text-sm leading-6"
+        style={{ color: TEXT_SECONDARY }}
+      >
+        You do not have permission to view role management.
+      </p>
+
+      <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FEF2F2] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+        Contact your administrator to request access.
+      </div>
+    </div>
+  </div>
+);
+
+// =====================================================
 // HELPERS
 // =====================================================
 
@@ -171,6 +268,7 @@ const formatModuleName = (module: string): string =>
 
 const formatActionName = (action?: string): string => {
   if (!action) return "—";
+
   return action
     .replace(/_/g, " ")
     .replace(/-/g, " ")
@@ -179,8 +277,11 @@ const formatActionName = (action?: string): string => {
 
 const formatDate = (value?: string | null): string => {
   if (!value) return "—";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -226,14 +327,19 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
             background: `linear-gradient(to right, ${YELLOW}, ${PRIMARY}, ${DANGER})`,
           }}
         />
+
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div
               className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: DANGER_BG, color: DANGER }}
+              style={{
+                backgroundColor: DANGER_BG,
+                color: DANGER,
+              }}
             >
               <FiTrash2 size={21} />
             </div>
+
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -243,6 +349,7 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
                   >
                     Confirmation
                   </p>
+
                   <h2
                     className="mt-1 text-xl font-bold"
                     style={{ color: TEXT_PRIMARY }}
@@ -250,30 +357,38 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
                     Delete Role
                   </h2>
                 </div>
+
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={loading}
                   aria-label="Close delete dialog"
                   className="flex h-9 w-9 items-center justify-center rounded-xl transition disabled:opacity-40"
-                  style={{ backgroundColor: PAGE_BG, color: PRIMARY }}
+                  style={{
+                    backgroundColor: PAGE_BG,
+                    color: PRIMARY,
+                  }}
                 >
                   <FiX size={17} />
                 </button>
               </div>
+
               <p
                 className="mt-2 text-sm leading-6"
                 style={{ color: TEXT_SECONDARY }}
               >
-                Are you sure you want to delete this role? This action cannot be
-                undone.
+                Are you sure you want to delete this role? This action cannot
+                be undone.
               </p>
             </div>
           </div>
 
           <div
             className="mt-5 rounded-xl border p-4"
-            style={{ borderColor: BORDER, backgroundColor: PAGE_BG }}
+            style={{
+              borderColor: BORDER,
+              backgroundColor: PAGE_BG,
+            }}
           >
             <p
               className="text-[9px] font-bold uppercase tracking-[0.14em]"
@@ -281,12 +396,14 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
             >
               Selected Role
             </p>
+
             <p
               className="mt-1.5 text-base font-bold"
               style={{ color: TEXT_PRIMARY }}
             >
               {target.name}
             </p>
+
             <p className="mt-1 text-[10px]" style={{ color: MUTED }}>
               Role ID #{target.id}
             </p>
@@ -298,22 +415,29 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
               onClick={onClose}
               disabled={loading}
               className="h-10 rounded-xl border bg-white px-5 text-sm font-bold transition disabled:opacity-50"
-              style={{ borderColor: BORDER, color: TEXT_SECONDARY }}
+              style={{
+                borderColor: BORDER,
+                color: TEXT_SECONDARY,
+              }}
             >
               Cancel
             </button>
+
             <button
               type="button"
               onClick={onConfirm}
               disabled={loading}
               className="flex h-10 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:opacity-50"
-              style={{ background: `linear-gradient(135deg, ${DANGER}, #A62F27)` }}
+              style={{
+                background: `linear-gradient(135deg, ${DANGER}, #A62F27)`,
+              }}
             >
               {loading ? (
                 <FiRefreshCw size={15} className="animate-spin" />
               ) : (
                 <FiTrash2 size={15} />
               )}
+
               {loading ? "Deleting..." : "Delete Role"}
             </button>
           </div>
@@ -326,7 +450,6 @@ const DeleteRoleModal: FC<DeleteRoleModalProps> = ({
 // =====================================================
 // SELECTED PERMISSIONS POPUP MODAL
 // =====================================================
-
 
 const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
   open,
@@ -342,28 +465,30 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
   if (!open) return null;
 
   const selectedPermissions = permissions.filter((permission) =>
-    selectedIds.includes(permission.id)
+    selectedIds.includes(permission.id),
   );
 
-  const grouped = selectedPermissions.reduce<Record<string, Permission[]>>(
-    (acc, permission) => {
-      const key = permission.module || "other";
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(permission);
-      return acc;
-    },
-    {}
-  );
+  const grouped = selectedPermissions.reduce<
+    Record<string, Permission[]>
+  >((acc, permission) => {
+    const key = permission.module || "other";
+
+    if (!acc[key]) acc[key] = [];
+
+    acc[key].push(permission);
+
+    return acc;
+  }, {});
 
   const moduleKeys = Object.keys(grouped).sort((a, b) =>
-    a.localeCompare(b)
+    a.localeCompare(b),
   );
 
   return (
     <GlobalModal isOpen={open} onClose={onClose}>
       <div className="w-full max-w-[680px] overflow-hidden rounded-[24px] border border-gray-300 bg-white shadow-[0_30px_80px_rgba(45,111,232,0.22)]">
-
         {/* Header */}
+
         <div
           className="relative border-b border-gray-300 px-5 py-5 sm:px-6"
           style={{
@@ -428,6 +553,7 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
         </div>
 
         {/* Body */}
+
         <div
           className="max-h-[60vh] overflow-y-auto p-4 sm:p-5"
           style={{ backgroundColor: PAGE_BG }}
@@ -466,7 +592,6 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
                   key={moduleKey}
                   className="overflow-hidden rounded-2xl border border-gray-300 bg-white shadow-sm"
                 >
-                  {/* Module Header */}
                   <div
                     className="flex items-center justify-between gap-3 border-b border-gray-300 px-4 py-3.5"
                     style={{
@@ -510,7 +635,6 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
                     </span>
                   </div>
 
-                  {/* Permission Rows */}
                   <div className="divide-y divide-gray-300">
                     {grouped[moduleKey].map((permission) => (
                       <div
@@ -572,6 +696,7 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
         </div>
 
         {/* Footer */}
+
         <div className="flex flex-col-reverse items-stretch justify-between gap-2 border-t border-gray-300 bg-white px-4 py-4 sm:flex-row sm:items-center sm:px-6">
           <button
             type="button"
@@ -614,8 +739,6 @@ const SelectedPermissionsModal: FC<SelectedPermissionsModalProps> = ({
   );
 };
 
-
-
 // =====================================================
 // CREATE / EDIT ROLE MODAL
 // =====================================================
@@ -637,31 +760,35 @@ const RoleModal: FC<RoleModalProps> = ({
     () =>
       Array.from(
         new Set(
-          permissions.map((permission) => permission.module).filter(Boolean)
-        )
+          permissions
+            .map((permission) => permission.module)
+            .filter(Boolean),
+        ),
       ).sort((a, b) => a.localeCompare(b)),
-    [permissions]
+    [permissions],
   );
 
   const currentModulePermissions = useMemo(
     () =>
       selectedModule
         ? permissions.filter(
-            (permission) => permission.module === selectedModule
+            (permission) => permission.module === selectedModule,
           )
         : [],
-    [permissions, selectedModule]
+    [permissions, selectedModule],
   );
 
-  const selectedCountInModule = currentModulePermissions.filter((permission) =>
-    form.permissions.includes(permission.id)
+  const selectedCountInModule = currentModulePermissions.filter(
+    (permission) => form.permissions.includes(permission.id),
   ).length;
+
   const allCurrentModuleSelected =
     currentModulePermissions.length > 0 &&
     selectedCountInModule === currentModulePermissions.length;
 
   useEffect(() => {
     if (!open) return;
+
     if (moduleList.length === 0) {
       setSelectedModule("");
       return;
@@ -670,18 +797,21 @@ const RoleModal: FC<RoleModalProps> = ({
     if (editingRole?.permissions?.length) {
       const existingModule = moduleList.find((module) =>
         editingRole.permissions?.some(
-          (permission) => permission.module === module
-        )
+          (permission) => permission.module === module,
+        ),
       );
+
       setSelectedModule(existingModule || moduleList[0]);
       return;
     }
+
     setSelectedModule(moduleList[0]);
   }, [open, editingRole, moduleList]);
 
-  // Reset popup when modal closes
   useEffect(() => {
-    if (!open) setShowSelectedPopup(false);
+    if (!open) {
+      setShowSelectedPopup(false);
+    }
   }, [open]);
 
   const togglePermission = (permissionId: number) => {
@@ -695,9 +825,11 @@ const RoleModal: FC<RoleModalProps> = ({
 
   const toggleCurrentModule = () => {
     if (!selectedModule) return;
+
     const moduleIds = currentModulePermissions.map(
-      (permission) => permission.id
+      (permission) => permission.id,
     );
+
     setForm((previous) => ({
       ...previous,
       permissions: allCurrentModuleSelected
@@ -709,12 +841,17 @@ const RoleModal: FC<RoleModalProps> = ({
   const handleRemovePermission = (permissionId: number) => {
     setForm((previous) => ({
       ...previous,
-      permissions: previous.permissions.filter((id) => id !== permissionId),
+      permissions: previous.permissions.filter(
+        (id) => id !== permissionId,
+      ),
     }));
   };
 
   const handleClearAllPermissions = () => {
-    setForm((previous) => ({ ...previous, permissions: [] }));
+    setForm((previous) => ({
+      ...previous,
+      permissions: [],
+    }));
   };
 
   if (!open) return null;
@@ -740,6 +877,7 @@ const RoleModal: FC<RoleModalProps> = ({
           />
 
           {/* Modal header */}
+
           <div
             className="flex items-start justify-between gap-4 border-b px-5 py-5 sm:px-6"
             style={{ borderColor: BORDER }}
@@ -747,10 +885,14 @@ const RoleModal: FC<RoleModalProps> = ({
             <div className="flex items-center gap-3">
               <div
                 className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: LIGHT_BLUE, color: PRIMARY }}
+                style={{
+                  backgroundColor: LIGHT_BLUE,
+                  color: PRIMARY,
+                }}
               >
                 <FiShield size={20} />
               </div>
+
               <div>
                 <p
                   className="text-[9px] font-bold uppercase tracking-[0.18em]"
@@ -758,12 +900,14 @@ const RoleModal: FC<RoleModalProps> = ({
                 >
                   Access Control
                 </p>
+
                 <h2
                   className="mt-1 text-[21px] font-bold"
                   style={{ color: TEXT_PRIMARY }}
                 >
                   {editingRole ? "Edit Role" : "Create Role"}
                 </h2>
+
                 <p className="mt-0.5 text-xs" style={{ color: MUTED }}>
                   {editingRole
                     ? "Update role details and permissions."
@@ -771,24 +915,31 @@ const RoleModal: FC<RoleModalProps> = ({
                 </p>
               </div>
             </div>
+
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
               aria-label="Close role dialog"
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition disabled:opacity-40"
-              style={{ backgroundColor: PAGE_BG, color: PRIMARY }}
+              style={{
+                backgroundColor: PAGE_BG,
+                color: PRIMARY,
+              }}
             >
               <FiX size={18} />
             </button>
           </div>
 
           {/* Modal body */}
+
           <div
             className="max-h-[68vh] overflow-y-auto p-4 sm:p-5"
             style={{ backgroundColor: PAGE_BG }}
           >
             <div className="space-y-4">
+              {/* Role information */}
+
               <section
                 className="rounded-2xl border bg-white p-4 sm:p-5"
                 style={{ borderColor: BORDER }}
@@ -796,10 +947,14 @@ const RoleModal: FC<RoleModalProps> = ({
                 <div className="mb-4 flex items-center gap-3">
                   <div
                     className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: LIGHT_BLUE, color: PRIMARY }}
+                    style={{
+                      backgroundColor: LIGHT_BLUE,
+                      color: PRIMARY,
+                    }}
                   >
                     <FiShield size={16} />
                   </div>
+
                   <div>
                     <h3
                       className="text-sm font-bold"
@@ -807,7 +962,11 @@ const RoleModal: FC<RoleModalProps> = ({
                     >
                       Role Information
                     </h3>
-                    <p className="mt-0.5 text-[10px]" style={{ color: MUTED }}>
+
+                    <p
+                      className="mt-0.5 text-[10px]"
+                      style={{ color: MUTED }}
+                    >
                       Enter the basic information for this role.
                     </p>
                   </div>
@@ -821,12 +980,14 @@ const RoleModal: FC<RoleModalProps> = ({
                     >
                       Role Name *
                     </label>
+
                     <input
                       type="text"
                       value={form.name}
                       disabled={loading}
                       onChange={(event: ChangeEvent<HTMLInputElement>) => {
                         const value = event.target.value;
+
                         setForm((previous) => ({
                           ...previous,
                           name: value,
@@ -846,6 +1007,7 @@ const RoleModal: FC<RoleModalProps> = ({
                       }}
                     />
                   </div>
+
                   <div>
                     <label
                       className="mb-1.5 block text-[10px] font-bold uppercase tracking-wide"
@@ -853,6 +1015,7 @@ const RoleModal: FC<RoleModalProps> = ({
                     >
                       Role Slug *
                     </label>
+
                     <input
                       type="text"
                       value={form.slug}
@@ -881,6 +1044,7 @@ const RoleModal: FC<RoleModalProps> = ({
                   >
                     Description
                   </label>
+
                   <textarea
                     rows={2}
                     value={form.description}
@@ -902,6 +1066,8 @@ const RoleModal: FC<RoleModalProps> = ({
                 </div>
               </section>
 
+              {/* Role permissions */}
+
               <section
                 className="overflow-hidden rounded-2xl border bg-white"
                 style={{ borderColor: BORDER }}
@@ -921,6 +1087,7 @@ const RoleModal: FC<RoleModalProps> = ({
                       >
                         <FiKey size={16} />
                       </div>
+
                       <div>
                         <h3
                           className="text-sm font-bold"
@@ -928,6 +1095,7 @@ const RoleModal: FC<RoleModalProps> = ({
                         >
                           Role Permissions
                         </h3>
+
                         <p
                           className="mt-0.5 text-[10px]"
                           style={{ color: MUTED }}
@@ -936,6 +1104,7 @@ const RoleModal: FC<RoleModalProps> = ({
                         </p>
                       </div>
                     </div>
+
                     <span
                       className="shrink-0 rounded-full px-3 py-1.5 text-[10px] font-bold"
                       style={{
@@ -956,12 +1125,14 @@ const RoleModal: FC<RoleModalProps> = ({
                   >
                     Select Module
                   </label>
+
                   <div className="relative">
                     <FiLayers
                       size={16}
                       className="absolute left-4 top-1/2 -translate-y-1/2"
                       style={{ color: PRIMARY }}
                     />
+
                     <select
                       value={selectedModule}
                       onChange={(event) =>
@@ -976,14 +1147,17 @@ const RoleModal: FC<RoleModalProps> = ({
                       }}
                     >
                       <option value="">Select a module...</option>
+
                       {moduleList.map((module) => {
                         const modulePermissions = permissions.filter(
-                          (permission) => permission.module === module
+                          (permission) => permission.module === module,
                         );
+
                         const selectedCount = modulePermissions.filter(
                           (permission) =>
-                            form.permissions.includes(permission.id)
+                            form.permissions.includes(permission.id),
                         ).length;
+
                         return (
                           <option key={module} value={module}>
                             {formatModuleName(module)} — {selectedCount}/
@@ -992,6 +1166,7 @@ const RoleModal: FC<RoleModalProps> = ({
                         );
                       })}
                     </select>
+
                     <FiChevronDown
                       size={17}
                       className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2"
@@ -1015,12 +1190,14 @@ const RoleModal: FC<RoleModalProps> = ({
                       >
                         <FiLayers size={20} />
                       </div>
+
                       <p
                         className="mt-4 text-sm font-bold"
                         style={{ color: TEXT_PRIMARY }}
                       >
                         Select a module
                       </p>
+
                       <p
                         className="mt-1 max-w-[340px] text-[11px] leading-5"
                         style={{ color: MUTED }}
@@ -1049,6 +1226,7 @@ const RoleModal: FC<RoleModalProps> = ({
                         >
                           <FiLayers size={14} />
                         </div>
+
                         <div className="min-w-0">
                           <p
                             className="truncate text-sm font-bold"
@@ -1056,6 +1234,7 @@ const RoleModal: FC<RoleModalProps> = ({
                           >
                             {formatModuleName(selectedModule)}
                           </p>
+
                           <p
                             className="mt-0.5 text-[9px]"
                             style={{ color: MUTED }}
@@ -1065,6 +1244,7 @@ const RoleModal: FC<RoleModalProps> = ({
                           </p>
                         </div>
                       </div>
+
                       <button
                         type="button"
                         onClick={toggleCurrentModule}
@@ -1090,7 +1270,10 @@ const RoleModal: FC<RoleModalProps> = ({
                       {currentModulePermissions.length === 0 ? (
                         <p
                           className="rounded-xl border border-dashed p-6 text-center text-xs"
-                          style={{ borderColor: BORDER, color: MUTED }}
+                          style={{
+                            borderColor: BORDER,
+                            color: MUTED,
+                          }}
                         >
                           No permissions found for this module.
                         </p>
@@ -1098,8 +1281,9 @@ const RoleModal: FC<RoleModalProps> = ({
                         <div className="space-y-2">
                           {currentModulePermissions.map((permission) => {
                             const checked = form.permissions.includes(
-                              permission.id
+                              permission.id,
                             );
+
                             return (
                               <label
                                 key={permission.id}
@@ -1108,7 +1292,9 @@ const RoleModal: FC<RoleModalProps> = ({
                                   borderColor: checked
                                     ? PRIMARY_LIGHT
                                     : BORDER,
-                                  backgroundColor: checked ? LIGHT_BLUE : WHITE,
+                                  backgroundColor: checked
+                                    ? LIGHT_BLUE
+                                    : WHITE,
                                   boxShadow: checked
                                     ? `inset 3px 0 0 ${YELLOW}`
                                     : "none",
@@ -1129,6 +1315,7 @@ const RoleModal: FC<RoleModalProps> = ({
                                   >
                                     {checked && <FiCheck size={12} />}
                                   </span>
+
                                   <span className="min-w-0">
                                     <span
                                       className="block break-words text-sm font-semibold"
@@ -1136,6 +1323,7 @@ const RoleModal: FC<RoleModalProps> = ({
                                     >
                                       {permission.name}
                                     </span>
+
                                     <span
                                       className="mt-1 block break-all font-mono text-[10px]"
                                       style={{ color: MUTED }}
@@ -1144,6 +1332,7 @@ const RoleModal: FC<RoleModalProps> = ({
                                     </span>
                                   </span>
                                 </div>
+
                                 <span
                                   className="shrink-0 rounded-full px-2.5 py-1.5 text-[9px] font-bold"
                                   style={{
@@ -1157,6 +1346,7 @@ const RoleModal: FC<RoleModalProps> = ({
                                 >
                                   {formatActionName(permission.action)}
                                 </span>
+
                                 <input
                                   type="checkbox"
                                   checked={checked}
@@ -1175,7 +1365,8 @@ const RoleModal: FC<RoleModalProps> = ({
                   </div>
                 )}
 
-                {/* Selected Permissions chip — clickable to open popup */}
+                {/* Selected permissions chip */}
+
                 <div
                   className="border-t px-4 py-3 sm:px-5"
                   style={{
@@ -1190,6 +1381,7 @@ const RoleModal: FC<RoleModalProps> = ({
                     >
                       Selected Permissions
                     </span>
+
                     {form.permissions.length > 0 ? (
                       <button
                         type="button"
@@ -1207,6 +1399,7 @@ const RoleModal: FC<RoleModalProps> = ({
                           style={{ backgroundColor: YELLOW }}
                         />
                         {form.permissions.length} permissions
+
                         <FiChevronRight
                           size={12}
                           className="transition group-hover:translate-x-0.5"
@@ -1224,6 +1417,7 @@ const RoleModal: FC<RoleModalProps> = ({
           </div>
 
           {/* Modal footer */}
+
           <div
             className="flex justify-end gap-2 border-t bg-white px-4 py-4 sm:px-6"
             style={{ borderColor: BORDER }}
@@ -1233,10 +1427,14 @@ const RoleModal: FC<RoleModalProps> = ({
               onClick={onClose}
               disabled={loading}
               className="h-10 rounded-xl border bg-white px-5 text-sm font-bold transition disabled:opacity-50"
-              style={{ borderColor: BORDER, color: TEXT_SECONDARY }}
+              style={{
+                borderColor: BORDER,
+                color: TEXT_SECONDARY,
+              }}
             >
               Cancel
             </button>
+
             <button
               type="button"
               onClick={onSubmit}
@@ -1252,6 +1450,7 @@ const RoleModal: FC<RoleModalProps> = ({
               ) : (
                 <FiCheck size={14} />
               )}
+
               {loading
                 ? editingRole
                   ? "Updating..."
@@ -1265,6 +1464,7 @@ const RoleModal: FC<RoleModalProps> = ({
       </GlobalModal>
 
       {/* Selected permissions popup */}
+
       <SelectedPermissionsModal
         open={showSelectedPopup}
         permissions={permissions}
@@ -1284,7 +1484,7 @@ const RoleModal: FC<RoleModalProps> = ({
 };
 
 // =====================================================
-// VIEW PERMISSIONS POPUP (table row chip)
+// VIEW PERMISSIONS POPUP
 // =====================================================
 
 interface ViewRolePermissionsModalProps {
@@ -1306,7 +1506,7 @@ const ViewRolePermissionsModal: FC<ViewRolePermissionsModalProps> = ({
 }) => {
   if (!open || !role) return null;
 
-  const selectedIds = role.permissions?.map((p) => p.id) || [];
+  const selectedIds = role.permissions?.map((permission) => permission.id) || [];
 
   return (
     <SelectedPermissionsModal
@@ -1315,10 +1515,10 @@ const ViewRolePermissionsModal: FC<ViewRolePermissionsModalProps> = ({
       selectedIds={selectedIds}
       onClose={onClose}
       onRemove={() => {
-        /* no-op: view only until user opens edit */
+        // View only until user opens edit.
       }}
       onClearAll={() => {
-        /* no-op */
+        // View only.
       }}
       onUpdate={onUpdate}
       loading={loading}
@@ -1341,8 +1541,10 @@ const RoleManagement: FC = () => {
 
   const hasAnyPermission = useCallback(
     (permissionKeys: string[]) =>
-      permissionKeys.some((permission) => hasPermission(permission)),
-    [hasPermission]
+      permissionKeys.some((permission) =>
+        hasPermission(permission),
+      ),
+    [hasPermission],
   );
 
   const canViewRoles = useMemo(
@@ -1355,44 +1557,70 @@ const RoleManagement: FC = () => {
       hasModuleAccess("role") ||
       hasModuleAccess("roles") ||
       hasAnyPermission(VIEW_PERMISSION_KEYS),
-    [isSuperAdmin, hasModuleAccess, hasAnyPermission]
+    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
   const canCreateRole = useMemo(
     () => isSuperAdmin || hasAnyPermission(CREATE_PERMISSION_KEYS),
-    [isSuperAdmin, hasAnyPermission]
+    [isSuperAdmin, hasAnyPermission],
   );
+
   const canUpdateRole = useMemo(
     () => isSuperAdmin || hasAnyPermission(UPDATE_PERMISSION_KEYS),
-    [isSuperAdmin, hasAnyPermission]
+    [isSuperAdmin, hasAnyPermission],
   );
+
   const canDeleteRole = useMemo(
     () => isSuperAdmin || hasAnyPermission(DELETE_PERMISSION_KEYS),
-    [isSuperAdmin, hasAnyPermission]
+    [isSuperAdmin, hasAnyPermission],
   );
+
   const canViewPermissions = useMemo(
     () =>
-      isSuperAdmin || hasAnyPermission(PERMISSION_VIEW_KEYS) || canViewRoles,
-    [isSuperAdmin, hasAnyPermission, canViewRoles]
+      isSuperAdmin ||
+      hasAnyPermission(PERMISSION_VIEW_KEYS) ||
+      canViewRoles,
+    [isSuperAdmin, hasAnyPermission, canViewRoles],
   );
+
+  // ===================================================
+  // STATE
+  // ===================================================
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroups>(
-    {}
+  const [permissionGroups, setPermissionGroups] =
+    useState<PermissionGroups>({});
+
+  // Normal loading for refresh and other data operations.
+  const [loading, setLoading] = useState(false);
+
+  // Separate initial data loading.
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  // Separate logo API loading.
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Loader logo URL with default fallback.
+  const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
   );
-  const [loading, setLoading] = useState(true);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
+
   const [permissionFilter, setPermissionFilter] = useState<
     "all" | "assigned" | "empty"
   >("all");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+
   const [roleForm, setRoleForm] = useState<RoleFormState>({
     name: "",
     slug: "",
@@ -1400,25 +1628,104 @@ const RoleManagement: FC = () => {
     permissions: [],
   });
 
-  // View-only permissions popup for the table chip
-  const [viewPermissionsRole, setViewPermissionsRole] = useState<Role | null>(
-    null
-  );
+  const [viewPermissionsRole, setViewPermissionsRole] =
+    useState<Role | null>(null);
 
   const ITEMS_PER_PAGE = 10;
+
   const fetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasInitialFetchRef = useRef(false);
 
+  // ===================================================
+  // FETCH LOADER LOGO
+  // If the logo API fails, use the default logo.
+  // ===================================================
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLoaderLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLoaderLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch loader logo error:", error);
+
+        if (isMounted) {
+          setLoaderLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLoaderLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH ROLES + PERMISSIONS
+  // isInitialLoad controls the loader shown only on entry.
+  // ===================================================
+
   const fetchAll = useCallback(
-    async (force = false) => {
-      if (!canViewRoles) return;
-      if (fetchInFlightRef.current) return fetchInFlightRef.current;
-      if (!force && hasInitialFetchRef.current) return;
+    async (
+      force = false,
+      isInitialLoad = false,
+    ) => {
+      if (!canViewRoles) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
+      }
+
+      if (fetchInFlightRef.current) {
+        try {
+          await fetchInFlightRef.current;
+        } finally {
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+
+        return;
+      }
+
+      if (!force && hasInitialFetchRef.current) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
+      }
 
       const requestPromise = (async () => {
         try {
           setLoading(true);
+
           const rolesRequest = adminManagementApi.getRoles();
+
           const responses = canViewPermissions
             ? await Promise.all([
                 rolesRequest,
@@ -1426,104 +1733,175 @@ const RoleManagement: FC = () => {
               ])
             : [await rolesRequest];
 
+          // -----------------------------
+          // ROLES RESPONSE
+          // -----------------------------
+
           const rolesResponse = responses[0];
           const rawRoles = rolesResponse?.data;
+
           const rolesData: Role[] = Array.isArray(rawRoles)
             ? rawRoles
             : rawRoles &&
                 typeof rawRoles === "object" &&
                 "data" in rawRoles &&
-                Array.isArray((rawRoles as { data?: unknown }).data)
+                Array.isArray(
+                  (rawRoles as { data?: unknown }).data,
+                )
               ? (rawRoles as { data: Role[] }).data
               : [];
+
           setRoles(rolesData);
+
+          // -----------------------------
+          // PERMISSIONS RESPONSE
+          // -----------------------------
 
           if (canViewPermissions && responses[1]) {
             const permissionResponse = responses[1] as {
               data?: { data?: PermissionGroups };
             };
-            const groups: PermissionGroups = permissionResponse.data?.data || {};
+
+            const groups: PermissionGroups =
+              permissionResponse.data?.data || {};
+
             setPermissionGroups(groups);
             setPermissions(Object.values(groups).flat());
           } else {
             setPermissionGroups({});
             setPermissions([]);
           }
+
           hasInitialFetchRef.current = true;
         } catch (error: any) {
           console.error("Role management fetch error:", error);
+
           toast.error(
             error?.response?.data?.message ||
-              "Unable to load roles and permissions."
+              "Unable to load roles and permissions.",
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
         }
       })();
 
       fetchInFlightRef.current = requestPromise;
+
       try {
         await requestPromise;
       } finally {
         fetchInFlightRef.current = null;
       }
     },
-    [canViewRoles, canViewPermissions]
+    [canViewRoles, canViewPermissions],
   );
 
+  // ===================================================
+  // INITIAL FETCH
+  // Wait for permissions before requesting page data.
+  // ===================================================
+
   useEffect(() => {
-    if (!permissionsLoading && canViewRoles && !hasInitialFetchRef.current) {
-      void fetchAll();
+    if (permissionsLoading) return;
+
+    if (!canViewRoles) {
+      setInitialDataLoading(false);
+      return;
+    }
+
+    if (!hasInitialFetchRef.current) {
+      void fetchAll(false, true);
     }
   }, [permissionsLoading, canViewRoles, fetchAll]);
 
+  // ===================================================
+  // MODULE COUNT
+  // ===================================================
+
   const moduleCount = useMemo(
     () => Object.keys(permissionGroups).length,
-    [permissionGroups]
+    [permissionGroups],
   );
+
+  // ===================================================
+  // SEARCH + FILTER
+  // ===================================================
 
   const filteredRoles = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     return roles.filter((role) => {
       const permissionCount = role.permissions?.length || 0;
+
       const matchesSearch =
         !query ||
         [role.name, role.slug, role.description || ""]
           .join(" ")
           .toLowerCase()
           .includes(query);
+
       const matchesPermission =
         permissionFilter === "all"
           ? true
           : permissionFilter === "assigned"
             ? permissionCount > 0
             : permissionCount === 0;
+
       return matchesSearch && matchesPermission;
     });
   }, [roles, search, permissionFilter]);
 
+  // ===================================================
+  // PAGINATION
+  // ===================================================
+
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredRoles.length / ITEMS_PER_PAGE)
+    Math.ceil(filteredRoles.length / ITEMS_PER_PAGE),
   );
+
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
   const paginatedRoles = filteredRoles.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE
+    startIndex + ITEMS_PER_PAGE,
   );
-  const startEntry = filteredRoles.length === 0 ? 0 : startIndex + 1;
-  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredRoles.length);
 
-  useEffect(() => setCurrentPage(1), [search, permissionFilter]);
+  const startEntry =
+    filteredRoles.length === 0 ? 0 : startIndex + 1;
+
+  const endEntry = Math.min(
+    startIndex + ITEMS_PER_PAGE,
+    filteredRoles.length,
+  );
+
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
+    setCurrentPage(1);
+  }, [search, permissionFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
   }, [currentPage, totalPages]);
 
   const paginationPages = useMemo(() => {
-    if (totalPages <= 5)
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    if (currentPage <= 3) return [1, 2, 3, 4, 5];
-    if (currentPage >= totalPages - 2)
+    if (totalPages <= 5) {
+      return Array.from(
+        { length: totalPages },
+        (_, index) => index + 1,
+      );
+    }
+
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -1531,6 +1909,8 @@ const RoleManagement: FC = () => {
         totalPages - 1,
         totalPages,
       ];
+    }
+
     return [
       currentPage - 2,
       currentPage - 1,
@@ -1540,18 +1920,31 @@ const RoleManagement: FC = () => {
     ];
   }, [currentPage, totalPages]);
 
+  // ===================================================
+  // ROLE FORM HELPERS
+  // ===================================================
+
   const resetRoleForm = () =>
-    setRoleForm({ name: "", slug: "", description: "", permissions: [] });
+    setRoleForm({
+      name: "",
+      slug: "",
+      description: "",
+      permissions: [],
+    });
 
   const openCreateRole = () => {
     if (!canCreateRole) {
       toast.error("You do not have permission to create roles.");
       return;
     }
+
     if (!canViewPermissions) {
-      toast.error("You do not have permission to view role permissions.");
+      toast.error(
+        "You do not have permission to view role permissions.",
+      );
       return;
     }
+
     setEditingRole(null);
     resetRoleForm();
     setRoleModalOpen(true);
@@ -1562,179 +1955,199 @@ const RoleManagement: FC = () => {
       toast.error("You do not have permission to update roles.");
       return;
     }
+
     if (!canViewPermissions) {
-      toast.error("You do not have permission to view role permissions.");
+      toast.error(
+        "You do not have permission to view role permissions.",
+      );
       return;
     }
+
     setEditingRole(role);
+
     setRoleForm({
       name: role.name || "",
       slug: role.slug || "",
       description: role.description || "",
-      permissions: role.permissions?.map((permission) => permission.id) || [],
+      permissions:
+        role.permissions?.map((permission) => permission.id) || [],
     });
+
     setRoleModalOpen(true);
   };
 
+  // ===================================================
+  // CREATE / UPDATE ROLE
+  // ===================================================
+
   const handleSubmitRole = async () => {
-    const hasSavePermission = editingRole ? canUpdateRole : canCreateRole;
+    const hasSavePermission = editingRole
+      ? canUpdateRole
+      : canCreateRole;
+
     if (!hasSavePermission) {
       toast.error(
         editingRole
           ? "You do not have permission to update roles."
-          : "You do not have permission to create roles."
+          : "You do not have permission to create roles.",
       );
+
       return;
     }
+
     if (!roleForm.name.trim()) {
       toast.error("Please enter role name.");
       return;
     }
+
     if (!canViewPermissions) {
-      toast.error("You do not have permission to manage role permissions.");
+      toast.error(
+        "You do not have permission to manage role permissions.",
+      );
+
       return;
     }
 
-    const slug = roleForm.slug.trim() || generateSlug(roleForm.name);
+    const slug =
+      roleForm.slug.trim() || generateSlug(roleForm.name);
+
     try {
       setActionLoading(true);
+
       const payload: RolePayload = {
         name: roleForm.name.trim(),
         slug,
         description: roleForm.description.trim(),
         permissions: roleForm.permissions,
       };
+
       if (editingRole) {
         const response = await adminManagementApi.updateRole(
           editingRole.id,
-          payload
+          payload,
         );
-        toast.success(response.data?.message || "Role updated successfully.");
+
+        toast.success(
+          response.data?.message || "Role updated successfully.",
+        );
       } else {
         const response = await adminManagementApi.createRole(payload);
-        toast.success(response.data?.message || "Role created successfully.");
+
+        toast.success(
+          response.data?.message || "Role created successfully.",
+        );
       }
+
       setRoleModalOpen(false);
       setEditingRole(null);
       resetRoleForm();
+
+      // Refresh table without reopening the initial logo loader.
       await fetchAll(true);
     } catch (error: any) {
       console.error("Save role error:", error);
-      toast.error(error?.response?.data?.message || "Unable to save role.");
+
+      toast.error(
+        error?.response?.data?.message || "Unable to save role.",
+      );
     } finally {
       setActionLoading(false);
     }
   };
+
+  // ===================================================
+  // DELETE ROLE
+  // ===================================================
 
   const openDeleteRole = (role: Role) => {
     if (!canDeleteRole) {
       toast.error("You do not have permission to delete roles.");
       return;
     }
-    setDeleteTarget({ id: role.id, name: role.name });
+
+    setDeleteTarget({
+      id: role.id,
+      name: role.name,
+    });
+
     setDeleteModalOpen(true);
   };
 
   const handleDeleteRole = async () => {
     if (!deleteTarget) return;
+
     if (!canDeleteRole) {
       toast.error("You do not have permission to delete roles.");
       return;
     }
+
     try {
       setDeleteLoading(true);
-      const response = await adminManagementApi.deleteRole(deleteTarget.id);
-      toast.success(response.data?.message || "Role deleted successfully.");
+
+      const response = await adminManagementApi.deleteRole(
+        deleteTarget.id,
+      );
+
+      toast.success(
+        response.data?.message || "Role deleted successfully.",
+      );
+
       setDeleteModalOpen(false);
       setDeleteTarget(null);
+
+      // Refresh table without reopening the initial logo loader.
       await fetchAll(true);
     } catch (error: any) {
       console.error("Delete role error:", error);
-      toast.error(error?.response?.data?.message || "Unable to delete role.");
+
+      toast.error(
+        error?.response?.data?.message || "Unable to delete role.",
+      );
     } finally {
       setDeleteLoading(false);
     }
   };
 
-  // Open the table chip popup (view only)
+  // ===================================================
+  // VIEW PERMISSIONS
+  // ===================================================
+
   const handleOpenViewPermissions = (role: Role) => {
     setViewPermissionsRole(role);
   };
 
-  // When user clicks Update from the view-only popup → open edit modal
   const handleUpdateFromView = () => {
     if (viewPermissionsRole) {
       const role = viewPermissionsRole;
+
       setViewPermissionsRole(null);
       openEditRole(role);
     }
   };
 
-  // Permission verification loader
-  if (permissionsLoading) {
-    return (
-      <div
-        className="flex min-h-[500px] items-center justify-center p-6"
-        style={{ backgroundColor: PAGE_BG }}
-      >
-        <div className="flex flex-col items-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm"
-            style={{ color: PRIMARY }}
-          >
-            <FiRefreshCw size={23} className="animate-spin" />
-          </div>
-          <p
-            className="mt-4 text-sm font-bold"
-            style={{ color: TEXT_PRIMARY }}
-          >
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-[10px]" style={{ color: MUTED }}>
-            Verifying role management access.
-          </p>
-        </div>
-      </div>
-    );
+  // ===================================================
+  // COMBINED INITIAL LOADING STATE
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
+
+  if (pageLoading) {
+    return <PermissionLoading logoUrl={loaderLogoUrl} />;
   }
 
   if (!canViewRoles) {
-    return (
-      <div
-        className="flex min-h-[500px] items-center justify-center p-6"
-        style={{ backgroundColor: PAGE_BG }}
-      >
-        <div
-          className="max-w-md rounded-2xl border bg-white p-8 text-center shadow-sm"
-          style={{ borderColor: BORDER }}
-        >
-          <div
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: LIGHT_YELLOW, color: YELLOW_TEXT }}
-          >
-            <FiShield size={24} />
-          </div>
-          <h2
-            className="mt-4 text-lg font-bold"
-            style={{ color: TEXT_PRIMARY }}
-          >
-            Access Denied
-          </h2>
-          <p
-            className="mt-2 text-sm leading-6"
-            style={{ color: TEXT_SECONDARY }}
-          >
-            You do not have permission to view role management.
-          </p>
-        </div>
-      </div>
-    );
+    return <AccessDenied />;
   }
 
+  // This spinner is only for a later fetch if there are no
+  // roles available to display. Initial loading uses logo above.
   if (loading && roles.length === 0) {
     return (
       <div
-        className="flex min-h-[500px] items-center justify-center p-6"
+        className="flex min-h-[60vh] items-center justify-center p-6"
         style={{ backgroundColor: PAGE_BG }}
       >
         <div className="flex flex-col items-center">
@@ -1744,12 +2157,14 @@ const RoleManagement: FC = () => {
           >
             <FiRefreshCw size={23} className="animate-spin" />
           </div>
+
           <p
             className="mt-4 text-sm font-bold"
             style={{ color: TEXT_PRIMARY }}
           >
             Loading roles...
           </p>
+
           <p className="mt-1 text-[10px]" style={{ color: MUTED }}>
             Fetching roles and permissions.
           </p>
@@ -1758,6 +2173,10 @@ const RoleManagement: FC = () => {
     );
   }
 
+  // ===================================================
+  // UI
+  // ===================================================
+
   return (
     <>
       <motion.div
@@ -1765,7 +2184,8 @@ const RoleManagement: FC = () => {
         animate={{ opacity: 1 }}
         className="min-h-screen bg-white p-4 sm:p-5 lg:p-6"
       >
-        {/* Page heading */}
+        {/* PAGE HEADING */}
+
         <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div>
             <div className="mb-2 flex items-center gap-2">
@@ -1776,6 +2196,7 @@ const RoleManagement: FC = () => {
                   boxShadow: `0 0 0 3px ${LIGHT_YELLOW}`,
                 }}
               />
+
               <span
                 className="text-[10px] font-bold uppercase tracking-[0.2em]"
                 style={{ color: PRIMARY }}
@@ -1783,25 +2204,36 @@ const RoleManagement: FC = () => {
                 Access Control
               </span>
             </div>
+
             <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
               Role Management
             </h1>
+
             <p className="mt-0.5 text-sm text-[#111827]">
               Create roles and manage module-based permissions for admin
               access.
             </p>
           </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => void fetchAll(true)}
               disabled={loading}
               className="flex h-11 items-center gap-2 rounded-xl border bg-white px-4 text-sm font-bold transition hover:bg-[#F8FBFF] disabled:opacity-50 sm:px-5"
-              style={{ borderColor: BORDER, color: PRIMARY }}
+              style={{
+                borderColor: BORDER,
+                color: PRIMARY,
+              }}
             >
-              <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />{" "}
+              <FiRefreshCw
+                size={16}
+                className={loading ? "animate-spin" : ""}
+              />
+
               Refresh
             </button>
+
             {canCreateRole && (
               <button
                 type="button"
@@ -1809,21 +2241,27 @@ const RoleManagement: FC = () => {
                 className="flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition hover:-translate-y-0.5 sm:px-6"
                 style={{ background: PRIMARY_GRADIENT }}
               >
-                <FiPlus size={17} /> Add Role
+                <FiPlus size={17} />
+                Add Role
               </button>
             )}
           </div>
         </div>
 
-        {/* Main directory */}
+        {/* MAIN DIRECTORY */}
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative overflow-hidden rounded-[22px] border bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
           style={{ borderColor: BORDER }}
         >
-          {/* Search and filter */}
-          <div className="border-b p-4 sm:p-5" style={{ borderColor: BORDER }}>
+          {/* SEARCH AND FILTER */}
+
+          <div
+            className="border-b p-4 sm:p-5"
+            style={{ borderColor: BORDER }}
+          >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[500px]">
                 <FiSearch
@@ -1831,6 +2269,7 @@ const RoleManagement: FC = () => {
                   className="absolute left-4 top-1/2 -translate-y-1/2"
                   style={{ color: PRIMARY }}
                 />
+
                 <input
                   type="text"
                   value={search}
@@ -1844,6 +2283,7 @@ const RoleManagement: FC = () => {
                   }}
                 />
               </div>
+
               <div className="flex flex-wrap gap-2">
                 {(
                   [
@@ -1853,6 +2293,7 @@ const RoleManagement: FC = () => {
                   ] as const
                 ).map((item) => {
                   const active = permissionFilter === item.key;
+
                   return (
                     <button
                       key={item.key}
@@ -1875,7 +2316,8 @@ const RoleManagement: FC = () => {
             </div>
           </div>
 
-          {/* Desktop table */}
+          {/* DESKTOP TABLE */}
+
           <div className="hidden overflow-x-auto rounded-2xl lg:block">
             <table className="w-full min-w-[1050px] border-collapse">
               <thead>
@@ -1900,6 +2342,7 @@ const RoleManagement: FC = () => {
                       }`}
                     >
                       {heading}
+
                       {index === 0 && (
                         <span
                           className="ml-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
@@ -1910,6 +2353,7 @@ const RoleManagement: FC = () => {
                   ))}
                 </tr>
               </thead>
+
               <tbody>
                 {paginatedRoles.length === 0 ? (
                   <tr>
@@ -1924,12 +2368,14 @@ const RoleManagement: FC = () => {
                         >
                           <FiShield size={25} />
                         </div>
+
                         <p
                           className="mt-4 text-sm font-bold"
                           style={{ color: TEXT_PRIMARY }}
                         >
                           No roles found
                         </p>
+
                         <p className="mt-1 text-xs" style={{ color: MUTED }}>
                           Try another search or create a new role.
                         </p>
@@ -1939,6 +2385,7 @@ const RoleManagement: FC = () => {
                 ) : (
                   paginatedRoles.map((role, index) => {
                     const permissionCount = role.permissions?.length || 0;
+
                     return (
                       <tr
                         key={role.id}
@@ -1956,6 +2403,7 @@ const RoleManagement: FC = () => {
                             {startIndex + index + 1}
                           </span>
                         </td>
+
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-3">
                             <div
@@ -1964,6 +2412,7 @@ const RoleManagement: FC = () => {
                             >
                               <FiShield size={16} />
                             </div>
+
                             <p
                               className="max-w-[180px] truncate text-sm font-bold"
                               style={{ color: TEXT_PRIMARY }}
@@ -1972,6 +2421,7 @@ const RoleManagement: FC = () => {
                             </p>
                           </div>
                         </td>
+
                         <td className="px-5 py-4">
                           <span
                             className="rounded-md px-2.5 py-1.5 font-mono text-[10px]"
@@ -1983,6 +2433,7 @@ const RoleManagement: FC = () => {
                             {role.slug}
                           </span>
                         </td>
+
                         <td className="max-w-[300px] px-5 py-4">
                           <p
                             className="line-clamp-2 text-xs leading-5"
@@ -1991,11 +2442,13 @@ const RoleManagement: FC = () => {
                             {role.description || "No description provided."}
                           </p>
                         </td>
+
                         <td className="px-5 py-4 text-center">
-                          {/* CLICKABLE permissions chip */}
                           <button
                             type="button"
-                            onClick={() => handleOpenViewPermissions(role)}
+                            onClick={() =>
+                              handleOpenViewPermissions(role)
+                            }
                             title="View assigned permissions"
                             className="group inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold transition hover:-translate-y-0.5 hover:shadow-sm"
                             style={{
@@ -2016,14 +2469,17 @@ const RoleManagement: FC = () => {
                                   permissionCount > 0 ? YELLOW : MUTED,
                               }}
                             />
+
                             {permissionCount} permission
                             {permissionCount === 1 ? "" : "s"}
+
                             <FiChevronRight
                               size={11}
                               className="transition group-hover:translate-x-0.5"
                             />
                           </button>
                         </td>
+
                         <td className="px-5 py-4 text-center">
                           <span
                             className="text-[10px] font-semibold"
@@ -2032,6 +2488,7 @@ const RoleManagement: FC = () => {
                             {formatDate(role.updated_at)}
                           </span>
                         </td>
+
                         <td className="px-5 py-4">
                           <div className="flex items-center justify-center gap-2">
                             {canUpdateRole && (
@@ -2050,6 +2507,7 @@ const RoleManagement: FC = () => {
                                 <FiEdit2 size={14} />
                               </button>
                             )}
+
                             {canDeleteRole && (
                               <button
                                 type="button"
@@ -2066,6 +2524,7 @@ const RoleManagement: FC = () => {
                                 <FiTrash2 size={14} />
                               </button>
                             )}
+
                             {!canUpdateRole && !canDeleteRole && (
                               <span
                                 className="rounded-lg border px-3 py-2 text-[9px] font-semibold"
@@ -2088,11 +2547,13 @@ const RoleManagement: FC = () => {
             </table>
           </div>
 
-          {/* Mobile and tablet role cards */}
+          {/* MOBILE AND TABLET ROLE CARDS */}
+
           <div className="block lg:hidden">
             {paginatedRoles.length > 0 ? (
               paginatedRoles.map((role, index) => {
                 const permissionCount = role.permissions?.length || 0;
+
                 return (
                   <div
                     key={role.id}
@@ -2107,6 +2568,7 @@ const RoleManagement: FC = () => {
                         >
                           <FiShield size={17} />
                         </div>
+
                         <div className="min-w-0">
                           <p
                             className="truncate text-sm font-bold"
@@ -2114,6 +2576,7 @@ const RoleManagement: FC = () => {
                           >
                             {role.name}
                           </p>
+
                           <p
                             className="mt-1 truncate font-mono text-[10px]"
                             style={{ color: PRIMARY }}
@@ -2122,6 +2585,7 @@ const RoleManagement: FC = () => {
                           </p>
                         </div>
                       </div>
+
                       <span
                         className="text-[10px] font-bold"
                         style={{ color: MUTED }}
@@ -2129,9 +2593,13 @@ const RoleManagement: FC = () => {
                         #{startIndex + index + 1}
                       </span>
                     </div>
+
                     <div
                       className="mt-4 rounded-xl border p-3.5"
-                      style={{ borderColor: BORDER, backgroundColor: PAGE_BG }}
+                      style={{
+                        borderColor: BORDER,
+                        backgroundColor: PAGE_BG,
+                      }}
                     >
                       <p
                         className="text-[9px] font-bold uppercase tracking-wide"
@@ -2139,6 +2607,7 @@ const RoleManagement: FC = () => {
                       >
                         Description
                       </p>
+
                       <p
                         className="mt-1.5 text-xs leading-5"
                         style={{ color: TEXT_SECONDARY }}
@@ -2146,12 +2615,14 @@ const RoleManagement: FC = () => {
                         {role.description || "No description provided."}
                       </p>
                     </div>
+
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* CLICKABLE permissions chip (mobile) */}
                         <button
                           type="button"
-                          onClick={() => handleOpenViewPermissions(role)}
+                          onClick={() =>
+                            handleOpenViewPermissions(role)
+                          }
                           title="View assigned permissions"
                           className="group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[9px] font-bold transition hover:-translate-y-0.5"
                           style={{
@@ -2160,11 +2631,13 @@ const RoleManagement: FC = () => {
                           }}
                         >
                           {permissionCount} permissions
+
                           <FiChevronRight
                             size={11}
                             className="transition group-hover:translate-x-0.5"
                           />
                         </button>
+
                         <span
                           className="rounded-full px-3 py-1.5 text-[9px] font-bold"
                           style={{
@@ -2175,6 +2648,7 @@ const RoleManagement: FC = () => {
                           {formatDate(role.updated_at)}
                         </span>
                       </div>
+
                       <div className="flex gap-2">
                         {canUpdateRole && (
                           <button
@@ -2187,9 +2661,11 @@ const RoleManagement: FC = () => {
                               color: PRIMARY,
                             }}
                           >
-                            <FiEdit2 size={13} /> Edit
+                            <FiEdit2 size={13} />
+                            Edit
                           </button>
                         )}
+
                         {canDeleteRole && (
                           <button
                             type="button"
@@ -2201,9 +2677,11 @@ const RoleManagement: FC = () => {
                               color: DANGER,
                             }}
                           >
-                            <FiTrash2 size={13} /> Delete
+                            <FiTrash2 size={13} />
+                            Delete
                           </button>
                         )}
+
                         {!canUpdateRole && !canDeleteRole && (
                           <span
                             className="self-center text-[10px] font-semibold"
@@ -2221,16 +2699,21 @@ const RoleManagement: FC = () => {
               <div className="flex flex-col items-center py-16 text-center">
                 <div
                   className="flex h-12 w-12 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: LIGHT_BLUE, color: PRIMARY }}
+                  style={{
+                    backgroundColor: LIGHT_BLUE,
+                    color: PRIMARY,
+                  }}
                 >
                   <FiShield size={24} />
                 </div>
+
                 <p
                   className="mt-4 text-sm font-bold"
                   style={{ color: TEXT_PRIMARY }}
                 >
                   No roles found
                 </p>
+
                 <p className="mt-1 text-xs" style={{ color: MUTED }}>
                   Try changing your search or filter.
                 </p>
@@ -2238,11 +2721,15 @@ const RoleManagement: FC = () => {
             )}
           </div>
 
-          {/* Pagination */}
+          {/* PAGINATION */}
+
           {filteredRoles.length > 0 && (
             <div
               className="flex flex-col items-center justify-between gap-4 border-t px-4 py-4 sm:flex-row sm:px-5"
-              style={{ borderColor: BORDER, backgroundColor: SOFT_SURFACE }}
+              style={{
+                borderColor: BORDER,
+                backgroundColor: SOFT_SURFACE,
+              }}
             >
               <p className="text-xs" style={{ color: MUTED }}>
                 Showing{" "}
@@ -2268,6 +2755,7 @@ const RoleManagement: FC = () => {
                 </span>{" "}
                 roles
               </p>
+
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
@@ -2277,10 +2765,14 @@ const RoleManagement: FC = () => {
                   disabled={currentPage === 1}
                   aria-label="Previous page"
                   className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF3FF] disabled:opacity-30"
-                  style={{ borderColor: BORDER, color: PRIMARY }}
+                  style={{
+                    borderColor: BORDER,
+                    color: PRIMARY,
+                  }}
                 >
                   <FiChevronLeft size={16} />
                 </button>
+
                 {paginationPages.map((page) => (
                   <button
                     key={page}
@@ -2291,7 +2783,8 @@ const RoleManagement: FC = () => {
                     style={{
                       background:
                         currentPage === page ? PRIMARY_GRADIENT : WHITE,
-                      color: currentPage === page ? WHITE : TEXT_SECONDARY,
+                      color:
+                        currentPage === page ? WHITE : TEXT_SECONDARY,
                       border:
                         currentPage === page
                           ? `1px solid ${PRIMARY}`
@@ -2305,15 +2798,21 @@ const RoleManagement: FC = () => {
                     {page}
                   </button>
                 ))}
+
                 <button
                   type="button"
                   onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
+                    setCurrentPage((page) =>
+                      Math.min(totalPages, page + 1),
+                    )
                   }
                   disabled={currentPage === totalPages}
                   aria-label="Next page"
                   className="flex h-9 w-9 items-center justify-center rounded-lg border bg-white transition hover:bg-[#EAF3FF] disabled:opacity-30"
-                  style={{ borderColor: BORDER, color: PRIMARY }}
+                  style={{
+                    borderColor: BORDER,
+                    color: PRIMARY,
+                  }}
                 >
                   <FiChevronRight size={16} />
                 </button>
@@ -2322,6 +2821,8 @@ const RoleManagement: FC = () => {
           )}
         </motion.div>
       </motion.div>
+
+      {/* CREATE / EDIT ROLE MODAL */}
 
       <RoleModal
         open={roleModalOpen}
@@ -2339,7 +2840,8 @@ const RoleManagement: FC = () => {
         onSubmit={() => void handleSubmitRole()}
       />
 
-      {/* View-only permissions popup triggered from the table chip */}
+      {/* VIEW-ONLY PERMISSIONS POPUP */}
+
       <ViewRolePermissionsModal
         open={!!viewPermissionsRole}
         role={viewPermissionsRole}
@@ -2348,6 +2850,8 @@ const RoleManagement: FC = () => {
         onClose={() => setViewPermissionsRole(null)}
         onUpdate={handleUpdateFromView}
       />
+
+      {/* DELETE ROLE MODAL */}
 
       <DeleteRoleModal
         open={deleteModalOpen}

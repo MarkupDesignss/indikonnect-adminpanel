@@ -12,40 +12,18 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 
+import { motion } from "framer-motion";
+
 import productReviewsApi, {
   ProductReview,
   ReviewAction,
 } from "../../api/endpoints/review";
-
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-// =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer, Admin)
-// =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
-
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
-
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
-
-// =====================================================
-// STATUS BADGE — BLUE THEME
-// =====================================================
 export const getStatusBadge = (status: string) => {
   const base =
     "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border";
@@ -62,30 +40,55 @@ export const getStatusBadge = (status: string) => {
   }
 };
 
-// =====================================================
-// PERMISSION LOADING
-// =====================================================
-const PermissionLoading: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
-    <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-        <FiRefreshCw size={27} className="animate-spin" />
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
-      </p>
-      <p className="mt-1 text-xs text-[#6B7280]">
-        Verifying review management access.
-      </p>
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // =====================================================
 // ACCESS DENIED
 // =====================================================
 const AccessDenied: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
     <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiAlertCircle size={26} />
@@ -101,146 +104,6 @@ const AccessDenied: React.FC = () => (
         Contact your administrator to request access.
       </div>
     </div>
-  </div>
-);
-
-// =====================================================
-// SKELETON — BLUE THEME
-// =====================================================
-const ReviewsPageSkeleton = () => (
-  <div className="flex flex-1 gap-4 overflow-hidden bg-[#F4F8FD] p-4 font-poppins">
-    {/* LEFT */}
-    <aside className="flex h-full w-full flex-col overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-sm md:w-1/3">
-      <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-4 w-20 animate-pulse rounded bg-[#EAF3FF]" />
-            <div className="h-3 w-36 animate-pulse rounded bg-[#F4F8FD]" />
-          </div>
-          <div className="h-9 w-9 animate-pulse rounded-xl bg-[#EAF3FF]" />
-        </div>
-
-        <div className="mb-4 flex gap-2">
-          <div className="h-8 w-24 animate-pulse rounded-full bg-[#EAF3FF]" />
-          <div className="h-8 w-20 animate-pulse rounded-full bg-[#F4F8FD]" />
-          <div className="h-8 w-20 animate-pulse rounded-full bg-[#F4F8FD]" />
-        </div>
-
-        <div className="h-11 w-full animate-pulse rounded-xl bg-[#F4F8FD]" />
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-hidden">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div key={index} className="border-b border-[#DCE6F2] p-4 sm:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-1 items-center gap-2">
-                <div className="h-8 w-8 shrink-0 animate-pulse rounded-lg bg-[#EAF3FF]" />
-                <div className="h-4 w-32 animate-pulse rounded bg-[#EAF3FF]" />
-              </div>
-              <div className="h-5 w-16 animate-pulse rounded-full bg-[#F4F8FD]" />
-            </div>
-
-            <div className="mt-3 flex justify-between">
-              <div className="h-3 w-24 animate-pulse rounded bg-[#F4F8FD]" />
-              <div className="h-3 w-16 animate-pulse rounded bg-[#F4F8FD]" />
-            </div>
-
-            <div className="mt-3 flex gap-1">
-              {Array.from({ length: 5 }).map((_, starIndex) => (
-                <div
-                  key={starIndex}
-                  className="h-3.5 w-3.5 animate-pulse rounded-full bg-[#F4F8FD]"
-                />
-              ))}
-            </div>
-
-            <div className="mt-3 space-y-2">
-              <div className="h-3 w-full animate-pulse rounded bg-[#F4F8FD]" />
-              <div className="h-3 w-3/4 animate-pulse rounded bg-[#F4F8FD]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </aside>
-
-    {/* RIGHT */}
-    <section className="flex h-full flex-1 flex-col overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-sm">
-      <div className="border-b border-[#DCE6F2] px-5 py-5 sm:px-6">
-        <div className="flex flex-col gap-5 xl:flex-row xl:justify-between">
-          <div className="flex-1 space-y-3">
-            <div className="h-6 w-24 animate-pulse rounded-full bg-[#EAF3FF]" />
-            <div className="h-7 w-64 animate-pulse rounded bg-[#EAF3FF]" />
-
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 animate-pulse rounded-full bg-[#EAF3FF]" />
-              <div className="h-4 w-32 animate-pulse rounded bg-[#F4F8FD]" />
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <div className="h-10 w-20 animate-pulse rounded-xl bg-[#F4F8FD]" />
-            <div className="h-10 w-20 animate-pulse rounded-xl bg-[#F4F8FD]" />
-            <div className="h-10 w-24 animate-pulse rounded-xl bg-[#EAF3FF]" />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 bg-[#F4F8FD] p-5 sm:p-6">
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-          <div className="space-y-5 xl:col-span-2">
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
-              <div className="mb-5 flex gap-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-5 w-5 animate-pulse rounded-full bg-[#EAF3FF]"
-                  />
-                ))}
-              </div>
-
-              <div className="h-6 w-48 animate-pulse rounded bg-[#EAF3FF]" />
-              <div className="my-4 h-px bg-[#EAF3FF]" />
-
-              <div className="space-y-3">
-                <div className="h-4 w-full animate-pulse rounded bg-[#F4F8FD]" />
-                <div className="h-4 w-full animate-pulse rounded bg-[#F4F8FD]" />
-                <div className="h-4 w-4/5 animate-pulse rounded bg-[#F4F8FD]" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-2xl bg-white p-4 shadow-sm">
-                  <div className="h-3 w-20 animate-pulse rounded bg-[#F4F8FD]" />
-                  <div className="mt-3 h-6 w-16 animate-pulse rounded bg-[#EAF3FF]" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="rounded-2xl bg-white p-5 shadow-sm">
-                <div className="mb-4 h-3 w-28 animate-pulse rounded bg-[#F4F8FD]" />
-
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="h-11 w-11 animate-pulse rounded-full bg-[#EAF3FF]" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-28 animate-pulse rounded bg-[#EAF3FF]" />
-                    <div className="h-3 w-20 animate-pulse rounded bg-[#F4F8FD]" />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="h-3 w-full animate-pulse rounded bg-[#F4F8FD]" />
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-[#F4F8FD]" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
   </div>
 );
 
@@ -866,20 +729,78 @@ const ReviewsModeration = () => {
   );
 
   // ===================================================
+  // ✅ LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
   const [reviewList, setReviewList] = useState<ProductReview[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialReviewsLoading, setInitialReviewsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
   // ===================================================
-  // FETCH
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
   // ===================================================
-  const fetchReviews = async () => {
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+  const fetchReviews = async (isInitialLoad = false) => {
     try {
       setError("");
+      setLoading(true);
+
       const response = await productReviewsApi.getAll();
 
       if (!response.data?.success) {
@@ -930,27 +851,40 @@ const ReviewsModeration = () => {
           err?.message ||
           "Failed to fetch product reviews.",
       );
+    } finally {
+      setLoading(false);
+
+      if (isInitialLoad) {
+        setInitialReviewsLoading(false);
+      }
     }
   };
 
   // ===================================================
   // INITIAL LOAD
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING REVIEWS
   // ===================================================
   useEffect(() => {
     if (permissionsLoading) return;
+
     if (!canViewReviews) {
       setLoading(false);
+      setInitialReviewsLoading(false);
       return;
     }
 
-    const load = async () => {
-      setLoading(true);
-      await fetchReviews();
-      setLoading(false);
-    };
-
-    load();
+    void fetchReviews(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewReviews]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialReviewsLoading;
 
   // ===================================================
   // SELECTED
@@ -1010,28 +944,33 @@ const ReviewsModeration = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING
+  // ✅ COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) return <PermissionLoading />;
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
   if (!canViewReviews) return <AccessDenied />;
-  if (loading) return <ReviewsPageSkeleton />;
 
   // ===================================================
   // ERROR
   // ===================================================
   if (error && reviewList.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
         <div className="text-center">
           <p className="mb-3 text-sm font-bold text-[#C23B32]">{error}</p>
 
           <button
             type="button"
             onClick={async () => {
-              setLoading(true);
-              setError("");
               await fetchReviews();
-              setLoading(false);
             }}
             className="rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-2 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5"
           >

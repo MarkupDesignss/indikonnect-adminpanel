@@ -1,6 +1,10 @@
-import {
+"use client";
+
+import React, {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -30,7 +34,16 @@ import warehouseStocksApi, {
   WarehouseProduct,
 } from "@/api/endpoints/warehouseStocks";
 
+import logoApi from "@/api/endpoints/logoApi";
+
 import { usePermissions } from "@/pages/permissions/usePermissions";
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // STOCK STATUS META
@@ -112,28 +125,52 @@ const itemVariants = {
 };
 
 // =====================================================
-// PERMISSION LOADING
+// LOGO LOADING STATE
+// Same file component — content area only
 // =====================================================
 
-const PermissionLoading: React.FC = () => {
+interface PermissionLoadingProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoading: React.FC<PermissionLoadingProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
-      <div className="flex flex-col items-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#DCE6F2] bg-[#EAF3FF] text-[#2D6FE8] shadow-sm">
-          <FiRefreshCw
-            size={23}
-            className="animate-spin"
-          />
-        </div>
-
-        <p className="mt-4 text-sm font-bold text-[#111827]">
-          Checking permissions...
-        </p>
-
-        <p className="mt-1 text-[10px] text-[#6B7280]">
-          Verifying warehouse inventory access.
-        </p>
-      </div>
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
   );
 };
@@ -144,7 +181,7 @@ const PermissionLoading: React.FC = () => {
 
 const AccessDenied: React.FC = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+    <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
       <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-[0_8px_30px_rgba(45,111,232,0.08)]">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
           <FiAlertCircle size={26} />
@@ -210,6 +247,24 @@ const Inventorywarehouse = () => {
   );
 
   // =================================================
+  // INITIAL LOADING STATES
+  // =================================================
+
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  const [logoLoading, setLogoLoading] =
+    useState(true);
+
+  const [logoUrl, setLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
+  );
+
+  // Tracks whether the first inventory request has started.
+  // Subsequent page changes will use the regular table spinner.
+  const hasStartedInitialFetch = useRef(false);
+
+  // =================================================
   // STATE
   // =================================================
 
@@ -234,52 +289,110 @@ const Inventorywarehouse = () => {
   const [editedQty, setEditedQty] = useState<EditedQty>({});
 
   // =================================================
+  // FETCH LOGO
+  // =================================================
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch logo error:", error);
+
+        // The default logo remains available if the API fails.
+        if (isMounted) {
+          setLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // =================================================
   // FETCH PRODUCTS
   // =================================================
 
-  const fetchProducts = async () => {
-    try {
-      setIsLoading(true);
+  const fetchProducts = useCallback(
+    async (isInitialLoad = false) => {
+      try {
+        setIsLoading(true);
 
-      const res = await warehouseStocksApi.getByWarehouse(
-        warehouseId,
-        {
-          page,
-          per_page: perPage,
-        },
-      );
-
-      if (res.data) {
-        setProducts(res.data.data ?? []);
-
-        setWarehouseName(
-          res.data.warehouse?.name ?? "",
+        const res = await warehouseStocksApi.getByWarehouse(
+          warehouseId,
+          {
+            page,
+            per_page: perPage,
+          },
         );
 
-        setTotal(
-          res.data.pagination?.total ?? 0,
+        if (res.data) {
+          setProducts(res.data.data ?? []);
+
+          setWarehouseName(
+            res.data.warehouse?.name ?? "",
+          );
+
+          setTotal(
+            res.data.pagination?.total ?? 0,
+          );
+
+          setTotalPages(
+            Math.max(
+              res.data.pagination?.last_page ?? 1,
+              1,
+            ),
+          );
+
+          setEditedQty({});
+        }
+      } catch (err: any) {
+        console.error(
+          "Warehouse inventory fetch error:",
+          err,
         );
 
-        setTotalPages(
-          res.data.pagination?.last_page ?? 1,
+        toast.error(
+          err?.response?.data?.message ||
+            "Failed to load warehouse inventory",
         );
+      } finally {
+        setIsLoading(false);
 
-        setEditedQty({});
+        // Only the first request completes initial page loading.
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
       }
-    } catch (err: any) {
-      console.error(
-        "Warehouse inventory fetch error:",
-        err,
-      );
-
-      toast.error(
-        err?.response?.data?.message ||
-          "Failed to load warehouse inventory",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [warehouseId, page, perPage],
+  );
 
   // =================================================
   // FETCH ONLY AFTER PERMISSION CHECK
@@ -290,20 +403,31 @@ const Inventorywarehouse = () => {
       return;
     }
 
-    if (canViewInventory) {
-      fetchProducts();
-    } else {
+    if (!canViewInventory) {
       setIsLoading(false);
+      setInitialDataLoading(false);
+      return;
     }
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const isInitialLoad = !hasStartedInitialFetch.current;
+
+    hasStartedInitialFetch.current = true;
+
+    void fetchProducts(isInitialLoad);
   }, [
     permissionsLoading,
     canViewInventory,
-    warehouseId,
-    page,
-    perPage,
+    fetchProducts,
   ]);
+
+  // =================================================
+  // COMBINED INITIAL LOADING
+  // =================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // =================================================
   // SEARCH
@@ -568,6 +692,7 @@ const Inventorywarehouse = () => {
 
       setEditedQty({});
 
+      // Use the existing inventory table spinner.
       await fetchProducts();
     } catch (err: any) {
       console.error("Bulk save error:", err);
@@ -608,11 +733,11 @@ const Inventorywarehouse = () => {
   };
 
   // =================================================
-  // PERMISSION LOADING
+  // LOGO LOADING STATE
   // =================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoading />;
+  if (pageLoading) {
+    return <PermissionLoading logoUrl={logoUrl} />;
   }
 
   // =================================================
@@ -717,7 +842,6 @@ const Inventorywarehouse = () => {
         variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[12px] border border-[#DCE6F2] bg-white p-3 sm:p-3"
       >
-    
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
@@ -737,11 +861,11 @@ const Inventorywarehouse = () => {
           <div className="flex items-center gap-2">
             <motion.button
               type="button"
-              onClick={fetchProducts}
+              onClick={() => void fetchProducts()}
               disabled={isLoading}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8]  transition hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
                 size={14}
@@ -773,7 +897,7 @@ const Inventorywarehouse = () => {
               opacity: 0,
               y: -10,
             }}
-            className="mb-4 flex flex-col items-start justify-between gap-3 rounded-[22px] border border-[#2D6FE8]/15 bg-gradient-to-br from-[#EAF3FF] via-white to-[#FEF9C3]/30 px-4 py-4.5 shadow-[0_8px_30px_rgba(45,111,232,0.06)] md:flex-row md:items-center sm:px-5"
+            className="mb-4 flex flex-col items-start justify-between gap-3 rounded-[22px] border border-[#2D6FE8]/15 bg-gradient-to-br from-[#EAF3FF] via-white to-[#FEF9C3]/30 px-4 py-4 md:flex-row md:items-center sm:px-5"
           >
             <div className="flex items-center gap-2.5 text-[12px] text-[#2D6FE8]">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2D6FE8]">
@@ -815,13 +939,11 @@ const Inventorywarehouse = () => {
                 {isSaving ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
-
                     Saving...
                   </>
                 ) : (
                   <>
                     <FiEdit3 size={14} />
-
                     Save Changes
                   </>
                 )}
@@ -837,10 +959,9 @@ const Inventorywarehouse = () => {
 
       <motion.div
         variants={itemVariants}
-        className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white "
+        className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white"
       >
-   
-        <div className="">
+        <div>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -878,7 +999,7 @@ const Inventorywarehouse = () => {
             <>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[1180px] table-fixed border-collapse">
-                  {/* ✅ COLUMN WIDTHS — S.No. added, others adjusted */}
+                  {/* COLUMN WIDTHS */}
 
                   <colgroup>
                     <col className="w-[55px]" />
@@ -894,8 +1015,6 @@ const Inventorywarehouse = () => {
 
                   <thead>
                     <tr className="border-b border-[#DCE6F2] bg-[#4F8FF7]">
-                      {/* ✅ S.No. */}
-
                       <th className="rounded-tl-xl px-3 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                         S.No.
                       </th>
@@ -976,7 +1095,7 @@ const Inventorywarehouse = () => {
                               : "hover:bg-[#F8FBFF]"
                           }`}
                         >
-                          {/* ✅ S.No. — starts from 1 on every page */}
+                          {/* S.NO. */}
 
                           <td className="px-3 py-2.5 align-top">
                             <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
@@ -1057,7 +1176,6 @@ const Inventorywarehouse = () => {
                               className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-bold ${meta.bg} ${meta.color} ${meta.border}`}
                             >
                               <StatusIcon className="text-[11px]" />
-
                               {meta.label}
                             </span>
                           </td>
@@ -1171,7 +1289,7 @@ const Inventorywarehouse = () => {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      disabled={page === 1}
+                      disabled={page === 1 || isLoading}
                       onClick={() => handlePageChange(page - 1)}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-40"
                     >
@@ -1180,7 +1298,7 @@ const Inventorywarehouse = () => {
 
                     <button
                       type="button"
-                      disabled={page === totalPages}
+                      disabled={page === totalPages || isLoading}
                       onClick={() => handlePageChange(page + 1)}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-40"
                     >

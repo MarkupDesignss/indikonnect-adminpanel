@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -30,8 +31,21 @@ import warehousesApi, {
   WarehouseCreatePayload,
 } from "../../api/endpoints/warehouse";
 
+import logoApi from "../../api/endpoints/logoApi";
+
 // ✅ PERMISSIONS
 import { usePermissions } from "../permissions/usePermissions";
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// =====================================================
+// ANIMATIONS
+// =====================================================
 
 const containerVariants = {
   hidden: {
@@ -59,6 +73,54 @@ const itemVariants = {
       damping: 16,
     },
   },
+};
+
+// =====================================================
+// LOGO LOADING STATE
+// Same file component — content area only
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<
+  PermissionLoadingStateProps
+> = ({ logoUrl }) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{ opacity: 0.6, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 // =====================================================
@@ -130,36 +192,12 @@ const normalizeTime = (value?: string | null) => {
 };
 
 // =====================================================
-// PERMISSION LOADING STATE
-// =====================================================
-
-const PermissionLoadingState: React.FC = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-      <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-          <FiRefreshCw size={24} className="animate-spin" />
-        </div>
-
-        <h2 className="mt-5 text-base font-bold text-[#111827]">
-          Checking permissions...
-        </h2>
-
-        <p className="mt-2 text-sm text-[#6B7280]">
-          Please wait while we verify your access.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-// =====================================================
 // COMPONENT
 // =====================================================
 
 const Addwarehouse: React.FC = () => {
   // ===================================================
-  // ✅ PERMISSIONS
+  // PERMISSIONS
   // ===================================================
 
   const {
@@ -188,6 +226,22 @@ const Addwarehouse: React.FC = () => {
       hasPermission("warehouse.update") ||
       hasPermission("warehouse.edit"),
     [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // INITIAL LOADING STATES
+  // ===================================================
+
+  // First warehouse-list request only
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  // Logo API request
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Default logo is used until the API returns a valid logo.
+  const [logoUrl, setLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
   );
 
   // ===================================================
@@ -234,48 +288,123 @@ const Addwarehouse: React.FC = () => {
   const [form, setForm] = useState<WarehouseForm>(INITIAL_FORM);
 
   // ===================================================
-  // GET WAREHOUSES
-  // ===================================================
-
-  const fetchWarehouses = async (page: number = currentPage) => {
-    try {
-      setLoading(true);
-
-      const response = await warehousesApi.getAll(
-        page,
-        ITEMS_PER_PAGE,
-      );
-
-      const pagination = response?.data?.data;
-      const list = pagination?.data || [];
-
-      setWarehouses(list);
-      setCurrentPage(pagination?.current_page || page);
-      setTotalPages(Math.max(pagination?.last_page || 1, 1));
-      setTotalEntries(pagination?.total || 0);
-      setStartEntry(pagination?.from || 0);
-      setEndEntry(pagination?.to || 0);
-    } catch (error: any) {
-      console.error("Get warehouses error:", error);
-
-      toast.error(
-        error?.response?.data?.message ||
-          "Unable to fetch warehouses.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ===================================================
-  // INITIAL FETCH
+  // FETCH LOGO
   // ===================================================
 
   useEffect(() => {
-    if (!permissionsLoading && canViewWarehouses) {
-      fetchWarehouses(1);
+    let isMounted = true;
+
+    const fetchLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch logo error:", error);
+
+        // Keep the default logo if the API fails.
+        if (isMounted) {
+          setLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    fetchLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
+  // GET WAREHOUSES
+  // ===================================================
+
+  const fetchWarehouses = useCallback(
+    async (page: number = 1, isInitialLoad = false) => {
+      try {
+        setLoading(true);
+
+        const response = await warehousesApi.getAll(
+          page,
+          ITEMS_PER_PAGE,
+        );
+
+        const pagination = response?.data?.data;
+        const list = pagination?.data || [];
+
+        setWarehouses(list);
+        setCurrentPage(pagination?.current_page || page);
+        setTotalPages(Math.max(pagination?.last_page || 1, 1));
+        setTotalEntries(pagination?.total || 0);
+        setStartEntry(pagination?.from || 0);
+        setEndEntry(pagination?.to || 0);
+      } catch (error: any) {
+        console.error("Get warehouses error:", error);
+
+        toast.error(
+          error?.response?.data?.message ||
+            "Unable to fetch warehouses.",
+        );
+      } finally {
+        setLoading(false);
+
+        // Initial logo loader ends only after this first request.
+        // Refresh and pagination do not reopen the page loader.
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // ===================================================
+  // INITIAL FETCH AFTER PERMISSIONS
+  // ===================================================
+
+  useEffect(() => {
+    if (permissionsLoading) {
+      return;
     }
-  }, [permissionsLoading, canViewWarehouses]);
+
+    if (!canViewWarehouses) {
+      setInitialDataLoading(false);
+      return;
+    }
+
+    void fetchWarehouses(1, true);
+  }, [
+    permissionsLoading,
+    canViewWarehouses,
+    fetchWarehouses,
+  ]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
 
   // ===================================================
   // COUNTS
@@ -506,6 +635,7 @@ const Addwarehouse: React.FC = () => {
       setAddModalOpen(false);
       resetForm();
 
+      // Use table skeleton, not the logo page loader.
       await fetchWarehouses(currentPage);
     } catch (error: any) {
       console.error("Create warehouse error:", error);
@@ -549,6 +679,7 @@ const Addwarehouse: React.FC = () => {
       setSelectedWarehouse(null);
       resetForm();
 
+      // Use table skeleton, not the logo page loader.
       await fetchWarehouses(currentPage);
     } catch (error: any) {
       console.error("Update warehouse error:", error);
@@ -576,7 +707,7 @@ const Addwarehouse: React.FC = () => {
     }
 
     setCurrentPage(page);
-    fetchWarehouses(page);
+    void fetchWarehouses(page);
   };
 
   // ===================================================
@@ -1044,7 +1175,10 @@ const Addwarehouse: React.FC = () => {
             className="flex h-9 items-center justify-center gap-2 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 text-xs font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.55)] transition hover:shadow-[0_10px_22px_-8px_rgba(45,111,232,0.65)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting && (
-              <FiRefreshCw size={13} className="animate-spin" />
+              <FiRefreshCw
+                size={13}
+                className="animate-spin"
+              />
             )}
 
             {submitting
@@ -1061,20 +1195,21 @@ const Addwarehouse: React.FC = () => {
   };
 
   // ===================================================
-  // ✅ LOADING STATE
+  // COMBINED INITIAL LOADING STATE
   // ===================================================
 
-  if (permissionsLoading) {
-    return <PermissionLoadingState />;
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   // ===================================================
-  // ✅ ACCESS DENIED
+  // ACCESS DENIED
+  // Content-area only — sidebar/navbar remain visible
   // ===================================================
 
   if (!canViewWarehouses) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
             <FiAlertCircle size={26} />
@@ -1093,7 +1228,7 @@ const Addwarehouse: React.FC = () => {
   }
 
   // ===================================================
-  // COLUMN COUNT (with S.No.)
+  // COLUMN COUNT
   // ===================================================
 
   const columnCount = canUpdateWarehouse ? 8 : 7;
@@ -1129,6 +1264,7 @@ const Addwarehouse: React.FC = () => {
           <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
             Warehouses
           </h1>
+
           <p className="mt-0.5 text-sm text-[#111827]">
             Manage your warehouse locations, capacity, contacts and operating
             settings from one place.
@@ -1176,7 +1312,6 @@ const Addwarehouse: React.FC = () => {
         variants={itemVariants}
         className="relative mb-5 overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white p-3 sm:p-3"
       >
-
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
@@ -1199,7 +1334,7 @@ const Addwarehouse: React.FC = () => {
             <motion.button
               type="button"
               disabled={loading}
-              onClick={() => fetchWarehouses(currentPage)}
+              onClick={() => void fetchWarehouses(currentPage)}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
               className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
@@ -1223,7 +1358,7 @@ const Addwarehouse: React.FC = () => {
                   boxShadow: "0 10px 22px rgba(45,111,232,0.18)",
                 }}
                 whileTap={{ scale: 0.97 }}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white  transition"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white transition"
               >
                 <FiPlus size={15} />
                 <span>Add Warehouse</span>
@@ -1239,13 +1374,10 @@ const Addwarehouse: React.FC = () => {
         variants={itemVariants}
         className="relative overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
       >
-
-        <div className="overflow-x-auto ">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[1180px] border-collapse">
             <thead>
               <tr className="bg-[#4F8FF7]">
-                {/* ✅ S.No. */}
-
                 <th className="w-[60px] px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
                   S.No.
                 </th>
@@ -1267,7 +1399,7 @@ const Addwarehouse: React.FC = () => {
                 </th>
 
                 <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
-                  Working Hours 
+                  Working Hours
                 </th>
 
                 <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-[0.14em] text-white">
@@ -1283,11 +1415,14 @@ const Addwarehouse: React.FC = () => {
             </thead>
 
             <tbody>
-              {/* LOADING */}
+              {/* REFRESH / PAGINATION SKELETON */}
 
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
-                  <tr key={index} className="border-b border-[#DCE6F2]">
+                  <tr
+                    key={index}
+                    className="border-b border-[#DCE6F2]"
+                  >
                     {Array.from({ length: columnCount }).map(
                       (__, cellIndex) => (
                         <td
@@ -1333,7 +1468,7 @@ const Addwarehouse: React.FC = () => {
                     animate={{ opacity: 1 }}
                     className="border-b border-[#DCE6F2] transition hover:bg-[#F8FBFF]"
                   >
-                    {/* ✅ S.No. */}
+                    {/* S.NO. */}
 
                     <td className="px-4 py-2.5">
                       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
@@ -1396,13 +1531,20 @@ const Addwarehouse: React.FC = () => {
                       </div>
 
                       <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
-                        <FiPhone size={10} className="text-[#2D6FE8]" />
+                        <FiPhone
+                          size={10}
+                          className="text-[#2D6FE8]"
+                        />
+
                         {warehouse.contact_number}
                       </div>
 
                       {warehouse.contact_email && (
                         <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
-                          <FiMail size={10} className="text-[#2D6FE8]" />
+                          <FiMail
+                            size={10}
+                            className="text-[#2D6FE8]"
+                          />
 
                           <span className="max-w-[160px] truncate">
                             {warehouse.contact_email}

@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   FiBell,
@@ -7,7 +13,6 @@ import {
   FiTrash2,
   FiSearch,
   FiX,
-  FiMail,
   FiPackage,
   FiTruck,
   FiCreditCard,
@@ -26,13 +31,22 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 
 import { notificationApi } from "../../api/endpoints/notification";
+import logoApi from "../../api/endpoints/logoApi";
 
-// ✅ PERMISSIONS
+// Permissions
 import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// =====================================================
+// DEFAULT LOADER LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // TYPES
 // =====================================================
+
 export type NotificationType =
   | "order"
   | "payment"
@@ -58,6 +72,7 @@ export interface Notification {
 // =====================================================
 // ANIMATION
 // =====================================================
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -71,25 +86,88 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring" as const, stiffness: 110, damping: 15 },
+    transition: {
+      type: "spring" as const,
+      stiffness: 110,
+      damping: 15,
+    },
   },
 };
 
 // =====================================================
-// PERMISSION LOADING
+// LOGO LOADER
+// Content area only — sidebar/navbar remain visible
 // =====================================================
-const PermissionLoadingState: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-    <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-        <FiRefreshCw size={27} className="animate-spin" />
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        referrerPolicy="no-referrer"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        initial={{
+          opacity: 0.6,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+// =====================================================
+// ACCESS DENIED
+// Content area only — sidebar/navbar remain visible
+// =====================================================
+
+const AccessDenied: React.FC = () => (
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+    <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+        <FiAlertTriangle size={26} />
       </div>
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
+
+      <h2 className="text-lg font-bold text-[#111827]">
+        Access Denied
+      </h2>
+
+      <p className="mt-2 text-sm text-[#6B7280]">
+        You don't have permission to access this section.
       </p>
-      <p className="mt-1 text-xs text-[#6B7280]">
-        Verifying notification access.
-      </p>
+
+      <div className="mt-5 rounded-xl border border-[#C23B32]/15 bg-[#FEF2F2] px-4 py-3 text-[10px] font-semibold text-[#C23B32]">
+        Contact your administrator to request access.
+      </div>
     </div>
   </div>
 );
@@ -97,75 +175,130 @@ const PermissionLoadingState: React.FC = () => (
 // =====================================================
 // HELPERS — BLUE THEME
 // =====================================================
+
 const getNotificationIcon = (type?: string) => {
   const normalizedType = type?.toLowerCase() || "";
-  if (normalizedType.includes("order") || normalizedType === "order_confirmed")
+
+  if (
+    normalizedType.includes("order") ||
+    normalizedType === "order_confirmed"
+  ) {
     return <FiPackage size={18} />;
-  if (normalizedType.includes("payment")) return <FiCreditCard size={18} />;
-  if (normalizedType.includes("delivery")) return <FiTruck size={18} />;
+  }
+
+  if (normalizedType.includes("payment")) {
+    return <FiCreditCard size={18} />;
+  }
+
+  if (normalizedType.includes("delivery")) {
+    return <FiTruck size={18} />;
+  }
+
   if (
     normalizedType.includes("user") ||
     normalizedType.includes("kyc") ||
     normalizedType.includes("distributor")
-  )
+  ) {
     return <FiUser size={18} />;
-  if (normalizedType.includes("message")) return <FiMessageSquare size={18} />;
-  if (normalizedType.includes("alert")) return <FiAlertCircle size={18} />;
-  if (normalizedType.includes("system")) return <FiSettings size={18} />;
-  if (normalizedType.includes("return")) return <FiTruck size={18} />;
+  }
+
+  if (normalizedType.includes("message")) {
+    return <FiMessageSquare size={18} />;
+  }
+
+  if (normalizedType.includes("alert")) {
+    return <FiAlertCircle size={18} />;
+  }
+
+  if (normalizedType.includes("system")) {
+    return <FiSettings size={18} />;
+  }
+
+  if (normalizedType.includes("return")) {
+    return <FiTruck size={18} />;
+  }
+
   return <FiBell size={18} />;
 };
 
 const getNotificationLabel = (type?: string) => {
   if (!type) return "Notification";
+
   const normalizedType = type.toLowerCase();
-  if (normalizedType === "order_confirmed") return "Order Confirmed";
-  if (normalizedType === "return_pending") return "Return Request";
-  if (normalizedType === "return_approved") return "Return Approved";
-  if (normalizedType === "return_received") return "Return Received";
-  if (normalizedType === "new_distributor_registration")
+
+  if (normalizedType === "order_confirmed") {
+    return "Order Confirmed";
+  }
+
+  if (normalizedType === "return_pending") {
+    return "Return Request";
+  }
+
+  if (normalizedType === "return_approved") {
+    return "Return Approved";
+  }
+
+  if (normalizedType === "return_received") {
+    return "Return Received";
+  }
+
+  if (normalizedType === "new_distributor_registration") {
     return "Distributor Registration";
-  if (normalizedType === "kyc_review") return "KYC Review";
-  return type.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  if (normalizedType === "kyc_review") {
+    return "KYC Review";
+  }
+
+  return type
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-// BLUE THEME
 const getIconClasses = (type?: string) => {
   const normalizedType = type?.toLowerCase() || "";
 
   if (
     normalizedType.includes("payment") ||
     normalizedType === "order_confirmed"
-  )
+  ) {
     return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
+  }
 
   if (
     normalizedType.includes("delivery") ||
     normalizedType.includes("return")
-  )
+  ) {
     return "bg-[#EAF3FF] text-[#2D6FE8] border-[#4F8FF7]/25";
+  }
 
   if (
     normalizedType.includes("user") ||
     normalizedType.includes("distributor") ||
     normalizedType.includes("kyc")
-  )
+  ) {
     return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/15";
+  }
 
-  if (normalizedType.includes("alert"))
+  if (normalizedType.includes("alert")) {
     return "bg-[#FEF9C3] text-[#A16207] border-[#FACC15]/30";
+  }
 
-  if (normalizedType.includes("message"))
+  if (normalizedType.includes("message")) {
     return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
+  }
 
   return "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20";
 };
 
 const formatDate = (date?: string | null) => {
   if (!date) return "—";
+
   try {
     const parsed = new Date(date);
+
     if (Number.isNaN(parsed.getTime())) return date;
+
     return parsed.toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -180,18 +313,27 @@ const formatDate = (date?: string | null) => {
 
 const getRelativeTime = (date?: string | null) => {
   if (!date) return "";
+
   try {
     const parsed = new Date(date);
+
     if (Number.isNaN(parsed.getTime())) return "";
+
     const now = new Date();
     const diff = now.getTime() - parsed.getTime();
     const minutes = Math.floor(diff / 60000);
+
     if (minutes < 1) return "Just now";
     if (minutes < 60) return `${minutes}m ago`;
+
     const hours = Math.floor(minutes / 60);
+
     if (hours < 24) return `${hours}h ago`;
+
     const days = Math.floor(hours / 24);
+
     if (days < 7) return `${days}d ago`;
+
     return formatDate(date);
   } catch {
     return "";
@@ -201,6 +343,7 @@ const getRelativeTime = (date?: string | null) => {
 // =====================================================
 // DELETE CONFIRM MODAL — BLUE THEME
 // =====================================================
+
 interface DeleteConfirmModalProps {
   open: boolean;
   title: string;
@@ -221,7 +364,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm font-poppins">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 px-4 font-poppins backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -236,7 +379,10 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             </div>
 
             <div>
-              <h2 className="text-lg font-bold text-[#111827]">{title}</h2>
+              <h2 className="text-lg font-bold text-[#111827]">
+                {title}
+              </h2>
+
               <p className="mt-1 text-sm leading-6 text-[#6B7280]">
                 {message}
               </p>
@@ -265,7 +411,8 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             ) : (
               <FiTrash2 size={14} />
             )}
-            Delete
+
+            {loading ? "Deleting..." : "Delete"}
           </button>
         </div>
       </motion.div>
@@ -274,8 +421,9 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 };
 
 // =====================================================
-// NOTIFICATION CARD — BLUE THEME (beautified)
+// NOTIFICATION CARD — BLUE THEME
 // =====================================================
+
 interface NotificationCardProps {
   notification: Notification;
   onRead: (notification: Notification) => void;
@@ -305,12 +453,10 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
           : "border-[#DCE6F2] bg-white hover:border-[#4F8FF7]/30 hover:shadow-[0_6px_20px_-8px_rgba(45,111,232,0.12)]"
       }`}
     >
-      {/* Unread indicator bar */}
       {isUnread && (
         <div className="absolute bottom-0 left-0 top-0 w-1 bg-gradient-to-b from-[#4F8FF7] to-[#2D6FE8]" />
       )}
 
-      {/* Subtle decorative circle for unread */}
       {isUnread && (
         <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full border border-[#2D6FE8]/10" />
       )}
@@ -331,13 +477,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3
-                    className={`text-sm ${
-                      isUnread
-                        ? "font-bold text-[#111827]"
-                        : "font-bold text-[#111827]"
-                    }`}
-                  >
+                  <h3 className="text-sm font-bold text-[#111827]">
                     {notification.title}
                   </h3>
 
@@ -367,14 +507,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
               </div>
             </div>
 
-            {/* Message */}
+            {/* MESSAGE */}
             <div className="mt-3 rounded-xl border border-[#DCE6F2] bg-white/70 px-4 py-3 backdrop-blur-sm">
               <p className="max-w-3xl text-sm leading-6 text-[#6B7280]">
                 {notification.message}
               </p>
             </div>
 
-            {/* Meta row */}
+            {/* META */}
             <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-[#6B7280]">
               <FiInfo size={11} className="text-[#2D6FE8]" />
               {formatDate(notification.created_at)}
@@ -391,10 +531,14 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
                     className="flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8] transition hover:border-[#2D6FE8]/35 hover:bg-[#2D6FE8] hover:text-white disabled:opacity-50"
                   >
                     {readLoadingId === notification.id ? (
-                      <FiRefreshCw size={13} className="animate-spin" />
+                      <FiRefreshCw
+                        size={13}
+                        className="animate-spin"
+                      />
                     ) : (
                       <FiCheck size={13} />
                     )}
+
                     Mark as Read
                   </button>
                 )}
@@ -428,10 +572,12 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 // =====================================================
 // MAIN PAGE
 // =====================================================
+
 const Notifications: React.FC = () => {
   // ===================================================
   // PERMISSIONS
   // ===================================================
+
   const {
     hasPermission,
     hasModuleAccess,
@@ -456,104 +602,262 @@ const Notifications: React.FC = () => {
   );
 
   const canDeleteNotification = useMemo(
-    () => isSuperAdmin || hasPermission("notification.delete"),
+    () =>
+      isSuperAdmin ||
+      hasPermission("notification.delete"),
     [isSuperAdmin, hasPermission],
   );
 
   // ===================================================
   // STATE
   // ===================================================
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  // Normal API loading for refresh and other actions.
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "read">(
-    "all",
+
+  // Initial notifications data loading.
+  const [initialDataLoading, setInitialDataLoading] =
+    useState(true);
+
+  // Loader logo API loading.
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // Logo URL shown by the loader.
+  const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
   );
+
+  const [search, setSearch] = useState("");
+
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "unread" | "read"
+  >("all");
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [readLoadingId, setReadLoadingId] = useState<number | null>(null);
+
+  const [readLoadingId, setReadLoadingId] = useState<number | null>(
+    null,
+  );
+
   const [markAllLoading, setMarkAllLoading] = useState(false);
-  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
+
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(
+    null,
+  );
+
   const [deleteAllLoading, setDeleteAllLoading] = useState(false);
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const [deleteAllModalOpen, setDeleteAllModalOpen] = useState(false);
+
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
 
   const ITEMS_PER_PAGE = 10;
 
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
+
   // ===================================================
-  // FETCH
+  // FETCH LOADER LOGO
+  // Falls back to DEFAULT_LOGO_URL if the API fails.
   // ===================================================
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await notificationApi.getAll();
-      const responseData = response.data;
-
-      let rawData: any[] = [];
-      if (Array.isArray(responseData?.data)) {
-        rawData = responseData.data;
-      } else if (Array.isArray(responseData?.data?.data)) {
-        rawData = responseData.data.data;
-      }
-
-      const list: Notification[] = rawData.map((item: any) => ({
-        id: item.id,
-        title: item.title || "Notification",
-        message: item.message || "",
-        is_read: item.read === 1,
-        type: item.type || "general",
-        created_at: item.created_at || new Date().toISOString(),
-        updated_at: item.updated_at,
-        read_at: item.read === 1 ? item.updated_at || null : null,
-        data: item.extra_data || null,
-      }));
-
-      setNotifications(list || []);
-    } catch (error: any) {
-      console.error("Get notifications error:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Unable to fetch notifications.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
-    if (!permissionsLoading && canViewNotifications) {
-      fetchNotifications();
+    let isMounted = true;
+
+    const fetchLoaderLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const responseData = response?.data as any;
+
+        const receivedLogo =
+          responseData?.data?.logo ||
+          responseData?.logo ||
+          responseData?.data?.data?.logo ||
+          responseData?.data?.data?.data?.logo;
+
+        if (
+          isMounted &&
+          typeof receivedLogo === "string" &&
+          receivedLogo.trim()
+        ) {
+          setLoaderLogoUrl(receivedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Fetch loader logo error:", error);
+
+        if (isMounted) {
+          setLoaderLogoUrl(DEFAULT_LOGO_URL);
+        }
+      } finally {
+        if (isMounted) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLoaderLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH NOTIFICATIONS
+  // isInitialLoad is true only for the first page load.
+  // Refresh won't reopen the full content loader.
+  // ===================================================
+
+  const fetchNotifications = useCallback(
+    async (isInitialLoad = false) => {
+      if (!canViewNotifications) {
+        if (isInitialLoad) {
+          setInitialDataLoading(false);
+        }
+
+        return;
+      }
+
+      // Avoid duplicate requests if a fetch is already in progress.
+      if (fetchInFlightRef.current) {
+        try {
+          await fetchInFlightRef.current;
+        } finally {
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+
+        return;
+      }
+
+      const request = (async () => {
+        try {
+          setLoading(true);
+
+          const response = await notificationApi.getAll();
+          const responseData = response.data;
+
+          let rawData: any[] = [];
+
+          if (Array.isArray(responseData?.data)) {
+            rawData = responseData.data;
+          } else if (Array.isArray(responseData?.data?.data)) {
+            rawData = responseData.data.data;
+          }
+
+          const list: Notification[] = rawData.map((item: any) => ({
+            id: item.id,
+            title: item.title || "Notification",
+            message: item.message || "",
+            is_read: item.read === 1,
+            type: item.type || "general",
+            created_at: item.created_at || new Date().toISOString(),
+            updated_at: item.updated_at,
+            read_at:
+              item.read === 1 ? item.updated_at || null : null,
+            data: item.extra_data || null,
+          }));
+
+          setNotifications(list);
+        } catch (error: any) {
+          console.error("Get notifications error:", error);
+
+          toast.error(
+            error?.response?.data?.message ||
+              error?.message ||
+              "Unable to fetch notifications.",
+          );
+        } finally {
+          setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialDataLoading(false);
+          }
+        }
+      })();
+
+      fetchInFlightRef.current = request;
+
+      try {
+        await request;
+      } finally {
+        fetchInFlightRef.current = null;
+      }
+    },
+    [canViewNotifications],
+  );
+
+  // ===================================================
+  // INITIAL FETCH
+  // Wait until permission checks finish before fetching.
+  // ===================================================
+
+  useEffect(() => {
+    if (permissionsLoading) return;
+
+    if (!canViewNotifications) {
+      setInitialDataLoading(false);
+      return;
     }
-  }, [canViewNotifications, permissionsLoading]);
+
+    void fetchNotifications(true);
+  }, [
+    permissionsLoading,
+    canViewNotifications,
+    fetchNotifications,
+  ]);
 
   // ===================================================
   // COUNTS
   // ===================================================
+
   const counts = useMemo(() => {
     const total = notifications.length;
-    const unread = notifications.filter((item) => !item.is_read).length;
-    const read = notifications.filter((item) => item.is_read).length;
+
+    const unread = notifications.filter(
+      (item) => !item.is_read,
+    ).length;
+
+    const read = notifications.filter(
+      (item) => item.is_read,
+    ).length;
+
     return { total, unread, read };
   }, [notifications]);
 
   // ===================================================
   // FILTER
   // ===================================================
+
   const filteredNotifications = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     return notifications.filter((notification) => {
       const matchesSearch =
         !query ||
-        [notification.title, notification.message, notification.type || ""]
+        [
+          notification.title,
+          notification.message,
+          notification.type || "",
+        ]
           .join(" ")
           .toLowerCase()
           .includes(query);
 
       let matchesFilter = true;
-      if (activeFilter === "unread") matchesFilter = !notification.is_read;
-      if (activeFilter === "read") matchesFilter = !!notification.is_read;
+
+      if (activeFilter === "unread") {
+        matchesFilter = !notification.is_read;
+      }
+
+      if (activeFilter === "read") {
+        matchesFilter = !!notification.is_read;
+      }
 
       return matchesSearch && matchesFilter;
     });
@@ -562,29 +866,37 @@ const Notifications: React.FC = () => {
   // ===================================================
   // PAGINATION
   // ===================================================
+
   const totalPages = Math.max(
     1,
     Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE),
   );
 
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
   const paginatedNotifications = filteredNotifications.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
-  const startEntry = filteredNotifications.length === 0 ? 0 : startIndex + 1;
+
+  const startEntry =
+    filteredNotifications.length === 0 ? 0 : startIndex + 1;
+
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
     filteredNotifications.length,
   );
 
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
   }, [currentPage, totalPages]);
 
   // ===================================================
   // HANDLERS
   // ===================================================
+
   const handleSearch = (value: string) => {
     setSearch(value);
     setCurrentPage(1);
@@ -595,19 +907,30 @@ const Notifications: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleMarkAsRead = async (notification: Notification) => {
+  const handleMarkAsRead = async (
+    notification: Notification,
+  ) => {
     if (notification.is_read) return;
 
     try {
       setReadLoadingId(notification.id);
-      const response = await notificationApi.markAsRead(notification.id);
-      const message =
-        response?.data?.message || "Notification marked as read.";
 
-      setNotifications((prev) =>
-        prev.map((item) =>
+      const response = await notificationApi.markAsRead(
+        notification.id,
+      );
+
+      const message =
+        response?.data?.message ||
+        "Notification marked as read.";
+
+      setNotifications((previous) =>
+        previous.map((item) =>
           item.id === notification.id
-            ? { ...item, is_read: true, read_at: new Date().toISOString() }
+            ? {
+                ...item,
+                is_read: true,
+                read_at: new Date().toISOString(),
+              }
             : item,
         ),
       );
@@ -615,6 +938,7 @@ const Notifications: React.FC = () => {
       toast.success(message);
     } catch (error: any) {
       console.error("Mark notification read error:", error);
+
       toast.error(
         error?.response?.data?.message ||
           "Unable to mark notification as read.",
@@ -632,10 +956,11 @@ const Notifications: React.FC = () => {
 
     try {
       setMarkAllLoading(true);
+
       const response = await notificationApi.markAllAsRead();
 
-      setNotifications((prev) =>
-        prev.map((item) => ({
+      setNotifications((previous) =>
+        previous.map((item) => ({
           ...item,
           is_read: true,
           read_at: item.read_at || new Date().toISOString(),
@@ -643,10 +968,12 @@ const Notifications: React.FC = () => {
       );
 
       toast.success(
-        response?.data?.message || "All notifications marked as read.",
+        response?.data?.message ||
+          "All notifications marked as read.",
       );
     } catch (error: any) {
       console.error("Mark all read error:", error);
+
       toast.error(
         error?.response?.data?.message ||
           "Unable to mark all notifications as read.",
@@ -666,21 +993,31 @@ const Notifications: React.FC = () => {
 
     try {
       setDeleteLoadingId(selectedNotification.id);
-      const response = await notificationApi.delete(selectedNotification.id);
 
-      setNotifications((prev) =>
-        prev.filter((item) => item.id !== selectedNotification.id),
+      const response = await notificationApi.delete(
+        selectedNotification.id,
+      );
+
+      setNotifications((previous) =>
+        previous.filter(
+          (item) => item.id !== selectedNotification.id,
+        ),
       );
 
       setDeleteModalOpen(false);
+
       toast.success(
-        response?.data?.message || "Notification deleted successfully.",
+        response?.data?.message ||
+          "Notification deleted successfully.",
       );
+
       setSelectedNotification(null);
     } catch (error: any) {
       console.error("Delete notification error:", error);
+
       toast.error(
-        error?.response?.data?.message || "Unable to delete notification.",
+        error?.response?.data?.message ||
+          "Unable to delete notification.",
       );
     } finally {
       setDeleteLoadingId(null);
@@ -690,6 +1027,7 @@ const Notifications: React.FC = () => {
   const handleDeleteAll = async () => {
     try {
       setDeleteAllLoading(true);
+
       const response = await notificationApi.deleteAll();
 
       setNotifications([]);
@@ -697,10 +1035,12 @@ const Notifications: React.FC = () => {
       setCurrentPage(1);
 
       toast.success(
-        response?.data?.message || "All notifications deleted successfully.",
+        response?.data?.message ||
+          "All notifications deleted successfully.",
       );
     } catch (error: any) {
       console.error("Delete all notifications error:", error);
+
       toast.error(
         error?.response?.data?.message ||
           "Unable to delete all notifications.",
@@ -717,14 +1057,23 @@ const Notifications: React.FC = () => {
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
+
     setCurrentPage(page);
   };
 
   const paginationPages = useMemo(() => {
-    if (totalPages <= 5)
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    if (currentPage <= 3) return [1, 2, 3, 4, 5];
-    if (currentPage >= totalPages - 2)
+    if (totalPages <= 5) {
+      return Array.from(
+        { length: totalPages },
+        (_, index) => index + 1,
+      );
+    }
+
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+
+    if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
         totalPages - 3,
@@ -732,6 +1081,8 @@ const Notifications: React.FC = () => {
         totalPages - 1,
         totalPages,
       ];
+    }
+
     return [
       currentPage - 2,
       currentPage - 1,
@@ -742,31 +1093,32 @@ const Notifications: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // LOADING / ACCESS DENIED
+  // COMBINED INITIAL LOADING STATE
   // ===================================================
-  if (permissionsLoading) return <PermissionLoadingState />;
 
-  if (!canViewNotifications) {
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialDataLoading;
+
+  if (pageLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
-        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
-            <FiAlertTriangle size={26} />
-          </div>
-          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
-          <p className="mt-2 text-sm text-[#6B7280]">
-            You don't have permission to access this section.
-          </p>
-        </div>
-      </div>
+      <PermissionLoadingState logoUrl={loaderLogoUrl} />
     );
   }
 
+  if (!canViewNotifications) {
+    return <AccessDenied />;
+  }
+
+  // Separate content-area spinner for a later fetch
+  // when there are currently no notifications to show.
   if (loading && notifications.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] font-poppins">
         <div className="flex flex-col items-center">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
+
           <p className="mt-3 text-sm text-[#6B7280]">
             Loading notifications...
           </p>
@@ -778,6 +1130,7 @@ const Notifications: React.FC = () => {
   // ===================================================
   // UI
   // ===================================================
+
   return (
     <>
       <motion.div
@@ -787,6 +1140,7 @@ const Notifications: React.FC = () => {
         animate="visible"
       >
         {/* PAGE HEADER */}
+
         <motion.div
           variants={itemVariants}
           className="flex flex-col justify-between gap-4 xl:flex-row xl:items-center"
@@ -796,6 +1150,7 @@ const Notifications: React.FC = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
               <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
               <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+
               <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
                 Notifications
               </span>
@@ -829,10 +1184,14 @@ const Notifications: React.FC = () => {
                 className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-white px-4 text-sm font-bold text-[#2D6FE8] transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {markAllLoading ? (
-                  <FiRefreshCw size={15} className="animate-spin" />
+                  <FiRefreshCw
+                    size={15}
+                    className="animate-spin"
+                  />
                 ) : (
                   <FiCheckCircle size={15} />
                 )}
+
                 Mark All Read
               </button>
             )}
@@ -847,6 +1206,7 @@ const Notifications: React.FC = () => {
                 size={15}
                 className={loading ? "animate-spin" : ""}
               />
+
               Refresh
             </button>
 
@@ -865,15 +1225,17 @@ const Notifications: React.FC = () => {
         </motion.div>
 
         {/* MAIN CARD */}
+
         <motion.div
           variants={itemVariants}
           className="relative mt-6 overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.06)]"
         >
-   
           {/* TOOLBAR */}
+
           <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               {/* SEARCH */}
+
               <div className="relative w-full xl:max-w-[520px]">
                 <FiSearch
                   size={19}
@@ -883,7 +1245,9 @@ const Notifications: React.FC = () => {
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={(event) =>
+                    handleSearch(event.target.value)
+                  }
                   placeholder="Search notifications..."
                   className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#4F8FF7]/10"
                 />
@@ -900,15 +1264,24 @@ const Notifications: React.FC = () => {
               </div>
 
               {/* FILTERS */}
+
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: "all" as const, label: "All", count: counts.total },
+                  {
+                    key: "all" as const,
+                    label: "All",
+                    count: counts.total,
+                  },
                   {
                     key: "unread" as const,
                     label: "Unread",
                     count: counts.unread,
                   },
-                  { key: "read" as const, label: "Read", count: counts.read },
+                  {
+                    key: "read" as const,
+                    label: "Read",
+                    count: counts.read,
+                  },
                 ].map((filter) => (
                   <button
                     type="button"
@@ -922,29 +1295,31 @@ const Notifications: React.FC = () => {
                   >
                     {filter.label}
 
-                    {filter.key === "unread" && filter.count > 0 && (
-                      <span
-                        className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
-                          activeFilter === "unread"
-                            ? "bg-white/25 text-white"
-                            : "bg-[#2D6FE8] text-white"
-                        }`}
-                      >
-                        {filter.count}
-                      </span>
-                    )}
+                    {filter.key === "unread" &&
+                      filter.count > 0 && (
+                        <span
+                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
+                            activeFilter === "unread"
+                              ? "bg-white/25 text-white"
+                              : "bg-[#2D6FE8] text-white"
+                          }`}
+                        >
+                          {filter.count}
+                        </span>
+                      )}
 
-                    {filter.key === "all" && filter.count > 0 && (
-                      <span
-                        className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
-                          activeFilter === "all"
-                            ? "bg-white/25 text-white"
-                            : "bg-[#EAF3FF] text-[#2D6FE8]"
-                        }`}
-                      >
-                        {filter.count}
-                      </span>
-                    )}
+                    {filter.key === "all" &&
+                      filter.count > 0 && (
+                        <span
+                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[9px] ${
+                            activeFilter === "all"
+                              ? "bg-white/25 text-white"
+                              : "bg-[#EAF3FF] text-[#2D6FE8]"
+                          }`}
+                        >
+                          {filter.count}
+                        </span>
+                      )}
                   </button>
                 ))}
               </div>
@@ -952,6 +1327,7 @@ const Notifications: React.FC = () => {
           </div>
 
           {/* NOTIFICATIONS LIST */}
+
           {paginatedNotifications.length > 0 ? (
             <motion.div
               variants={containerVariants}
@@ -972,7 +1348,8 @@ const Notifications: React.FC = () => {
               ))}
             </motion.div>
           ) : (
-            /* EMPTY */
+            /* EMPTY STATE */
+
             <div className="flex min-h-[350px] flex-col items-center justify-center px-5 py-16 text-center">
               <div className="relative">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1015,14 +1392,19 @@ const Notifications: React.FC = () => {
           )}
 
           {/* PAGINATION */}
+
           {filteredNotifications.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">
                   Showing{" "}
-                  <span className="font-bold text-[#111827]">{startEntry}</span>{" "}
+                  <span className="font-bold text-[#111827]">
+                    {startEntry}
+                  </span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#111827]">{endEntry}</span>{" "}
+                  <span className="font-bold text-[#111827]">
+                    {endEntry}
+                  </span>{" "}
                   of{" "}
                   <span className="font-bold text-[#111827]">
                     {filteredNotifications.length}
@@ -1033,7 +1415,9 @@ const Notifications: React.FC = () => {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handlePageChange(currentPage - 1)}
+                    onClick={() =>
+                      handlePageChange(currentPage - 1)
+                    }
                     disabled={currentPage === 1}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
@@ -1057,7 +1441,9 @@ const Notifications: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => handlePageChange(currentPage + 1)}
+                    onClick={() =>
+                      handlePageChange(currentPage + 1)
+                    }
                     disabled={currentPage === totalPages}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
@@ -1071,6 +1457,7 @@ const Notifications: React.FC = () => {
       </motion.div>
 
       {/* DELETE ONE MODAL */}
+
       {canDeleteNotification && (
         <DeleteConfirmModal
           open={deleteModalOpen}
@@ -1081,6 +1468,7 @@ const Notifications: React.FC = () => {
           loading={deleteLoadingId !== null}
           onClose={() => {
             if (deleteLoadingId !== null) return;
+
             setDeleteModalOpen(false);
             setSelectedNotification(null);
           }}
@@ -1089,6 +1477,7 @@ const Notifications: React.FC = () => {
       )}
 
       {/* DELETE ALL MODAL */}
+
       {canDeleteNotification && (
         <DeleteConfirmModal
           open={deleteAllModalOpen}
@@ -1097,6 +1486,7 @@ const Notifications: React.FC = () => {
           loading={deleteAllLoading}
           onClose={() => {
             if (deleteAllLoading) return;
+
             setDeleteAllModalOpen(false);
           }}
           onConfirm={handleDeleteAll}

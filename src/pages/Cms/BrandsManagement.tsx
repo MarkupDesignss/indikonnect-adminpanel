@@ -23,14 +23,24 @@ import {
   FiPercent,
   FiCheckCircle,
   FiGrid,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
 
 import brandsApi, { Brand, BrandPayload } from "../../api/endpoints/brands";
 import { categoryApi, Category } from "../../api/endpoints/category";
+import logoApi from "../../api/endpoints/logoApi";
+import { usePermissions } from "../permissions/usePermissions";
 
 const PAGE_BG = "#F4F8FD";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // ANIMATIONS
@@ -55,6 +65,53 @@ const itemVariants = {
       damping: 18,
     },
   },
+};
+
+// =====================================================
+// PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 // =====================================================
@@ -134,10 +191,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
   const logoObjectUrlRef = useRef<string | null>(null);
   const bannerObjectUrlRef = useRef<string | null>(null);
 
-  // ===================================================
-  // CLEAN OBJECT URLS
-  // ===================================================
-
   const cleanupObjectUrls = () => {
     if (logoObjectUrlRef.current) {
       URL.revokeObjectURL(logoObjectUrlRef.current);
@@ -149,10 +202,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       bannerObjectUrlRef.current = null;
     }
   };
-
-  // ===================================================
-  // INITIALIZE
-  // ===================================================
 
   useEffect(() => {
     if (!open) {
@@ -197,10 +246,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     };
   }, [open, mode, brand]);
 
-  // ===================================================
-  // LOGO CHANGE
-  // ===================================================
-
   const handleLogoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -226,10 +271,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     setLogoFile(file);
     setLogoPreview(preview);
   };
-
-  // ===================================================
-  // BANNER CHANGE
-  // ===================================================
 
   const handleBannerChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -257,10 +298,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     setBannerPreview(preview);
   };
 
-  // ===================================================
-  // RESET LOGO
-  // ===================================================
-
   const removeLogo = () => {
     if (logoObjectUrlRef.current) {
       URL.revokeObjectURL(logoObjectUrlRef.current);
@@ -278,10 +315,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
-  // ===================================================
-  // RESET BANNER
-  // ===================================================
-
   const removeBanner = () => {
     if (bannerObjectUrlRef.current) {
       URL.revokeObjectURL(bannerObjectUrlRef.current);
@@ -298,10 +331,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
 
     if (bannerInputRef.current) bannerInputRef.current.value = "";
   };
-
-  // ===================================================
-  // SUBMIT
-  // ===================================================
 
   const handleSubmit = () => {
     const trimmedTitle = title.trim();
@@ -355,19 +384,11 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
     onSubmit(payload);
   };
 
-  // ===================================================
-  // CLOSE
-  // ===================================================
-
   const handleClose = () => {
     if (loading) return;
     cleanupObjectUrls();
     onClose();
   };
-
-  // ===================================================
-  // RENDER
-  // ===================================================
 
   return (
     <GlobalModal
@@ -377,7 +398,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
       title=""
     >
       <div className="w-full max-w-[660px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
-        {/* TOP GRADIENT BAR — BLUE */}
         <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
 
         {/* HEADER */}
@@ -415,7 +435,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
           <div className="space-y-4">
             {/* TITLE + CATEGORY ROW */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {/* TITLE */}
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
                   Brand Heading
@@ -439,7 +458,6 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
                 </div>
               </div>
 
-              {/* CATEGORY */}
               <div>
                 <label className="mb-1.5 block text-xs font-semibold text-[#111827]">
                   Category
@@ -811,7 +829,6 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
       whileHover={{ y: -4 }}
       className="group relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm transition-all hover:border-[#2D6FE8]/40 hover:shadow-[0_16px_30px_-18px_rgba(45,111,232,0.35)]"
     >
-      {/* BANNER */}
       <div className="relative h-[110px] w-full overflow-hidden bg-gradient-to-br from-[#EAF3FF] to-[#F4F8FD]">
         {brand.banner ? (
           <img
@@ -827,12 +844,10 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
 
-        {/* DISCOUNT PILL — AMBER */}
         <div className="absolute right-3 top-3 rounded-full border border-[#F2C94C]/50 bg-[#FFF7D6]/95 px-2.5 py-1 text-[11px] font-bold text-[#A16207] shadow-sm backdrop-blur-sm">
           {Number(brand.discount_percentage) || 0}% OFF
         </div>
 
-        {/* CATEGORY PILL */}
         {brand.category?.title && (
           <div className="absolute left-3 top-3 max-w-[70%] truncate rounded-full border border-white/50 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#2D6FE8] shadow-sm backdrop-blur-sm">
             {brand.category.title}
@@ -840,10 +855,8 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
         )}
       </div>
 
-      {/* BODY */}
       <div className="relative p-4">
         <div className="flex items-start gap-3">
-          {/* LOGO */}
           <div className="-mt-9 flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 border-white bg-white shadow-md">
             {brand.logo ? (
               <img
@@ -867,7 +880,6 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
           </div>
         </div>
 
-        {/* EDIT ACTION */}
         <div className="mt-4 flex items-center justify-between border-t border-[#2D6FE8]/10 pt-3">
           <span className="text-[11px] font-medium text-[#6B7280]">
             Discount:{" "}
@@ -895,8 +907,34 @@ const BrandCard: React.FC<BrandCardProps> = ({ brand, onEdit }) => {
 // =====================================================
 
 const BrandsManagement: React.FC = () => {
+  // ===================================================
+  // PERMISSIONS
+  // ===================================================
+
+  const {
+    hasPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  // ===================================================
+  // LOGO STATE
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
+  // BRAND STATE
+  // ===================================================
+
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // First page load only.
+  const [initialBrandsLoading, setInitialBrandsLoading] = useState(true);
+
   const [saveLoading, setSaveLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [addEditOpen, setAddEditOpen] = useState(false);
@@ -906,11 +944,81 @@ const BrandsManagement: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  // =================================================
-  // FETCH BRANDS
-  // =================================================
+  // ===================================================
+  // FETCH LOGO
+  // ===================================================
 
-  const fetchBrands = async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim())
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // PERMISSIONS (BRAND)
+  // ===================================================
+
+  const canViewBrands = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasModuleAccess("brand") ||
+      hasPermission("brand.view"),
+    [isSuperAdmin, hasModuleAccess, hasPermission]
+  );
+
+  const canCreateBrand = useMemo(
+    () => isSuperAdmin || hasPermission("brand.create"),
+    [isSuperAdmin, hasPermission]
+  );
+
+  const canUpdateBrand = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("brand.update") ||
+      hasPermission("brand.edit"),
+    [isSuperAdmin, hasPermission]
+  );
+
+  // ===================================================
+  // FETCH BRANDS
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+
+  const fetchBrands = async (isInitialLoad = false) => {
     try {
       setLoading(true);
 
@@ -926,12 +1034,16 @@ const BrandsManagement: React.FC = () => {
       toast.error(getApiErrorMessage(error, "Unable to fetch brands."));
     } finally {
       setLoading(false);
+
+      if (isInitialLoad) {
+        setInitialBrandsLoading(false);
+      }
     }
   };
 
-  // =================================================
-  // FETCH CATEGORIES
-  // =================================================
+  // ===================================================
+  // FETCH CATEGORIES (no full page loader, sirf modal ke liye)
+  // ===================================================
 
   const fetchCategories = async () => {
     try {
@@ -952,18 +1064,36 @@ const BrandsManagement: React.FC = () => {
     }
   };
 
-  // =================================================
-  // INITIAL
-  // =================================================
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING BRANDS
+  // ===================================================
 
   useEffect(() => {
-    fetchBrands();
-    fetchCategories();
-  }, []);
+    if (permissionsLoading) {
+      return;
+    }
 
-  // =================================================
+    if (canViewBrands) {
+      void fetchBrands(true);
+      void fetchCategories();
+    } else {
+      setLoading(false);
+      setInitialBrandsLoading(false);
+      setCategoriesLoading(false);
+    }
+  }, [permissionsLoading, canViewBrands]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading || logoLoading || initialBrandsLoading;
+
+  // ===================================================
   // SEARCH
-  // =================================================
+  // ===================================================
 
   const filteredBrands = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -977,9 +1107,9 @@ const BrandsManagement: React.FC = () => {
     );
   }, [brands, search]);
 
-  // =================================================
+  // ===================================================
   // ADD
-  // =================================================
+  // ===================================================
 
   const openAdd = () => {
     setSelectedBrand(null);
@@ -987,9 +1117,9 @@ const BrandsManagement: React.FC = () => {
     setAddEditOpen(true);
   };
 
-  // =================================================
+  // ===================================================
   // EDIT
-  // =================================================
+  // ===================================================
 
   const openEdit = (brand: Brand) => {
     setSelectedBrand(brand);
@@ -997,9 +1127,9 @@ const BrandsManagement: React.FC = () => {
     setAddEditOpen(true);
   };
 
-  // =================================================
+  // ===================================================
   // SAVE
-  // =================================================
+  // ===================================================
 
   const handleSave = async (payload: BrandPayload) => {
     try {
@@ -1038,30 +1168,40 @@ const BrandsManagement: React.FC = () => {
     }
   };
 
-  // =================================================
-  // LOADING
-  // =================================================
+  // ===================================================
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
+  // ===================================================
 
-  if (loading && brands.length === 0) {
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
+  if (!canViewBrands) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: PAGE_BG }}
-      >
-        <div className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#EAF3FF] border-t-[#2D6FE8]" />
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
 
-          <p className="mt-3 text-sm font-medium text-[#6B7280]">
-            Loading brands...
+          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
+
+          <p className="mt-2 text-sm text-[#6B7280]">
+            You don't have permission to access this section.
           </p>
         </div>
       </div>
     );
   }
 
-  // =================================================
+  // ===================================================
   // UI
-  // =================================================
+  // ===================================================
 
   return (
     <motion.div
@@ -1113,15 +1253,17 @@ const BrandsManagement: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            {/* ADD BRAND */}
-            <button
-              type="button"
-              onClick={openAdd}
-              className="flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-medium text-white shadow-md shadow-[#2D6FE8]/20 transition hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <FiPlus size={17} />
-              Add Brand
-            </button>
+            {/* ADD BRAND — permission gated */}
+            {canCreateBrand && (
+              <button
+                type="button"
+                onClick={openAdd}
+                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 text-sm font-medium text-white shadow-md shadow-[#2D6FE8]/20 transition hover:-translate-y-0.5 hover:shadow-lg"
+              >
+                <FiPlus size={17} />
+                Add Brand
+              </button>
+            )}
           </div>
         </motion.div>
 
@@ -1143,7 +1285,6 @@ const BrandsManagement: React.FC = () => {
               </p>
             </div>
 
-            {/* SEARCH */}
             <div className="relative w-full md:max-w-sm">
               <FiSearch
                 size={17}
@@ -1170,8 +1311,18 @@ const BrandsManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* EMPTY */}
-          {filteredBrands.length === 0 ? (
+          {/* CONTENT — refresh / CRUD ke baad sirf yahan loader */}
+          {loading && brands.length === 0 ? (
+            <div className="flex items-center justify-center px-5 py-20 sm:px-6">
+              <div className="text-center">
+                <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-[#EAF3FF] border-t-[#2D6FE8]" />
+
+                <p className="mt-3 text-sm font-medium text-[#6B7280]">
+                  Loading brands...
+                </p>
+              </div>
+            </div>
+          ) : filteredBrands.length === 0 ? (
             <div className="px-5 py-20 text-center sm:px-6">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                 <FiImage size={26} />
@@ -1187,7 +1338,7 @@ const BrandsManagement: React.FC = () => {
                   : "Add your first brand to start managing brand discounts."}
               </p>
 
-              {!search && (
+              {!search && canCreateBrand && (
                 <button
                   type="button"
                   onClick={openAdd}
@@ -1199,7 +1350,14 @@ const BrandsManagement: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="p-5 sm:p-6">
+            <div className="relative p-5 sm:p-6">
+              {/* subtle inline refresh loading bar (subsequent fetches) */}
+              {loading && (
+                <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-[#EAF3FF]">
+                  <div className="h-full w-1/3 animate-pulse rounded-full bg-[#2D6FE8]" />
+                </div>
+              )}
+
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
@@ -1207,7 +1365,11 @@ const BrandsManagement: React.FC = () => {
                 className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
               >
                 {filteredBrands.map((brand) => (
-                  <BrandCard key={brand.id} brand={brand} onEdit={openEdit} />
+                  <BrandCard
+                    key={brand.id}
+                    brand={brand}
+                    onEdit={canUpdateBrand ? openEdit : () => {}}
+                  />
                 ))}
               </motion.div>
             </div>
@@ -1216,21 +1378,23 @@ const BrandsManagement: React.FC = () => {
       </div>
 
       {/* ADD / EDIT MODAL */}
-      <BrandFormModal
-        open={addEditOpen}
-        loading={saveLoading}
-        mode={modalMode}
-        brand={selectedBrand}
-        categories={categories}
-        categoriesLoading={categoriesLoading}
-        onClose={() => {
-          if (!saveLoading) {
-            setAddEditOpen(false);
-            setSelectedBrand(null);
-          }
-        }}
-        onSubmit={handleSave}
-      />
+      {canCreateBrand || canUpdateBrand ? (
+        <BrandFormModal
+          open={addEditOpen}
+          loading={saveLoading}
+          mode={modalMode}
+          brand={selectedBrand}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          onClose={() => {
+            if (!saveLoading) {
+              setAddEditOpen(false);
+              setSelectedBrand(null);
+            }
+          }}
+          onSubmit={handleSave}
+        />
+      ) : null}
     </motion.div>
   );
 };

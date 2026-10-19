@@ -4,6 +4,7 @@ import React, { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import {
+  FiAlertCircle,
   FiCheckCircle,
   FiEdit2,
   FiFilm,
@@ -21,6 +22,16 @@ import GlobalModal from "@/components/common/GlobalModal";
 import reelsApi, { Reel } from "../../api/endpoints/reels";
 import { productApi } from "../../api/endpoints/product";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+
+// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement)
+import logoApi from "../../api/endpoints/logoApi";
+
+// =====================================================
+// DEFAULT LOGO
+// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // PERMISSIONS
@@ -119,6 +130,54 @@ const formatDate = (value?: string | null) => {
 const inputClass =
   "h-11 w-full rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:cursor-not-allowed disabled:opacity-60";
 const labelClass = "mb-1.5 block text-xs font-semibold text-[#6B7280]";
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
 
 // =====================================================
 // ADD / EDIT MODAL
@@ -523,7 +582,6 @@ const DeleteReelModal: React.FC<DeleteReelModalProps> = ({ open, loading, reel, 
 
 // =====================================================
 // REEL CARD
-// The Edit button is directly beside Delete and uses update/edit permissions.
 // =====================================================
 const ReelCard: React.FC<ReelCardProps> = ({ reel, serialNumber, canEdit, canDelete, onEdit, onDelete }) => {
   const thumbnail = getThumbnailUrl(reel);
@@ -551,7 +609,6 @@ const ReelCard: React.FC<ReelCardProps> = ({ reel, serialNumber, canEdit, canDel
 
         <div className="mt-auto mt-4 flex items-center justify-between gap-2 border-t border-[#DCE6F2] pt-3">
           <div className="flex min-w-0 items-center gap-2 text-[10px] text-[#6B7280]">{reel.video_url ? <><FiLink size={12} /><span>External URL</span></> : <><FiFilm size={12} /><span>Uploaded Video</span></>}</div>
-          {/* Edit and Delete actions are kept side-by-side. */}
           <div className="flex shrink-0 items-center gap-2">
             {canEdit && <button type="button" onClick={() => onEdit(reel)} title="Edit / Update Reel" aria-label={`Edit reel ${reel.title}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] hover:text-[#1D4ED8]"><FiEdit2 size={14} /></button>}
             {canDelete && <button type="button" onClick={() => onDelete(reel)} title="Delete Reel" aria-label={`Delete reel ${reel.title}`} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#C23B32] hover:bg-[#FEF2F2] hover:text-[#C23B32]"><FiTrash2 size={14} /></button>}
@@ -574,10 +631,21 @@ const ReelsManagement: React.FC = () => {
   const canUpdateReels = isSuperAdmin || hasAnyPermission(UPDATE_PERMISSION_KEYS);
   const canDeleteReels = isSuperAdmin || hasAnyPermission(DELETE_PERMISSION_KEYS);
 
+  // ===================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
   const [reels, setReels] = useState<Reel[]>([]);
   const [products, setProducts] = useState<ReelProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialReelsLoading, setInitialReelsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [saveLoading, setSaveLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -591,7 +659,55 @@ const ReelsManagement: React.FC = () => {
   const hasInitialReelsFetchRef = useRef(false);
   const hasInitialProductsFetchRef = useRef(false);
 
-  const fetchReels = async (force = false): Promise<void> => {
+  // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
+  // FETCH REELS
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // ===================================================
+  const fetchReels = async (force = false, isInitialLoad = false): Promise<void> => {
     if (reelsFetchInFlightRef.current) return reelsFetchInFlightRef.current;
     if (!force && hasInitialReelsFetchRef.current) return;
     if (!canViewReels) return;
@@ -613,6 +729,10 @@ const ReelsManagement: React.FC = () => {
         toast.error(error?.response?.data?.message || "Unable to fetch reels.");
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialReelsLoading(false);
+        }
       }
     })();
 
@@ -665,13 +785,31 @@ const ReelsManagement: React.FC = () => {
     }
   };
 
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING REELS
+  // ===================================================
   useEffect(() => {
     if (permissionsLoading) return;
-    if (canViewReels) void fetchReels();
+    if (canViewReels && !hasInitialReelsFetchRef.current) {
+      void fetchReels(false, true);
+    } else if (!canViewReels) {
+      setLoading(false);
+      setInitialReelsLoading(false);
+    }
     if (canCreateReels || canUpdateReels) void fetchProducts();
     // Fetch functions intentionally run when permission state becomes available/changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewReels, canCreateReels, canUpdateReels]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialReelsLoading;
 
   const filteredReels = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -764,16 +902,29 @@ const ReelsManagement: React.FC = () => {
     }
   };
 
-  if (permissionsLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins"><div className="text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]"><FiRefreshCw size={27} className="animate-spin" /></div><p className="mt-4 text-sm font-bold text-[#111827]">Checking permissions...</p><p className="mt-1 text-xs text-[#6B7280]">Please wait while we verify your access.</p></div></div>;
+  // ===================================================
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
+  // ===================================================
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
 
   if (!canViewReels) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins"><div className="rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm"><FiFilm size={30} className="mx-auto text-[#2D6FE8]" /><h2 className="mt-3 text-base font-semibold text-[#111827]">Access denied</h2><p className="mt-1 text-sm text-[#6B7280]">You do not have permission to view reels.</p></div></div>;
-  }
-
-  if (loading && reels.length === 0) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins"><div className="text-center"><div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" /><p className="mt-3 text-sm text-[#6B7280]">Loading reels...</p></div></div>;
+    return (
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+        <div className="rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+          <FiAlertCircle size={30} className="mx-auto text-[#C23B32]" />
+          <h2 className="mt-3 text-base font-semibold text-[#111827]">Access denied</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">You do not have permission to view reels.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -797,7 +948,22 @@ const ReelsManagement: React.FC = () => {
             <div className="relative w-full md:max-w-sm"><FiSearch size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]" /><input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search reels, creator or ID..." className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10" />{search && <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 flex -translate-y-1/2 text-[#6B7280] hover:text-[#2D6FE8]"><FiX size={16} /></button>}</div>
           </div>
 
-          {filteredReels.length === 0 ? (
+          {/* ✅ initialReelsLoading par full spinner — refresh/CRUD par nahi */}
+          {initialReelsLoading ? (
+            <div className="flex flex-col items-center px-5 py-20 text-center sm:px-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiRefreshCw size={22} className="animate-spin" />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">Loading reels...</p>
+            </div>
+          ) : loading && reels.length === 0 ? (
+            <div className="flex flex-col items-center px-5 py-20 text-center sm:px-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiRefreshCw size={22} className="animate-spin" />
+              </div>
+              <p className="mt-4 text-sm font-bold text-[#111827]">Loading reels...</p>
+            </div>
+          ) : filteredReels.length === 0 ? (
             <div className="px-5 py-20 text-center sm:px-6"><div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]"><FiFilm size={27} /></div><h3 className="mt-5 text-base font-semibold text-[#111827]">{search ? "No reels found" : "No reels available"}</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#6B7280]">{search ? "Try searching with another title, creator or reel ID." : "Add your first reel to start managing social content."}</p>{!search && canCreateReels && <button type="button" onClick={openAdd} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-medium text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"><FiPlus size={16} />Add Reel</button>}</div>
           ) : (
             <div className="p-5 sm:p-6"><motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{filteredReels.map((reel, index) => <ReelCard key={reel.id} reel={reel} serialNumber={index + 1} canEdit={canUpdateReels} canDelete={canDeleteReels} onEdit={openEdit} onDelete={openDelete} />)}</motion.div></div>

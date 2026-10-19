@@ -7,6 +7,7 @@ import React, {
 } from "react";
 
 import {
+  FiAlertCircle,
   FiCheck,
   FiEdit3,
   FiGlobe,
@@ -31,31 +32,10 @@ import footerApi, {
 } from "../../api/endpoints/footer";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-// =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ)
-// =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
-
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
-
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-
-const BORDER = "#DCE6F2";
-
-const WHITE = "#FFFFFF";
-
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // PERMISSIONS
@@ -121,6 +101,54 @@ const valueOrEmpty = (value?: string | null): string => value || "";
 
 const getInitialLogo = (footer: FooterData | null): string | null =>
   footer?.logo_url || null;
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement / ReelsManagement
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
 
 // =====================================================
 // REUSABLE FIELD
@@ -422,9 +450,20 @@ const FooterManagement: React.FC = () => {
   );
 
   // =================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // =================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // =================================================
   // STATES
   // =================================================
   const [footer, setFooter] = useState<FooterData | null>(null);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialFooterLoading, setInitialFooterLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState<FooterForm>({
     title: "",
@@ -439,7 +478,6 @@ const FooterManagement: React.FC = () => {
     logo: null,
   });
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // =================================================
@@ -448,10 +486,55 @@ const FooterManagement: React.FC = () => {
   const fetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasInitialFetchRef = useRef(false);
 
+  // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // =================================================
   // GET FOOTER
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // =================================================
-  const fetchFooter = async (force = false) => {
+  const fetchFooter = async (force = false, isInitialLoad = false) => {
     if (!canViewFooter) return;
     if (fetchInFlightRef.current) return fetchInFlightRef.current;
     if (!force && hasInitialFetchRef.current) return;
@@ -498,6 +581,10 @@ const FooterManagement: React.FC = () => {
         );
       } finally {
         setLoading(false);
+
+        if (isInitialLoad) {
+          setInitialFooterLoading(false);
+        }
       }
     })();
 
@@ -512,16 +599,28 @@ const FooterManagement: React.FC = () => {
 
   // =================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING FOOTER
   // =================================================
   useEffect(() => {
-    if (
-      !permissionsLoading &&
-      canViewFooter &&
-      !hasInitialFetchRef.current
-    ) {
-      fetchFooter();
+    if (permissionsLoading) return;
+
+    if (canViewFooter && !hasInitialFetchRef.current) {
+      void fetchFooter(false, true);
+    } else if (!canViewFooter) {
+      setLoading(false);
+      setInitialFooterLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewFooter]);
+
+  // =================================================
+  // COMBINED INITIAL LOADING
+  // =================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialFooterLoading;
 
   // =================================================
   // FIELD UPDATE
@@ -596,32 +695,31 @@ const FooterManagement: React.FC = () => {
   };
 
   // =================================================
-  // PERMISSION LOADING
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // =================================================
-  if (permissionsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Verifying footer access.
-          </p>
-        </div>
-      </div>
-    );
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  if (loading && !footer) {
+  // =================================================
+  // ACCESS DENIED
+  // =================================================
+
+  if (!canViewFooter) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">Loading footer...</p>
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="mt-5 text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+            You do not have permission to view footer configuration.
+          </p>
         </div>
       </div>
     );

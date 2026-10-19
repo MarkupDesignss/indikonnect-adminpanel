@@ -9,6 +9,7 @@ import React, {
 } from "react";
 
 import {
+  FiAlertCircle,
   FiAlertTriangle,
   FiChevronLeft,
   FiChevronRight,
@@ -39,34 +40,23 @@ import faqSectionsApi, {
   FAQSection,
 } from "../../api/endpoints/faqSectionsApi";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-// =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels)
-// =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+
 const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
-
 const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
 const PAGE_BG = "#F4F8FD";
-
 const TEXT_PRIMARY = "#111827";
 const TEXT_SECONDARY = "#6B7280";
 const MUTED = "#6B7280";
-
 const BORDER = "#DCE6F2";
 const WHITE = "#FFFFFF";
 
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
 
-const WARNING = "#FACC15";
-
-// =====================================================
-// PERMISSIONS
-// =====================================================
 const VIEW_PERMISSION_KEYS = [
   "faq.view",
   "faqs.view",
@@ -201,6 +191,54 @@ const truncateText = (value: string, length = 100) => {
   const plain = stripHtml(value);
   if (!plain) return "-";
   return plain.length > length ? `${plain.slice(0, length).trim()}...` : plain;
+};
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
 };
 
 // =====================================================
@@ -832,10 +870,21 @@ const FAQManagement: React.FC = () => {
   );
 
   // =================================================
+  // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // =================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // =================================================
   // STATES
   // =================================================
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialFAQsLoading, setInitialFAQsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [sections, setSections] = useState<FAQSection[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -858,11 +907,56 @@ const FAQManagement: React.FC = () => {
   const hasInitialFAQsFetchRef = useRef(false);
   const hasInitialSectionsFetchRef = useRef(false);
 
+  // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // =================================================
   // FETCH FAQs
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // =================================================
   const fetchFAQs = useCallback(
-    async (force = false) => {
+    async (force = false, isInitialLoad = false) => {
       if (!canViewFAQs) return;
       if (faqFetchInFlightRef.current) return faqFetchInFlightRef.current;
       if (!force && hasInitialFAQsFetchRef.current) return;
@@ -885,6 +979,10 @@ const FAQManagement: React.FC = () => {
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialFAQsLoading(false);
+          }
         }
       })();
 
@@ -946,12 +1044,28 @@ const FAQManagement: React.FC = () => {
 
   // =================================================
   // INITIAL LOAD
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING FAQS
   // =================================================
   useEffect(() => {
-    if (permissionsLoading || !canViewFAQs) return;
-    if (!hasInitialFAQsFetchRef.current) fetchFAQs();
-    if (!hasInitialSectionsFetchRef.current) fetchSections();
+    if (permissionsLoading) return;
+
+    if (canViewFAQs) {
+      if (!hasInitialFAQsFetchRef.current) void fetchFAQs(false, true);
+      if (!hasInitialSectionsFetchRef.current) void fetchSections();
+    } else {
+      setLoading(false);
+      setInitialFAQsLoading(false);
+    }
   }, [permissionsLoading, canViewFAQs, fetchFAQs, fetchSections]);
+
+  // =================================================
+  // COMBINED INITIAL LOADING
+  // =================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialFAQsLoading;
 
   // =================================================
   // FILTERED FAQs
@@ -1195,32 +1309,31 @@ const FAQManagement: React.FC = () => {
   };
 
   // =================================================
-  // PERMISSION LOADING
+  // COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // =================================================
-  if (permissionsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Verifying FAQ management access.
-          </p>
-        </div>
-      </div>
-    );
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  if (loading && faqs.length === 0) {
+  // =================================================
+  // ACCESS DENIED
+  // =================================================
+
+  if (!canViewFAQs) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">Loading FAQs...</p>
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
+            <FiAlertCircle size={26} />
+          </div>
+          <h2 className="mt-5 text-lg font-bold text-[#111827]">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+            You do not have permission to view FAQ management.
+          </p>
         </div>
       </div>
     );
@@ -1515,7 +1628,21 @@ const FAQManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {loading ? (
+                {/* ✅ initialFAQsLoading par full spinner — refresh/CRUD par nahi */}
+                {initialFAQsLoading ? (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading FAQs...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && faqs.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
@@ -1644,7 +1771,26 @@ const FAQManagement: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {paginatedFAQs.length > 0 ? (
+            {/* ✅ initialFAQsLoading par full spinner — refresh/CRUD par nahi */}
+            {initialFAQsLoading ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading FAQs...
+                </p>
+              </div>
+            ) : loading && faqs.length === 0 ? (
+              <div className="flex flex-col items-center px-5 py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading FAQs...
+                </p>
+              </div>
+            ) : paginatedFAQs.length > 0 ? (
               paginatedFAQs.map((faq) => (
                 <motion.div
                   key={faq.id}
@@ -1752,7 +1898,7 @@ const FAQManagement: React.FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredFAQs.length > 0 && (
+          {!pageLoading && filteredFAQs.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">

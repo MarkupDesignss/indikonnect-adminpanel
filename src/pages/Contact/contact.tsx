@@ -33,32 +33,11 @@ import GlobalModal from "@/components/common/GlobalModal";
 
 import contactApi, { Contact } from "../../api/endpoints/contact";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
 
-// =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer, Admin)
-// =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
-
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
-
-// =====================================================
-// PERMISSION KEYS
-// =====================================================
 const VIEW_PERMISSION_KEYS = [
   "contact.view",
   "contacts.view",
@@ -191,29 +170,58 @@ const getCallLabel = (contact: Contact) =>
   `Call ${getAccountTypeLabel(contact)}`;
 
 // =====================================================
-// PERMISSION LOADING
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement / ReelsManagement / FooterManagement / NotificationTemplates / FAQManagement / UserManagement / AdminManagement / ReviewsModeration
 // =====================================================
-const PermissionLoadingState: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-    <div className="flex flex-col items-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-        <FiRefreshCw size={27} className="animate-spin" />
-      </div>
-      <p className="mt-4 text-sm font-bold text-[#111827]">
-        Checking permissions...
-      </p>
-      <p className="mt-1 text-xs text-[#6B7280]">
-        Verifying contact management access.
-      </p>
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
     </div>
-  </div>
-);
+  );
+};
 
 // =====================================================
 // ACCESS DENIED
 // =====================================================
 const AccessDeniedState: React.FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
     <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiAlertTriangle size={24} />
@@ -361,6 +369,7 @@ interface ContactSidebarProps {
   search: string;
   filter: ContactFilter;
   loading: boolean;
+  initialLoading: boolean;
   onSelect: (contact: Contact) => void;
   onToggleSelect: (id: number) => void;
   onToggleAll: () => void;
@@ -375,6 +384,7 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
   search,
   filter,
   loading,
+  initialLoading,
   onSelect,
   onToggleSelect,
   onToggleAll,
@@ -484,7 +494,17 @@ const ContactSidebar: React.FC<ContactSidebarProps> = ({
 
       {/* LIST */}
       <div className="flex-1 overflow-y-auto">
-        {loading ? (
+        {/* ✅ initialLoading par full spinner — refresh/CRUD par nahi */}
+        {initialLoading ? (
+          <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+              <FiRefreshCw size={21} className="animate-spin" />
+            </div>
+            <p className="mt-4 text-sm font-bold text-[#111827]">
+              Loading contacts...
+            </p>
+          </div>
+        ) : loading && contacts.length === 0 ? (
           <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FiRefreshCw size={21} className="animate-spin" />
@@ -953,10 +973,21 @@ const ContactPage: React.FC = () => {
   );
 
   // ===================================================
+  // ✅ LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATE
   // ===================================================
   const [contacts, setContacts] = useState<Contact[]>([]);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialContactsLoading, setInitialContactsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<ContactFilter>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -974,10 +1005,55 @@ const ContactPage: React.FC = () => {
   const hasInitialFetchRef = useRef(false);
 
   // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
   // GET CONTACTS
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
   const fetchContacts = useCallback(
-    async (force = false) => {
+    async (force = false, isInitialLoad = false) => {
       if (!canViewContacts) return;
       if (fetchInFlightRef.current) return fetchInFlightRef.current;
       if (!force && hasInitialFetchRef.current) return;
@@ -1012,6 +1088,10 @@ const ContactPage: React.FC = () => {
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoad) {
+            setInitialContactsLoading(false);
+          }
         }
       })();
 
@@ -1027,16 +1107,33 @@ const ContactPage: React.FC = () => {
     [canViewContacts],
   );
 
+  // ===================================================
+  // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING CONTACTS
+  // ===================================================
   useEffect(() => {
-    if (
-      permissionsLoading ||
-      !canViewContacts ||
-      hasInitialFetchRef.current
-    ) {
+    if (permissionsLoading) return;
+
+    if (!canViewContacts) {
+      setLoading(false);
+      setInitialContactsLoading(false);
       return;
     }
-    void fetchContacts();
+
+    if (!hasInitialFetchRef.current) {
+      void fetchContacts(false, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewContacts, fetchContacts]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialContactsLoading;
 
   // ===================================================
   // FILTER
@@ -1301,9 +1398,18 @@ const ContactPage: React.FC = () => {
   }, [canViewContacts, fetchContacts]);
 
   // ===================================================
-  // PERMISSION GATES
+  // ✅ COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) return <PermissionLoadingState />;
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
+
   if (!canViewContacts) return <AccessDeniedState />;
 
   // ===================================================
@@ -1402,6 +1508,7 @@ const ContactPage: React.FC = () => {
             search={search}
             filter={filter}
             loading={loading}
+            initialLoading={initialContactsLoading}
             onSelect={(contact) => setSelectedId(contact.id)}
             onToggleSelect={toggleSelect}
             onToggleAll={toggleSelectAll}

@@ -67,7 +67,7 @@ const ForgotPassword = () => {
     }
   };
 
-  // Animation variants (simplified)
+  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -93,12 +93,15 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7f5] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Simple static background circles (no animation, no blur) */}
+    // ✅ FIXED: Mobile par upar-niche gap hataya, top se start hoga
+    <div className="w-full min-h-screen bg-[#F4F8FD] flex flex-col items-center justify-start px-3 py-4 sm:px-4 sm:py-8 md:py-12 relative overflow-x-hidden font-poppins">
+      
+      {/* Decorative Background Orbs (Theme: Sky Blue + Yellow) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -right-20 w-96 h-96 rounded-full bg-[#163F20]/5" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-[#4C8A57]/5" />
-        <div className="absolute top-1/3 -right-10 w-56 h-56 rounded-full bg-[#163F20]/5" />
+        <div className="absolute -top-16 -right-16 sm:-top-20 sm:-right-20 w-56 h-56 sm:w-96 sm:h-96 rounded-full bg-[#2D6FE8]/5" />
+        <div className="absolute -bottom-16 -left-16 sm:-bottom-20 sm:-left-20 w-48 h-48 sm:w-80 sm:h-80 rounded-full bg-[#FACC15]/10" />
+        <div className="absolute top-1/3 -right-8 sm:-right-10 w-36 h-36 sm:w-56 sm:h-56 rounded-full bg-[#4F8FF7]/10" />
+        <div className="absolute bottom-1/4 left-4 sm:left-10 w-28 h-28 sm:w-40 sm:h-40 rounded-full bg-[#FDE047]/10" />
       </div>
 
       {/* Forgot Password Card */}
@@ -106,41 +109,60 @@ const ForgotPassword = () => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="relative w-full max-w-[460px]"
+        className="relative w-full max-w-[460px] my-auto"
       >
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl border border-[#163F20]/10 p-8 md:p-10"
+          className="
+            relative
+            overflow-hidden
+            bg-white
+            rounded-2xl
+            border
+            border-[#DCE6F2]
+            px-5
+            py-7
+            sm:px-8
+            sm:py-9
+            md:px-10
+            md:py-10
+            shadow-[0_18px_40px_-24px_rgba(45,111,232,0.28)]
+          "
         >
+          {/* Top accent strip */}
+          <div className="absolute left-0 top-0 h-1.5 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#FACC15]" />
+
           {/* Logo & Brand */}
-          <motion.div variants={itemVariants} className="text-center mb-7">
+          <motion.div variants={itemVariants} className="text-center mb-6 sm:mb-8">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-2xl bg-[#EAF3EA] flex items-center justify-center">
+              <div className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl bg-[#EAF3FF] flex items-center justify-center border border-[#2D6FE8]/15 relative">
                 <img
                   src={`${import.meta.env.BASE_URL}assets/logo.png`}
                   alt="IndieKonnect Logo"
-                  className="w-14 h-14 object-contain"
+                  className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
                 />
+                {/* Yellow accent dot */}
+                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#FACC15] border-2 border-white" />
               </div>
             </div>
 
             <motion.h1
               variants={itemVariants}
-              className="text-3xl font-bold text-[#163F20]"
+              className="text-[26px] sm:text-3xl font-bold text-[#111827] leading-tight"
             >
               Forgot Password?
             </motion.h1>
 
             <motion.p
               variants={itemVariants}
-              className="text-[#4C8A57] mt-1 text-xs font-semibold tracking-[0.2em] uppercase"
+              className="text-[#2D6FE8] mt-1.5 text-[11px] sm:text-xs font-semibold tracking-[0.15em] sm:tracking-[0.2em] uppercase"
             >
               {portalName}
             </motion.p>
 
             <motion.div
               variants={itemVariants}
-              className="mt-5 w-16 h-0.5 bg-[#163F20] mx-auto rounded-full"
+              className="mt-4 sm:mt-5 w-16 h-0.5 bg-gradient-to-r from-[#2D6FE8] to-[#FACC15] mx-auto rounded-full"
             />
           </motion.div>
 
@@ -149,52 +171,55 @@ const ForgotPassword = () => {
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2"
+              className="mb-5 p-3 bg-[#FEF2F2] border border-[#C23B32]/20 rounded-lg text-[#C23B32] text-xs sm:text-sm flex items-start sm:items-center gap-2 break-words"
             >
-              <span className="material-symbols-outlined text-lg">error</span>
-              {error}
+              <span className="material-symbols-outlined text-base sm:text-lg shrink-0 mt-0.5 sm:mt-0">
+                error
+              </span>
+              <span className="min-w-0 font-medium">{error}</span>
             </motion.div>
           )}
 
           {/* Forgot Password Form */}
           {!success ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               {/* Email Field */}
               <motion.div variants={itemVariants}>
-                <label className="block text-gray-600 text-sm font-medium mb-1.5">
+                <label className="block text-[#111827] text-xs sm:text-sm font-semibold mb-1.5">
                   Email Address
                 </label>
                 <div className="relative group">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#163F20] transition-colors duration-200 text-xl">
-                    email
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] group-focus-within:text-[#2D6FE8] transition-colors duration-200 text-[20px] sm:text-[22px]">
+                    mail
                   </span>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-[#f5f7f5] border border-[#163F20]/15 rounded-lg focus:outline-none focus:border-[#163F20] focus:bg-white transition-colors duration-200 text-gray-900 placeholder:text-gray-400"
+                    className="w-full pl-10 pr-4 py-3 bg-[#F4F8FD] border border-[#D6E2F0] rounded-xl focus:outline-none focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#FACC15]/30 transition-all text-sm sm:text-base text-[#111827] placeholder:text-[#9CA3AF]"
                     placeholder="Enter your email"
                     required
+                    autoComplete="email"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Enter the email address associated with your account
+                <p className="text-[11px] sm:text-xs text-[#6B7280] mt-2 leading-relaxed">
+                  Enter the email address associated with your account.
                 </p>
               </motion.div>
 
               {/* Buttons */}
-              <motion.div variants={itemVariants} className="space-y-3">
+              <motion.div variants={itemVariants} className="space-y-3 pt-2">
                 {/* Send Reset Link Button */}
                 <motion.button
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3.5 bg-[#163F20] hover:bg-[#0F3219] text-white rounded-lg font-semibold transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] hover:from-[#2D6FE8] hover:to-[#1E40AF] text-white rounded-xl font-bold text-sm sm:text-base transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_8px_20px_-8px_rgba(45,111,232,0.6)] hover:shadow-[0_12px_24px_-8px_rgba(250,204,21,0.5)] hover:-translate-y-0.5 active:translate-y-0"
                 >
                   {isLoading ? (
                     <>
                       <svg
-                        className="animate-spin h-5 w-5 text-white"
+                        className="animate-spin h-4 w-4 sm:h-5 sm:w-5 text-white"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -217,7 +242,7 @@ const ForgotPassword = () => {
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-xl">
+                      <span className="material-symbols-outlined text-[20px] sm:text-[22px]">
                         send
                       </span>
                       Send Reset Link
@@ -229,9 +254,9 @@ const ForgotPassword = () => {
                 <button
                   type="button"
                   onClick={() => navigate("/login")}
-                  className="w-full py-2.5 text-gray-500 hover:text-[#163F20] font-medium text-sm transition-colors duration-200 flex items-center justify-center gap-1"
+                  className="w-full py-2.5 text-[#6B7280] hover:text-[#2D6FE8] font-semibold text-xs sm:text-sm transition-colors duration-200 flex items-center justify-center gap-1"
                 >
-                  <span className="material-symbols-outlined text-lg">
+                  <span className="material-symbols-outlined text-[18px] sm:text-lg">
                     arrow_back
                   </span>
                   Back to Login
@@ -244,29 +269,29 @@ const ForgotPassword = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               variants={itemVariants}
-              className="space-y-4"
+              className="space-y-4 sm:space-y-5"
             >
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-4 bg-[#EAF3EA] rounded-lg border border-[#163F20]/15"
+                className="p-4 bg-[#EAF3FF] rounded-xl border border-[#2D6FE8]/15"
               >
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-2xl text-[#163F20]">
+                  <span className="material-symbols-outlined text-[22px] sm:text-2xl text-[#2D6FE8] shrink-0 mt-0.5">
                     mail
                   </span>
                   <div>
-                    <h4 className="font-medium text-gray-900 text-sm">
+                    <h4 className="font-bold text-[#111827] text-sm sm:text-base">
                       Check your email
                     </h4>
-                    <p className="text-gray-600 text-xs mt-1">
+                    <p className="text-[#6B7280] text-xs sm:text-sm mt-1 leading-relaxed">
                       We've sent a password reset link to:
                       <br />
-                      <span className="font-mono text-gray-900 font-medium">
+                      <span className="font-mono text-[#111827] font-semibold break-all">
                         {email}
                       </span>
                     </p>
-                    <p className="text-gray-600 text-xs mt-2">
+                    <p className="text-[#6B7280] text-xs sm:text-sm mt-2 leading-relaxed">
                       Please check your inbox and follow the instructions to
                       reset your password.
                     </p>
@@ -277,9 +302,9 @@ const ForgotPassword = () => {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate("/login")}
-                className="w-full py-3.5 bg-[#163F20] hover:bg-[#0F3219] text-white rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] hover:from-[#2D6FE8] hover:to-[#1E40AF] text-white rounded-xl font-bold text-sm sm:text-base transition-all duration-200 flex items-center justify-center gap-2 shadow-[0_8px_20px_-8px_rgba(45,111,232,0.6)] hover:shadow-[0_12px_24px_-8px_rgba(250,204,21,0.5)] hover:-translate-y-0.5 active:translate-y-0"
               >
-                <span className="material-symbols-outlined text-xl">
+                <span className="material-symbols-outlined text-[20px] sm:text-[22px]">
                   arrow_forward
                 </span>
                 Back to Login
@@ -288,8 +313,8 @@ const ForgotPassword = () => {
           )}
 
           {/* Footer */}
-          <motion.div variants={itemVariants} className="mt-6 text-center">
-            <p className="text-xs text-gray-400">
+          <motion.div variants={itemVariants} className="mt-5 sm:mt-6 text-center">
+            <p className="text-[10px] sm:text-xs text-[#6B7280] leading-relaxed">
               &copy; 2026 IndieKonnect. All rights reserved.
             </p>
           </motion.div>

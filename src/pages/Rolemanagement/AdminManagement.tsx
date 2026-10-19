@@ -39,34 +39,11 @@ import adminManagementApi, {
 } from "@/api/endpoints/rolemanagement";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "@/api/endpoints/logoApi";
 
-// =====================================================
-// THEME — BLUE / YELLOW (matches Payment, Contents, Reels, FAQ, Footer)
-// =====================================================
-const PRIMARY = "#2D6FE8";
-const DARK_PRIMARY = "#2D6FE8";
-const BLUE = "#2D6FE8";
-const ACCENT = "#4F8FF7";
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-const LIGHT_BLUE = "#EAF3FF";
-const SOFT_BLUE = "#EAF3FF";
-const PAGE_BG = "#F4F8FD";
-
-const TEXT_PRIMARY = "#111827";
-const TEXT_SECONDARY = "#6B7280";
-const MUTED = "#6B7280";
-
-const BORDER = "#DCE6F2";
-const WHITE = "#FFFFFF";
-
-const DANGER = "#C23B32";
-const DANGER_BG = "#FEF2F2";
-
-const WARNING = "#FACC15";
-
-// =====================================================
-// TYPES
-// =====================================================
 interface AdminFormState {
   name: string;
   email: string;
@@ -549,7 +526,7 @@ const DeleteAdminModal: FC<DeleteModalProps> = ({
 // ACCESS DENIED
 // =====================================================
 const AccessDenied: FC = () => (
-  <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
+  <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
     <div className="w-full max-w-[460px] rounded-[24px] border border-[#DCE6F2] bg-white p-8 text-center shadow-[0_15px_50px_rgba(45,111,232,0.08)]">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiShieldOff size={28} />
@@ -568,6 +545,54 @@ const AccessDenied: FC = () => (
     </div>
   </div>
 );
+
+// =====================================================
+// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
+// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement / ReelsManagement / FooterManagement / NotificationTemplates / FAQManagement / UserManagement
+// =====================================================
+
+interface PermissionLoadingStateProps {
+  logoUrl: string | null;
+}
+
+const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
+  logoUrl,
+}) => {
+  const [displayLogo, setDisplayLogo] = useState(
+    logoUrl || DEFAULT_LOGO_URL,
+  );
+
+  useEffect(() => {
+    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
+  }, [logoUrl]);
+
+  return (
+    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
+      <motion.img
+        key={displayLogo}
+        src={displayLogo}
+        alt="IndieKonnect Logo"
+        className="block max-h-[120px] max-w-[240px] object-contain"
+        referrerPolicy="no-referrer"
+        initial={{ opacity: 0.5, scale: 0.96 }}
+        animate={{
+          opacity: [0.8, 1, 0.8],
+          scale: [0.98, 1, 0.98],
+        }}
+        transition={{
+          duration: 1.6,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        onError={() => {
+          if (displayLogo !== DEFAULT_LOGO_URL) {
+            setDisplayLogo(DEFAULT_LOGO_URL);
+          }
+        }}
+      />
+    </div>
+  );
+};
 
 // =====================================================
 // MAIN
@@ -617,11 +642,22 @@ const AdminManagement: FC = () => {
   );
 
   // ===================================================
+  // ✅ LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  // ===================================================
   // STATES
   // ===================================================
   const [admins, setAdmins] = useState<AdminMember[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // ✅ first load only — subsequent fetches don't block page
+  const [initialAdminsLoading, setInitialAdminsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -652,6 +688,50 @@ const AdminManagement: FC = () => {
   const hasInitialFetchRef = useRef(false);
 
   // ===================================================
+  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // ===================================================
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ===================================================
   // OPEN EDIT
   // ===================================================
   const openEditAdmin = useCallback(
@@ -679,11 +759,13 @@ const AdminManagement: FC = () => {
 
   // ===================================================
   // FETCH
+  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
   const fetchAll = useCallback(
-    async (force = false) => {
+    async (force = false, isInitialLoadParam = false) => {
       if (!canViewAdmins) {
         setLoading(false);
+        if (isInitialLoadParam) setInitialAdminsLoading(false);
         return;
       }
 
@@ -765,6 +847,10 @@ const AdminManagement: FC = () => {
           );
         } finally {
           setLoading(false);
+
+          if (isInitialLoadParam) {
+            setInitialAdminsLoading(false);
+          }
         }
       })();
 
@@ -788,15 +874,28 @@ const AdminManagement: FC = () => {
 
   // ===================================================
   // INITIAL FETCH
+  // WAIT FOR PERMISSIONS BEFORE REQUESTING ADMINS
   // ===================================================
   useEffect(() => {
-    if (!permissionsLoading && canViewAdmins && !hasInitialFetchRef.current) {
-      fetchAll();
-    }
-    if (!permissionsLoading && !canViewAdmins) {
+    if (permissionsLoading) return;
+
+    if (canViewAdmins && !hasInitialFetchRef.current) {
+      void fetchAll(false, true);
+    } else if (!canViewAdmins) {
       setLoading(false);
+      setInitialAdminsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewAdmins, fetchAll]);
+
+  // ===================================================
+  // COMBINED INITIAL LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading ||
+    logoLoading ||
+    initialAdminsLoading;
 
   // ===================================================
   // FILTER
@@ -1015,38 +1114,19 @@ const AdminManagement: FC = () => {
   };
 
   // ===================================================
-  // PERMISSION LOADING
+  // ✅ COMPONENT-LEVEL LOADING (PULSING LOGO)
+  // SIDEBAR / NAVBAR UNTOUCHED
   // ===================================================
-  if (permissionsLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={27} className="animate-spin" />
-          </div>
-          <p className="mt-4 text-sm font-bold text-[#111827]">
-            Checking permissions...
-          </p>
-          <p className="mt-1 text-xs text-[#6B7280]">
-            Verifying admin management access.
-          </p>
-        </div>
-      </div>
-    );
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
+
+  // ===================================================
+  // ACCESS DENIED
+  // ===================================================
 
   if (!canViewAdmins) return <AccessDenied />;
-
-  if (loading && admins.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F4F8FD] font-poppins">
-        <div className="flex flex-col items-center">
-          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[#DCE6F2] border-t-[#2D6FE8]" />
-          <p className="mt-3 text-sm text-[#6B7280]">Loading admins...</p>
-        </div>
-      </div>
-    );
-  }
 
   // ===================================================
   // UI
@@ -1196,7 +1276,34 @@ const AdminManagement: FC = () => {
               </thead>
 
               <tbody>
-                {paginatedAdmins.length === 0 ? (
+                {/* ✅ initialAdminsLoading par full spinner — refresh/CRUD par nahi */}
+                {initialAdminsLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading admins...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && admins.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                          <FiRefreshCw size={22} className="animate-spin" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-[#111827]">
+                          Loading admins...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginatedAdmins.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-16 text-center">
                       <div className="flex flex-col items-center">
@@ -1326,7 +1433,26 @@ const AdminManagement: FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {paginatedAdmins.length > 0 ? (
+            {/* ✅ initialAdminsLoading par full spinner — refresh/CRUD par nahi */}
+            {initialAdminsLoading ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading admins...
+                </p>
+              </div>
+            ) : loading && admins.length === 0 ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiRefreshCw size={22} className="animate-spin" />
+                </div>
+                <p className="mt-4 text-sm font-bold text-[#111827]">
+                  Loading admins...
+                </p>
+              </div>
+            ) : paginatedAdmins.length > 0 ? (
               paginatedAdmins.map((admin, index) => {
                 const adminRole = admin.roles?.[0] || null;
                 const isHighlighted = highlightedAdminId === admin.id;
@@ -1425,7 +1551,7 @@ const AdminManagement: FC = () => {
           </div>
 
           {/* PAGINATION */}
-          {filteredAdmins.length > 0 && (
+          {!pageLoading && filteredAdmins.length > 0 && (
             <div className="flex flex-col items-center justify-between gap-4 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:flex-row sm:px-5">
               <p className="text-xs text-[#6B7280]">
                 Showing{" "}
