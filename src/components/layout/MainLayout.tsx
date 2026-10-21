@@ -8,6 +8,7 @@ import {
 
 import { useMenuItemsState } from "../../pages/permissions/useMenuItems";
 import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
+import { usePermissions } from "../../pages/permissions/usePermissions";
 
 import Header from "./Header";
 
@@ -19,17 +20,23 @@ import {
 } from "react";
 
 import type {
+  CSSProperties,
   ReactNode,
   RefObject,
 } from "react";
 
 import { adminApi } from "../../api/endpoints/Auth";
+import logoApi from "../../api/endpoints/logoApi";
 import { FiX, FiLogOut } from "react-icons/fi";
 import { getPortalLoginUrl } from "../../config/portalConfig";
 
 // =====================================================
-// MENU GROUPING CONFIG
+// DEFAULT LOGO FALLBACK
 // =====================================================
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 
 interface NavGroup {
   key: string;
@@ -153,6 +160,91 @@ const ACCOUNT_PATHS = [
 ];
 
 // =====================================================
+// ROLE-BASED SIDEBAR COLORS
+// =====================================================
+
+type SidebarRole = "admin" | "sales" | "warehouse" | "finance" | "support" | "default";
+
+interface SidebarTheme {
+  primary: string;
+  light: string;
+  mid: string;
+  dark: string;
+  pale: string;
+  soft: string;
+  border: string;
+}
+
+const SIDEBAR_THEMES: Record<SidebarRole, SidebarTheme> = {
+  admin: {
+    primary: "#2D6FE8",
+    light: "#5A95F6",
+    mid: "#8BB7FF",
+    dark: "#1E5AD1",
+    pale: "#EAF3FF",
+    soft: "#F2F7FC",
+    border: "#D7E7FF",
+  },
+  sales: {
+    primary: "#7C3AED",
+    light: "#A78BFA",
+    mid: "#C4B5FD",
+    dark: "#5B21B6",
+    pale: "#F3E8FF",
+    soft: "#FAF5FF",
+    border: "#E9D5FF",
+  },
+  warehouse: {
+    primary: "#0FA3A3",
+    light: "#2CC2B8",
+    mid: "#6FE0D6",
+    dark: "#0B7C7C",
+    pale: "#E6FBFA",
+    soft: "#F2FCFB",
+    border: "#CDEFEA",
+  },
+  finance: {
+    primary: "#15803D",
+    light: "#4ADE80",
+    mid: "#86EFAC",
+    dark: "#166534",
+    pale: "#DCFCE7",
+    soft: "#F0FDF4",
+    border: "#CDEBD5",
+  },
+  support: {
+    primary: "#0891B2",
+    light: "#22D3EE",
+    mid: "#67E8F9",
+    dark: "#0E7490",
+    pale: "#CFFAFE",
+    soft: "#ECFEFF",
+    border: "#CBEFF5",
+  },
+  default: {
+    primary: "#6366F1",
+    light: "#818CF8",
+    mid: "#A5B4FC",
+    dark: "#4338CA",
+    pale: "#EEF0FF",
+    soft: "#F7F7FF",
+    border: "#E4E7F5",
+  },
+};
+
+const getRoleNames = (roles: any): string => {
+  const list = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  return list
+    .flatMap((role: any) => {
+      if (typeof role === "string") return [role];
+      if (!role || typeof role !== "object") return [];
+      return [role.name, role.slug, role.role, role.key, role.title].filter(Boolean);
+    })
+    .join(" ")
+    .toLowerCase();
+};
+
+// =====================================================
 // MENU SIGNATURE
 // =====================================================
 
@@ -249,6 +341,8 @@ interface SidebarContentProps {
   onLogout: () => void;
   isLoggingOut: boolean;
   accountItems: any[];
+  portalLabel: string;
+  logoUrl: string;
   renderNavItem: (
     item: any,
     depth?: number,
@@ -284,11 +378,13 @@ const SidebarSkeleton = ({
   showLabels,
   navRef,
   warehouseName,
+  logoUrl,
 }: {
   isMobile: boolean;
   showLabels: boolean;
   navRef?: RefObject<HTMLDivElement | null>;
   warehouseName?: string;
+  logoUrl: string;
 }) => {
   const sections = showLabels ? 5 : 7;
 
@@ -309,11 +405,14 @@ const SidebarSkeleton = ({
           ${showLabels ? "px-1" : "justify-center"}
         `}
       >
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[#2D6FE8]/10 bg-white p-1.5">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--portal-primary)]/10 bg-white p-1.5">
           <img
-            src={`${import.meta.env.BASE_URL}assets/logo.png`}
-            alt="IndieKonnect Logo"
+            src={logoUrl}
+            alt="Logo"
             className="h-full w-full object-contain"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = DEFAULT_LOGO_URL;
+            }}
           />
         </div>
 
@@ -328,13 +427,13 @@ const SidebarSkeleton = ({
       {/* WAREHOUSE SKELETON */}
       {showLabels && (
         <div className="mb-4 flex-shrink-0">
-          <div className="flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-[#F7FAFE] px-3 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-3 py-3">
             <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
 
             <div className="min-w-0 flex-1 space-y-2">
               {warehouseName ? (
                 <>
-                  <p className="truncate text-[12px] font-semibold text-[#1E40AF]">
+                  <p className="truncate text-[12px] font-semibold text-[var(--portal-dark)]">
                     {warehouseName}
                   </p>
 
@@ -352,7 +451,7 @@ const SidebarSkeleton = ({
       )}
 
       {!showLabels && (
-        <div className="relative mb-3 h-px w-full flex-shrink-0 bg-[#2D6FE8]/10" />
+        <div className="relative mb-3 h-px w-full flex-shrink-0 bg-[var(--portal-primary)]/10" />
       )}
 
       {/* NAVIGATION SKELETON */}
@@ -370,7 +469,7 @@ const SidebarSkeleton = ({
           ${isMobile ? "pb-8" : ""}
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb]:bg-[#2D6FE8]/20
+          [&::-webkit-scrollbar-thumb]:bg-[var(--portal-primary)]/20
           [&::-webkit-scrollbar-track]:bg-transparent
         `}
       >
@@ -400,7 +499,7 @@ const SidebarSkeleton = ({
                 <SkeletonLine className="h-px flex-1" />
               </div>
             ) : sectionIndex !== 0 ? (
-              <div className="mx-auto mb-2 h-px w-8 bg-[#2D6FE8]/10" />
+              <div className="mx-auto mb-2 h-px w-8 bg-[var(--portal-primary)]/10" />
             ) : null}
 
             <div className="space-y-0.5">
@@ -462,7 +561,7 @@ const SidebarSkeleton = ({
             </div>
           </div>
         ) : (
-          <div className="mx-auto mt-3 h-px w-8 bg-[#2D6FE8]/10" />
+          <div className="mx-auto mt-3 h-px w-8 bg-[var(--portal-primary)]/10" />
         )}
       </div>
     </div>
@@ -482,13 +581,11 @@ const SidebarContent = ({
   onLogout,
   isLoggingOut,
   accountItems,
+  portalLabel,
+  logoUrl,
   renderNavItem,
 }: SidebarContentProps) => {
-  const {
-    portalName,
-    warehouseName,
-    warehouseCode,
-  } = usePortalInfo();
+  const { warehouseName, warehouseCode } = usePortalInfo();
 
   const showLabels = isMobile || isSidebarOpen;
 
@@ -500,6 +597,7 @@ const SidebarContent = ({
         showLabels={showLabels}
         navRef={navRef}
         warehouseName={warehouseName}
+        logoUrl={logoUrl}
       />
     );
   }
@@ -527,11 +625,14 @@ const SidebarContent = ({
             ${!isMobile && !isSidebarOpen ? "justify-center" : ""}
           `}
         >
-          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[#2D6FE8]/15 bg-white p-1.5 shadow-[0_4px_14px_rgba(45,111,232,0.12)]">
+          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--portal-primary)]/15 bg-white p-1.5 shadow-[0_4px_14px_rgba(45,111,232,0.12)]">
             <img
-              src={`${import.meta.env.BASE_URL}assets/logo.png`}
-              alt="IndieKonnect Logo"
+              src={logoUrl}
+              alt="Logo"
               className="relative z-10 h-full w-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = DEFAULT_LOGO_URL;
+              }}
             />
           </div>
 
@@ -541,8 +642,8 @@ const SidebarContent = ({
                 IndieKonnect
               </h1>
 
-              <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[#2D6FE8]">
-                {portalName}
+              <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[var(--portal-primary)]">
+                {portalLabel}
               </p>
             </div>
           )}
@@ -553,17 +654,17 @@ const SidebarContent = ({
       {showLabels && warehouseName && (
         <div className="relative mb-4 flex-shrink-0">
           <div
-            className="flex items-center gap-2.5 rounded-xl border border-[#2D6FE8]/10 bg-[#F2F7FC] px-3 py-2.5"
+            className="flex items-center gap-2.5 rounded-xl border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-3 py-2.5"
             title={`${warehouseName}${
               warehouseCode ? ` (${warehouseCode})` : ""
             }`}
           >
-            <span className="material-symbols-outlined flex-shrink-0 text-[18px] text-[#2D6FE8]">
+            <span className="material-symbols-outlined flex-shrink-0 text-[18px] text-[var(--portal-primary)]">
               warehouse
             </span>
 
             <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold leading-tight text-[#1E40AF]">
+              <p className="truncate text-[12px] font-semibold leading-tight text-[var(--portal-dark)]">
                 {warehouseName}
               </p>
 
@@ -578,7 +679,7 @@ const SidebarContent = ({
       )}
 
       {!showLabels && (
-        <div className="relative mb-3 h-px w-full flex-shrink-0 bg-[#2D6FE8]/10" />
+        <div className="relative mb-3 h-px w-full flex-shrink-0 bg-[var(--portal-primary)]/10" />
       )}
 
       {/* NAVIGATION */}
@@ -597,7 +698,7 @@ const SidebarContent = ({
           ${isMobile ? "pb-8" : ""}
           [&::-webkit-scrollbar]:w-1.5
           [&::-webkit-scrollbar-thumb]:rounded-full
-          [&::-webkit-scrollbar-thumb]:bg-[#2D6FE8]/20
+          [&::-webkit-scrollbar-thumb]:bg-[var(--portal-primary)]/20
           [&::-webkit-scrollbar-track]:bg-transparent
         `}
       >
@@ -608,10 +709,10 @@ const SidebarContent = ({
           {showLabels ? (
             <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
               <span>Account</span>
-              <span className="h-px flex-1 bg-[#2D6FE8]/10" />
+              <span className="h-px flex-1 bg-[var(--portal-primary)]/10" />
             </h2>
           ) : (
-            <div className="mx-auto mb-2 h-px w-8 bg-[#2D6FE8]/10" />
+            <div className="mx-auto mb-2 h-px w-8 bg-[var(--portal-primary)]/10" />
           )}
 
           <div>
@@ -648,7 +749,7 @@ const SidebarContent = ({
               disabled:opacity-60
             `}
           >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F2F7FC] transition-colors duration-200 group-hover:bg-white">
+            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--portal-soft)] transition-colors duration-200 group-hover:bg-white">
               {isLoggingOut ? (
                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E11D48] border-t-transparent" />
               ) : (
@@ -680,7 +781,78 @@ const MainLayout = () => {
     loading: isSidebarLoading,
   } = useMenuItemsState();
 
-  const { portalName } = usePortalInfo();
+  const { portalName, warehouseName } = usePortalInfo();
+  const { roles = [] } = usePermissions() as any;
+
+  // =====================================================
+  // LOGO FETCH
+  // =====================================================
+
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchLogo = async () => {
+      try {
+        const response = await logoApi.getLogo();
+        const remoteLogo = response?.data?.data?.logo;
+
+        if (isMounted && remoteLogo) {
+          setLogoUrl(remoteLogo);
+        }
+      } catch (error) {
+        console.error("Failed to fetch logo:", error);
+
+        if (isMounted) {
+          setLogoUrl(DEFAULT_LOGO_URL);
+        }
+      }
+    };
+
+    fetchLogo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const roleNames = useMemo(() => getRoleNames(roles), [roles]);
+  const currentPathname = typeof window !== "undefined" ? window.location.pathname : "";
+  const sidebarRole: SidebarRole = useMemo(() => {
+    const portal = String(portalName || "").toLowerCase();
+    const path = String(currentPathname || "").toLowerCase();
+
+    // Specific API roles must win over the generic Admin Portal name/path.
+    if (roleNames.includes("warehouse") || portal.includes("warehouse") || path.includes("indiekonnect-warehouse") || (warehouseName && !portalName)) return "warehouse";
+    if (roleNames.includes("finance") || portal.includes("finance") || path.includes("indiekonnect-finance")) return "finance";
+    if (roleNames.includes("sales") || portal.includes("sales") || path.includes("indiekonnect-sales")) return "sales";
+    if (roleNames.includes("support") || portal.includes("support")) return "support";
+    if (roleNames.includes("admin") || portal.includes("admin") || path.includes("indiekonnect-admin")) return "admin";
+    return "default";
+  }, [roleNames, portalName, warehouseName, currentPathname]);
+
+  const sidebarTheme = SIDEBAR_THEMES[sidebarRole];
+  const sidebarPortalLabel: string =
+    sidebarRole === "support"
+      ? "Support Workspace"
+      : sidebarRole === "sales"
+        ? "Sales Workspace"
+        : sidebarRole === "warehouse"
+          ? "Warehouse Portal"
+          : sidebarRole === "finance"
+            ? "Finance Portal"
+            : portalName || "Admin Portal";
+
+  const portalThemeStyle = {
+    "--portal-primary": sidebarTheme.primary,
+    "--portal-light": sidebarTheme.light,
+    "--portal-mid": sidebarTheme.mid,
+    "--portal-dark": sidebarTheme.dark,
+    "--portal-pale": sidebarTheme.pale,
+    "--portal-soft": sidebarTheme.soft,
+    "--portal-border": sidebarTheme.border,
+  } as CSSProperties;
 
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -1005,11 +1177,11 @@ const MainLayout = () => {
               duration-200
               focus-visible:outline-none
               focus-visible:ring-2
-              focus-visible:ring-[#2D6FE8]/40
+              focus-visible:ring-[var(--portal-primary)]/40
               ${
                 parentActive
-                  ? "bg-[#EAF3FF] text-[#2D6FE8]"
-                  : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+                  ? "bg-[var(--portal-pale)] text-[var(--portal-primary)]"
+                  : "text-[#4A5778] hover:bg-[var(--portal-pale)]/70 hover:text-[var(--portal-primary)]"
               }
               ${depth > 0 ? "ml-3" : ""}
               ${
@@ -1033,11 +1205,11 @@ const MainLayout = () => {
                 ${
                   parentActive
                     ? "bg-white shadow-sm"
-                    : "bg-[#F2F7FC] group-hover:bg-white"
+                    : "bg-[var(--portal-soft)] group-hover:bg-white"
                 }
               `}
             >
-              <span className="material-symbols-outlined text-[18px] text-[#2D6FE8]">
+              <span className="material-symbols-outlined text-[18px] text-[var(--portal-primary)]">
                 {item.icon}
               </span>
             </span>
@@ -1052,7 +1224,7 @@ const MainLayout = () => {
                   className={`
                     material-symbols-outlined
                     text-base
-                    text-[#2D6FE8]/60
+                    text-[var(--portal-primary)]/60
                     transition-transform
                     duration-300
                     ease-out
@@ -1081,7 +1253,7 @@ const MainLayout = () => {
                 }
               `}
             >
-              <div className="ml-[22px] space-y-0.5 border-l border-[#2D6FE8]/15 pl-3">
+              <div className="ml-[22px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-3">
                 {item.children.map((child: any) =>
                   renderNavItem(
                     child,
@@ -1123,12 +1295,12 @@ const MainLayout = () => {
           duration-200
           focus-visible:outline-none
           focus-visible:ring-2
-          focus-visible:ring-[#2D6FE8]/40
+          focus-visible:ring-[var(--portal-primary)]/40
           ${depth === 0 ? "px-2 py-1.5" : "px-2.5 py-1.5"}
           ${
             isActive
-              ? "bg-[#2D6FE8] font-semibold text-white"
-              : "text-[#4A5778] hover:bg-[#EAF3FF]/70 hover:text-[#2D6FE8]"
+              ? "bg-[var(--portal-primary)] font-semibold text-white"
+              : "text-[#4A5778] hover:bg-[var(--portal-pale)]/70 hover:text-[var(--portal-primary)]"
           }
           ${
             !shouldShowLabels && depth === 0
@@ -1151,7 +1323,7 @@ const MainLayout = () => {
                   ${
                     isActive
                       ? "bg-white"
-                      : "bg-[#8C97B2]/60 group-hover:bg-[#2D6FE8]/70"
+                      : "bg-[#8C97B2]/60 group-hover:bg-[var(--portal-primary)]/70"
                   }
                 `}
               />
@@ -1170,7 +1342,7 @@ const MainLayout = () => {
                   ${
                     isActive
                       ? "bg-white/20"
-                      : "bg-[#F2F7FC] group-hover:bg-white"
+                      : "bg-[var(--portal-soft)] group-hover:bg-white"
                   }
                 `}
               >
@@ -1181,7 +1353,7 @@ const MainLayout = () => {
                     ${
                       isActive
                         ? "text-white"
-                        : "text-[#4A5778] group-hover:text-[#2D6FE8]"
+                        : "text-[#4A5778] group-hover:text-[var(--portal-primary)]"
                     }
                   `}
                 >
@@ -1232,11 +1404,11 @@ const MainLayout = () => {
             {showLabels ? (
               <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
                 <span>{group.label}</span>
-                <span className="h-px flex-1 bg-[#2D6FE8]/10" />
+                <span className="h-px flex-1 bg-[var(--portal-primary)]/10" />
               </h2>
             ) : (
               index !== 0 && (
-                <div className="mx-auto mb-2 h-px w-8 bg-[#2D6FE8]/10" />
+                <div className="mx-auto mb-2 h-px w-8 bg-[var(--portal-primary)]/10" />
               )
             )}
 
@@ -1259,7 +1431,11 @@ const MainLayout = () => {
   // =====================================================
 
   return (
-    <div className="min-h-screen bg-[#F2F7FC] font-sans text-[#0F1B3D]">
+    <div
+      data-sidebar-role={sidebarRole}
+      style={portalThemeStyle}
+      className="min-h-screen bg-[var(--portal-soft)] font-sans text-[#0F1B3D]"
+    >
       {/* DESKTOP SIDEBAR */}
       <nav
         aria-label="Main navigation"
@@ -1276,7 +1452,7 @@ const MainLayout = () => {
           overflow-hidden
           overscroll-contain
           border-r
-          border-[#2D6FE8]/10
+          border-[var(--portal-primary)]/10
           bg-white
           px-4
           pt-6
@@ -1297,6 +1473,8 @@ const MainLayout = () => {
           onLogout={openLogoutModal}
           isLoggingOut={isLoggingOut}
           accountItems={accountItems}
+          portalLabel={sidebarPortalLabel}
+          logoUrl={logoUrl}
           renderNavItem={renderNavItem}
         />
       </nav>
@@ -1340,7 +1518,7 @@ const MainLayout = () => {
           overflow-hidden
           overscroll-contain
           border-r
-          border-[#2D6FE8]/10
+          border-[var(--portal-primary)]/10
           bg-white
           px-4
           pt-6
@@ -1360,7 +1538,7 @@ const MainLayout = () => {
         <button
           type="button"
           onClick={toggleMobileSidebar}
-          className="absolute right-3 top-3 z-10 rounded-full p-2 text-[#4A5778] transition-colors hover:bg-[#EAF3FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2D6FE8]/40"
+          className="absolute right-3 top-3 z-10 rounded-full p-2 text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-primary)]/40"
           aria-label="Close sidebar"
         >
           <FiX className="text-[22px]" />
@@ -1375,6 +1553,8 @@ const MainLayout = () => {
           onLogout={openLogoutModal}
           isLoggingOut={isLoggingOut}
           accountItems={accountItems}
+          portalLabel={sidebarPortalLabel}
+          logoUrl={logoUrl}
           renderNavItem={renderNavItem}
         />
       </nav>
@@ -1404,7 +1584,7 @@ const MainLayout = () => {
           onToggleMobileSidebar={toggleMobileSidebar}
         />
 
-        <main className="flex-1 pt-[72px]">
+        <main className="flex-1 pt-[72px] bg-white">
           <div
             className="mx-auto max-w-full"
             key={`${location.pathname}${location.search}`}
@@ -1427,22 +1607,22 @@ const MainLayout = () => {
             onClick={closeLogoutModal}
           />
 
-          <div className="relative w-full max-w-[400px] overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-[0_20px_60px_rgba(45,111,232,0.18)]">
-            <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
+          <div className="relative w-full max-w-[400px] overflow-hidden rounded-2xl border border-[var(--portal-primary)]/10 bg-white shadow-[0_20px_60px_rgba(45,111,232,0.18)]">
+            <div className="h-1 w-full bg-gradient-to-r from-[var(--portal-primary)] via-[var(--portal-light)] to-[var(--portal-mid)]" />
 
             <button
               type="button"
               onClick={closeLogoutModal}
               disabled={isLoggingOut}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#4A5778] transition-colors hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Close"
             >
               <FiX className="text-[18px]" />
             </button>
 
             <div className="px-6 pb-6 pt-7">
-              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF3FF]">
-                <FiLogOut className="text-[25px] text-[#2D6FE8]" />
+              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--portal-pale)]">
+                <FiLogOut className="text-[25px] text-[var(--portal-primary)]" />
               </div>
 
               <h2
@@ -1454,8 +1634,8 @@ const MainLayout = () => {
 
               <p className="mt-2 px-2 text-center text-sm leading-6 text-[#4A5778]">
                 You&apos;re about to log out of the{" "}
-                <span className="font-bold text-[#2D6FE8]">
-                  {portalName}
+                <span className="font-bold text-[var(--portal-primary)]">
+                  {sidebarPortalLabel}
                 </span>.
               </p>
 
@@ -1468,7 +1648,7 @@ const MainLayout = () => {
                   type="button"
                   onClick={closeLogoutModal}
                   disabled={isLoggingOut}
-                  className="flex-1 rounded-xl border border-[#2D6FE8]/15 bg-white px-4 py-3 text-sm font-bold text-[#4A5778] transition-colors duration-200 hover:bg-[#F2F7FC] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-xl border border-[var(--portal-primary)]/15 bg-white px-4 py-3 text-sm font-bold text-[#4A5778] transition-colors duration-200 hover:bg-[var(--portal-soft)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1477,7 +1657,7 @@ const MainLayout = () => {
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#2D6FE8] px-4 py-3 text-sm font-bold text-white transition-colors duration-200 hover:bg-[#1E5AD1] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--portal-primary)] px-4 py-3 text-sm font-bold text-white transition-colors duration-200 hover:bg-[var(--portal-dark)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isLoggingOut ? (
                     <>

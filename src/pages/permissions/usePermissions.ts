@@ -2,7 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 
 import { adminApi } from "../../api/endpoints/Auth";
@@ -22,6 +22,7 @@ export const ROLES = {
   WAREHOUSE: "warehouse",
   WAREHOUSE_MANAGER: "warehouse-manager",
   WAREHOUSE_EXECUTIVE: "warehouse-executive",
+  SUPPORT: "support",
 } as const;
 
 // =====================================================
@@ -70,9 +71,14 @@ export interface PermissionsData {
   has_warehouse_access: boolean;
 }
 
+interface PermissionsSnapshot {
+  data: PermissionsData | null;
+  loading: boolean;
+  error: string | null;
+}
+
 interface UsePermissionsReturn {
   data: PermissionsData | null;
-
   loading: boolean;
   error: string | null;
 
@@ -107,15 +113,118 @@ interface UsePermissionsReturn {
 // HELPERS
 // =====================================================
 
-const normalize = (value: unknown): string => {
-  return String(value ?? "")
+const normalize = (value: unknown): string =>
+  String(value ?? "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+
+const getRoleSlug = (role: AdminRole): string =>
+  normalize(role?.slug || role?.name || "");
+
+// =====================================================
+// SHARED /ME STORE
+//
+// Every usePermissions() consumer reads the same store.
+// Multiple components mounting together share one request.
+// React StrictMode's development effect replay also shares
+// the same in-flight request instead of sending another one.
+// =====================================================
+
+const initialSnapshot: PermissionsSnapshot = {
+  data: null,
+  loading: true,
+  error: null,
 };
 
-const getRoleSlug = (role: AdminRole): string => {
-  return normalize(role?.slug || role?.name || "");
+let snapshot: PermissionsSnapshot = initialSnapshot;
+let requestPromise: Promise<void> | null = null;
+let hasCompletedInitialRequest = false;
+const listeners = new Set<() => void>();
+
+const subscribe = (listener: () => void): (() => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const getSnapshot = (): PermissionsSnapshot => snapshot;
+const getServerSnapshot = (): PermissionsSnapshot => initialSnapshot;
+
+const publish = (next: Partial<PermissionsSnapshot>) => {
+  snapshot = { ...snapshot, ...next };
+  listeners.forEach((listener) => listener());
+};
+
+/**
+ * Fetch /me once for the lifetime of this loaded app module.
+ * Further hook instances reuse the cached data. Call refetch()
+ * explicitly if the current permissions should be refreshed.
+ */
+const fetchPermissions = (force = false): Promise<void> => {
+  if (requestPromise) {
+    return requestPromise;
+  }
+
+  if (hasCompletedInitialRequest && !force) {
+    return Promise.resolve();
+  }
+
+  publish({ loading: true, error: null });
+
+  const currentRequest = (async () => {
+    try {
+      const response = await adminApi.me();
+
+      if (response?.data?.success) {
+        const responseData = response?.data?.data ?? {};
+        const grouped = responseData?.permissions_grouped;
+
+        const nextData: PermissionsData = {
+          admin: responseData?.admin ?? null,
+          permissions_grouped:
+            grouped && typeof grouped === "object" && !Array.isArray(grouped)
+              ? grouped
+              : {},
+          roles: Array.isArray(responseData?.roles)
+            ? responseData.roles
+            : [],
+          warehouse_assignments: Array.isArray(
+            responseData?.warehouse_assignments,
+          )
+            ? responseData.warehouse_assignments
+            : [],
+          has_warehouse_access: Boolean(
+            responseData?.has_warehouse_access,
+          ),
+        };
+
+        publish({ data: nextData, error: null });
+      } else {
+        publish({
+          data: null,
+          error:
+            response?.data?.message ||
+            "Failed to fetch admin permissions",
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch admin permissions:", err);
+      publish({
+        data: null,
+        error:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to fetch admin permissions",
+      });
+    } finally {
+      hasCompletedInitialRequest = true;
+      requestPromise = null;
+      publish({ loading: false });
+    }
+  })();
+
+  requestPromise = currentRequest;
+  return currentRequest;
 };
 
 // =====================================================
@@ -123,616 +232,188 @@ const getRoleSlug = (role: AdminRole): string => {
 // =====================================================
 
 export const usePermissions = (): UsePermissionsReturn => {
-  const [data, setData] =
-    useState<PermissionsData | null>(null);
+  const state = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
 
-  const [loading, setLoading] =
-    useState<boolean>(true);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  // ===================================================
-  // FETCH CURRENT ADMIN PERMISSIONS
-  // ===================================================
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await adminApi.me();
-
-      if (response?.data?.success) {
-        const responseData =
-          response?.data?.data ?? {};
-
-        const permissionsGrouped =
-          responseData?.permissions_grouped;
-
-        const roles =
-          responseData?.roles;
-
-        const warehouseAssignments =
-          responseData?.warehouse_assignments;
-
-        setData({
-          admin:
-            responseData?.admin ?? null,
-
-          permissions_grouped:
-            permissionsGrouped &&
-            typeof permissionsGrouped ===
-              "object"
-              ? permissionsGrouped
-              : {},
-
-          roles:
-            Array.isArray(roles)
-              ? roles
-              : [],
-
-          warehouse_assignments:
-            Array.isArray(
-              warehouseAssignments,
-            )
-              ? warehouseAssignments
-              : [],
-
-          has_warehouse_access:
-            Boolean(
-              responseData?.has_warehouse_access,
-            ),
-        });
-      } else {
-        setData(null);
-
-        setError(
-          response?.data?.message ||
-            "Failed to fetch admin permissions",
-        );
-      }
-    } catch (err: any) {
-      console.error(
-        "Failed to fetch admin permissions:",
-        err,
-      );
-
-      setData(null);
-
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to fetch admin permissions",
-      );
-    } finally {
-      setLoading(false);
-    }
+  // The fetch runs only when at least one component uses this hook.
+  // All mounted consumers share the same pending promise and cache.
+  useEffect(() => {
+    void fetchPermissions();
   }, []);
 
-  // ===================================================
-  // FETCH ON MOUNT
-  // ===================================================
-
-  useEffect(() => {
-    fetchAll();
-  }, [fetchAll]);
-
-  // ===================================================
-  // ROLES
-  // ===================================================
+  const { data, loading, error } = state;
 
   const roles = useMemo<AdminRole[]>(
-    () => {
-      return Array.isArray(data?.roles)
-        ? data.roles
-        : [];
-    },
+    () => (Array.isArray(data?.roles) ? data.roles : []),
     [data],
   );
 
-  // ===================================================
-  // ROLE SLUGS
-  // ===================================================
+  const roleSlugs = useMemo<string[]>(() => {
+    return [...new Set(roles.map(getRoleSlug).filter(Boolean))];
+  }, [roles]);
 
-  const roleSlugs = useMemo<string[]>(
-    () => {
-      return [
-        ...new Set(
-          roles
-            .map(getRoleSlug)
-            .filter(Boolean),
-        ),
-      ];
-    },
-    [roles],
-  );
-
-  // ===================================================
-  // PRIMARY ROLE
-  // ===================================================
-
-  const primaryRole = useMemo<
-    string | null
-  >(() => {
-    if (!roles.length) {
-      return null;
-    }
-
-    const primary =
-      roles.find(
-        (role) =>
-          role?.is_primary === true,
-      ) || roles[0];
-
+  const primaryRole = useMemo<string | null>(() => {
+    if (!roles.length) return null;
+    const primary = roles.find((role) => role?.is_primary === true) || roles[0];
     return getRoleSlug(primary) || null;
   }, [roles]);
 
-  // ===================================================
-  // NORMALIZE GROUPED PERMISSIONS
-  //
-  // API:
-  //
-  // warehouse_inventory:
-  // [
-  //   "view",
-  //   "update"
-  // ]
-  //
-  // becomes:
-  //
-  // warehouse_inventory:
-  // [
-  //   "view",
-  //   "update"
-  // ]
-  // ===================================================
+  const permissionsGrouped = useMemo<Record<string, string[]>>(() => {
+    const source = data?.permissions_grouped;
+    if (!source || typeof source !== "object") return {};
 
-  const permissionsGrouped = useMemo<
-    Record<string, string[]>
-  >(() => {
-    if (
-      !data?.permissions_grouped ||
-      typeof data.permissions_grouped !==
-        "object"
-    ) {
-      return {};
-    }
+    const normalized: Record<string, string[]> = {};
+    Object.entries(source).forEach(([module, actions]) => {
+      const normalizedModule = normalize(module);
+      if (!normalizedModule || !Array.isArray(actions)) return;
 
-    const normalized: Record<
-      string,
-      string[]
-    > = {};
-
-    Object.entries(
-      data.permissions_grouped,
-    ).forEach(
-      ([module, actions]) => {
-        const normalizedModule =
-          normalize(module);
-
-        if (!normalizedModule) {
-          return;
-        }
-
-        if (!Array.isArray(actions)) {
-          return;
-        }
-
-        normalized[
-          normalizedModule
-        ] = [
-          ...new Set(
-            actions
-              .map((action) =>
-                normalize(action),
-              )
-              .filter(Boolean),
-          ),
-        ];
-      },
-    );
-
+      normalized[normalizedModule] = [
+        ...new Set(actions.map(normalize).filter(Boolean)),
+      ];
+    });
     return normalized;
   }, [data]);
 
-  // ===================================================
-  // ALL PERMISSION SLUGS
-  //
-  // Example:
-  //
-  // warehouse_inventory:
-  // ["view", "update"]
-  //
-  // becomes:
-  //
-  // [
-  //   "warehouse_inventory.view",
-  //   "warehouse_inventory.update"
-  // ]
-  // ===================================================
-
-  const allSlugs = useMemo<string[]>(
-    () => {
-      const slugs: string[] = [];
-
-      Object.entries(
-        permissionsGrouped,
-      ).forEach(
-        ([module, actions]) => {
-          if (!Array.isArray(actions)) {
-            return;
-          }
-
-          actions.forEach(
-            (action) => {
-              const normalizedModule =
-                normalize(module);
-
-              const normalizedAction =
-                normalize(action);
-
-              if (
-                !normalizedModule ||
-                !normalizedAction
-              ) {
-                return;
-              }
-
-              slugs.push(
-                `${normalizedModule}.${normalizedAction}`,
-              );
-            },
-          );
-        },
-      );
-
-      return [
-        ...new Set(slugs),
-      ];
-    },
-    [permissionsGrouped],
-  );
-
-  // ===================================================
-  // SUPER ADMIN
-  // ===================================================
+  const allSlugs = useMemo<string[]>(() => {
+    const slugs: string[] = [];
+    Object.entries(permissionsGrouped).forEach(([module, actions]) => {
+      if (!Array.isArray(actions)) return;
+      actions.forEach((action) => {
+        const normalizedModule = normalize(module);
+        const normalizedAction = normalize(action);
+        if (normalizedModule && normalizedAction) {
+          slugs.push(`${normalizedModule}.${normalizedAction}`);
+        }
+      });
+    });
+    return [...new Set(slugs)];
+  }, [permissionsGrouped]);
 
   const isSuperAdmin = useMemo<boolean>(
-    () => {
-      return roleSlugs.includes(
-        normalize(
-          ROLES.SUPER_ADMIN,
-        ),
-      );
-    },
+    () => roleSlugs.includes(normalize(ROLES.SUPER_ADMIN)),
     [roleSlugs],
   );
 
-  // ===================================================
-  // HAS PERMISSION
-  // ===================================================
+  const hasPermission = useCallback(
+    (slug: string): boolean => {
+      if (isSuperAdmin) return true;
 
-  const hasPermission =
-    useCallback(
-      (slug: string): boolean => {
-        if (isSuperAdmin) {
-          return true;
-        }
+      const normalizedSlug = normalize(slug);
+      if (!normalizedSlug) return false;
+      if (allSlugs.includes(normalizedSlug)) return true;
+      if (allSlugs.includes("*")) return true;
 
-        const normalizedSlug =
-          normalize(slug);
+      const [module] = normalizedSlug.split(".");
+      return Boolean(module && allSlugs.includes(`${module}.*`));
+    },
+    [allSlugs, isSuperAdmin],
+  );
 
-        if (!normalizedSlug) {
-          return false;
-        }
+  const hasAnyPermission = useCallback(
+    (slugs: string[]): boolean => {
+      if (isSuperAdmin) return true;
+      if (!Array.isArray(slugs) || slugs.length === 0) return false;
+      return slugs.some((slug) => hasPermission(slug));
+    },
+    [hasPermission, isSuperAdmin],
+  );
 
-        // Exact permission
-        if (
-          allSlugs.includes(
-            normalizedSlug,
-          )
-        ) {
-          return true;
-        }
-
-        // Global wildcard
-        if (
-          allSlugs.includes("*")
-        ) {
-          return true;
-        }
-
-        // Module wildcard
-        const [
-          module,
-        ] =
-          normalizedSlug.split(
-            ".",
-          );
-
-        if (
-          module &&
-          allSlugs.includes(
-            `${module}.*`,
-          )
-        ) {
-          return true;
-        }
-
-        return false;
-      },
-      [
-        allSlugs,
-        isSuperAdmin,
-      ],
-    );
-
-  // ===================================================
-  // ANY PERMISSION
-  // ===================================================
-
-  const hasAnyPermission =
-    useCallback(
-      (
-        slugs: string[],
-      ): boolean => {
-        if (isSuperAdmin) {
-          return true;
-        }
-
-        if (
-          !Array.isArray(slugs) ||
-          slugs.length === 0
-        ) {
-          return false;
-        }
-
-        return slugs.some(
-          (slug) =>
-            hasPermission(slug),
-        );
-      },
-      [
-        hasPermission,
-        isSuperAdmin,
-      ],
-    );
-
-  // ===================================================
-  // ALL PERMISSIONS
-  // ===================================================
-
-  const hasAllPermissions =
-    useCallback(
-      (
-        slugs: string[],
-      ): boolean => {
-        if (isSuperAdmin) {
-          return true;
-        }
-
-        if (
-          !Array.isArray(slugs) ||
-          slugs.length === 0
-        ) {
-          return false;
-        }
-
-        return slugs.every(
-          (slug) =>
-            hasPermission(slug),
-        );
-      },
-      [
-        hasPermission,
-        isSuperAdmin,
-      ],
-    );
-
-  // ===================================================
-  // MODULE + ACTION
-  // ===================================================
+  const hasAllPermissions = useCallback(
+    (slugs: string[]): boolean => {
+      if (isSuperAdmin) return true;
+      if (!Array.isArray(slugs) || slugs.length === 0) return false;
+      return slugs.every((slug) => hasPermission(slug));
+    },
+    [hasPermission, isSuperAdmin],
+  );
 
   const can = useCallback(
-    (
-      module: string,
-      action: string,
-    ): boolean => {
-      const normalizedModule =
-        normalize(module);
-
-      const normalizedAction =
-        normalize(action);
-
-      if (
-        !normalizedModule ||
-        !normalizedAction
-      ) {
-        return false;
-      }
-
-      return hasPermission(
-        `${normalizedModule}.${normalizedAction}`,
-      );
+    (module: string, action: string): boolean => {
+      const normalizedModule = normalize(module);
+      const normalizedAction = normalize(action);
+      if (!normalizedModule || !normalizedAction) return false;
+      return hasPermission(`${normalizedModule}.${normalizedAction}`);
     },
     [hasPermission],
   );
 
-  // ===================================================
-  // MODULE ACCESS
-  // ===================================================
+  const hasModuleAccess = useCallback(
+    (module: string): boolean => {
+      if (isSuperAdmin) return true;
 
-  const hasModuleAccess =
-    useCallback(
-      (
-        module: string,
-      ): boolean => {
-        if (isSuperAdmin) {
-          return true;
-        }
+      const normalizedModule = normalize(module);
+      if (!normalizedModule) return false;
 
-        const normalizedModule =
-          normalize(module);
+      const actions = permissionsGrouped[normalizedModule];
+      if (Array.isArray(actions) && actions.length > 0) return true;
+      if (allSlugs.includes(`${normalizedModule}.*`)) return true;
 
-        if (!normalizedModule) {
-          return false;
-        }
-
-        const actions =
-          permissionsGrouped[
-            normalizedModule
-          ];
-
-        // Module exists with permissions
-        if (
-          Array.isArray(actions) &&
-          actions.length > 0
-        ) {
-          return true;
-        }
-
-        // Module wildcard
-        if (
-          allSlugs.includes(
-            `${normalizedModule}.*`,
-          )
-        ) {
-          return true;
-        }
-
-        // Any permission from module
-        return allSlugs.some(
-          (slug) =>
-            slug.startsWith(
-              `${normalizedModule}.`,
-            ),
-        );
-      },
-      [
-        allSlugs,
-        isSuperAdmin,
-        permissionsGrouped,
-      ],
-    );
-
-  // ===================================================
-  // HAS ROLE
-  // ===================================================
+      return allSlugs.some((slug) =>
+        slug.startsWith(`${normalizedModule}.`),
+      );
+    },
+    [allSlugs, isSuperAdmin, permissionsGrouped],
+  );
 
   const hasRole = useCallback(
     (role: string): boolean => {
-      const normalizedRole =
-        normalize(role);
-
-      if (!normalizedRole) {
-        return false;
-      }
-
-      return roleSlugs.includes(
-        normalizedRole,
-      );
+      const normalizedRole = normalize(role);
+      return Boolean(normalizedRole && roleSlugs.includes(normalizedRole));
     },
     [roleSlugs],
   );
 
-  // ===================================================
-  // HAS ANY ROLE
-  // ===================================================
-
   const hasAnyRole = useCallback(
-    (
-      rolesToCheck: string[],
-    ): boolean => {
-      if (
-        !Array.isArray(
-          rolesToCheck,
-        ) ||
-        rolesToCheck.length === 0
-      ) {
+    (rolesToCheck: string[]): boolean => {
+      if (!Array.isArray(rolesToCheck) || rolesToCheck.length === 0) {
         return false;
       }
-
-      return rolesToCheck.some(
-        (role) =>
-          hasRole(role),
-      );
+      return rolesToCheck.some((role) => hasRole(role));
     },
     [hasRole],
   );
 
-  // ===================================================
-  // WAREHOUSE ASSIGNMENTS
-  // ===================================================
-
-  const warehouseAssignments =
-    useMemo<
-      WarehouseAssignment[]
-    >(() => {
-      return Array.isArray(
-        data?.warehouse_assignments,
-      )
+  const warehouseAssignments = useMemo<WarehouseAssignment[]>(
+    () =>
+      Array.isArray(data?.warehouse_assignments)
         ? data.warehouse_assignments
-        : [];
-    }, [data]);
+        : [],
+    [data],
+  );
 
-  // ===================================================
-  // WAREHOUSE ACCESS
-  // ===================================================
+  const hasWarehouseAccess = useMemo<boolean>(() => {
+    if (isSuperAdmin) return true;
+    return Boolean(
+      data?.has_warehouse_access || warehouseAssignments.length > 0,
+    );
+  }, [data, isSuperAdmin, warehouseAssignments]);
 
-  const hasWarehouseAccess =
-    useMemo<boolean>(() => {
-      if (isSuperAdmin) {
-        return true;
-      }
-
-      return Boolean(
-        data?.has_warehouse_access ||
-          warehouseAssignments.length >
-            0,
-      );
-    }, [
-      data,
-      isSuperAdmin,
-      warehouseAssignments,
-    ]);
-
-  // ===================================================
-  // RETURN
-  // ===================================================
+  const refetch = useCallback(() => fetchPermissions(true), []);
 
   return {
     data,
-
     loading,
     error,
-
-    admin:
-      data?.admin ?? null,
-
+    admin: data?.admin ?? null,
     roles,
     roleSlugs,
     primaryRole,
-
     permissionsGrouped,
     allSlugs,
-
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
-
     can,
     hasModuleAccess,
-
     hasRole,
     hasAnyRole,
-
     isSuperAdmin,
-
     hasWarehouseAccess,
     warehouseAssignments,
-
-    refetch: fetchAll,
+    refetch,
   };
 };
 

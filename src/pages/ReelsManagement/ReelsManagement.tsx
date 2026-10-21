@@ -22,9 +22,8 @@ import GlobalModal from "@/components/common/GlobalModal";
 import reelsApi, { Reel } from "../../api/endpoints/reels";
 import { productApi } from "../../api/endpoints/product";
 import { usePermissions } from "../../pages/permissions/usePermissions";
-
-// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement)
 import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -131,57 +130,7 @@ const inputClass =
   "h-11 w-full rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/10 disabled:cursor-not-allowed disabled:opacity-60";
 const labelClass = "mb-1.5 block text-xs font-semibold text-[#6B7280]";
 
-// =====================================================
-// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
-// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement
-// =====================================================
 
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// ADD / EDIT MODAL
-// =====================================================
 const ReelFormModal: React.FC<ReelFormModalProps> = ({
   open,
   loading,
@@ -902,18 +851,9 @@ const ReelsManagement: React.FC = () => {
     }
   };
 
-  // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
-  // ===================================================
-
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
-
-  // ===================================================
-  // ACCESS DENIED
-  // ===================================================
 
   if (!canViewReels) {
     return (

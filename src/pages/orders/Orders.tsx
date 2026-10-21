@@ -38,14 +38,10 @@ import GlobalModal from "@/components/common/GlobalModal";
 import { categoryApi } from "../../api/endpoints/category";
 import brandsApi from "../../api/endpoints/brands";
 import logoApi from "../../api/endpoints/logoApi";
-
 import { downloadOrdersCsv, openInvoicePdfInNewTab } from "./csvUtils";
-
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
-// =====================================================
-// ANIMATION VARIANTS
-// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -60,16 +56,9 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-// =====================================================
-// DEFAULT LOGO
-// =====================================================
-
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-// =====================================================
-// ICONS
-// =====================================================
 
 const ClipboardIcon = () => (
   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -173,54 +162,6 @@ export interface Order {
   categoryId?: number | string;
   brandId?: number | string;
 }
-
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// COMMON LOADER / ERROR (modal ke andar ke liye)
-// =====================================================
 
 interface ModalLoaderProps {
   message?: string;
@@ -3376,10 +3317,6 @@ const Orders: React.FC = () => {
     downloadOrdersCsv(filteredForExport, `orders-${slug || "filtered"}`);
   };
 
-  // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
-  // ===================================================
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;

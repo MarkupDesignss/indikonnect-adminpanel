@@ -30,6 +30,7 @@ import {
 import logoApi from "../../../api/endpoints/logoApi";
 
 import { usePermissions } from "../../permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // TYPES
@@ -43,16 +44,8 @@ interface CategoryPayload {
   parentCategory?: string | number | null;
 }
 
-// =====================================================
-// DEFAULT LOGO
-// =====================================================
-
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
-
-// =====================================================
-// ANIMATION
-// =====================================================
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -75,53 +68,6 @@ const itemVariants = {
   },
 };
 
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<
-  PermissionLoadingStateProps
-> = ({ logoUrl }) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// MAIN COMPONENT
-// =====================================================
 
 const Addcategories: React.FC = () => {
   // ===================================================

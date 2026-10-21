@@ -28,6 +28,7 @@ import GlobalModal from "@/components/common/GlobalModal";
 import testimonialsApi, { Testimonial } from "../../api/endpoints/testimonials";
 import logoApi from "../../api/endpoints/logoApi";
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -822,57 +823,7 @@ const TestimonialCard: React.FC<TestimonialCardProps> = ({
   );
 };
 
-// =====================================================
-// LOGO LOADER
-// Content area only — sidebar/navbar remain visible
-// =====================================================
-interface PermissionLoadingProps {
-  logoUrl: string | null;
-}
 
-const PermissionLoading: React.FC<PermissionLoadingProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        referrerPolicy="no-referrer"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        initial={{ opacity: 0.6, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// ACCESS DENIED
-// Content area only — sidebar/navbar remain visible
-// =====================================================
 const AccessDenied: React.FC = () => (
   <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
     <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
@@ -1287,7 +1238,7 @@ const TestimonialsManagement: React.FC = () => {
     permissionsLoading || logoLoading || initialDataLoading;
 
   if (pageLoading) {
-    return <PermissionLoading logoUrl={loaderLogoUrl} />;
+    return <PermissionLoadingState logoUrl={loaderLogoUrl} />;
   }
 
   if (!canViewTestimonials) {

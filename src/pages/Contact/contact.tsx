@@ -34,6 +34,7 @@ import GlobalModal from "@/components/common/GlobalModal";
 import contactApi, { Contact } from "../../api/endpoints/contact";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
@@ -169,57 +170,7 @@ const getContactDescription = (contact: Contact) =>
 const getCallLabel = (contact: Contact) =>
   `Call ${getAccountTypeLabel(contact)}`;
 
-// =====================================================
-// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
-// Same pattern as Orders / ReturnRefund / CreditNotes / Payment / Products / ContentsManagement / ReelsManagement / FooterManagement / NotificationTemplates / FAQManagement / UserManagement / AdminManagement / ReviewsModeration
-// =====================================================
 
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// ACCESS DENIED
-// =====================================================
 const AccessDeniedState: React.FC = () => (
   <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
     <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
@@ -1386,9 +1337,6 @@ const ContactPage: React.FC = () => {
     [canUpdateContacts, markReadLoading],
   );
 
-  // ===================================================
-  // REFRESH
-  // ===================================================
   const handleRefresh = useCallback(() => {
     if (!canViewContacts) {
       toast.error("You do not have permission to view contacts.");
@@ -1397,24 +1345,13 @@ const ContactPage: React.FC = () => {
     void fetchContacts(true);
   }, [canViewContacts, fetchContacts]);
 
-  // ===================================================
-  // ✅ COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
-  // ===================================================
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  // ===================================================
-  // ACCESS DENIED
-  // ===================================================
-
   if (!canViewContacts) return <AccessDeniedState />;
 
-  // ===================================================
-  // UI
-  // ===================================================
   return (
     <>
       <motion.div

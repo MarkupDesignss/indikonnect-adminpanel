@@ -61,7 +61,7 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 // DASHBOARD ROLE
 // =====================================================
 
-type DashboardRole = "admin" | "warehouse" | "default";
+type DashboardRole = "admin" | "sales" | "warehouse" | "finance" | "support" | "default";
 
 // =====================================================
 // THEME DEFINITIONS
@@ -290,9 +290,151 @@ const DEFAULT_THEME: DashboardTheme = {
   pieColors: ["#6366F1", "#FB7185", "#818CF8"],
 };
 
+const SALES_THEME: DashboardTheme = {
+  ...DEFAULT_THEME,
+  primary: "#7C3AED",
+  primaryLight: "#A78BFA",
+  primaryDark: "#5B21B6",
+  primarySoft: "#C4B5FD",
+  primaryPale: "#EDE9FE",
+  accent: "#F97316",
+  accentSoft: "#FDBA74",
+  accentDark: "#EA580C",
+  accentLight: "#FFEDD5",
+  classes: {
+    ...DEFAULT_THEME.classes,
+    border: "border-[#E9DDFB]",
+    primaryTile: "bg-[#F3E8FF]",
+    primaryText: "text-[#7C3AED]",
+    accentTile: "bg-[#FFF0E5]",
+    accentText: "text-[#C2410C]",
+    primaryBar: "bg-[#7C3AED]",
+    accentBar: "bg-[#F97316]",
+    primaryChip: "bg-[#F3E8FF] text-[#5B21B6] ring-[#7C3AED]/20",
+    accentChip: "bg-[#FFF0E5] text-[#C2410C] ring-[#F97316]/30",
+    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(249,115,22,0.10),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(124,58,237,0.07),transparent)]",
+    primaryButton: "bg-gradient-to-br from-[#A78BFA] to-[#7C3AED] text-white",
+    accentButton: "bg-gradient-to-br from-[#FDBA74] to-[#F97316] text-white shadow-[0_8px_20px_-8px_rgba(249,115,22,0.45)] hover:from-[#F97316] hover:to-[#EA580C]",
+  },
+  gradients: {
+    barPrimaryFrom: "#A78BFA",
+    barPrimaryTo: "#7C3AED",
+    barAccentFrom: "#FDBA74",
+    barAccentTo: "#F97316",
+    barSoftFrom: "#C4B5FD",
+    barSoftTo: "#A78BFA",
+    lineFrom: "#5B21B6",
+    lineMid: "#7C3AED",
+    lineTo: "#A78BFA",
+  },
+  avatarTones: [
+    "from-[#A78BFA] to-[#7C3AED] text-white",
+    "from-[#FDBA74] to-[#F97316] text-white",
+    "from-[#C4B5FD] to-[#5B21B6] text-white",
+    "from-[#FFEDD5] to-[#EA580C] text-[#7C2D12]",
+  ],
+  pieColors: ["#7C3AED", "#F97316", "#A78BFA"],
+};
+
+
+const FINANCE_THEME: DashboardTheme = {
+  ...DEFAULT_THEME,
+  primary: "#15803D",
+  primaryLight: "#4ADE80",
+  primaryDark: "#166534",
+  primarySoft: "#86EFAC",
+  primaryPale: "#DCFCE7",
+  accent: "#EA580C",
+  accentSoft: "#FDBA74",
+  accentDark: "#C2410C",
+  accentLight: "#FFEDD5",
+  classes: {
+    ...DEFAULT_THEME.classes,
+    border: "border-[#CDEBD5]",
+    primaryTile: "bg-[#DCFCE7]",
+    primaryText: "text-[#15803D]",
+    accentTile: "bg-[#FFEDD5]",
+    accentText: "text-[#C2410C]",
+    primaryBar: "bg-[#15803D]",
+    accentBar: "bg-[#EA580C]",
+    primaryChip: "bg-[#DCFCE7] text-[#166534] ring-[#15803D]/20",
+    accentChip: "bg-[#FFEDD5] text-[#9A3412] ring-[#EA580C]/30",
+    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(234,88,12,0.09),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(21,128,61,0.06),transparent)]",
+    primaryButton: "bg-gradient-to-br from-[#4ADE80] to-[#15803D] text-white",
+    accentButton: "bg-gradient-to-br from-[#FDBA74] to-[#EA580C] text-white shadow-[0_8px_20px_-8px_rgba(234,88,12,0.45)] hover:from-[#EA580C] hover:to-[#C2410C]",
+  },
+  gradients: {
+    barPrimaryFrom: "#4ADE80",
+    barPrimaryTo: "#15803D",
+    barAccentFrom: "#FDBA74",
+    barAccentTo: "#EA580C",
+    barSoftFrom: "#86EFAC",
+    barSoftTo: "#4ADE80",
+    lineFrom: "#166534",
+    lineMid: "#15803D",
+    lineTo: "#4ADE80",
+  },
+  avatarTones: [
+    "from-[#4ADE80] to-[#15803D] text-white",
+    "from-[#FDBA74] to-[#EA580C] text-white",
+    "from-[#86EFAC] to-[#166534] text-white",
+    "from-[#FFEDD5] to-[#C2410C] text-white",
+  ],
+  pieColors: ["#15803D", "#EA580C", "#4ADE80"],
+};
+
+const SUPPORT_THEME: DashboardTheme = {
+  ...DEFAULT_THEME,
+  primary: "#0891B2",
+  primaryLight: "#22D3EE",
+  primaryDark: "#0E7490",
+  primarySoft: "#67E8F9",
+  primaryPale: "#CFFAFE",
+  accent: "#F43F5E",
+  accentSoft: "#FDA4AF",
+  accentDark: "#BE123C",
+  accentLight: "#FFE4E6",
+  classes: {
+    ...DEFAULT_THEME.classes,
+    border: "border-[#CBEFF5]",
+    primaryTile: "bg-[#CFFAFE]",
+    primaryText: "text-[#0E7490]",
+    accentTile: "bg-[#FFE4E6]",
+    accentText: "text-[#BE123C]",
+    primaryBar: "bg-[#0891B2]",
+    accentBar: "bg-[#F43F5E]",
+    primaryChip: "bg-[#CFFAFE] text-[#0E7490] ring-[#0891B2]/20",
+    accentChip: "bg-[#FFE4E6] text-[#BE123C] ring-[#F43F5E]/30",
+    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(244,63,94,0.08),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(8,145,178,0.07),transparent)]",
+    primaryButton: "bg-gradient-to-br from-[#22D3EE] to-[#0891B2] text-white",
+    accentButton: "bg-gradient-to-br from-[#FDA4AF] to-[#F43F5E] text-white shadow-[0_8px_20px_-8px_rgba(244,63,94,0.45)] hover:from-[#F43F5E] hover:to-[#BE123C]",
+  },
+  gradients: {
+    barPrimaryFrom: "#22D3EE",
+    barPrimaryTo: "#0891B2",
+    barAccentFrom: "#FDA4AF",
+    barAccentTo: "#F43F5E",
+    barSoftFrom: "#67E8F9",
+    barSoftTo: "#22D3EE",
+    lineFrom: "#0E7490",
+    lineMid: "#0891B2",
+    lineTo: "#22D3EE",
+  },
+  avatarTones: [
+    "from-[#22D3EE] to-[#0891B2] text-white",
+    "from-[#FDA4AF] to-[#F43F5E] text-white",
+    "from-[#67E8F9] to-[#0E7490] text-white",
+    "from-[#FFE4E6] to-[#BE123C] text-white",
+  ],
+  pieColors: ["#0891B2", "#F43F5E", "#22D3EE"],
+};
+
 const DASHBOARD_THEMES: Record<DashboardRole, DashboardTheme> = {
   admin: ADMIN_THEME,
+  sales: SALES_THEME,
   warehouse: WAREHOUSE_THEME,
+  finance: FINANCE_THEME,
+  support: SUPPORT_THEME,
   default: DEFAULT_THEME,
 };
 
@@ -1231,11 +1373,12 @@ const SummarySkeleton = () => (
 // =====================================================
 
 const DashboardSkeleton = ({
-  isWarehouseMode = false,
+  role = "default",
 }: {
-  isWarehouseMode?: boolean;
+  role?: DashboardRole;
 }) => {
-  const theme = isWarehouseMode ? WAREHOUSE_THEME : ADMIN_THEME;
+  const theme = DASHBOARD_THEMES[role];
+  const isWarehouseMode = role === "warehouse";
 
   return (
     <div className="relative min-h-screen bg-white">
@@ -1419,21 +1562,37 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const { portalName, warehouseName, warehouseCode } = usePortalInfo();
-  const { hasModuleAccess, hasPermission, loading: permissionsLoading } = usePermissions();
+  const { hasModuleAccess, hasPermission, loading: permissionsLoading, roles = [] } = usePermissions() as any;
 
-  const isWarehouseMode = dashboard?._ui_role === "warehouse";
   const isWarehouseHint = Boolean(
     portalName?.toLowerCase().includes("warehouse") || (warehouseName && !portalName),
   );
 
-  // ---- Active role + theme ----
+  // ---- Resolve the actual assigned role before falling back to the portal path.
+  // API roles may be strings or objects such as { name: "Support", slug: "support" }.
   const activeRole: DashboardRole = useMemo(() => {
-    if (dashboard?._ui_role === "warehouse") return "warehouse";
-    if (dashboard?._ui_role === "admin") return "admin";
-    if (isWarehouseHint) return "warehouse";
-    return "default";
-  }, [dashboard?._ui_role, isWarehouseHint]);
+    const roleList = Array.isArray(roles) ? roles : roles ? [roles] : [];
+    const roleNames = roleList
+      .flatMap((role: any) => {
+        if (typeof role === "string") return [role];
+        if (!role || typeof role !== "object") return [];
+        return [role.name, role.slug, role.role, role.key, role.title].filter(Boolean);
+      })
+      .join(" ")
+      .toLowerCase();
+    const portal = String(portalName || "").toLowerCase();
+    const backendRole = String(dashboard?._ui_role || "").toLowerCase();
 
+    // Specific assigned roles must take priority over the generic Admin Portal path.
+    if (isWarehouseHint || roleNames.includes("warehouse") || backendRole === "warehouse") return "warehouse";
+    if (roleNames.includes("finance") || portal.includes("finance")) return "finance";
+    if (roleNames.includes("sales") || portal.includes("sales")) return "sales";
+    if (roleNames.includes("support") || portal.includes("support")) return "support";
+    if (roleNames.includes("admin") || portal.includes("admin") || backendRole === "admin") return "admin";
+    return "default";
+  }, [dashboard?._ui_role, isWarehouseHint, roles, portalName]);
+
+  const isWarehouseMode = activeRole === "warehouse" || dashboard?._ui_role === "warehouse";
   const theme = DASHBOARD_THEMES[activeRole];
   const metricTheme = useMemo(() => buildMetricTheme(theme), [theme]);
 
@@ -1855,7 +2014,7 @@ const Dashboard = () => {
   // ===================================================
 
   if (permissionsLoading || (isLoading && !dashboard)) {
-    return <DashboardSkeleton isWarehouseMode={isWarehouseHint} />;
+    return <DashboardSkeleton role={activeRole} />;
   }
 
   if (!dashboard) {
@@ -1902,7 +2061,15 @@ const Dashboard = () => {
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: theme.accent }} />
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: theme.primary }} />
                 <span className="ml-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#6B7280] sm:text-[10px]">
-                  {isWarehouseMode ? "Warehouse Overview" : "Business Overview"}
+                  {isWarehouseMode
+                    ? "Warehouse Overview"
+                    : activeRole === "finance"
+                      ? "Finance Overview"
+                      : activeRole === "sales"
+                        ? "Sales Overview"
+                        : activeRole === "support"
+                          ? "Support Overview"
+                          : "Business Overview"}
                 </span>
               </div>
 
@@ -1911,19 +2078,27 @@ const Dashboard = () => {
                   Dashboard
                 </h1>
                 <span
-                  className={`mb-1 hidden rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex ${
-                    activeRole === "admin"
-                      ? "border-[#FACC15]/50 bg-[#FEF9C3] text-[#A16207]"
-                      : activeRole === "warehouse"
-                        ? "border-[#0FA3A3]/30 bg-[#E6FBFA] text-[#0B7C7C]"
-                        : "border-[#6366F1]/30 bg-[#EEF0FF] text-[#4338CA]"
-                  }`}
+                  className="mb-1 hidden rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex"
+                  style={{
+                    borderColor: `${theme.primary}44`,
+                    backgroundColor: theme.primaryPale,
+                    color: theme.primaryDark,
+                  }}
                 >
-                  {portalName}
+                  {activeRole === "support"
+                    ? "Support Role"
+                    : activeRole === "sales"
+                      ? "Sales Role"
+                      : portalName || `${activeRole} dashboard`}
                 </span>
                 {warehouseName && (
                   <span
-                    className="mb-1 hidden truncate rounded-full border border-[#4F8FF7]/30 bg-[#EAF3FF] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-[#2D6FE8] sm:inline-flex"
+                    className="mb-1 hidden truncate rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide sm:inline-flex"
+                    style={{
+                      borderColor: `${theme.primary}44`,
+                      backgroundColor: theme.primaryPale,
+                      color: theme.primaryDark,
+                    }}
                     title={`${warehouseName}${warehouseCode ? ` (${warehouseCode})` : ""}`}
                   >
                     {warehouseName}

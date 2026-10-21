@@ -24,6 +24,7 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CancelRefund / BuyBack)
 import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -158,71 +159,12 @@ const getAccountTypeClass = (accountType?: string | null) => {
       return "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]";
   }
 };
-/**
- * Resolve account type for a credit note row.
- *
- * Priority:
- * 1. note.buyer_type
- * 2. note.order.order_type
- * 3. customer
- */
 
 const getCreditNoteAccountType = (note: any): string => {
   if (!note) return "customer";
   return note.buyer_type || note.order?.order_type || "customer";
 };
 
-// =====================================================
-// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
-// Same pattern as Orders / ReturnRefund / CancelRefund / BuyBack
-// =====================================================
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// VIEW MODAL — BLUE & YELLOW THEME
-// =====================================================
 interface CreditNoteViewModalProps {
   open: boolean;
   note: CreditNote | null;

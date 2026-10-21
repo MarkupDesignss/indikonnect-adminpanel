@@ -38,6 +38,7 @@ import logoApi from "../../api/endpoints/logoApi";
 
 // ✅ PERMISSIONS
 import { usePermissions } from "../permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // CONSTANTS
@@ -96,47 +97,6 @@ const getVariantLabel = (
     .join(" • ");
 };
 
-// =====================================================
-// LOGO LOADING STATE
-// Same file component — content area only
-// =====================================================
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<
-  PermissionLoadingStateProps
-> = ({ logoUrl }) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        referrerPolicy="no-referrer"
-        className="block max-h-[120px] max-w-[240px] animate-pulse object-contain"
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// STATUS BADGE
-// =====================================================
 
 const StatusBadge = ({
   status,

@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import paymentManagementApi, { PaymentRecord } from "../../api/endpoints/payment";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -180,57 +181,6 @@ const generateCsv = (records: PaymentRecord[]): string => {
   return rows.join("\r\n");
 };
 
-// =====================================================
-// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
-// Same pattern as Orders / ReturnRefund / CancelRefund / BuyBack / CreditNotes
-// =====================================================
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// STAT CARD
-// =====================================================
 interface StatCardProps {
   title: string;
   value: string | number;
@@ -530,18 +480,11 @@ const Payment: React.FC = () => {
     return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
   }, [currentPage, totalPages]);
 
-  // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
-  // ===================================================
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  // ===================================================
-  // ACCESS DENIED
-  // ===================================================
 
   if (!canViewPayments) {
     return (

@@ -37,6 +37,7 @@ import { Product } from "@/types/product";
 // =====================================================
 
 import { usePermissions } from "../permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -85,60 +86,6 @@ interface StockUpdatePayload {
   stock_quantity: number;
 }
 
-// =====================================================
-// COMPONENT-LEVEL LOGO LOADER
-// SIDEBAR AND NAVBAR REMAIN VISIBLE
-// =====================================================
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<
-  PermissionLoadingStateProps
-> = ({ logoUrl }) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{
-          opacity: 0.6,
-          scale: 0.96,
-        }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// STAT CARD — BLUE/YELLOW THEME
-// =====================================================
 
 interface InventoryStatCardProps {
   title: string;
@@ -1072,10 +1019,7 @@ const Stock: React.FC = () => {
     ];
   }, [currentPage, totalPages]);
 
-  // ===================================================
-  // COMBINED INITIAL LOADING STATE
-  // ONLY THE STOCK COMPONENT CONTENT IS REPLACED
-  // ===================================================
+
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;

@@ -1,73 +1,85 @@
-// src/hooks/usePortalInfo.ts
-
 import { useMemo } from "react";
-import {
-  getPortalType,
-  type PortalType,
-} from "../../utils/getPortalName";
-import usePermissions from "./usePermissions";
+import { useLocation } from "react-router-dom";
+import { usePermissions } from "./usePermissions";
 
-interface PortalInfo {
-  urlPortal: PortalType;
+export interface PortalInfo {
   portalName: string;
-  isWarehousePortal: boolean;
-  isFinancePortal: boolean;
-  isAdminPortal: boolean;
   warehouseName: string | null;
   warehouseCode: string | null;
+  loading: boolean;
+  error: string | null;
 }
 
+/**
+ * Derives portal details from the shared usePermissions cache.
+ * It intentionally does not call adminApi.me() itself.
+ */
 export const usePortalInfo = (): PortalInfo => {
-  const { admin, hasWarehouseAccess } = usePermissions();
+  const { pathname } = useLocation();
+  const {
+    admin,
+    roles,
+    roleSlugs,
+    warehouseAssignments,
+    loading,
+    error,
+  } = usePermissions();
 
-  const urlPortal = useMemo<PortalType>(() => {
-    return getPortalType();
-  }, []);
+  const portalName = useMemo(() => {
+    const route = pathname.toLowerCase();
+    const assignedRoles = (roleSlugs || []).map((role) =>
+      String(role).toLowerCase(),
+    );
+    const roleText = [
+      ...(Array.isArray(roles)
+        ? roles.flatMap((role: any) =>
+            typeof role === "string"
+              ? [role]
+              : role && typeof role === "object"
+                ? [role.name, role.slug, role.role, role.key, role.title].filter(Boolean)
+                : [],
+          )
+        : []),
+      ...assignedRoles,
+    ]
+      .join(" ")
+      .toLowerCase();
 
-  const warehouseName = useMemo<string | null>(() => {
-    return admin?.warehouse_name ?? null;
-  }, [admin]);
+    // Explicit finance/warehouse portal routes take precedence.
+    if (route.startsWith("/indiekonnect-finance")) return "Finance Portal";
+    if (route.startsWith("/indiekonnect-warehouse")) return "Warehouse Portal";
 
-  const warehouseCode = useMemo<string | null>(() => {
-    return admin?.warehouse_code ?? null;
-  }, [admin]);
-
-  const portalName = useMemo<string>(() => {
-    if (urlPortal === "warehouse") {
-      return "Warehouse Portal";
-    }
-
-    if (urlPortal === "finance") {
-      return "Finance Portal";
-    }
-
-    if (hasWarehouseAccess) {
-      return "Warehouse Portal";
-    }
-
+    // In the admin app, the assigned role differentiates the portal label.
+    if (roleText.includes("support")) return "Support Portal";
+    if (roleText.includes("sales")) return "Sales Portal";
+    if (roleText.includes("finance")) return "Finance Portal";
+    if (roleText.includes("warehouse")) return "Warehouse Portal";
+    if (route.startsWith("/indiekonnect-admin")) return "Admin Portal";
     return "Admin Portal";
-  }, [urlPortal, hasWarehouseAccess]);
+  }, [pathname, roleSlugs, roles]);
 
-  const isWarehousePortal = useMemo<boolean>(() => {
-    return portalName === "Warehouse Portal";
-  }, [portalName]);
+  const warehouseName = useMemo(() => {
+    if (admin?.warehouse_name) return admin.warehouse_name;
+    const assignment =
+      warehouseAssignments.find((item) => item?.is_primary) ||
+      warehouseAssignments[0];
+    return assignment?.warehouse?.name ?? null;
+  }, [admin, warehouseAssignments]);
 
-  const isFinancePortal = useMemo<boolean>(() => {
-    return portalName === "Finance Portal";
-  }, [portalName]);
-
-  const isAdminPortal = useMemo<boolean>(() => {
-    return portalName === "Admin Portal";
-  }, [portalName]);
+  const warehouseCode = useMemo(() => {
+    if (admin?.warehouse_code) return admin.warehouse_code;
+    const assignment =
+      warehouseAssignments.find((item) => item?.is_primary) ||
+      warehouseAssignments[0];
+    return assignment?.warehouse?.code ?? null;
+  }, [admin, warehouseAssignments]);
 
   return {
-    urlPortal,
     portalName,
-    isWarehousePortal,
-    isFinancePortal,
-    isAdminPortal,
-    warehouseName,
-    warehouseCode,
+    warehouseName: warehouseName || null,
+    warehouseCode: warehouseCode || null,
+    loading,
+    error,
   };
 };
 

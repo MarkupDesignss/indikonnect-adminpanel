@@ -35,6 +35,7 @@ import headerApi, {
 import logoApi from "../../api/endpoints/logoApi";
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // CONSTANTS
@@ -108,60 +109,6 @@ const getStatusClass = (status: boolean) =>
     ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
     : "border-[#DCE6F2] bg-[#F8FBFF] text-[#6B7280]";
 
-// =====================================================
-// LOGO LOADING STATE
-// Same file component — content area only
-// =====================================================
-
-interface PermissionLoadingProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoading: React.FC<PermissionLoadingProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        referrerPolicy="no-referrer"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        initial={{
-          opacity: 0.6,
-          scale: 0.96,
-        }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// IMAGE SELECTOR
-// =====================================================
 
 interface ImageSelectorProps {
   label: string;
@@ -1328,7 +1275,7 @@ const HeaderManagement: React.FC = () => {
   // ===================================================
 
   if (pageLoading) {
-    return <PermissionLoading logoUrl={loaderLogoUrl} />;
+    return <PermissionLoadingState logoUrl={loaderLogoUrl} />;
   }
 
   // ===================================================

@@ -47,6 +47,7 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 
 // ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CancelRefund)
 import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
@@ -328,57 +329,6 @@ function isRefundProcessed(record: any): boolean {
   return getRefundedAmount(record) !== null;
 }
 
-// =====================================================
-// ✅ PERMISSION / PAGE LOADING STATE (PULSING LOGO)
-// Same pattern as Orders / ReturnRefund / CancelRefund / BrandsManagement
-// =====================================================
-
-interface PermissionLoadingStateProps {
-  logoUrl: string | null;
-}
-
-const PermissionLoadingState: React.FC<PermissionLoadingStateProps> = ({
-  logoUrl,
-}) => {
-  const [displayLogo, setDisplayLogo] = useState(
-    logoUrl || DEFAULT_LOGO_URL,
-  );
-
-  useEffect(() => {
-    setDisplayLogo(logoUrl || DEFAULT_LOGO_URL);
-  }, [logoUrl]);
-
-  return (
-    <div className="flex min-h-[80vh] w-full items-center justify-center overflow-hidden rounded-xl bg-[#F4F8FD] p-6 font-poppins">
-      <motion.img
-        key={displayLogo}
-        src={displayLogo}
-        alt="IndieKonnect Logo"
-        className="block max-h-[120px] max-w-[240px] object-contain"
-        referrerPolicy="no-referrer"
-        initial={{ opacity: 0.5, scale: 0.96 }}
-        animate={{
-          opacity: [0.8, 1, 0.8],
-          scale: [0.98, 1, 0.98],
-        }}
-        transition={{
-          duration: 1.6,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        onError={() => {
-          if (displayLogo !== DEFAULT_LOGO_URL) {
-            setDisplayLogo(DEFAULT_LOGO_URL);
-          }
-        }}
-      />
-    </div>
-  );
-};
-
-// =====================================================
-// TIMELINE BUILDER
-// =====================================================
 
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
