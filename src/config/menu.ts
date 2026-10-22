@@ -187,7 +187,7 @@ export const menuItems: MenuItem[] = [
     anyOf: ['sales.report'],
   },
 
-  // ✅ USER MANAGEMENT — NEW ADDED
+  // ✅ USER MANAGEMENT
   {
     path: '/UserManagement',
     label: 'User Management',
@@ -195,6 +195,16 @@ export const menuItems: MenuItem[] = [
     module: 'user',
     permission: 'user.view',
     anyOf: ['user.view', 'user.create', 'user.update', 'user.delete'],
+  },
+
+  // ✅ CORRECTION REQUESTS — User Management ke just niche
+  {
+    path: '/CorrectionRequests',
+    label: 'Correction Requests',
+    icon: 'published_with_changes',
+    module: 'correction',
+    permission: 'correction.view',
+    anyOf: ['correction.view', 'correction.send_link', 'user.view'],
   },
 
   {

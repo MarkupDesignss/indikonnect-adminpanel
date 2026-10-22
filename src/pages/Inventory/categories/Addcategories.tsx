@@ -647,7 +647,7 @@ const Addcategories: React.FC = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
             <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
-              Catalog Management
+            Categories Management
             </span>
           </div>
 

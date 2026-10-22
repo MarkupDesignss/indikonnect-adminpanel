@@ -144,6 +144,7 @@ const NAV_GROUPS: NavGroup[] = [
       "customer",
       "audit",
       "profile",
+      "correction",
     ],
   },
 ];
@@ -405,7 +406,7 @@ const SidebarSkeleton = ({
           ${showLabels ? "px-1" : "justify-center"}
         `}
       >
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--portal-primary)]/10 bg-white p-1.5">
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--portal-primary)]/10 bg-white p-1.5">
           <img
             src={logoUrl}
             alt="Logo"
@@ -418,8 +419,8 @@ const SidebarSkeleton = ({
 
         {showLabels && (
           <div className="min-w-0 flex-1 space-y-2">
-            <SkeletonLine className="h-4 w-32" />
-            <SkeletonLine className="h-2.5 w-24" />
+            <SkeletonLine className="h-3.5 w-28" />
+            <SkeletonLine className="h-2.5 w-20" />
           </div>
         )}
       </div>
@@ -427,22 +428,22 @@ const SidebarSkeleton = ({
       {/* WAREHOUSE SKELETON */}
       {showLabels && (
         <div className="mb-4 flex-shrink-0">
-          <div className="flex items-center gap-3 rounded-xl border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-3 py-3">
-            <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
+          <div className="flex items-center gap-2.5 rounded-lg border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-2.5 py-2">
+            <SkeletonLine className="h-7 w-7 flex-shrink-0 rounded-md" />
 
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 flex-1 space-y-1.5">
               {warehouseName ? (
                 <>
-                  <p className="truncate text-[12px] font-semibold text-[var(--portal-dark)]">
+                  <p className="truncate text-[11.5px] font-semibold text-[var(--portal-dark)]">
                     {warehouseName}
                   </p>
 
-                  <SkeletonLine className="h-2.5 w-20" />
+                  <SkeletonLine className="h-2 w-16" />
                 </>
               ) : (
                 <>
-                  <SkeletonLine className="h-3 w-28" />
-                  <SkeletonLine className="h-2.5 w-16" />
+                  <SkeletonLine className="h-2.5 w-24" />
+                  <SkeletonLine className="h-2 w-14" />
                 </>
               )}
             </div>
@@ -489,10 +490,10 @@ const SidebarSkeleton = ({
             }
           >
             {showLabels ? (
-              <div className="mb-1 flex items-center gap-2 px-2.5">
+              <div className="mb-1.5 flex items-center gap-2 px-2">
                 <SkeletonLine
-                  className={`h-2.5 ${
-                    sectionIndex % 2 === 0 ? "w-20" : "w-24"
+                  className={`h-2 ${
+                    sectionIndex % 2 === 0 ? "w-16" : "w-20"
                   }`}
                 />
 
@@ -515,8 +516,8 @@ const SidebarSkeleton = ({
                   className={`
                     flex
                     items-center
-                    gap-2.5
-                    rounded-lg
+                    gap-2
+                    rounded-md
                     ${
                       showLabels
                         ? "px-2 py-1.5"
@@ -524,23 +525,17 @@ const SidebarSkeleton = ({
                     }
                   `}
                 >
-                  <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
+                  <SkeletonLine className="h-7 w-7 flex-shrink-0 rounded-md" />
 
                   {showLabels && (
                     <SkeletonLine
-                      className={`h-3 ${
+                      className={`h-2.5 ${
                         (sectionIndex + itemIndex) % 2 === 0
-                          ? "w-28"
-                          : "w-20"
+                          ? "w-24"
+                          : "w-16"
                       }`}
                     />
                   )}
-
-                  {showLabels &&
-                    itemIndex === 0 &&
-                    sectionIndex === 1 && (
-                      <SkeletonLine className="ml-auto h-3 w-3 rounded-full" />
-                    )}
                 </div>
               ))}
             </div>
@@ -550,14 +545,14 @@ const SidebarSkeleton = ({
         {/* ACCOUNT SKELETON */}
         {showLabels ? (
           <div className="mt-3">
-            <div className="mb-2 flex items-center gap-2 px-2.5">
-              <SkeletonLine className="h-2.5 w-14" />
+            <div className="mb-1.5 flex items-center gap-2 px-2">
+              <SkeletonLine className="h-2 w-12" />
               <SkeletonLine className="h-px flex-1" />
             </div>
 
-            <div className="flex items-center gap-2.5 px-2 py-1.5">
-              <SkeletonLine className="h-8 w-8 flex-shrink-0 rounded-lg" />
-              <SkeletonLine className="h-3 w-20" />
+            <div className="flex items-center gap-2 px-2 py-1.5">
+              <SkeletonLine className="h-7 w-7 flex-shrink-0 rounded-md" />
+              <SkeletonLine className="h-2.5 w-16" />
             </div>
           </div>
         ) : (
@@ -589,7 +584,6 @@ const SidebarContent = ({
 
   const showLabels = isMobile || isSidebarOpen;
 
-  // Permissions load hone tak real sidebar render nahi hogi.
   if (isSidebarLoading) {
     return (
       <SidebarSkeleton
@@ -621,11 +615,11 @@ const SidebarContent = ({
           className={`
             flex
             items-center
-            gap-3
+            gap-2.5
             ${!isMobile && !isSidebarOpen ? "justify-center" : ""}
           `}
         >
-          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-[var(--portal-primary)]/15 bg-white p-1.5 shadow-[0_4px_14px_rgba(45,111,232,0.12)]">
+          <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-[var(--portal-primary)]/15 bg-white p-1 shadow-[0_2px_10px_rgba(45,111,232,0.10)]">
             <img
               src={logoUrl}
               alt="Logo"
@@ -638,11 +632,11 @@ const SidebarContent = ({
 
           {showLabels && (
             <div className="min-w-0">
-              <h1 className="text-lg font-bold leading-tight tracking-tight text-[#0F1B3D]">
+              <h1 className="text-[15px] font-bold leading-tight tracking-tight text-[#0F1B3D]">
                 IndieKonnect
               </h1>
 
-              <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[var(--portal-primary)]">
+              <p className="mt-0.5 text-[10.5px] font-semibold tracking-wide text-[var(--portal-primary)]">
                 {portalLabel}
               </p>
             </div>
@@ -652,24 +646,24 @@ const SidebarContent = ({
 
       {/* WAREHOUSE CHIP */}
       {showLabels && warehouseName && (
-        <div className="relative mb-4 flex-shrink-0">
+        <div className="relative mb-3 flex-shrink-0">
           <div
-            className="flex items-center gap-2.5 rounded-xl border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-3 py-2.5"
+            className="flex items-center gap-2 rounded-lg border border-[var(--portal-primary)]/10 bg-[var(--portal-soft)] px-2.5 py-2"
             title={`${warehouseName}${
               warehouseCode ? ` (${warehouseCode})` : ""
             }`}
           >
-            <span className="material-symbols-outlined flex-shrink-0 text-[18px] text-[var(--portal-primary)]">
+            <span className="material-symbols-outlined flex-shrink-0 text-[16px] text-[var(--portal-primary)]">
               warehouse
             </span>
 
             <div className="min-w-0">
-              <p className="truncate text-[12px] font-semibold leading-tight text-[var(--portal-dark)]">
+              <p className="truncate text-[11.5px] font-semibold leading-tight text-[var(--portal-dark)]">
                 {warehouseName}
               </p>
 
               {warehouseCode && (
-                <p className="mt-0.5 text-[11px] leading-tight text-[#8C97B2]">
+                <p className="mt-0.5 text-[10px] leading-tight text-[#8C97B2]">
                   {warehouseCode}
                 </p>
               )}
@@ -705,9 +699,9 @@ const SidebarContent = ({
         {navContent}
 
         {/* ACCOUNT SECTION */}
-        <div className="mt-3">
+        <div className="mt-2.5">
           {showLabels ? (
-            <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
+            <h2 className="mb-1 flex items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-[#8C97B2]">
               <span>Account</span>
               <span className="h-px flex-1 bg-[var(--portal-primary)]/10" />
             </h2>
@@ -730,12 +724,12 @@ const SidebarContent = ({
             className={`
               group
               relative
-              mb-0.5
+              mt-0.5
               flex
               w-full
               items-center
-              gap-3
-              rounded-lg
+              gap-2
+              rounded-md
               transition-colors
               duration-200
               focus-visible:outline-none
@@ -749,16 +743,16 @@ const SidebarContent = ({
               disabled:opacity-60
             `}
           >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--portal-soft)] transition-colors duration-200 group-hover:bg-white">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-[var(--portal-soft)] transition-colors duration-200 group-hover:bg-white">
               {isLoggingOut ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#E11D48] border-t-transparent" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#E11D48] border-t-transparent" />
               ) : (
-                <FiLogOut className="text-[18px] text-[#E11D48]" />
+                <FiLogOut className="text-[15px] text-[#E11D48]" />
               )}
             </span>
 
             {showLabels && (
-              <span className="truncate text-[13px] font-semibold tracking-wide">
+              <span className="truncate text-[12.5px] font-semibold tracking-wide">
                 {isLoggingOut ? "Logging out..." : "Logout"}
               </span>
             )}
@@ -774,8 +768,6 @@ const SidebarContent = ({
 // =====================================================
 
 const MainLayout = () => {
-  // Single source of truth:
-  // menuItems aur loading dono same permissions hook se aate hain.
   const {
     menuItems,
     loading: isSidebarLoading,
@@ -823,7 +815,6 @@ const MainLayout = () => {
     const portal = String(portalName || "").toLowerCase();
     const path = String(currentPathname || "").toLowerCase();
 
-    // Specific API roles must win over the generic Admin Portal name/path.
     if (roleNames.includes("warehouse") || portal.includes("warehouse") || path.includes("indiekonnect-warehouse") || (warehouseName && !portalName)) return "warehouse";
     if (roleNames.includes("finance") || portal.includes("finance") || path.includes("indiekonnect-finance")) return "finance";
     if (roleNames.includes("sales") || portal.includes("sales") || path.includes("indiekonnect-sales")) return "sales";
@@ -1169,8 +1160,8 @@ const MainLayout = () => {
               flex
               w-full
               items-center
-              gap-2.5
-              rounded-lg
+              gap-2
+              rounded-md
               px-2
               py-1.5
               transition-colors
@@ -1183,7 +1174,7 @@ const MainLayout = () => {
                   ? "bg-[var(--portal-pale)] text-[var(--portal-primary)]"
                   : "text-[#4A5778] hover:bg-[var(--portal-pale)]/70 hover:text-[var(--portal-primary)]"
               }
-              ${depth > 0 ? "ml-3" : ""}
+              ${depth > 0 ? "ml-2.5" : ""}
               ${
                 !shouldShowLabels && depth === 0
                   ? "justify-center px-0"
@@ -1194,12 +1185,12 @@ const MainLayout = () => {
             <span
               className={`
                 flex
-                h-8
-                w-8
+                h-7
+                w-7
                 flex-shrink-0
                 items-center
                 justify-center
-                rounded-lg
+                rounded-md
                 transition-colors
                 duration-200
                 ${
@@ -1209,21 +1200,21 @@ const MainLayout = () => {
                 }
               `}
             >
-              <span className="material-symbols-outlined text-[18px] text-[var(--portal-primary)]">
+              <span className="material-symbols-outlined text-[16px] text-[var(--portal-primary)]">
                 {item.icon}
               </span>
             </span>
 
             {shouldShowLabels && (
               <>
-                <span className="flex-1 text-left text-[13px] font-semibold tracking-wide">
+                <span className="flex-1 text-left text-[12.5px] font-semibold tracking-wide">
                   {item.label}
                 </span>
 
                 <span
                   className={`
                     material-symbols-outlined
-                    text-base
+                    text-[14px]
                     text-[var(--portal-primary)]/60
                     transition-transform
                     duration-300
@@ -1248,12 +1239,12 @@ const MainLayout = () => {
                 motion-reduce:transition-none
                 ${
                   isExpanded
-                    ? "mt-1 max-h-[800px] opacity-100"
+                    ? "mt-0.5 max-h-[800px] opacity-100"
                     : "max-h-0 opacity-0"
                 }
               `}
             >
-              <div className="ml-[22px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-3">
+              <div className="ml-[18px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-2.5">
                 {item.children.map((child: any) =>
                   renderNavItem(
                     child,
@@ -1289,8 +1280,8 @@ const MainLayout = () => {
           mb-0.5
           flex
           items-center
-          gap-2.5
-          rounded-lg
+          gap-2
+          rounded-md
           transition-colors
           duration-200
           focus-visible:outline-none
@@ -1299,7 +1290,7 @@ const MainLayout = () => {
           ${depth === 0 ? "px-2 py-1.5" : "px-2.5 py-1.5"}
           ${
             isActive
-              ? "bg-[var(--portal-primary)] font-semibold text-white"
+              ? "bg-[var(--portal-primary)] font-semibold text-white shadow-sm"
               : "text-[#4A5778] hover:bg-[var(--portal-pale)]/70 hover:text-[var(--portal-primary)]"
           }
           ${
@@ -1331,12 +1322,12 @@ const MainLayout = () => {
               <span
                 className={`
                   flex
-                  h-8
-                  w-8
+                  h-7
+                  w-7
                   flex-shrink-0
                   items-center
                   justify-center
-                  rounded-lg
+                  rounded-md
                   transition-colors
                   duration-200
                   ${
@@ -1349,7 +1340,7 @@ const MainLayout = () => {
                 <span
                   className={`
                     material-symbols-outlined
-                    text-[18px]
+                    text-[16px]
                     ${
                       isActive
                         ? "text-white"
@@ -1366,7 +1357,7 @@ const MainLayout = () => {
               <span
                 className={`
                   truncate
-                  text-[13px]
+                  text-[12.5px]
                   tracking-wide
                   ${isActive ? "text-white" : ""}
                 `}
@@ -1397,12 +1388,12 @@ const MainLayout = () => {
               index === 0
                 ? ""
                 : showLabels
-                  ? "mt-3"
+                  ? "mt-2.5"
                   : "mt-2"
             }
           >
             {showLabels ? (
-              <h2 className="mb-1 flex items-center gap-2 px-2.5 text-[11px] font-semibold tracking-wide text-[#8C97B2]">
+              <h2 className="mb-1 flex items-center gap-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-[#8C97B2]">
                 <span>{group.label}</span>
                 <span className="h-px flex-1 bg-[var(--portal-primary)]/10" />
               </h2>
@@ -1454,15 +1445,15 @@ const MainLayout = () => {
           border-r
           border-[var(--portal-primary)]/10
           bg-white
-          px-4
-          pt-6
-          pb-5
+          px-3
+          pt-5
+          pb-4
           transition-all
           duration-300
           ease-in-out
           motion-reduce:transition-none
           md:flex
-          ${isSidebarOpen ? "w-[280px]" : "w-[84px]"}
+          ${isSidebarOpen ? "w-[260px]" : "w-[76px]"}
         `}
       >
         <SidebarContent
@@ -1513,16 +1504,16 @@ const MainLayout = () => {
           z-[99999]
           flex
           h-screen
-          w-[280px]
+          w-[270px]
           flex-col
           overflow-hidden
           overscroll-contain
           border-r
           border-[var(--portal-primary)]/10
           bg-white
-          px-4
-          pt-6
-          pb-5
+          px-3
+          pt-5
+          pb-4
           transition-transform
           duration-300
           ease-in-out
@@ -1538,10 +1529,10 @@ const MainLayout = () => {
         <button
           type="button"
           onClick={toggleMobileSidebar}
-          className="absolute right-3 top-3 z-10 rounded-full p-2 text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-primary)]/40"
+          className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-primary)]/40"
           aria-label="Close sidebar"
         >
-          <FiX className="text-[22px]" />
+          <FiX className="text-[20px]" />
         </button>
 
         <SidebarContent
@@ -1572,8 +1563,8 @@ const MainLayout = () => {
           motion-reduce:transition-none
           ${
             isSidebarOpen
-              ? "md:ml-[280px] md:w-[calc(100%-280px)]"
-              : "md:ml-[84px] md:w-[calc(100%-84px)]"
+              ? "md:ml-[260px] md:w-[calc(100%-260px)]"
+              : "md:ml-[76px] md:w-[calc(100%-76px)]"
           }
         `}
       >
@@ -1584,7 +1575,7 @@ const MainLayout = () => {
           onToggleMobileSidebar={toggleMobileSidebar}
         />
 
-        <main className="flex-1 pt-[72px] bg-white">
+        <main className="flex-1 pt-[62px] bg-white">
           <div
             className="mx-auto max-w-full"
             key={`${location.pathname}${location.search}`}
@@ -1607,48 +1598,48 @@ const MainLayout = () => {
             onClick={closeLogoutModal}
           />
 
-          <div className="relative w-full max-w-[400px] overflow-hidden rounded-2xl border border-[var(--portal-primary)]/10 bg-white shadow-[0_20px_60px_rgba(45,111,232,0.18)]">
+          <div className="relative w-full max-w-[380px] overflow-hidden rounded-2xl border border-[var(--portal-primary)]/10 bg-white shadow-[0_20px_60px_rgba(45,111,232,0.18)]">
             <div className="h-1 w-full bg-gradient-to-r from-[var(--portal-primary)] via-[var(--portal-light)] to-[var(--portal-mid)]" />
 
             <button
               type="button"
               onClick={closeLogoutModal}
               disabled={isLoggingOut}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full text-[#4A5778] transition-colors hover:bg-[var(--portal-pale)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Close"
             >
-              <FiX className="text-[18px]" />
+              <FiX className="text-[16px]" />
             </button>
 
-            <div className="px-6 pb-6 pt-7">
-              <div className="relative mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--portal-pale)]">
-                <FiLogOut className="text-[25px] text-[var(--portal-primary)]" />
+            <div className="px-6 pb-5 pt-6">
+              <div className="relative mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--portal-pale)]">
+                <FiLogOut className="text-[22px] text-[var(--portal-primary)]" />
               </div>
 
               <h2
                 id="logout-title"
-                className="text-center text-xl font-bold text-[#0F1B3D]"
+                className="text-center text-lg font-bold text-[#0F1B3D]"
               >
                 Log out?
               </h2>
 
-              <p className="mt-2 px-2 text-center text-sm leading-6 text-[#4A5778]">
+              <p className="mt-2 px-2 text-center text-[13px] leading-5 text-[#4A5778]">
                 You&apos;re about to log out of the{" "}
                 <span className="font-bold text-[var(--portal-primary)]">
                   {sidebarPortalLabel}
                 </span>.
               </p>
 
-              <p className="mt-1 text-center text-xs text-[#8C97B2]">
+              <p className="mt-1 text-center text-[11px] text-[#8C97B2]">
                 You&apos;ll need to log in again to continue.
               </p>
 
-              <div className="mt-7 flex items-center gap-3">
+              <div className="mt-6 flex items-center gap-2.5">
                 <button
                   type="button"
                   onClick={closeLogoutModal}
                   disabled={isLoggingOut}
-                  className="flex-1 rounded-xl border border-[var(--portal-primary)]/15 bg-white px-4 py-3 text-sm font-bold text-[#4A5778] transition-colors duration-200 hover:bg-[var(--portal-soft)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex-1 rounded-lg border border-[var(--portal-primary)]/15 bg-white px-4 py-2.5 text-[13px] font-bold text-[#4A5778] transition-colors duration-200 hover:bg-[var(--portal-soft)] hover:text-[var(--portal-primary)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -1657,16 +1648,16 @@ const MainLayout = () => {
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--portal-primary)] px-4 py-3 text-sm font-bold text-white transition-colors duration-200 hover:bg-[var(--portal-dark)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[var(--portal-primary)] px-4 py-2.5 text-[13px] font-bold text-white transition-colors duration-200 hover:bg-[var(--portal-dark)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isLoggingOut ? (
                     <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
                       Logging out...
                     </>
                   ) : (
                     <>
-                      <FiLogOut className="text-[17px]" />
+                      <FiLogOut className="text-[15px]" />
                       Log out
                     </>
                   )}

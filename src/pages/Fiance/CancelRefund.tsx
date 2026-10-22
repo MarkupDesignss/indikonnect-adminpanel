@@ -2408,7 +2408,7 @@ const CancelRefund: React.FC = () => {
               <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
-                Order Management
+                Cancel and refund 
               </span>
             </div>
 

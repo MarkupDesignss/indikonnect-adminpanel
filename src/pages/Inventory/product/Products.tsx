@@ -627,7 +627,7 @@ const Products: React.FC = () => {
     <motion.div className="min-h-screen bg-white p-3 font-poppins sm:p-4 lg:p-5" variants={containerVariants} initial="hidden" animate="visible">
       <motion.div variants={itemVariants} className="mb-4 flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
         <div>
-          <div className="mb-1.5 flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" /><span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" /><span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" /><span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">Catalog Management</span></div>
+          <div className="mb-1.5 flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" /><span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" /><span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" /><span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">Products Management</span></div>
           <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">Products</h1>
           <p className="mt-0.5 max-w-2xl text-xs leading-5 text-slate-600 sm:text-sm">Manage your products, pricing, inventory, and product information from one place.</p>
         </div>

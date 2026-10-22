@@ -1163,8 +1163,10 @@ const BrandsManagement: React.FC = () => {
           className="mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-center"
         >
           <div>
-            <div className="mb-1.5 flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+            <div className="mb-1 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2D6FE8]">
                 Brand Management

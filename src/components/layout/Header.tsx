@@ -121,15 +121,9 @@ const Header = ({
 
   // ===================================================
   // ✅ DYNAMIC ROLE LABEL
-  // Priority:
-  // 1. API roles me match karo → "Warehouse Manager"
-  // 2. primaryRole ko format karo → "Warehouse Manager"
-  // 3. Portal name → "Warehouse Portal"
-  // 4. Fallback → "Administrator"
   // ===================================================
 
   const roleLabel = useMemo(() => {
-    // API roles me match karo
     if (primaryRole && adminRoles.length > 0) {
       const matched = adminRoles.find(
         (r) => r.slug === primaryRole,
@@ -140,12 +134,10 @@ const Header = ({
       }
     }
 
-    // primaryRole ko format karo
     if (primaryRole) {
       return formatRoleLabel(primaryRole);
     }
 
-    // Fallback: portal name
     if (portalName) {
       return portalName;
     }
@@ -570,7 +562,7 @@ const Header = ({
         right-0
         z-[9999]
         flex
-        h-[72px]
+        h-[64px]
         w-full
         items-center
         justify-between
@@ -578,17 +570,17 @@ const Header = ({
         border-black/[0.06]
         bg-white/95
         px-3
-        shadow-[0_4px_20px_rgba(0,0,0,0.035)]
+        shadow-[0_2px_12px_rgba(0,0,0,0.04)]
         backdrop-blur-xl
         transition-all
         duration-300
         sm:px-4
-        md:px-6
+        md:px-5
 
         ${
           isSidebarOpen
-            ? "md:left-[280px] md:w-[calc(100%-280px)]"
-            : "md:left-[90px] md:w-[calc(100%-90px)]"
+            ? "md:left-[260px] md:w-[calc(100%-260px)]"
+            : "md:left-[76px] md:w-[calc(100%-76px)]"
         }
       `}
     >
@@ -604,11 +596,11 @@ const Header = ({
           onClick={onToggleSidebar}
           className="
             hidden
-            h-10
-            w-10
+            h-9
+            w-9
             items-center
             justify-center
-            rounded-xl
+            rounded-lg
             text-gray-500
             transition-all
             duration-200
@@ -623,9 +615,9 @@ const Header = ({
           }
         >
           {isSidebarOpen ? (
-            <FiX size={23} />
+            <FiX size={20} />
           ) : (
-            <FiMenu size={23} />
+            <FiMenu size={20} />
           )}
         </button>
 
@@ -636,11 +628,11 @@ const Header = ({
           onClick={onToggleMobileSidebar}
           className="
             flex
-            h-10
-            w-10
+            h-9
+            w-9
             items-center
             justify-center
-            rounded-xl
+            rounded-lg
             text-gray-500
             transition-all
             hover:bg-gray-100
@@ -654,9 +646,9 @@ const Header = ({
           }
         >
           {isMobileSidebarOpen ? (
-            <FiX size={23} />
+            <FiX size={20} />
           ) : (
-            <FiMenu size={23} />
+            <FiMenu size={20} />
           )}
         </button>
       </div>
@@ -671,10 +663,10 @@ const Header = ({
           relative
           mx-2
           min-w-0
-          max-w-[680px]
+          max-w-[620px]
           flex-1
-          sm:mx-4
-          md:mx-8
+          sm:mx-3
+          md:mx-6
         "
       >
         <div className="group relative">
@@ -683,7 +675,7 @@ const Header = ({
           <div
             className="
               absolute
-              left-4
+              left-3.5
               top-1/2
               z-10
               -translate-y-1/2
@@ -692,7 +684,7 @@ const Header = ({
               group-focus-within:text-primary
             "
           >
-            <FiSearch size={18} />
+            <FiSearch size={16} />
           </div>
 
           {/* INPUT */}
@@ -711,15 +703,15 @@ const Header = ({
             placeholder="Search products, users, admins..."
             autoComplete="off"
             className="
-              h-[44px]
+              h-[40px]
               w-full
-              rounded-2xl
+              rounded-xl
               border
               border-gray-200
               bg-gray-50/80
-              pl-11
-              pr-20
-              text-sm
+              pl-10
+              pr-16
+              text-[13px]
               text-gray-800
               outline-none
               transition-all
@@ -739,26 +731,26 @@ const Header = ({
             <div
               className="
                 absolute
-                right-3
+                right-2.5
                 top-1/2
                 hidden
                 -translate-y-1/2
                 items-center
                 gap-1
-                rounded-lg
+                rounded-md
                 border
                 border-gray-200
                 bg-white
-                px-2
-                py-1
-                text-[10px]
+                px-1.5
+                py-0.5
+                text-[9px]
                 font-medium
                 text-gray-400
                 shadow-sm
                 sm:flex
               "
             >
-              <FiCommand size={10} />
+              <FiCommand size={9} />
               <span>K</span>
             </div>
           )}
@@ -769,13 +761,13 @@ const Header = ({
             <FiLoader
               className="
                 absolute
-                right-4
+                right-3.5
                 top-1/2
                 -translate-y-1/2
                 animate-spin
                 text-primary
               "
-              size={18}
+              size={16}
             />
           )}
 
@@ -787,15 +779,15 @@ const Header = ({
               onClick={clearSearch}
               className="
                 absolute
-                right-3
+                right-2.5
                 top-1/2
                 flex
-                h-7
-                w-7
+                h-6
+                w-6
                 -translate-y-1/2
                 items-center
                 justify-center
-                rounded-lg
+                rounded-md
                 text-gray-400
                 transition
                 hover:bg-gray-100
@@ -803,7 +795,7 @@ const Header = ({
               "
               aria-label="Clear search"
             >
-              <IoCloseOutline size={18} />
+              <IoCloseOutline size={16} />
             </button>
           )}
         </div>
@@ -818,45 +810,45 @@ const Header = ({
               absolute
               left-0
               right-0
-              top-[52px]
+              top-[48px]
               z-[10000]
               overflow-hidden
-              rounded-2xl
+              rounded-xl
               border
               border-gray-200
               bg-white
-              shadow-[0_20px_55px_rgba(0,0,0,0.12)]
+              shadow-[0_16px_45px_rgba(0,0,0,0.12)]
             "
           >
             {/* LOADING */}
 
             {isSearchLoading && !hasResults && (
-              <div className="px-5 py-8 text-center">
+              <div className="px-5 py-7 text-center">
                 <div
                   className="
                     mx-auto
-                    mb-3
+                    mb-2.5
                     flex
-                    h-11
-                    w-11
+                    h-10
+                    w-10
                     items-center
                     justify-center
-                    rounded-xl
+                    rounded-lg
                     bg-primary/10
                     text-primary
                   "
                 >
                   <FiLoader
-                    size={20}
+                    size={18}
                     className="animate-spin"
                   />
                 </div>
 
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-[13px] font-semibold text-gray-800">
                   Searching...
                 </p>
 
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-0.5 text-[11px] text-gray-400">
                   Looking across products, users and admins
                 </p>
               </div>
@@ -867,29 +859,29 @@ const Header = ({
             {!isSearchLoading &&
               search.trim() &&
               !hasResults && (
-                <div className="px-5 py-9 text-center">
+                <div className="px-5 py-8 text-center">
                   <div
                     className="
                       mx-auto
-                      mb-3
+                      mb-2.5
                       flex
-                      h-12
-                      w-12
+                      h-11
+                      w-11
                       items-center
                       justify-center
-                      rounded-2xl
+                      rounded-xl
                       bg-gray-100
                       text-gray-400
                     "
                   >
-                    <FiSearch size={21} />
+                    <FiSearch size={19} />
                   </div>
 
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="text-[13px] font-semibold text-gray-800">
                     No results found
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="mt-0.5 text-[11px] text-gray-400">
                     Try a different name, email or product
                   </p>
                 </div>
@@ -915,17 +907,17 @@ const Header = ({
                     border-b
                     border-gray-100
                     bg-white/95
-                    px-4
-                    py-3
+                    px-3.5
+                    py-2.5
                     backdrop-blur
                   "
                 >
                   <div>
-                    <p className="text-sm font-bold text-gray-900">
+                    <p className="text-[12.5px] font-bold text-gray-900">
                       Search Results
                     </p>
 
-                    <p className="mt-0.5 text-[11px] text-gray-400">
+                    <p className="mt-0.5 text-[10px] text-gray-400">
                       {totalSearchItems} matching result
                       {totalSearchItems !== 1 ? "s" : ""}
                     </p>
@@ -935,11 +927,11 @@ const Header = ({
                     className="
                       max-w-[45%]
                       truncate
-                      rounded-lg
+                      rounded-md
                       bg-primary/10
-                      px-2.5
-                      py-1.5
-                      text-[10px]
+                      px-2
+                      py-1
+                      text-[9.5px]
                       font-semibold
                       text-primary
                     "
@@ -951,32 +943,30 @@ const Header = ({
                 {/* PRODUCTS */}
 
                 {searchResults.products.length > 0 && (
-                  <section className="border-b border-gray-100 py-2">
-                    <div className="flex items-center justify-between px-4 py-2">
+                  <section className="border-b border-gray-100 py-1.5">
+                    <div className="flex items-center justify-between px-3.5 py-1.5">
                       <div className="flex items-center gap-2">
                         <div
                           className="
                             flex
-                            h-7
-                            w-7
+                            h-6
+                            w-6
                             items-center
                             justify-center
-                            rounded-lg
+                            rounded-md
                             bg-blue-50
                             text-blue-600
                           "
                         >
-                          <FiPackage size={14} />
+                          <FiPackage size={12} />
                         </div>
 
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
-                            Products
-                          </p>
-                        </div>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-700">
+                          Products
+                        </p>
                       </div>
 
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
+                      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[8.5px] font-semibold text-gray-500">
                         {searchResults.products.length}
                       </span>
                     </div>
@@ -1007,9 +997,9 @@ const Header = ({
                                 flex
                                 w-full
                                 items-center
-                                gap-3
-                                px-4
-                                py-2.5
+                                gap-2.5
+                                px-3.5
+                                py-2
                                 text-left
                                 transition-all
                                 hover:bg-gray-50
@@ -1018,11 +1008,11 @@ const Header = ({
                               <div
                                 className="
                                   relative
-                                  h-11
-                                  w-11
+                                  h-9
+                                  w-9
                                   shrink-0
                                   overflow-hidden
-                                  rounded-xl
+                                  rounded-lg
                                   border
                                   border-gray-100
                                   bg-gray-50
@@ -1047,7 +1037,7 @@ const Header = ({
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                    <FiPackage size={17} />
+                                    <FiPackage size={15} />
                                   </div>
                                 )}
                               </div>
@@ -1056,7 +1046,7 @@ const Header = ({
                                 <p
                                   className="
                                     truncate
-                                    text-sm
+                                    text-[12.5px]
                                     font-semibold
                                     text-gray-800
                                     group-hover:text-primary
@@ -1066,7 +1056,7 @@ const Header = ({
                                 </p>
 
                                 {product.slug && (
-                                  <p className="mt-0.5 truncate text-[10px] text-gray-400">
+                                  <p className="mt-0.5 truncate text-[9.5px] text-gray-400">
                                     {product.slug}
                                   </p>
                                 )}
@@ -1075,19 +1065,19 @@ const Header = ({
                               <div
                                 className="
                                   flex
-                                  h-7
-                                  w-7
+                                  h-6
+                                  w-6
                                   shrink-0
                                   items-center
                                   justify-center
-                                  rounded-lg
+                                  rounded-md
                                   text-gray-300
                                   transition-all
                                   group-hover:bg-primary/10
                                   group-hover:text-primary
                                 "
                               >
-                                <FiChevronRight size={15} />
+                                <FiChevronRight size={13} />
                               </div>
                             </button>
                           );
@@ -1100,30 +1090,30 @@ const Header = ({
                 {/* ADMINS */}
 
                 {searchResults.admins.length > 0 && (
-                  <section className="border-b border-gray-100 py-2">
-                    <div className="flex items-center justify-between px-4 py-2">
+                  <section className="border-b border-gray-100 py-1.5">
+                    <div className="flex items-center justify-between px-3.5 py-1.5">
                       <div className="flex items-center gap-2">
                         <div
                           className="
                             flex
-                            h-7
-                            w-7
+                            h-6
+                            w-6
                             items-center
                             justify-center
-                            rounded-lg
+                            rounded-md
                             bg-violet-50
                             text-violet-600
                           "
                         >
-                          <FiShield size={14} />
+                          <FiShield size={12} />
                         </div>
 
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-700">
                           Admins
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
+                      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[8.5px] font-semibold text-gray-500">
                         {searchResults.admins.length}
                       </span>
                     </div>
@@ -1161,9 +1151,9 @@ const Header = ({
                                 flex
                                 w-full
                                 items-start
-                                gap-3
-                                px-4
-                                py-3
+                                gap-2.5
+                                px-3.5
+                                py-2.5
                                 text-left
                                 transition-all
                                 hover:bg-gray-50
@@ -1171,8 +1161,8 @@ const Header = ({
                             >
                               <div
                                 className="
-                                  h-11
-                                  w-11
+                                  h-9
+                                  w-9
                                   shrink-0
                                   overflow-hidden
                                   rounded-full
@@ -1191,7 +1181,7 @@ const Header = ({
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
                                     {getInitials(
                                       searchAdmin.name,
                                     )}
@@ -1200,11 +1190,11 @@ const Header = ({
                               </div>
 
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                   <p
                                     className="
                                       truncate
-                                      text-sm
+                                      text-[12.5px]
                                       font-semibold
                                       text-gray-800
                                       group-hover:text-primary
@@ -1216,11 +1206,11 @@ const Header = ({
                                   <span
                                     className="
                                       shrink-0
-                                      rounded-md
+                                      rounded
                                       bg-violet-50
-                                      px-1.5
+                                      px-1
                                       py-0.5
-                                      text-[8px]
+                                      text-[7.5px]
                                       font-bold
                                       uppercase
                                       tracking-wide
@@ -1231,30 +1221,30 @@ const Header = ({
                                   </span>
                                 </div>
 
-                                <div className="mt-1 flex items-center gap-1.5">
+                                <div className="mt-1 flex items-center gap-1">
                                   <FiMail
-                                    size={11}
+                                    size={10}
                                     className="shrink-0 text-gray-400"
                                   />
 
-                                  <p className="truncate text-[11px] text-gray-400">
+                                  <p className="truncate text-[10px] text-gray-400">
                                     {searchAdmin.email}
                                   </p>
                                 </div>
 
                                 {roles.length > 0 && (
-                                  <div className="mt-1.5 flex flex-wrap gap-1">
+                                  <div className="mt-1 flex flex-wrap gap-1">
                                     {roles
                                       .slice(0, 3)
                                       .map((role) => (
                                         <span
                                           key={role.id}
                                           className="
-                                            rounded-md
+                                            rounded
                                             bg-gray-100
                                             px-1.5
                                             py-0.5
-                                            text-[8px]
+                                            text-[7.5px]
                                             font-medium
                                             text-gray-500
                                           "
@@ -1264,7 +1254,7 @@ const Header = ({
                                       ))}
 
                                     {roles.length > 3 && (
-                                      <span className="px-1 text-[8px] font-medium text-gray-400">
+                                      <span className="px-0.5 text-[7.5px] font-medium text-gray-400">
                                         +{roles.length - 3} more
                                       </span>
                                     )}
@@ -1272,7 +1262,7 @@ const Header = ({
                                 )}
 
                                 {permissionCount > 0 && (
-                                  <p className="mt-1 text-[9px] font-medium text-gray-400">
+                                  <p className="mt-1 text-[8.5px] font-medium text-gray-400">
                                     {permissionCount} permission
                                     {permissionCount !== 1
                                       ? "s"
@@ -1283,21 +1273,21 @@ const Header = ({
 
                               <div
                                 className="
-                                  mt-2
+                                  mt-1.5
                                   flex
-                                  h-7
-                                  w-7
+                                  h-6
+                                  w-6
                                   shrink-0
                                   items-center
                                   justify-center
-                                  rounded-lg
+                                  rounded-md
                                   text-gray-300
                                   transition-all
                                   group-hover:bg-primary/10
                                   group-hover:text-primary
                                 "
                               >
-                                <FiChevronRight size={15} />
+                                <FiChevronRight size={13} />
                               </div>
                             </button>
                           );
@@ -1310,30 +1300,30 @@ const Header = ({
                 {/* USERS */}
 
                 {searchResults.users.length > 0 && (
-                  <section className="py-2">
-                    <div className="flex items-center justify-between px-4 py-2">
+                  <section className="py-1.5">
+                    <div className="flex items-center justify-between px-3.5 py-1.5">
                       <div className="flex items-center gap-2">
                         <div
                           className="
                             flex
-                            h-7
-                            w-7
+                            h-6
+                            w-6
                             items-center
                             justify-center
-                            rounded-lg
+                            rounded-md
                             bg-emerald-50
                             text-emerald-600
                           "
                         >
-                          <FiUser size={14} />
+                          <FiUser size={12} />
                         </div>
 
-                        <p className="text-[11px] font-bold uppercase tracking-wide text-gray-700">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-700">
                           Users
                         </p>
                       </div>
 
-                      <span className="rounded-full bg-gray-100 px-2 py-1 text-[9px] font-semibold text-gray-500">
+                      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[8.5px] font-semibold text-gray-500">
                         {searchResults.users.length}
                       </span>
                     </div>
@@ -1359,9 +1349,9 @@ const Header = ({
                                 flex
                                 w-full
                                 items-start
-                                gap-3
-                                px-4
-                                py-3
+                                gap-2.5
+                                px-3.5
+                                py-2.5
                                 text-left
                                 transition-all
                                 hover:bg-gray-50
@@ -1369,8 +1359,8 @@ const Header = ({
                             >
                               <div
                                 className="
-                                  h-11
-                                  w-11
+                                  h-9
+                                  w-9
                                   shrink-0
                                   overflow-hidden
                                   rounded-full
@@ -1386,7 +1376,7 @@ const Header = ({
                                     className="h-full w-full object-cover"
                                   />
                                 ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-white">
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
                                     {getInitials(user.name)}
                                   </div>
                                 )}
@@ -1396,7 +1386,7 @@ const Header = ({
                                 <p
                                   className="
                                     truncate
-                                    text-sm
+                                    text-[12.5px]
                                     font-semibold
                                     text-gray-800
                                     group-hover:text-primary
@@ -1405,13 +1395,13 @@ const Header = ({
                                   {user.name}
                                 </p>
 
-                                <div className="mt-1 flex items-center gap-1.5">
+                                <div className="mt-1 flex items-center gap-1">
                                   <FiMail
-                                    size={11}
+                                    size={10}
                                     className="shrink-0 text-gray-400"
                                   />
 
-                                  <p className="truncate text-[11px] text-gray-400">
+                                  <p className="truncate text-[10px] text-gray-400">
                                     {user.email}
                                   </p>
                                 </div>
@@ -1421,19 +1411,19 @@ const Header = ({
                                 className="
                                   mt-1
                                   flex
-                                  h-7
-                                  w-7
+                                  h-6
+                                  w-6
                                   shrink-0
                                   items-center
                                   justify-center
-                                  rounded-lg
+                                  rounded-md
                                   text-gray-300
                                   transition-all
                                   group-hover:bg-primary/10
                                   group-hover:text-primary
                                 "
                               >
-                                <FiChevronRight size={15} />
+                                <FiChevronRight size={13} />
                               </div>
                             </button>
                           );
@@ -1450,11 +1440,11 @@ const Header = ({
                     border-t
                     border-gray-100
                     bg-gray-50/70
-                    px-4
-                    py-2.5
+                    px-3.5
+                    py-2
                   "
                 >
-                  <p className="text-center text-[9px] text-gray-400">
+                  <p className="text-center text-[8.5px] text-gray-400">
                     Click any result to open its details
                   </p>
                 </div>
@@ -1468,7 +1458,7 @@ const Header = ({
           RIGHT
       =================================================== */}
 
-      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
         {/* NOTIFICATION */}
 
         <Link to="/notifications">
@@ -1477,11 +1467,11 @@ const Header = ({
             className="
               relative
               flex
-              h-10
-              w-10
+              h-9
+              w-9
               items-center
               justify-center
-              rounded-xl
+              rounded-lg
               text-gray-500
               transition-all
               hover:bg-gray-100
@@ -1489,15 +1479,15 @@ const Header = ({
             "
             aria-label="Notifications"
           >
-            <IoNotificationsOutline size={21} />
+            <IoNotificationsOutline size={19} />
 
             <span
               className="
                 absolute
-                right-[9px]
-                top-[8px]
-                h-2
-                w-2
+                right-[8px]
+                top-[7px]
+                h-1.5
+                w-1.5
                 rounded-full
                 bg-red-500
                 ring-2
@@ -1517,11 +1507,11 @@ const Header = ({
             type="button"
             className="
               flex
-              h-10
-              w-10
+              h-9
+              w-9
               items-center
               justify-center
-              rounded-xl
+              rounded-lg
               text-gray-500
               transition-all
               hover:bg-gray-100
@@ -1529,7 +1519,7 @@ const Header = ({
             "
             aria-label="Settings"
           >
-            <IoSettingsOutline size={20} />
+            <IoSettingsOutline size={18} />
           </button>
         </Link>
 
@@ -1539,7 +1529,7 @@ const Header = ({
           className="
             mx-1
             hidden
-            h-7
+            h-6
             w-px
             bg-gray-200
             md:block
@@ -1558,9 +1548,9 @@ const Header = ({
               group
               flex
               items-center
-              gap-2
-              rounded-xl
-              px-1.5
+              gap-1.5
+              rounded-lg
+              px-1
               py-1
               transition-all
               hover:bg-gray-100
@@ -1573,8 +1563,8 @@ const Header = ({
             <div
               className="
                 relative
-                h-9
-                w-9
+                h-8
+                w-8
                 shrink-0
                 overflow-hidden
                 rounded-full
@@ -1590,7 +1580,7 @@ const Header = ({
               {isLoading ? (
                 <div className="flex h-full w-full items-center justify-center">
                   <FiLoader
-                    size={15}
+                    size={13}
                     className="animate-spin text-white"
                   />
                 </div>
@@ -1601,7 +1591,7 @@ const Header = ({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-white">
+                <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white">
                   {getInitials(admin?.name)}
                 </div>
               )}
@@ -1613,16 +1603,16 @@ const Header = ({
               className="
                 hidden
                 min-w-0
-                max-w-[150px]
+                max-w-[140px]
                 text-left
                 sm:block
-                md:max-w-[180px]
+                md:max-w-[170px]
               "
             >
               <p
                 className="
                   truncate
-                  text-[12px]
+                  text-[11.5px]
                   font-bold
                   leading-4
                   text-gray-800
@@ -1632,8 +1622,6 @@ const Header = ({
                   ? "Loading..."
                   : admin?.name || "Administrator"}
               </p>
-
-              {/* ✅ DYNAMIC ROLE LABEL */}
 
               <p
                 className="
@@ -1655,7 +1643,7 @@ const Header = ({
             <HiOutlineChevronDown
               className={`
                 shrink-0
-                text-[16px]
+                text-[14px]
                 text-gray-400
                 transition-transform
                 duration-200
@@ -1673,16 +1661,16 @@ const Header = ({
               className="
                 absolute
                 right-0
-                top-[52px]
+                top-[46px]
                 z-[10001]
-                w-[320px]
+                w-[300px]
                 max-w-[calc(100vw-20px)]
                 overflow-hidden
-                rounded-2xl
+                rounded-xl
                 border
                 border-gray-200
                 bg-white
-                shadow-[0_20px_60px_rgba(0,0,0,0.14)]
+                shadow-[0_16px_50px_rgba(0,0,0,0.14)]
               "
             >
               {/* HEADER */}
@@ -1693,18 +1681,18 @@ const Header = ({
                   from-primary/[0.08]
                   via-white
                   to-gray-50
-                  px-4
-                  py-4
+                  px-3.5
+                  py-3.5
                 "
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                   <div
                     className="
-                      h-12
-                      w-12
+                      h-11
+                      w-11
                       shrink-0
                       overflow-hidden
-                      rounded-2xl
+                      rounded-xl
                       bg-gradient-to-br
                       from-primary
                       to-primary/70
@@ -1719,41 +1707,41 @@ const Header = ({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
+                      <div className="flex h-full w-full items-center justify-center text-[13px] font-bold text-white">
                         {getInitials(admin?.name)}
                       </div>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-gray-900">
+                    <p className="truncate text-[13px] font-bold text-gray-900">
                       {admin?.name || "Administrator"}
                     </p>
 
-                    <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                    <p className="mt-0.5 truncate text-[10px] text-gray-400">
                       {admin?.email || "admin@example.com"}
                     </p>
 
                     {/* ✅ DYNAMIC ROLE + PORTAL */}
 
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-1 flex flex-wrap items-center gap-1">
                       <span
                         className="
                           inline-flex
                           items-center
                           gap-1
-                          rounded-md
+                          rounded
                           bg-primary/10
-                          px-2
+                          px-1.5
                           py-0.5
-                          text-[9px]
+                          text-[8.5px]
                           font-bold
                           uppercase
                           tracking-wide
                           text-primary
                         "
                       >
-                        <FiShield size={9} />
+                        <FiShield size={8} />
                         {roleLabel}
                       </span>
 
@@ -1765,11 +1753,11 @@ const Header = ({
                               items-center
                               gap-1
                               truncate
-                              rounded-md
+                              rounded
                               bg-emerald-50
-                              px-2
+                              px-1.5
                               py-0.5
-                              text-[9px]
+                              text-[8.5px]
                               font-semibold
                               text-emerald-700
                             "
@@ -1793,62 +1781,62 @@ const Header = ({
 
               {Array.isArray((admin as any)?.roles) &&
                 (admin as any).roles.length > 0 && (
-                  <div className="border-t border-gray-100 px-4 py-3">
+                  <div className="border-t border-gray-100 px-3.5 py-2.5">
                     <div className="mb-2 flex items-center gap-2">
                       <div
                         className="
                           flex
-                          h-7
-                          w-7
+                          h-6
+                          w-6
                           items-center
                           justify-center
-                          rounded-lg
+                          rounded-md
                           bg-violet-50
                           text-violet-600
                         "
                       >
-                        <FiShield size={13} />
+                        <FiShield size={11} />
                       </div>
 
                       <div>
-                        <p className="text-[11px] font-bold text-gray-800">
+                        <p className="text-[10px] font-bold text-gray-800">
                           Roles & Permissions
                         </p>
 
-                        <p className="text-[9px] text-gray-400">
+                        <p className="text-[8.5px] text-gray-400">
                           Access assigned to this admin
                         </p>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {(admin as any).roles.map(
                         (role: any, index: number) => (
                           <div
                             key={role.id ?? index}
                             className="
-                              rounded-xl
+                              rounded-lg
                               border
                               border-gray-100
                               bg-gray-50
-                              px-3
-                              py-2.5
+                              px-2.5
+                              py-2
                             "
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <p className="truncate text-xs font-semibold text-gray-800">
+                              <p className="truncate text-[11px] font-semibold text-gray-800">
                                 {role.name}
                               </p>
 
                               {role.slug && (
-                                <span className="shrink-0 text-[8px] text-gray-400">
+                                <span className="shrink-0 text-[7.5px] text-gray-400">
                                   {role.slug}
                                 </span>
                               )}
                             </div>
 
                             {role.description && (
-                              <p className="mt-1 line-clamp-2 text-[9px] leading-4 text-gray-400">
+                              <p className="mt-0.5 line-clamp-2 text-[8.5px] leading-3.5 text-gray-400">
                                 {role.description}
                               </p>
                             )}
@@ -1858,7 +1846,7 @@ const Header = ({
                             ) &&
                               role.permissions.length >
                                 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1">
+                                <div className="mt-1.5 flex flex-wrap gap-1">
                                   {role.permissions
                                     .slice(0, 5)
                                     .map(
@@ -1868,11 +1856,11 @@ const Header = ({
                                             permission.id
                                           }
                                           className="
-                                            rounded-md
+                                            rounded
                                             bg-white
                                             px-1.5
-                                            py-1
-                                            text-[8px]
+                                            py-0.5
+                                            text-[7.5px]
                                             font-medium
                                             text-gray-500
                                             ring-1
@@ -1888,11 +1876,11 @@ const Header = ({
                                     5 && (
                                     <span
                                       className="
-                                        rounded-md
+                                        rounded
                                         bg-primary/10
                                         px-1.5
-                                        py-1
-                                        text-[8px]
+                                        py-0.5
+                                        text-[7.5px]
                                         font-semibold
                                         text-primary
                                       "
@@ -1925,12 +1913,12 @@ const Header = ({
                       flex
                       w-full
                       items-center
-                      gap-3
-                      rounded-xl
-                      px-3
-                      py-2.5
+                      gap-2.5
+                      rounded-lg
+                      px-2.5
+                      py-2
                       text-left
-                      text-sm
+                      text-[12.5px]
                       text-gray-700
                       transition
                       hover:bg-gray-50
@@ -1940,16 +1928,16 @@ const Header = ({
                     <span
                       className="
                         flex
-                        h-8
-                        w-8
+                        h-7
+                        w-7
                         items-center
                         justify-center
-                        rounded-lg
+                        rounded-md
                         bg-gray-100
                         text-gray-500
                       "
                     >
-                      <IoPersonOutline size={16} />
+                      <IoPersonOutline size={14} />
                     </span>
 
                     <span className="flex-1">
@@ -1957,7 +1945,7 @@ const Header = ({
                     </span>
 
                     <FiChevronRight
-                      size={15}
+                      size={13}
                       className="text-gray-300"
                     />
                   </button>
@@ -1973,12 +1961,12 @@ const Header = ({
                       flex
                       w-full
                       items-center
-                      gap-3
-                      rounded-xl
-                      px-3
-                      py-2.5
+                      gap-2.5
+                      rounded-lg
+                      px-2.5
+                      py-2
                       text-left
-                      text-sm
+                      text-[12.5px]
                       text-gray-700
                       transition
                       hover:bg-gray-50
@@ -1988,16 +1976,16 @@ const Header = ({
                     <span
                       className="
                         flex
-                        h-8
-                        w-8
+                        h-7
+                        w-7
                         items-center
                         justify-center
-                        rounded-lg
+                        rounded-md
                         bg-gray-100
                         text-gray-500
                       "
                     >
-                      <IoSettingsOutline size={16} />
+                      <IoSettingsOutline size={14} />
                     </span>
 
                     <span className="flex-1">
@@ -2005,7 +1993,7 @@ const Header = ({
                     </span>
 
                     <FiChevronRight
-                      size={15}
+                      size={13}
                       className="text-gray-300"
                     />
                   </button>
@@ -2023,12 +2011,12 @@ const Header = ({
                     flex
                     w-full
                     items-center
-                    gap-3
-                    rounded-xl
-                    px-3
-                    py-2.5
+                    gap-2.5
+                    rounded-lg
+                    px-2.5
+                    py-2
                     text-left
-                    text-sm
+                    text-[12.5px]
                     text-red-500
                     transition
                     hover:bg-red-50
@@ -2037,15 +2025,15 @@ const Header = ({
                   <span
                     className="
                       flex
-                      h-8
-                      w-8
+                      h-7
+                      w-7
                       items-center
                       justify-center
-                      rounded-lg
+                      rounded-md
                       bg-red-50
                     "
                   >
-                    <IoLogOutOutline size={16} />
+                    <IoLogOutOutline size={14} />
                   </span>
 
                   <span className="flex-1">Logout</span>
