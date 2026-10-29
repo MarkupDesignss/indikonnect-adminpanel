@@ -19,12 +19,12 @@ import {
   FiPackage,
   FiRefreshCw,
   FiSearch,
-  FiSave,
   FiSettings,
   FiShield,
   FiSliders,
   FiTool,
   FiX,
+  FiEdit3,
 } from "react-icons/fi";
 
 import settingsApi, {
@@ -287,8 +287,9 @@ interface SettingRowProps {
   value: string;
   saving: boolean;
   canSave: boolean;
+  isDirty: boolean;
   onChange: (key: string, value: string) => void;
-  onSave: (setting: Setting) => void;
+  onUpdate: (setting: Setting) => void;
 }
 
 // =====================================================
@@ -299,14 +300,32 @@ const SettingRow: React.FC<SettingRowProps> = ({
   value,
   saving,
   canSave,
+  isDirty,
   onChange,
-  onSave,
+  onUpdate,
 }) => {
   const unit = getSettingUnit(setting);
   const label = formatKey(setting.key);
   const isBoolean = setting.data_type === "boolean";
   const booleanValue = normalizeBoolean(value);
   const readOnly = !setting.is_editable || !canSave;
+
+  // Handle input change with validation for integer types
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+
+    if (setting.data_type === "integer") {
+      // 1. Remove any character that is not a digit
+      val = val.replace(/[^0-9]/g, "");
+      
+      // 2. Ensure it does not start with multiple zeros
+      if (val.length > 1 && val.startsWith("0")) {
+        val = val.replace(/^0+/, "");
+      }
+    }
+
+    onChange(setting.key, val);
+  };
 
   return (
     <motion.div
@@ -425,23 +444,16 @@ const SettingRow: React.FC<SettingRowProps> = ({
           ) : (
             <div className="relative w-full lg:w-[245px]">
               <input
+                /* Type text to hide default number spinner arrows */
                 type={
-                  setting.data_type === "email"
-                    ? "email"
-                    : setting.data_type === "integer"
-                      ? "number"
-                      : "text"
+                  setting.data_type === "email" ? "email" : "text"
+                }
+                inputMode={
+                  setting.data_type === "integer" ? "numeric" : "text"
                 }
                 value={value}
-                onChange={(event) =>
-                  onChange(setting.key, event.target.value)
-                }
+                onChange={handleInputChange}
                 disabled={readOnly || saving}
-                step={
-                  setting.data_type === "integer"
-                    ? "1"
-                    : undefined
-                }
                 className="h-11 w-full rounded-xl border px-3.5 pr-12 text-sm font-medium outline-none transition-all placeholder:text-[#9CA3AF] focus:bg-white focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60"
                 style={
                   {
@@ -468,27 +480,31 @@ const SettingRow: React.FC<SettingRowProps> = ({
             </div>
           )}
 
+          {/* UPDATE BUTTON LOGIC */}
           {canSave && setting.is_editable ? (
-            <button
-              type="button"
-              onClick={() => onSave(setting)}
-              disabled={saving}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-[0_5px_15px_rgba(45,111,232,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(45,111,232,0.25)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
-              style={{
-                background: `linear-gradient(135deg, ${SECONDARY}, ${PRIMARY}, ${DARK_PRIMARY})`,
-              }}
-              title="Save setting"
-              aria-label={`Save ${label}`}
-            >
-              {saving ? (
-                <FiRefreshCw
-                  size={16}
-                  className="animate-spin"
-                />
-              ) : (
-                <FiSave size={16} />
-              )}
-            </button>
+            isDirty ? (
+              <button
+                type="button"
+                onClick={() => onUpdate(setting)}
+                disabled={saving}
+                className="flex h-11 px-4 items-center justify-center gap-2 rounded-xl text-white text-sm font-semibold shadow-[0_5px_15px_rgba(45,111,232,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_18px_rgba(45,111,232,0.25)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  background: `linear-gradient(135deg, ${SECONDARY}, ${PRIMARY}, ${DARK_PRIMARY})`,
+                }}
+                title="Update setting"
+              >
+                {saving ? (
+                  <FiRefreshCw size={16} className="animate-spin" />
+                ) : (
+                  <FiEdit3 size={16} />
+                )}
+                <span>Update</span>
+              </button>
+            ) : (
+              <div className="flex h-11 shrink-0 items-center justify-center px-2">
+                 {/* Blank space when not dirty to prevent layout shift */}
+              </div>
+            )
           ) : (
             <div
               className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-[10px] font-semibold"
@@ -560,30 +576,21 @@ const SettingsManagement: React.FC = () => {
   );
 
   const [settings, setSettings] = useState<Setting[]>([]);
-  const [values, setValues] = useState<Record<string, string>>(
-    {}
-  );
+  const [values, setValues] = useState<Record<string, string>>({});
+  
+  // Track original values to detect dirty state
+  const [originalValues, setOriginalValues] = useState<Record<string, string>>({});
 
-  // Regular loading is used for refresh and save-related reloads.
   const [loading, setLoading] = useState(false);
-
-  // Initial loader states.
-  const [initialDataLoading, setInitialDataLoading] =
-    useState(true);
+  const [initialDataLoading, setInitialDataLoading] = useState(true);
   const [logoLoading, setLogoLoading] = useState(true);
-  const [loaderLogoUrl, setLoaderLogoUrl] =
-    useState<string>(DEFAULT_LOGO_URL);
+  const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
 
-  const [savingKey, setSavingKey] = useState<string | null>(
-    null
-  );
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeGroup, setActiveGroup] = useState("all");
 
-  // Prevent duplicate initial fetches.
   const initialFetchStartedRef = useRef(false);
-
-  // Avoid overlapping settings requests.
   const fetchInFlightRef = useRef<Promise<void> | null>(null);
 
   // =====================================================
@@ -612,7 +619,6 @@ const SettingsManagement: React.FC = () => {
           );
         }
       } catch (error) {
-        // Keep the default logo when the logo API fails.
         if (isMounted) {
           setLoaderLogoUrl(DEFAULT_LOGO_URL);
         }
@@ -642,8 +648,6 @@ const SettingsManagement: React.FC = () => {
         return;
       }
 
-      // Wait for any existing settings request instead of
-      // starting a duplicate request.
       if (fetchInFlightRef.current) {
         await fetchInFlightRef.current;
 
@@ -669,8 +673,7 @@ const SettingsManagement: React.FC = () => {
 
             setSettings(list);
 
-            const initialValues: Record<string, string> =
-              {};
+            const initialValues: Record<string, string> = {};
 
             list.forEach((setting) => {
               initialValues[setting.key] = String(
@@ -679,6 +682,7 @@ const SettingsManagement: React.FC = () => {
             });
 
             setValues(initialValues);
+            setOriginalValues(initialValues); // Store originals for dirty check
           } else {
             toast.error(
               response.data.message ||
@@ -733,8 +737,6 @@ const SettingsManagement: React.FC = () => {
     fetchSettings,
   ]);
 
-  // Show the animated logo while permissions, logo, or
-  // the initial settings request are still loading.
   const pageLoading =
     permissionsLoading ||
     logoLoading ||
@@ -814,9 +816,9 @@ const SettingsManagement: React.FC = () => {
   };
 
   // =====================================================
-  // SAVE SETTING
+  // UPDATE SETTING (Direct API Call & Refetch)
   // =====================================================
-  const handleSave = async (setting: Setting) => {
+  const handleUpdate = async (setting: Setting) => {
     if (!canSaveSettings) {
       toast.error(
         "You do not have permission to save settings."
@@ -831,6 +833,7 @@ const SettingsManagement: React.FC = () => {
 
     const currentValue = values[setting.key] ?? "";
 
+    // Validations
     if (
       setting.data_type !== "boolean" &&
       currentValue.trim() === ""
@@ -841,14 +844,21 @@ const SettingsManagement: React.FC = () => {
       return;
     }
 
-    if (
-      setting.data_type === "integer" &&
-      !Number.isInteger(Number(currentValue))
-    ) {
-      toast.error(
-        `${formatKey(setting.key)} must be a valid integer.`
-      );
-      return;
+    if (setting.data_type === "integer") {
+      if (!Number.isInteger(Number(currentValue))) {
+        toast.error(
+          `${formatKey(setting.key)} must be a valid integer.`
+        );
+        return;
+      }
+      
+      // Ensure value is not negative
+      if (Number(currentValue) < 0) {
+        toast.error(
+          `${formatKey(setting.key)} must be 0 or greater.`
+        );
+        return;
+      }
     }
 
     if (
@@ -919,26 +929,9 @@ const SettingsManagement: React.FC = () => {
             `${formatKey(setting.key)} updated successfully.`
         );
 
-        if (response.data.data) {
-          const updatedSetting = response.data.data;
-
-          setSettings((previous) =>
-            previous.map((item) =>
-              item.key === setting.key
-                ? { ...item, ...updatedSetting }
-                : item
-            )
-          );
-
-          setValues((previous) => ({
-            ...previous,
-            [setting.key]: String(
-              updatedSetting.value ?? currentValue
-            ),
-          }));
-        } else {
-          await fetchSettings();
-        }
+        // Auto Recall GET API to fetch fresh data
+        await fetchSettings();
+        
       } else {
         toast.error(
           response.data.message ||
@@ -1329,21 +1322,23 @@ const SettingsManagement: React.FC = () => {
                           animate="visible"
                           className="space-y-3"
                         >
-                          {groupSettings.map((setting) => (
-                            <SettingRow
-                              key={setting.id}
-                              setting={setting}
-                              value={
-                                values[setting.key] ?? ""
-                              }
-                              saving={
-                                savingKey === setting.key
-                              }
-                              canSave={canSaveSettings}
-                              onChange={handleValueChange}
-                              onSave={handleSave}
-                            />
-                          ))}
+                          {groupSettings.map((setting) => {
+                            // Check if value is changed from original
+                            const isDirty = values[setting.key] !== originalValues[setting.key];
+
+                            return (
+                              <SettingRow
+                                key={setting.id}
+                                setting={setting}
+                                value={values[setting.key] ?? ""}
+                                saving={savingKey === setting.key}
+                                canSave={canSaveSettings}
+                                isDirty={isDirty}
+                                onChange={handleValueChange}
+                                onUpdate={handleUpdate}
+                              />
+                            );
+                          })}
                         </motion.div>
                       </section>
                     );

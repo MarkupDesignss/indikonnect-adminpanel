@@ -27,7 +27,7 @@ export const menuItems: MenuItem[] = [
     permission: 'order.view',
     anyOf: ['order.view', 'order.details', 'order.allow'],
   },
-  
+
   {
     path: '/inventory',
     label: 'Inventory',
@@ -40,7 +40,6 @@ export const menuItems: MenuItem[] = [
       'tax_category.view',
     ],
     children: [
-     
       {
         path: '/inventory/categories',
         label: 'Categories',
@@ -137,7 +136,13 @@ export const menuItems: MenuItem[] = [
     label: 'Finance',
     icon: 'account_balance',
     module: 'finance',
-    anyOf: ['payout.view', 'return_refund.view'],
+    anyOf: [
+      'payout.view',
+      'return_refund.view',
+      'Cancel.details',
+      'Buyback.details',
+      'Partner Data Exports.view',
+    ],
     children: [
       {
         path: '/return-refund',
@@ -174,10 +179,21 @@ export const menuItems: MenuItem[] = [
         permission: 'payout.view',
         module: 'payout',
       },
+      // ✅ FIXED: correct module + permissions
+      {
+        path: '/IgniteExports',
+        label: 'Partner Data Exports',
+        icon: 'receipt_long',
+        module: 'Partner Data Exports',
+        permission: 'partner data exports.view',
+        anyOf: [
+          'partner data exports.view',
+          'partner data exports.download',
+        ],
+      },
     ],
   },
 
-  // ✅ Sales Report — top-level
   {
     path: '/sales/report',
     label: 'Sales Report',
@@ -187,7 +203,6 @@ export const menuItems: MenuItem[] = [
     anyOf: ['sales.report'],
   },
 
-  // ✅ USER MANAGEMENT
   {
     path: '/UserManagement',
     label: 'User Management',
@@ -197,7 +212,6 @@ export const menuItems: MenuItem[] = [
     anyOf: ['user.view', 'user.create', 'user.update', 'user.delete'],
   },
 
-  // ✅ CORRECTION REQUESTS — User Management ke just niche
   {
     path: '/CorrectionRequests',
     label: 'Correction Requests',
@@ -266,7 +280,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
 
-  // ✅ FAQ moved out of CMS as a top-level item
   {
     path: '/cms/faq',
     label: 'FAQ Management',
@@ -344,7 +357,6 @@ export const menuItems: MenuItem[] = [
     module: 'contact_us',
   },
 
-  // Account section items
   {
     path: '/UpdateProfile',
     label: 'Update Profile',

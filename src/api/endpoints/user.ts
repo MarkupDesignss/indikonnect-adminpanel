@@ -109,6 +109,36 @@ export interface RegisteredUser {
 
   role: any | null;
   business_profile: BusinessProfile | null;
+
+  // ✅ NEW: Distributor related optional fields (as seen in response)
+  distributor_status?: string | null;
+  distributor_profile?: any | null;
+
+  // ✅ NEW: payout info from response
+  ignite_payout?: {
+    ba_id?: string;
+    member_id?: number;
+    rank_no?: number;
+    membership_status?: string;
+    cash_bal?: string;
+    green_bal?: string;
+    yellow_bal?: string;
+    blue_bal?: string;
+    allow_withdraw?: boolean;
+    qualified_at?: string | null;
+    total_steps?: number;
+    cv_left?: string;
+    cv_right?: string;
+    floating_cv_left?: string;
+    floating_cv_right?: string;
+    last_payout_at?: string | null;
+    last_payout_amount?: string | null;
+    last_week_payout?: string | null;
+    ignite_error?: string | null;
+  } | null;
+
+  // ✅ NEW: withdraw hold flag if backend returns it
+  withdraw_hold?: boolean | number | null;
 }
 
 export interface RegisteredUsersResponse {
@@ -142,6 +172,36 @@ export interface DistributorStatusResponse {
     is_active?: boolean;
     status?: string;
     kyc_status?: string;
+  };
+}
+
+// ✅ NEW: Withdraw hold / release payload + response
+export interface WithdrawHoldRequest {
+  from_date: string; // YYYY-MM-DD
+  to_date: string;   // YYYY-MM-DD
+}
+
+export interface WithdrawHoldResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user_id?: number;
+    distributor_id?: string | number;
+    withdraw_hold?: boolean | number;
+    from_date?: string;
+    to_date?: string;
+    status?: string;
+  };
+}
+
+export interface WithdrawReleaseResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    user_id?: number;
+    distributor_id?: string | number;
+    withdraw_hold?: boolean | number;
+    status?: string;
   };
 }
 
@@ -223,6 +283,19 @@ export const userManagementApi = {
   // ✅ NEW: Create Distributor
   createDistributor: (data: CreateDistributorRequest) =>
     apiClient.post<CreateDistributorResponse>("/admin/users", data),
+
+  // ✅ NEW: Hold withdrawals for a date range
+  holdDistributorWithdrawals: (id: number, payload: WithdrawHoldRequest) =>
+    apiClient.post<WithdrawHoldResponse>(
+      `/admin/distributors/${id}/withdraw-hold`,
+      payload,
+    ),
+
+  // ✅ NEW: Release withdrawals
+  releaseDistributorWithdrawals: (id: number) =>
+    apiClient.post<WithdrawReleaseResponse>(
+      `/admin/distributors/${id}/withdraw-release`,
+    ),
 };
 
 export default userManagementApi;

@@ -20,6 +20,8 @@ import {
   FiAlertCircle,
   FiChevronDown,
   FiDownload,
+  FiLock,
+  FiUnlock,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -98,6 +100,7 @@ interface KycProfileLike {
   branch_name?: string | null;
 
   kyc_status?: string | null;
+  kyc_status_updated_at?: string | null;
   application_status?: string | null;
 
   location_consent?: boolean | null;
@@ -191,17 +194,11 @@ const getAccountLabel = (accountType: string) => {
 // ✅ REGISTERED DATE (ACCOUNT TYPE BASED)
 // =====================================================
 
-/**
- * Distributor  -> registration_completed_at
- * Customer     -> created_at (credit add / account creation date)
- * Fallback     -> created_at
- */
 const getRegisteredDate = (user: RegisteredUser) => {
   if (user.account_type === "distributor") {
     return user.registration_completed_at || user.created_at || null;
   }
 
-  // customer + any other type -> account creation / credit add date
   return user.created_at || user.registration_completed_at || null;
 };
 
@@ -228,6 +225,22 @@ const getKycProfile = (
   return businessProfile || distributorProfile || null;
 };
 
+const getKycStatusUpdatedAt = (
+  user: RegisteredUser,
+): string | null => {
+  const profile = getKycProfile(user);
+
+  if (profile?.kyc_status_updated_at) {
+    return profile.kyc_status_updated_at;
+  }
+
+  const userWithTopLevel = user as RegisteredUser & {
+    kyc_status_updated_at?: string | null;
+  };
+
+  return userWithTopLevel.kyc_status_updated_at ?? null;
+};
+
 const getEffectiveKycStatus = (
   user: RegisteredUser,
 ): string => {
@@ -242,6 +255,44 @@ const getEffectiveKycStatus = (
   }
 
   return "pending";
+};
+
+// =====================================================
+// ✅ WITHDRAW ALLOWED (SOURCE OF TRUTH)
+// =====================================================
+/**
+ * Withdraw "ON" (released) means allow_withdraw === true.
+ * Withdraw "OFF" (held) means allow_withdraw === false.
+ *
+ * Priority:
+ *  1. user.ignite_payout.allow_withdraw
+ *  2. user.withdraw_hold (fallback)
+ *  3. default: true (released)
+ */
+const isWithdrawAllowed = (user: RegisteredUser | null): boolean => {
+  if (!user) return true;
+
+  const payout = user.ignite_payout;
+
+  if (payout && typeof payout.allow_withdraw === "boolean") {
+    return payout.allow_withdraw;
+  }
+
+  if (
+    user.withdraw_hold === true ||
+    user.withdraw_hold === 1
+  ) {
+    return false;
+  }
+
+  if (
+    user.withdraw_hold === false ||
+    user.withdraw_hold === 0
+  ) {
+    return true;
+  }
+
+  return true;
 };
 
 // =====================================================
@@ -351,9 +402,6 @@ const getExportRows = (
   return users.map((user, index) => {
     const profile = getKycProfile(user);
     const kycStatus = getEffectiveKycStatus(user);
-
-    // ✅ Distributor -> registration_completed_at
-    // ✅ Customer    -> created_at (credit add date)
     const registeredDate = getRegisteredDate(user);
 
     return {
@@ -368,6 +416,7 @@ const getExportRows = (
       "User Status": user.is_active ? "Active" : "Inactive",
       "KYC Status": getKycDisplayLabel(kycStatus),
       "Distributor Status": user.distributor_status || "",
+      "Withdraw Allowed": isWithdrawAllowed(user) ? "Yes" : "No",
       "Distributor ID": user.distributor_id || "",
       "Sponsor ID": user.sponsor_id || "",
       "Placement Leg": user.placement_leg || "",
@@ -377,8 +426,7 @@ const getExportRows = (
       "Phone Verified At": formatDate(user.phone_verified_at),
       "Email Verified": user.email_verified_at ? "Yes" : "No",
       "Email Verified At": formatDate(user.email_verified_at),
-      "Activation Date": formatDate(user.activation_date),
-      // ✅ Registered Date (distributor -> registration_completed_at, customer -> created_at)
+      "KYC Status Updated At": formatDate(getKycStatusUpdatedAt(user)),
       "Registered Date": formatDateOnly(registeredDate),
       "Registration Completed At": formatDate(user.registration_completed_at),
       Terms: getCsvBoolean(user.terms_condition),
@@ -463,7 +511,7 @@ const downloadUsersCsv = (
 };
 
 // =====================================================
-// ✅ USER STATUS DROPDOWN — NAVY / YELLOW THEME
+// USER STATUS DROPDOWN
 // =====================================================
 
 interface UserStatusDropdownProps {
@@ -525,7 +573,6 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 
   const getCurrentLabel = () => (isActive ? "Active" : "Inactive");
 
-  // ✅ Agar permission nahi — readonly badge
   if (disabled) {
     return (
       <span
@@ -590,7 +637,7 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 };
 
 // =====================================================
-// ✅ DISTRIBUTOR STATUS DROPDOWN — NAVY / YELLOW THEME
+// DISTRIBUTOR STATUS DROPDOWN
 // =====================================================
 
 interface DistributorStatusDropdownProps {
@@ -649,7 +696,6 @@ const DistributorStatusDropdown: React.FC<
         document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // ✅ Non-pending ya disabled — badge only
     if (!isKycPending || disabled) {
       let label = "N/A";
 
@@ -761,7 +807,225 @@ const DistributorStatusDropdown: React.FC<
   };
 
 // =====================================================
-// STAT CARD — NAVY / YELLOW THEME
+// ✅ WITHDRAW CONTROL (NO DATE PICKERS, SIMPLE CONFIRM POPUP)
+// =====================================================
+
+interface WithdrawHoldControlProps {
+  userId: number;
+  withdrawAllowed: boolean;
+  onHold: (userId: number) => Promise<void>;
+  onRelease: (userId: number) => Promise<void>;
+  isLoading: boolean;
+  disabled?: boolean;
+}
+
+const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
+  userId,
+  withdrawAllowed,
+  onHold,
+  onRelease,
+  isLoading,
+  disabled = false,
+}) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [action, setAction] = useState<"hold" | "release">("hold");
+  const [submitting, setSubmitting] = useState(false);
+
+  const busy = isLoading || submitting;
+
+  const openConfirm = () => {
+    if (busy || disabled) return;
+    setAction(withdrawAllowed ? "hold" : "release");
+    setConfirmOpen(true);
+  };
+
+  const handleConfirm = async () => {
+    try {
+      setSubmitting(true);
+
+      if (action === "hold") {
+        await onHold(userId);
+      } else {
+        await onRelease(userId);
+      }
+
+      setConfirmOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isOnHold = !withdrawAllowed;
+
+  return (
+    <>
+      <div className="rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold ${isOnHold
+                ? "bg-[#FFF7D6] text-[#A16207]"
+                : "bg-[#EAF3FF] text-[#2D6FE8]"
+                }`}
+            >
+              ₹
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-[#111827]">
+                Withdraw Release / Hold
+              </h3>
+              <p className="mt-0.5 text-xs text-[#6B7280]">
+                Control payout withdrawals for this distributor.
+              </p>
+            </div>
+          </div>
+
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${isOnHold
+              ? "border-[#F2C94C]/45 bg-[#FFF7D6] text-[#A16207]"
+              : "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+              }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${isOnHold
+                ? "bg-[#A16207]"
+                : "bg-[#2D6FE8]"
+                }`}
+            />
+            {isOnHold ? "On Hold" : "Released"}
+          </span>
+        </div>
+
+        {/* Toggle row */}
+        <div className="flex items-center justify-between rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
+          <div className="flex items-center gap-2">
+            {isOnHold ? (
+              <FiLock size={14} className="text-[#A16207]" />
+            ) : (
+              <FiUnlock size={14} className="text-[#2D6FE8]" />
+            )}
+            <span className="text-xs font-semibold text-[#111827]">
+              {isOnHold
+                ? "Withdrawals are currently held"
+                : "Withdrawals are currently released"}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!isOnHold}
+            disabled={disabled || busy}
+            onClick={openConfirm}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${!isOnHold
+              ? "bg-[#2D6FE8]"
+              : "bg-[#D6E2F0]"
+              } ${disabled || busy
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer"
+              }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${!isOnHold ? "translate-x-6" : "translate-x-1"
+                }`}
+            />
+          </button>
+        </div>
+
+        {busy && (
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#2D6FE8]">
+            <FiRefreshCw size={12} className="animate-spin" />
+            Updating withdrawal status…
+          </p>
+        )}
+      </div>
+
+      {/* CONFIRM MODAL (NO DATES) */}
+      {confirmOpen && (
+        <GlobalModal
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          closeOnOverlayClick={false}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
+            <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#5A95F6]" />
+
+            <div className="flex items-start justify-between gap-4 border-b border-[#2D6FE8]/10 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl font-bold ${action === "hold"
+                    ? "bg-[#FFF7D6] text-[#A16207]"
+                    : "bg-[#EAF3FF] text-[#2D6FE8]"
+                    }`}
+                >
+                  ₹
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#6B7280]">
+                    Confirm Action
+                  </p>
+                  <h2 className="mt-0.5 text-lg font-bold text-[#111827]">
+                    {action === "hold"
+                      ? "Hold Withdrawals?"
+                      : "Release Withdrawals?"}
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] text-[#111827] transition hover:bg-[#EAF3FF]"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <div className="px-5 py-5">
+              <p className="text-sm text-[#111827]">
+                {action === "hold"
+                  ? "Are you sure you want to HOLD payout withdrawals for this distributor? Withdrawals will be paused until released."
+                  : "Are you sure you want to RELEASE payout withdrawals for this distributor? Withdrawals will be enabled immediately."}
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                className="rounded-xl border border-[#2D6FE8]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD]"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={submitting}
+                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${action === "hold"
+                  ? "bg-gradient-to-r from-[#F2C94C] to-[#D4A017] shadow-[#D4A017]/20"
+                  : "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] shadow-[#2D6FE8]/20"
+                  }`}
+              >
+                {submitting && (
+                  <FiRefreshCw size={14} className="animate-spin" />
+                )}
+                {action === "hold"
+                  ? "Yes, Hold Withdrawals"
+                  : "Yes, Release Withdrawals"}
+              </button>
+            </div>
+          </div>
+        </GlobalModal>
+      )}
+    </>
+  );
+};
+
+// =====================================================
+// STAT CARD
 // =====================================================
 
 interface StatCardProps {
@@ -862,6 +1126,12 @@ interface UserDetailModalProps {
   isDistributorLoading?: boolean;
   canChangeUserStatus?: boolean;
   canChangeDistributorStatus?: boolean;
+
+  // ✅ Withdraw props
+  onWithdrawHold?: (userId: number) => Promise<void>;
+  onWithdrawRelease?: (userId: number) => Promise<void>;
+  isWithdrawLoading?: boolean;
+  canChangeWithdrawStatus?: boolean;
 }
 
 const UserDetailModal: React.FC<UserDetailModalProps> = ({
@@ -875,14 +1145,28 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   isDistributorLoading = false,
   canChangeUserStatus = false,
   canChangeDistributorStatus = false,
+  onWithdrawHold,
+  onWithdrawRelease,
+  isWithdrawLoading = false,
+  canChangeWithdrawStatus = false,
 }) => {
   if (!open) return null;
 
   const kycStatus = user ? getEffectiveKycStatus(user) : "";
   const kycProfile = user ? getKycProfile(user) : null;
 
-  // ✅ Registered date as per account type
   const registeredDate = user ? getRegisteredDate(user) : null;
+
+  const kycStatusUpdatedAt = user
+    ? getKycStatusUpdatedAt(user)
+    : null;
+
+  const withdrawAllowed = user ? isWithdrawAllowed(user) : true;
+
+  const showWithdrawControl =
+    user?.account_type === "distributor" &&
+    typeof onWithdrawHold === "function" &&
+    typeof onWithdrawRelease === "function";
 
   return (
     <GlobalModal
@@ -891,7 +1175,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
       closeOnOverlayClick={false}
     >
       <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
-        {/* NAVY → YELLOW top accent */}
         <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#5A95F6]" />
 
         {/* HEADER */}
@@ -909,12 +1192,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <h2 className="mt-0.5 text-xl font-bold text-[#111827]">
                 {user ? getUserName(user) : "User Details"}
               </h2>
-
-              {user && (
-                <p className="mt-1 text-xs text-[#111827]">
-                  User ID #{user.id}
-                </p>
-              )}
             </div>
           </div>
 
@@ -1026,6 +1303,28 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 </div>
               </div>
 
+              {/* ✅ WITHDRAW CONTROL — MOVED ABOVE PERSONAL + ACCOUNT INFO */}
+              {showWithdrawControl && (
+                <div className="mt-5">
+                  <WithdrawHoldControl
+                    userId={user.id}
+                    withdrawAllowed={withdrawAllowed}
+                    onHold={
+                      onWithdrawHold as (
+                        userId: number,
+                      ) => Promise<void>
+                    }
+                    onRelease={
+                      onWithdrawRelease as (
+                        userId: number,
+                      ) => Promise<void>
+                    }
+                    isLoading={isWithdrawLoading}
+                    disabled={!canChangeWithdrawStatus}
+                  />
+                </div>
+              )}
+
               {/* PERSONAL + ACCOUNT */}
               <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
@@ -1062,11 +1361,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     label="Registered"
                     value={user.is_registered ? "Yes" : "No"}
                   />
-                  <InfoRow
-                    label="Registration Step"
-                    value={user.registration_step}
-                  />
-                  {/* ✅ Account type based registered date */}
+
                   <InfoRow
                     label="Registered Date"
                     value={formatDateOnly(registeredDate)}
@@ -1079,9 +1374,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     label="Updated At"
                     value={formatDate(user.updated_at)}
                   />
+
                   <InfoRow
-                    label="Activation Date"
-                    value={formatDate(user.activation_date)}
+                    label="KYC Status Updated At"
+                    value={formatDate(kycStatusUpdatedAt)}
                   />
                 </div>
               </div>
@@ -1189,17 +1485,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Sponsor ID
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-[#111827]">
+                      <p className="mt-1  text-sm font-bold text-[#111827]">
                         {user.sponsor_id || "Not Assigned"}
-                      </p>
-                    </div>
-
-                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                        Placement
-                      </p>
-                      <p className="mt-1 text-sm font-bold capitalize text-[#111827]">
-                        {user.placement_leg || "Not Assigned"}
                       </p>
                     </div>
 
@@ -1211,33 +1498,33 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         Step {user.registration_step}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                      KYC Status
-                    </p>
-                    <div className="mt-2">
-                      {onDistributorStatusChange &&
-                        canChangeDistributorStatus ? (
-                        <DistributorStatusDropdown
-                          userId={user.id}
-                          currentStatus={
-                            user.distributor_status || "pending"
-                          }
-                          kycStatus={kycStatus}
-                          onStatusChange={onDistributorStatusChange}
-                          isLoading={isDistributorLoading}
-                        />
-                      ) : (
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getKycStatusClass(
-                            kycStatus,
-                          )}`}
-                        >
-                          {getKycDisplayLabel(kycStatus)}
-                        </span>
-                      )}
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                        KYC Status
+                      </p>
+                      <div className="mt-2">
+                        {onDistributorStatusChange &&
+                          canChangeDistributorStatus ? (
+                          <DistributorStatusDropdown
+                            userId={user.id}
+                            currentStatus={
+                              user.distributor_status || "pending"
+                            }
+                            kycStatus={kycStatus}
+                            onStatusChange={onDistributorStatusChange}
+                            isLoading={isDistributorLoading}
+                          />
+                        ) : (
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${getKycStatusClass(
+                              kycStatus,
+                            )}`}
+                          >
+                            {getKycDisplayLabel(kycStatus)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1269,6 +1556,15 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         {getKycDisplayLabel(
                           kycProfile.kyc_status || kycStatus,
                         )}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                        KYC Status Updated At
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-[#111827]">
+                        {formatDate(kycStatusUpdatedAt)}
                       </p>
                     </div>
 
@@ -1420,7 +1716,6 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   );
 };
 
-
 const UserManagement: React.FC = () => {
   const location = useLocation();
 
@@ -1465,13 +1760,22 @@ const UserManagement: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
+  const canChangeWithdrawStatus = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("user.change_status") ||
+      hasPermission("user.details") ||
+      hasPermission("admin_member.edit"),
+    [isSuperAdmin, hasPermission],
+  );
+
   const canExport = useMemo(
     () => isSuperAdmin || hasModuleAccess("user"),
     [isSuperAdmin, hasModuleAccess],
   );
 
   // ===================================================
-  // ✅ LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
+  // LOGO STATE
   // ===================================================
 
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
@@ -1501,7 +1805,6 @@ const UserManagement: React.FC = () => {
 
   const [users, setUsers] = useState<RegisteredUser[]>([]);
 
-  // ✅ first load only — subsequent fetches don't block page
   const [initialUsersLoading, setInitialUsersLoading] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -1524,10 +1827,15 @@ const UserManagement: React.FC = () => {
   >(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
+  // ✅ Withdraw loading state
+  const [withdrawLoadingId, setWithdrawLoadingId] = useState<
+    number | null
+  >(null);
+
   const ITEMS_PER_PAGE = 10;
 
   // ===================================================
-  // LOGO FETCH (same as Orders / ReturnRefund / CreditNotes / Payment)
+  // LOGO FETCH
   // ===================================================
 
   useEffect(() => {
@@ -1572,7 +1880,6 @@ const UserManagement: React.FC = () => {
 
   // ===================================================
   // FETCH USERS
-  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
 
   const fetchUsers = async (isInitialLoad = false) => {
@@ -1669,7 +1976,6 @@ const UserManagement: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
-  // WAIT FOR PERMISSIONS BEFORE REQUESTING USERS
   // ===================================================
 
   useEffect(() => {
@@ -2055,6 +2361,146 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  // ===================================================
+  // ✅ WITHDRAW HOLD / RELEASE HANDLERS (NO DATE PARAMS)
+  // ===================================================
+
+  const handleWithdrawHold = async (
+    userId: number,
+  ): Promise<void> => {
+    try {
+      setWithdrawLoadingId(userId);
+
+      // Backend endpoint accepts from_date / to_date, but we don't expose dates.
+      // Send today's date for both — backend will treat it as a simple hold toggle.
+      const today = new Date();
+      const isoDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1,
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      const response =
+        await userManagementApi.holdDistributorWithdrawals(userId, {
+          from_date: isoDate,
+          to_date: isoDate,
+        });
+
+      if (response.data.success) {
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.id === userId
+              ? {
+                ...item,
+                withdraw_hold: true,
+                ignite_payout: item.ignite_payout
+                  ? {
+                    ...item.ignite_payout,
+                    allow_withdraw: false,
+                  }
+                  : item.ignite_payout,
+              }
+              : item,
+          ),
+        );
+
+        setSelectedUser((current) =>
+          current?.id === userId
+            ? {
+              ...current,
+              withdraw_hold: true,
+              ignite_payout: current.ignite_payout
+                ? {
+                  ...current.ignite_payout,
+                  allow_withdraw: false,
+                }
+                : current.ignite_payout,
+            }
+            : current,
+        );
+
+        toast.success(
+          response.data.message ||
+          "Withdrawals held successfully.",
+        );
+      } else {
+        toast.error(
+          response.data.message ||
+          "Unable to hold withdrawals.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Withdraw hold error:", error);
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to hold withdrawals.",
+      );
+    } finally {
+      setWithdrawLoadingId(null);
+    }
+  };
+
+  const handleWithdrawRelease = async (
+    userId: number,
+  ): Promise<void> => {
+    try {
+      setWithdrawLoadingId(userId);
+
+      const response =
+        await userManagementApi.releaseDistributorWithdrawals(userId);
+
+      if (response.data.success) {
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.id === userId
+              ? {
+                ...item,
+                withdraw_hold: false,
+                ignite_payout: item.ignite_payout
+                  ? {
+                    ...item.ignite_payout,
+                    allow_withdraw: true,
+                  }
+                  : item.ignite_payout,
+              }
+              : item,
+          ),
+        );
+
+        setSelectedUser((current) =>
+          current?.id === userId
+            ? {
+              ...current,
+              withdraw_hold: false,
+              ignite_payout: current.ignite_payout
+                ? {
+                  ...current.ignite_payout,
+                  allow_withdraw: true,
+                }
+                : current.ignite_payout,
+            }
+            : current,
+        );
+
+        toast.success(
+          response.data.message ||
+          "Withdrawals released successfully.",
+        );
+      } else {
+        toast.error(
+          response.data.message ||
+          "Unable to release withdrawals.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Withdraw release error:", error);
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to release withdrawals.",
+      );
+    } finally {
+      setWithdrawLoadingId(null);
+    }
+  };
+
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, index) => index + 1);
@@ -2118,7 +2564,7 @@ const UserManagement: React.FC = () => {
         animate="visible"
         variants={containerVariants}
       >
-        {/* HEADER — Title on left, action buttons on right */}
+        {/* HEADER */}
         <motion.div
           variants={itemVariants}
           className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-center"
@@ -2143,7 +2589,6 @@ const UserManagement: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* EXPORT */}
             {canExport && (
               <button
                 type="button"
@@ -2157,7 +2602,6 @@ const UserManagement: React.FC = () => {
               </button>
             )}
 
-            {/* CREATE DISTRIBUTOR */}
             {canCreateUser && (
               <button
                 type="button"
@@ -2169,7 +2613,6 @@ const UserManagement: React.FC = () => {
               </button>
             )}
 
-            {/* REFRESH */}
             <button
               type="button"
               onClick={() => fetchUsers()}
@@ -2241,7 +2684,6 @@ const UserManagement: React.FC = () => {
           <div className="border-b border-[#DCE6F2] bg-white p-4 sm:p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 
-              {/* SEARCH */}
               <div className="relative w-full lg:w-[480px] lg:shrink-0">
                 <FiSearch
                   size={18}
@@ -2267,7 +2709,6 @@ const UserManagement: React.FC = () => {
                 )}
               </div>
 
-              {/* FILTER TABS - RIGHT SIDE */}
               <div className="flex w-full items-center justify-start gap-1 overflow-x-auto rounded-lg border border-[#DCE6F2] bg-[#F2F7FC] p-1 lg:w-auto lg:justify-end">
                 {[
                   {
@@ -2333,31 +2774,24 @@ const UserManagement: React.FC = () => {
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white first:rounded-tl-xl">
                     S.No.
                   </th>
-
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     User
                   </th>
-
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Contact
                   </th>
-
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Account Type
                   </th>
-
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     User Status
                   </th>
-
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     KYC Status
                   </th>
-
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Registered
                   </th>
-
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white last:rounded-tr-xl">
                     Actions
                   </th>
@@ -2365,7 +2799,6 @@ const UserManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {/* ✅ initialUsersLoading par full spinner — refresh/CRUD par nahi */}
                 {initialUsersLoading ? (
                   <tr>
                     <td colSpan={8} className="px-3 py-16 text-center">
@@ -2373,7 +2806,6 @@ const UserManagement: React.FC = () => {
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                           <FiRefreshCw size={22} className="animate-spin" />
                         </div>
-
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading users...
                         </p>
@@ -2387,7 +2819,6 @@ const UserManagement: React.FC = () => {
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                           <FiRefreshCw size={22} className="animate-spin" />
                         </div>
-
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading users...
                         </p>
@@ -2401,11 +2832,9 @@ const UserManagement: React.FC = () => {
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#111827]">
                           <FiUsers size={24} />
                         </div>
-
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           No users found
                         </p>
-
                         <p className="mt-1 text-xs text-[#111827]">
                           Try another search or filter.
                         </p>
@@ -2431,25 +2860,24 @@ const UserManagement: React.FC = () => {
                     const isHighlighted =
                       highlightedUserId === user.id;
 
-                    // ✅ Account type based registered date
                     const registeredDate = getRegisteredDate(user);
+
+                    const kycUpdatedAt = getKycStatusUpdatedAt(user);
 
                     return (
                       <tr
                         key={user.id}
                         className={`border-b border-[#2D6FE8]/10 transition-all duration-300 ${isHighlighted
-                            ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70 shadow-inner"
-                            : "bg-white hover:bg-[#F4F8FD]"
+                          ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70 shadow-inner"
+                          : "bg-white hover:bg-[#F4F8FD]"
                           }`}
                       >
-                        {/* S.NO */}
                         <td className="px-3 py-4">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#111827]">
                             {startIndex + index + 1}
                           </span>
                         </td>
 
-                        {/* USER */}
                         <td className="px-3 py-4">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
@@ -2472,7 +2900,6 @@ const UserManagement: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* CONTACT */}
                         <td className="px-3 py-4">
                           <div className="max-w-[220px]">
                             <p className="truncate text-xs font-semibold text-[#111827]">
@@ -2487,12 +2914,11 @@ const UserManagement: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* ACCOUNT TYPE */}
                         <td className="px-3 py-4 text-center">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${isDistributor
-                                ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#111827]"
-                                : "border-[#D6E2F0] bg-[#F2F6FA] text-[#111827]"
+                              ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#111827]"
+                              : "border-[#D6E2F0] bg-[#F2F6FA] text-[#111827]"
                               }`}
                           >
                             {isDistributor ? (
@@ -2505,7 +2931,6 @@ const UserManagement: React.FC = () => {
                           </span>
                         </td>
 
-                        {/* USER STATUS */}
                         <td className="px-3 py-4 text-center">
                           <div className="flex justify-center">
                             <UserStatusDropdown
@@ -2520,7 +2945,6 @@ const UserManagement: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* KYC STATUS */}
                         <td className="px-3 py-4 text-center">
                           {isDistributor ? (
                             <div className="flex justify-center">
@@ -2544,21 +2968,29 @@ const UserManagement: React.FC = () => {
                           )}
                         </td>
 
-                        {/* REGISTERED */}
                         <td className="px-3 py-4">
-                          <div className="flex items-center gap-2">
-                            <FiCalendar
-                              size={13}
-                              className="text-[#111827]"
-                            />
-
-                            <span className="text-xs font-semibold text-[#111827]">
-                              {formatDateOnly(registeredDate)}
-                            </span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <FiCalendar
+                                size={13}
+                                className="text-[#111827]"
+                              />
+                              <span className="text-xs font-semibold text-[#111827]">
+                                {formatDateOnly(registeredDate)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <FiShield
+                                size={12}
+                                className="text-[#2D6FE8]"
+                              />
+                              <span className="text-[11px] font-semibold text-[#2D6FE8]">
+                                KYC: {formatDateOnly(kycUpdatedAt)}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
-                        {/* ACTIONS */}
                         <td className="px-3 py-4">
                           <div className="flex justify-center">
                             <button
@@ -2580,9 +3012,9 @@ const UserManagement: React.FC = () => {
               </tbody>
             </table>
           </div>
+
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {/* ✅ initialUsersLoading par full spinner — refresh/CRUD par nahi */}
             {initialUsersLoading ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
@@ -2613,8 +3045,8 @@ const UserManagement: React.FC = () => {
                 const kycStatus = getEffectiveKycStatus(user);
                 const isHighlighted = highlightedUserId === user.id;
 
-                // ✅ Account type based registered date
                 const registeredDate = getRegisteredDate(user);
+                const kycUpdatedAt = getKycStatusUpdatedAt(user);
 
                 return (
                   <div
@@ -2669,6 +3101,15 @@ const UserManagement: React.FC = () => {
                         </p>
                         <p className="mt-1 truncate text-xs font-bold text-[#111827]">
                           {formatDateOnly(registeredDate)}
+                        </p>
+                      </div>
+
+                      <div className="col-span-2 rounded-xl border border-[#2D6FE8]/10 bg-[#F4F8FD] p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                          KYC Status Updated At
+                        </p>
+                        <p className="mt-1 truncate text-xs font-bold text-[#2D6FE8]">
+                          {formatDateOnly(kycUpdatedAt)}
                         </p>
                       </div>
                     </div>
@@ -2800,6 +3241,10 @@ const UserManagement: React.FC = () => {
         isDistributorLoading={distributorLoadingId !== null}
         canChangeUserStatus={canChangeUserStatus}
         canChangeDistributorStatus={canChangeDistributorStatus}
+        onWithdrawHold={handleWithdrawHold}
+        onWithdrawRelease={handleWithdrawRelease}
+        isWithdrawLoading={withdrawLoadingId !== null}
+        canChangeWithdrawStatus={canChangeWithdrawStatus}
       />
 
       {/* CREATE DISTRIBUTOR MODAL */}

@@ -1,6 +1,9 @@
 import apiClient from "../client";
 
+export type SalesReportPeriod = "yearly" | "monthly" | "six_months";
+
 export interface SalesReportParams {
+  period: SalesReportPeriod;
   from_date: string;
   to_date: string;
 }
@@ -98,10 +101,11 @@ export interface SalesReportResponse {
 }
 
 export const salesReportApi = {
-  // GET /api/reports/sales?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD
+
   getSalesReport: (params: SalesReportParams) =>
     apiClient.get<SalesReportResponse>("/reports/sales", {
       params: {
+        period: params.period,
         from_date: params.from_date,
         to_date: params.to_date,
       },

@@ -59,6 +59,7 @@ import Stock from "@/pages/Inventory/Stock";
 import ReturnRefund from "@/pages/Fiance/ReturnRefund";
 import ReviewsModeration from "@/pages/ReviewsModeration";
 import CorrectionRequests from "@/components/corrections/CorrectionRequests";
+import IgniteExports from "@/components/IgniteExports/IgniteExports";
 
 const ScrollLayout = () => (
   <>
@@ -104,6 +105,8 @@ export const adminRouter = createBrowserRouter(
 
             // USERS
             { path: "UserManagement", element: <UserManagement /> },
+
+            { path: "IgniteExports", element: <IgniteExports /> },
 
             { path: "CorrectionRequests", element: <CorrectionRequests /> },
 

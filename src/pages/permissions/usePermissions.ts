@@ -1,3 +1,4 @@
+// src/hooks/usePermissions.ts  (or wherever it lives)
 import {
   useCallback,
   useEffect,
@@ -124,11 +125,6 @@ const getRoleSlug = (role: AdminRole): string =>
 
 // =====================================================
 // SHARED /ME STORE
-//
-// Every usePermissions() consumer reads the same store.
-// Multiple components mounting together share one request.
-// React StrictMode's development effect replay also shares
-// the same in-flight request instead of sending another one.
 // =====================================================
 
 const initialSnapshot: PermissionsSnapshot = {
@@ -155,11 +151,6 @@ const publish = (next: Partial<PermissionsSnapshot>) => {
   listeners.forEach((listener) => listener());
 };
 
-/**
- * Fetch /me once for the lifetime of this loaded app module.
- * Further hook instances reuse the cached data. Call refetch()
- * explicitly if the current permissions should be refreshed.
- */
 const fetchPermissions = (force = false): Promise<void> => {
   if (requestPromise) {
     return requestPromise;
@@ -238,8 +229,6 @@ export const usePermissions = (): UsePermissionsReturn => {
     getServerSnapshot,
   );
 
-  // The fetch runs only when at least one component uses this hook.
-  // All mounted consumers share the same pending promise and cache.
   useEffect(() => {
     void fetchPermissions();
   }, []);
