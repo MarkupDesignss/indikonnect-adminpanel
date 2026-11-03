@@ -1671,7 +1671,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       onClose={onClose}
       closeOnOverlayClick={false}
     >
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+      <div className="w-full max-h-[90vh]  max-w-6xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
         {/* ============================================================ */}
@@ -1711,10 +1711,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </button>
           </div>
 
-          {/* ✅ Tracking Details Row */}
-          <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* ✅ Tracking Details Row (UPDATED: Height reduced, tracking wraps) */}
+          <div className="mt-3 flex flex-wrap items-stretch gap-2 sm:gap-3">
             {/* Return Method Badge — ALWAYS SHOWN */}
-            <div className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2">
+            <div className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-1.5">
               <FiTruck size={14} className="text-[#2D6FE8]" />
 
               <div className="flex flex-col">
@@ -1722,7 +1722,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   Return Method
                 </span>
 
-                <span className="text-xs font-bold text-[#2D6FE8]">
+                <span className="text-[11px] font-bold leading-tight text-[#2D6FE8]">
                   {returnMethodLabel}
                 </span>
               </div>
@@ -1730,7 +1730,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
             {/* Courier Badge — only if courier exists */}
             {courier && (
-              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5">
                 <FiPackage size={14} className="text-[#4F8FF7]" />
 
                 <div className="flex flex-col">
@@ -1738,7 +1738,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     Courier
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
+                  <span className="text-[11px] font-bold leading-tight text-[#111827]">
                     {courier}
                   </span>
                 </div>
@@ -1747,15 +1747,15 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
             {/* Tracking ID Badge — only if trackingId exists */}
             {trackingId && (
-              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
-                <FiHash size={14} className="text-[#4F8FF7]" />
+              <div className="flex max-w-[280px] items-start gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-1.5">
+                <FiHash size={14} className="mt-0.5 shrink-0 text-[#4F8FF7]" />
 
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Tracking ID
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
+                  <span className="break-all text-[11px] font-bold leading-tight text-[#111827]">
                     {trackingId}
                   </span>
                 </div>
@@ -1906,7 +1906,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </div>
             </div>
 
-            {/* ✅ ORDER INFORMATION with Return Method, Courier, Tracking */}
+            {/* ✅ ORDER INFORMATION with Return Method, Courier, Tracking (UPDATED: Tracking ID wraps) */}
             <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1964,14 +1964,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
                 )}
 
-                {/* Tracking ID Row */}
+                {/* Tracking ID Row (UPDATED: Height reduced, tracking wraps) */}
                 {trackingId && (
-                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                    <span className="text-xs text-[#6B7280]">
+                  <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="mt-0.5 shrink-0 text-xs text-[#6B7280]">
                       Tracking ID
                     </span>
 
-                    <span className="text-sm font-semibold text-[#111827]">
+                    <span className="break-all text-right text-[11px] font-semibold leading-tight text-[#111827]">
                       {trackingId}
                     </span>
                   </div>

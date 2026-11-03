@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -22,6 +23,7 @@ import {
   FiDownload,
   FiLock,
   FiUnlock,
+  FiClock,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -127,6 +129,10 @@ interface KycProfileLike {
   [key: string]: any;
 }
 
+interface UserWithBuyback extends RegisteredUser {
+  buyback_untill?: string | null;
+}
+
 // =====================================================
 // HELPERS
 // =====================================================
@@ -191,7 +197,7 @@ const getAccountLabel = (accountType: string) => {
 };
 
 // =====================================================
-// ✅ REGISTERED DATE (ACCOUNT TYPE BASED)
+// REGISTERED DATE
 // =====================================================
 
 const getRegisteredDate = (user: RegisteredUser) => {
@@ -258,18 +264,12 @@ const getEffectiveKycStatus = (
 };
 
 // =====================================================
-// ✅ WITHDRAW ALLOWED (SOURCE OF TRUTH)
+// WITHDRAW ALLOWED
 // =====================================================
-/**
- * Withdraw "ON" (released) means allow_withdraw === true.
- * Withdraw "OFF" (held) means allow_withdraw === false.
- *
- * Priority:
- *  1. user.ignite_payout.allow_withdraw
- *  2. user.withdraw_hold (fallback)
- *  3. default: true (released)
- */
-const isWithdrawAllowed = (user: RegisteredUser | null): boolean => {
+
+const isWithdrawAllowed = (
+  user: RegisteredUser | null,
+): boolean => {
   if (!user) return true;
 
   const payout = user.ignite_payout;
@@ -296,7 +296,7 @@ const isWithdrawAllowed = (user: RegisteredUser | null): boolean => {
 };
 
 // =====================================================
-// ✅ STATUS BADGES — NAVY / YELLOW / BLUE THEME
+// STATUS BADGES
 // =====================================================
 
 const getActiveStatusClass = (active: boolean) => {
@@ -429,9 +429,9 @@ const getExportRows = (
       "KYC Status Updated At": formatDate(getKycStatusUpdatedAt(user)),
       "Registered Date": formatDateOnly(registeredDate),
       "Registration Completed At": formatDate(user.registration_completed_at),
-      Terms: getCsvBoolean(user.terms_condition),
+      "Terms": getCsvBoolean(user.terms_condition),
       "Terms Accepted": getCsvBoolean(user.accept_terms),
-      Agreement: getCsvBoolean(user.accept_agreement),
+      "Agreement": getCsvBoolean(user.accept_agreement),
       "Code of Conduct": getCsvBoolean(user.accept_code_of_conduct),
       "Location Consent": getCsvBoolean(user.location_consent_given),
       "Aadhaar Last 4": user.aadhaar_last4 || "",
@@ -450,8 +450,9 @@ const getExportRows = (
       "Submitted At": formatDate(profile?.submitted_at),
       "Reviewed At": formatDate(profile?.reviewed_at),
       "Rejection Reason": profile?.rejection_reason || "",
-      Created: formatDate(user.created_at),
-      Updated: formatDate(user.updated_at),
+      "Buyback Until": formatDate((user as UserWithBuyback).buyback_untill),
+      "Created": formatDate(user.created_at),
+      "Updated": formatDate(user.updated_at),
     };
   });
 };
@@ -501,7 +502,7 @@ const downloadUsersCsv = (
   link.click();
   document.body.removeChild(link);
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     URL.revokeObjectURL(url);
   }, 500);
 
@@ -568,6 +569,7 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
     if (value !== isActive) {
       onStatusChange(userId, value);
     }
+
     setIsOpen(false);
   };
 
@@ -581,8 +583,9 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         )}`}
       >
         <span
-          className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
-            }`}
+          className={`h-1.5 w-1.5 rounded-full ${
+            isActive ? "bg-[#2D6FE8]" : "bg-[#9CA3AF]"
+          }`}
         />
         {getCurrentLabel()}
       </span>
@@ -595,10 +598,11 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isLoading}
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${isLoading
-          ? "cursor-not-allowed opacity-50"
-          : "hover:border-[#2D6FE8]/40"
-          } ${getActiveStatusClass(isActive)}`}
+        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+          isLoading
+            ? "cursor-not-allowed opacity-50"
+            : "hover:border-[#2D6FE8]/40"
+        } ${getActiveStatusClass(isActive)}`}
       >
         <span
           className={
@@ -610,8 +614,9 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
 
         <FiChevronDown
           size={14}
-          className={`transition-transform ${isOpen ? "rotate-180" : ""
-            }`}
+          className={`transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
         />
       </button>
 
@@ -622,10 +627,11 @@ const UserStatusDropdown: React.FC<UserStatusDropdownProps> = ({
               key={String(option.value)}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${option.value === isActive
-                ? "cursor-default bg-[#EAF3FF]"
-                : ""
-                } ${option.color}`}
+              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${
+                option.value === isActive
+                  ? "cursor-default bg-[#EAF3FF]"
+                  : ""
+              } ${option.color}`}
             >
               {option.label}
             </button>
@@ -662,152 +668,158 @@ const DistributorStatusDropdown: React.FC<
   isLoading,
   disabled = false,
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const effectiveStatus = (
-      kycStatus ||
-      currentStatus ||
-      "pending"
-    ).toLowerCase();
+  const effectiveStatus = (
+    kycStatus ||
+    currentStatus ||
+    "pending"
+  ).toLowerCase();
 
-    const isKycPending = effectiveStatus === "pending";
+  const isKycPending = effectiveStatus === "pending";
 
-    const isKycVerified =
-      effectiveStatus === "active" ||
-      effectiveStatus === "verified" ||
-      effectiveStatus === "approved";
+  const isKycVerified =
+    effectiveStatus === "active" ||
+    effectiveStatus === "verified" ||
+    effectiveStatus === "approved";
 
-    const isKycRejected = effectiveStatus === "rejected";
+  const isKycRejected = effectiveStatus === "rejected";
 
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          dropdownRef.current &&
-          !dropdownRef.current.contains(event.target as Node)
-        ) {
-          setIsOpen(false);
-        }
-      };
-
-      document.addEventListener("mousedown", handleClickOutside);
-
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    if (!isKycPending || disabled) {
-      let label = "N/A";
-
-      let statusClass =
-        "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]";
-
-      if (isKycVerified) {
-        label = "Verified";
-        statusClass =
-          "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
-      } else if (isKycRejected) {
-        label = "Rejected";
-        statusClass =
-          "border-[#C23B32]/25 bg-[#EEF5FF] text-[#C23B32]";
-      } else {
-        label = getKycDisplayLabel(effectiveStatus);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
       }
+    };
 
-      return (
-        <span
-          className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${statusClass}`}
-        >
-          {label}
-        </span>
-      );
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (!isKycPending || disabled) {
+    let label = "N/A";
+
+    let statusClass =
+      "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]";
+
+    if (isKycVerified) {
+      label = "Verified";
+      statusClass =
+        "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
+    } else if (isKycRejected) {
+      label = "Rejected";
+      statusClass =
+        "border-[#C23B32]/25 bg-[#EEF5FF] text-[#C23B32]";
+    } else {
+      label = getKycDisplayLabel(effectiveStatus);
     }
 
-    const statusOptions = [
-      {
-        value: "active",
-        label: "Verify & Activate",
-        color: "text-[#2D6FE8]",
-      },
-      {
-        value: "rejected",
-        label: "Reject",
-        color: "text-[#C23B32]",
-      },
-    ];
-
-    const handleSelect = (value: string) => {
-      if (value !== currentStatus) {
-        onStatusChange(userId, value);
-      }
-      setIsOpen(false);
-    };
-
-    const getCurrentLabel = () => {
-      const option = statusOptions.find(
-        (opt) => opt.value === currentStatus,
-      );
-      return option ? option.label : "Pending";
-    };
-
-    const getCurrentColor = () => {
-      const option = statusOptions.find(
-        (opt) => opt.value === currentStatus,
-      );
-      return option ? option.color : "text-[#A16207]";
-    };
-
     return (
-      <div className="relative" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={isLoading}
-          className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${isLoading
-            ? "cursor-not-allowed opacity-50"
-            : "hover:border-[#2D6FE8]/40"
-            } ${getDistributorStatusClass("pending")}`}
-        >
-          <span className={getCurrentColor()}>
-            {getCurrentLabel()}
-          </span>
-
-          <FiChevronDown
-            size={14}
-            className={`transition-transform ${isOpen ? "rotate-180" : ""
-              }`}
-          />
-        </button>
-
-        {isOpen && (
-          <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-[#2D6FE8]/15 bg-white py-1 shadow-lg">
-            <div className="border-b border-[#2D6FE8]/10 px-3 py-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#111827]">
-                KYC Pending
-              </span>
-            </div>
-
-            {statusOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleSelect(option.value)}
-                className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${option.value === currentStatus
-                  ? "cursor-default bg-[#EAF3FF]"
-                  : ""
-                  } ${option.color}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <span
+        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${statusClass}`}
+      >
+        {label}
+      </span>
     );
+  }
+
+  const statusOptions = [
+    {
+      value: "active",
+      label: "Verify & Activate",
+      color: "text-[#2D6FE8]",
+    },
+    {
+      value: "rejected",
+      label: "Reject",
+      color: "text-[#C23B32]",
+    },
+  ];
+
+  const handleSelect = (value: string) => {
+    if (value !== currentStatus) {
+      onStatusChange(userId, value);
+    }
+
+    setIsOpen(false);
   };
 
+  const getCurrentLabel = () => {
+    const option = statusOptions.find(
+      (opt) => opt.value === currentStatus,
+    );
+
+    return option ? option.label : "Pending";
+  };
+
+  const getCurrentColor = () => {
+    const option = statusOptions.find(
+      (opt) => opt.value === currentStatus,
+    );
+
+    return option ? option.color : "text-[#A16207]";
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isLoading}
+        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+          isLoading
+            ? "cursor-not-allowed opacity-50"
+            : "hover:border-[#2D6FE8]/40"
+        } ${getDistributorStatusClass("pending")}`}
+      >
+        <span className={getCurrentColor()}>
+          {getCurrentLabel()}
+        </span>
+
+        <FiChevronDown
+          size={14}
+          className={`transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-50 mt-1 w-44 rounded-xl border border-[#2D6FE8]/15 bg-white py-1 shadow-lg">
+          <div className="border-b border-[#2D6FE8]/10 px-3 py-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#111827]">
+              KYC Pending
+            </span>
+          </div>
+
+          {statusOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleSelect(option.value)}
+              className={`w-full px-4 py-2 text-left text-xs font-bold transition hover:bg-[#F4F8FD] ${
+                option.value === currentStatus
+                  ? "cursor-default bg-[#EAF3FF]"
+                  : ""
+              } ${option.color}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // =====================================================
-// ✅ WITHDRAW CONTROL (NO DATE PICKERS, SIMPLE CONFIRM POPUP)
+// WITHDRAW CONTROL
 // =====================================================
 
 interface WithdrawHoldControlProps {
@@ -835,6 +847,7 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
 
   const openConfirm = () => {
     if (busy || disabled) return;
+
     setAction(withdrawAllowed ? "hold" : "release");
     setConfirmOpen(true);
   };
@@ -863,10 +876,11 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
-              className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold ${isOnHold
-                ? "bg-[#FFF7D6] text-[#A16207]"
-                : "bg-[#EAF3FF] text-[#2D6FE8]"
-                }`}
+              className={`flex h-11 w-11 items-center justify-center rounded-xl text-2xl font-bold ${
+                isOnHold
+                  ? "bg-[#FFF7D6] text-[#A16207]"
+                  : "bg-[#EAF3FF] text-[#2D6FE8]"
+              }`}
             >
               ₹
             </div>
@@ -875,6 +889,7 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
               <h3 className="text-sm font-bold text-[#111827]">
                 Withdraw Release / Hold
               </h3>
+
               <p className="mt-0.5 text-xs text-[#6B7280]">
                 Control payout withdrawals for this distributor.
               </p>
@@ -882,22 +897,22 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
           </div>
 
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${isOnHold
-              ? "border-[#F2C94C]/45 bg-[#FFF7D6] text-[#A16207]"
-              : "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
-              }`}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide ${
+              isOnHold
+                ? "border-[#F2C94C]/45 bg-[#FFF7D6] text-[#A16207]"
+                : "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]"
+            }`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${isOnHold
-                ? "bg-[#A16207]"
-                : "bg-[#2D6FE8]"
-                }`}
+              className={`h-1.5 w-1.5 rounded-full ${
+                isOnHold ? "bg-[#A16207]" : "bg-[#2D6FE8]"
+              }`}
             />
+
             {isOnHold ? "On Hold" : "Released"}
           </span>
         </div>
 
-        {/* Toggle row */}
         <div className="flex items-center justify-between rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
           <div className="flex items-center gap-2">
             {isOnHold ? (
@@ -905,6 +920,7 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
             ) : (
               <FiUnlock size={14} className="text-[#2D6FE8]" />
             )}
+
             <span className="text-xs font-semibold text-[#111827]">
               {isOnHold
                 ? "Withdrawals are currently held"
@@ -918,17 +934,20 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
             aria-checked={!isOnHold}
             disabled={disabled || busy}
             onClick={openConfirm}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${!isOnHold
-              ? "bg-[#2D6FE8]"
-              : "bg-[#D6E2F0]"
-              } ${disabled || busy
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${
+              !isOnHold
+                ? "bg-[#2D6FE8]"
+                : "bg-[#D6E2F0]"
+            } ${
+              disabled || busy
                 ? "cursor-not-allowed opacity-60"
                 : "cursor-pointer"
-              }`}
+            }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${!isOnHold ? "translate-x-6" : "translate-x-1"
-                }`}
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+                !isOnHold ? "translate-x-6" : "translate-x-1"
+              }`}
             />
           </button>
         </div>
@@ -941,7 +960,6 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
         )}
       </div>
 
-      {/* CONFIRM MODAL (NO DATES) */}
       {confirmOpen && (
         <GlobalModal
           isOpen={confirmOpen}
@@ -954,10 +972,11 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
             <div className="flex items-start justify-between gap-4 border-b border-[#2D6FE8]/10 px-5 py-4">
               <div className="flex items-start gap-3">
                 <div
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl font-bold ${action === "hold"
-                    ? "bg-[#FFF7D6] text-[#A16207]"
-                    : "bg-[#EAF3FF] text-[#2D6FE8]"
-                    }`}
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl font-bold ${
+                    action === "hold"
+                      ? "bg-[#FFF7D6] text-[#A16207]"
+                      : "bg-[#EAF3FF] text-[#2D6FE8]"
+                  }`}
                 >
                   ₹
                 </div>
@@ -966,6 +985,7 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#6B7280]">
                     Confirm Action
                   </p>
+
                   <h2 className="mt-0.5 text-lg font-bold text-[#111827]">
                     {action === "hold"
                       ? "Hold Withdrawals?"
@@ -1004,14 +1024,16 @@ const WithdrawHoldControl: React.FC<WithdrawHoldControlProps> = ({
                 type="button"
                 onClick={handleConfirm}
                 disabled={submitting}
-                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${action === "hold"
-                  ? "bg-gradient-to-r from-[#F2C94C] to-[#D4A017] shadow-[#D4A017]/20"
-                  : "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] shadow-[#2D6FE8]/20"
-                  }`}
+                className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${
+                  action === "hold"
+                    ? "bg-gradient-to-r from-[#F2C94C] to-[#D4A017] shadow-[#D4A017]/20"
+                    : "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] shadow-[#2D6FE8]/20"
+                }`}
               >
                 {submitting && (
                   <FiRefreshCw size={14} className="animate-spin" />
                 )}
+
                 {action === "hold"
                   ? "Yes, Hold Withdrawals"
                   : "Yes, Release Withdrawals"}
@@ -1098,9 +1120,146 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-[#2D6FE8]/10 py-3 last:border-b-0">
       <span className="text-xs text-[#111827]">{label}</span>
+
       <span className="max-w-[62%] text-right text-sm font-semibold text-[#111827]">
         {value}
       </span>
+    </div>
+  );
+};
+
+// =====================================================
+// BUYBACK COUNTDOWN TIMER
+// =====================================================
+
+interface BuybackCountdownProps {
+  until: string;
+}
+
+const BuybackCountdown: React.FC<BuybackCountdownProps> = ({
+  until,
+}) => {
+  const targetTime = useMemo(() => {
+    if (!until) return null;
+
+    const normalizedDate = until.includes("T")
+      ? until
+      : until.replace(" ", "T");
+
+    const timestamp = new Date(normalizedDate).getTime();
+
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }, [until]);
+
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    if (targetTime === null) return;
+
+    const updateTimer = () => {
+      setCurrentTime(Date.now());
+    };
+
+    updateTimer();
+
+    const interval = window.setInterval(updateTimer, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [targetTime]);
+
+  if (targetTime === null) return null;
+
+  const remaining = Math.max(
+    0,
+    Math.floor((targetTime - currentTime) / 1000),
+  );
+
+  const isExpired = remaining <= 0;
+
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
+  const seconds = remaining % 60;
+
+  const timerItems = [
+    { label: "Days", value: days },
+    { label: "Hours", value: hours },
+    { label: "Minutes", value: minutes },
+    { label: "Seconds", value: seconds },
+  ];
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
+      {/* HEADER */}
+      <div className="flex items-center justify-between gap-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+            <FiClock size={16} />
+          </div>
+
+          <div>
+            <h3 className="text-xs font-bold text-[#111827]">
+              Buyback Countdown
+            </h3>
+
+            <p className="text-[10px] text-[#6B7280]">
+              Time remaining
+            </p>
+          </div>
+        </div>
+
+        <span
+          className={`rounded-full border px-2.5 py-1 text-[9px] font-bold ${
+            isExpired
+              ? "border-[#C23B32]/20 bg-[#FCEEEE] text-[#C23B32]"
+              : "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]"
+          }`}
+        >
+          {isExpired ? "EXPIRED" : "ACTIVE"}
+        </span>
+      </div>
+
+      {/* TIMER */}
+      <div className="p-3">
+        {isExpired ? (
+          <div className="py-2 text-center">
+            <p className="text-sm font-bold text-[#C23B32]">
+              Buyback Period Expired
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {timerItems.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-1 py-2 text-center"
+              >
+                <p className="text-lg font-bold leading-tight tabular-nums text-[#2D6FE8] sm:text-xl">
+                  {String(item.value).padStart(2, "0")}
+                </p>
+
+                <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                  {item.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* EXPIRY DATE */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="text-[10px] text-[#6B7280]">
+            <FiCalendar className="mr-1 inline" size={11} />
+            Expires At
+          </span>
+
+          <span className="text-[10px] font-bold text-[#111827]">
+            {formatDate(until)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1114,22 +1273,26 @@ interface UserDetailModalProps {
   loading: boolean;
   user: RegisteredUser | null;
   onClose: () => void;
+
   onUserStatusChange?: (
     userId: number,
     newStatus: boolean,
   ) => void;
+
   onDistributorStatusChange?: (
     userId: number,
     newStatus: string,
   ) => void;
+
   isLoading?: boolean;
   isDistributorLoading?: boolean;
+
   canChangeUserStatus?: boolean;
   canChangeDistributorStatus?: boolean;
 
-  // ✅ Withdraw props
   onWithdrawHold?: (userId: number) => Promise<void>;
   onWithdrawRelease?: (userId: number) => Promise<void>;
+
   isWithdrawLoading?: boolean;
   canChangeWithdrawStatus?: boolean;
 }
@@ -1159,6 +1322,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
   const kycStatusUpdatedAt = user
     ? getKycStatusUpdatedAt(user)
+    : null;
+
+  // BUYBACK EXPIRY DATE FROM API
+  const buybackUntil = user
+    ? (user as UserWithBuyback).buyback_untill
     : null;
 
   const withdrawAllowed = user ? isWithdrawAllowed(user) : true;
@@ -1238,6 +1406,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                     Account Type
                   </p>
+
                   <p className="mt-2 text-lg font-bold text-[#111827]">
                     {getAccountLabel(user.account_type)}
                   </p>
@@ -1247,6 +1416,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                     User Status
                   </p>
+
                   <div className="mt-2">
                     {onUserStatusChange && canChangeUserStatus ? (
                       <UserStatusDropdown
@@ -1262,11 +1432,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                         )}`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${user.is_active
-                            ? "bg-[#2D6FE8]"
-                            : "bg-[#111827]"
-                            }`}
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            user.is_active
+                              ? "bg-[#2D6FE8]"
+                              : "bg-[#111827]"
+                          }`}
                         />
+
                         {user.is_active ? "Active" : "Inactive"}
                       </span>
                     )}
@@ -1277,10 +1449,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                     KYC Status
                   </p>
+
                   <div className="mt-2">
                     {user.account_type === "distributor" &&
-                      onDistributorStatusChange &&
-                      canChangeDistributorStatus ? (
+                    onDistributorStatusChange &&
+                    canChangeDistributorStatus ? (
                       <DistributorStatusDropdown
                         userId={user.id}
                         currentStatus={
@@ -1303,22 +1476,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* ✅ WITHDRAW CONTROL — MOVED ABOVE PERSONAL + ACCOUNT INFO */}
+              {/* BUYBACK COUNTDOWN */}
+              {user.account_type === "distributor" && buybackUntil && (
+                <BuybackCountdown until={buybackUntil} />
+              )}
+
+              {/* WITHDRAW CONTROL */}
               {showWithdrawControl && (
                 <div className="mt-5">
                   <WithdrawHoldControl
                     userId={user.id}
                     withdrawAllowed={withdrawAllowed}
-                    onHold={
-                      onWithdrawHold as (
-                        userId: number,
-                      ) => Promise<void>
-                    }
-                    onRelease={
-                      onWithdrawRelease as (
-                        userId: number,
-                      ) => Promise<void>
-                    }
+                    onHold={onWithdrawHold as (userId: number) => Promise<void>}
+                    onRelease={onWithdrawRelease as (userId: number) => Promise<void>}
                     isLoading={isWithdrawLoading}
                     disabled={!canChangeWithdrawStatus}
                   />
@@ -1332,6 +1502,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                       <FiUser size={17} />
                     </div>
+
                     <h3 className="text-sm font-bold text-[#111827]">
                       Personal Information
                     </h3>
@@ -1341,6 +1512,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <InfoRow label="Email" value={user.email} />
                   <InfoRow label="Phone" value={user.phone || "N/A"} />
                   <InfoRow label="Country" value={user.country || "N/A"} />
+
                   <InfoRow
                     label="Date of Birth"
                     value={formatDateOnly(user.date_of_birth)}
@@ -1352,6 +1524,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                       <FiShield size={17} />
                     </div>
+
                     <h3 className="text-sm font-bold text-[#111827]">
                       Account Information
                     </h3>
@@ -1366,10 +1539,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     label="Registered Date"
                     value={formatDateOnly(registeredDate)}
                   />
+
                   <InfoRow
                     label="Created At"
                     value={formatDate(user.created_at)}
                   />
+
                   <InfoRow
                     label="Updated At"
                     value={formatDate(user.updated_at)}
@@ -1388,6 +1563,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                     <FiCheckCircle size={17} />
                   </div>
+
                   <h3 className="text-sm font-bold text-[#111827]">
                     Verification
                   </h3>
@@ -1396,18 +1572,23 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#111827]">Phone</span>
+                      <span className="text-xs text-[#111827]">
+                        Phone
+                      </span>
+
                       <span
-                        className={`text-[10px] font-bold ${user.phone_verified
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`text-[10px] font-bold ${
+                          user.phone_verified
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {user.phone_verified
                           ? "Verified"
                           : "Not Verified"}
                       </span>
                     </div>
+
                     {user.phone_verified_at && (
                       <p className="mt-2 text-[10px] text-[#111827]">
                         {formatDate(user.phone_verified_at)}
@@ -1417,18 +1598,23 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#111827]">Email</span>
+                      <span className="text-xs text-[#111827]">
+                        Email
+                      </span>
+
                       <span
-                        className={`text-[10px] font-bold ${user.email_verified_at
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`text-[10px] font-bold ${
+                          user.email_verified_at
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {user.email_verified_at
                           ? "Verified"
                           : "Not Verified"}
                       </span>
                     </div>
+
                     {user.email_verified_at && (
                       <p className="mt-2 text-[10px] text-[#111827]">
                         {formatDate(user.email_verified_at)}
@@ -1438,12 +1624,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
                   <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#111827]">Terms</span>
+                      <span className="text-xs text-[#111827]">
+                        Terms
+                      </span>
+
                       <span
-                        className={`text-[10px] font-bold ${user.terms_condition
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`text-[10px] font-bold ${
+                          user.terms_condition
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {user.terms_condition
                           ? "Accepted"
@@ -1461,10 +1651,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                       <FiBriefcase size={17} />
                     </div>
+
                     <div>
                       <h3 className="text-sm font-bold text-[#111827]">
                         Distributor Information
                       </h3>
+
                       <p className="mt-0.5 text-xs text-[#111827]">
                         Distributor registration and KYC information.
                       </p>
@@ -1476,6 +1668,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Distributor ID
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {user.distributor_id || "Not Assigned"}
                       </p>
@@ -1485,7 +1678,8 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Sponsor ID
                       </p>
-                      <p className="mt-1  text-sm font-bold text-[#111827]">
+
+                      <p className="mt-1 text-sm font-bold text-[#111827]">
                         {user.sponsor_id || "Not Assigned"}
                       </p>
                     </div>
@@ -1494,6 +1688,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Registration
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         Step {user.registration_step}
                       </p>
@@ -1503,9 +1698,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         KYC Status
                       </p>
+
                       <div className="mt-2">
                         {onDistributorStatusChange &&
-                          canChangeDistributorStatus ? (
+                        canChangeDistributorStatus ? (
                           <DistributorStatusDropdown
                             userId={user.id}
                             currentStatus={
@@ -1537,10 +1733,12 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                       <FiCreditCard size={17} />
                     </div>
+
                     <div>
                       <h3 className="text-sm font-bold text-[#111827]">
                         KYC & Banking
                       </h3>
+
                       <p className="mt-0.5 text-xs text-[#111827]">
                         Verification status and masked account information.
                       </p>
@@ -1552,6 +1750,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         KYC Status
                       </p>
+
                       <p className="mt-1 text-sm font-bold capitalize text-[#111827]">
                         {getKycDisplayLabel(
                           kycProfile.kyc_status || kycStatus,
@@ -1563,6 +1762,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         KYC Status Updated At
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {formatDate(kycStatusUpdatedAt)}
                       </p>
@@ -1572,16 +1772,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Aadhaar
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {user.aadhaar_last4
                           ? `XXXX XXXX ${user.aadhaar_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
-                        className={`mt-1 text-[10px] font-bold ${kycProfile.aadhaar_verified
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`mt-1 text-[10px] font-bold ${
+                          kycProfile.aadhaar_verified
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {kycProfile.aadhaar_verified
                           ? "Verified"
@@ -1593,16 +1796,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         PAN
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {user.pan_last4
                           ? `XXXXXX${user.pan_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
-                        className={`mt-1 text-[10px] font-bold ${kycProfile.pan_verified
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`mt-1 text-[10px] font-bold ${
+                          kycProfile.pan_verified
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {kycProfile.pan_verified
                           ? "Verified"
@@ -1614,16 +1820,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Bank Account
                       </p>
+
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {user.account_last4
                           ? `XXXX${user.account_last4}`
                           : "Not Available"}
                       </p>
+
                       <p
-                        className={`mt-1 text-[10px] font-bold ${kycProfile.bank_verified
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`mt-1 text-[10px] font-bold ${
+                          kycProfile.bank_verified
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {kycProfile.bank_verified
                           ? "Verified"
@@ -1637,6 +1846,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Bank Name
                       </p>
+
                       <p className="mt-1 text-sm font-semibold text-[#111827]">
                         {kycProfile.bank_name || "N/A"}
                       </p>
@@ -1646,6 +1856,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Account Holder
                       </p>
+
                       <p className="mt-1 text-sm font-semibold text-[#111827]">
                         {kycProfile.bank_holder_name || "N/A"}
                       </p>
@@ -1660,6 +1871,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
                     <FiCheckCircle size={17} />
                   </div>
+
                   <h3 className="text-sm font-bold text-[#111827]">
                     Registration Consents
                   </h3>
@@ -1685,11 +1897,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <span className="text-xs text-[#111827]">
                         {item.label}
                       </span>
+
                       <span
-                        className={`text-[10px] font-bold ${item.value
-                          ? "text-[#111827]"
-                          : "text-[#C23B32]"
-                          }`}
+                        className={`text-[10px] font-bold ${
+                          item.value
+                            ? "text-[#111827]"
+                            : "text-[#C23B32]"
+                        }`}
                       >
                         {item.value ? "Accepted" : "Not Accepted"}
                       </span>
@@ -1715,6 +1929,10 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     </GlobalModal>
   );
 };
+
+// =====================================================
+// USER MANAGEMENT
+// =====================================================
 
 const UserManagement: React.FC = () => {
   const location = useLocation();
@@ -1811,23 +2029,29 @@ const UserManagement: React.FC = () => {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<UserFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
+
   const [selectedUser, setSelectedUser] =
     useState<RegisteredUser | null>(null);
+
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+
   const [statusLoadingId, setStatusLoadingId] = useState<number | null>(
     null,
   );
+
   const [distributorLoadingId, setDistributorLoadingId] = useState<
     number | null
   >(null);
+
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   const [highlightedUserId, setHighlightedUserId] = useState<
     number | null
   >(null);
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  // ✅ Withdraw loading state
   const [withdrawLoadingId, setWithdrawLoadingId] = useState<
     number | null
   >(null);
@@ -1856,7 +2080,8 @@ const UserManagement: React.FC = () => {
 
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
         );
 
         if (!cancelled && resolvedLogo) {
@@ -1918,6 +2143,7 @@ const UserManagement: React.FC = () => {
 
             setSearch(term);
             setHighlightedUserId(targetUser.id);
+
             await handleView(targetUser.id);
 
             toast.success(
@@ -1947,9 +2173,11 @@ const UserManagement: React.FC = () => {
 
             setSearch(term);
             setHighlightedUserId(targetUser.id);
+
             await handleView(targetUser.id);
           } else {
             setSearch(String(personFromHeader.id));
+
             toast.info(
               `Looking for user with ID: ${personFromHeader.id}`,
             );
@@ -1962,6 +2190,7 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Fetch users error:", error);
+
       toast.error(
         error?.response?.data?.message || "Unable to fetch users.",
       );
@@ -1987,6 +2216,7 @@ const UserManagement: React.FC = () => {
       setLoading(false);
       setInitialUsersLoading(false);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewUsers]);
 
@@ -2007,14 +2237,22 @@ const UserManagement: React.FC = () => {
     const total = users.length;
     const active = users.filter((user) => user.is_active).length;
     const inactive = users.filter((user) => !user.is_active).length;
+
     const distributors = users.filter(
       (user) => user.account_type === "distributor",
     ).length;
+
     const customers = users.filter(
       (user) => user.account_type === "customer",
     ).length;
 
-    return { total, active, inactive, distributors, customers };
+    return {
+      total,
+      active,
+      inactive,
+      distributors,
+      customers,
+    };
   }, [users]);
 
   // ===================================================
@@ -2046,12 +2284,16 @@ const UserManagement: React.FC = () => {
       switch (activeFilter) {
         case "customer":
           return user.account_type === "customer";
+
         case "distributor":
           return user.account_type === "distributor";
+
         case "active":
           return user.is_active;
+
         case "inactive":
           return !user.is_active;
+
         default:
           return true;
       }
@@ -2065,15 +2307,21 @@ const UserManagement: React.FC = () => {
   const tabExportUsers = useMemo(() => {
     switch (activeFilter) {
       case "customer":
-        return users.filter((user) => user.account_type === "customer");
+        return users.filter(
+          (user) => user.account_type === "customer",
+        );
+
       case "distributor":
         return users.filter(
           (user) => user.account_type === "distributor",
         );
+
       case "active":
         return users.filter((user) => user.is_active);
+
       case "inactive":
         return users.filter((user) => !user.is_active);
+
       case "all":
       default:
         return users;
@@ -2084,12 +2332,16 @@ const UserManagement: React.FC = () => {
     switch (activeFilter) {
       case "customer":
         return "customers";
+
       case "distributor":
         return "distributors";
+
       case "active":
         return "active";
+
       case "inactive":
         return "inactive";
+
       case "all":
       default:
         return "all";
@@ -2100,12 +2352,16 @@ const UserManagement: React.FC = () => {
     switch (activeFilter) {
       case "customer":
         return "Download csv Customers";
+
       case "distributor":
         return "Download csv Distributors";
+
       case "active":
         return "Download csv Active";
+
       case "inactive":
         return "Download csv Inactive";
+
       case "all":
       default:
         return "Download csv All";
@@ -2120,10 +2376,12 @@ const UserManagement: React.FC = () => {
       toast.error(
         `No ${exportLabel} users available for CSV export.`,
       );
+
       return;
     }
 
     const dateStamp = getDateStamp();
+
     downloadUsersCsv(
       exportUsers,
       `registered-users-${exportLabel}-${dateStamp}.csv`,
@@ -2186,6 +2444,7 @@ const UserManagement: React.FC = () => {
 
       if (response.data.success) {
         const detail = response.data.data?.[0] || null;
+
         setSelectedUser(detail);
       } else {
         toast.error(
@@ -2194,14 +2453,19 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("View user error:", error);
+
       toast.error(
         error?.response?.data?.message ||
-        "Unable to fetch user details.",
+          "Unable to fetch user details.",
       );
     } finally {
       setDetailLoading(false);
     }
   };
+
+  // ===================================================
+  // USER STATUS
+  // ===================================================
 
   const handleToggleUserStatus = async (
     userId: number,
@@ -2232,8 +2496,9 @@ const UserManagement: React.FC = () => {
 
         toast.success(
           response.data.message ||
-          `User ${nextStatus ? "activated" : "deactivated"
-          } successfully.`,
+            `User ${
+              nextStatus ? "activated" : "deactivated"
+            } successfully.`,
         );
       } else {
         toast.error(
@@ -2242,14 +2507,19 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("User status error:", error);
+
       toast.error(
         error?.response?.data?.message ||
-        "Unable to update user status.",
+          "Unable to update user status.",
       );
     } finally {
       setStatusLoadingId(null);
     }
   };
+
+  // ===================================================
+  // DISTRIBUTOR STATUS
+  // ===================================================
 
   const handleUpdateDistributorStatus = async (
     userId: number,
@@ -2294,9 +2564,11 @@ const UserManagement: React.FC = () => {
             return {
               ...item,
               distributor_status: newStatus,
+
               business_profile: existingBusinessProfile
                 ? updatedProfile
                 : (item as any).business_profile,
+
               distributor_profile: existingDistributorProfile
                 ? updatedProfile
                 : (item as any).distributor_profile,
@@ -2329,9 +2601,11 @@ const UserManagement: React.FC = () => {
           return {
             ...current,
             distributor_status: newStatus,
+
             business_profile: existingBusinessProfile
               ? updatedProfile
               : (current as any).business_profile,
+
             distributor_profile: existingDistributorProfile
               ? updatedProfile
               : (current as any).distributor_profile,
@@ -2343,7 +2617,7 @@ const UserManagement: React.FC = () => {
 
         toast.success(
           response.data.message ||
-          `KYC status updated to ${displayStatus} successfully.`,
+            `KYC status updated to ${displayStatus} successfully.`,
         );
       } else {
         toast.error(
@@ -2352,9 +2626,10 @@ const UserManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Update KYC status error:", error);
+
       toast.error(
         error?.response?.data?.message ||
-        "Unable to update KYC status.",
+          "Unable to update KYC status.",
       );
     } finally {
       setDistributorLoadingId(null);
@@ -2362,7 +2637,7 @@ const UserManagement: React.FC = () => {
   };
 
   // ===================================================
-  // ✅ WITHDRAW HOLD / RELEASE HANDLERS (NO DATE PARAMS)
+  // WITHDRAW HOLD
   // ===================================================
 
   const handleWithdrawHold = async (
@@ -2371,9 +2646,8 @@ const UserManagement: React.FC = () => {
     try {
       setWithdrawLoadingId(userId);
 
-      // Backend endpoint accepts from_date / to_date, but we don't expose dates.
-      // Send today's date for both — backend will treat it as a simple hold toggle.
       const today = new Date();
+
       const isoDate = `${today.getFullYear()}-${String(
         today.getMonth() + 1,
       ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -2389,15 +2663,15 @@ const UserManagement: React.FC = () => {
           prev.map((item) =>
             item.id === userId
               ? {
-                ...item,
-                withdraw_hold: true,
-                ignite_payout: item.ignite_payout
-                  ? {
-                    ...item.ignite_payout,
-                    allow_withdraw: false,
-                  }
-                  : item.ignite_payout,
-              }
+                  ...item,
+                  withdraw_hold: true,
+                  ignite_payout: item.ignite_payout
+                    ? {
+                        ...item.ignite_payout,
+                        allow_withdraw: false,
+                      }
+                    : item.ignite_payout,
+                }
               : item,
           ),
         );
@@ -2405,38 +2679,43 @@ const UserManagement: React.FC = () => {
         setSelectedUser((current) =>
           current?.id === userId
             ? {
-              ...current,
-              withdraw_hold: true,
-              ignite_payout: current.ignite_payout
-                ? {
-                  ...current.ignite_payout,
-                  allow_withdraw: false,
-                }
-                : current.ignite_payout,
-            }
+                ...current,
+                withdraw_hold: true,
+                ignite_payout: current.ignite_payout
+                  ? {
+                      ...current.ignite_payout,
+                      allow_withdraw: false,
+                    }
+                  : current.ignite_payout,
+              }
             : current,
         );
 
         toast.success(
           response.data.message ||
-          "Withdrawals held successfully.",
+            "Withdrawals held successfully.",
         );
       } else {
         toast.error(
           response.data.message ||
-          "Unable to hold withdrawals.",
+            "Unable to hold withdrawals.",
         );
       }
     } catch (error: any) {
       console.error("Withdraw hold error:", error);
+
       toast.error(
         error?.response?.data?.message ||
-        "Unable to hold withdrawals.",
+          "Unable to hold withdrawals.",
       );
     } finally {
       setWithdrawLoadingId(null);
     }
   };
+
+  // ===================================================
+  // WITHDRAW RELEASE
+  // ===================================================
 
   const handleWithdrawRelease = async (
     userId: number,
@@ -2452,15 +2731,15 @@ const UserManagement: React.FC = () => {
           prev.map((item) =>
             item.id === userId
               ? {
-                ...item,
-                withdraw_hold: false,
-                ignite_payout: item.ignite_payout
-                  ? {
-                    ...item.ignite_payout,
-                    allow_withdraw: true,
-                  }
-                  : item.ignite_payout,
-              }
+                  ...item,
+                  withdraw_hold: false,
+                  ignite_payout: item.ignite_payout
+                    ? {
+                        ...item.ignite_payout,
+                        allow_withdraw: true,
+                      }
+                    : item.ignite_payout,
+                }
               : item,
           ),
         );
@@ -2468,42 +2747,50 @@ const UserManagement: React.FC = () => {
         setSelectedUser((current) =>
           current?.id === userId
             ? {
-              ...current,
-              withdraw_hold: false,
-              ignite_payout: current.ignite_payout
-                ? {
-                  ...current.ignite_payout,
-                  allow_withdraw: true,
-                }
-                : current.ignite_payout,
-            }
+                ...current,
+                withdraw_hold: false,
+                ignite_payout: current.ignite_payout
+                  ? {
+                      ...current.ignite_payout,
+                      allow_withdraw: true,
+                    }
+                  : current.ignite_payout,
+              }
             : current,
         );
 
         toast.success(
           response.data.message ||
-          "Withdrawals released successfully.",
+            "Withdrawals released successfully.",
         );
       } else {
         toast.error(
           response.data.message ||
-          "Unable to release withdrawals.",
+            "Unable to release withdrawals.",
         );
       }
     } catch (error: any) {
       console.error("Withdraw release error:", error);
+
       toast.error(
         error?.response?.data?.message ||
-        "Unable to release withdrawals.",
+          "Unable to release withdrawals.",
       );
     } finally {
       setWithdrawLoadingId(null);
     }
   };
 
+  // ===================================================
+  // PAGINATION PAGES
+  // ===================================================
+
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
+      return Array.from(
+        { length: totalPages },
+        (_, index) => index + 1,
+      );
     }
 
     if (currentPage <= 3) {
@@ -2529,6 +2816,9 @@ const UserManagement: React.FC = () => {
     ];
   }, [currentPage, totalPages]);
 
+  // ===================================================
+  // PERMISSION LOADING
+  // ===================================================
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
@@ -2536,14 +2826,16 @@ const UserManagement: React.FC = () => {
 
   if (!canViewUsers && !loading) {
     return (
-      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] font-poppins p-4">
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
+
           <h2 className="text-lg font-bold text-[#111827]">
             Access Denied
           </h2>
+
           <p className="mt-2 text-sm text-[#111827]">
             You don't have permission to access this section.
           </p>
@@ -2574,6 +2866,7 @@ const UserManagement: React.FC = () => {
               <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
               <div className="h-2 w-2 rounded-full bg-[#5A95F6]" />
               <div className="h-2 w-2 rounded-full bg-[#5A95F6]" />
+
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#111827]">
                 User Management
               </span>
@@ -2679,11 +2972,9 @@ const UserManagement: React.FC = () => {
           variants={itemVariants}
           className="relative overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white shadow-[0_10px_35px_-24px_rgba(42,65,104,0.35)]"
         >
-
           {/* TOOLBAR */}
           <div className="border-b border-[#DCE6F2] bg-white p-4 sm:p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-
               <div className="relative w-full lg:w-[480px] lg:shrink-0">
                 <FiSearch
                   size={18}
@@ -2744,18 +3035,20 @@ const UserManagement: React.FC = () => {
                       key={tab.key}
                       type="button"
                       onClick={() => handleFilter(tab.key)}
-                      className={`flex shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-xs font-bold transition-all ${isActive
-                        ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
-                        : "text-[#111827] hover:bg-white hover:text-[#111827]"
-                        }`}
+                      className={`flex shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-xs font-bold transition-all ${
+                        isActive
+                          ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
+                          : "text-[#111827] hover:bg-white hover:text-[#111827]"
+                      }`}
                     >
                       <span>{tab.label}</span>
 
                       <span
-                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-[#EAF3FF] text-[#111827]"
-                          }`}
+                        className={`inline-flex min-w-[22px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                          isActive
+                            ? "bg-white/20 text-white"
+                            : "bg-[#EAF3FF] text-[#111827]"
+                        }`}
                       >
                         {tab.count}
                       </span>
@@ -2774,24 +3067,31 @@ const UserManagement: React.FC = () => {
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white first:rounded-tl-xl">
                     S.No.
                   </th>
+
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     User
                   </th>
+
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Contact
                   </th>
+
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Account Type
                   </th>
+
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     User Status
                   </th>
+
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     KYC Status
                   </th>
+
                   <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-wider text-white">
                     Registered
                   </th>
+
                   <th className="px-3 py-4 text-center text-[10px] font-bold uppercase tracking-wider text-white last:rounded-tr-xl">
                     Actions
                   </th>
@@ -2804,8 +3104,12 @@ const UserManagement: React.FC = () => {
                     <td colSpan={8} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
-                          <FiRefreshCw size={22} className="animate-spin" />
+                          <FiRefreshCw
+                            size={22}
+                            className="animate-spin"
+                          />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading users...
                         </p>
@@ -2817,8 +3121,12 @@ const UserManagement: React.FC = () => {
                     <td colSpan={8} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
-                          <FiRefreshCw size={22} className="animate-spin" />
+                          <FiRefreshCw
+                            size={22}
+                            className="animate-spin"
+                          />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           Loading users...
                         </p>
@@ -2832,9 +3140,11 @@ const UserManagement: React.FC = () => {
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#111827]">
                           <FiUsers size={24} />
                         </div>
+
                         <p className="mt-4 text-sm font-bold text-[#111827]">
                           No users found
                         </p>
+
                         <p className="mt-1 text-xs text-[#111827]">
                           Try another search or filter.
                         </p>
@@ -2860,17 +3170,20 @@ const UserManagement: React.FC = () => {
                     const isHighlighted =
                       highlightedUserId === user.id;
 
-                    const registeredDate = getRegisteredDate(user);
+                    const registeredDate =
+                      getRegisteredDate(user);
 
-                    const kycUpdatedAt = getKycStatusUpdatedAt(user);
+                    const kycUpdatedAt =
+                      getKycStatusUpdatedAt(user);
 
                     return (
                       <tr
                         key={user.id}
-                        className={`border-b border-[#2D6FE8]/10 transition-all duration-300 ${isHighlighted
-                          ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70 shadow-inner"
-                          : "bg-white hover:bg-[#F4F8FD]"
-                          }`}
+                        className={`border-b border-[#2D6FE8]/10 transition-all duration-300 ${
+                          isHighlighted
+                            ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70 shadow-inner"
+                            : "bg-white hover:bg-[#F4F8FD]"
+                        }`}
                       >
                         <td className="px-3 py-4">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#111827]">
@@ -2916,10 +3229,11 @@ const UserManagement: React.FC = () => {
 
                         <td className="px-3 py-4 text-center">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${isDistributor
-                              ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#111827]"
-                              : "border-[#D6E2F0] bg-[#F2F6FA] text-[#111827]"
-                              }`}
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${
+                              isDistributor
+                                ? "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#111827]"
+                                : "border-[#D6E2F0] bg-[#F2F6FA] text-[#111827]"
+                            }`}
                           >
                             {isDistributor ? (
                               <FiBriefcase size={12} />
@@ -2936,9 +3250,7 @@ const UserManagement: React.FC = () => {
                             <UserStatusDropdown
                               userId={user.id}
                               isActive={user.is_active}
-                              onStatusChange={
-                                handleToggleUserStatus
-                              }
+                              onStatusChange={handleToggleUserStatus}
                               isLoading={statusLoading}
                               disabled={!canChangeUserStatus}
                             />
@@ -2956,9 +3268,7 @@ const UserManagement: React.FC = () => {
                                   handleUpdateDistributorStatus
                                 }
                                 isLoading={distributorLoading}
-                                disabled={
-                                  !canChangeDistributorStatus
-                                }
+                                disabled={!canChangeDistributorStatus}
                               />
                             </div>
                           ) : (
@@ -2975,15 +3285,18 @@ const UserManagement: React.FC = () => {
                                 size={13}
                                 className="text-[#111827]"
                               />
+
                               <span className="text-xs font-semibold text-[#111827]">
                                 {formatDateOnly(registeredDate)}
                               </span>
                             </div>
+
                             <div className="flex items-center gap-2">
                               <FiShield
                                 size={12}
                                 className="text-[#2D6FE8]"
                               />
+
                               <span className="text-[11px] font-semibold text-[#2D6FE8]">
                                 KYC: {formatDateOnly(kycUpdatedAt)}
                               </span>
@@ -2995,9 +3308,7 @@ const UserManagement: React.FC = () => {
                           <div className="flex justify-center">
                             <button
                               type="button"
-                              onClick={() =>
-                                handleView(user.id)
-                              }
+                              onClick={() => handleView(user.id)}
                               title="View User Details"
                               className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#111827] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                             >
@@ -3020,6 +3331,7 @@ const UserManagement: React.FC = () => {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                   <FiRefreshCw size={24} className="animate-spin" />
                 </div>
+
                 <p className="mt-4 text-sm font-bold text-[#111827]">
                   Loading users...
                 </p>
@@ -3029,32 +3341,45 @@ const UserManagement: React.FC = () => {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#111827]">
                   <FiRefreshCw size={24} className="animate-spin" />
                 </div>
+
                 <p className="mt-4 text-sm font-bold text-[#111827]">
                   Loading users...
                 </p>
               </div>
             ) : paginatedUsers.length > 0 ? (
               paginatedUsers.map((user, index) => {
-                const statusLoading = statusLoadingId === user.id;
+                const statusLoading =
+                  statusLoadingId === user.id;
+
                 const distributorLoading =
                   distributorLoadingId === user.id;
+
                 const isDistributor =
                   user.account_type === "distributor";
+
                 const distributorStatus =
                   user.distributor_status || "pending";
-                const kycStatus = getEffectiveKycStatus(user);
-                const isHighlighted = highlightedUserId === user.id;
 
-                const registeredDate = getRegisteredDate(user);
-                const kycUpdatedAt = getKycStatusUpdatedAt(user);
+                const kycStatus =
+                  getEffectiveKycStatus(user);
+
+                const isHighlighted =
+                  highlightedUserId === user.id;
+
+                const registeredDate =
+                  getRegisteredDate(user);
+
+                const kycUpdatedAt =
+                  getKycStatusUpdatedAt(user);
 
                 return (
                   <div
                     key={user.id}
-                    className={`border-b border-[#2D6FE8]/10 p-4 transition-all duration-300 ${isHighlighted
-                      ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70"
-                      : ""
-                      }`}
+                    className={`border-b border-[#2D6FE8]/10 p-4 transition-all duration-300 ${
+                      isHighlighted
+                        ? "border-l-4 border-l-[#2D6FE8] bg-[#EAF3FF]/70"
+                        : ""
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -3074,6 +3399,7 @@ const UserManagement: React.FC = () => {
                           <p className="truncate text-sm font-bold text-[#111827]">
                             {getUserName(user)}
                           </p>
+
                           <p className="mt-1 truncate text-xs text-[#111827]">
                             {user.email}
                           </p>
@@ -3090,6 +3416,7 @@ const UserManagement: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                           Type
                         </p>
+
                         <p className="mt-1 text-xs font-bold capitalize text-[#111827]">
                           {user.account_type}
                         </p>
@@ -3099,6 +3426,7 @@ const UserManagement: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                           Registered
                         </p>
+
                         <p className="mt-1 truncate text-xs font-bold text-[#111827]">
                           {formatDateOnly(registeredDate)}
                         </p>
@@ -3108,6 +3436,7 @@ const UserManagement: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                           KYC Status Updated At
                         </p>
+
                         <p className="mt-1 truncate text-xs font-bold text-[#2D6FE8]">
                           {formatDateOnly(kycUpdatedAt)}
                         </p>
@@ -3153,9 +3482,11 @@ const UserManagement: React.FC = () => {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#111827]">
                   <FiUsers size={24} />
                 </div>
+
                 <p className="mt-4 text-sm font-bold text-[#111827]">
                   No users found
                 </p>
+
                 <p className="mt-1 text-xs text-[#111827]">
                   Try another search or filter.
                 </p>
@@ -3200,10 +3531,11 @@ const UserManagement: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${currentPage === page
-                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
-                        : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#111827]"
-                        }`}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold ${
+                        currentPage === page
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/20"
+                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#111827]"
+                      }`}
                     >
                       {page}
                     </button>

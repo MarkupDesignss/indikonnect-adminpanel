@@ -1,3 +1,4 @@
+
 import apiClient from "../client";
 import type { AxiosProgressEvent } from "axios";
 
@@ -144,6 +145,9 @@ export interface Product {
   tax_category_id: number;
   tax_category: TaxCategory;
 
+  // Ignite Product ID
+  ignite_product_id?: number | null;
+
   retail_mrp: string | number;
   retail_price: string | number;
   retail_discount_type: DiscountType;
@@ -256,10 +260,16 @@ export interface ProductPayload {
   slug?: string;
   description: string;
   specification: string;
+
   category_id: number;
   tax_category_id: number;
+
+  // Ignite Product ID
+  ignite_product_id?: number | null;
+
   stock_quantity: number;
   low_stock_threshold: number;
+
   is_published: boolean;
   is_trending: boolean;
   trending_sort_order: number;
@@ -307,12 +317,6 @@ export interface PublishProductPayload {
 
 /* =========================================================
    BEST SELLER
-   POST /best-seller/products/{productId}
-
-   Request body:
-   {
-     "is_best_seller": 1
-   }
 ========================================================= */
 
 export interface BestSellerPayload {
@@ -446,7 +450,15 @@ export const productApi = {
   getProductBySlug: (slug: string) =>
     apiClient.get<ApiResponse<Product>>(`/products/slug/${slug}`),
 
-  createProduct: (data: FormData, onUploadProgress?: OnUploadProgress) => {
+  // ============================
+  // CREATE PRODUCT
+  // POST /products
+  // ============================
+
+  createProduct: (
+    data: FormData,
+    onUploadProgress?: OnUploadProgress,
+  ) => {
     const startedAt = Date.now();
 
     return apiClient.post<ApiResponse<Product>>("/products", data, {
@@ -455,6 +467,11 @@ export const productApi = {
         emitUploadProgress(event, startedAt, onUploadProgress),
     });
   },
+
+  // ============================
+  // UPDATE PRODUCT
+  // POST /products/update/{id}
+  // ============================
 
   updateProduct: (
     id: number,
@@ -474,10 +491,17 @@ export const productApi = {
     );
   },
 
+  // ============================
+  // DELETE PRODUCT IMAGES
+  // ============================
+
   deleteImages: (productId: number, imageIds: number[]) =>
-    apiClient.delete<ApiResponse<null>>(`/products/${productId}/images`, {
-      data: { image_ids: imageIds },
-    }),
+    apiClient.delete<ApiResponse<null>>(
+      `/products/${productId}/images`,
+      {
+        data: { image_ids: imageIds },
+      },
+    ),
 
   // ============================
   // PRODUCTS BY CATEGORY
@@ -504,7 +528,10 @@ export const productApi = {
   // POST /move-product-image/{productId}
   // ============================
 
-  moveProductImage: (productId: number, data: MoveProductImagePayload) =>
+  moveProductImage: (
+    productId: number,
+    data: MoveProductImagePayload,
+  ) =>
     apiClient.post<ApiResponse<null>>(
       `/move-product-image/${productId}`,
       data,
@@ -525,7 +552,10 @@ export const productApi = {
   // PUBLISH / UNPUBLISH
   // ============================
 
-  publishProduct: (productId: number, data: PublishProductPayload) =>
+  publishProduct: (
+    productId: number,
+    data: PublishProductPayload,
+  ) =>
     apiClient.post<ApiResponse<Product>>(
       `/publish/${productId}/product`,
       data,
@@ -534,17 +564,12 @@ export const productApi = {
   // ============================
   // BEST SELLER
   // POST /best-seller/products/{productId}
-  //
-  // Example:
-  // POST /best-seller/products/7
-  //
-  // Body:
-  // {
-  //   "is_best_seller": 1
-  // }
   // ============================
 
-  setBestSeller: (productId: number, data: BestSellerPayload) =>
+  setBestSeller: (
+    productId: number,
+    data: BestSellerPayload,
+  ) =>
     apiClient.post<ApiResponse<Product>>(
       `/best-seller/products/${productId}`,
       data,
@@ -556,11 +581,15 @@ export const productApi = {
 
   /** GET /products-deal-of-the-day */
   getDeals: () =>
-    apiClient.get<ApiResponse<Product[]>>("/products-deal-of-the-day"),
+    apiClient.get<ApiResponse<Product[]>>(
+      "/products-deal-of-the-day",
+    ),
 
   /** GET /products-deal-of-the-day/{id} */
   getDealById: (id: number) =>
-    apiClient.get<ApiResponse<Product>>(`/products-deal-of-the-day/${id}`),
+    apiClient.get<ApiResponse<Product>>(
+      `/products-deal-of-the-day/${id}`,
+    ),
 
   /** POST /products-deal-of-the-day/{productId} */
   addDeal: (productId: number, data: DealPayload) =>
@@ -590,5 +619,8 @@ export const productApi = {
     apiClient.get<ApiResponse<Warehouse[]>>("/warehouses"),
 
   assignProductsToWarehouse: (data: WarehouseStockPayload) =>
-    apiClient.post<ApiResponse<unknown>>("/warehouse-stocks", data),
+    apiClient.post<ApiResponse<unknown>>(
+      "/warehouse-stocks",
+      data,
+    ),
 };

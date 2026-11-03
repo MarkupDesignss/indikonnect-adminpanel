@@ -131,6 +131,8 @@ interface ExistingVideo {
 }
 
 interface FormBlock {
+  id?: number;
+  sort_order?: number;
   heading: string;
   short_description: string;
   description: string;
@@ -191,8 +193,24 @@ const initials = (title: string) => {
   return value || "PG";
 };
 
-const isVideoFile = (file: File) =>
-  file.type.toLowerCase().startsWith("video/");
+const isVideoFile = (file: File) => {
+  const mimeType = file.type.toLowerCase();
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  return (
+    mimeType.startsWith("video/") ||
+    ["mp4", "webm", "ogg", "ogv", "mov", "m4v"].includes(extension)
+  );
+};
+
+const isSupportedMediaFile = (file: File) => {
+  const mimeType = file.type.toLowerCase();
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  return (
+    mimeType.startsWith("image/") ||
+    mimeType.startsWith("video/") ||
+    ["png", "jpg", "jpeg", "webp", "avif", "mp4", "webm", "ogg", "ogv", "mov", "m4v"].includes(extension)
+  );
+};
 
 const isVideoUrl = (url?: string | null) => {
   if (!url) return false;
@@ -213,6 +231,21 @@ const isExistingVideo = (image: ExistingImage) => {
   ).toLowerCase();
   return mediaType.includes("video") || isVideoUrl(image.url);
 };
+
+const formatFileSize = (bytes: number) => {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+interface UploadProgressState {
+  status: "uploading" | "complete" | "error";
+  // null means the API did not expose a measurable total; the UI shows an
+  // indeterminate progress animation instead of displaying a fake percentage.
+  percent: number | null;
+  loaded?: number;
+  total?: number;
+}
 
 
 const AccessDeniedState: React.FC = () => (
@@ -237,68 +270,97 @@ const AccessDeniedState: React.FC = () => (
 interface NewMediaPreviewProps {
   file: File;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
 const NewMediaPreview: React.FC<NewMediaPreviewProps> = ({
   file,
   onRemove,
+  disabled = false,
 }) => {
-  const previewUrl = useMemo(() => URL.createObjectURL(file), [file]);
-
-  useEffect(() => {
-    return () => {
-      URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewFailed, setPreviewFailed] = useState(false);
   const video = isVideoFile(file);
 
-  return (
-    <div className="group relative aspect-video overflow-hidden rounded-lg border border-[#DCE6F2] bg-white">
-      {video ? (
-        <video
-          src={previewUrl}
-          className="h-full w-full object-cover"
-          muted
-          playsInline
-          controls
-          preload="metadata"
-        />
-      ) : (
-        <img
-          src={previewUrl}
-          alt={file.name}
-          className="h-full w-full object-cover"
-        />
-      )}
+  // Create object URLs in an effect (not during render) and always revoke them.
+  useEffect(() => {
+    let objectUrl = "";
+    try {
+      objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+      setPreviewFailed(false);
+    } catch (error) {
+      console.error("Unable to create media preview:", error);
+      setPreviewUrl("");
+      setPreviewFailed(true);
+    }
 
-      <div className="absolute left-1.5 top-1.5">
-        <span className="flex items-center gap-1 rounded-full bg-[#2D6FE8] px-1.5 py-0.5 text-[7px] font-bold uppercase text-white">
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file]);
+
+  return (
+    <div className="group relative min-w-0 overflow-hidden rounded-lg border border-[#DCE6F2] bg-white shadow-sm">
+      <div className="relative aspect-video w-full overflow-hidden bg-[#F4F8FD]">
+        {previewUrl && !previewFailed ? (
+          video ? (
+            <video
+              src={previewUrl}
+              className="h-full w-full bg-black object-contain"
+              muted
+              playsInline
+              controls
+              preload="metadata"
+              onError={() => setPreviewFailed(true)}
+            />
+          ) : (
+            <img
+              src={previewUrl}
+              alt={`${file.name} preview`}
+              className="h-full w-full object-contain"
+              onError={() => setPreviewFailed(true)}
+            />
+          )
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center text-[#8A98AA]">
+            {video ? <FiVideo size={22} /> : <FiFileText size={22} />}
+            <span className="text-[9px] font-medium">
+              {previewFailed ? "Preview unavailable" : "Preparing preview..."}
+            </span>
+          </div>
+        )}
+
+        <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-[#2D6FE8] px-2 py-1 text-[8px] font-bold uppercase text-white shadow-sm">
           {video ? (
             <>
-              <FiVideo size={8} />
-              Video
+              <FiVideo size={9} /> Video
             </>
           ) : (
             "New"
           )}
         </span>
+
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={disabled}
+          className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg transition hover:bg-[#C23B32] disabled:cursor-not-allowed disabled:opacity-40"
+          title="Remove media"
+          aria-label={`Remove ${file.name}`}
+        >
+          <FiX size={11} />
+        </button>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-1.5 pt-5">
-        <p className="truncate text-[8px] font-semibold text-white">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-2 py-1.5">
+        <p className="min-w-0 flex-1 truncate text-[9px] font-semibold text-[#344054]" title={file.name}>
           {file.name}
         </p>
+        <span className="shrink-0 text-[8px] font-medium text-[#98A2B3]">
+          {formatFileSize(file.size)}
+        </span>
       </div>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white shadow-lg transition hover:bg-[#C23B32]"
-        title="Remove media"
-      >
-        <FiX size={11} />
-      </button>
     </div>
   );
 };
@@ -379,6 +441,7 @@ interface BlockEditorProps {
   onRemoveExistingVideo: (blockIndex: number, videoIndex: number) => void;
   canRemove: boolean;
   canDeleteMedia: boolean;
+  disabled?: boolean;
 }
 
 const BlockEditor: React.FC<BlockEditorProps> = ({
@@ -391,6 +454,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
   onRemoveExistingVideo,
   canRemove,
   canDeleteMedia,
+  disabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const totalMedia =
@@ -415,6 +479,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
           <button
             type="button"
             onClick={() => onRemove(index)}
+            disabled={disabled}
             className="flex h-7 w-7 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white"
             title="Remove block"
           >
@@ -487,22 +552,50 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp,image/avif,video/mp4,video/webm,video/ogg,video/quicktime,video/x-m4v"
             multiple
+            disabled={disabled}
             className="hidden"
             onChange={(e) => {
-              const files = Array.from(e.target.files || []);
-              if (!files.length) return;
-              onChange(index, "imageFiles", [...block.imageFiles, ...files]);
+              const selectedFiles = Array.from(e.target.files || []);
               e.target.value = "";
+              if (!selectedFiles.length) return;
+
+              const validFiles = selectedFiles.filter(isSupportedMediaFile);
+
+              if (validFiles.length !== selectedFiles.length) {
+                toast.error("Please select valid image or video files only.");
+              }
+
+              if (!validFiles.length) return;
+
+              const existingKeys = new Set(
+                block.imageFiles.map(
+                  (file) => `${file.name}-${file.size}-${file.lastModified}`,
+                ),
+              );
+              const uniqueFiles = validFiles.filter((file) => {
+                const key = `${file.name}-${file.size}-${file.lastModified}`;
+                if (existingKeys.has(key)) return false;
+                existingKeys.add(key);
+                return true;
+              });
+
+              if (!uniqueFiles.length) {
+                toast.error("These files are already added.");
+                return;
+              }
+
+              onChange(index, "imageFiles", [...block.imageFiles, ...uniqueFiles]);
             }}
           />
 
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#2D6FE8]/40 bg-[#F8FBFF] text-xs font-semibold text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF]"
+            disabled={disabled}
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#2D6FE8]/40 bg-[#F8FBFF] text-xs font-semibold text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiUpload size={14} />
-            Upload images / videos
+            Choose images / videos
           </button>
 
           {/* EXISTING MEDIA */}
@@ -519,7 +612,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
                     image={image}
                     index={imageIndex}
                     blockIndex={index}
-                    canDelete={canDeleteMedia}
+                    canDelete={canDeleteMedia && !disabled}
                     onRemove={() => onRemoveExistingImage(index, imageIndex)}
                   />
                 ))}
@@ -534,7 +627,7 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
                     }}
                     index={videoIndex}
                     blockIndex={index}
-                    canDelete={canDeleteMedia}
+                    canDelete={canDeleteMedia && !disabled}
                     onRemove={() => onRemoveExistingVideo(index, videoIndex)}
                   />
                 ))}
@@ -551,14 +644,20 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
           {/* NEW MEDIA */}
           {block.imageFiles.length > 0 && (
             <div className="mt-3">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase text-[#6B7280]">
-                New
-              </p>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1">
+                <p className="text-[10px] font-semibold uppercase text-[#6B7280]">
+                  New media ({block.imageFiles.length})
+                </p>
+                <p className="text-[9px] text-[#98A2B3]">
+                  Upload starts when you save the page
+                </p>
+              </div>
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                 {block.imageFiles.map((file, fileIndex) => (
                   <NewMediaPreview
                     key={`${file.name}-${file.lastModified}-${fileIndex}`}
                     file={file}
+                    disabled={disabled}
                     onRemove={() => onRemoveNewImage(index, fileIndex)}
                   />
                 ))}
@@ -855,6 +954,7 @@ interface PageFormModalProps {
   mode: "add" | "edit";
   page: ContentPage | null;
   canDeleteMedia: boolean;
+  uploadProgress: UploadProgressState | null;
   onClose: () => void;
   onSubmit: (payload: ContentPayload) => void;
 }
@@ -865,6 +965,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
   mode,
   page,
   canDeleteMedia,
+  uploadProgress,
   onClose,
   onSubmit,
 }) => {
@@ -879,9 +980,13 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 
       const mappedBlocks = (page.blocks || []).map(
         (block): FormBlock => ({
+          id: block.id,
+          sort_order: block.sort_order,
+      
           heading: block.heading || "",
           short_description: block.short_description || "",
           description: block.description || "",
+      
           existingImages: (block.images || []).map((image) => ({
             id: image.id,
             url: image.url,
@@ -891,10 +996,12 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
             mime_type: (image as any).mime_type || null,
             type: (image as any).type || null,
           })),
+      
           existingVideos: (block.videos || []).map((video) => ({
             id: video.id,
             url: video.url,
           })),
+      
           imageFiles: [],
         }),
       );
@@ -978,6 +1085,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     blockIndex: number,
     imageIndex: number,
   ) => {
+    if (loading) return;
     if (!canDeleteMedia) {
       toast.error("You do not have permission to remove media.");
       return;
@@ -1040,6 +1148,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     blockIndex: number,
     videoIndex: number,
   ) => {
+    if (loading) return;
     if (!canDeleteMedia) {
       toast.error("You do not have permission to remove media.");
       return;
@@ -1100,33 +1209,54 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-
+  
     if (!title.trim()) {
       toast.error("Page title is required.");
       return;
     }
-
+  
     if (blocks.length === 0) {
       toast.error("At least one content block is required.");
       return;
     }
-
+  
     const payload: ContentPayload = {
       title: title.trim(),
+  
       status:
-        mode === "edit" && page?.status ? page.status : "published",
-      blocks: blocks.map(
-        (block) =>
-          ({
-            heading: block.heading,
-            short_description: block.short_description,
-            description: block.description,
-            imageFiles: block.imageFiles,
-            existingImages: block.existingImages,
-          }) as ContentBlockPayload,
-      ),
+        mode === "edit" && page?.status
+          ? page.status
+          : "published",
+  
+      blocks: blocks.map((block, blockIndex) => ({
+        // Existing block ID is sent.
+        // New blocks will not contain an ID.
+        ...(block.id !== undefined && block.id !== null
+          ? { id: block.id }
+          : {}),
+  
+        heading: block.heading,
+        short_description: block.short_description,
+        description: block.description,
+  
+        sort_order: block.sort_order ?? blockIndex + 1,
+  
+        imageFiles: block.imageFiles,
+  
+        // Preserve existing image IDs
+        existingImages: block.existingImages.map((image) => ({
+          id: image.id,
+          alt_text: image.alt_text,
+          is_primary: image.is_primary,
+        })),
+  
+        // Preserve existing video IDs
+        existingVideos: block.existingVideos.map((video) => ({
+          id: video.id,
+        })),
+      })),
     };
-
+  
     onSubmit(payload);
   };
 
@@ -1201,6 +1331,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
               <button
                 type="button"
                 onClick={addBlock}
+                disabled={loading}
                 className="flex h-7 items-center gap-1 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
               >
                 <FiPlus size={12} />
@@ -1222,10 +1353,75 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                   onRemoveExistingVideo={removeExistingVideo}
                   canRemove={blocks.length > 1}
                   canDeleteMedia={canDeleteMedia}
+                  disabled={loading}
                 />
               ))}
             </div>
           </div>
+
+          {/* UPLOAD PROGRESS */}
+          {uploadProgress && (
+            <div className="shrink-0 border-t border-[#DCE6F2] bg-white px-5 pt-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  {uploadProgress.status === "uploading" ? (
+                    <FiRefreshCw size={13} className="shrink-0 animate-spin text-[#2D6FE8]" />
+                  ) : uploadProgress.status === "complete" ? (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#1F9D6B]" />
+                  ) : (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#C23B32]" />
+                  )}
+                  <span className="truncate text-[11px] font-semibold text-[#344054]">
+                    {uploadProgress.status === "uploading"
+                      ? "Uploading media..."
+                      : uploadProgress.status === "complete"
+                        ? "Media uploaded successfully"
+                        : "Media upload failed. Please try again."}
+                  </span>
+                </div>
+                <span className="shrink-0 text-[10px] font-bold tabular-nums text-[#2D6FE8]">
+                  {uploadProgress.percent === null
+                    ? "In progress"
+                    : `${uploadProgress.percent}%`}
+                </span>
+              </div>
+
+              <div
+                className="h-2 w-full overflow-hidden rounded-full bg-[#EAF3FF]"
+                role="progressbar"
+                aria-label="Media upload progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={uploadProgress.percent ?? undefined}
+                aria-valuetext={
+                  uploadProgress.percent === null
+                    ? "Upload in progress"
+                    : `${uploadProgress.percent}% uploaded`
+                }
+              >
+                {uploadProgress.percent === null ? (
+                  <div className="sk-upload-indeterminate h-full rounded-full bg-[#2D6FE8]" />
+                ) : (
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-200 ${
+                      uploadProgress.status === "complete"
+                        ? "bg-[#1F9D6B]"
+                        : uploadProgress.status === "error"
+                          ? "bg-[#C23B32]"
+                          : "bg-[#2D6FE8]"
+                    }`}
+                    style={{ width: `${Math.max(0, Math.min(100, uploadProgress.percent))}%` }}
+                  />
+                )}
+              </div>
+
+              {uploadProgress.total && uploadProgress.total > 0 && (
+                <p className="mt-1 text-right text-[9px] text-[#98A2B3]">
+                  {formatFileSize(uploadProgress.loaded || 0)} of {formatFileSize(uploadProgress.total)}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* STICKY FOOTER */}
           <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-white px-5 py-3 sm:flex-row sm:justify-end">
@@ -1423,6 +1619,7 @@ const ContentsManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [saveLoading, setSaveLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1684,6 +1881,7 @@ const ContentsManagement: React.FC = () => {
       return;
     }
     setSelectedPage(null);
+    setUploadProgress(null);
     setModalMode("add");
     setAddEditOpen(true);
   }, [canCreateContents]);
@@ -1695,6 +1893,7 @@ const ContentsManagement: React.FC = () => {
         return;
       }
       setSelectedPage(page);
+      setUploadProgress(null);
       setModalMode("edit");
       setAddEditOpen(true);
     },
@@ -1715,40 +1914,99 @@ const ContentsManagement: React.FC = () => {
       }
       if (saveLoading) return;
 
+      const hasNewMedia = (payload.blocks || []).some(
+        (block: any) => Array.isArray(block.imageFiles) && block.imageFiles.length > 0,
+      );
+
+      setUploadProgress(
+        hasNewMedia
+          ? { status: "uploading", percent: null, loaded: 0, total: 0 }
+          : null,
+      );
+
+      // Axios reports real request-body progress only when the API endpoint
+      // forwards this config object to axios.post/put as its final argument.
+      const requestConfig = hasNewMedia
+        ? {
+            onUploadProgress: (event: any) => {
+              const loaded = Number(event?.loaded || 0);
+              const total = Number(event?.total || 0);
+              const measurable = Number.isFinite(total) && total > 0;
+              const percent = measurable
+                ? Math.max(0, Math.min(99, Math.round((loaded / total) * 100)))
+                : null;
+
+              setUploadProgress({
+                status: "uploading",
+                percent,
+                loaded,
+                total: measurable ? total : 0,
+              });
+            },
+          }
+        : undefined;
+
       try {
         setSaveLoading(true);
 
+        let response: any;
         if (isEdit && selectedPage) {
-          const response = await contentsApi.update(
+          response = await contentsApi.update(
             selectedPage.id,
             payload,
+            requestConfig,
           );
-          if (response.data.success) {
-            toast.success(
-              response.data.message || "Page updated successfully.",
-            );
-            setAddEditOpen(false);
-            setSelectedPage(null);
-            await fetchContents(true);
-          } else {
-            toast.error(response.data.message || "Unable to update page.");
-          }
         } else {
-          const response = await contentsApi.create(payload);
-          if (response.data.success) {
-            toast.success(
-              response.data.message || "Page created successfully.",
-            );
-            setAddEditOpen(false);
-            await fetchContents(true);
-          } else {
-            toast.error(response.data.message || "Unable to create page.");
+          response = await contentsApi.create(
+            payload,
+            requestConfig,
+          );
+        }
+
+        if (response?.data?.success) {
+          if (hasNewMedia) {
+            setUploadProgress({
+              status: "complete",
+              percent: 100,
+              loaded: 1,
+              total: 1,
+            });
           }
+
+          toast.success(
+            response.data.message ||
+              (isEdit ? "Page updated successfully." : "Page created successfully."),
+          );
+          setAddEditOpen(false);
+          if (isEdit) setSelectedPage(null);
+          await fetchContents(true);
+          setUploadProgress(null);
+        } else {
+          if (hasNewMedia) {
+            setUploadProgress((previous) => ({
+              status: "error",
+              percent: previous?.percent ?? null,
+              loaded: previous?.loaded ?? 0,
+              total: previous?.total ?? 0,
+            }));
+          }
+          toast.error(
+            response?.data?.message ||
+              (isEdit ? "Unable to update page." : "Unable to create page."),
+          );
         }
       } catch (error: any) {
         console.error("Save page error:", error);
+        if (hasNewMedia) {
+          setUploadProgress((previous) => ({
+            status: "error",
+            percent: previous?.percent ?? null,
+            loaded: previous?.loaded ?? 0,
+            total: previous?.total ?? 0,
+          }));
+        }
         toast.error(
-          error?.response?.data?.message || "Unable to save page.",
+          error?.response?.data?.message || error?.message || "Unable to save page.",
         );
       } finally {
         setSaveLoading(false);
@@ -1827,6 +2085,15 @@ const ContentsManagement: React.FC = () => {
     <>
       {/* QUILL STYLES */}
       <style>{`
+        @keyframes sk-upload-indeterminate {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(320%); }
+        }
+        .sk-upload-indeterminate {
+          width: 28%;
+          animation: sk-upload-indeterminate 1.25s ease-in-out infinite;
+        }
+
         .sk-editor-wrapper .ql-toolbar.ql-snow {
           border: 1px solid #DCE6F2;
           border-bottom: none;
@@ -2415,10 +2682,12 @@ const ContentsManagement: React.FC = () => {
           mode={modalMode}
           page={selectedPage}
           canDeleteMedia={canDeleteContents}
+          uploadProgress={uploadProgress}
           onClose={() => {
             if (!saveLoading) {
               setAddEditOpen(false);
               setSelectedPage(null);
+              setUploadProgress(null);
             }
           }}
           onSubmit={handleSave}

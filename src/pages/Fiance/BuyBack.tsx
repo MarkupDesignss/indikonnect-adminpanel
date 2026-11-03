@@ -1254,6 +1254,7 @@ interface ReturnDetailModalProps {
   canComplete?: boolean;
 }
 
+
 const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   open,
   loading,
@@ -1264,7 +1265,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   onReject,
   onReceived,
   onComplete,
-
   canApprove = false,
   canReject = false,
   canMarkReceived = false,
@@ -1290,7 +1290,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
           <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
 
-          <div className="flex min-h-[320px] flex-col items-center justify-center">
+          <div className="flex min-h-[280px] flex-col items-center justify-center p-5">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FiRefreshCw size={27} className="animate-spin" />
             </div>
@@ -1318,7 +1318,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
           <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
 
-          <div className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
+          <div className="flex min-h-[260px] flex-col items-center justify-center p-8 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
               <FiAlertCircle size={28} />
             </div>
@@ -1330,7 +1330,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="mt-5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-6 py-3.5 text-sm font-bold text-white"
+              className="mt-5 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-6 py-3 text-sm font-bold text-white"
             >
               Close
             </button>
@@ -1359,7 +1359,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const accountType = detail.user?.account_type;
 
-  // ✅ Return method / courier / tracking
   const returnMethod = rawDetail.return_method || null;
   const trackingId = rawDetail.tracking_id || null;
   const courier = rawDetail.courier || null;
@@ -1375,31 +1374,31 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const timelineEvents = timelineSource
     ? buildTimelineEvents(timelineSource, accountType)
     : buildTimelineEvents(
-      {
-        created_at:
-          rawDetail.order_created_at || rawDetail.created_at || null,
+        {
+          created_at:
+            rawDetail.order_created_at || rawDetail.created_at || null,
 
-        buyback_requested_at:
-          rawDetail.buyback_requested_at ||
-          rawDetail.created_at ||
-          null,
+          buyback_requested_at:
+            rawDetail.buyback_requested_at ||
+            rawDetail.created_at ||
+            null,
 
-        buyback_approved_at: rawDetail.approved_at || null,
+          buyback_approved_at: rawDetail.approved_at || null,
 
-        buyback_rejected_at:
-          detail.status === "rejected"
-            ? rawDetail.updated_at
-            : null,
+          buyback_rejected_at:
+            detail.status === "rejected"
+              ? rawDetail.updated_at
+              : null,
 
-        buyback_refunded_at:
-          detail.status === "completed"
-            ? rawDetail.refunded_at || rawDetail.updated_at
-            : null,
+          buyback_refunded_at:
+            detail.status === "completed"
+              ? rawDetail.refunded_at || rawDetail.updated_at
+              : null,
 
-        updated_at: rawDetail.updated_at || null,
-      },
-      accountType,
-    );
+          updated_at: rawDetail.updated_at || null,
+        },
+        accountType,
+      );
 
   return (
     <GlobalModal
@@ -1407,31 +1406,36 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       onClose={onClose}
       closeOnOverlayClick={false}
     >
-      <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
+      <div className="flex w-full max-h-[90vh] max-w-6xl flex-col overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-2xl font-poppins">
 
-        {/* HEADER — WITH TRACKING DETAILS */}
-        <div className="border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
+        <div className="h-1 w-full shrink-0 bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
+
+        {/* HEADER */}
+        <div className="shrink-0 border-b border-[#DCE6F2] px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <div className="mb-1 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2D6FE8]" />
 
                 <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
                   Buyback & Refunds
                 </span>
               </div>
 
-              <h2 className="text-xl font-bold text-[#111827]">
+              <h2 className="break-words text-lg font-bold text-[#111827] sm:text-xl">
                 Buyback Request
               </h2>
 
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-                <span>{getItemReferenceId(detail)}</span>
+              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 text-xs text-[#6B7280]">
+                <span className="min-w-0 break-all">
+                  {getItemReferenceId(detail)}
+                </span>
 
-                <span>•</span>
+                <span className="shrink-0">•</span>
 
-                <span>{formatDate(detail.created_at)}</span>
+                <span className="break-words">
+                  {formatDate(detail.created_at)}
+                </span>
               </div>
             </div>
 
@@ -1444,32 +1448,33 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </button>
           </div>
 
-          {/* Tracking Details Row */}
-          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2">
-              <FiTruck size={14} className="text-[#2D6FE8]" />
+          {/* TRACKING DETAILS */}
+          <div className="mt-3 flex flex-wrap items-stretch gap-2 sm:gap-3">
 
-              <div className="flex flex-col">
+            <div className="flex min-w-0 max-w-full items-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2">
+              <FiTruck size={14} className="shrink-0 text-[#2D6FE8]" />
+
+              <div className="flex min-w-0 flex-col">
                 <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                   Return Method
                 </span>
 
-                <span className="text-xs font-bold text-[#2D6FE8]">
+                <span className="break-words text-xs font-bold text-[#2D6FE8]">
                   {returnMethodLabel}
                 </span>
               </div>
             </div>
 
             {courier && (
-              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
-                <FiPackage size={14} className="text-[#4F8FF7]" />
+              <div className="flex min-w-0 max-w-full items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiPackage size={14} className="shrink-0 text-[#4F8FF7]" />
 
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Courier
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
+                  <span className="break-words text-xs font-bold text-[#111827] [overflow-wrap:anywhere]">
                     {courier}
                   </span>
                 </div>
@@ -1477,59 +1482,62 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             )}
 
             {trackingId && (
-              <div className="flex items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
-                <FiHash size={14} className="text-[#4F8FF7]" />
+              <div className="flex min-w-0 max-w-full items-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2">
+                <FiHash size={14} className="shrink-0 text-[#4F8FF7]" />
 
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Tracking ID
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
+                  <span className="break-all text-xs font-bold text-[#111827]">
                     {trackingId}
                   </span>
                 </div>
               </div>
             )}
+
           </div>
         </div>
 
         {/* BODY */}
-        <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-5">
+
           {/* COMPLETED BANNER */}
           {isCompleted && (
-            <div className="overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
-              <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
+            <div className="min-w-0 overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-4 py-3 sm:px-5 sm:py-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8]">
                     <FiCreditCard size={17} />
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="text-sm font-bold text-[#2D6FE8]">
                       Refund Completed
                     </h3>
 
-                    <p className="mt-0.5 text-xs text-[#6B7280]">
+                    <p className="mt-0.5 break-words text-xs text-[#6B7280]">
                       The refund has been processed successfully.
                     </p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
                   Refunded
                 </span>
               </div>
 
-              <div className="bg-white p-5">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+              <div className="bg-white p-4 sm:p-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+                  <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3 sm:p-4">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                       Refund Amount
                     </p>
 
-                    <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
+                    <p className="mt-1 break-words text-xl font-bold text-[#2D6FE8]">
                       {formatCurrency(
                         actualRefundedAmount ??
                         detail.refund_info?.amount ??
@@ -1538,23 +1546,22 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+                  <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3 sm:p-4">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                       Refund Method
                     </p>
 
-                    <p className="mt-1 text-sm font-bold capitalize text-[#111827]">
-                      {detail.refund_info?.refund_method ||
-                        "Original Payment"}
+                    <p className="mt-1 break-words text-sm font-bold capitalize text-[#111827]">
+                      {detail.refund_info?.refund_method || "Original Payment"}
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+                  <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3 sm:p-4">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                       Refunded At
                     </p>
 
-                    <p className="mt-1 text-sm font-bold text-[#111827]">
+                    <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
                         detail.refunded_at ||
@@ -1562,68 +1569,80 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       )}
                     </p>
                   </div>
+
                 </div>
               </div>
             </div>
           )}
 
           {/* CUSTOMER + ORDER */}
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
+          <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+
+            {/* CUSTOMER */}
+            <div className="min-w-0 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiUser size={17} />
                 </div>
 
-                <h3 className="text-sm font-bold text-[#111827]">
+                <h3 className="min-w-0 break-words text-sm font-bold text-[#111827]">
                   {getAccountTypeLabel(accountType)} Information
                 </h3>
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">Name</span>
 
-                  <span className="text-right text-sm font-semibold text-[#111827]">
+                <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
+                    Name
+                  </span>
+
+                  <span className="min-w-0 max-w-[70%] break-words text-right text-sm font-semibold text-[#111827]">
                     {getCustomerName(detail.user)}
                   </span>
                 </div>
 
-                <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
+                <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
                   <span className="shrink-0 text-xs text-[#6B7280]">
                     Email
                   </span>
 
-                  <div className="min-w-0 text-right">
-                    <p className="truncate text-sm font-semibold text-[#111827]">
+                  <div className="min-w-0 max-w-[70%] text-right">
+                    <p className="break-all text-sm font-semibold text-[#111827]">
                       {detail.user?.email || "—"}
                     </p>
 
                     <span
-                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                      className={`mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
                         accountType,
                       )}`}
                     >
-                      <FiBriefcase size={10} />
+                      <FiBriefcase size={10} className="shrink-0" />
 
-                      {getAccountTypeLabel(accountType)}
+                      <span className="break-words">
+                        {getAccountTypeLabel(accountType)}
+                      </span>
                     </span>
                   </div>
                 </div>
 
-                <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#6B7280]">Phone</span>
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
+                    Phone
+                  </span>
 
-                  <span className="text-sm font-semibold text-[#111827]">
+                  <span className="min-w-0 max-w-[70%] break-all text-right text-sm font-semibold text-[#111827]">
                     {detail.user?.phone || "N/A"}
                   </span>
                 </div>
+
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
+            {/* ORDER */}
+            <div className="min-w-0 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4 sm:p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={17} />
                 </div>
 
@@ -1633,101 +1652,109 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </div>
 
               <div className="space-y-3">
-                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
+
+                <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
                     Item Reference
                   </span>
 
-                  <span className="text-right text-sm font-bold text-[#2D6FE8]">
+                  <span className="min-w-0 max-w-[65%] break-all text-right text-sm font-bold text-[#2D6FE8]">
                     {getItemReferenceId(detail)}
                   </span>
                 </div>
 
-                <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
+                <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
                     Order Status
                   </span>
 
-                  <span className="text-sm font-semibold capitalize text-[#111827]">
+                  <span className="min-w-0 break-words text-right text-sm font-semibold capitalize text-[#111827]">
                     {getStatusLabel(detail.order?.status || "")}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
+                <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
                     Return Method
                   </span>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                    <FiTruck size={10} />
-                    {returnMethodLabel}
+                  <span className="inline-flex min-w-0 max-w-[65%] items-center justify-end gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-right text-[10px] font-bold text-[#2D6FE8]">
+                    <FiTruck size={10} className="shrink-0" />
+                    <span className="break-words">{returnMethodLabel}</span>
                   </span>
                 </div>
 
                 {courier && (
-                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                    <span className="text-xs text-[#6B7280]">
+                  <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="shrink-0 text-xs text-[#6B7280]">
                       Courier
                     </span>
 
-                    <span className="text-sm font-semibold text-[#111827]">
+                    <span className="min-w-0 max-w-[65%] break-words text-right text-sm font-semibold text-[#111827]">
                       {courier}
                     </span>
                   </div>
                 )}
 
                 {trackingId && (
-                  <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                    <span className="text-xs text-[#6B7280]">
+                  <div className="flex min-w-0 items-start justify-between gap-3 border-b border-[#DCE6F2] pb-2.5">
+                    <span className="shrink-0 text-xs text-[#6B7280]">
                       Tracking ID
                     </span>
 
-                    <span className="text-sm font-semibold text-[#111827]">
+                    <span className="min-w-0 max-w-[65%] break-all text-right text-sm font-semibold text-[#111827]">
                       {trackingId}
                     </span>
                   </div>
                 )}
 
-                <div className="flex justify-between gap-4">
-                  <span className="text-xs text-[#6B7280]">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <span className="shrink-0 text-xs text-[#6B7280]">
                     Delivered At
                   </span>
 
-                  <span className="text-right text-xs font-semibold text-[#6B7280]">
+                  <span className="min-w-0 break-words text-right text-xs font-semibold text-[#6B7280]">
                     {formatDate(detail.order?.delivered_at)}
                   </span>
                 </div>
+
               </div>
             </div>
+
           </div>
 
           {/* ITEMS */}
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2]">
-            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                    <FiPackage size={17} />
-                  </div>
+          <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#DCE6F2]">
 
-                  <div>
-                    <h3 className="text-sm font-bold text-[#111827]">
-                      Buyback Items
-                    </h3>
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5 sm:py-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiPackage size={17} />
+                </div>
 
-                    <p className="mt-0.5 text-xs text-[#6B7280]">
-                      {detail.items.length} item(s)
-                    </p>
-                  </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-[#111827]">
+                    Buyback Items
+                  </h3>
+
+                  <p className="mt-0.5 text-xs text-[#6B7280]">
+                    {detail.items.length} item(s)
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="divide-y divide-[#DCE6F2]">
+
               {detail.items.map((item) => (
-                <div key={item.order_line_id} className="p-5">
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-start gap-4">
+                <div
+                  key={item.order_line_id}
+                  className="min-w-0 p-4 sm:p-5"
+                >
+                  <div className="flex min-w-0 flex-col gap-4">
+
+                    <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+
                       {item.product.image ? (
                         <img
                           src={item.product.image}
@@ -1741,11 +1768,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       )}
 
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-[#111827]">
+                        <h4 className="break-words text-sm font-bold text-[#111827] [overflow-wrap:anywhere]">
                           {item.product.name}
                         </h4>
 
-                        <p className="mt-1 text-xs text-[#6B7280]">
+                        <p className="mt-1 break-all text-xs text-[#6B7280]">
                           SKU: {item.product.product_code}
                         </p>
 
@@ -1753,125 +1780,134 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           Qty: {item.quantity}
                         </p>
                       </div>
+
                     </div>
 
+                    {/* BUYBACK IMAGES */}
                     {item.image_urls && item.image_urls.length > 0 && (
-                      <div>
+                      <div className="min-w-0">
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Buyback Images
                         </p>
 
-                        <div className="flex flex-wrap gap-3">
-                          {item.image_urls.map(
-                            (imageUrl, imageIndex) => (
-                              <a
-                                key={`${item.order_line_id}-${imageIndex}`}
-                                href={imageUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group relative overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD]"
-                              >
-                                <img
-                                  src={imageUrl}
-                                  alt={`Buyback evidence ${imageIndex + 1
-                                    }`}
-                                  className="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
+                        <div className="flex min-w-0 flex-wrap gap-3">
+                          {item.image_urls.map((imageUrl, imageIndex) => (
+                            <a
+                              key={`${item.order_line_id}-${imageIndex}`}
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="group relative shrink-0 overflow-hidden rounded-xl border border-[#DCE6F2] bg-[#F4F8FD]"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={`Buyback evidence ${imageIndex + 1}`}
+                                className="h-20 w-20 object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
 
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
-                                  <FiEye
-                                    size={15}
-                                    className="text-white opacity-0 transition group-hover:opacity-100"
-                                  />
-                                </div>
-                              </a>
-                            ),
-                          )}
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
+                                <FiEye
+                                  size={15}
+                                  className="text-white opacity-0 transition group-hover:opacity-100"
+                                />
+                              </div>
+                            </a>
+                          ))}
                         </div>
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                    {/* PRICE DETAILS */}
+                    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+                      <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Unit Price
                         </p>
 
-                        <p className="mt-1 text-sm font-bold text-[#111827]">
+                        <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                           {formatCurrency(item.unit_price)}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Subtotal
                         </p>
 
-                        <p className="mt-1 text-sm font-bold text-[#111827]">
+                        <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                           {formatCurrency(item.subtotal)}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                      <div className="min-w-0 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Tax
                         </p>
 
-                        <p className="mt-1 text-sm font-bold text-[#111827]">
+                        <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                           {formatCurrency(item.tax)}
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-3">
+                      <div className="min-w-0 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-3">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#4F8FF7]">
                           Reason
                         </p>
 
-                        <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#6B7280]">
+                        <p className="mt-1 break-words text-xs font-semibold text-[#6B7280] [overflow-wrap:anywhere]">
                           {item.reason || "No reason"}
                         </p>
                       </div>
+
                     </div>
+
                   </div>
                 </div>
               ))}
+
             </div>
           </div>
 
           {/* TRACK ORDER */}
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
-            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4">
+          <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
+
+            <div className="border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-5 sm:py-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                   <FiPackage size={17} />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-sm font-bold text-[#111827]">
                     Track Order
                   </h3>
 
-                  <p className="mt-0.5 text-xs text-[#6B7280]">
+                  <p className="mt-0.5 break-words text-xs text-[#6B7280]">
                     Full timeline of this buyback request
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-5">
-              <div className="rounded-2xl border border-[#DCE6F2] bg-[#F8FBFF] p-5">
+            <div className="min-w-0 p-3 sm:p-5">
+              <div className="min-w-0 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-[#F8FBFF] p-3 sm:p-5">
                 <TimelineStepper
                   events={timelineEvents}
                   emptyText="No timeline events recorded for this request yet."
                 />
               </div>
             </div>
+
           </div>
 
           {/* REFUND SECTION */}
           {!isCompleted && hasRefundBreakdown ? (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
-              <div className="flex items-center justify-between gap-3 border-b border-[#DCE6F2] bg-[#F4F8FD] px-4 py-3 sm:px-5">
+
+            <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#2D6FE8]/20 bg-white">
+
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-[#DCE6F2] bg-[#F4F8FD] px-4 py-3 sm:px-5">
+
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
                     <FaRupeeSign size={14} />
@@ -1888,65 +1924,61 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
                 </div>
 
-                <span className="shrink-0 text-sm font-bold text-[#2D6FE8]">
+                <span className="shrink-0 break-words text-sm font-bold text-[#2D6FE8]">
                   {formatCurrency(refundBreakdown?.net_refund)}
                 </span>
+
               </div>
 
               <div className="px-4 sm:px-5">
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
+
+                <div className="flex min-w-0 items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Subtotal
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
-                    {formatCurrency(
-                      refundBreakdown?.gross_refund?.subtotal,
-                    )}
+                  <span className="shrink-0 text-xs font-bold text-[#111827]">
+                    {formatCurrency(refundBreakdown?.gross_refund?.subtotal)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
+                <div className="flex min-w-0 items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Tax
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
+                  <span className="shrink-0 text-xs font-bold text-[#111827]">
                     {formatCurrency(refundBreakdown?.gross_refund?.tax)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
+                <div className="flex min-w-0 items-center justify-between gap-4 border-b border-[#DCE6F2] py-3">
                   <span className="text-xs font-semibold text-[#6B7280]">
                     Shipping
                   </span>
 
-                  <span className="text-xs font-bold text-[#111827]">
-                    {formatCurrency(
-                      refundBreakdown?.gross_refund?.shipping,
-                    )}
+                  <span className="shrink-0 text-xs font-bold text-[#111827]">
+                    {formatCurrency(refundBreakdown?.gross_refund?.shipping)}
                   </span>
                 </div>
 
-                {refundBreakdown?.deductions?.map(
-                  (deduction, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5"
-                    >
-                      <span className="text-xs font-semibold text-[#C23B32]">
-                        - {deduction.label}
-                      </span>
+                {refundBreakdown?.deductions?.map((deduction, index) => (
+                  <div
+                    key={index}
+                    className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3"
+                  >
+                    <span className="min-w-0 flex-1 break-words text-xs font-semibold text-[#C23B32]">
+                      - {deduction.label}
+                    </span>
 
-                      <span className="text-xs font-bold text-[#C23B32]">
-                        -{formatCurrency(deduction.amount)}
-                      </span>
-                    </div>
-                  ),
-                )}
+                    <span className="shrink-0 text-xs font-bold text-[#C23B32]">
+                      -{formatCurrency(deduction.amount)}
+                    </span>
+                  </div>
+                ))}
 
-                <div className="flex items-center justify-between gap-4 py-3">
-                  <div>
+                <div className="flex min-w-0 items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
                     <p className="text-xs font-bold text-[#2D6FE8]">
                       Net Refund
                     </p>
@@ -1956,10 +1988,11 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     </p>
                   </div>
 
-                  <span className="rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
+                  <span className="shrink-0 rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
                     {formatCurrency(refundBreakdown?.net_refund)}
                   </span>
                 </div>
+
               </div>
 
               {detail.refund_info?.notes && (
@@ -1968,20 +2001,22 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     Refund Notes
                   </p>
 
-                  <p className="mt-1.5 text-sm leading-5 text-[#6B7280]">
+                  <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-5 text-[#6B7280] [overflow-wrap:anywhere]">
                     {detail.refund_info.notes}
                   </p>
                 </div>
               )}
+
             </div>
+
           ) : !isCompleted ? (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
+
+            <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
+
               <button
                 type="button"
-                onClick={() =>
-                  setRefundBreakdownOpen((prev) => !prev)
-                }
-                className="flex w-full items-center justify-between gap-3 bg-[#F4F8FD] px-4 py-3 transition hover:bg-[#EAF3FF] sm:px-5 sm:py-3.5"
+                onClick={() => setRefundBreakdownOpen((prev) => !prev)}
+                className="flex w-full min-w-0 items-center justify-between gap-3 bg-[#F4F8FD] px-4 py-3 transition hover:bg-[#EAF3FF] sm:px-5"
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1999,7 +2034,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2.5">
+                <div className="flex shrink-0 items-center gap-2">
                   <span className="text-sm font-bold text-[#2D6FE8]">
                     {formatCurrency(
                       actualRefundedAmount ?? refundDetails?.total,
@@ -2007,8 +2042,9 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </span>
 
                   <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
-                      }`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${
+                      refundBreakdownOpen ? "rotate-180" : ""
+                    }`}
                   >
                     <FiChevronDown size={15} />
                   </span>
@@ -2016,10 +2052,12 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </button>
 
               {refundBreakdownOpen && (
-                <div className="border-t border-[#DCE6F2] bg-white">
+                <div className="min-w-0 border-t border-[#DCE6F2] bg-white">
+
                   <div className="px-4 sm:px-5">
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
+
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Method
                         </p>
@@ -2029,13 +2067,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="rounded-md bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold capitalize text-[#2D6FE8]">
+                      <span className="max-w-[55%] shrink-0 break-words rounded-md bg-[#EAF3FF] px-2.5 py-1 text-right text-[11px] font-bold capitalize text-[#2D6FE8]">
                         {formatMethodLabel(refundMethod)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Subtotal
                         </p>
@@ -2045,13 +2083,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#111827]">
+                      <span className="shrink-0 text-xs font-bold text-[#111827]">
                         {formatCurrency(refundDetails?.subtotal)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Added Tax
                         </p>
@@ -2061,13 +2099,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#111827]">
+                      <span className="shrink-0 text-xs font-bold text-[#111827]">
                         {formatCurrency(refundDetails?.tax)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Shipping
                         </p>
@@ -2077,14 +2115,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#111827]">
+                      <span className="shrink-0 text-xs font-bold text-[#111827]">
                         {formatCurrency(refundDetails?.shipping)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
-                        <p className="text-xs font-semibold text-[#6B7280]">
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
+                        <p className="break-words text-xs font-semibold text-[#6B7280]">
                           Amount with Tax & Shipping
                         </p>
 
@@ -2093,16 +2131,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#111827]">
-                        {formatCurrency(
-                          refundDetails?.amount_with_tax_shipping,
-                        )}
+                      <span className="shrink-0 text-xs font-bold text-[#111827]">
+                        {formatCurrency(refundDetails?.amount_with_tax_shipping)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
-                        <p className="text-xs font-semibold text-[#6B7280]">
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
+                        <p className="break-words text-xs font-semibold text-[#6B7280]">
                           Deducted Shipping Charge
                         </p>
 
@@ -2111,16 +2147,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#C23B32]">
-                        -{" "}
-                        {formatCurrency(
-                          refundDetails?.deducted_shipping_charge,
-                        )}
+                      <span className="shrink-0 text-xs font-bold text-[#C23B32]">
+                        - {formatCurrency(refundDetails?.deducted_shipping_charge)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#6B7280]">
                           Deducted Tax
                         </p>
@@ -2130,14 +2163,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#C23B32]">
+                      <span className="shrink-0 text-xs font-bold text-[#C23B32]">
                         -{formatCurrency(refundDetails?.tax)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3.5">
-                      <div>
-                        <p className="text-xs font-semibold text-[#6B7280]">
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[#DCE6F2] py-3">
+                      <div className="min-w-0">
+                        <p className="break-words text-xs font-semibold text-[#6B7280]">
                           Gateway Charges
                         </p>
 
@@ -2146,16 +2179,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="text-xs font-bold text-[#C23B32]">
-                        -{" "}
-                        {formatCurrency(
-                          refundDetails?.refund_gateway_charges,
-                        )}
+                      <span className="shrink-0 text-xs font-bold text-[#C23B32]">
+                        - {formatCurrency(refundDetails?.refund_gateway_charges)}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between gap-4 py-3">
-                      <div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 py-3">
+                      <div className="min-w-0">
                         <p className="text-xs font-bold text-[#2D6FE8]">
                           Buyback Amount
                         </p>
@@ -2165,60 +2195,64 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                         </p>
                       </div>
 
-                      <span className="rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
+                      <span className="shrink-0 rounded-lg border border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#EAF3FF] px-3 py-1.5 text-sm font-bold text-[#2D6FE8]">
                         {formatCurrency(
                           actualRefundedAmount ?? refundDetails?.total,
                         )}
                       </span>
                     </div>
+
                   </div>
                 </div>
               )}
+
             </div>
+
           ) : null}
 
+          {/* ADMIN NOTES */}
           {detail.admin_notes && (
-            <div className="mt-5 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
+            <div className="mt-4 min-w-0 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Admin Notes
               </p>
 
-              <p className="mt-2 text-sm leading-6 text-[#6B7280]">
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#6B7280] [overflow-wrap:anywhere]">
                 {detail.admin_notes}
               </p>
             </div>
           )}
+
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:px-6">
+        <div className="shrink-0 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-3.5 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+              className="w-full rounded-xl border border-[#DCE6F2] bg-white px-5 py-3 text-sm font-semibold text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] sm:w-auto"
             >
               Close
             </button>
 
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex min-w-0 flex-wrap justify-start gap-2 sm:justify-end">
+
               {detail.can_approve && canApprove && (
                 <button
                   type="button"
                   onClick={onApprove}
                   disabled={actionLoading.type === "approve"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50 sm:px-4"
                 >
                   {actionLoading.type === "approve" ? (
-                    <FiRefreshCw
-                      size={14}
-                      className="animate-spin"
-                    />
+                    <FiRefreshCw size={14} className="shrink-0 animate-spin" />
                   ) : (
-                    <FiCheck size={14} />
+                    <FiCheck size={14} className="shrink-0" />
                   )}
 
-                  Approve Buyback
+                  <span className="break-words">Approve Buyback</span>
                 </button>
               )}
 
@@ -2227,18 +2261,15 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReject}
                   disabled={actionLoading.type === "reject"}
-                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-3.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                  className="flex min-w-0 items-center justify-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-3 py-3 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50 sm:px-4"
                 >
                   {actionLoading.type === "reject" ? (
-                    <FiRefreshCw
-                      size={14}
-                      className="animate-spin"
-                    />
+                    <FiRefreshCw size={14} className="shrink-0 animate-spin" />
                   ) : (
-                    <FiX size={14} />
+                    <FiX size={14} className="shrink-0" />
                   )}
 
-                  Reject Buyback
+                  <span className="break-words">Reject Buyback</span>
                 </button>
               )}
 
@@ -2247,18 +2278,15 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onReceived}
                   disabled={actionLoading.type === "received"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50 sm:px-4"
                 >
                   {actionLoading.type === "received" ? (
-                    <FiRefreshCw
-                      size={14}
-                      className="animate-spin"
-                    />
+                    <FiRefreshCw size={14} className="shrink-0 animate-spin" />
                   ) : (
-                    <FiCheck size={14} />
+                    <FiCheck size={14} className="shrink-0" />
                   )}
 
-                  Mark as Received
+                  <span className="break-words">Mark as Received</span>
                 </button>
               )}
 
@@ -2267,27 +2295,27 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   type="button"
                   onClick={onComplete}
                   disabled={actionLoading.type === "complete"}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-4 py-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50"
+                  className="flex min-w-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#2D6FE8] to-[#2D6FE8] px-3 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#2D6FE8] disabled:opacity-50 sm:px-4"
                 >
                   {actionLoading.type === "complete" ? (
-                    <FiRefreshCw
-                      size={14}
-                      className="animate-spin"
-                    />
+                    <FiRefreshCw size={14} className="shrink-0 animate-spin" />
                   ) : (
-                    <FiCheckCircle size={14} />
+                    <FiCheckCircle size={14} className="shrink-0" />
                   )}
 
-                  Complete & Refund
+                  <span className="break-words">Complete & Refund</span>
                 </button>
               )}
+
             </div>
           </div>
         </div>
+
       </div>
     </GlobalModal>
   );
 };
+
 
 // =====================================================
 // MAIN

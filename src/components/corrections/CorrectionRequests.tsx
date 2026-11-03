@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-
 import {
   FiSearch,
   FiRefreshCw,
@@ -17,37 +16,34 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiCalendar,
-  FiClock,
-  FiLink,
-  FiDownload,
   FiShield,
+  FiCheck,
+  FiXCircle,
+  FiDownload,
+  FiClock,
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
-
 import correctionRequestsApi, {
   CorrectionRequest,
 } from "../../api/endpoints/correctionRequests";
-
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
-type CorrectionFilter = "all" | "pending" | "completed" | "expired";
-
-// =====================================================
-// ANIMATIONS
-// =====================================================
+type CorrectionFilter =
+  | "all"
+  | "pending"
+  | "completed"
+  | "expired"
+  | "rejected";
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
 };
 
 const itemVariants = {
@@ -55,11 +51,7 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring" as const,
-      stiffness: 100,
-      damping: 14,
-    },
+    transition: { type: "spring" as const, stiffness: 100, damping: 14 },
   },
 };
 
@@ -69,20 +61,15 @@ const itemVariants = {
 
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
-
   const date = new Date(value.replace(" ", "T"));
-
   if (Number.isNaN(date.getTime())) return value;
 
   const day = String(date.getDate()).padStart(2, "0");
   const month = date.toLocaleString("en-IN", { month: "short" });
   const year = date.getFullYear();
-
   let hours = date.getHours();
-
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
-
   hours = hours % 12 || 12;
 
   return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm}`;
@@ -90,11 +77,8 @@ const formatDate = (value?: string | null) => {
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return "—";
-
   const date = new Date(value.replace(" ", "T"));
-
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -104,17 +88,13 @@ const formatDateOnly = (value?: string | null) => {
 
 const getReasonLabel = (reason?: string | null) => {
   if (!reason) return "—";
-
   switch (reason.toLowerCase()) {
     case "both_wrong_at_signup":
       return "Name & DOB Wrong";
-
     case "wrong_name_at_signup":
       return "Name Wrong";
-
     case "wrong_dob_at_signup":
       return "DOB Wrong";
-
     default:
       return reason
         .replace(/_/g, " ")
@@ -124,36 +104,16 @@ const getReasonLabel = (reason?: string | null) => {
 
 const getInitials = (name?: string | null) => {
   if (!name?.trim()) return "NA";
-
   const parts = name.trim().split(/\s+/).filter(Boolean);
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
 };
 
-const isExpired = (tokenExpiresAt?: string | null) => {
-  if (!tokenExpiresAt) return false;
-
-  const date = new Date(tokenExpiresAt.replace(" ", "T"));
-
-  if (Number.isNaN(date.getTime())) return false;
-
-  return date.getTime() < Date.now();
-};
-
-const isCompleted = (status?: string | null) =>
-  status?.toLowerCase() === "completed";
-
-// NEW: only pending requests are allowed to send link
 const isPending = (status?: string | null) =>
   status?.toLowerCase() === "pending";
 
 const getDisplayName = (request?: CorrectionRequest | null) => {
   if (!request) return "—";
-
   return (
     request.full_name?.trim() ||
     request.user?.full_name?.trim() ||
@@ -164,25 +124,19 @@ const getDisplayName = (request?: CorrectionRequest | null) => {
 
 const getDisplayEmail = (request?: CorrectionRequest | null) => {
   if (!request) return "—";
-
   return request.email?.trim() || request.user?.email?.trim() || "—";
 };
-
-// =====================================================
-// STATUS HELPERS
-// =====================================================
 
 const getStatusClass = (status: string) => {
   switch (status?.toLowerCase()) {
     case "completed":
       return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
-
     case "pending":
       return "border-[#F2C94C]/45 bg-[#FFF7D6] text-[#A16207]";
-
     case "expired":
       return "border-[#C23B32]/25 bg-[#FFF0EF] text-[#C23B32]";
-
+    case "rejected":
+      return "border-[#C23B32]/25 bg-[#FFF0EF] text-[#C23B32]";
     default:
       return "border-[#D6E2F0] bg-[#F3F4F6] text-[#6B7280]";
   }
@@ -190,27 +144,55 @@ const getStatusClass = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   if (!status) return "N/A";
-
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
 
+// Supports permission groups named correction, correction_request,
+// correction_requests, or Correction Requests, etc.
+const normalizePermissionKey = (value: unknown) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const hasCorrectionActionPermission = (
+  permissionsGrouped: Record<string, string[]>,
+  action: string,
+): boolean => {
+  const expectedAction = normalizePermissionKey(action);
+
+  return Object.entries(permissionsGrouped || {}).some(([module, actions]) => {
+    const normalizedModule = normalizePermissionKey(module);
+    const isCorrectionModule =
+      normalizedModule === "correction" ||
+      (normalizedModule.startsWith("correction") &&
+        normalizedModule.includes("request"));
+
+    return (
+      isCorrectionModule &&
+      Array.isArray(actions) &&
+      actions.some(
+        (permissionAction) =>
+          normalizePermissionKey(permissionAction) === expectedAction,
+      )
+    );
+  });
+};
+
 // =====================================================
-// CSV HELPERS
+// CSV HELPERS (Token expiry field removed)
 // =====================================================
 
 const csvEscape = (value: unknown) => {
   if (value === null || value === undefined) return '""';
-
   const stringValue = String(value)
     .replace(/\r?\n|\r/g, " ")
     .replace(/"/g, '""');
-
   return `"${stringValue}"`;
 };
 
 const getDateStamp = () => {
   const now = new Date();
-
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
     2,
     "0",
@@ -226,7 +208,6 @@ const buildCsvRows = (requests: CorrectionRequest[]) =>
     Email: getDisplayEmail(request),
     Reason: getReasonLabel(request.reason),
     Status: getStatusLabel(request.status),
-    "Token Expires At": formatDate(request.token_expires_at),
     "Token Used At": formatDate(request.token_used_at),
     "Created At": formatDate(request.created_at),
     "Updated At": formatDate(request.updated_at),
@@ -238,55 +219,40 @@ const buildCsvRows = (requests: CorrectionRequest[]) =>
     "User DOB": formatDateOnly(request.user?.date_of_birth),
   }));
 
-const downloadCsv = (
-  requests: CorrectionRequest[],
-  filename: string,
-) => {
+const downloadCsv = (requests: CorrectionRequest[], filename: string) => {
   if (!requests.length) {
     toast.error("No requests available for CSV export.");
     return;
   }
 
   const rows = buildCsvRows(requests);
-
   if (!rows.length) {
     toast.error("No data available for CSV export.");
     return;
   }
 
   const headers = Object.keys(rows[0]);
-
   const lines = [
     headers.map(csvEscape).join(","),
     ...rows.map((row) =>
-      headers
-        .map((header) => csvEscape(row[header as keyof typeof row]))
-        .join(","),
+      headers.map((header) => csvEscape(row[header as keyof typeof row])).join(","),
     ),
   ];
 
-  const csvContent = "\uFEFF" + lines.join("\r\n");
-
-  const blob = new Blob([csvContent], {
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
     type: "text/csv;charset=utf-8;",
   });
-
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-
   link.href = url;
   link.download = filename;
-
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
   window.setTimeout(() => URL.revokeObjectURL(url), 500);
 
   toast.success(
-    `${requests.length} request${
-      requests.length === 1 ? "" : "s"
-    } exported successfully.`,
+    `${requests.length} request${requests.length === 1 ? "" : "s"} exported successfully.`,
   );
 };
 
@@ -315,29 +281,21 @@ const StatCard: React.FC<StatCardProps> = ({
 }) => (
   <motion.div
     variants={itemVariants}
-    whileHover={{
-      y: -3,
-      boxShadow: "0 16px 30px -18px rgba(30,58,138,0.28)",
-    }}
+    whileHover={{ y: -3, boxShadow: "0 16px 30px -18px rgba(30,58,138,0.28)" }}
     className="relative min-h-[125px] overflow-hidden rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm"
   >
     <div className={`absolute left-0 top-0 h-1 w-full ${accent}`} />
-
     <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/10" />
-
     <div className="relative z-10 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6B7280]">
           {title}
         </p>
-
         <p className="mt-2 text-2xl font-semibold text-[#111827]">
           {value.toLocaleString("en-IN")}
         </p>
-
         <p className="mt-1 text-xs text-[#6B7280]">{subtitle}</p>
       </div>
-
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tileClass} ${tileIconClass}`}
       >
@@ -347,17 +305,12 @@ const StatCard: React.FC<StatCardProps> = ({
   </motion.div>
 );
 
-// =====================================================
-// INFORMATION ROW
-// =====================================================
-
-const InfoRow: React.FC<{
-  label: string;
-  value: React.ReactNode;
-}> = ({ label, value }) => (
+const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
   <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] py-3 last:border-b-0">
     <span className="shrink-0 text-xs text-[#6B7280]">{label}</span>
-
     <span className="max-w-[65%] break-words text-right text-sm font-semibold text-[#111827]">
       {value}
     </span>
@@ -373,8 +326,14 @@ interface DetailModalProps {
   request: CorrectionRequest | null;
   onClose: () => void;
   onSendLink: (id: number) => void;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
   sendingLink: boolean;
+  approving: boolean;
+  rejecting: boolean;
   canSendLink: boolean;
+  canApprove: boolean;
+  canReject: boolean;
 }
 
 const CorrectionDetailModal: React.FC<DetailModalProps> = ({
@@ -382,58 +341,43 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
   request,
   onClose,
   onSendLink,
+  onApprove,
+  onReject,
   sendingLink,
+  approving,
+  rejecting,
   canSendLink,
+  canApprove,
+  canReject,
 }) => {
   if (!open) return null;
 
   const nestedUser = request?.user || null;
-
-  const tokenExpired = request
-    ? isExpired(request.token_expires_at)
-    : false;
-
-  // CHANGED: Send Link only visible for pending status
-  const showSendLink =
-    !!request && canSendLink && isPending(request.status);
+  const pending = !!request && isPending(request.status);
+  const showSendLink = pending && canSendLink;
+  const showApprove = pending && canApprove;
+  const showReject = pending && canReject;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={false}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]" />
 
-        {/* MODAL HEADER */}
         <div className="flex items-start justify-between gap-3 border-b border-[#DCE6F2] px-4 py-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-sm font-bold text-white">
-              {request ? (
-                getInitials(getDisplayName(request))
-              ) : (
-                <FiUser size={19} />
-              )}
+              {request ? getInitials(getDisplayName(request)) : <FiUser size={19} />}
             </div>
-
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#6B7280]">
                 Correction Request
               </p>
-
               <h2 className="mt-0.5 truncate text-lg font-bold text-[#111827] sm:text-xl">
                 {request ? getDisplayName(request) : "Request Details"}
               </h2>
-
-              {request && (
-                <p className="mt-1 text-xs text-[#6B7280]">
-                  Request #{request.id} · User ID #{request.user_id}
-                </p>
-              )}
+             
             </div>
           </div>
-
           <button
             type="button"
             onClick={onClose}
@@ -444,35 +388,30 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
           </button>
         </div>
 
-        {/* MODAL BODY */}
         <div className="max-h-[calc(90vh-140px)] overflow-y-auto p-4 sm:p-6">
           {!request ? (
             <div className="flex min-h-[220px] flex-col items-center justify-center">
               <FiAlertCircle size={28} className="text-[#C23B32]" />
-
               <p className="mt-4 text-sm font-bold text-[#C23B32]">
                 Request not found.
               </p>
             </div>
           ) : (
             <>
-              {/* SUMMARY */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {/* Token expiry panel removed. */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Reason
                   </p>
-
                   <p className="mt-2 break-words text-sm font-bold text-[#111827]">
                     {getReasonLabel(request.reason)}
                   </p>
                 </div>
-
                 <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Status
                   </p>
-
                   <div className="mt-2">
                     <span
                       className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${getStatusClass(
@@ -483,89 +422,41 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
                     </span>
                   </div>
                 </div>
-
-                <div className="rounded-xl border border-[#DCE6F2] bg-gradient-to-br from-[#F4F8FD] to-[#EAF3FF] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    Token
-                  </p>
-
-                  <p className="mt-2 text-xs font-bold">
-                    {tokenExpired ? (
-                      <span className="text-[#C23B32]">Expired</span>
-                    ) : request.token_used_at ? (
-                      <span className="text-[#2D6FE8]">Used</span>
-                    ) : (
-                      <span className="text-[#A16207]">Active</span>
-                    )}
-                  </p>
-
-                  <p className="mt-1 break-words text-[10px] text-[#6B7280]">
-                    Expires: {formatDate(request.token_expires_at)}
-                  </p>
-                </div>
               </div>
 
-              {/* REQUEST INFORMATION */}
               <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4 sm:p-5">
                 <div className="mb-3 flex items-center gap-3">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                    <FiLink size={17} />
+                    <FiCalendar size={17} />
                   </div>
-
                   <h3 className="text-sm font-bold text-[#111827]">
                     Request Information
                   </h3>
                 </div>
-
-                <InfoRow
-                  label="Full Name"
-                  value={getDisplayName(request)}
-                />
-
-                <InfoRow
-                  label="Email"
-                  value={getDisplayEmail(request)}
-                />
-
+                <InfoRow label="Full Name" value={getDisplayName(request)} />
+                <InfoRow label="Email" value={getDisplayEmail(request)} />
                 <InfoRow
                   label="Date of Birth"
                   value={formatDateOnly(request.date_of_birth)}
                 />
-
-                <InfoRow
-                  label="Created At"
-                  value={formatDate(request.created_at)}
-                />
-
-                <InfoRow
-                  label="Updated At"
-                  value={formatDate(request.updated_at)}
-                />
-
+                <InfoRow label="Created At" value={formatDate(request.created_at)} />
+                <InfoRow label="Updated At" value={formatDate(request.updated_at)} />
                 <InfoRow
                   label="Token Used At"
                   value={formatDate(request.token_used_at)}
                 />
-
-                <InfoRow
-                  label="Token Expires At"
-                  value={formatDate(request.token_expires_at)}
-                />
               </div>
 
-              {/* LINKED USER */}
               {nestedUser ? (
                 <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-4 sm:p-5">
                   <div className="mb-4 flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
                       <FiUser size={17} />
                     </div>
-
                     <div>
                       <h3 className="text-sm font-bold text-[#111827]">
                         Linked User
                       </h3>
-
                       <p className="mt-0.5 text-xs text-[#6B7280]">
                         User details at time of request.
                       </p>
@@ -577,37 +468,30 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Full Name
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                         {nestedUser.full_name || "—"}
                       </p>
                     </div>
-
                     <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-white p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Email
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                         {nestedUser.email || "—"}
                       </p>
                     </div>
-
                     <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-white p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Phone
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                         {nestedUser.phone || "—"}
                       </p>
                     </div>
-
                     <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-white p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Account Type
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold capitalize text-[#111827]">
                         {nestedUser.account_type || "—"}
                       </p>
@@ -619,27 +503,22 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Distributor ID
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                         {nestedUser.distributor_id || "Not Assigned"}
                       </p>
                     </div>
-
                     <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-white p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         Sponsor ID
                       </p>
-
                       <p className="mt-1 break-words text-sm font-bold text-[#111827]">
                         {nestedUser.sponsor_id || "Not Assigned"}
                       </p>
                     </div>
-
                     <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-white p-3">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                         User Status
                       </p>
-
                       <p className="mt-1 text-sm font-bold text-[#111827]">
                         {nestedUser.is_active ? "Active" : "Inactive"}
                       </p>
@@ -649,11 +528,7 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
               ) : (
                 <div className="mt-4 rounded-xl border border-[#C23B32]/20 bg-[#FFF0EF] p-4">
                   <div className="flex items-center gap-2">
-                    <FiAlertCircle
-                      size={16}
-                      className="shrink-0 text-[#C23B32]"
-                    />
-
+                    <FiAlertCircle size={16} className="shrink-0 text-[#C23B32]" />
                     <p className="text-xs font-bold text-[#C23B32]">
                       Linked user record not available for this request.
                     </p>
@@ -664,7 +539,6 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
           )}
         </div>
 
-        {/* MODAL FOOTER */}
         <div className="flex flex-wrap justify-end gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3 sm:px-6">
           <button
             type="button"
@@ -673,20 +547,37 @@ const CorrectionDetailModal: React.FC<DetailModalProps> = ({
           >
             Close
           </button>
-
           {showSendLink && (
             <button
               type="button"
               onClick={() => onSendLink(request!.id)}
-              disabled={sendingLink}
-              className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={sendingLink || approving || rejecting}
+              className="flex items-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-2.5 text-sm font-bold text-[#1D4ED8] transition hover:bg-[#DFECFF] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <FiSend
-                size={14}
-                className={sendingLink ? "animate-pulse" : ""}
-              />
-
+              <FiSend size={14} className={sendingLink ? "animate-pulse" : ""} />
               {sendingLink ? "Sending..." : "Send Link"}
+            </button>
+          )}
+          {showApprove && (
+            <button
+              type="button"
+              onClick={() => onApprove(request!.id)}
+              disabled={approving || sendingLink || rejecting}
+              className="flex items-center gap-2 rounded-lg bg-[#168653] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#117347] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FiCheck size={14} />
+              {approving ? "Approving..." : "Approve"}
+            </button>
+          )}
+          {showReject && (
+            <button
+              type="button"
+              onClick={() => onReject(request!.id)}
+              disabled={rejecting || approving || sendingLink}
+              className="flex items-center gap-2 rounded-lg bg-[#C23B32] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A92F28] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FiXCircle size={14} />
+              {rejecting ? "Rejecting..." : "Reject"}
             </button>
           )}
         </div>
@@ -704,41 +595,58 @@ const CorrectionRequests: React.FC = () => {
     hasPermission,
     isSuperAdmin,
     loading: permissionsLoading,
+    permissionsGrouped,
   } = usePermissions();
 
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
-
+  // The API may return permissions_grouped like:
+  // { "Correction Requests": ["send link", "View", "reject"] }
+  // Therefore, check both the standard permission slug and the grouped action.
   const canViewRequests = useMemo(
-    () => isSuperAdmin || hasPermission("correction.view"),
-    [isSuperAdmin, hasPermission],
+    () =>
+      isSuperAdmin ||
+      hasPermission("correction.view") ||
+      hasCorrectionActionPermission(permissionsGrouped, "view"),
+    [isSuperAdmin, hasPermission, permissionsGrouped],
   );
-
   const canSendLink = useMemo(
-    () => isSuperAdmin || hasPermission("correction.send link"),
-    [isSuperAdmin, hasPermission],
+    () =>
+      isSuperAdmin ||
+      hasPermission("correction.send link") ||
+      hasPermission("correction.send_link") ||
+      hasCorrectionActionPermission(permissionsGrouped, "send link"),
+    [isSuperAdmin, hasPermission, permissionsGrouped],
   );
-
+  const canApprove = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("correction.approve") ||
+      hasCorrectionActionPermission(permissionsGrouped, "approve"),
+    [isSuperAdmin, hasPermission, permissionsGrouped],
+  );
+  const canReject = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("correction.reject") ||
+      hasCorrectionActionPermission(permissionsGrouped, "reject"),
+    [isSuperAdmin, hasPermission, permissionsGrouped],
+  );
   const canExport = useMemo(
-    () => isSuperAdmin || hasPermission("correction.view"),
-    [isSuperAdmin, hasPermission],
+    () =>
+      isSuperAdmin ||
+      hasPermission("correction.view") ||
+      hasCorrectionActionPermission(permissionsGrouped, "view"),
+    [isSuperAdmin, hasPermission, permissionsGrouped],
   );
 
-  // ===================================================
   // LOGO
-  // ===================================================
-
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-
     const fetchLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
-
         const possible: unknown[] = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -747,140 +655,91 @@ const CorrectionRequests: React.FC = () => {
           response?.data?.logo_url,
           response?.logo,
         ];
-
         const resolved = possible.find(
           (value): value is string =>
-            typeof value === "string" &&
-            /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
-
-        if (!cancelled && resolved) {
-          setLogoUrl(resolved.trim());
-        }
+        if (!cancelled && resolved) setLogoUrl(resolved.trim());
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
+        if (!cancelled) setLogoLoading(false);
       }
     };
-
     void fetchLogo();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // ===================================================
   // STATE
-  // ===================================================
-
   const [requests, setRequests] = useState<CorrectionRequest[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
-
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] =
-    useState<CorrectionFilter>("all");
-
+  const [activeFilter, setActiveFilter] = useState<CorrectionFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
-
   const [detailOpen, setDetailOpen] = useState(false);
-
   const [selectedRequest, setSelectedRequest] =
     useState<CorrectionRequest | null>(null);
+  const [sendingLinkId, setSendingLinkId] = useState<number | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
 
-  const [sendingLinkId, setSendingLinkId] = useState<number | null>(
-    null,
-  );
+  // SEND LINK CONFIRMATION MODAL
+  const [sendLinkConfirmOpen, setSendLinkConfirmOpen] = useState(false);
+  const [sendLinkTarget, setSendLinkTarget] = useState<CorrectionRequest | null>(null);
+
+  // REJECTION REASON MODAL
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<CorrectionRequest | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const ITEMS_PER_PAGE = 10;
 
-  // ===================================================
   // FETCH REQUESTS
-  // ===================================================
-
   const fetchRequests = async (isInitial = false) => {
     try {
       setLoading(true);
-
       const response = await correctionRequestsApi.getRequests();
-
       if (response.data.status) {
         setRequests(response.data.data || []);
       } else {
-        toast.error(
-          response.data.message ||
-            "Unable to fetch correction requests.",
-        );
+        toast.error(response.data.message || "Unable to fetch correction requests.");
       }
     } catch (error: any) {
       console.error("Fetch correction requests error:", error);
-
       toast.error(
-        error?.response?.data?.message ||
-          "Unable to fetch correction requests.",
+        error?.response?.data?.message || "Unable to fetch correction requests.",
       );
     } finally {
       setLoading(false);
-
-      if (isInitial) {
-        setInitialLoading(false);
-      }
+      if (isInitial) setInitialLoading(false);
     }
   };
 
   useEffect(() => {
     if (permissionsLoading) return;
-
-    if (canViewRequests) {
-      void fetchRequests(true);
-    } else {
-      setInitialLoading(false);
-    }
-
+    if (canViewRequests) void fetchRequests(true);
+    else setInitialLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewRequests]);
 
-  const pageLoading =
-    permissionsLoading || logoLoading || initialLoading;
+  const pageLoading = permissionsLoading || logoLoading || initialLoading;
 
-  // ===================================================
   // STATISTICS
-  // ===================================================
-
   const stats = useMemo(() => {
     const total = requests.length;
-
-    const pending = requests.filter(
-      (request) => request.status?.toLowerCase() === "pending",
-    ).length;
-
-    const completed = requests.filter(
-      (request) => request.status?.toLowerCase() === "completed",
-    ).length;
-
-    const expired = requests.filter(
-      (request) => request.status?.toLowerCase() === "expired",
-    ).length;
-
-    return {
-      total,
-      pending,
-      completed,
-      expired,
-    };
+    const pending = requests.filter((r) => r.status?.toLowerCase() === "pending").length;
+    const completed = requests.filter((r) => r.status?.toLowerCase() === "completed").length;
+    const expired = requests.filter((r) => r.status?.toLowerCase() === "expired").length;
+    const rejected = requests.filter((r) => r.status?.toLowerCase() === "rejected").length;
+    return { total, pending, completed, expired, rejected };
   }, [requests]);
 
-  // ===================================================
   // SEARCH AND FILTER
-  // ===================================================
-
   const filteredRequests = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     return requests.filter((request) => {
       const searchMatch =
         !query ||
@@ -897,100 +756,56 @@ const CorrectionRequests: React.FC = () => {
           .join(" ")
           .toLowerCase()
           .includes(query);
-
       if (!searchMatch) return false;
-
-      switch (activeFilter) {
-        case "pending":
-        case "completed":
-        case "expired":
-          return request.status?.toLowerCase() === activeFilter;
-
-        case "all":
-        default:
-          return true;
-      }
+      return activeFilter === "all"
+        ? true
+        : request.status?.toLowerCase() === activeFilter;
     });
   }, [requests, search, activeFilter]);
 
-  // ===================================================
   // CSV EXPORT
-  // ===================================================
-
-  const tabExportRequests = useMemo(() => {
-    switch (activeFilter) {
-      case "pending":
-      case "completed":
-      case "expired":
-        return requests.filter(
-          (request) =>
-            request.status?.toLowerCase() === activeFilter,
-        );
-
-      case "all":
-      default:
-        return requests;
-    }
-  }, [requests, activeFilter]);
+  const tabExportRequests = useMemo(
+    () =>
+      activeFilter === "all"
+        ? requests
+        : requests.filter((request) => request.status?.toLowerCase() === activeFilter),
+    [requests, activeFilter],
+  );
 
   const handleExport = () => {
     if (!canExport) {
-      toast.error(
-        "You don't have permission to export correction requests.",
-      );
+      toast.error("You don't have permission to export correction requests.");
       return;
     }
-
     if (!tabExportRequests.length) {
       toast.error(`No ${activeFilter} requests to export.`);
       return;
     }
-
     downloadCsv(
       tabExportRequests,
       `correction-requests-${activeFilter}-${getDateStamp()}.csv`,
     );
   };
 
-  // ===================================================
   // PAGINATION
-  // ===================================================
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredRequests.length / ITEMS_PER_PAGE),
-  );
-
+  const totalPages = Math.max(1, Math.ceil(filteredRequests.length / ITEMS_PER_PAGE));
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
   const paginatedRequests = filteredRequests.slice(
     startIndex,
     startIndex + ITEMS_PER_PAGE,
   );
-
-  const startEntry =
-    filteredRequests.length === 0 ? 0 : startIndex + 1;
-
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredRequests.length,
-  );
+  const startEntry = filteredRequests.length === 0 ? 0 : startIndex + 1;
+  const endEntry = Math.min(startIndex + ITEMS_PER_PAGE, filteredRequests.length);
 
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
     if (currentPage >= totalPages - 2) {
       return [
         totalPages - 4,
@@ -1000,7 +815,6 @@ const CorrectionRequests: React.FC = () => {
         totalPages,
       ];
     }
-
     return [
       currentPage - 2,
       currentPage - 1,
@@ -1010,10 +824,7 @@ const CorrectionRequests: React.FC = () => {
     ];
   }, [currentPage, totalPages]);
 
-  // ===================================================
   // HANDLERS
-  // ===================================================
-
   const handleFilter = (filter: CorrectionFilter) => {
     setActiveFilter(filter);
     setCurrentPage(1);
@@ -1029,57 +840,157 @@ const CorrectionRequests: React.FC = () => {
     setDetailOpen(true);
   };
 
+  const getPendingTarget = (id: number) => {
+    const target = requests.find((request) => request.id === id);
+    if (!target) {
+      toast.error("Correction request not found.");
+      return null;
+    }
+    if (!isPending(target.status)) {
+      toast.error("Only pending requests can be processed.");
+      return null;
+    }
+    return target;
+  };
+
+  const openSendLinkConfirmation = (id: number) => {
+    if (!canSendLink) {
+      toast.error("You don't have permission to send correction links.");
+      return;
+    }
+
+    const target = getPendingTarget(id);
+    if (!target) return;
+
+    setSendLinkTarget(target);
+    setSendLinkConfirmOpen(true);
+  };
+
+  const closeSendLinkConfirmation = () => {
+    if (sendingLinkId !== null) return;
+    setSendLinkConfirmOpen(false);
+    setSendLinkTarget(null);
+  };
+
+  // This function is called only after the confirmation popup is accepted.
   const handleSendLink = async (id: number) => {
     if (!canSendLink) {
-      toast.error(
-        "You don't have permission to send correction links.",
-      );
+      toast.error("You don't have permission to send correction links.");
       return;
     }
-
-    const target = requests.find((request) => request.id === id);
-
-    // CHANGED: only pending requests can be sent a link
-    if (target && !isPending(target.status)) {
-      toast.error("Only pending requests can be sent a link.");
-      return;
-    }
+    if (!getPendingTarget(id)) return;
 
     try {
       setSendingLinkId(id);
-
       const response = await correctionRequestsApi.sendLink(id);
-
       if (response.data.status) {
-        toast.success(
-          response.data.message ||
-            "Correction link sent successfully.",
-        );
-
+        toast.success(response.data.message || "Correction link sent successfully.");
+        setSendLinkConfirmOpen(false);
+        setSendLinkTarget(null);
         void fetchRequests(false);
       } else {
-        toast.error(
-          response.data.message || "Unable to send link.",
-        );
+        toast.error(response.data.message || "Unable to send link.");
       }
     } catch (error: any) {
       console.error("Send link error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Unable to send link.",
-      );
+      toast.error(error?.response?.data?.message || "Unable to send link.");
     } finally {
       setSendingLinkId(null);
     }
   };
 
-  // ===================================================
-  // PERMISSION GUARDS
-  // ===================================================
+  const openRejectModal = (id: number) => {
+    if (!canReject) {
+      toast.error("You don't have permission to reject correction requests.");
+      return;
+    }
 
-  if (pageLoading) {
-    return <PermissionLoadingState logoUrl={logoUrl} />;
-  }
+    const target = getPendingTarget(id);
+    if (!target) return;
+
+    setRejectTarget(target);
+    setRejectReason("");
+    setRejectModalOpen(true);
+  };
+
+  const closeRejectModal = () => {
+    if (rejectingId !== null) return;
+    setRejectModalOpen(false);
+    setRejectTarget(null);
+    setRejectReason("");
+  };
+
+  const handleApprove = async (id: number) => {
+    if (!canApprove) {
+      toast.error("You don't have permission to approve correction requests.");
+      return;
+    }
+    if (!getPendingTarget(id)) return;
+
+    try {
+      setApprovingId(id);
+      const response = await correctionRequestsApi.approveRequest(id);
+      if (response.data.status) {
+        toast.success(response.data.message || "Correction request approved successfully.");
+        setDetailOpen(false);
+        setSelectedRequest(null);
+        void fetchRequests(false);
+      } else {
+        toast.error(response.data.message || "Unable to approve correction request.");
+      }
+    } catch (error: any) {
+      console.error("Approve correction request error:", error);
+      toast.error(
+        error?.response?.data?.message || "Unable to approve correction request.",
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleReject = async (id: number, reason: string) => {
+    if (!canReject) {
+      toast.error("You don't have permission to reject correction requests.");
+      return;
+    }
+    if (!getPendingTarget(id)) return;
+
+    const trimmedReason = reason.trim();
+    if (!trimmedReason) {
+      toast.error("Please enter a rejection reason.");
+      return;
+    }
+
+    try {
+      setRejectingId(id);
+      // The entered reason is sent to the reject API as { reason: "..." }.
+      const response = await correctionRequestsApi.rejectRequest(id, trimmedReason);
+      if (response.data.status) {
+        toast.success(response.data.message || "Correction request rejected successfully.");
+        setRejectModalOpen(false);
+        setRejectTarget(null);
+        setRejectReason("");
+
+        if (selectedRequest?.id === id) {
+          setDetailOpen(false);
+          setSelectedRequest(null);
+        }
+        void fetchRequests(false);
+      } else {
+        toast.error(response.data.message || "Unable to reject correction request.");
+      }
+    } catch (error: any) {
+      console.error("Reject correction request error:", error);
+      toast.error(
+        error?.response?.data?.message || "Unable to reject correction request.",
+      );
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
+  // PERMISSION GUARDS
+  if (pageLoading) return <PermissionLoadingState logoUrl={logoUrl} />;
 
   if (!canViewRequests) {
     return (
@@ -1088,11 +999,7 @@ const CorrectionRequests: React.FC = () => {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFF0EF] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-
-          <h2 className="text-lg font-bold text-[#111827]">
-            Access Denied
-          </h2>
-
+          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
           <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
@@ -1101,9 +1008,79 @@ const CorrectionRequests: React.FC = () => {
     );
   }
 
-  // ===================================================
-  // PAGE UI
-  // ===================================================
+  const filterTabs: { key: CorrectionFilter; label: string; count: number }[] = [
+    { key: "all", label: "All", count: stats.total },
+    { key: "pending", label: "Pending", count: stats.pending },
+    { key: "completed", label: "Completed", count: stats.completed },
+    { key: "expired", label: "Expired", count: stats.expired },
+    { key: "rejected", label: "Rejected", count: stats.rejected },
+  ];
+
+  const renderActions = (req: CorrectionRequest, compact = false) => {
+    const pending = isPending(req.status);
+    const sending = sendingLinkId === req.id;
+    const approving = approvingId === req.id;
+    const rejecting = rejectingId === req.id;
+    const buttonBase = compact
+      ? "h-8 w-8"
+      : "h-8 px-2";
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        <button
+          type="button"
+          onClick={() => handleView(req)}
+          title="View Details"
+          aria-label={`View request ${req.id}`}
+          className={`${compact ? "h-8 w-8" : "h-8 w-8"} flex shrink-0 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#111827] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white`}
+        >
+          <FiEye size={14} />
+        </button>
+
+        {pending && canSendLink && (
+          <button
+            type="button"
+            onClick={() => openSendLinkConfirmation(req.id)}
+            disabled={sending || approving || rejecting}
+            title="Send correction link"
+            aria-label={`Send correction link for request ${req.id}`}
+            className={`${buttonBase} flex shrink-0 items-center justify-center gap-1 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] text-[10px] font-bold text-[#1D4ED8] transition hover:bg-[#DFECFF] disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            <FiSend size={12} />
+            {!compact && (sending ? "..." : "Send Link")}
+          </button>
+        )}
+
+        {pending && canApprove && (
+          <button
+            type="button"
+            onClick={() => void handleApprove(req.id)}
+            disabled={approving || sending || rejecting}
+            title="Approve request"
+            aria-label={`Approve request ${req.id}`}
+            className={`${buttonBase} flex shrink-0 items-center justify-center gap-1 rounded-lg bg-[#168653] text-[10px] font-bold text-white transition hover:bg-[#117347] disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            <FiCheck size={12} />
+            {!compact && (approving ? "..." : "Approve")}
+          </button>
+        )}
+
+        {pending && canReject && (
+          <button
+            type="button"
+            onClick={() => openRejectModal(req.id)}
+            disabled={rejecting || sending || approving}
+            title="Reject request"
+            aria-label={`Reject request ${req.id}`}
+            className={`${buttonBase} flex shrink-0 items-center justify-center gap-1 rounded-lg bg-[#C23B32] text-[10px] font-bold text-white transition hover:bg-[#A92F28] disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            <FiXCircle size={12} />
+            {!compact && (rejecting ? "..." : "Reject")}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -1123,19 +1100,15 @@ const CorrectionRequests: React.FC = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
               <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
               <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
-
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#6B7280]">
                 Correction Management
               </span>
             </div>
-
             <h1 className="text-xl font-semibold tracking-tight text-[#111827] sm:text-2xl">
               Correction Requests
             </h1>
-
             <p className="mt-1 text-xs text-[#6B7280] sm:text-sm">
-              Manage signup correction requests and resend correction
-              links.
+              Manage signup correction requests, send links, approve or reject requests.
             </p>
           </div>
 
@@ -1151,17 +1124,13 @@ const CorrectionRequests: React.FC = () => {
                 Download CSV
               </button>
             )}
-
             <button
               type="button"
               onClick={() => void fetchRequests(false)}
               disabled={loading}
               className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-3 text-xs font-bold text-[#111827] shadow-sm transition hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:px-4 sm:text-sm"
             >
-              <FiRefreshCw
-                size={15}
-                className={loading ? "animate-spin" : ""}
-              />
+              <FiRefreshCw size={15} className={loading ? "animate-spin" : ""} />
               Refresh
             </button>
           </div>
@@ -1170,7 +1139,7 @@ const CorrectionRequests: React.FC = () => {
         {/* STATISTICS */}
         <motion.div
           variants={containerVariants}
-          className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+          className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5"
         >
           <StatCard
             title="Total Requests"
@@ -1181,17 +1150,15 @@ const CorrectionRequests: React.FC = () => {
             tileClass="bg-[#EAF1FF]"
             tileIconClass="text-[#1E3A8A]"
           />
-
           <StatCard
             title="Pending"
             value={stats.pending}
-            subtitle="Awaiting user action"
+            subtitle="Awaiting action"
             icon={<FiClock size={20} />}
             accent="bg-gradient-to-r from-[#FDE047] to-[#FACC15]"
             tileClass="bg-[#FEF9C3]"
             tileIconClass="text-[#854D0E]"
           />
-
           <StatCard
             title="Completed"
             value={stats.completed}
@@ -1201,7 +1168,6 @@ const CorrectionRequests: React.FC = () => {
             tileClass="bg-[#DBEAFE]"
             tileIconClass="text-[#1E40AF]"
           />
-
           <StatCard
             title="Expired"
             value={stats.expired}
@@ -1210,6 +1176,15 @@ const CorrectionRequests: React.FC = () => {
             accent="bg-gradient-to-r from-[#8C97B2] to-[#4A5778]"
             tileClass="bg-[#F3F6FB]"
             tileIconClass="text-[#4A5778]"
+          />
+          <StatCard
+            title="Rejected"
+            value={stats.rejected}
+            subtitle="Requests rejected"
+            icon={<FiXCircle size={20} />}
+            accent="bg-gradient-to-r from-[#E87979] to-[#C23B32]"
+            tileClass="bg-[#FFF0EF]"
+            tileIconClass="text-[#C23B32]"
           />
         </motion.div>
 
@@ -1221,13 +1196,11 @@ const CorrectionRequests: React.FC = () => {
           {/* SEARCH + FILTER TOOLBAR */}
           <div className="border-b border-[#DCE6F2] bg-white p-3 sm:p-4">
             <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              {/* SEARCH */}
               <div className="relative w-full min-w-0 xl:max-w-[600px] xl:flex-1">
                 <FiSearch
                   size={18}
                   className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#111827]"
                 />
-
                 <input
                   type="text"
                   value={search}
@@ -1235,7 +1208,6 @@ const CorrectionRequests: React.FC = () => {
                   placeholder="Search name, email, ID, reason..."
                   className="h-10 w-full min-w-0 rounded-lg border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-9 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 sm:h-11"
                 />
-
                 {search && (
                   <button
                     type="button"
@@ -1248,32 +1220,9 @@ const CorrectionRequests: React.FC = () => {
                 )}
               </div>
 
-              {/* STATUS FILTERS */}
               <div className="flex w-full min-w-0 items-center gap-1 overflow-x-auto rounded-lg border border-[#DCE6F2] bg-[#F2F7FC] p-1 xl:w-auto xl:shrink-0">
-                {[
-                  {
-                    key: "all" as CorrectionFilter,
-                    label: "All",
-                    count: stats.total,
-                  },
-                  {
-                    key: "pending" as CorrectionFilter,
-                    label: "Pending",
-                    count: stats.pending,
-                  },
-                  {
-                    key: "completed" as CorrectionFilter,
-                    label: "Completed",
-                    count: stats.completed,
-                  },
-                  {
-                    key: "expired" as CorrectionFilter,
-                    label: "Expired",
-                    count: stats.expired,
-                  },
-                ].map((tab) => {
+                {filterTabs.map((tab) => {
                   const active = activeFilter === tab.key;
-
                   return (
                     <button
                       key={tab.key}
@@ -1286,12 +1235,9 @@ const CorrectionRequests: React.FC = () => {
                       }`}
                     >
                       <span>{tab.label}</span>
-
                       <span
                         className={`inline-flex min-w-[21px] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                          active
-                            ? "bg-white/20 text-white"
-                            : "bg-[#EAF3FF] text-[#111827]"
+                          active ? "bg-white/20 text-white" : "bg-[#EAF3FF] text-[#111827]"
                         }`}
                       >
                         {tab.count}
@@ -1303,66 +1249,47 @@ const CorrectionRequests: React.FC = () => {
             </div>
           </div>
 
-          {/* =================================================
-              DESKTOP TABLE
-              Fixed columns: no horizontal scrollbar
-              ================================================= */}
+          {/* DESKTOP TABLE - Token expiry column removed */}
           <div className="hidden w-full min-w-0 overflow-hidden xl:block rounded-2xl">
             <table className="w-full table-fixed border-collapse">
               <colgroup>
                 <col style={{ width: "5%" }} />
-                <col style={{ width: "19%" }} />
-                <col style={{ width: "32%" }} />
-                <col style={{ width: "9%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "8%" }} />
+                <col style={{ width: "20%" }} />
+                <col style={{ width: "30%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "18%" }} />
               </colgroup>
-
-              <thead >
+              <thead>
                 <tr className="bg-[#4F8FF7]">
                   <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     S.No.
                   </th>
-
                   <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     User
                   </th>
-
                   <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Reason
                   </th>
-
                   <th className="px-1.5 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Status
                   </th>
-
-                  <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
-                    Token Expires
-                  </th>
-
                   <th className="px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Created
                   </th>
-
                   <th className="px-1 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Actions
                   </th>
                 </tr>
               </thead>
-
               <tbody>
                 {initialLoading ? (
                   <tr>
-                    <td colSpan={7} className="px-3 py-16 text-center">
+                    <td colSpan={6} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                          <FiRefreshCw
-                            size={22}
-                            className="animate-spin"
-                          />
+                          <FiRefreshCw size={22} className="animate-spin" />
                         </div>
-
                         <p className="mt-3 text-sm font-bold text-[#111827]">
                           Loading requests...
                         </p>
@@ -1371,16 +1298,14 @@ const CorrectionRequests: React.FC = () => {
                   </tr>
                 ) : paginatedRequests.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-3 py-16 text-center">
+                    <td colSpan={6} className="px-3 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#6B7280]">
                           <FiUsers size={23} />
                         </div>
-
                         <p className="mt-3 text-sm font-bold text-[#111827]">
                           No correction requests found
                         </p>
-
                         <p className="mt-1 text-xs text-[#6B7280]">
                           Try another search or filter.
                         </p>
@@ -1388,160 +1313,80 @@ const CorrectionRequests: React.FC = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginatedRequests.map((req, index) => {
-                    const sending = sendingLinkId === req.id;
-                    // CHANGED: only pending requests show the Send button
-                    const showSendLink =
-                      canSendLink && isPending(req.status);
-
-                    return (
-                      <tr
-                        key={req.id}
-                        className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
-                      >
-                        {/* SERIAL NUMBER */}
-                        <td className="px-2 py-3 align-middle">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#111827]">
-                            {startIndex + index + 1}
-                          </span>
-                        </td>
-
-                        {/* USER */}
-                        <td className="px-2 py-3 align-middle">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
-                              {getInitials(getDisplayName(req))}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p
-                                title={getDisplayName(req)}
-                                className="truncate text-xs font-bold text-[#111827] 2xl:text-sm"
-                              >
-                                {getDisplayName(req)}
-                              </p>
-
-                              <p
-                                title={getDisplayEmail(req)}
-                                className="mt-0.5 truncate text-[10px] text-[#4B5563] 2xl:text-xs"
-                              >
-                                {getDisplayEmail(req)}
-                              </p>
-                            </div>
+                  paginatedRequests.map((req, index) => (
+                    <tr
+                      key={req.id}
+                      className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
+                    >
+                      <td className="px-2 py-3 align-middle">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#111827]">
+                          {startIndex + index + 1}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 align-middle">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
+                            {getInitials(getDisplayName(req))}
                           </div>
-                        </td>
-
-                        {/* REASON */}
-                        <td className="px-2 py-3 align-middle">
-                          <span className="inline-flex max-w-full items-start gap-1.5 rounded-full border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold leading-4 text-[#111827]">
-                            <FiShield
-                              size={12}
-                              className="mt-0.5 shrink-0"
-                            />
-
-                            <span
-                              title={getReasonLabel(req.reason)}
-                              className="min-w-0 break-words"
+                          <div className="min-w-0 flex-1">
+                            <p
+                              title={getDisplayName(req)}
+                              className="truncate text-xs font-bold text-[#111827] 2xl:text-sm"
                             >
-                              {getReasonLabel(req.reason)}
-                            </span>
-                          </span>
-                        </td>
-
-                        {/* STATUS */}
-                        <td className="px-1.5 py-3 text-center align-middle">
-                          <span
-                            className={`inline-flex max-w-full items-center justify-center rounded-full border px-2 py-1.5 text-[10px] font-bold 2xl:px-3 2xl:text-xs ${getStatusClass(
-                              req.status,
-                            )}`}
-                          >
-                            {getStatusLabel(req.status)}
-                          </span>
-                        </td>
-
-                        {/* TOKEN EXPIRY */}
-                        <td className="px-2 py-3 align-middle">
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <FiCalendar
-                              size={12}
-                              className="shrink-0 text-[#4B5563]"
-                            />
-
-                            <span
-                              title={formatDate(req.token_expires_at)}
-                              className="whitespace-nowrap text-[10px] font-semibold text-[#111827] 2xl:text-[11px]"
+                              {getDisplayName(req)}
+                            </p>
+                            <p
+                              title={getDisplayEmail(req)}
+                              className="mt-0.5 truncate text-[10px] text-[#4B5563] 2xl:text-xs"
                             >
-                              {formatDate(req.token_expires_at)}
-                            </span>
+                              {getDisplayEmail(req)}
+                            </p>
                           </div>
-                        </td>
-
-                        {/* CREATED */}
-                        <td className="px-2 py-3 align-middle">
+                        </div>
+                      </td>
+                      <td className="px-2 py-3 align-middle">
+                        <span className="inline-flex max-w-full items-start gap-1.5 rounded-full border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2.5 py-1.5 text-[10px] font-bold leading-4 text-[#111827]">
+                          <FiShield size={12} className="mt-0.5 shrink-0" />
+                          <span title={getReasonLabel(req.reason)} className="min-w-0 break-words">
+                            {getReasonLabel(req.reason)}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-1.5 py-3 text-center align-middle">
+                        <span
+                          className={`inline-flex max-w-full items-center justify-center rounded-full border px-2 py-1.5 text-[10px] font-bold 2xl:px-3 2xl:text-xs ${getStatusClass(
+                            req.status,
+                          )}`}
+                        >
+                          {getStatusLabel(req.status)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 align-middle">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <FiCalendar size={12} className="shrink-0 text-[#4B5563]" />
                           <span
                             title={formatDate(req.created_at)}
                             className="whitespace-nowrap text-[10px] font-semibold text-[#111827] 2xl:text-[11px]"
                           >
                             {formatDate(req.created_at)}
                           </span>
-                        </td>
-
-                        {/* ACTIONS */}
-                        <td className="px-1 py-3 align-middle">
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleView(req)}
-                              title="View Details"
-                              aria-label={`View request ${req.id}`}
-                              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#111827] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
-                            >
-                              <FiEye size={14} />
-                            </button>
-
-                            {showSendLink && (
-                              <button
-                                type="button"
-                                onClick={() => void handleSendLink(req.id)}
-                                disabled={sending}
-                                title="Send correction link"
-                                aria-label={`Send correction link for request ${req.id}`}
-                                className="flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-2 text-[10px] font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                <FiSend
-                                  size={12}
-                                  className={
-                                    sending ? "animate-pulse" : ""
-                                  }
-                                />
-
-                                {sending ? "..." : "Send"}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                        </div>
+                      </td>
+                      <td className="px-1 py-3 align-middle">{renderActions(req, false)}</td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* =================================================
-              MOBILE AND TABLET CARDS
-              Shown below 1280px
-              ================================================= */}
+          {/* MOBILE AND TABLET CARDS - Token expiry field removed */}
           <div className="block min-w-0 xl:hidden">
             {initialLoading ? (
               <div className="flex flex-col items-center px-5 py-14 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                  <FiRefreshCw
-                    size={23}
-                    className="animate-spin"
-                  />
+                  <FiRefreshCw size={23} className="animate-spin" />
                 </div>
-
                 <p className="mt-3 text-sm font-bold text-[#111827]">
                   Loading requests...
                 </p>
@@ -1551,175 +1396,144 @@ const CorrectionRequests: React.FC = () => {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F4F8FD] text-[#6B7280]">
                   <FiUsers size={23} />
                 </div>
-
                 <p className="mt-3 text-sm font-bold text-[#111827]">
                   No correction requests found
                 </p>
-
                 <p className="mt-1 text-xs text-[#6B7280]">
                   Try another search or filter.
                 </p>
               </div>
             ) : (
-              paginatedRequests.map((req, index) => {
-                const sending = sendingLinkId === req.id;
-                // CHANGED: only pending requests show the Send button
-                const showSendLink =
-                  canSendLink && isPending(req.status);
-
-                return (
-                  <div
-                    key={req.id}
-                    className="min-w-0 border-b border-[#DCE6F2] p-3 last:border-b-0 sm:p-4"
-                  >
-                    {/* USER SUMMARY */}
-                    <div className="flex min-w-0 items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
-                          {getInitials(getDisplayName(req))}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#111827]">
-                            {getDisplayName(req)}
-                          </p>
-
-                          <p className="mt-0.5 break-all text-xs text-[#4B5563]">
-                            {getDisplayEmail(req)}
-                          </p>
-                        </div>
+              paginatedRequests.map((req, index) => (
+                <div
+                  key={req.id}
+                  className="min-w-0 border-b border-[#DCE6F2] p-3 last:border-b-0 sm:p-4"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-xs font-bold text-white">
+                        {getInitials(getDisplayName(req))}
                       </div>
-
-                      <span className="shrink-0 rounded-md bg-[#F4F8FD] px-2 py-1 text-[10px] font-bold text-[#6B7280]">
-                        #{startIndex + index + 1}
-                      </span>
-                    </div>
-
-                    {/* DETAILS */}
-                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Reason
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#111827]">
+                          {getDisplayName(req)}
                         </p>
-
-                        <p className="mt-1 break-words text-xs font-bold leading-5 text-[#111827]">
-                          {getReasonLabel(req.reason)}
-                        </p>
-                      </div>
-
-                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Status
-                        </p>
-
-                        <div className="mt-1">
-                          <span
-                            className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-bold ${getStatusClass(
-                              req.status,
-                            )}`}
-                          >
-                            {getStatusLabel(req.status)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Token Expires
-                        </p>
-
-                        <p className="mt-1 break-words text-xs font-semibold text-[#111827]">
-                          {formatDate(req.token_expires_at)}
-                        </p>
-                      </div>
-
-                      <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Created
-                        </p>
-
-                        <p className="mt-1 break-words text-xs font-semibold text-[#111827]">
-                          {formatDate(req.created_at)}
+                        <p className="mt-0.5 break-all text-xs text-[#4B5563]">
+                          {getDisplayEmail(req)}
                         </p>
                       </div>
                     </div>
+                    <span className="shrink-0 rounded-md bg-[#F4F8FD] px-2 py-1 text-[10px] font-bold text-[#6B7280]">
+                      #{startIndex + index + 1}
+                    </span>
+                  </div>
 
-                    {/* CARD ACTIONS */}
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleView(req)}
-                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] px-3 py-2.5 text-xs font-bold text-[#111827] transition hover:bg-[#EAF3FF]"
-                      >
-                        <FiEye size={14} />
-                        View Details
-                      </button>
-
-                      {showSendLink && (
-                        <button
-                          type="button"
-                          onClick={() => void handleSendLink(req.id)}
-                          disabled={sending}
-                          className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-3 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Reason
+                      </p>
+                      <p className="mt-1 break-words text-xs font-bold leading-5 text-[#111827]">
+                        {getReasonLabel(req.reason)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Status
+                      </p>
+                      <div className="mt-1">
+                        <span
+                          className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-bold ${getStatusClass(
+                            req.status,
+                          )}`}
                         >
-                          <FiSend
-                            size={14}
-                            className={sending ? "animate-pulse" : ""}
-                          />
-
-                          {sending ? "Sending..." : "Send Link"}
-                        </button>
-                      )}
+                          {getStatusLabel(req.status)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Created
+                      </p>
+                      <p className="mt-1 break-words text-xs font-semibold text-[#111827]">
+                        {formatDate(req.created_at)}
+                      </p>
                     </div>
                   </div>
-                );
-              })
+
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleView(req)}
+                      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] px-3 py-2.5 text-xs font-bold text-[#111827] transition hover:bg-[#EAF3FF]"
+                    >
+                      <FiEye size={14} />
+                      View Details
+                    </button>
+                    {isPending(req.status) && canSendLink && (
+                      <button
+                        type="button"
+                        onClick={() => openSendLinkConfirmation(req.id)}
+                        disabled={sendingLinkId === req.id || approvingId === req.id || rejectingId === req.id}
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-3 py-2.5 text-xs font-bold text-[#1D4ED8] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <FiSend size={14} />
+                        {sendingLinkId === req.id ? "Sending..." : "Send Link"}
+                      </button>
+                    )}
+                    {isPending(req.status) && canApprove && (
+                      <button
+                        type="button"
+                        onClick={() => void handleApprove(req.id)}
+                        disabled={approvingId === req.id || sendingLinkId === req.id || rejectingId === req.id}
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[#168653] px-3 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <FiCheck size={14} />
+                        {approvingId === req.id ? "Approving..." : "Approve"}
+                      </button>
+                    )}
+                    {isPending(req.status) && canReject && (
+                      <button
+                        type="button"
+                        onClick={() => openRejectModal(req.id)}
+                        disabled={rejectingId === req.id || sendingLinkId === req.id || approvingId === req.id}
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[#C23B32] px-3 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <FiXCircle size={14} />
+                        {rejectingId === req.id ? "Rejecting..." : "Reject"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
-          {/* =================================================
-              PAGINATION
-              ================================================= */}
+          {/* PAGINATION */}
           {!pageLoading && filteredRequests.length > 0 && (
             <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
                 <p className="text-center text-xs text-[#4B5563] sm:text-left">
-                  Showing{" "}
-                  <span className="font-bold text-[#111827]">
-                    {startEntry}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#111827]">
-                    {endEntry}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#111827]">
-                    {filteredRequests.length}
-                  </span>{" "}
-                  entries
+                  Showing <span className="font-bold text-[#111827]">{startEntry}</span> to{" "}
+                  <span className="font-bold text-[#111827]">{endEntry}</span> of{" "}
+                  <span className="font-bold text-[#111827]">{filteredRequests.length}</span> entries
                 </p>
-
                 <div className="flex max-w-full items-center gap-1">
                   <button
                     type="button"
-                    onClick={() =>
-                      setCurrentPage((page) => Math.max(1, page - 1))
-                    }
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                     disabled={currentPage === 1}
                     aria-label="Previous page"
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#111827] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
                   >
                     <FiChevronLeft size={17} />
                   </button>
-
                   {paginationPages.map((page) => (
                     <button
                       key={page}
                       type="button"
                       onClick={() => setCurrentPage(page)}
-                      aria-current={
-                        currentPage === page ? "page" : undefined
-                      }
+                      aria-current={currentPage === page ? "page" : undefined}
                       className={`flex h-9 min-w-9 shrink-0 items-center justify-center rounded-lg px-2.5 text-xs font-bold transition ${
                         currentPage === page
                           ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-sm"
@@ -1729,13 +1543,10 @@ const CorrectionRequests: React.FC = () => {
                       {page}
                     </button>
                   ))}
-
                   <button
                     type="button"
                     onClick={() =>
-                      setCurrentPage((page) =>
-                        Math.min(totalPages, page + 1),
-                      )
+                      setCurrentPage((page) => Math.min(totalPages, page + 1))
                     }
                     disabled={currentPage === totalPages}
                     aria-label="Next page"
@@ -1758,14 +1569,160 @@ const CorrectionRequests: React.FC = () => {
           setDetailOpen(false);
           setSelectedRequest(null);
         }}
-        onSendLink={handleSendLink}
-        sendingLink={
-          selectedRequest
-            ? sendingLinkId === selectedRequest.id
-            : false
-        }
+        onSendLink={openSendLinkConfirmation}
+        onApprove={handleApprove}
+        onReject={openRejectModal}
+        sendingLink={selectedRequest ? sendingLinkId === selectedRequest.id : false}
+        approving={selectedRequest ? approvingId === selectedRequest.id : false}
+        rejecting={selectedRequest ? rejectingId === selectedRequest.id : false}
         canSendLink={canSendLink}
+        canApprove={canApprove}
+        canReject={canReject}
       />
+
+      {/* REJECT REQUEST - REASON POPUP */}
+      <GlobalModal
+        isOpen={rejectModalOpen}
+        onClose={closeRejectModal}
+        closeOnOverlayClick={false}
+      >
+        <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#F28B82] to-[#C23B32]" />
+          <div className="flex items-start justify-between gap-3 border-b border-[#DCE6F2] px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FFF0EF] text-[#C23B32]">
+                <FiXCircle size={19} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-[#111827]">Reject Correction Request</h2>
+                <p className="mt-0.5 text-xs text-[#6B7280]">
+                  {rejectTarget
+                    ? `${getDisplayName(rejectTarget)}`
+                    : "Provide a reason for rejection."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={closeRejectModal}
+              disabled={rejectingId !== null}
+              aria-label="Close rejection popup"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-[#111827] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiX size={16} />
+            </button>
+          </div>
+
+          <div className="p-5">
+            <label
+              htmlFor="correction-rejection-reason"
+              className="mb-2 block text-xs font-bold text-[#111827]"
+            >
+              Rejection Reason <span className="text-[#C23B32]">*</span>
+            </label>
+            <textarea
+              id="correction-rejection-reason"
+              rows={4}
+              maxLength={500}
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="Enter why this correction request is being rejected..."
+              disabled={rejectingId !== null}
+              className="w-full resize-y rounded-xl border border-[#D6E2F0] bg-[#F8FBFF] px-3 py-3 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#C23B32] focus:bg-white focus:ring-2 focus:ring-[#C23B32]/10 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <div className="mt-1 flex items-center justify-between gap-3">
+              <p className="text-[11px] text-[#6B7280]">This reason will be submitted to the API.</p>
+              <p className="shrink-0 text-[11px] font-medium text-[#6B7280]">
+                {rejectReason.length}/500
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeRejectModal}
+              disabled={rejectingId !== null}
+              className="rounded-lg border border-[#DCE6F2] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (rejectTarget) void handleReject(rejectTarget.id, rejectReason);
+              }}
+              disabled={!rejectTarget || !rejectReason.trim() || rejectingId !== null}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#C23B32] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#A92F28] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiXCircle size={15} />
+              {rejectingId === rejectTarget?.id ? "Rejecting..." : "Reject Request"}
+            </button>
+          </div>
+        </div>
+      </GlobalModal>
+
+      {/* SEND LINK CONFIRMATION POPUP */}
+      <GlobalModal
+        isOpen={sendLinkConfirmOpen}
+        onClose={closeSendLinkConfirmation}
+        closeOnOverlayClick={false}
+      >
+        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]" />
+          <div className="p-5 sm:p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+              <FiSend size={21} />
+            </div>
+            <h2 className="mt-4 text-center text-lg font-bold text-[#111827]">
+              Confirm Send Link
+            </h2>
+            <p className="mt-2 text-center text-sm leading-6 text-[#6B7280]">
+              Are you sure you want to send the correction link to this user?
+            </p>
+
+            {sendLinkTarget && (
+              <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+            
+                <div className="mt-2 flex items-start justify-between gap-3 text-xs">
+                  <span className="shrink-0 text-[#6B7280]">User</span>
+                  <span className="break-all text-right font-bold text-[#111827]">
+                    {getDisplayName(sendLinkTarget)}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-start justify-between gap-3 text-xs">
+                  <span className="shrink-0 text-[#6B7280]">Email</span>
+                  <span className="break-all text-right font-bold text-[#111827]">
+                    {getDisplayEmail(sendLinkTarget)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-5 py-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeSendLinkConfirmation}
+              disabled={sendingLinkId !== null}
+              className="rounded-lg border border-[#DCE6F2] bg-white px-4 py-2.5 text-sm font-semibold text-[#111827] transition hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (sendLinkTarget) void handleSendLink(sendLinkTarget.id);
+              }}
+              disabled={!sendLinkTarget || sendingLinkId !== null}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1D5BC5] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiSend size={15} />
+              {sendingLinkId === sendLinkTarget?.id ? "Sending..." : "Confirm & Send"}
+            </button>
+          </div>
+        </div>
+      </GlobalModal>
     </>
   );
 };
