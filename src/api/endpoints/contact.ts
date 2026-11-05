@@ -56,7 +56,7 @@ export const contactApi = {
    */
   markAsRead: (id: number) =>
     apiClient.post<ContactActionResponse>(
-      `/contact/mark-read/${id}`
+      `/mark-read/${id}`
     ),
 
   /**
@@ -72,7 +72,7 @@ export const contactApi = {
    */
   bulkDelete: (ids: number[]) =>
     apiClient.post<ContactActionResponse>(
-      "/contact/bulk-delete",
+      "/bulk-delete",
       {
         ids,
       }

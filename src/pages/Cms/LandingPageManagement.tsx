@@ -71,6 +71,7 @@ interface ExistingImage {
 }
 
 interface FormBlock {
+  id?: number; // <-- ADDED: block ID for update payload
   heading: string;
   short_description: string;
   description: string;
@@ -236,6 +237,12 @@ const BlockEditor: React.FC<BlockEditorProps> = ({
           <h4 className="text-xs font-bold text-[#111827]">
             Block {index + 1}
           </h4>
+
+          {block.id && (
+            <span className="rounded-full bg-[#F4F8FD] px-2 py-0.5 text-[9px] font-semibold text-[#6B7280]">
+              ID: {block.id}
+            </span>
+          )}
         </div>
 
         {canRemove && (
@@ -556,9 +563,17 @@ const ViewPageModal: React.FC<{
                       className="rounded-[18px] border border-[#DCE6F2] bg-[#F8FBFF] p-4 sm:p-5"
                     >
                       <div className="mb-4">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                          Block {index + 1}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Block {index + 1}
+                          </p>
+
+                          {block.id && (
+                            <span className="rounded-full bg-white px-2 py-0.5 text-[8px] font-semibold text-[#6B7280] border border-[#DCE6F2]">
+                              ID: {block.id}
+                            </span>
+                          )}
+                        </div>
 
                         <p className="mt-1 text-[10px] text-[#2D6FE8]">
                           Sort order: {block.sort_order}
@@ -706,6 +721,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         )
         .map(
           (block: any): FormBlock => ({
+            id: block.id, // <-- PRESERVE BLOCK ID
             heading: block.heading || "",
             short_description: block.short_description || "",
             description: block.description || "",
@@ -725,6 +741,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
           ? mapped
           : [
               {
+                id: undefined,
                 heading: "",
                 short_description: "",
                 description: "",
@@ -740,6 +757,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 
       setBlocks([
         {
+          id: undefined,
           heading: "",
           short_description: "",
           description: "",
@@ -768,6 +786,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
     setBlocks((previous) => [
       ...previous,
       {
+        id: undefined,
         heading: "",
         short_description: "",
         description: "",
@@ -882,6 +901,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
       status,
       blocks: blocks.map(
         (block): ContentBlockPayload => ({
+          id: block.id, // <-- SEND BLOCK ID IN PAYLOAD
           heading: block.heading,
           short_description: block.short_description,
           description: block.description,
@@ -997,7 +1017,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
             <div className="space-y-3">
               {blocks.map((block, index) => (
                 <BlockEditor
-                  key={`${index}-${block.sort_order}`}
+                  key={`${block.id ?? "new"}-${index}-${block.sort_order}`}
                   block={block}
                   index={index}
                   onChange={updateBlock}

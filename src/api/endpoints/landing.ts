@@ -52,6 +52,7 @@ export interface ContentActionResponse {
 }
 
 export interface ContentBlockPayload {
+  id?: number; // <-- ADDED: block ID for update payload
   heading: string;
   short_description: string;
   description: string;
@@ -78,6 +79,17 @@ const buildFormData = (payload: ContentPayload): FormData => {
   formData.append("type", "landing_page");
 
   payload.blocks.forEach((block, blockIndex) => {
+    // =================================================
+    // BLOCK ID (for update)
+    // =================================================
+
+    if (block.id !== undefined && block.id !== null) {
+      formData.append(
+        `blocks[${blockIndex}][id]`,
+        String(block.id),
+      );
+    }
+
     formData.append(
       `blocks[${blockIndex}][heading]`,
       block.heading || "",
@@ -232,7 +244,7 @@ const landingApi = {
   // DELETE INDIVIDUAL MEDIA
   deleteMedia: (mediaId: number) =>
     apiClient.delete<ContentActionResponse>(
-      `/content-media/${mediaId}`,
+      `/contents/content-media/${mediaId}`,
     ),
 };
 

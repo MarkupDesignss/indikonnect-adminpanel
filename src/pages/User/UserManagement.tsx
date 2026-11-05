@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -131,6 +130,10 @@ interface KycProfileLike {
 
 interface UserWithBuyback extends RegisteredUser {
   buyback_untill?: string | null;
+
+  // Complete KYC details from API
+  complete_pan_card?: string | null;
+  complete_aadhar_card?: string | null;
 }
 
 // =====================================================
@@ -1192,7 +1195,6 @@ const BuybackCountdown: React.FC<BuybackCountdownProps> = ({
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
-      {/* HEADER */}
       <div className="flex items-center justify-between gap-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-3 py-2.5">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1221,7 +1223,6 @@ const BuybackCountdown: React.FC<BuybackCountdownProps> = ({
         </span>
       </div>
 
-      {/* TIMER */}
       <div className="p-3">
         {isExpired ? (
           <div className="py-2 text-center">
@@ -1248,7 +1249,6 @@ const BuybackCountdown: React.FC<BuybackCountdownProps> = ({
           </div>
         )}
 
-        {/* EXPIRY DATE */}
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="text-[10px] text-[#6B7280]">
             <FiCalendar className="mr-1 inline" size={11} />
@@ -1324,10 +1324,19 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     ? getKycStatusUpdatedAt(user)
     : null;
 
-  // BUYBACK EXPIRY DATE FROM API
-  const buybackUntil = user
-    ? (user as UserWithBuyback).buyback_untill
-    : null;
+  // ===================================================
+  // BUYBACK + COMPLETE KYC DETAILS FROM API
+  // ===================================================
+
+  const userWithExtraFields = user as UserWithBuyback | null;
+
+  const buybackUntil = userWithExtraFields?.buyback_untill;
+
+  const completeAadhaar =
+    userWithExtraFields?.complete_aadhar_card;
+
+  const completePan =
+    userWithExtraFields?.complete_pan_card;
 
   const withdrawAllowed = user ? isWithdrawAllowed(user) : true;
 
@@ -1740,12 +1749,13 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </h3>
 
                       <p className="mt-0.5 text-xs text-[#111827]">
-                        Verification status and masked account information.
+                        Verification status and account information.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {/* KYC STATUS */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         KYC Status
@@ -1758,6 +1768,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
+                    {/* KYC UPDATED AT */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         KYC Status Updated At
@@ -1768,21 +1779,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
+                    {/* COMPLETE AADHAAR NUMBER */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                        Aadhaar
+                        Aadhaar Number
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#111827]">
-                        {user.aadhaar_last4
-                          ? `XXXX XXXX ${user.aadhaar_last4}`
-                          : "Not Available"}
+                      <p className="mt-1 break-all text-sm font-bold text-[#111827]">
+                        {completeAadhaar?.trim() || "Not Available"}
                       </p>
 
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           kycProfile.aadhaar_verified
-                            ? "text-[#111827]"
+                            ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
                         }`}
                       >
@@ -1792,21 +1802,20 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
+                    {/* COMPLETE PAN NUMBER */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                        PAN
+                        PAN Number
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#111827]">
-                        {user.pan_last4
-                          ? `XXXXXX${user.pan_last4}`
-                          : "Not Available"}
+                      <p className="mt-1 break-all text-sm font-bold text-[#111827]">
+                        {completePan?.trim() || "Not Available"}
                       </p>
 
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           kycProfile.pan_verified
-                            ? "text-[#111827]"
+                            ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
                         }`}
                       >
@@ -1816,6 +1825,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
+                    {/* BANK ACCOUNT */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
                         Bank Account
@@ -1830,7 +1840,7 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <p
                         className={`mt-1 text-[10px] font-bold ${
                           kycProfile.bank_verified
-                            ? "text-[#111827]"
+                            ? "text-[#2D6FE8]"
                             : "text-[#C23B32]"
                         }`}
                       >

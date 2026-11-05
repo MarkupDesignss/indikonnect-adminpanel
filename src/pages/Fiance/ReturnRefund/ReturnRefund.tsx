@@ -416,127 +416,127 @@ const buildTimelineEvents = (
     color: string;
     icon: React.ReactNode;
   }> = [
-    {
-      key: "created_at",
-      label: "Order Created",
-      description: `Order was placed by the ${accountLabel}.`,
-      date: timeline.created_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiPackage size={14} />,
-    },
-    {
-      key: "dispatched_at",
-      label: "Dispatched",
-      description: "Order was handed over to courier.",
-      date: timeline.dispatched_at ?? null,
-      color: "bg-[#4F8FF7]",
-      icon: <FiTruck size={14} />,
-    },
-    {
-      key: "shipped_at",
-      label: "Shipped",
-      description: "Package is in transit.",
-      date: timeline.shipped_at ?? null,
-      color: "bg-[#4F8FF7]",
-      icon: <FiSend size={14} />,
-    },
-    {
-      key: "delivered_at",
-      label: "Delivered",
-      description: `Package delivered to the ${accountLabel}.`,
-      date: timeline.delivered_at ?? null,
-      color: "bg-[#1E40AF]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "cancellation_requested_at",
-      label: "Cancellation Requested",
-      description: `${accountTitle} requested order cancellation.`,
-      date: timeline.cancellation_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiClock size={14} />,
-    },
-    {
-      key: "cancelled_at",
-      label: "Cancelled",
-      description: "Order was cancelled.",
-      date: timeline.cancelled_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "cancellation_rejected_at",
-      label: "Cancellation Rejected",
-      description: "Cancellation request was rejected.",
-      date: timeline.cancellation_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "return_requested_at",
-      label: "Return Requested",
-      description: `${accountTitle} requested a return.`,
-      date: timeline.return_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiRotateCcw size={14} />,
-    },
-    {
-      key: "return_approved_at",
-      label: "Return Approved",
-      description: "Return request was approved.",
-      date: timeline.return_approved_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "return_rejected_at",
-      label: "Return Rejected",
-      description: "Return request was rejected.",
-      date: timeline.return_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "return_completed_at",
-      label: "Return Completed",
-      description: "Return process was completed.",
-      date: timeline.return_completed_at ?? null,
-      color: "bg-[#1E40AF]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "buyback_requested_at",
-      label: "Buyback Requested",
-      description: `${accountTitle} requested buyback.`,
-      date: timeline.buyback_requested_at ?? null,
-      color: "bg-[#FACC15]",
-      icon: <FiRotateCw size={14} />,
-    },
-    {
-      key: "buyback_approved_at",
-      label: "Buyback Approved",
-      description: "Buyback request was approved.",
-      date: timeline.buyback_approved_at ?? null,
-      color: "bg-[#2D6FE8]",
-      icon: <FiCheckCircle size={14} />,
-    },
-    {
-      key: "buyback_rejected_at",
-      label: "Buyback Rejected",
-      description: "Buyback request was rejected.",
-      date: timeline.buyback_rejected_at ?? null,
-      color: "bg-[#C23B32]",
-      icon: <FiXCircle size={14} />,
-    },
-    {
-      key: "buyback_refunded_at",
-      label: "Buyback Refunded",
-      description: "Buyback refund was processed.",
-      date: timeline.buyback_refunded_at ?? null,
-      color: "bg-[#1E40AF]",
-      icon: <FiDollarSign size={14} />,
-    },
-  ];
+      {
+        key: "created_at",
+        label: "Order Created",
+        description: `Order was placed by the ${accountLabel}.`,
+        date: timeline.created_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiPackage size={14} />,
+      },
+      {
+        key: "dispatched_at",
+        label: "Dispatched",
+        description: "Order was handed over to courier.",
+        date: timeline.dispatched_at ?? null,
+        color: "bg-[#4F8FF7]",
+        icon: <FiTruck size={14} />,
+      },
+      {
+        key: "shipped_at",
+        label: "Shipped",
+        description: "Package is in transit.",
+        date: timeline.shipped_at ?? null,
+        color: "bg-[#4F8FF7]",
+        icon: <FiSend size={14} />,
+      },
+      {
+        key: "delivered_at",
+        label: "Delivered",
+        description: `Package delivered to the ${accountLabel}.`,
+        date: timeline.delivered_at ?? null,
+        color: "bg-[#1E40AF]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "cancellation_requested_at",
+        label: "Cancellation Requested",
+        description: `${accountTitle} requested order cancellation.`,
+        date: timeline.cancellation_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiClock size={14} />,
+      },
+      {
+        key: "cancelled_at",
+        label: "Cancelled",
+        description: "Order was cancelled.",
+        date: timeline.cancelled_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "cancellation_rejected_at",
+        label: "Cancellation Rejected",
+        description: "Cancellation request was rejected.",
+        date: timeline.cancellation_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_requested_at",
+        label: "Return Requested",
+        description: `${accountTitle} requested a return.`,
+        date: timeline.return_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiRotateCcw size={14} />,
+      },
+      {
+        key: "return_approved_at",
+        label: "Return Approved",
+        description: "Return request was approved.",
+        date: timeline.return_approved_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "return_rejected_at",
+        label: "Return Rejected",
+        description: "Return request was rejected.",
+        date: timeline.return_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "return_completed_at",
+        label: "Return Completed",
+        description: "Return process was completed.",
+        date: timeline.return_completed_at ?? null,
+        color: "bg-[#1E40AF]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_requested_at",
+        label: "Buyback Requested",
+        description: `${accountTitle} requested buyback.`,
+        date: timeline.buyback_requested_at ?? null,
+        color: "bg-[#FACC15]",
+        icon: <FiRotateCw size={14} />,
+      },
+      {
+        key: "buyback_approved_at",
+        label: "Buyback Approved",
+        description: "Buyback request was approved.",
+        date: timeline.buyback_approved_at ?? null,
+        color: "bg-[#2D6FE8]",
+        icon: <FiCheckCircle size={14} />,
+      },
+      {
+        key: "buyback_rejected_at",
+        label: "Buyback Rejected",
+        description: "Buyback request was rejected.",
+        date: timeline.buyback_rejected_at ?? null,
+        color: "bg-[#C23B32]",
+        icon: <FiXCircle size={14} />,
+      },
+      {
+        key: "buyback_refunded_at",
+        label: "Buyback Refunded",
+        description: "Buyback refund was processed.",
+        date: timeline.buyback_refunded_at ?? null,
+        color: "bg-[#1E40AF]",
+        icon: <FiDollarSign size={14} />,
+      },
+    ];
 
   return rawEvents
     .filter((event) => Boolean(event.date))
@@ -1159,11 +1159,10 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 type="button"
                 onClick={() => setResolution("replacement")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
-                  resolution === "replacement"
-                    ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
-                    : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
-                } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "replacement"
+                  ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
+                  : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
+                  } disabled:opacity-50`}
               >
                 {resolution === "replacement" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#2D6FE8] text-white">
@@ -1172,22 +1171,20 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                    resolution === "replacement"
-                      ? "bg-[#2D6FE8] text-white"
-                      : "bg-white text-[#2D6FE8]"
-                  }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "replacement"
+                    ? "bg-[#2D6FE8] text-white"
+                    : "bg-white text-[#2D6FE8]"
+                    }`}
                 >
                   <FiRefreshCw size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${
-                      resolution === "replacement"
-                        ? "text-[#2D6FE8]"
-                        : "text-[#111827]"
-                    }`}
+                    className={`text-xs font-bold ${resolution === "replacement"
+                      ? "text-[#2D6FE8]"
+                      : "text-[#111827]"
+                      }`}
                   >
                     Replacement
                   </p>
@@ -1202,11 +1199,10 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 type="button"
                 onClick={() => setResolution("refund")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
-                  resolution === "refund"
-                    ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
-                    : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
-                } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "refund"
+                  ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
+                  : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
+                  } disabled:opacity-50`}
               >
                 {resolution === "refund" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#2D6FE8] text-white">
@@ -1215,22 +1211,20 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-                    resolution === "refund"
-                      ? "bg-[#2D6FE8] text-white"
-                      : "bg-white text-[#2D6FE8]"
-                  }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "refund"
+                    ? "bg-[#2D6FE8] text-white"
+                    : "bg-white text-[#2D6FE8]"
+                    }`}
                 >
                   <FaRupeeSign size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${
-                      resolution === "refund"
-                        ? "text-[#2D6FE8]"
-                        : "text-[#111827]"
-                    }`}
+                    className={`text-xs font-bold ${resolution === "refund"
+                      ? "text-[#2D6FE8]"
+                      : "text-[#111827]"
+                      }`}
                   >
                     Refund
                   </p>
@@ -1363,88 +1357,88 @@ const ReplacementConfirmPopup: React.FC<
   onClose,
   onConfirm,
 }) => {
-  if (!open) return null;
+    if (!open) return null;
 
-  return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
-      <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
-        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
+    return (
+      <GlobalModal
+        isOpen={open}
+        onClose={onClose}
+        closeOnOverlayClick={!loading}
+      >
+        <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+          <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
-        <div className="flex flex-col items-center px-5 py-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-            <FiRefreshCw size={26} />
-          </div>
-
-          <h2 className="mt-4 text-base font-bold text-[#111827]">
-            Confirm Replacement
-          </h2>
-
-          <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
-            You are about to complete this return with a{" "}
-            <span className="font-bold text-[#2D6FE8]">replacement</span> for:
-          </p>
-
-          <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-            <div className="flex justify-between gap-3">
-              <span className="text-[11px] text-[#6B7280]">
-                Item Reference
-              </span>
-
-              <span className="text-right text-xs font-bold text-[#111827]">
-                {orderReference}
-              </span>
+          <div className="flex flex-col items-center px-5 py-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+              <FiRefreshCw size={26} />
             </div>
 
-            <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
-              <span className="text-[11px] text-[#6B7280]">{customerLabel}</span>
+            <h2 className="mt-4 text-base font-bold text-[#111827]">
+              Confirm Replacement
+            </h2>
 
-              <span className="text-right text-xs font-semibold text-[#111827]">
-                {customerName}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
-            <p className="text-[11px] leading-4 text-[#4B5563]">
-              ⚠️ The replacement product will be shipped to the{" "}
-              {customerLabel.toLowerCase()}. This action cannot be undone.
+            <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
+              You are about to complete this return with a{" "}
+              <span className="font-bold text-[#2D6FE8]">replacement</span> for:
             </p>
+
+            <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+              <div className="flex justify-between gap-3">
+                <span className="text-[11px] text-[#6B7280]">
+                  Item Reference
+                </span>
+
+                <span className="text-right text-xs font-bold text-[#111827]">
+                  {orderReference}
+                </span>
+              </div>
+
+              <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
+                <span className="text-[11px] text-[#6B7280]">{customerLabel}</span>
+
+                <span className="text-right text-xs font-semibold text-[#111827]">
+                  {customerName}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
+              <p className="text-[11px] leading-4 text-[#4B5563]">
+                ⚠️ The replacement product will be shipped to the{" "}
+                {customerLabel.toLowerCase()}. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              disabled={loading}
+              onClick={onConfirm}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? (
+                <FiRefreshCw size={14} className="animate-spin" />
+              ) : (
+                <FiCheck size={14} />
+              )}
+
+              {loading ? "Processing..." : "OK, Confirm"}
+            </button>
           </div>
         </div>
-
-        <div className="flex justify-center gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={onConfirm}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? (
-              <FiRefreshCw size={14} className="animate-spin" />
-            ) : (
-              <FiCheck size={14} />
-            )}
-
-            {loading ? "Processing..." : "OK, Confirm"}
-          </button>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
+      </GlobalModal>
+    );
+  };
 
 // =====================================================
 // TIMELINE STEPPER
@@ -1813,10 +1807,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Replacement"
                         : formatCurrency(
-                            actualRefundedAmount ??
-                              detail.refund_info?.amount ??
-                              detail.refund_details?.total,
-                          )}
+                          actualRefundedAmount ??
+                          detail.refund_info?.amount ??
+                          detail.refund_details?.total,
+                        )}
                     </p>
                   </div>
 
@@ -1829,7 +1823,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Product Replacement"
                         : detail.refund_info?.refund_method ||
-                          "Original Payment"}
+                        "Original Payment"}
                     </p>
                   </div>
 
@@ -1841,8 +1835,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-sm font-bold text-[#111827]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
-                          detail.refunded_at ||
-                          detail.updated_at,
+                        detail.refunded_at ||
+                        detail.updated_at,
                       )}
                     </p>
                   </div>
@@ -2112,7 +2106,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           Reason
                         </p>
 
-                        <p className="mt-1 line-clamp-2 text-xs font-semibold text-[#4B5563]">
+                        <p className="mt-1 whitespace-normal break-words text-xs font-semibold text-[#4B5563]">
                           {item.reason || "No reason"}
                         </p>
                       </div>
@@ -2391,9 +2385,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
 
                       <span
-                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${
-                          refundBreakdownOpen ? "rotate-180" : ""
-                        }`}
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
+                          }`}
                       >
                         <FiChevronDown size={15} />
                       </span>
@@ -2861,7 +2854,7 @@ const ReturnRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to fetch return requests.",
+        "Unable to fetch return requests.",
       );
     } finally {
       setLoading(false);
@@ -2964,24 +2957,30 @@ const ReturnRefund: React.FC = () => {
   // FETCH DETAIL
   // ===================================================
 
-  const fetchReturnDetail = async (id: number) => {
+  const fetchReturnDetail = async (
+    id: number,
+  ): Promise<SingleReturnResponse["data"] | null> => {
     try {
       setDetailLoading(true);
 
       const response = await returnApi.getById(id);
 
-      if (response.data.success) {
-        setSelectedDetail(response.data.data);
-      } else {
-        toast.error("Unable to fetch return details.");
+      if (response.data.success && response.data.data) {
+        const detail = response.data.data;
+        setSelectedDetail(detail);
+        return detail;
       }
+
+      toast.error("Unable to fetch return details.");
+      return null;
     } catch (error: any) {
       console.error("Return detail error:", error);
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to fetch return details.",
+        "Unable to fetch return details.",
       );
+      return null;
     } finally {
       setDetailLoading(false);
     }
@@ -3109,6 +3108,16 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
+  // ✅ NEW: OPEN MARK RECEIVED DIRECTLY FROM TABLE
+  // ===================================================
+  const handleOpenReceivedFromTable = async (id: number) => {
+    if (selectedDetail?.id !== id) {
+      await fetchReturnDetail(id);
+    }
+    setReceivedModalOpen(true);
+  };
+
+  // ===================================================
   // OPEN MARK RECEIVED
   // ===================================================
 
@@ -3141,7 +3150,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Return marked as received successfully.",
+          "Return marked as received successfully.",
         );
 
         await fetchReturnRequests();
@@ -3155,7 +3164,7 @@ const ReturnRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to mark return as received.",
+          "Unable to mark return as received.",
         );
       }
     } catch (error: any) {
@@ -3163,7 +3172,7 @@ const ReturnRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to mark return as received.",
+        "Unable to mark return as received.",
       );
     } finally {
       setReceivedLoading(false);
@@ -3179,6 +3188,33 @@ const ReturnRefund: React.FC = () => {
     if (!selectedDetail) return;
 
     if (selectedDetail.status !== "received") {
+      toast.error("Return must be received before completing.");
+      return;
+    }
+
+    setCompleteModalOpen(true);
+  };
+
+  // ===================================================
+  // OPEN COMPLETE POPUP DIRECTLY FROM TABLE / MOBILE CARD
+  // View remains dedicated to the detail popup only.
+  // ===================================================
+
+  const handleOpenCompleteFromTable = async (id: number) => {
+    // Do not open the detail popup when Complete is clicked.
+    setDetailModalOpen(false);
+    setCompleteModalOpen(false);
+
+    let detail = selectedDetail?.id === id ? selectedDetail : null;
+
+    if (!detail) {
+      setSelectedDetail(null);
+      detail = await fetchReturnDetail(id);
+    }
+
+    if (!detail) return;
+
+    if (detail.status !== "received") {
       toast.error("Return must be received before completing.");
       return;
     }
@@ -3230,7 +3266,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            `Return completed with ${resolution} successfully.`,
+          `Return completed with ${resolution} successfully.`,
         );
 
         await fetchReturnRequests();
@@ -3438,7 +3474,7 @@ const ReturnRefund: React.FC = () => {
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white "
         >
-    
+
           <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[540px]">
@@ -3479,11 +3515,10 @@ const ReturnRefund: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
-                    className={`rounded-xl px-3.5 py-3 text-xs font-bold transition-all ${
-                      activeFilter === filter.key
-                        ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
-                        : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                    }`}
+                    className={`rounded-xl px-3.5 py-3 text-xs font-bold transition-all ${activeFilter === filter.key
+                      ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                      : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -3494,293 +3529,294 @@ const ReturnRefund: React.FC = () => {
 
           {/* DESKTOP TABLE */}
 
-       
-<div className="hidden w-full overflow-hidden rounded-xl lg:block">
-  <table className="w-full table-fixed border-collapse text-[11px]">
-    <thead>
-      <tr className="bg-[#4F8FF7]">
-        <th className="w-[5%] px-2 py-3 text-left text-[12px] font-semibold text-white">S.No.</th>
-        <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Order Reference</th>
-        <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Buyer</th>
-        <th className="w-[5%] px-1 py-3 text-center text-[12px] font-semibold text-white">Quantity</th>
-        <th className="w-[9%] px-2 py-3 text-right text-[12px] font-semibold text-white">Return Amount</th>
-        <th className="w-[9%] px-2 py-3 text-left text-[12px] font-semibold text-white">Return Method</th>
-        <th className="w-[11%] px-2 py-3 text-left text-[12px] font-semibold text-white">Tracking Details</th>
-        <th className="w-[8%] px-2 py-3 text-left text-[12px] font-semibold text-white">Reason</th>
-        <th className="w-[9%] px-1 py-3 text-center text-[12px] font-semibold text-white">Status</th>
-        <th className="w-[20%] px-2 py-3 text-center text-[12px] font-semibold text-white">Actions</th>
-      </tr>
-    </thead>
 
-    <tbody>
-      {/* ✅ initialReturnsLoading par full spinner — refresh/CRUD par nahi */}
-      {initialReturnsLoading ? (
-        <tr>
-          <td colSpan={10} className="px-3 py-8 text-center">
-            <div className="flex flex-col items-center">
-              <FiRefreshCw
-                size={20}
-                className="animate-spin text-[#2D6FE8]"
-              />
-              <p className="mt-2 text-sm font-semibold text-[#111827]">
-                Loading return requests...
-              </p>
-            </div>
-          </td>
-        </tr>
-      ) : loading && requests.length === 0 ? (
-        <tr>
-          <td colSpan={10} className="px-3 py-8 text-center">
-            <div className="flex flex-col items-center">
-              <FiRefreshCw
-                size={20}
-                className="animate-spin text-[#2D6FE8]"
-              />
-              <p className="mt-2 text-sm font-semibold text-[#111827]">
-                Loading return requests...
-              </p>
-            </div>
-          </td>
-        </tr>
-      ) : paginatedRequests.length === 0 ? (
-        <tr>
-          <td colSpan={10} className="px-3 py-8 text-center">
-            <FiPackage size={22} className="mx-auto text-[#2D6FE8]" />
-            <p className="mt-2 text-sm font-semibold text-[#111827]">
-              No return requests found
-            </p>
-            <p className="mt-1 text-xs text-[#6B7280]">
-              Try changing the search or status filter.
-            </p>
-          </td>
-        </tr>
-      ) : (
-        paginatedRequests.map((request, index) => {
-          const canApprove =
-            request.can_approve && canApproveReturn;
+          <div className="hidden w-full overflow-hidden rounded-xl lg:block">
+            <table className="w-full table-fixed border-collapse text-[11px]">
+              <thead>
+                <tr className="bg-[#4F8FF7]">
+                  <th className="w-[5%] px-2 py-3 text-left text-[12px] font-semibold text-white">S.No.</th>
+                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Order Reference</th>
+                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Buyer</th>
+                  <th className="w-[5%] px-1 py-3 text-center text-[12px] font-semibold text-white">Quantity</th>
+                  <th className="w-[9%] px-2 py-3 text-right text-[12px] font-semibold text-white">Return Amount</th>
+                  <th className="w-[9%] px-2 py-3 text-left text-[12px] font-semibold text-white">Return Method</th>
+                  <th className="w-[11%] px-2 py-3 text-left text-[12px] font-semibold text-white">Tracking Details</th>
+                  <th className="w-[8%] px-2 py-3 text-left text-[12px] font-semibold text-white">Reason</th>
+                  <th className="w-[9%] px-1 py-3 text-center text-[12px] font-semibold text-white">Status</th>
+                  <th className="w-[20%] px-2 py-3 text-center text-[12px] font-semibold text-white">Actions</th>
+                </tr>
+              </thead>
 
-          const canReject =
-            request.can_reject && canRejectReturn;
-
-          const approveLoading =
-            actionLoading.type === "approve" &&
-            actionLoading.id === request.id;
-
-          const showMarkReceived =
-            request.status === "approved" && canMarkReceived;
-
-          const showComplete =
-            request.status === "received" && canCompleteReturn;
-
-          const rowRefunded = getRefundedAmount(request);
-          const rowIsRefunded = isRefundProcessed(request);
-          const rowReturnAmount = getReturnAmount(request);
-
-          const rowRaw: any = request;
-          const rowReturnMethod = rowRaw.return_method || null;
-          const rowCourier = rowRaw.courier || null;
-          const rowTrackingId = rowRaw.tracking_id || null;
-
-          const rowReturnMethodLabel =
-            getReturnMethodLabel(rowReturnMethod);
-
-          return (
-            <React.Fragment key={request.id}>
-              <tr className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
-                <td className="px-2 py-3">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EAF3FF] text-[11px] font-bold text-[#2D6FE8]">
-                    {startIndex + index + 1}
-                  </span>
-                </td>
-
-                <td className="break-words px-2 py-3">
-                  <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                    {/* ✅ CHANGED: show item_reference instead of order_reference */}
-                    {getItemReferenceId(request)}
-                  </span>
-                </td>
-
-                <td className="break-words px-2 py-3">
-                  <p className="break-words text-xs font-semibold text-[#111827]">
-                    {getCustomerName(getRequestUser(request))}
-                  </p>
-
-                  <span
-                    className={`mt-1 inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                      getRequestAccountType(request),
-                    )}`}
-                  >
-                    <FiBriefcase size={10} />
-                    {getAccountTypeLabel(getRequestAccountType(request))}
-                  </span>
-                </td>
-
-                <td className="px-1 py-3 text-center">
-                  <span className="inline-flex min-w-[28px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
-                    {request.items_count}
-                  </span>
-                </td>
-
-                <td className="break-words px-2 py-3 text-right">
-                  <div className="inline-flex max-w-full flex-col items-end">
-                    <span className="break-words text-xs font-bold text-[#2D6FE8]">
-                      {formatCurrency(rowReturnAmount)}
-                    </span>
-
-                    {rowIsRefunded && rowRefunded !== null && (
-                      <p className="mt-1 break-words text-[10px] font-bold text-[#4F8FF7]">
-                        Refunded {formatCurrency(rowRefunded)}
-                      </p>
-                    )}
-
-                    {request.status === "completed" &&
-                      request.resolution === "replacement" && (
-                        <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
-                          Replaced
+              <tbody>
+                {/* ✅ initialReturnsLoading par full spinner — refresh/CRUD par nahi */}
+                {initialReturnsLoading ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-8 text-center">
+                      <div className="flex flex-col items-center">
+                        <FiRefreshCw
+                          size={20}
+                          className="animate-spin text-[#2D6FE8]"
+                        />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
+                          Loading return requests...
                         </p>
-                      )}
-                  </div>
-                </td>
+                      </div>
+                    </td>
+                  </tr>
+                ) : loading && requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-8 text-center">
+                      <div className="flex flex-col items-center">
+                        <FiRefreshCw
+                          size={20}
+                          className="animate-spin text-[#2D6FE8]"
+                        />
+                        <p className="mt-2 text-sm font-semibold text-[#111827]">
+                          Loading return requests...
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : paginatedRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-8 text-center">
+                      <FiPackage size={22} className="mx-auto text-[#2D6FE8]" />
+                      <p className="mt-2 text-sm font-semibold text-[#111827]">
+                        No return requests found
+                      </p>
+                      <p className="mt-1 text-xs text-[#6B7280]">
+                        Try changing the search or status filter.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedRequests.map((request, index) => {
+                    const canApprove =
+                      request.can_approve && canApproveReturn;
 
-                <td className="break-words px-2 py-3">
-                  <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-1.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
-                    <FiTruck size={11} className="shrink-0" />
-                    <span className="break-words">
-                      {rowReturnMethodLabel}
-                    </span>
-                  </span>
-                </td>
+                    const canReject =
+                      request.can_reject && canRejectReturn;
 
-                <td className="break-words px-2 py-3">
-                  {rowCourier || rowTrackingId ? (
-                    <div className="flex min-w-0 flex-col gap-1">
-                      {rowCourier && (
-                        <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#111827]">
-                          <FiPackage
-                            size={11}
-                            className="mt-0.5 shrink-0 text-[#4F8FF7]"
-                          />
-                          <span className="break-all">{rowCourier}</span>
-                        </span>
-                      )}
+                    const approveLoading =
+                      actionLoading.type === "approve" &&
+                      actionLoading.id === request.id;
 
-                      {rowTrackingId && (
-                        <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#6B7280]">
-                          <FiHash
-                            size={11}
-                            className="mt-0.5 shrink-0 text-[#4F8FF7]"
-                          />
-                          <span className="break-all">{rowTrackingId}</span>
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-[11px] text-[#6B7280]">
-                      —
-                    </span>
-                  )}
-                </td>
+                    const showMarkReceived =
+                      request.status === "approved" && canMarkReceived;
 
-                <td className="px-2 py-3">
-                  <p
-                    title={request.reason || request.cancellation_reason || ""}
-                    className="max-w-full break-words text-[10px] text-[#4B5563]"
-                  >
-                    {request.reason || request.cancellation_reason || "No reason provided"}
-                  </p>
-                </td>
+                    const showComplete =
+                      request.status === "received" && canCompleteReturn;
 
-                <td className="px-1 py-3 text-center">
-                  <span
-                    className={`inline-flex max-w-full items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-bold ${getStatusClass(
-                      request.status,
-                    )}`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${getStatusDot(
-                        request.status,
-                      )}`}
-                    />
-                    <span className="break-words">
-                      {getStatusLabel(request.status)}
-                    </span>
-                  </span>
-                </td>
+                    const rowRefunded = getRefundedAmount(request);
+                    const rowIsRefunded = isRefundProcessed(request);
+                    const rowReturnAmount = getReturnAmount(request);
 
-                <td className="min-w-0 px-1 py-3">
-                  <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleView(request.id)}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
-                      title="View"
-                    >
-                      <FiEye size={13} />
-                    </button>
+                    const rowRaw: any = request;
+                    const rowReturnMethod = rowRaw.return_method || null;
+                    const rowCourier = rowRaw.courier || null;
+                    const rowTrackingId = rowRaw.tracking_id || null;
 
-                    {canApprove && (
-                      <button
-                        type="button"
-                        disabled={approveLoading}
-                        onClick={() =>
-                          handleOpenApproveFromTable(request.id)
-                        }
-                        className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {approveLoading ? (
-                          <FiRefreshCw
-                            size={11}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <FiCheck size={11} />
-                        )}
-                        Approve
-                      </button>
-                    )}
+                    const rowReturnMethodLabel =
+                      getReturnMethodLabel(rowReturnMethod);
 
-                    {canReject && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenReject(request.id)}
-                        className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-[#C23B32]/25 bg-[#FEF2F2] px-2 text-[10px] font-semibold leading-4 text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#C23B32]/20"
-                      >
-                        <FiX size={11} />
-                        Reject
-                      </button>
-                    )}
+                    return (
+                      <React.Fragment key={request.id}>
+                        <tr className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]">
+                          <td className="px-2 py-3">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#EAF3FF] text-[11px] font-bold text-[#2D6FE8]">
+                              {startIndex + index + 1}
+                            </span>
+                          </td>
 
-                    {showMarkReceived && (
-                      <button
-                        type="button"
-                        onClick={() => handleView(request.id)}
-                        className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
-                      >
-                        <FiTruck size={11} />
-                        Received
-                      </button>
-                    )}
+                          <td className="break-words px-2 py-3">
+                            <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                              {/* ✅ CHANGED: show item_reference instead of order_reference */}
+                              {getItemReferenceId(request)}
+                            </span>
+                          </td>
 
-                    {showComplete && (
-                      <button
-                        type="button"
-                        onClick={() => handleView(request.id)}
-                        className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
-                      >
-                        <FiCheckCircle size={11} />
-                        Complete
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            </React.Fragment>
-          );
-        })
-      )}
-    </tbody>
-  </table>
-</div>
+                          <td className="break-words px-2 py-3">
+                            <p className="break-words text-xs font-semibold text-[#111827]">
+                              {getCustomerName(getRequestUser(request))}
+                            </p>
+
+                            <span
+                              className={`mt-1 inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
+                                getRequestAccountType(request),
+                              )}`}
+                            >
+                              <FiBriefcase size={10} />
+                              {getAccountTypeLabel(getRequestAccountType(request))}
+                            </span>
+                          </td>
+
+                          <td className="px-1 py-3 text-center">
+                            <span className="inline-flex min-w-[28px] items-center justify-center rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
+                              {request.items_count}
+                            </span>
+                          </td>
+
+                          <td className="break-words px-2 py-3 text-right">
+                            <div className="inline-flex max-w-full flex-col items-end">
+                              <span className="break-words text-xs font-bold text-[#2D6FE8]">
+                                {formatCurrency(rowReturnAmount)}
+                              </span>
+
+                              {rowIsRefunded && rowRefunded !== null && (
+                                <p className="mt-1 break-words text-[10px] font-bold text-[#4F8FF7]">
+                                  Refunded {formatCurrency(rowRefunded)}
+                                </p>
+                              )}
+
+                              {request.status === "completed" &&
+                                request.resolution === "replacement" && (
+                                  <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                                    Replaced
+                                  </p>
+                                )}
+                            </div>
+                          </td>
+
+                          <td className="break-words px-2 py-3">
+                            <span className="inline-flex max-w-full items-center gap-1 rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-1.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                              <FiTruck size={11} className="shrink-0" />
+                              <span className="break-words">
+                                {rowReturnMethodLabel}
+                              </span>
+                            </span>
+                          </td>
+
+                          <td className="break-words px-2 py-3">
+                            {rowCourier || rowTrackingId ? (
+                              <div className="flex min-w-0 flex-col gap-1">
+                                {rowCourier && (
+                                  <span className="flex min-w-0 items-start gap-1 text-[10px] font-semibold text-[#111827]">
+                                    <FiPackage
+                                      size={11}
+                                      className="mt-0.5 shrink-0 text-[#4F8FF7]"
+                                    />
+                                    <span className="break-all">{rowCourier}</span>
+                                  </span>
+                                )}
+
+                                {rowTrackingId && (
+                                  <span className="flex min-w-0 max-w-[140px] items-center gap-1 text-[10px] font-semibold text-[#6B7280]">
+                                    <FiHash
+                                      size={11}
+                                      className="shrink-0 text-[#4F8FF7]"
+                                    />
+                                    <span className="truncate">{rowTrackingId}</span>
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-[#6B7280]">
+                                —
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="px-2 py-3">
+                            <p
+                              title={request.reason || request.cancellation_reason || ""}
+                              className="max-w-full break-words text-[10px] text-[#4B5563]"
+                            >
+                              {request.reason || request.cancellation_reason || "No reason provided"}
+                            </p>
+                          </td>
+
+                          <td className="px-1 py-3 text-center">
+                            <span
+                              className={`inline-flex max-w-full items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-[9px] font-bold ${getStatusClass(
+                                request.status,
+                              )}`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${getStatusDot(
+                                  request.status,
+                                )}`}
+                              />
+                              <span className="break-words">
+                                {getStatusLabel(request.status)}
+                              </span>
+                            </span>
+                          </td>
+
+                          <td className="min-w-0 px-1 py-3">
+                            <div className="flex w-full min-w-0 flex-wrap items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleView(request.id)}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
+                                title="View"
+                              >
+                                <FiEye size={13} />
+                              </button>
+
+                              {canApprove && (
+                                <button
+                                  type="button"
+                                  disabled={approveLoading}
+                                  onClick={() =>
+                                    handleOpenApproveFromTable(request.id)
+                                  }
+                                  className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {approveLoading ? (
+                                    <FiRefreshCw
+                                      size={11}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <FiCheck size={11} />
+                                  )}
+                                  Approve
+                                </button>
+                              )}
+
+                              {canReject && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReject(request.id)}
+                                  className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md border border-[#C23B32]/25 bg-[#FEF2F2] px-2 text-[10px] font-semibold leading-4 text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#C23B32]/20"
+                                >
+                                  <FiX size={11} />
+                                  Reject
+                                </button>
+                              )}
+
+                              {showMarkReceived && (
+                                <button
+                                  type="button"
+                                  // ✅ CHANGED: Directly open Mark Received Popup
+                                  onClick={() => handleOpenReceivedFromTable(request.id)}
+                                  className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
+                                >
+                                  <FiTruck size={11} />
+                                  Received
+                                </button>
+                              )}
+
+                              {showComplete && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenCompleteFromTable(request.id)}
+                                  className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
+                                >
+                                  <FiCheckCircle size={11} />
+                                  Complete
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
 
           {/* MOBILE */}
@@ -3959,7 +3995,8 @@ const ReturnRefund: React.FC = () => {
                       <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => handleView(request.id)}
+                          // ✅ CHANGED: Directly open Mark Received Popup
+                          onClick={() => handleOpenReceivedFromTable(request.id)}
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiTruck size={14} />
@@ -3972,7 +4009,7 @@ const ReturnRefund: React.FC = () => {
                       <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => handleView(request.id)}
+                          onClick={() => handleOpenCompleteFromTable(request.id)}
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiCheckCircle size={14} />
@@ -4066,11 +4103,10 @@ const ReturnRefund: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => handlePageChange(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
-                          : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                      }`}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
+                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                        : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                        }`}
                     >
                       {page}
                     </button>
