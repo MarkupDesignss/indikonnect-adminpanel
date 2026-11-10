@@ -30,6 +30,7 @@ import {
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 import { orderApi } from "../../api/endpoints/orders";
 import orderInvoiceApi from "../../api/endpoints/orderInvoice";
@@ -41,7 +42,6 @@ import logoApi from "../../api/endpoints/logoApi";
 import { downloadOrdersCsv, openInvoicePdfInNewTab } from "./csvUtils";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
-
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -58,7 +58,6 @@ const itemVariants = {
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
-
 
 const ClipboardIcon = () => (
   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -384,6 +383,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   };
 
   const addr = getShippingAddress();
+  const trackingInfo = shipping_details || (items && items.length > 0 ? items[0].shipping_details : null);
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
@@ -716,51 +716,37 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   <h4 className="font-bold text-[#111827]">Tracking Information</h4>
                 </div>
                 <div className="space-y-2.5">
-                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Order Status</span>
-                    <span className="text-sm font-bold capitalize text-[#2D6FE8]">{getStatusText(order_status || "N/A")}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Payment Gateway</span>
-                    <span className="text-sm font-semibold text-[#111827]">{payment?.payment_gateway || orderDetails?.payment_gateway || "N/A"}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Transaction ID</span>
-                    <span className="max-w-[65%] truncate text-sm font-semibold text-[#111827]">
-                      {payment?.gateway_transaction_id || orderDetails?.gateway_transaction_id || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Amount Paid</span>
-                    <span className="text-sm font-bold text-[#2D6FE8]">
-                      ₹{Number(payment?.amount_paid || orderDetails?.amount_paid || 0).toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  {(shipping_details || orderDetails?.courier_company) && (
+                  {trackingInfo ? (
                     <>
                       <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
                         <span className="text-xs text-[#6B7280]">Courier Company</span>
-                        <span className="text-sm font-semibold text-[#111827]">{shipping_details?.courier_company || orderDetails?.courier_company || "N/A"}</span>
+                        <span className="text-sm font-semibold text-[#111827]">{trackingInfo.courier_company || "N/A"}</span>
                       </div>
                       <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
                         <span className="text-xs text-[#6B7280]">Tracking Number</span>
-                        <span className="text-sm font-semibold text-[#111827]">
-                          {shipping_details?.courier_tracking_number || orderDetails?.courier_tracking_number || "N/A"}
-                        </span>
+                        <span className="text-sm font-semibold text-[#111827]">{trackingInfo.courier_tracking_number || "N/A"}</span>
                       </div>
-                      {shipping_details?.courier_delivery_date && (
+                      {trackingInfo.courier_delivery_date && (
                         <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
                           <span className="text-xs text-[#6B7280]">Expected Delivery</span>
-                          <span className="text-sm font-semibold text-[#111827]">{formatDate(shipping_details.courier_delivery_date)}</span>
+                          <span className="text-sm font-semibold text-[#111827]">{formatDate(trackingInfo.courier_delivery_date)}</span>
                         </div>
                       )}
-                      {shipping_details?.delivery_notes && (
+                      {trackingInfo.delivery_notes && (
                         <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
                           <span className="text-xs text-[#6B7280]">Delivery Notes</span>
-                          <span className="text-sm font-semibold text-[#111827]">{shipping_details.delivery_notes}</span>
+                          <span className="text-sm font-semibold text-[#111827]">{trackingInfo.delivery_notes}</span>
                         </div>
                       )}
                     </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-6 text-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8] mb-3">
+                        <FiTruck size={22} />
+                      </div>
+                      <p className="text-sm font-semibold text-[#111827]">No Tracking Info Available</p>
+                      <p className="text-xs text-[#6B7280]">This order has not been dispatched yet or tracking details are pending.</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1506,7 +1492,6 @@ interface OrdersTableProps {
   onSelectOrder: (order: Order) => void;
   selectedOrderId?: string;
   onFilteredChange?: (orders: Order[], label: string) => void;
-  /** ✅ NEW: sirf first load ke liye full spinner — refresh/CRUD par nahi */
   initialLoading?: boolean;
 }
 
@@ -1517,6 +1502,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   initialLoading = false,
 }) => {
   const { hasPermission, hasModuleAccess, isSuperAdmin } = usePermissions();
+  const navigate = useNavigate();
 
   const canDispatch = useMemo(
     () => isSuperAdmin || hasPermission("order.allow"),
@@ -1580,7 +1566,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(new Set());
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(new Set());
 
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchOrders();
@@ -1681,10 +1667,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -1735,7 +1721,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           lineTotal: item.line_total || 0,
           status:
             item.delivery_status?.charAt(0).toUpperCase() +
-              item.delivery_status?.slice(1) || "Pending",
+            item.delivery_status?.slice(1) || "Pending",
           delivery_status: item.delivery_status || "pending",
           image: item.primary_image || item.product_image || undefined,
           productId: item.product_id,
@@ -1956,6 +1942,21 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
+  /**
+   * ✅ Single source of truth for dispatch navigation.
+   * Uses numeric orderId when available (skips API resolve on destination page),
+   * otherwise falls back to order_reference string.
+   * Path is RELATIVE to basename (/indiekonnect-admin), do NOT prefix it again.
+   */
+  const openIndiaPostDispatch = (row: Order & { singleItem: OrderItem }) => {
+    const reference = row.orderId ?? row.id;
+    if (reference === undefined || reference === null || reference === "") {
+      toast.error("Cannot open dispatch — missing order reference");
+      return;
+    }
+    navigate(`/orders/${encodeURIComponent(String(reference))}/dispatch`);
+  };
+
   const canItemDispatch = (item: OrderItem) =>
     getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
@@ -2099,8 +2100,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to mark as undelivered",
+        err?.message ||
+        "Failed to mark as undelivered",
       );
       await fetchOrders();
     } finally {
@@ -2133,7 +2134,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsForDeliver([]);
   };
 
-  // ✅ SIRF FIRST LOAD PAR FULL SPINNER — refresh / CRUD ke baad nahi
   if (initialLoading) {
     return (
       <div className="rounded-2xl border border-[#DCE6F2] bg-white p-10 shadow-sm">
@@ -2642,13 +2642,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             {isDispatchable && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setSelectedOrderForDispatch(row);
-                                  setSelectedItemsForDispatch([item]);
-                                  setShowDispatchPopup(true);
-                                }}
+                                onClick={() => openIndiaPostDispatch(row)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Dispatch Item"
+                                title="Open India Post Dispatch"
                               >
                                 <FiTruck size={14} />
                               </button>
@@ -2878,11 +2874,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       {isDispatchable && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setSelectedOrderForDispatch(row);
-                            setSelectedItemsForDispatch([item]);
-                            setShowDispatchPopup(true);
-                          }}
+                          onClick={() => openIndiaPostDispatch(row)}
                           className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
                         >
                           Dispatch
@@ -3143,12 +3135,9 @@ const Orders: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [ordersData, setOrdersData] = useState<any[]>([]);
 
-  // ✅ first load only
   const [initialOrdersLoading, setInitialOrdersLoading] = useState(true);
-  // ✅ subsequent fetch (refresh/CRUD) — does NOT block page
   const [loading, setLoading] = useState(false);
 
-  // ✅ logo state (same as Addcategories / BrandsManagement)
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
 
@@ -3178,10 +3167,6 @@ const Orders: React.FC = () => {
       hasPermission("order.allow"),
     [isSuperAdmin, hasModuleAccess, hasPermission],
   );
-
-  // ===================================================
-  // LOGO FETCH (same as Addcategories / BrandsManagement)
-  // ===================================================
 
   useEffect(() => {
     let cancelled = false;
@@ -3242,10 +3227,6 @@ const Orders: React.FC = () => {
     }
   }, []);
 
-  // ===================================================
-  // INITIAL FETCH — WAIT FOR PERMISSIONS + canViewOrders
-  // ===================================================
-
   useEffect(() => {
     if (permissionsLoading) return;
 
@@ -3256,10 +3237,6 @@ const Orders: React.FC = () => {
       setInitialOrdersLoading(false);
     }
   }, [permissionsLoading, canViewOrders, fetchOrders]);
-
-  // ===================================================
-  // COMBINED INITIAL LOADING
-  // ===================================================
 
   const pageLoading =
     permissionsLoading || logoLoading || initialOrdersLoading;
@@ -3317,14 +3294,9 @@ const Orders: React.FC = () => {
     downloadOrdersCsv(filteredForExport, `orders-${slug || "filtered"}`);
   };
 
-
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
-
-  // ===================================================
-  // ACCESS DENIED
-  // ===================================================
 
   if (!canViewOrders && !loading) {
     return (
@@ -3341,10 +3313,6 @@ const Orders: React.FC = () => {
       </div>
     );
   }
-
-  // ===================================================
-  // MAIN UI
-  // ===================================================
 
   return (
     <div className="min-h-screen bg-white p-4 font-poppins sm:p-5">
@@ -3389,7 +3357,6 @@ const Orders: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ STATS — skeleton hataya, seedha real data */}
       <motion.div
         variants={containerVariants}
         className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"

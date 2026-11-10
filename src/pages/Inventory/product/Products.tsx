@@ -19,8 +19,6 @@ import {
 import trendingProductsApi from "../../../api/endpoints/today";
 import { categoryApi, type Category } from "../../../api/endpoints/category";
 import { usePermissions } from "../../permissions/usePermissions";
-
-// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
 import logoApi from "../../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
@@ -192,6 +190,14 @@ const Products: React.FC = () => {
   const canToggleDeal = useMemo(() => isSuperAdmin || hasPermission("product.deal") || hasPermission("product.deal_of_the_day") || hasPermission("product.update"), [isSuperAdmin, hasPermission]);
   const canSetPrimaryImage = useMemo(() => isSuperAdmin || hasPermission("product.update") || hasPermission("product.edit") || hasPermission("product.set_primary_image"), [isSuperAdmin, hasPermission]);
   const canToggleBestSeller = useMemo(() => isSuperAdmin || hasPermission("product.best_seller") || hasPermission("product.best_seller.toggle") || hasPermission("product.update"), [isSuperAdmin, hasPermission]);
+  const canTogglePurchasePermission = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("product.purchase_permission") ||
+      hasPermission("product.update") ||
+      hasPermission("product.edit"),
+    [isSuperAdmin, hasPermission],
+  );
 
   // ✅ NEW: logo state (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
@@ -213,6 +219,7 @@ const Products: React.FC = () => {
   const [trendingLoadingId, setTrendingLoadingId] = useState<number | null>(null);
   const [dealLoadingId, setDealLoadingId] = useState<number | null>(null);
   const [bestSellerLoadingId, setBestSellerLoadingId] = useState<number | null>(null);
+  const [purchasePermissionLoadingId, setPurchasePermissionLoadingId] = useState<number | null>(null);
   const [publishLoadingId, setPublishLoadingId] = useState<number | null>(null);
   const [setPrimaryLoadingId, setSetPrimaryLoadingId] = useState<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressMeta | null>(null);
@@ -520,6 +527,37 @@ const Products: React.FC = () => {
     }
   };
 
+  // Allow or block repeat purchases for one product.
+  // The API accepts product_ids as an array and allowed_purchsed as 1 / 0.
+  const handlePurchasePermissionToggle = async (product: Product, allowed: boolean) => {
+    try {
+      setPurchasePermissionLoadingId(product.id);
+
+      const response = await productApi.updatePurchasePermission({
+        product_ids: [product.id],
+        allowed_purchsed: allowed ? 1 : 0,
+      });
+
+      await fetchProducts(currentPage, debouncedSearch, selectedCategoryId);
+
+      toast.success(
+        response.data?.message ||
+          (allowed
+            ? `Always Purchase enabled for ${product.name}.`
+            : `Always Purchase disabled for ${product.name}.`),
+      );
+    } catch (error: any) {
+      console.error("Purchase permission update error:", error);
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to update purchase permission.",
+      );
+    } finally {
+      setPurchasePermissionLoadingId(null);
+    }
+  };
+
   const handlePublishToggle = async (product: Product, isPublished: boolean) => {
     try {
       setPublishLoadingId(product.id);
@@ -790,6 +828,8 @@ const Products: React.FC = () => {
           dealLoadingId={dealLoadingId}
           onBestSellerToggle={handleBestSellerToggle}
           bestSellerLoadingId={bestSellerLoadingId}
+          onPurchasePermissionToggle={handlePurchasePermissionToggle}
+          purchasePermissionLoadingId={purchasePermissionLoadingId}
           onPublishToggle={handlePublishToggle}
           publishLoadingId={publishLoadingId}
           onSetPrimaryImage={handleSetPrimaryImage}
@@ -802,6 +842,7 @@ const Products: React.FC = () => {
           canToggleTrending={canToggleTrending}
           canToggleDeal={canToggleDeal}
           canToggleBestSeller={canToggleBestSeller}
+          canTogglePurchasePermission={canTogglePurchasePermission}
           canSetPrimaryImage={canSetPrimaryImage}
         />
       </motion.div>

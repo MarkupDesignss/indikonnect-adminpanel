@@ -28,6 +28,7 @@ export const menuItems: MenuItem[] = [
     anyOf: ['order.view', 'order.details', 'order.allow'],
   },
 
+
   {
     path: '/inventory',
     label: 'Inventory',

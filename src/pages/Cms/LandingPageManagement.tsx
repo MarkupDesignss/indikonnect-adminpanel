@@ -71,7 +71,7 @@ interface ExistingImage {
 }
 
 interface FormBlock {
-  id?: number; // <-- ADDED: block ID for update payload
+  id?: number;
   heading: string;
   short_description: string;
   description: string;
@@ -684,12 +684,11 @@ const ViewPageModal: React.FC<{
 };
 
 // =====================================================
-// ADD / EDIT PAGE FORM MODAL
+// EDIT PAGE FORM MODAL (Add removed)
 // =====================================================
 interface PageFormModalProps {
   open: boolean;
   loading: boolean;
-  mode: "add" | "edit";
   page: ContentPage | null;
   onClose: () => void;
   onSubmit: (payload: ContentPayload) => void;
@@ -698,7 +697,6 @@ interface PageFormModalProps {
 const PageFormModal: React.FC<PageFormModalProps> = ({
   open,
   loading,
-  mode,
   page,
   onClose,
   onSubmit,
@@ -721,7 +719,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         )
         .map(
           (block: any): FormBlock => ({
-            id: block.id, // <-- PRESERVE BLOCK ID
+            id: block.id,
             heading: block.heading || "",
             short_description: block.short_description || "",
             description: block.description || "",
@@ -751,21 +749,6 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
               },
             ]
       );
-    } else {
-      setTitle("");
-      setStatus("published");
-
-      setBlocks([
-        {
-          id: undefined,
-          heading: "",
-          short_description: "",
-          description: "",
-          sort_order: 0,
-          imageFiles: [],
-          existingImages: [],
-        },
-      ]);
     }
   }, [open, page]);
 
@@ -901,7 +884,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
       status,
       blocks: blocks.map(
         (block): ContentBlockPayload => ({
-          id: block.id, // <-- SEND BLOCK ID IN PAYLOAD
+          id: block.id,
           heading: block.heading,
           short_description: block.short_description,
           description: block.description,
@@ -931,19 +914,15 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DCE6F2] bg-white px-5 py-3.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-              {mode === "add" ? (
-                <FiPlus size={15} />
-              ) : (
-                <FiEdit2 size={14} />
-              )}
+              <FiEdit2 size={14} />
             </div>
 
             <div className="min-w-0">
               <h2 className="truncate text-sm font-bold text-[#111827]">
-                {mode === "add" ? "Add Page" : "Edit Page"}
+                Edit Page
               </h2>
 
-              {mode === "edit" && page && (
+              {page && (
                 <p className="truncate text-[10px] text-[#6B7280]">
                   {page.title} • v{page.version}
                 </p>
@@ -1051,11 +1030,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                 <FiSave size={13} />
               )}
 
-              {loading
-                ? "Saving..."
-                : mode === "add"
-                  ? "Create Page"
-                  : "Update Page"}
+              {loading ? "Saving..." : "Update Page"}
             </button>
           </div>
         </form>
@@ -1065,95 +1040,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 };
 
 // =====================================================
-// DELETE PAGE MODAL
-// =====================================================
-const DeletePageModal: React.FC<{
-  open: boolean;
-  loading: boolean;
-  page: ContentPage | null;
-  onClose: () => void;
-  onConfirm: () => void;
-}> = ({ open, loading, page, onClose, onConfirm }) => {
-  if (!open || !page) return null;
-
-  return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
-      <div className="w-full max-w-[450px] overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
-        <div className="h-[3px] w-full bg-gradient-to-r from-[#FACC15] to-[#C23B32]" />
-
-        <div className="p-5 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
-              <FiTrash2 size={21} />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-bold text-[#111827]">
-                Delete Page
-              </h2>
-
-              <p className="mt-1 text-sm leading-6 text-[#4A5568]">
-                Are you sure you want to delete this page version?
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                {initials(page.title)}
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-[#111827]">
-                  {page.title}
-                </p>
-
-                <p className="mt-1 truncate text-[10px] text-[#6B7280]">
-                  /{page.slug} • Version {page.version}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-bold text-[#4A5568] transition hover:bg-[#F4F8FD] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              onClick={onConfirm}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C23B32] to-[#A92F28] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? (
-                <FiRefreshCw size={15} className="animate-spin" />
-              ) : (
-                <FiTrash2 size={15} />
-              )}
-
-              {loading ? "Deleting..." : "Delete Page"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </GlobalModal>
-  );
-};
-
-// =====================================================
 // ACCESS DENIED
-// Content area only — sidebar/navbar remain visible
 // =====================================================
 const AccessDenied: React.FC = () => (
   <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4 font-poppins">
@@ -1197,11 +1084,6 @@ const LandingPageManagement: React.FC = () => {
     [isSuperAdmin, hasModuleAccess, hasPermission]
   );
 
-  const canCreateContent = useMemo(
-    () => isSuperAdmin || hasPermission("content.create"),
-    [isSuperAdmin, hasPermission]
-  );
-
   const canUpdateContent = useMemo(
     () =>
       isSuperAdmin ||
@@ -1210,29 +1092,16 @@ const LandingPageManagement: React.FC = () => {
     [isSuperAdmin, hasPermission]
   );
 
-  const canDeleteContent = useMemo(
-    () => isSuperAdmin || hasPermission("content.delete"),
-    [isSuperAdmin, hasPermission]
-  );
-
   const [pages, setPages] = useState<ContentPage[]>([]);
-
-  // Normal API loading — used for refresh and table actions
   const [loading, setLoading] = useState(false);
-
-  // Initial data loading — used only for the first page load
   const [initialDataLoading, setInitialDataLoading] = useState(true);
-
-  // Logo loading — used only while fetching the loader logo
   const [logoLoading, setLogoLoading] = useState(true);
 
-  // Separate logo state for the page loader
   const [loaderLogoUrl, setLoaderLogoUrl] = useState<string>(
     DEFAULT_LOGO_URL
   );
 
   const [saveLoading, setSaveLoading] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
 
   const [
@@ -1240,11 +1109,8 @@ const LandingPageManagement: React.FC = () => {
     setStatusFilter,
   ] = useState<"all" | "published" | "draft" | "archived">("all");
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [viewOpen, setViewOpen] = useState(false);
   const [addEditOpen, setAddEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [selectedGroup, setSelectedGroup] = useState<PageGroup | null>(
     null
   );
@@ -1252,11 +1118,8 @@ const LandingPageManagement: React.FC = () => {
     null
   );
 
-  const ITEMS_PER_PAGE = 10;
-
   // =====================================================
   // FETCH LOGO FOR LOADER
-  // Uses default logo automatically if API fails
   // =====================================================
   useEffect(() => {
     let isMounted = true;
@@ -1301,8 +1164,6 @@ const LandingPageManagement: React.FC = () => {
 
   // =====================================================
   // FETCH CONTENTS
-  // Initial request turns off initialDataLoading.
-  // Later requests use only the normal loading state.
   // =====================================================
   const fetchContents = useCallback(
     async (isInitialLoad = false) => {
@@ -1336,9 +1197,6 @@ const LandingPageManagement: React.FC = () => {
     []
   );
 
-  // =====================================================
-  // WAIT FOR PERMISSIONS BEFORE FETCHING PAGE CONTENT
-  // =====================================================
   useEffect(() => {
     if (permissionsLoading) return;
 
@@ -1414,76 +1272,9 @@ const LandingPageManagement: React.FC = () => {
     });
   }, [groupedPages, search, statusFilter]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredGroups.length / ITEMS_PER_PAGE)
-  );
-
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  const visibleGroups = filteredGroups.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE
-  );
-
-  const startEntry = filteredGroups.length ? startIndex + 1 : 0;
-
-  const endEntry = Math.min(
-    startIndex + ITEMS_PER_PAGE,
-    filteredGroups.length
-  );
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginationPages = useMemo(() => {
-    if (totalPages <= 5) {
-      return Array.from(
-        { length: totalPages },
-        (_, index) => index + 1
-      );
-    }
-
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-
-    if (currentPage >= totalPages - 2) {
-      return [
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      ];
-    }
-
-    return [
-      currentPage - 2,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-      currentPage + 2,
-    ];
-  }, [currentPage, totalPages]);
-
   const handleView = (group: PageGroup) => {
     setSelectedGroup(group);
     setViewOpen(true);
-  };
-
-  const openAdd = () => {
-    if (!canCreateContent) {
-      toast.error("You do not have permission to create pages.");
-      return;
-    }
-
-    setSelectedPage(null);
-    setModalMode("add");
-    setAddEditOpen(true);
   };
 
   const openEdit = (page: ContentPage) => {
@@ -1493,47 +1284,32 @@ const LandingPageManagement: React.FC = () => {
     }
 
     setSelectedPage(page);
-    setModalMode("edit");
     setAddEditOpen(true);
   };
 
   const handleSave = async (payload: ContentPayload) => {
-    if (
-      modalMode === "edit"
-        ? !canUpdateContent
-        : !canCreateContent
-    ) {
-      toast.error("You do not have permission to save this page.");
+    if (!canUpdateContent) {
+      toast.error("You do not have permission to update pages.");
       return;
     }
 
     try {
       setSaveLoading(true);
 
-      const response =
-        modalMode === "edit" && selectedPage
-          ? await landingApi.update(selectedPage.id, payload)
-          : await landingApi.create(payload);
+      const response = await landingApi.update(selectedPage!.id, payload);
 
       if (response.data.success) {
         toast.success(
-          response.data.message ||
-            (modalMode === "edit"
-              ? "Page updated successfully."
-              : "Page created successfully.")
+          response.data.message || "Page updated successfully."
         );
 
         setAddEditOpen(false);
         setSelectedPage(null);
 
-        // Refresh table without reopening the full-page loader.
         await fetchContents();
       } else {
         toast.error(
-          response.data.message ||
-            (modalMode === "edit"
-              ? "Unable to update page."
-              : "Unable to create page.")
+          response.data.message || "Unable to update page."
         );
       }
     } catch (error: any) {
@@ -1548,60 +1324,6 @@ const LandingPageManagement: React.FC = () => {
     }
   };
 
-  const openDelete = (page: ContentPage) => {
-    if (!canDeleteContent) {
-      toast.error("You do not have permission to delete pages.");
-      return;
-    }
-
-    setSelectedPage(page);
-    setDeleteOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedPage) return;
-
-    if (!canDeleteContent) {
-      toast.error("You do not have permission to delete pages.");
-      return;
-    }
-
-    try {
-      setDeleteLoading(true);
-
-      const response = await landingApi.delete(selectedPage.id);
-
-      if (response.data.success) {
-        toast.success(
-          response.data.message ||
-            "Page version deleted successfully."
-        );
-
-        setDeleteOpen(false);
-        setSelectedPage(null);
-
-        // Refresh table without reopening the full-page loader.
-        await fetchContents();
-      } else {
-        toast.error(
-          response.data.message || "Unable to delete page."
-        );
-      }
-    } catch (error: any) {
-      console.error("Delete page error:", error);
-
-      toast.error(
-        error?.response?.data?.message ||
-          "Unable to delete page."
-      );
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  // =====================================================
-  // COMBINED INITIAL LOADING STATE
-  // =====================================================
   const pageLoading =
     permissionsLoading || logoLoading || initialDataLoading;
 
@@ -1790,17 +1512,6 @@ const LandingPageManagement: React.FC = () => {
               />
               Refresh
             </button>
-
-            {canCreateContent && (
-              <button
-                type="button"
-                onClick={openAdd}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <FiPlus size={15} />
-                Add Page
-              </button>
-            )}
           </div>
         </motion.div>
 
@@ -1821,7 +1532,6 @@ const LandingPageManagement: React.FC = () => {
                   value={search}
                   onChange={(event) => {
                     setSearch(event.target.value);
-                    setCurrentPage(1);
                   }}
                   placeholder="Search title, slug or version..."
                   className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-4 text-xs text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
@@ -1842,7 +1552,6 @@ const LandingPageManagement: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setStatusFilter(filter.key);
-                      setCurrentPage(1);
                     }}
                     className={`rounded-xl px-4 py-2.5 text-[10px] font-bold transition ${
                       statusFilter === filter.key
@@ -1878,9 +1587,7 @@ const LandingPageManagement: React.FC = () => {
                     Latest Version
                   </th>
 
-                  {(canViewContent ||
-                    canUpdateContent ||
-                    canDeleteContent) && (
+                  {canViewContent && (
                     <th className="w-[150px] px-5 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                       Actions
                     </th>
@@ -1889,17 +1596,10 @@ const LandingPageManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {visibleGroups.length === 0 ? (
+                {filteredGroups.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={
-                        4 +
-                        (canViewContent ||
-                        canUpdateContent ||
-                        canDeleteContent
-                          ? 1
-                          : 0)
-                      }
+                      colSpan={canViewContent ? 5 : 4}
                       className="px-5 py-16 text-center"
                     >
                       <div className="flex flex-col items-center">
@@ -1912,13 +1612,13 @@ const LandingPageManagement: React.FC = () => {
                         </p>
 
                         <p className="mt-1 text-xs text-[#6B7280]">
-                          Try another search or create a new page.
+                          Try another search or filter.
                         </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  visibleGroups.map((group, index) => {
+                  filteredGroups.map((group, index) => {
                     const page = group.latest;
 
                     return (
@@ -1931,7 +1631,7 @@ const LandingPageManagement: React.FC = () => {
                       >
                         <td className="px-5 py-3">
                           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-xs font-bold text-[#2D6FE8]">
-                            {startIndex + index + 1}
+                            {index + 1}
                           </span>
                         </td>
 
@@ -1971,21 +1671,17 @@ const LandingPageManagement: React.FC = () => {
                           </p>
                         </td>
 
-                        {(canViewContent ||
-                          canUpdateContent ||
-                          canDeleteContent) && (
+                        {canViewContent && (
                           <td className="px-5 py-3.5">
                             <div className="flex items-center justify-center gap-1.5">
-                              {canViewContent && (
-                                <button
-                                  type="button"
-                                  title="View page"
-                                  onClick={() => handleView(group)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                >
-                                  <FiEye size={15} />
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                title="View page"
+                                onClick={() => handleView(group)}
+                                className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                              >
+                                <FiEye size={15} />
+                              </button>
 
                               {canUpdateContent && (
                                 <button
@@ -1997,17 +1693,8 @@ const LandingPageManagement: React.FC = () => {
                                   <FiEdit2 size={15} />
                                 </button>
                               )}
-
-                              {canDeleteContent && (
-                                <button
-                                  type="button"
-                                  title="Delete latest version"
-                                  onClick={() => openDelete(page)}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                                >
-                                  <FiTrash2 size={15} />
-                                </button>
-                              )}
+                              
+                              {/* DELETE ICON REMOVED */}
                             </div>
                           </td>
                         )}
@@ -2021,8 +1708,8 @@ const LandingPageManagement: React.FC = () => {
 
           {/* MOBILE CARDS */}
           <div className="block lg:hidden">
-            {visibleGroups.length > 0 ? (
-              visibleGroups.map((group, index) => {
+            {filteredGroups.length > 0 ? (
+              filteredGroups.map((group, index) => {
                 const page = group.latest;
 
                 return (
@@ -2079,21 +1766,19 @@ const LandingPageManagement: React.FC = () => {
                       </p>
 
                       <span className="text-[9px] font-bold text-[#6B7280]">
-                        #{startIndex + index + 1}
+                        #{index + 1}
                       </span>
                     </div>
 
                     <div className="mt-3 flex justify-end gap-2">
-                      {canViewContent && (
-                        <button
-                          type="button"
-                          onClick={() => handleView(group)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] text-[#2D6FE8]"
-                          title="View"
-                        >
-                          <FiEye size={14} />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleView(group)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F8FBFF] text-[#2D6FE8]"
+                        title="View"
+                      >
+                        <FiEye size={14} />
+                      </button>
 
                       {canUpdateContent && (
                         <button
@@ -2106,16 +1791,7 @@ const LandingPageManagement: React.FC = () => {
                         </button>
                       )}
 
-                      {canDeleteContent && (
-                        <button
-                          type="button"
-                          onClick={() => openDelete(page)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
-                          title="Delete"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
+                      {/* DELETE ICON REMOVED */}
                     </div>
                   </motion.div>
                 );
@@ -2137,71 +1813,7 @@ const LandingPageManagement: React.FC = () => {
             )}
           </div>
 
-          {/* PAGINATION */}
-          {filteredGroups.length > 0 && (
-            <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3.5 sm:px-5">
-              <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                <p className="text-xs text-[#6B7280]">
-                  Showing{" "}
-                  <span className="font-bold text-[#111827]">
-                    {startEntry}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-bold text-[#111827]">
-                    {endEntry}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-bold text-[#111827]">
-                    {filteredGroups.length}
-                  </span>{" "}
-                  pages
-                </p>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) =>
-                        Math.max(1, page - 1)
-                      )
-                    }
-                    disabled={currentPage === 1}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronLeft size={17} />
-                  </button>
-
-                  {paginationPages.map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => setCurrentPage(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
-                        currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,.5)]"
-                          : "text-[#4A5568] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((page) =>
-                        Math.min(totalPages, page + 1)
-                      )
-                    }
-                    disabled={currentPage === totalPages}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    <FiChevronRight size={17} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* PAGINATION REMOVED */}
         </motion.div>
 
         <div className="h-5" />
@@ -2218,11 +1830,10 @@ const LandingPageManagement: React.FC = () => {
         />
       )}
 
-      {(canCreateContent || canUpdateContent) && (
+      {canUpdateContent && (
         <PageFormModal
           open={addEditOpen}
           loading={saveLoading}
-          mode={modalMode}
           page={selectedPage}
           onClose={() => {
             if (!saveLoading) {
@@ -2234,20 +1845,7 @@ const LandingPageManagement: React.FC = () => {
         />
       )}
 
-      {canDeleteContent && (
-        <DeletePageModal
-          open={deleteOpen}
-          loading={deleteLoading}
-          page={selectedPage}
-          onClose={() => {
-            if (!deleteLoading) {
-              setDeleteOpen(false);
-              setSelectedPage(null);
-            }
-          }}
-          onConfirm={handleDelete}
-        />
-      )}
+      {/* DELETE MODAL REMOVED */}
     </>
   );
 };

@@ -34,6 +34,8 @@ interface ProductTableProps {
   dealLoadingId: number | null;
   onBestSellerToggle: (product: Product, checked: boolean) => void;
   bestSellerLoadingId: number | null;
+  onPurchasePermissionToggle: (product: Product, allowed: boolean) => void;
+  purchasePermissionLoadingId: number | null;
   onPublishToggle: (product: Product, isPublished: boolean) => void;
   publishLoadingId: number | null;
   onSetPrimaryImage?: (product: Product, imageId: number) => void;
@@ -46,6 +48,7 @@ interface ProductTableProps {
   canToggleTrending?: boolean;
   canToggleDeal?: boolean;
   canToggleBestSeller?: boolean;
+  canTogglePurchasePermission?: boolean;
   canSetPrimaryImage?: boolean;
   highlightedProductId?: number | null;
 }
@@ -58,6 +61,13 @@ const isEnabled = (value: FlagValue): boolean =>
 
 const getProductFlag = (product: Product, key: string): boolean =>
   isEnabled((product as any)?.[key] as FlagValue);
+
+const isAlwaysPurchaseEnabled = (product: Product): boolean => {
+  const rawValue =
+    (product as any)?.allowed_purchsed ??
+    (product as any)?.allowed_purchased;
+  return isEnabled(rawValue as FlagValue);
+};
 
 const isPrimaryImage = (image: { is_primary?: FlagValue }) => isEnabled(image?.is_primary);
 
@@ -92,7 +102,7 @@ interface SlimSwitchProps {
   loading?: boolean;
   title: string;
   onChange: (checked: boolean) => void;
-  activeColor?: "blue" | "teal" | "yellow";
+  activeColor?: "blue" | "teal" | "yellow" | "violet";
 }
 
 /** Small, thin toggle used in the table and mobile product cards. */
@@ -109,7 +119,9 @@ const SlimSwitch: React.FC<SlimSwitchProps> = ({
       ? "border-teal-600 bg-teal-500"
       : activeColor === "yellow"
         ? "border-amber-500 bg-amber-400"
-        : "border-[#2D6FE8] bg-[#3B82F6]";
+        : activeColor === "violet"
+          ? "border-violet-600 bg-gradient-to-r from-violet-600 to-indigo-500 shadow-[0_2px_8px_rgba(99,102,241,0.25)]"
+          : "border-[#2D6FE8] bg-[#3B82F6]";
 
   return (
     <button
@@ -153,6 +165,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
   dealLoadingId,
   onBestSellerToggle,
   bestSellerLoadingId,
+  onPurchasePermissionToggle,
+  purchasePermissionLoadingId,
   onPublishToggle,
   publishLoadingId,
   onSetPrimaryImage,
@@ -165,6 +179,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
   canToggleTrending = false,
   canToggleDeal = false,
   canToggleBestSeller = false,
+  canTogglePurchasePermission = false,
   canSetPrimaryImage = false,
   highlightedProductId = null,
 }) => {
@@ -232,7 +247,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
       {/* Same table on desktop, tablet and mobile.
           Narrow screens par horizontal scroll aayega. */}
       <div className="w-full max-w-full overflow-x-auto overscroll-x-contain bg-white">
-        <table className="w-full min-w-[1120px] table-fixed border-collapse">
+        <table className="w-full min-w-[1220px] table-fixed border-collapse">
           <colgroup>
             <col style={{ width: "4%" }} />
             <col style={{ width: "6%" }} />
@@ -241,6 +256,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <col style={{ width: "8%" }} />
             <col style={{ width: "6%" }} />
             <col style={{ width: "10%" }} />
+
+            {canTogglePurchasePermission && <col style={{ width: "9%" }} />}
 
             {canToggleTrending && <col style={{ width: "7%" }} />}
 
@@ -271,6 +288,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   {title}
                 </th>
               ))}
+
+              {canTogglePurchasePermission && (
+                <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
+                  Always Purchase
+                </th>
+              )}
 
               {canToggleTrending && (
                 <th className="whitespace-nowrap px-2 py-3.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
@@ -308,6 +331,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <td
                   colSpan={
                     8 +
+                    Number(canTogglePurchasePermission) +
                     Number(canToggleTrending) +
                     Number(canToggleBestSeller) +
                     Number(canToggleDeal) +
@@ -475,6 +499,32 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         </span>
                       )}
                     </td>
+
+                    {/* Always Purchase Permission */}
+                    {canTogglePurchasePermission && (
+                      <td className="px-2 py-3.5">
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <SlimSwitch
+                            checked={isAlwaysPurchaseEnabled(product)}
+                            loading={purchasePermissionLoadingId === product.id}
+                            title={`Toggle Always Purchase for ${product.name}`}
+                            activeColor="violet"
+                            onChange={(allowed) =>
+                              onPurchasePermissionToggle(product, allowed)
+                            }
+                          />
+                          <span
+                            className={`text-[9px] font-semibold ${
+                              isAlwaysPurchaseEnabled(product)
+                                ? "text-violet-700"
+                                : "text-slate-400"
+                            }`}
+                          >
+                            {isAlwaysPurchaseEnabled(product) ? "Enabled" : "Off"}
+                          </span>
+                        </div>
+                      </td>
+                    )}
 
                     {/* Trending */}
                     {canToggleTrending && (

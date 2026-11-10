@@ -1159,10 +1159,10 @@ const splitCategory = (message?: string) => {
 const stockNumber = (item: any) => {
   const n = Number(
     item.stock_quantity ??
-      item.current_stock ??
-      item.stock ??
-      item.quantity ??
-      0,
+    item.current_stock ??
+    item.stock ??
+    item.quantity ??
+    0,
   );
   return Number.isNaN(n) ? 0 : n;
 };
@@ -1414,18 +1414,16 @@ const DashboardSkeleton = ({
         </div>
 
         <div
-          className={`mt-5 grid grid-cols-1 gap-5 ${
-            isWarehouseMode ? "xl:grid-cols-1" : "xl:grid-cols-3"
-          }`}
+          className={`mt-5 grid grid-cols-1 gap-5 ${isWarehouseMode ? "xl:grid-cols-1" : "xl:grid-cols-3"
+            }`}
         >
           <ChartSkeleton theme={theme} className={isWarehouseMode ? "" : "xl:col-span-2"} />
           {!isWarehouseMode && <PieSkeleton theme={theme} />}
         </div>
 
         <div
-          className={`mt-5 grid grid-cols-1 gap-5 ${
-            isWarehouseMode ? "xl:grid-cols-2" : "xl:grid-cols-3"
-          }`}
+          className={`mt-5 grid grid-cols-1 gap-5 ${isWarehouseMode ? "xl:grid-cols-2" : "xl:grid-cols-3"
+            }`}
         >
           <div className={`space-y-5 ${isWarehouseMode ? "" : "xl:col-span-2"}`}>
             {!isWarehouseMode && <PanelSkeleton rows={4} />}
@@ -1517,9 +1515,8 @@ const CountBadge = ({
   theme: DashboardTheme;
 }) => (
   <div
-    className={`flex shrink-0 items-baseline gap-1.5 rounded-full px-3 py-1.5 ring-1 ${
-      tone === "blue" ? theme.classes.primaryChip : theme.classes.accentChip
-    }`}
+    className={`flex shrink-0 items-baseline gap-1.5 rounded-full px-3 py-1.5 ring-1 ${tone === "blue" ? theme.classes.primaryChip : theme.classes.accentChip
+      }`}
   >
     <span className="text-[11px] font-semibold leading-none">{count}</span>
     <span className="text-[11px] font-semibold">{label}</span>
@@ -1823,9 +1820,8 @@ const Dashboard = () => {
         isCurrent:
           salesPeriod === "this_week" ? index === new Date().getDay() - 1 : false,
         orders,
-        date: `${item.start_date || item.date || ""}${
-          item.end_date && item.end_date !== item.start_date ? ` - ${item.end_date}` : ""
-        }`,
+        date: `${item.start_date || item.date || ""}${item.end_date && item.end_date !== item.start_date ? ` - ${item.end_date}` : ""
+          }`,
       };
     });
   }, [selectedSalesData, salesPeriod]);
@@ -2200,6 +2196,7 @@ const Dashboard = () => {
         >
           {metrics.map((metric: any, index: number) => {
             const mTheme = metricTheme[metric.icon] || metricTheme.attach_money;
+
             return (
               <motion.div
                 key={metric.label}
@@ -2208,18 +2205,20 @@ const Dashboard = () => {
                 className="group relative flex min-h-[140px] flex-col overflow-hidden rounded-[17px] border border-[#DCE6F2] bg-white px-4 py-5 shadow-[0_3px_14px_rgba(45,111,232,0.05)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#4F8FF7]/30 hover:shadow-[0_10px_24px_rgba(45,111,232,0.10)]"
               >
                 <div className={`absolute bottom-0 left-0 top-0 w-[3px] ${mTheme.bar}`} />
+
                 <div className="pointer-events-none absolute inset-0 rounded-[17px] bg-gradient-to-br from-[#4F8FF7]/[0.04] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
                 <div className="relative flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] transition-colors duration-300 group-hover:text-[#4F8FF7]">
+                    <div className="break-words whitespace-normal text-[9px] font-semibold uppercase tracking-[0.08em] text-[#6B7280] transition-colors duration-300 group-hover:text-[#4F8FF7]">
                       {metric.label}
                     </div>
+
                     <motion.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05, duration: 0.4 }}
-                      className="mt-2 truncate text-[26px] font-bold leading-none tracking-[-0.03em] text-[#111827]"
+                      className="mt-2 break-words whitespace-normal text-[26px] font-bold leading-tight tracking-[-0.03em] text-[#111827]"
                     >
                       {metric.value}
                     </motion.div>
@@ -2232,11 +2231,15 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                <div className={`relative mt-auto flex items-center text-[10px] font-bold ${metric.toneClass || theme.classes.primaryText}`}>
-                  <TrendIcon name={metric.trendIcon} className="h-2.5 w-2.5" />
-                  <span className="ml-1.5">{metric.change}</span>
+                <div className={`relative mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1 pt-3 text-[10px] font-bold ${metric.toneClass || theme.classes.primaryText}`}>
+                  <TrendIcon name={metric.trendIcon} className="h-2.5 w-2.5 shrink-0" />
+
+                  <span className="break-words">{metric.change}</span>
+
                   {metric.note && (
-                    <span className="ml-1.5 truncate font-normal text-[#6B7280]">{metric.note}</span>
+                    <span className="break-words font-normal text-[#6B7280]">
+                      {metric.note}
+                    </span>
                   )}
                 </div>
               </motion.div>
@@ -2532,23 +2535,21 @@ const Dashboard = () => {
         {hasLowerContent && (
           <motion.div
             variants={containerVariants}
-            className={`mt-5 grid grid-cols-1 gap-5 ${
-              hasLowerLeftContent && hasLowerRightContent
+            className={`mt-5 grid grid-cols-1 gap-5 ${hasLowerLeftContent && hasLowerRightContent
                 ? isWarehouseMode
                   ? "xl:grid-cols-2"
                   : "xl:grid-cols-3"
                 : "xl:grid-cols-1"
-            }`}
+              }`}
           >
             {/* LEFT COLUMN */}
             {hasLowerLeftContent && (
               <motion.div
                 variants={itemVariants}
-                className={`space-y-5 ${
-                  hasLowerLeftContent && hasLowerRightContent && !isWarehouseMode
+                className={`space-y-5 ${hasLowerLeftContent && hasLowerRightContent && !isWarehouseMode
                     ? "xl:col-span-2"
                     : ""
-                }`}
+                  }`}
               >
                 {/* KYC — ADMIN ONLY */}
                 {showKycPanel && (
@@ -2585,9 +2586,8 @@ const Dashboard = () => {
                             />
                             <div className="flex min-w-0 items-center gap-3">
                               <div
-                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[14px] font-medium shadow ring-2 ring-white ${
-                                  theme.avatarTones[idx % theme.avatarTones.length]
-                                }`}
+                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[14px] font-medium shadow ring-2 ring-white ${theme.avatarTones[idx % theme.avatarTones.length]
+                                  }`}
                               >
                                 {String(review.user_name || "?").charAt(0).toUpperCase()}
                               </div>
@@ -2599,9 +2599,8 @@ const Dashboard = () => {
                                     Submitted {formatDate(review.created_at)}
                                   </span>
                                   <span
-                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                      urgent ? "bg-[#FEF2F2] text-[#C23B32]" : theme.classes.primaryChip
-                                    }`}
+                                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${urgent ? "bg-[#FEF2F2] text-[#C23B32]" : theme.classes.primaryChip
+                                      }`}
                                   >
                                     {waited === 0 ? "Today" : `Waiting ${waited}d`}
                                   </span>
@@ -2657,11 +2656,10 @@ const Dashboard = () => {
                             className="flex items-center gap-3 rounded-2xl border border-[#DCE6F2] bg-white p-3 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)]"
                           >
                             <div
-                              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                                out
+                              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${out
                                   ? "bg-[#FEF2F2] text-[#C23B32]"
                                   : `${theme.classes.accentTile} ${theme.classes.accentText}`
-                              }`}
+                                }`}
                             >
                               <FiAlertCircle size={18} />
                             </div>
@@ -2671,9 +2669,8 @@ const Dashboard = () => {
                                   {getInventoryName(item)}
                                 </div>
                                 <span
-                                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                                    out ? "bg-[#FEF2F2] text-[#C23B32]" : theme.classes.accentChip
-                                  }`}
+                                  className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${out ? "bg-[#FEF2F2] text-[#C23B32]" : theme.classes.accentChip
+                                    }`}
                                 >
                                   {out ? "Out of stock" : "Low stock"}
                                 </span>
@@ -2808,17 +2805,15 @@ const Dashboard = () => {
                             <motion.div
                               key={ticket.id}
                               whileHover={{ x: 3 }}
-                              className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${
-                                unread ? "bg-[#F5F9FF]" : "bg-white"
-                              }`}
+                              className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${unread ? "bg-[#F5F9FF]" : "bg-white"
+                                }`}
                               style={{ borderColor: unread ? `${theme.primary}66` : undefined }}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-2.5">
                                   <div
-                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-extrabold ${
-                                      theme.avatarTones[idx % theme.avatarTones.length]
-                                    }`}
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-extrabold ${theme.avatarTones[idx % theme.avatarTones.length]
+                                      }`}
                                   >
                                     {String(ticket.name || "?").charAt(0).toUpperCase()}
                                   </div>
@@ -2841,9 +2836,8 @@ const Dashboard = () => {
                                   </div>
                                 </div>
                                 <span
-                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                                    unread ? theme.classes.accentChip : "bg-[#F3F6FB] text-[#6B7280]"
-                                  }`}
+                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${unread ? theme.classes.accentChip : "bg-[#F3F6FB] text-[#6B7280]"
+                                    }`}
                                 >
                                   {unread ? "Unread" : "Read"}
                                 </span>
@@ -2882,13 +2876,12 @@ const Dashboard = () => {
         {summaryItems.length > 0 && (
           <motion.div
             variants={containerVariants}
-            className={`mt-5 grid grid-cols-1 gap-3 ${
-              summaryItems.length === 1
+            className={`mt-5 grid grid-cols-1 gap-3 ${summaryItems.length === 1
                 ? "sm:grid-cols-1"
                 : summaryItems.length === 2
                   ? "sm:grid-cols-2"
                   : "sm:grid-cols-3"
-            }`}
+              }`}
           >
             {summaryItems.map((item, idx) => {
               const Icon = item.icon;

@@ -1,4 +1,3 @@
-
 import apiClient from "../client";
 import type { AxiosProgressEvent } from "axios";
 
@@ -138,6 +137,8 @@ export interface Product {
 
   description: string;
   specification: string;
+  marketed_by?: string | null;
+  manufacturer?: string | null;
 
   category_id: number;
   category: Category;
@@ -191,6 +192,9 @@ export interface Product {
   commission_value: number;
   waiting_value: number;
   shipping_charge: number;
+
+  /** ✅ NEW: Service charge (only for Electronics category) */
+  service_charge?: number | string | null;
 
   created_at: string;
   updated_at: string;
@@ -287,6 +291,9 @@ export interface ProductPayload {
   waiting_value: number;
   shipping_charge: number;
 
+  /** ✅ NEW: Service charge (only for Electronics category) */
+  service_charge?: number;
+
   product_images?: ProductImagePayload[];
   variants?: ProductVariantPayload[];
 }
@@ -321,6 +328,13 @@ export interface PublishProductPayload {
 
 export interface BestSellerPayload {
   is_best_seller: 0 | 1;
+}
+
+/** Body for POST /api/update-purchase-permission */
+export interface UpdatePurchasePermissionPayload {
+  product_ids: number[];
+  /** 1 = allowed, 0 = not allowed. API field spelling is kept as provided. */
+  allowed_purchsed: 0 | 1;
 }
 
 /* =========================================================
@@ -557,7 +571,7 @@ export const productApi = {
     data: PublishProductPayload,
   ) =>
     apiClient.post<ApiResponse<Product>>(
-      `/publish/${productId}/product`,
+      `/products/publish/${productId}/product`,
       data,
     ),
 
@@ -572,6 +586,17 @@ export const productApi = {
   ) =>
     apiClient.post<ApiResponse<Product>>(
       `/best-seller/products/${productId}`,
+      data,
+    ),
+
+  // ============================
+  // UPDATE PURCHASE PERMISSION
+  // POST /api/update-purchase-permission
+  // ============================
+
+  updatePurchasePermission: (data: UpdatePurchasePermissionPayload) =>
+    apiClient.post<ApiResponse<unknown>>(
+      "/update-purchase-permission",
       data,
     ),
 

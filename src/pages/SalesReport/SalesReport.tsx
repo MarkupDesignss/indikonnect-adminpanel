@@ -638,11 +638,11 @@ const TotalsSummary: React.FC<{
     const cards: { label: string; value: string; hint: string; accent: string; bg: string; border: string }[] = [
         { label: "Total sales", value: formatCurrency(totalSales), hint: "Gross category sales", accent: "#4F7FE8", bg: "#F5F9FF", border: "#D5E2FF" },
         { label: "Total returns", value: formatCurrency(totalReturns), hint: "Returned sales value", accent: "#8B68D9", bg: "#FAF7FF", border: "#E1D7FF" },
-        { label: "Total CV", value: formatCurrency(totalCv), hint: "Commissionable volume", accent: "#D99A43", bg: "#FFFBF3", border: "#F2DFBF" },
+        // { label: "Total CV", value: formatCurrency(totalCv), hint: "Commissionable volume", accent: "#D99A43", bg: "#FFFBF3", border: "#F2DFBF" },
         { label: "Net sales", value: formatCurrency(netSales), hint: "Sales minus returns", accent: "#37A875", bg: "#F6FCF8", border: "#CDEBD8" },
     ];
     return (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {cards.map((card) => (
                 <div key={card.label} className="relative overflow-hidden rounded-[16px] border bg-white p-4" style={{ borderColor: card.border, backgroundColor: card.bg }}>
                     <div className="absolute inset-y-0 left-0 w-1" style={{ background: card.accent }} />

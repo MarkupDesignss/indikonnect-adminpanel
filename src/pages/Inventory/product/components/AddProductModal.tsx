@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiPlus,
@@ -21,6 +20,7 @@ import {
   FiPercent,
   FiSliders,
   FiMinus,
+  FiTool,
 } from "react-icons/fi";
 import { FaRupeeSign } from "react-icons/fa";
 import { toast } from "react-hot-toast";
@@ -87,6 +87,7 @@ interface FormErrors {
   stock_quantity?: string;
   images?: string;
   shipping_charge?: string;
+  service_charge?: string;
   reason_for_stock_adjustment?: string;
   manual_stock_adjustment?: string;
 }
@@ -94,6 +95,7 @@ interface FormErrors {
 interface SpecItem {
   key: string;
   value: string;
+  isDefault?: boolean;
 }
 
 type StockAdjustmentOperation = "add" | "subtract";
@@ -139,22 +141,34 @@ const formatINR = (amount: number): string =>
 const parseSpecification = (
   spec: string | Record<string, any>,
 ): SpecItem[] => {
+  let parsed: any = {};
   try {
-    const parsed = typeof spec === "string" ? JSON.parse(spec) : spec;
-
-    if (!parsed || typeof parsed !== "object") {
-      return [{ key: "", value: "" }];
-    }
-
-    const entries = Object.entries(parsed).map(([key, value]) => ({
-      key,
-      value: String(value ?? ""),
-    }));
-
-    return entries.length ? entries : [{ key: "", value: "" }];
+    parsed = typeof spec === "string" ? JSON.parse(spec) : spec;
   } catch {
-    return [{ key: "", value: "" }];
+    parsed = {};
   }
+
+  if (!parsed || typeof parsed !== "object") {
+    parsed = {};
+  }
+
+  const entries = Object.entries(parsed).map(([key, value]) => ({
+    key,
+    value: String(value ?? ""),
+    isDefault: key.trim() === "Manufactured By" || key.trim() === "Marketed By",
+  }));
+
+  const hasManufacturedBy = entries.some(e => e.key.trim() === "Manufactured By");
+  const hasMarketedBy = entries.some(e => e.key.trim() === "Marketed By");
+
+  if (!hasManufacturedBy) {
+    entries.unshift({ key: "Manufactured By", value: "", isDefault: true });
+  }
+  if (!hasMarketedBy) {
+    entries.unshift({ key: "Marketed By", value: "", isDefault: true });
+  }
+
+  return entries.length ? entries : [{ key: "", value: "" }];
 };
 
 const getApiArray = (response: any): any[] => {
@@ -167,8 +181,14 @@ const getApiArray = (response: any): any[] => {
   return candidates.find(Array.isArray) || [];
 };
 
+const isElectronicsCategoryName = (name?: string | null): boolean => {
+  if (!name) return false;
+  const normalized = String(name).trim().toLowerCase();
+  return normalized.includes("electronic");
+};
+
 /* =========================================================
-   SMALL UI BUILDING BLOCKS
+   SMALL UI BUILDING BLOCKS (Soft UI)
 ========================================================= */
 
 const inputCls = (hasError?: boolean, extra = "") =>
@@ -176,13 +196,13 @@ const inputCls = (hasError?: boolean, extra = "") =>
     hasError
       ? "border-rose-400 bg-rose-50/50"
       : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
-  } px-3.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#1E3A8A] focus:bg-white focus:ring-4 focus:ring-[#1E3A8A]/10 ${extra}`;
+  } px-3.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 ${extra}`;
 
 const primaryBtn =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#2563EB] to-[#1E3A8A] font-semibold text-white shadow-[0_8px_18px_-8px_rgba(30,58,138,0.6)] transition hover:shadow-[0_12px_24px_-8px_rgba(30,58,138,0.75)] hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const softBtn =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#EAF1FF] font-semibold text-[#1E3A8A] transition hover:bg-[#DBE8FF] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-50 font-semibold text-blue-600 transition hover:bg-blue-100 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50";
 
 const SectionCard: React.FC<{
   icon: React.ReactNode;
@@ -192,15 +212,15 @@ const SectionCard: React.FC<{
   required?: boolean;
   children: React.ReactNode;
 }> = ({ icon, title, subtitle, action, required, children }) => (
-  <section className="overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,27,61,0.04),0_12px_32px_-12px_rgba(30,58,138,0.12)]">
+  <section className="overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
     <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#EAF1FF] to-[#DBE8FF] text-[#1E3A8A] ring-1 ring-[#1E3A8A]/10">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
           {icon}
         </span>
 
         <div>
-          <h3 className="text-[15px] font-bold leading-tight text-[#0F1B3D]">
+          <h3 className="text-[15px] font-bold leading-tight text-slate-800">
             {title}
             {required && <span className="ml-1 text-rose-500">*</span>}
           </h3>
@@ -232,7 +252,7 @@ const Field: React.FC<{
       className={`mb-1.5 flex items-center gap-1.5 font-semibold ${
         small
           ? "text-xs text-slate-600"
-          : "text-[13px] text-[#0F1B3D]"
+          : "text-[13px] text-slate-700"
       }`}
     >
       {icon}
@@ -281,7 +301,7 @@ const AdornedInput: React.FC<{
 }) => (
   <div className="relative">
     {prefix && (
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[#2563EB]">
+      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-500">
         {prefix}
       </span>
     )}
@@ -327,7 +347,7 @@ const SelectBox: React.FC<{
   disabled,
 }) => (
   <div className="relative">
-    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2563EB]">
+    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500">
       {icon}
     </span>
 
@@ -422,7 +442,7 @@ const VariantProductSelect: React.FC<{
               </span>
             )}
 
-            <span className="truncate text-sm text-slate-900">
+            <span className="truncate text-sm text-slate-800">
               {selected.name}
               {selected.product_code
                 ? ` (${selected.product_code})`
@@ -431,7 +451,7 @@ const VariantProductSelect: React.FC<{
           </>
         ) : (
           <>
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-[#2563EB]">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-100 text-blue-500">
               <FiPackage size={13} />
             </span>
 
@@ -450,7 +470,7 @@ const VariantProductSelect: React.FC<{
       </button>
 
       {open && !disabled && (
-        <div className="absolute left-0 right-0 z-30 mt-1.5 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1.5 shadow-[0_12px_32px_-8px_rgba(15,27,61,0.25)]">
+        <div className="absolute left-0 right-0 z-30 mt-1.5 max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl shadow-slate-200/50">
           {products.length === 0 ? (
             <div className="px-3.5 py-3 text-center text-xs text-slate-500">
               No products available
@@ -469,7 +489,7 @@ const VariantProductSelect: React.FC<{
                   }}
                   className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
                     isSelected
-                      ? "bg-[#EAF1FF]"
+                      ? "bg-blue-50"
                       : "hover:bg-slate-50"
                   }`}
                 >
@@ -489,8 +509,8 @@ const VariantProductSelect: React.FC<{
                     <p
                       className={`truncate text-sm ${
                         isSelected
-                          ? "font-bold text-[#1E3A8A]"
-                          : "font-medium text-[#0F1B3D]"
+                          ? "font-bold text-blue-600"
+                          : "font-medium text-slate-800"
                       }`}
                     >
                       {product.name}
@@ -506,7 +526,7 @@ const VariantProductSelect: React.FC<{
                   {isSelected && (
                     <FiCheck
                       size={15}
-                      className="flex-shrink-0 text-[#1E3A8A]"
+                      className="flex-shrink-0 text-blue-600"
                     />
                   )}
                 </button>
@@ -564,7 +584,7 @@ const StockAdjustmentForm: React.FC<{
               onClick={() => onOperationChange("add")}
               className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${
                 operation === "add"
-                  ? "bg-emerald-500 text-white shadow"
+                  ? "bg-emerald-500 text-white shadow-sm"
                   : "text-slate-600 hover:bg-white"
               }`}
             >
@@ -577,7 +597,7 @@ const StockAdjustmentForm: React.FC<{
               onClick={() => onOperationChange("subtract")}
               className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${
                 operation === "subtract"
-                  ? "bg-rose-500 text-white shadow"
+                  ? "bg-rose-500 text-white shadow-sm"
                   : "text-slate-600 hover:bg-white"
               }`}
             >
@@ -628,8 +648,8 @@ const StockAdjustmentForm: React.FC<{
           <div
             className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${
               operation === "add"
-                ? "border-emerald-200 bg-emerald-50/70 text-emerald-800"
-                : "border-rose-200 bg-rose-50/70 text-rose-800"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-rose-200 bg-rose-50 text-rose-800"
             }`}
           >
             <FiInfo size={14} />
@@ -711,16 +731,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [specification, setSpecification] = useState<SpecItem[]>([
-    { key: "", value: "" },
-  ]);
+  
+  const DEFAULT_SPECS: SpecItem[] = [
+    { key: "Manufactured By", value: "", isDefault: true },
+    { key: "Marketed By", value: "", isDefault: true },
+  ];
+  const [specification, setSpecification] = useState<SpecItem[]>(DEFAULT_SPECS);
 
   const [categoryId, setCategoryId] = useState("");
   const [subcategoryId, setSubcategoryId] = useState("");
   const [brandId, setBrandId] = useState("");
   const [taxCategoryId, setTaxCategoryId] = useState("");
 
-  // Ignite Product ID
   const [igniteProductId, setIgniteProductId] = useState("");
 
   const [retailMrp, setRetailMrp] = useState("");
@@ -730,6 +752,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
   const [commissionValue, setCommissionValue] = useState("");
   const [shippingCharge, setShippingCharge] = useState("");
+  const [serviceCharge, setServiceCharge] = useState("");
   const [stockQuantity, setStockQuantity] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("10");
 
@@ -741,14 +764,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [arrangingImageIds, setArrangingImageIds] = useState<number[]>([]);
   const [hydratedEditKey, setHydratedEditKey] = useState<string | null>(null);
 
-  // ===== VARIANTS =====
-
   const [variants, setVariants] = useState<VariantItem[]>([]);
   const [removedVariantIds, setRemovedVariantIds] = useState<number[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
 
   const [variantProductId, setVariantProductId] = useState("");
   const [variantHexColor, setVariantHexColor] = useState("#28282B");
+
+  // Custom Color Picker Open/Close State
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const colorPickerRef = useRef<HTMLDivElement | null>(null);
 
   const [stockAdjustmentReason, setStockAdjustmentReason] = useState("");
   const [stockAdjustmentQty, setStockAdjustmentQty] = useState("");
@@ -762,9 +787,36 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const currentProduct = getProductObject(editData);
   const parentProductId = Number(currentProduct?.id || 0);
 
-  /* =========================================================
-     PRICE PREVIEW
-  ========================================================= */
+  // Close color picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        colorPickerRef.current &&
+        !colorPickerRef.current.contains(event.target as Node)
+      ) {
+        setShowColorPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const predefinedColors = [
+    "#28282B", "#000000", "#FFFFFF", "#F3F4F6", 
+    "#EF4444", "#F87171", "#F59E0B", "#FBBF24", 
+    "#10B981", "#34D399", "#3B82F6", "#60A5FA", 
+    "#6366F1", "#818CF8", "#8B5CF6", "#A78BFA", 
+    "#EC4899", "#F472B6", "#14B8A6", "#2DD4BF"
+  ];
+
+  const isElectronicsCategory = useMemo(() => {
+    if (!categoryId) return false;
+    const selected = categories.find(
+      (cat) => String(cat.id) === categoryId,
+    );
+    return isElectronicsCategoryName(selected?.name);
+  }, [categoryId, categories]);
 
   const pricePreview = useMemo(() => {
     const calculate = (mrp: string, discount: string) => {
@@ -798,10 +850,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     distributorDiscountValue,
   ]);
 
-  /* =========================================================
-     COMPLETION CHECKLIST
-  ========================================================= */
-
   const checklist = useMemo(
     () => [
       { label: "Product name", done: !!name.trim() },
@@ -820,6 +868,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       { label: "Retail MRP", done: Number(retailMrp) > 0 },
       { label: "Stock quantity", done: stockQuantity !== "" },
       { label: "Product image", done: images.length > 0 },
+      ...(isElectronicsCategory
+        ? [
+            {
+              label: "Service charge",
+              done:
+                serviceCharge !== "" &&
+                Number(serviceCharge) >= 0,
+            },
+          ]
+        : []),
     ],
     [
       name,
@@ -832,6 +890,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       retailMrp,
       stockQuantity,
       images.length,
+      isElectronicsCategory,
+      serviceCharge,
     ],
   );
 
@@ -842,10 +902,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const completionPercent = Math.round(
     (completedCount / checklist.length) * 100,
   );
-
-  /* =========================================================
-     IMAGE CLEANUP
-  ========================================================= */
 
   const revokeObjectUrls = useCallback((items: ImageItem[]) => {
     items.forEach((item) => {
@@ -859,10 +915,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     });
   }, []);
 
-  /* =========================================================
-     RESET FORM
-  ========================================================= */
-
   const resetEverything = useCallback(() => {
     revokeObjectUrls(images);
 
@@ -870,42 +922,41 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setName("");
     setSlug("");
     setDescription("");
-    setSpecification([{ key: "", value: "" }]);
+    
+    setSpecification([
+      { key: "Manufactured By", value: "", isDefault: true },
+      { key: "Marketed By", value: "", isDefault: true },
+    ]);
 
     setCategoryId("");
     setSubcategoryId("");
     setBrandId("");
     setTaxCategoryId("");
-
-    // Reset Ignite Product ID
     setIgniteProductId("");
-
     setRetailMrp("");
     setRetailDiscountValue("");
     setDistributorMrp("");
     setDistributorDiscountValue("");
-
     setCommissionValue("");
     setShippingCharge("");
+    setServiceCharge("");
     setStockQuantity("");
     setLowStockThreshold("10");
 
     setIsPublished(true);
     setImages([]);
     setErrors({});
-
     setDeletingImageIds([]);
     setArrangingImageIds([]);
-
     setSubcategories([]);
     setCategoryProducts([]);
-
     setVariants([]);
     setRemovedVariantIds([]);
     setRemovedImageIds([]);
 
     setVariantProductId("");
     setVariantHexColor("#28282B");
+    setShowColorPicker(false);
 
     setHydratedEditKey(null);
 
@@ -929,10 +980,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     resetEverything();
     onClose();
   }, [loading, resetEverything, onClose]);
-
-  /* =========================================================
-     FETCH OPTIONS
-  ========================================================= */
 
   useEffect(() => {
     if (!open) return;
@@ -962,40 +1009,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         setCategories(
           categoryData.map((item: any) => ({
             id: Number(item.id),
-            name:
-              item.title ||
-              item.name ||
-              `Category ${item.id}`,
+            name: item.title || item.name || `Category ${item.id}`,
           })),
         );
 
         setBrands(
           brandData.map((item: any) => ({
             id: Number(item.id),
-            name:
-              item.title ||
-              item.name ||
-              `Brand ${item.id}`,
+            name: item.title || item.name || `Brand ${item.id}`,
           })),
         );
 
         setTaxCategories(
           taxData.map((item: any) => ({
             id: Number(item.id),
-            name:
-              item.name ||
-              item.title ||
-              `Tax ${item.id}`,
+            name: item.name || item.title || `Tax ${item.id}`,
           })),
         );
       } catch (error) {
         if (!cancelled) {
           console.error("Fetch product options error:", error);
-
           setCategories([]);
           setBrands([]);
           setTaxCategories([]);
-
           toast.error("Unable to load product options.");
         }
       } finally {
@@ -1011,10 +1047,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       cancelled = true;
     };
   }, [open]);
-
-  /* =========================================================
-     FETCH CATEGORY DATA
-  ========================================================= */
 
   useEffect(() => {
     if (!open || !categoryId) {
@@ -1038,9 +1070,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         subcategoriesResult,
         productsResult,
       ] = await Promise.allSettled([
-        productApi.getSubcategoriesByCategory(
-          selectedCategoryId,
-        ),
+        productApi.getSubcategoriesByCategory(selectedCategoryId),
         productApi.getProductsByCategory(selectedCategoryId),
       ]);
 
@@ -1060,10 +1090,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
             )
             .map((item: any) => ({
               id: Number(item.id),
-              name:
-                item.name ||
-                item.title ||
-                `Subcategory ${item.id}`,
+              name: item.name || item.title || `Subcategory ${item.id}`,
             })),
         );
       } else {
@@ -1085,19 +1112,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         setCategoryProducts(
           rows
             .filter(
-              (item: any) =>
-                Number(item.id) !== parentProductId,
+              (item: any) => Number(item.id) !== parentProductId,
             )
             .map((item: any) => ({
               id: Number(item.id),
-              name:
-                item.name ||
-                item.title ||
-                `Product ${item.id}`,
-              product_code:
-                item.product_code ||
-                item.sku ||
-                "",
+              name: item.name || item.title || `Product ${item.id}`,
+              product_code: item.product_code || item.sku || "",
               image_url:
                 item?.images?.[0]?.image_url ||
                 item?.image_url ||
@@ -1131,10 +1151,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     };
   }, [open, categoryId, parentProductId]);
 
-  /* =========================================================
-     HYDRATE EDIT DATA
-  ========================================================= */
-
   useEffect(() => {
     if (!open || !isEdit || !editData) return;
 
@@ -1157,7 +1173,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSpecification(
       product?.specification
         ? parseSpecification(product.specification)
-        : [{ key: "", value: "" }],
+        : [
+            { key: "Manufactured By", value: "", isDefault: true },
+            { key: "Marketed By", value: "", isDefault: true },
+          ],
     );
 
     setCategoryId(
@@ -1187,7 +1206,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       ),
     );
 
-    // Existing Ignite Product ID
     setIgniteProductId(
       normalizeId(product?.ignite_product_id),
     );
@@ -1203,59 +1221,48 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       "";
 
     setRetailMrp(
-      product?.retail_mrp !== null &&
-        product?.retail_mrp !== undefined
-        ? String(product.retail_mrp)
-        : "",
+      product?.retail_mrp !== null && product?.retail_mrp !== undefined
+        ? String(product.retail_mrp) : "",
     );
 
     setRetailDiscountValue(
-      retailDiscount !== null &&
-        retailDiscount !== undefined
-        ? String(retailDiscount)
-        : "",
+      retailDiscount !== null && retailDiscount !== undefined
+        ? String(retailDiscount) : "",
     );
 
     setDistributorMrp(
-      product?.distributor_mrp !== null &&
-        product?.distributor_mrp !== undefined
-        ? String(product.distributor_mrp)
-        : "",
+      product?.distributor_mrp !== null && product?.distributor_mrp !== undefined
+        ? String(product.distributor_mrp) : "",
     );
 
     setDistributorDiscountValue(
-      distributorDiscount !== null &&
-        distributorDiscount !== undefined
-        ? String(distributorDiscount)
-        : "",
+      distributorDiscount !== null && distributorDiscount !== undefined
+        ? String(distributorDiscount) : "",
     );
 
     setCommissionValue(
-      product?.commission_value !== null &&
-        product?.commission_value !== undefined
-        ? String(product.commission_value)
-        : "",
+      product?.commission_value !== null && product?.commission_value !== undefined
+        ? String(product.commission_value) : "",
     );
 
     setShippingCharge(
-      product?.shipping_charge !== null &&
-        product?.shipping_charge !== undefined
-        ? String(product.shipping_charge)
-        : "",
+      product?.shipping_charge !== null && product?.shipping_charge !== undefined
+        ? String(product.shipping_charge) : "",
+    );
+
+    setServiceCharge(
+      product?.service_charge !== null && product?.service_charge !== undefined
+        ? String(product.service_charge) : "",
     );
 
     setStockQuantity(
-      product?.stock_quantity !== null &&
-        product?.stock_quantity !== undefined
-        ? String(product.stock_quantity)
-        : "",
+      product?.stock_quantity !== null && product?.stock_quantity !== undefined
+        ? String(product.stock_quantity) : "",
     );
 
     setLowStockThreshold(
-      product?.low_stock_threshold !== null &&
-        product?.low_stock_threshold !== undefined
-        ? String(product.low_stock_threshold)
-        : "10",
+      product?.low_stock_threshold !== null && product?.low_stock_threshold !== undefined
+        ? String(product.low_stock_threshold) : "10",
     );
 
     setIsPublished(
@@ -1288,35 +1295,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       setImages([]);
     }
 
-    // Hydrate existing variants
     if (Array.isArray(product?.variants)) {
       setVariants(
         product.variants.map((v: any) => ({
           variantId: v?.id,
-          product_id: Number(
-            v?.product_id ??
-              v?.product?.id ??
-              0,
-          ),
-          hax_color: String(
-            v?.hax_color ??
-              v?.hex_color ??
-              "#000000",
-          ),
-          productName:
-            v?.name ??
-            v?.product?.name ??
-            undefined,
-          productCode:
-            v?.product_code ??
-            v?.product?.product_code ??
-            v?.sku ??
-            undefined,
+          product_id: Number(v?.product_id ?? v?.product?.id ?? 0),
+          hax_color: String(v?.hax_color ?? v?.hex_color ?? "#000000"),
+          productName: v?.name ?? v?.product?.name ?? undefined,
+          productCode: v?.product_code ?? v?.product?.product_code ?? v?.sku ?? undefined,
           productImage:
-            v?.image ??
-            v?.product?.images?.[0]?.image_url ??
-            v?.product?.image_url ??
-            undefined,
+            v?.image ?? v?.product?.images?.[0]?.image_url ?? v?.product?.image_url ?? undefined,
         })),
       );
     } else {
@@ -1325,7 +1313,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setRemovedVariantIds([]);
     setRemovedImageIds([]);
-
     setVariantProductId("");
     setVariantHexColor("#28282B");
 
@@ -1336,75 +1323,63 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setHydratedEditKey(productKey);
   }, [open, isEdit, editData, hydratedEditKey]);
 
-  /* =========================================================
-     RESET WHEN MODAL CLOSES
-  ========================================================= */
-
   useEffect(() => {
     if (open) return;
 
     revokeObjectUrls(images);
-
     setHydratedEditKey(null);
 
     setProductCode("");
     setName("");
     setSlug("");
     setDescription("");
-    setSpecification([{ key: "", value: "" }]);
+    setSpecification([
+      { key: "Manufactured By", value: "", isDefault: true },
+      { key: "Marketed By", value: "", isDefault: true },
+    ]);
 
     setCategoryId("");
     setSubcategoryId("");
     setBrandId("");
     setTaxCategoryId("");
-
-    // Reset Ignite Product ID
     setIgniteProductId("");
-
     setRetailMrp("");
     setRetailDiscountValue("");
     setDistributorMrp("");
     setDistributorDiscountValue("");
-
     setCommissionValue("");
     setShippingCharge("");
+    setServiceCharge("");
     setStockQuantity("");
     setLowStockThreshold("10");
 
     setIsPublished(true);
     setImages([]);
     setErrors({});
-
     setSubcategories([]);
     setCategoryProducts([]);
-
     setVariants([]);
     setRemovedVariantIds([]);
     setRemovedImageIds([]);
 
     setVariantProductId("");
     setVariantHexColor("#28282B");
+    setShowColorPicker(false);
 
     setStockAdjustmentReason("");
     setStockAdjustmentQty("");
     setStockAdjustmentOperation("add");
 
     draggedImageIdRef.current = null;
-
     setDragOverImageId(null);
     setArrangingImageIds([]);
     setDeletingImageIds([]);
   }, [open]);
 
-  /* =========================================================
-     BODY SCROLL LOCK
-  ========================================================= */
-
   useEffect(() => {
     if (!open) return;
 
     const previousOverflow = document.body.style.overflow;
-
     document.body.style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1421,13 +1396,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
   if (!open) return null;
 
-  /* =========================================================
-     FORM HANDLERS
-  ========================================================= */
-
   const handleNameChange = (value: string) => {
     setName(value);
-
     setSlug(
       value
         .toLowerCase()
@@ -1435,7 +1405,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, ""),
     );
-
     setErrors((previous) => ({
       ...previous,
       name: undefined,
@@ -1444,9 +1413,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
   const handleIgniteProductIdChange = (value: string) => {
     if (!isValidIntegerInput(value)) return;
-
     setIgniteProductId(value);
-
     setErrors((previous) => ({
       ...previous,
       ignite_product_id: undefined,
@@ -1457,10 +1424,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setCategoryId(value);
     setSubcategoryId("");
     setVariantProductId("");
-
     setSubcategories([]);
     setCategoryProducts([]);
-
     setErrors((previous) => ({
       ...previous,
       category_id: undefined,
@@ -1470,7 +1435,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
   const handleSubcategoryChange = (value: string) => {
     setSubcategoryId(value);
-
     setErrors((previous) => ({
       ...previous,
       subcategory_id: undefined,
@@ -1484,7 +1448,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     ]);
 
   const removeSpecificationField = (index: number) => {
-    if (specification.length <= 1) return;
+    if (specification[index]?.isDefault) return;
+    if (specification.length <= 2) return;
 
     setSpecification((previous) =>
       previous.filter(
@@ -1507,10 +1472,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
   };
 
-  /* =========================================================
-     IMAGE HANDLERS
-  ========================================================= */
-
   const addImageFiles = (files: FileList | File[]) => {
     const accepted = Array.from(files).filter((file) =>
       file.type.startsWith("image/"),
@@ -1531,7 +1492,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     );
 
     setImages((previous) => [...previous, ...newImages]);
-
     setErrors((previous) => ({
       ...previous,
       images: undefined,
@@ -1544,7 +1504,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     if (event.target.files) {
       addImageFiles(event.target.files);
     }
-
     event.target.value = "";
   };
 
@@ -1556,14 +1515,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     if (!imageToRemove) return;
 
     if (isEdit && imageToRemove.is_existing) {
-      const existingImageId = Number(
-        imageToRemove.existing_id,
-      );
+      const existingImageId = Number(imageToRemove.existing_id);
 
       if (!existingImageId) {
-        toast.error(
-          "Unable to delete image: invalid image details.",
-        );
+        toast.error("Unable to delete image: invalid image details.");
         return;
       }
 
@@ -1576,10 +1531,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         ]);
 
         setRemovedImageIds((previous) => [
-          ...new Set([
-            ...previous,
-            existingImageId,
-          ]),
+          ...new Set([...previous, existingImageId]),
         ]);
 
         setImages((previous) => {
@@ -1606,9 +1558,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         toast.success("Image will be removed on save");
       } finally {
         setDeletingImageIds((previous) =>
-          previous.filter(
-            (imageId) => imageId !== existingImageId,
-          ),
+          previous.filter((imageId) => imageId !== existingImageId),
         );
       }
 
@@ -1648,17 +1598,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     const productId = Number(currentProduct?.id);
     const imageId = Number(image.existing_id);
 
-    if (
-      isEdit &&
-      image.is_existing &&
-      productId > 0 &&
-      imageId > 0
-    ) {
+    if (isEdit && image.is_existing && productId > 0 && imageId > 0) {
       try {
-        await productApi.setPrimaryImage(
-          productId,
-          imageId,
-        );
+        await productApi.setPrimaryImage(productId, imageId);
 
         setImages((previous) =>
           previous.map((item) => ({
@@ -1669,14 +1611,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
         toast.success("Primary image updated");
       } catch (error) {
-        console.error(
-          "Set primary image API error:",
-          error,
-        );
-
+        console.error("Set primary image API error:", error);
         toast.error("Unable to set primary image");
       }
-
       return;
     }
 
@@ -1721,25 +1658,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    const source = images.find(
-      (image) => image.id === sourceImageId,
-    );
-
-    const target = images.find(
-      (image) => image.id === targetImageId,
-    );
+    const source = images.find((image) => image.id === sourceImageId);
+    const target = images.find((image) => image.id === targetImageId);
 
     if (!source || !target) return;
 
     const oldImages = [...images];
 
-    const sourceIndex = images.findIndex(
-      (image) => image.id === sourceImageId,
-    );
-
-    const targetIndex = images.findIndex(
-      (image) => image.id === targetImageId,
-    );
+    const sourceIndex = images.findIndex((image) => image.id === sourceImageId);
+    const targetIndex = images.findIndex((image) => image.id === targetImageId);
 
     const reordered = [...images];
 
@@ -1773,11 +1700,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     try {
       setArrangingImageIds((previous) => [
-        ...new Set([
-          ...previous,
-          sourceExistingId,
-          targetExistingId,
-        ]),
+        ...new Set([...previous, sourceExistingId, targetExistingId]),
       ]);
 
       await productApi.moveProductImage(productId, {
@@ -1799,63 +1722,41 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       toast.success("Image order updated");
     } catch (error) {
       console.error("Move product image API error:", error);
-
       setImages(oldImages);
-
       toast.error("Unable to arrange images");
     } finally {
       setArrangingImageIds((previous) =>
         previous.filter(
-          (id) =>
-            id !== sourceExistingId &&
-            id !== targetExistingId,
+          (id) => id !== sourceExistingId && id !== targetExistingId,
         ),
       );
     }
   };
 
-  /* =========================================================
-     VARIANT HANDLERS
-  ========================================================= */
-
   const handleAddVariant = () => {
     if (!variantProductId) {
-      toast.error(
-        "Please select a product for the variant.",
-      );
+      toast.error("Please select a product for the variant.");
       return;
     }
 
     if (!isValidHexColor(variantHexColor)) {
-      toast.error(
-        "Enter a valid hex color, for example #28282B.",
-      );
+      toast.error("Enter a valid hex color, for example #28282B.");
       return;
     }
 
     const productIdNum = Number(variantProductId);
 
     if (productIdNum === parentProductId) {
-      toast.error(
-        "A product cannot be added as a variant of itself.",
-      );
+      toast.error("A product cannot be added as a variant of itself.");
       return;
     }
 
-    if (
-      variants.some(
-        (v) => v.product_id === productIdNum,
-      )
-    ) {
-      toast.error(
-        "This product is already added as a variant.",
-      );
+    if (variants.some((v) => v.product_id === productIdNum)) {
+      toast.error("This product is already added as a variant.");
       return;
     }
 
-    const selected = categoryProducts.find(
-      (p) => p.id === productIdNum,
-    );
+    const selected = categoryProducts.find((p) => p.id === productIdNum);
 
     setVariants((previous) => [
       ...previous,
@@ -1870,10 +1771,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setVariantProductId("");
     setVariantHexColor("#28282B");
-
-    toast.success(
-      "Variant added. It will be saved with the product.",
-    );
+    toast.success("Variant added. It will be saved with the product.");
   };
 
   const handleRemoveVariant = (index: number) => {
@@ -1883,141 +1781,85 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     if (variant.variantId) {
       setRemovedVariantIds((previous) => [
-        ...new Set([
-          ...previous,
-          variant.variantId as number,
-        ]),
+        ...new Set([...previous, variant.variantId as number]),
       ]);
     }
 
-    setVariants((previous) =>
-      previous.filter((_, i) => i !== index),
-    );
+    setVariants((previous) => previous.filter((_, i) => i !== index));
   };
-
-  /* =========================================================
-     VALIDATION
-  ========================================================= */
 
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
 
-    if (!productCode.trim()) {
-      nextErrors.product_code =
-        "Product code is required";
-    }
+    if (!productCode.trim()) nextErrors.product_code = "Product code is required";
+    if (!name.trim()) nextErrors.name = "Product name is required";
 
-    if (!name.trim()) {
-      nextErrors.name = "Product name is required";
-    }
-
-    // Ignite Product ID is mandatory
     if (!igniteProductId.trim()) {
-      nextErrors.ignite_product_id =
-        "Ignite Product ID is required";
-    } else if (
-      !isValidIntegerInput(igniteProductId) ||
-      Number(igniteProductId) <= 0
-    ) {
-      nextErrors.ignite_product_id =
-        "Please enter a valid Ignite Product ID";
+      nextErrors.ignite_product_id = "Ignite Product ID is required";
+    } else if (!isValidIntegerInput(igniteProductId) || Number(igniteProductId) <= 0) {
+      nextErrors.ignite_product_id = "Please enter a valid Ignite Product ID";
     }
 
-    if (!categoryId) {
-      nextErrors.category_id =
-        "Please select a category";
-    }
-
-    if (!subcategoryId) {
-      nextErrors.subcategory_id =
-        "Please select a subcategory";
-    }
-
-    if (!brandId) {
-      nextErrors.brand_id =
-        "Please select a brand";
-    }
-
-    if (!taxCategoryId) {
-      nextErrors.tax_category_id =
-        "Please select a tax category";
-    }
+    if (!categoryId) nextErrors.category_id = "Please select a category";
+    if (!subcategoryId) nextErrors.subcategory_id = "Please select a subcategory";
+    if (!brandId) nextErrors.brand_id = "Please select a brand";
+    if (!taxCategoryId) nextErrors.tax_category_id = "Please select a tax category";
 
     if (!retailMrp || Number(retailMrp) <= 0) {
-      nextErrors.retail_mrp =
-        "Please enter a valid retail MRP";
+      nextErrors.retail_mrp = "Please enter a valid retail MRP";
     }
 
-    if (
-      !stockQuantity ||
-      Number(stockQuantity) < 0
-    ) {
-      nextErrors.stock_quantity =
-        "Please enter a valid stock quantity";
+    if (!stockQuantity || Number(stockQuantity) < 0) {
+      nextErrors.stock_quantity = "Please enter a valid stock quantity";
     }
 
-    if (
-      shippingCharge !== "" &&
-      (Number.isNaN(Number(shippingCharge)) ||
-        Number(shippingCharge) < 0)
-    ) {
-      nextErrors.shipping_charge =
-        "Please enter a valid shipping charge";
+    if (shippingCharge !== "" && (Number.isNaN(Number(shippingCharge)) || Number(shippingCharge) < 0)) {
+      nextErrors.shipping_charge = "Please enter a valid shipping charge";
+    }
+
+    if (isElectronicsCategory) {
+      if (!serviceCharge.trim()) {
+        nextErrors.service_charge = "Service charge is required for Electronics products";
+      } else if (Number.isNaN(Number(serviceCharge)) || Number(serviceCharge) < 0) {
+        nextErrors.service_charge = "Please enter a valid service charge";
+      }
     }
 
     if (images.length === 0) {
-      nextErrors.images =
-        "At least one product image is required";
+      nextErrors.images = "At least one product image is required";
     }
 
     if (isEdit) {
-      const quantityFilled =
-        stockAdjustmentQty.trim() !== "";
+      const quantityFilled = stockAdjustmentQty.trim() !== "";
+      const reasonFilled = stockAdjustmentReason.trim() !== "";
 
-      const reasonFilled =
-        stockAdjustmentReason.trim() !== "";
-
-      if (
-        quantityFilled &&
-        Number(stockAdjustmentQty) <= 0
-      ) {
-        nextErrors.manual_stock_adjustment =
-          "Adjustment quantity must be greater than 0";
+      if (quantityFilled && Number(stockAdjustmentQty) <= 0) {
+        nextErrors.manual_stock_adjustment = "Adjustment quantity must be greater than 0";
       }
 
       if (quantityFilled && !reasonFilled) {
-        nextErrors.reason_for_stock_adjustment =
-          "Reason is required when adjusting stock";
+        nextErrors.reason_for_stock_adjustment = "Reason is required when adjusting stock";
       }
 
       if (reasonFilled && !quantityFilled) {
-        nextErrors.manual_stock_adjustment =
-          "Quantity is required when a reason is provided";
+        nextErrors.manual_stock_adjustment = "Quantity is required when a reason is provided";
       }
 
       if (
         stockAdjustmentOperation === "subtract" &&
         quantityFilled &&
-        Number(stockAdjustmentQty) >
-          Number(stockQuantity || 0)
+        Number(stockAdjustmentQty) > Number(stockQuantity || 0)
       ) {
-        nextErrors.manual_stock_adjustment =
-          "Adjustment quantity cannot exceed current stock";
+        nextErrors.manual_stock_adjustment = "Adjustment quantity cannot exceed current stock";
       }
     }
 
     setErrors(nextErrors);
-
     return Object.keys(nextErrors).length === 0;
   };
 
-  /* =========================================================
-     BUILD FORM DATA
-  ========================================================= */
-
   const buildFormData = (): FormData => {
     const formData = new FormData();
-
     const specObject: Record<string, string> = {};
 
     specification.forEach((item) => {
@@ -2030,123 +1872,48 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append("name", name);
     formData.append("slug", slug);
     formData.append("description", description);
-    formData.append(
-      "specification",
-      JSON.stringify(specObject),
-    );
-
+    formData.append("specification", JSON.stringify(specObject));
     formData.append("category_id", String(categoryId));
-    formData.append(
-      "subcategory_id",
-      String(subcategoryId),
-    );
+    formData.append("subcategory_id", String(subcategoryId));
     formData.append("brand_id", String(brandId));
-    formData.append(
-      "tax_category_id",
-      String(taxCategoryId),
-    );
-
-    // Send Ignite Product ID in Add and Update API
-    formData.append(
-      "ignite_product_id",
-      String(Number(igniteProductId)),
-    );
-
-    formData.append(
-      "stock_quantity",
-      String(stockQuantity || 0),
-    );
-
-    formData.append(
-      "low_stock_threshold",
-      String(lowStockThreshold || 0),
-    );
-
-    formData.append(
-      "is_published",
-      String(isPublished ? 1 : 0),
-    );
-
+    formData.append("tax_category_id", String(taxCategoryId));
+    formData.append("ignite_product_id", String(Number(igniteProductId)));
+    formData.append("stock_quantity", String(stockQuantity || 0));
+    formData.append("low_stock_threshold", String(lowStockThreshold || 0));
+    formData.append("is_published", String(isPublished ? 1 : 0));
     formData.append("is_trending", "0");
     formData.append("trending_sort_order", "0");
     formData.append("sale_type", "today_best");
-
-    formData.append(
-      "retail_mrp",
-      String(retailMrp || 0),
-    );
-
+    formData.append("retail_mrp", String(retailMrp || 0));
     formData.append("retail_discount_type", "percentage");
+    formData.append("retail_discount_value", String(retailDiscountValue || 0));
+    formData.append("distributor_mrp", String(distributorMrp || 0));
+    formData.append("distributor_discount_type", "percentage");
+    formData.append("distributor_discount_value", String(distributorDiscountValue || 0));
+    formData.append("commission_value", String(Number(commissionValue || 0)));
+    formData.append("shipping_charge", String(shippingCharge || 0));
 
-    formData.append(
-      "retail_discount_value",
-      String(retailDiscountValue || 0),
-    );
-
-    formData.append(
-      "distributor_mrp",
-      String(distributorMrp || 0),
-    );
-
-    formData.append(
-      "distributor_discount_type",
-      "percentage",
-    );
-
-    formData.append(
-      "distributor_discount_value",
-      String(distributorDiscountValue || 0),
-    );
-
-    formData.append(
-      "commission_value",
-      String(Number(commissionValue || 0)),
-    );
-
-    formData.append(
-      "shipping_charge",
-      String(shippingCharge || 0),
-    );
-
-    if (isEdit) {
-      formData.append(
-        "reason_for_stock_adjustment",
-        stockAdjustmentReason.trim(),
-      );
-
-      formData.append(
-        "manual_stock_adjustment",
-        stockAdjustmentQty.trim() || "0",
-      );
-
-      formData.append(
-        "manual_stock_adjustment_operation",
-        stockAdjustmentOperation,
-      );
+    if (isElectronicsCategory) {
+      formData.append("service_charge", String(serviceCharge || 0));
     }
 
     if (isEdit) {
+      formData.append("reason_for_stock_adjustment", stockAdjustmentReason.trim());
+      formData.append("manual_stock_adjustment", stockAdjustmentQty.trim() || "0");
+      formData.append("manual_stock_adjustment_operation", stockAdjustmentOperation);
+
       const existingImageIds = images
-        .filter(
-          (image) =>
-            image.is_existing && image.existing_id,
-        )
+        .filter((image) => image.is_existing && image.existing_id)
         .map((image) => image.existing_id as number);
 
       if (existingImageIds.length) {
         existingImageIds.forEach((id, idx) => {
-          formData.append(
-            `existing_image_ids[${idx}]`,
-            String(id),
-          );
+          formData.append(`existing_image_ids[${idx}]`, String(id));
         });
       }
 
       removedImageIds.forEach((id, idx) => {
-        formData.append(
-          `remove_images[${idx}]`,
-          String(id),
-        );
+        formData.append(`remove_images[${idx}]`, String(id));
       });
     }
 
@@ -2154,88 +1921,49 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       .filter((image) => !image.is_existing)
       .forEach((image, index) => {
         if (!image.file) return;
-
-        formData.append(
-          `product_images[${index}][image]`,
-          image.file,
-        );
-
-        formData.append(
-          `product_images[${index}][sort_order]`,
-          String(image.sort_order),
-        );
-
-        formData.append(
-          `product_images[${index}][is_primary]`,
-          String(image.is_primary),
-        );
+        formData.append(`product_images[${index}][image]`, image.file);
+        formData.append(`product_images[${index}][sort_order]`, String(image.sort_order));
+        formData.append(`product_images[${index}][is_primary]`, String(image.is_primary));
       });
 
     variants.forEach((v, index) => {
-      formData.append(
-        `variants[${index}][product_id]`,
-        String(v.product_id),
-      );
-
-      formData.append(
-        `variants[${index}][hax_color]`,
-        v.hax_color,
-      );
+      formData.append(`variants[${index}][product_id]`, String(v.product_id));
+      formData.append(`variants[${index}][hax_color]`, v.hax_color);
     });
 
     if (isEdit) {
       removedVariantIds.forEach((id, index) => {
-        formData.append(
-          `remove_variants[${index}]`,
-          String(id),
-        );
+        formData.append(`remove_variants[${index}]`, String(id));
       });
     }
 
     return formData;
   };
 
-  /* =========================================================
-     SUBMIT
-  ========================================================= */
-
-  const handleSubmit = (
-    event: React.FormEvent<HTMLFormElement>,
-  ) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (permissionsLoading) {
-      toast.error(
-        "Please wait while permissions are checked.",
-      );
+      toast.error("Please wait while permissions are checked.");
       return;
     }
 
     if (!canSubmit) {
       toast.error(
-        isEdit
-          ? "You don't have permission to update products."
-          : "You don't have permission to add products.",
+        isEdit ? "You don't have permission to update products." : "You don't have permission to add products."
       );
       return;
     }
 
-    if (
-      loading ||
-      fetchingOptions ||
-      arrangingImageIds.length > 0
-    ) {
+    if (loading || fetchingOptions || arrangingImageIds.length > 0) {
       return;
     }
 
     if (!validate()) {
-      document
-        .querySelector(".error-message")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-
+      document.querySelector(".error-message")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
       return;
     }
 
@@ -2245,62 +1973,42 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const productName = currentProduct?.name || "Product";
 
   const availableCategoryProducts = useMemo(() => {
-    const addedIds = new Set(
-      variants.map((v) => v.product_id),
-    );
-
-    return categoryProducts.filter(
-      (p) => !addedIds.has(p.id),
-    );
+    const addedIds = new Set(variants.map((v) => v.product_id));
+    return categoryProducts.filter((p) => !addedIds.has(p.id));
   }, [categoryProducts, variants]);
-
-  /* =========================================================
-     UI
-  ========================================================= */
 
   return (
     <>
       <div
-        className="fixed inset-0 z-[100] bg-[#0B1330]/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm"
         onClick={handleClose}
       />
 
       <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-3 font-poppins sm:p-5">
         <div
-          className="pointer-events-auto relative flex h-[92vh] w-full max-w-[1240px] flex-col overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(11,19,48,0.6)] ring-1 ring-white/20"
+          className="pointer-events-auto relative flex h-[92vh] w-full max-w-[1240px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
           onClick={(event) => event.stopPropagation()}
         >
-          {/* HEADER */}
-
-          <div className="relative flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0F1B3D] via-[#1E3A8A] to-[#2563EB] px-6 py-5 text-white">
-            <div className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-
-            <div className="pointer-events-none absolute -bottom-28 left-1/3 h-56 w-56 rounded-full bg-[#60A5FA]/20 blur-3xl" />
-
+          {/* SLIM HEADER */}
+          <div className="relative flex-shrink-0 border-b border-slate-100 bg-white px-6 py-3.5">
             <div className="relative flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
-                  {isEdit ? (
-                    <FiEdit2 size={22} />
-                  ) : (
-                    <FiPlus size={24} />
-                  )}
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  {isEdit ? <FiEdit2 size={18} /> : <FiPlus size={20} />}
                 </span>
 
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-bold leading-tight sm:text-2xl">
-                      {isEdit
-                        ? "Edit product"
-                        : "Add new product"}
+                    <h2 className="text-lg font-bold leading-tight text-slate-800 sm:text-xl">
+                      {isEdit ? "Edit product" : "Add new product"}
                     </h2>
 
-                    <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-white/25">
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                       {isEdit ? "Editing" : "Draft"}
                     </span>
                   </div>
 
-                  <p className="mt-0.5 text-sm text-blue-100/90">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     {isEdit
                       ? `Editing: ${productName}`
                       : "Fill in the product details, pricing and images"}
@@ -2309,17 +2017,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="hidden items-center gap-2 rounded-full bg-white/10 py-1.5 pl-3 pr-4 ring-1 ring-white/20 backdrop-blur sm:flex">
-                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/20">
+                <div className="hidden items-center gap-2 rounded-full bg-slate-50 py-1.5 pl-3 pr-4 sm:flex">
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#7DD3FC] to-white transition-all duration-500"
-                      style={{
-                        width: `${completionPercent}%`,
-                      }}
+                      className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                      style={{ width: `${completionPercent}%` }}
                     />
                   </div>
 
-                  <span className="text-xs font-semibold">
+                  <span className="text-xs font-semibold text-slate-600">
                     {completionPercent}% complete
                   </span>
                 </div>
@@ -2328,24 +2034,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   type="button"
                   onClick={handleClose}
                   aria-label="Close"
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white ring-1 ring-white/20 transition hover:bg-white/20"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
                 >
-                  <FiX size={20} />
+                  <FiX size={18} />
                 </button>
               </div>
             </div>
           </div>
 
           {/* BODY */}
-
           <div
             ref={bodyScrollRef}
-            className="flex-1 overflow-y-auto overscroll-contain bg-[#F4F7FD] p-4 sm:p-6"
+            className="flex-1 overflow-y-auto overscroll-contain bg-slate-50/50 p-4 sm:p-6"
           >
             <form onSubmit={handleSubmit} id="product-form">
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
                 {/* LEFT SIDE */}
-
                 <div className="min-w-0 space-y-6">
                   <SectionCard
                     icon={<FiInfo size={19} />}
@@ -2353,79 +2057,47 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     subtitle="Name, code and where this product lives in your catalog"
                   >
                     <div className="space-y-4">
-                      <Field
-                        label="Product name"
-                        required
-                        error={errors.name}
-                      >
+                      <Field label="Product name" required error={errors.name}>
                         <input
                           type="text"
                           value={name}
-                          onChange={(event) =>
-                            handleNameChange(event.target.value)
-                          }
+                          onChange={(event) => handleNameChange(event.target.value)}
                           placeholder="e.g. SoundMax Pro 5G Smartphone"
-                          className={inputCls(
-                            !!errors.name,
-                            "!h-12 !text-[15px] font-medium",
-                          )}
+                          className={inputCls(!!errors.name, "!h-12 !text-[15px] font-medium")}
                         />
                       </Field>
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                          label="SKU / Product code"
-                          required
-                          error={errors.product_code}
-                        >
+                        <Field label="SKU / Product code" required error={errors.product_code}>
                           <input
                             type="text"
                             value={productCode}
                             onChange={(event) => {
                               setProductCode(event.target.value);
-
-                              setErrors((previous) => ({
-                                ...previous,
-                                product_code: undefined,
-                              }));
+                              setErrors((prev) => ({ ...prev, product_code: undefined }));
                             }}
                             placeholder="e.g. SMP5G-BLACK-128"
-                            className={inputCls(
-                              !!errors.product_code,
-                            )}
+                            className={inputCls(!!errors.product_code)}
                           />
                         </Field>
 
-                        <Field
-                          label="Slug"
-                          hint="Auto-generated from product name"
-                        >
+                        <Field label="Slug" hint="Auto-generated from product name">
                           <input
                             type="text"
                             value={slug}
                             readOnly
                             placeholder="product-slug"
-                            className={inputCls(
-                              false,
-                              "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500",
-                            )}
+                            className={inputCls(false, "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500")}
                           />
                         </Field>
                       </div>
 
-                      {/* IGNITE PRODUCT ID FIELD */}
-
-                      <div className="rounded-xl border border-[#2563EB]/15 bg-[#EAF1FF]/40 p-4">
+                      <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
                         <Field
                           label="Ignite Product ID"
                           required
                           error={errors.ignite_product_id}
-                          icon={
-                            <FiPackage
-                              size={14}
-                              className="text-[#2563EB]"
-                            />
-                          }
+                          icon={<FiPackage size={14} className="text-blue-500" />}
                           hint="Enter the numeric Product ID provided by Ignite."
                         >
                           <input
@@ -2434,16 +2106,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             pattern="[0-9]*"
                             required
                             value={igniteProductId}
-                            onChange={(event) =>
-                              handleIgniteProductIdChange(
-                                event.target.value,
-                              )
-                            }
+                            onChange={(event) => handleIgniteProductIdChange(event.target.value)}
                             placeholder="Enter Ignite Product ID"
-                            className={inputCls(
-                              !!errors.ignite_product_id,
-                              "!h-12 !bg-white font-medium",
-                            )}
+                            className={inputCls(!!errors.ignite_product_id, "!h-12 !bg-white font-medium")}
                           />
                         </Field>
                       </div>
@@ -2451,19 +2116,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       <div className="h-px bg-slate-100" />
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                          label="Category"
-                          required
-                          error={errors.category_id}
-                        >
+                        <Field label="Category" required error={errors.category_id}>
                           <SelectBox
                             value={categoryId}
                             onChange={handleCategoryChange}
-                            placeholder={
-                              fetchingOptions
-                                ? "Loading categories..."
-                                : "Select category..."
-                            }
+                            placeholder={fetchingOptions ? "Loading categories..." : "Select category..."}
                             options={categories}
                             icon={<FiTag size={16} />}
                             hasError={!!errors.category_id}
@@ -2475,11 +2132,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           label="Sub category"
                           required
                           error={errors.subcategory_id}
-                          hint={
-                            !categoryId
-                              ? "Select a category first"
-                              : undefined
-                          }
+                          hint={!categoryId ? "Select a category first" : undefined}
                         >
                           <SelectBox
                             value={subcategoryId}
@@ -2494,27 +2147,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             options={subcategories}
                             icon={<FiLayers size={16} />}
                             hasError={!!errors.subcategory_id}
-                            disabled={
-                              !categoryId ||
-                              fetchingSubcategories
-                            }
+                            disabled={!categoryId || fetchingSubcategories}
                           />
                         </Field>
 
-                        <Field
-                          label="Brand"
-                          required
-                          error={errors.brand_id}
-                        >
+                        <Field label="Brand" required error={errors.brand_id}>
                           <SelectBox
                             value={brandId}
                             onChange={(value) => {
                               setBrandId(value);
-
-                              setErrors((previous) => ({
-                                ...previous,
-                                brand_id: undefined,
-                              }));
+                              setErrors((prev) => ({ ...prev, brand_id: undefined }));
                             }}
                             placeholder="Select brand..."
                             options={brands}
@@ -2524,20 +2166,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           />
                         </Field>
 
-                        <Field
-                          label="Tax category"
-                          required
-                          error={errors.tax_category_id}
-                        >
+                        <Field label="Tax category" required error={errors.tax_category_id}>
                           <SelectBox
                             value={taxCategoryId}
                             onChange={(value) => {
                               setTaxCategoryId(value);
-
-                              setErrors((previous) => ({
-                                ...previous,
-                                tax_category_id: undefined,
-                              }));
+                              setErrors((prev) => ({ ...prev, tax_category_id: undefined }));
                             }}
                             placeholder="Select tax..."
                             options={taxCategories}
@@ -2551,7 +2185,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </SectionCard>
 
                   {/* DESCRIPTION AND SPECIFICATION */}
-
                   <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <SectionCard
                       icon={<FiAlignLeft size={19} />}
@@ -2561,11 +2194,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       <textarea
                         rows={9}
                         value={description}
-                        onChange={(event) =>
-                          setDescription(event.target.value)
-                        }
+                        onChange={(event) => setDescription(event.target.value)}
                         placeholder="Enter product description..."
-                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-sm leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-[#1E3A8A] focus:bg-white focus:ring-4 focus:ring-[#1E3A8A]/10"
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-3 text-sm leading-relaxed text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                       />
                     </SectionCard>
 
@@ -2579,58 +2210,38 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onClick={addSpecificationField}
                           className={`${softBtn} h-9 px-3 text-xs`}
                         >
-                          <FiPlus size={14} />
-                          Add field
+                          <FiPlus size={14} /> Add field
                         </button>
                       }
                     >
                       <div className="max-h-[260px] space-y-2.5 overflow-y-auto pr-1">
                         {specification.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center gap-2"
-                          >
+                          <div key={index} className="flex items-center gap-2">
                             <input
                               type="text"
                               value={item.key}
-                              onChange={(event) =>
-                                updateSpecification(
-                                  index,
-                                  "key",
-                                  event.target.value,
-                                )
-                              }
+                              onChange={(event) => updateSpecification(index, "key", event.target.value)}
                               placeholder="Key (e.g., Display)"
+                              readOnly={item.isDefault}
                               className={inputCls(
                                 false,
-                                "!h-10 min-w-0 flex-1",
+                                `!h-10 min-w-0 flex-1 ${item.isDefault ? "!bg-slate-100 cursor-not-allowed" : ""}`
                               )}
                             />
 
                             <input
                               type="text"
                               value={item.value}
-                              onChange={(event) =>
-                                updateSpecification(
-                                  index,
-                                  "value",
-                                  event.target.value,
-                                )
-                              }
+                              onChange={(event) => updateSpecification(index, "value", event.target.value)}
                               placeholder="Value (e.g., 6.7-inch AMOLED)"
-                              className={inputCls(
-                                false,
-                                "!h-10 min-w-0 flex-1",
-                              )}
+                              className={inputCls(false, "!h-10 min-w-0 flex-1")}
                             />
 
                             <button
                               type="button"
-                              onClick={() =>
-                                removeSpecificationField(index)
-                              }
-                              disabled={specification.length <= 1}
-                              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40"
+                              onClick={() => removeSpecificationField(index)}
+                              disabled={!!item.isDefault || specification.length <= 2}
+                              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <FiTrash2 size={16} />
                             </button>
@@ -2641,7 +2252,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </div>
 
                   {/* PRODUCT IMAGES */}
-
                   <SectionCard
                     icon={<FiImage size={19} />}
                     title="Product images"
@@ -2652,171 +2262,96 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         : "Upload at least one image"
                     }
                     action={
-                      <label
-                        className={`${primaryBtn} h-10 cursor-pointer px-4 text-sm`}
-                      >
-                        <FiPlus size={16} />
-                        Add images
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImages}
-                        />
+                      <label className={`${primaryBtn} h-9 cursor-pointer px-3 text-xs`}>
+                        <FiPlus size={14} /> Add images
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
                       </label>
                     }
                   >
                     {images.length > 1 && (
-                      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#2563EB]/15 bg-[#EAF1FF]/60 px-3.5 py-2.5 text-xs text-slate-600">
-                        <FiMove
-                          size={14}
-                          className="text-[#2563EB]"
-                        />
-                        <span>
-                          Drag and drop images to change their
-                          order, or choose a cover image.
-                        </span>
+                      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/60 px-3.5 py-2.5 text-xs text-slate-600">
+                        <FiMove size={14} className="text-blue-500" />
+                        <span>Drag and drop images to change their order, or choose a cover image.</span>
                       </div>
                     )}
 
                     {errors.images && (
                       <p className="error-message mb-3 flex items-center gap-1 text-xs font-medium text-rose-600">
-                        <FiInfo size={13} />
-                        {errors.images}
+                        <FiInfo size={13} /> {errors.images}
                       </p>
                     )}
 
                     {images.length === 0 ? (
-                      <label className="group flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 px-4 text-center transition-all hover:border-[#2563EB] hover:bg-[#EAF1FF]/60">
-                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#2563EB] shadow-md ring-1 ring-slate-200">
+                      <label className="group flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 px-4 text-center transition-all hover:border-blue-300 hover:bg-blue-50/50">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-500 shadow-sm ring-1 ring-slate-100">
                           <FiUploadCloud size={26} />
                         </span>
-
-                        <p className="mt-3 text-sm font-semibold text-[#0F1B3D]">
-                          Upload product images
-                        </p>
-
+                        <p className="mt-3 text-sm font-semibold text-slate-700">Upload product images</p>
                         <p className="mt-1 text-xs text-slate-500">
-                          Drag & drop, or{" "}
-                          <span className="font-semibold text-[#2563EB]">
-                            browse files
-                          </span>{" "}
-                          to select multiple images
+                          Drag & drop, or <span className="font-semibold text-blue-600">browse files</span> to select multiple images
                         </p>
-
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImages}
-                        />
+                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
                       </label>
                     ) : (
                       <div className="grid grid-cols-2 gap-3 rounded-2xl p-1 sm:grid-cols-3 xl:grid-cols-4">
                         {images.map((image, index) => {
-                          const busy =
-                            image.is_existing &&
-                            image.existing_id
-                              ? arrangingImageIds.includes(
-                                  Number(image.existing_id),
-                                )
-                              : false;
+                          const busy = image.is_existing && image.existing_id
+                            ? arrangingImageIds.includes(Number(image.existing_id))
+                            : false;
 
-                          const deleting =
-                            image.is_existing &&
-                            image.existing_id
-                              ? deletingImageIds.includes(
-                                  Number(image.existing_id),
-                                )
-                              : false;
+                          const deleting = image.is_existing && image.existing_id
+                            ? deletingImageIds.includes(Number(image.existing_id))
+                            : false;
 
                           return (
                             <div
                               key={image.id}
                               draggable={!loading && !busy}
-                              onDragStart={(event) =>
-                                handleImageDragStart(
-                                  event,
-                                  image.id,
-                                )
-                              }
+                              onDragStart={(event) => handleImageDragStart(event, image.id)}
                               onDragOver={(event) => {
                                 event.preventDefault();
-
-                                if (
-                                  draggedImageIdRef.current &&
-                                  draggedImageIdRef.current !== image.id
-                                ) {
+                                if (draggedImageIdRef.current && draggedImageIdRef.current !== image.id) {
                                   setDragOverImageId(image.id);
                                 }
                               }}
-                              onDragLeave={() =>
-                                setDragOverImageId(null)
-                              }
-                              onDrop={(event) =>
-                                void handleImageDrop(
-                                  event,
-                                  image.id,
-                                )
-                              }
+                              onDragLeave={() => setDragOverImageId(null)}
+                              onDrop={(event) => void handleImageDrop(event, image.id)}
                               onDragEnd={() => {
                                 draggedImageIdRef.current = null;
                                 setDragOverImageId(null);
                               }}
                               className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border bg-slate-100 shadow-sm transition-all active:cursor-grabbing ${
                                 dragOverImageId === image.id
-                                  ? "scale-[1.03] border-[#1E3A8A] ring-4 ring-[#2563EB]/25"
-                                  : "border-slate-200 hover:shadow-lg"
+                                  ? "scale-[1.03] border-blue-500 ring-4 ring-blue-500/20"
+                                  : "border-slate-200 hover:shadow-md"
                               } ${busy ? "opacity-70" : ""}`}
                             >
-                              <img
-                                src={image.preview}
-                                alt="Product"
-                                className="h-full w-full object-cover"
-                                draggable={false}
-                              />
-
-                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10 opacity-70" />
-
+                              <img src={image.preview} alt="Product" className="h-full w-full object-cover" draggable={false} />
+                              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70" />
+                              
                               <span
                                 className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${
-                                  image.is_primary
-                                    ? "bg-[#1E3A8A] text-white"
-                                    : "bg-white/90 text-slate-700"
+                                  image.is_primary ? "bg-blue-600 text-white" : "bg-white/90 text-slate-700"
                                 }`}
                               >
-                                {image.is_primary
-                                  ? "Cover"
-                                  : `#${index + 1}`}
+                                {image.is_primary ? "Cover" : `#${index + 1}`}
                               </span>
 
                               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-1">
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    void handleMakePrimary(image)
-                                  }
-                                  disabled={
-                                    !!image.is_primary ||
-                                    deleting ||
-                                    busy
-                                  }
-                                  className="rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold text-[#1E3A8A] shadow disabled:opacity-50"
+                                  onClick={() => void handleMakePrimary(image)}
+                                  disabled={!!image.is_primary || deleting || busy}
+                                  className="rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold text-blue-600 shadow-sm disabled:opacity-50"
                                 >
-                                  {image.is_primary
-                                    ? "Primary"
-                                    : "Make cover"}
+                                  {image.is_primary ? "Primary" : "Make cover"}
                                 </button>
 
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    void removeImage(image.id)
-                                  }
+                                  onClick={() => void removeImage(image.id)}
                                   disabled={deleting}
-                                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow transition-colors hover:bg-rose-600 hover:text-white disabled:opacity-50"
+                                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-rose-600 shadow-sm transition-colors hover:bg-rose-600 hover:text-white disabled:opacity-50"
                                 >
                                   <FiX size={14} />
                                 </button>
@@ -2824,37 +2359,23 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                               {busy && (
                                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60">
-                                  <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#1E3A8A]/20 border-t-[#1E3A8A]" />
+                                  <div className="h-7 w-7 animate-spin rounded-full border-2 border-blue-500/20 border-t-blue-500" />
                                 </div>
                               )}
                             </div>
                           );
                         })}
 
-                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 transition-colors hover:border-[#2563EB] hover:bg-[#EAF1FF]/60">
-                          <FiPlus
-                            size={22}
-                            className="text-[#2563EB]"
-                          />
-
-                          <span className="mt-1 text-xs font-semibold text-slate-600">
-                            Add more
-                          </span>
-
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImages}
-                          />
+                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition-colors hover:border-blue-300 hover:bg-blue-50/50">
+                          <FiPlus size={22} className="text-blue-500" />
+                          <span className="mt-1 text-xs font-semibold text-slate-600">Add more</span>
+                          <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
                         </label>
                       </div>
                     )}
                   </SectionCard>
 
-                  {/* VARIANTS */}
-
+                  {/* VARIANTS (With Custom Color Picker) */}
                   <SectionCard
                     icon={<FiPackage size={19} />}
                     title="Product variants"
@@ -2862,22 +2383,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   >
                     {!categoryId ? (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        <p className="font-semibold">
-                          Select a category first
-                        </p>
-
-                        <p className="mt-1 text-xs">
-                          Products will appear here after a
-                          category is selected above.
-                        </p>
+                        <p className="font-semibold">Select a category first</p>
+                        <p className="mt-1 text-xs">Products will appear here after a category is selected above.</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-[1fr_140px_auto]">
-                          <Field
-                            label="Variant product"
-                            small
-                          >
+                          <Field label="Variant product" small>
                             <VariantProductSelect
                               value={variantProductId}
                               onChange={setVariantProductId}
@@ -2889,41 +2401,53 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                     ? "Choose a product..."
                                     : "No products available"
                               }
-                              disabled={
-                                fetchingCategoryProducts ||
-                                availableCategoryProducts.length === 0
-                              }
+                              disabled={fetchingCategoryProducts || availableCategoryProducts.length === 0}
                               loading={fetchingCategoryProducts}
                             />
                           </Field>
 
                           <Field label="Hex color" small>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="h-10 w-10 flex-shrink-0 rounded-xl border border-slate-200 shadow-inner"
+                            <div className="relative flex items-center gap-2" ref={colorPickerRef}>
+                              {/* CLICKABLE COLOR BOX */}
+                              <button
+                                type="button"
+                                onClick={() => setShowColorPicker((prev) => !prev)}
+                                className="h-10 w-10 flex-shrink-0 rounded-xl border border-slate-300 shadow-sm cursor-pointer transition-transform hover:scale-105"
                                 style={{
-                                  backgroundColor: isValidHexColor(
-                                    variantHexColor,
-                                  )
-                                    ? variantHexColor
-                                    : "#ffffff",
+                                  backgroundColor: isValidHexColor(variantHexColor) ? variantHexColor : "#ffffff",
                                 }}
                               />
+
+                              {/* POPUP COLOR PALETTE */}
+                              {showColorPicker && (
+                                <div className="absolute top-12 left-0 z-50 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50">
+                                  <div className="grid grid-cols-5 gap-1.5">
+                                    {predefinedColors.map((color) => (
+                                      <button
+                                        key={color}
+                                        type="button"
+                                        onClick={() => {
+                                          setVariantHexColor(color);
+                                          setShowColorPicker(false);
+                                        }}
+                                        className="h-7 w-7 rounded-lg border border-slate-200 shadow-sm transition hover:scale-110"
+                                        style={{ backgroundColor: color }}
+                                        title={color}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
 
                               <input
                                 type="text"
                                 value={variantHexColor}
-                                onChange={(event) =>
-                                  setVariantHexColor(
-                                    event.target.value,
-                                  )
-                                }
+                                onChange={(event) => setVariantHexColor(event.target.value)}
                                 placeholder="#28282B"
                                 maxLength={7}
                                 className={inputCls(
-                                  variantHexColor.length > 0 &&
-                                    !isValidHexColor(variantHexColor),
-                                  "!h-10",
+                                  variantHexColor.length > 0 && !isValidHexColor(variantHexColor),
+                                  "!h-10"
                                 )}
                               />
                             </div>
@@ -2932,33 +2456,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <button
                             type="button"
                             onClick={handleAddVariant}
-                            disabled={
-                              !categoryId ||
-                              fetchingCategoryProducts ||
-                              !variantProductId
-                            }
+                            disabled={!categoryId || fetchingCategoryProducts || !variantProductId}
                             className={`${primaryBtn} h-10 px-4 text-sm`}
                           >
-                            <FiPlus size={16} />
-                            Add
+                            <FiPlus size={16} /> Add
                           </button>
                         </div>
 
-                        {variantHexColor &&
-                          !isValidHexColor(variantHexColor) && (
-                            <p className="text-xs font-medium text-rose-600">
-                              Use #RGB or #RRGGBB format.
-                            </p>
-                          )}
+                        {variantHexColor && !isValidHexColor(variantHexColor) && (
+                          <p className="text-xs font-medium text-rose-600">Use #RGB or #RRGGBB format.</p>
+                        )}
 
                         {variants.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-5 text-center text-xs text-slate-500">
-                            No variants added yet. Pick a
-                            product and hex color, then click{" "}
-                            <span className="font-semibold text-[#2563EB]">
-                              Add
-                            </span>
-                            .
+                          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-center text-xs text-slate-500">
+                            No variants added yet. Pick a product and hex color, then click{" "}
+                            <span className="font-semibold text-blue-600">Add</span>.
                           </div>
                         ) : (
                           <ul className="space-y-2">
@@ -2971,10 +2483,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   {variant.productImage ? (
                                     <img
                                       src={variant.productImage}
-                                      alt={
-                                        variant.productName ||
-                                        "Variant"
-                                      }
+                                      alt={variant.productName || "Variant"}
                                       className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
                                     />
                                   ) : (
@@ -2982,50 +2491,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                       <FiImage size={16} />
                                     </span>
                                   )}
-
                                   <div className="min-w-0">
-                                    <p className="truncate text-sm font-semibold text-[#0F1B3D]">
-                                      {variant.productName ||
-                                        `Product #${variant.product_id}`}
+                                    <p className="truncate text-sm font-semibold text-slate-800">
+                                      {variant.productName || `Product #${variant.product_id}`}
                                     </p>
-
                                     <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
                                       <span className="truncate">
-                                        {variant.productCode
-                                          ? `SKU: ${variant.productCode}`
-                                          : `ID: ${variant.product_id}`}
+                                        {variant.productCode ? `SKU: ${variant.productCode}` : `ID: ${variant.product_id}`}
                                       </span>
-
-                                      <span className="text-slate-300">
-                                        ·
-                                      </span>
-
+                                      <span className="text-slate-300">·</span>
                                       <span className="inline-flex items-center gap-1">
                                         <span
                                           className="h-3 w-3 flex-shrink-0 rounded-full border border-slate-300 shadow-inner"
                                           style={{
-                                            backgroundColor:
-                                              isValidHexColor(
-                                                variant.hax_color,
-                                              )
-                                                ? variant.hax_color
-                                                : "#ffffff",
+                                            backgroundColor: isValidHexColor(variant.hax_color) ? variant.hax_color : "#ffffff",
                                           }}
                                         />
-
-                                        <span className="font-mono">
-                                          {variant.hax_color}
-                                        </span>
+                                        <span className="font-mono">{variant.hax_color}</span>
                                       </span>
                                     </div>
                                   </div>
                                 </div>
-
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    handleRemoveVariant(index)
-                                  }
+                                  onClick={() => handleRemoveVariant(index)}
                                   className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
                                   aria-label="Remove variant"
                                 >
@@ -3041,67 +2530,36 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 </div>
 
                 {/* RIGHT SIDE */}
-
                 <aside className="min-w-0 space-y-6 lg:sticky lg:top-0 lg:self-start">
-                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0F1B3D] via-[#1E3A8A] to-[#2563EB] p-5 text-white shadow-[0_20px_40px_-16px_rgba(30,58,138,0.6)]">
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-5 text-white shadow-lg shadow-blue-500/20">
                     <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-
-                    <p className="relative text-xs font-medium text-blue-100">
-                      Customer pays (retail)
-                    </p>
-
+                    <p className="relative text-xs font-medium text-blue-100">Customer pays (retail)</p>
                     <div className="relative mt-1 flex items-end gap-2">
-                      <span className="text-3xl font-bold tracking-tight">
-                        ₹{formatINR(pricePreview.retail.final)}
-                      </span>
-
-                      {pricePreview.retail.discount > 0 &&
-                        pricePreview.retail.mrp > 0 && (
-                          <span className="mb-1 text-sm text-blue-200 line-through">
-                            ₹{formatINR(pricePreview.retail.mrp)}
-                          </span>
-                        )}
+                      <span className="text-3xl font-bold tracking-tight">₹{formatINR(pricePreview.retail.final)}</span>
+                      {pricePreview.retail.discount > 0 && pricePreview.retail.mrp > 0 && (
+                        <span className="mb-1 text-sm text-blue-200 line-through">₹{formatINR(pricePreview.retail.mrp)}</span>
+                      )}
                     </div>
-
                     <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
                       {pricePreview.retail.discount > 0 && (
-                        <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-200 ring-1 ring-emerald-300/30">
-                          {pricePreview.retail.discount}% off ·
-                          save ₹{formatINR(pricePreview.retail.saved)}
+                        <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
+                          {pricePreview.retail.discount}% off · save ₹{formatINR(pricePreview.retail.saved)}
                         </span>
                       )}
-
                       {pricePreview.distributor.mrp > 0 && (
                         <span className="rounded-full bg-white/10 px-2.5 py-1 font-medium ring-1 ring-white/20">
-                          Distributor ₹
-                          {formatINR(
-                            pricePreview.distributor.final,
-                          )}
+                          Distributor ₹{formatINR(pricePreview.distributor.final)}
                         </span>
                       )}
-
-                      {pricePreview.retail.mrp === 0 && (
-                        <span className="text-blue-200">
-                          Enter MRP to preview the final price
-                        </span>
-                      )}
+                      {pricePreview.retail.mrp === 0 && <span className="text-blue-200">Enter MRP to preview final price</span>}
                     </div>
                   </div>
 
                   {/* PRICING */}
-
-                  <SectionCard
-                    icon={<FaRupeeSign size={17} />}
-                    title="Pricing"
-                    subtitle="Retail, distributor and shipping"
-                  >
+                  <SectionCard icon={<FaRupeeSign size={17} />} title="Pricing" subtitle="Retail, distributor and shipping">
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
-                        <Field
-                          label="Retail MRP"
-                          required
-                          error={errors.retail_mrp}
-                        >
+                        <Field label="Retail MRP" required error={errors.retail_mrp}>
                           <AdornedInput
                             prefix="₹"
                             value={retailMrp}
@@ -3110,51 +2568,38 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             onChange={(value) => {
                               if (isValidDecimalInput(value)) {
                                 setRetailMrp(value);
-
-                                setErrors((previous) => ({
-                                  ...previous,
-                                  retail_mrp: undefined,
-                                }));
+                                setErrors((prev) => ({ ...prev, retail_mrp: undefined }));
                               }
                             }}
                           />
                         </Field>
-
                         <Field label="Discount">
                           <AdornedInput
                             suffix="%"
                             value={retailDiscountValue}
                             placeholder="40"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) {
-                                setRetailDiscountValue(value);
-                              }
+                              if (isValidDecimalInput(value)) setRetailDiscountValue(value);
                             }}
                           />
                         </Field>
-
                         <Field label="Distributor MRP">
                           <AdornedInput
                             prefix="₹"
                             value={distributorMrp}
                             placeholder="90000"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) {
-                                setDistributorMrp(value);
-                              }
+                              if (isValidDecimalInput(value)) setDistributorMrp(value);
                             }}
                           />
                         </Field>
-
                         <Field label="Distributor disc.">
                           <AdornedInput
                             suffix="%"
                             value={distributorDiscountValue}
                             placeholder="35"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) {
-                                setDistributorDiscountValue(value);
-                              }
+                              if (isValidDecimalInput(value)) setDistributorDiscountValue(value);
                             }}
                           />
                         </Field>
@@ -3168,21 +2613,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           value={commissionValue}
                           placeholder="0"
                           onChange={(value) => {
-                            if (isValidIntegerInput(value)) {
-                              setCommissionValue(value);
-                            }
+                            if (isValidIntegerInput(value)) setCommissionValue(value);
                           }}
                         />
                       </Field>
 
                       <Field
                         label="Shipping charge"
-                        icon={
-                          <FiTruck
-                            size={14}
-                            className="text-[#2563EB]"
-                          />
-                        }
+                        icon={<FiTruck size={14} className="text-blue-500" />}
                         error={errors.shipping_charge}
                         hint="Enter 0 for free shipping"
                       >
@@ -3194,31 +2632,43 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onChange={(value) => {
                             if (isValidDecimalInput(value)) {
                               setShippingCharge(value);
-
-                              setErrors((previous) => ({
-                                ...previous,
-                                shipping_charge: undefined,
-                              }));
+                              setErrors((prev) => ({ ...prev, shipping_charge: undefined }));
                             }
                           }}
                         />
                       </Field>
+
+                      {isElectronicsCategory && (
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                          <Field
+                            label="Service Charge"
+                            required
+                            icon={<FiTool size={14} className="text-blue-500" />}
+                            error={errors.service_charge}
+                            hint="Only applicable for Electronics products"
+                          >
+                            <AdornedInput
+                              prefix="₹"
+                              value={serviceCharge}
+                              placeholder="0"
+                              hasError={!!errors.service_charge}
+                              onChange={(value) => {
+                                if (isValidDecimalInput(value)) {
+                                  setServiceCharge(value);
+                                  setErrors((prev) => ({ ...prev, service_charge: undefined }));
+                                }
+                              }}
+                            />
+                          </Field>
+                        </div>
+                      )}
                     </div>
                   </SectionCard>
 
                   {/* INVENTORY */}
-
-                  <SectionCard
-                    icon={<FiPackage size={19} />}
-                    title="Inventory"
-                    subtitle="Stock and alerts"
-                  >
+                  <SectionCard icon={<FiPackage size={19} />} title="Inventory" subtitle="Stock and alerts">
                     <div className="grid grid-cols-2 gap-3">
-                      <Field
-                        label="Stock quantity"
-                        required
-                        error={errors.stock_quantity}
-                      >
+                      <Field label="Stock quantity" required error={errors.stock_quantity}>
                         <AdornedInput
                           inputMode="numeric"
                           value={stockQuantity}
@@ -3227,112 +2677,71 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onChange={(value) => {
                             if (isValidIntegerInput(value)) {
                               setStockQuantity(value);
-
-                              setErrors((previous) => ({
-                                ...previous,
-                                stock_quantity: undefined,
-                              }));
+                              setErrors((prev) => ({ ...prev, stock_quantity: undefined }));
                             }
                           }}
                         />
                       </Field>
-
                       <Field label="Low stock at">
                         <AdornedInput
                           inputMode="numeric"
                           value={lowStockThreshold}
                           placeholder="10"
                           onChange={(value) => {
-                            if (isValidIntegerInput(value)) {
-                              setLowStockThreshold(value);
-                            }
+                            if (isValidIntegerInput(value)) setLowStockThreshold(value);
                           }}
                         />
                       </Field>
                     </div>
-
                     <p className="mt-3 flex items-center gap-1 text-xs text-slate-400">
-                      <FiInfo size={12} />
-                      You'll be notified when stock falls below this
-                      number
+                      <FiInfo size={12} /> You'll be notified when stock falls below this number
                     </p>
                   </SectionCard>
-
-                  {/* STOCK ADJUSTMENT */}
 
                   {isEdit && (
                     <StockAdjustmentForm
                       reason={stockAdjustmentReason}
                       onReasonChange={(value) => {
                         setStockAdjustmentReason(value);
-
-                        setErrors((previous) => ({
-                          ...previous,
-                          reason_for_stock_adjustment: undefined,
-                        }));
+                        setErrors((prev) => ({ ...prev, reason_for_stock_adjustment: undefined }));
                       }}
                       quantity={stockAdjustmentQty}
                       onQuantityChange={(value) => {
                         setStockAdjustmentQty(value);
-
-                        setErrors((previous) => ({
-                          ...previous,
-                          manual_stock_adjustment: undefined,
-                        }));
+                        setErrors((prev) => ({ ...prev, manual_stock_adjustment: undefined }));
                       }}
                       operation={stockAdjustmentOperation}
-                      onOperationChange={
-                        setStockAdjustmentOperation
-                      }
+                      onOperationChange={setStockAdjustmentOperation}
                       errors={errors}
                       currentStock={stockQuantity}
                     />
                   )}
 
                   {/* PUBLISHING */}
-
-                  <SectionCard
-                    icon={<FiTag size={19} />}
-                    title="Publishing"
-                    subtitle="Control store visibility"
-                  >
+                  <SectionCard icon={<FiTag size={19} />} title="Publishing" subtitle="Control store visibility">
                     <div
                       className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors ${
-                        isPublished
-                          ? "border-emerald-200 bg-emerald-50/70"
-                          : "border-slate-200 bg-slate-50"
+                        isPublished ? "border-emerald-100 bg-emerald-50/50" : "border-slate-200 bg-slate-50"
                       }`}
                     >
                       <div>
-                        <p className="text-sm font-bold text-[#0F1B3D]">
-                          {isPublished ? "Published" : "Hidden"}
-                        </p>
-
+                        <p className="text-sm font-bold text-slate-800">{isPublished ? "Published" : "Hidden"}</p>
                         <p className="text-xs text-slate-500">
-                          {isPublished
-                            ? "Visible to customers"
-                            : "Not visible to customers"}
+                          {isPublished ? "Visible to customers" : "Not visible to customers"}
                         </p>
                       </div>
-
                       <button
                         type="button"
                         role="switch"
                         aria-checked={isPublished}
-                        onClick={() =>
-                          setIsPublished((previous) => !previous)
-                        }
+                        onClick={() => setIsPublished((prev) => !prev)}
                         className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${
-                          isPublished
-                            ? "bg-emerald-500"
-                            : "bg-slate-300"
+                          isPublished ? "bg-emerald-500" : "bg-slate-300"
                         }`}
                       >
                         <span
                           className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
-                            isPublished
-                              ? "left-[22px]"
-                              : "left-0.5"
+                            isPublished ? "left-[22px]" : "left-0.5"
                           }`}
                         />
                       </button>
@@ -3340,7 +2749,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </SectionCard>
 
                   {/* BEFORE YOU SAVE */}
-
                   <SectionCard
                     icon={<FiCheck size={19} />}
                     title="Before you save"
@@ -3348,36 +2756,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   >
                     <div className="mb-4 h-2 overflow-hidden rounded-full bg-slate-100">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#1E3A8A] transition-all duration-500"
-                        style={{
-                          width: `${completionPercent}%`,
-                        }}
+                        className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                        style={{ width: `${completionPercent}%` }}
                       />
                     </div>
-
                     <ul className="grid grid-cols-2 gap-x-3 gap-y-2">
                       {checklist.map((item) => (
-                        <li
-                          key={item.label}
-                          className="flex items-center gap-2 text-xs"
-                        >
+                        <li key={item.label} className="flex items-center gap-2 text-xs">
                           <span
                             className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                              item.done
-                                ? "bg-emerald-500 text-white"
-                                : "bg-slate-200 text-transparent"
+                              item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-transparent"
                             }`}
                           >
                             <FiCheck size={10} strokeWidth={3} />
                           </span>
-
-                          <span
-                            className={
-                              item.done
-                                ? "font-medium text-slate-700"
-                                : "text-slate-400"
-                            }
-                          >
+                          <span className={item.done ? "font-medium text-slate-700" : "text-slate-400"}>
                             {item.label}
                           </span>
                         </li>
@@ -3390,35 +2783,22 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
 
           {/* FOOTER */}
-
-          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
+          <div className="flex flex-shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-4 py-4 sm:px-6">
             {loading && uploadProgress && (
               <UploadProgressBar
                 percent={uploadProgress.percent}
                 loaded={uploadProgress.loaded}
                 total={uploadProgress.total}
                 bytesPerSecond={uploadProgress.bytesPerSecond}
-                estimatedRemainingMs={
-                  uploadProgress.estimatedRemainingMs
-                }
-                label={
-                  isEdit
-                    ? "Updating product & images…"
-                    : "Uploading product & images…"
-                }
+                estimatedRemainingMs={uploadProgress.estimatedRemainingMs}
+                label={isEdit ? "Updating product & images…" : "Uploading product & images…"}
               />
             )}
 
             <div className="flex items-center justify-between gap-3">
               <p className="hidden text-xs text-slate-500 sm:block">
-                <span className="font-semibold text-[#1E3A8A]">
-                  {completedCount}/{checklist.length}
-                </span>{" "}
-                required items complete · press{" "}
-                <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-600">
-                  Esc
-                </kbd>{" "}
-                to close
+                <span className="font-semibold text-blue-600">{completedCount}/{checklist.length}</span> required items complete · press{" "}
+                <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-600">Esc</kbd> to close
               </p>
 
               <div className="ml-auto flex gap-3">
@@ -3446,28 +2826,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     "Checking permissions..."
                   ) : loading ? (
                     <>
-                      <svg
-                        className="h-4 w-4 animate-spin text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
+                      <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
-
                       {isEdit ? "Updating..." : "Adding..."}
                     </>
                   ) : fetchingOptions ? (
@@ -3483,8 +2845,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
             {!permissionsLoading && !canSubmit && (
               <p className="text-right text-xs text-rose-600">
-                You don't have permission to{" "}
-                {isEdit ? "update" : "add"} products.
+                You don't have permission to {isEdit ? "update" : "add"} products.
               </p>
             )}
           </div>

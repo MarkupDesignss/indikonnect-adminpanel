@@ -14,7 +14,6 @@ import {
   FiEye,
   FiFileText,
   FiList,
-  FiPlus,
   FiRefreshCw,
   FiSave,
   FiSearch,
@@ -60,13 +59,6 @@ const VIEW_PERMISSION_KEYS = [
   "Contents.details",
 ];
 
-const CREATE_PERMISSION_KEYS = [
-  "contents.create",
-  "content.create",
-  "Contents.create",
-  "Content.create",
-];
-
 const UPDATE_PERMISSION_KEYS = [
   "contents.update",
   "content.update",
@@ -78,12 +70,8 @@ const UPDATE_PERMISSION_KEYS = [
   "Content.edit",
 ];
 
-const DELETE_PERMISSION_KEYS = [
-  "contents.delete",
-  "content.delete",
-  "Contents.delete",
-  "Content.delete",
-];
+// Delete Permissions removed as delete action is removed from UI
+const DELETE_PERMISSION_KEYS: string[] = [];
 
 // =====================================================
 // ANIMATION
@@ -240,8 +228,6 @@ const formatFileSize = (bytes: number) => {
 
 interface UploadProgressState {
   status: "uploading" | "complete" | "error";
-  // null means the API did not expose a measurable total; the UI shows an
-  // indeterminate progress animation instead of displaying a fake percentage.
   percent: number | null;
   loaded?: number;
   total?: number;
@@ -282,7 +268,6 @@ const NewMediaPreview: React.FC<NewMediaPreviewProps> = ({
   const [previewFailed, setPreviewFailed] = useState(false);
   const video = isVideoFile(file);
 
-  // Create object URLs in an effect (not during render) and always revoke them.
   useEffect(() => {
     let objectUrl = "";
     try {
@@ -946,12 +931,11 @@ const ViewPageModal: React.FC<ViewPageModalProps> = ({
 };
 
 // =====================================================
-// PAGE FORM MODAL (compact form-type UI)
+// PAGE FORM MODAL (compact form-type UI) — EDIT ONLY
 // =====================================================
 interface PageFormModalProps {
   open: boolean;
   loading: boolean;
-  mode: "add" | "edit";
   page: ContentPage | null;
   canDeleteMedia: boolean;
   uploadProgress: UploadProgressState | null;
@@ -962,7 +946,6 @@ interface PageFormModalProps {
 const PageFormModal: React.FC<PageFormModalProps> = ({
   open,
   loading,
-  mode,
   page,
   canDeleteMedia,
   uploadProgress,
@@ -982,11 +965,11 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         (block): FormBlock => ({
           id: block.id,
           sort_order: block.sort_order,
-      
+
           heading: block.heading || "",
           short_description: block.short_description || "",
           description: block.description || "",
-      
+
           existingImages: (block.images || []).map((image) => ({
             id: image.id,
             url: image.url,
@@ -996,12 +979,12 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
             mime_type: (image as any).mime_type || null,
             type: (image as any).type || null,
           })),
-      
+
           existingVideos: (block.videos || []).map((video) => ({
             id: video.id,
             url: video.url,
           })),
-      
+
           imageFiles: [],
         }),
       );
@@ -1209,54 +1192,47 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-  
+
     if (!title.trim()) {
       toast.error("Page title is required.");
       return;
     }
-  
+
     if (blocks.length === 0) {
       toast.error("At least one content block is required.");
       return;
     }
-  
+
     const payload: ContentPayload = {
       title: title.trim(),
-  
-      status:
-        mode === "edit" && page?.status
-          ? page.status
-          : "published",
-  
+
+      status: page?.status ? page.status : "published",
+
       blocks: blocks.map((block, blockIndex) => ({
-        // Existing block ID is sent.
-        // New blocks will not contain an ID.
         ...(block.id !== undefined && block.id !== null
           ? { id: block.id }
           : {}),
-  
+
         heading: block.heading,
         short_description: block.short_description,
         description: block.description,
-  
+
         sort_order: block.sort_order ?? blockIndex + 1,
-  
+
         imageFiles: block.imageFiles,
-  
-        // Preserve existing image IDs
+
         existingImages: block.existingImages.map((image) => ({
           id: image.id,
           alt_text: image.alt_text,
           is_primary: image.is_primary,
         })),
-  
-        // Preserve existing video IDs
+
         existingVideos: block.existingVideos.map((video) => ({
           id: video.id,
         })),
       })),
     };
-  
+
     onSubmit(payload);
   };
 
@@ -1278,11 +1254,11 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#DCE6F2] bg-white px-5 py-3.5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-              {mode === "add" ? <FiPlus size={15} /> : <FiEdit2 size={14} />}
+              <FiEdit2 size={14} />
             </div>
             <div className="min-w-0">
               <h2 className="truncate text-sm font-bold text-[#111827]">
-                {mode === "add" ? "Add Page" : "Edit Page"}
+                Edit Page
               </h2>
               {page && (
                 <p className="truncate text-[10px] text-[#6B7280]">
@@ -1334,8 +1310,7 @@ const PageFormModal: React.FC<PageFormModalProps> = ({
                 disabled={loading}
                 className="flex h-7 items-center gap-1 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 text-[10px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
               >
-                <FiPlus size={12} />
-                Add Block
+                + Add Block
               </button>
             </div>
 
@@ -1572,16 +1547,6 @@ const ContentsManagement: React.FC = () => {
     [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
-  const canCreateContents = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("Contents") ||
-      hasModuleAccess("Content") ||
-      hasModuleAccess("Website Content") ||
-      hasAnyPermission(CREATE_PERMISSION_KEYS),
-    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
-  );
-
   const canUpdateContents = useMemo(
     () =>
       isSuperAdmin ||
@@ -1592,15 +1557,7 @@ const ContentsManagement: React.FC = () => {
     [isSuperAdmin, hasModuleAccess, hasAnyPermission],
   );
 
-  const canDeleteContents = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasModuleAccess("Contents") ||
-      hasModuleAccess("Content") ||
-      hasModuleAccess("Website Content") ||
-      hasAnyPermission(DELETE_PERMISSION_KEYS),
-    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
-  );
+  // Note: Delete functionality removed from UI as requested
 
   // ===================================================
   // LOGO STATE (same pattern as Orders / ReturnRefund / CreditNotes / Payment)
@@ -1620,13 +1577,10 @@ const ContentsManagement: React.FC = () => {
 
   const [saveLoading, setSaveLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgressState | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewOpen, setViewOpen] = useState(false);
   const [addEditOpen, setAddEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [selectedGroup, setSelectedGroup] = useState<PageGroup | null>(null);
   const [selectedPage, setSelectedPage] = useState<ContentPage | null>(null);
   const ITEMS_PER_PAGE = 10;
@@ -1861,7 +1815,7 @@ const ContentsManagement: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // VIEW / ADD / EDIT / DELETE HANDLERS
+  // VIEW / EDIT HANDLERS
   // ===================================================
   const handleView = useCallback(
     (group: PageGroup) => {
@@ -1875,17 +1829,6 @@ const ContentsManagement: React.FC = () => {
     [canViewContents],
   );
 
-  const openAdd = useCallback(() => {
-    if (!canCreateContents) {
-      toast.error("You do not have permission to create pages.");
-      return;
-    }
-    setSelectedPage(null);
-    setUploadProgress(null);
-    setModalMode("add");
-    setAddEditOpen(true);
-  }, [canCreateContents]);
-
   const openEdit = useCallback(
     (page: ContentPage) => {
       if (!canUpdateContents) {
@@ -1894,7 +1837,6 @@ const ContentsManagement: React.FC = () => {
       }
       setSelectedPage(page);
       setUploadProgress(null);
-      setModalMode("edit");
       setAddEditOpen(true);
     },
     [canUpdateContents],
@@ -1902,14 +1844,8 @@ const ContentsManagement: React.FC = () => {
 
   const handleSave = useCallback(
     async (payload: ContentPayload) => {
-      const isEdit = modalMode === "edit";
-
-      if (isEdit && !canUpdateContents) {
+      if (!canUpdateContents) {
         toast.error("You do not have permission to update pages.");
-        return;
-      }
-      if (!isEdit && !canCreateContents) {
-        toast.error("You do not have permission to create pages.");
         return;
       }
       if (saveLoading) return;
@@ -1924,8 +1860,6 @@ const ContentsManagement: React.FC = () => {
           : null,
       );
 
-      // Axios reports real request-body progress only when the API endpoint
-      // forwards this config object to axios.post/put as its final argument.
       const requestConfig = hasNewMedia
         ? {
             onUploadProgress: (event: any) => {
@@ -1949,19 +1883,16 @@ const ContentsManagement: React.FC = () => {
       try {
         setSaveLoading(true);
 
-        let response: any;
-        if (isEdit && selectedPage) {
-          response = await contentsApi.update(
-            selectedPage.id,
-            payload,
-            requestConfig,
-          );
-        } else {
-          response = await contentsApi.create(
-            payload,
-            requestConfig,
-          );
+        if (!selectedPage) {
+          toast.error("No page selected for update.");
+          return;
         }
+
+        const response: any = await contentsApi.update(
+          selectedPage.id,
+          payload,
+          requestConfig,
+        );
 
         if (response?.data?.success) {
           if (hasNewMedia) {
@@ -1974,11 +1905,10 @@ const ContentsManagement: React.FC = () => {
           }
 
           toast.success(
-            response.data.message ||
-              (isEdit ? "Page updated successfully." : "Page created successfully."),
+            response.data.message || "Page updated successfully.",
           );
           setAddEditOpen(false);
-          if (isEdit) setSelectedPage(null);
+          setSelectedPage(null);
           await fetchContents(true);
           setUploadProgress(null);
         } else {
@@ -1991,8 +1921,7 @@ const ContentsManagement: React.FC = () => {
             }));
           }
           toast.error(
-            response?.data?.message ||
-              (isEdit ? "Unable to update page." : "Unable to create page."),
+            response?.data?.message || "Unable to update page.",
           );
         }
       } catch (error: any) {
@@ -2013,58 +1942,12 @@ const ContentsManagement: React.FC = () => {
       }
     },
     [
-      modalMode,
       canUpdateContents,
-      canCreateContents,
       saveLoading,
       selectedPage,
       fetchContents,
     ],
   );
-
-  const openDelete = useCallback(
-    (page: ContentPage) => {
-      if (!canDeleteContents) {
-        toast.error("You do not have permission to delete pages.");
-        return;
-      }
-      setSelectedPage(page);
-      setDeleteOpen(true);
-    },
-    [canDeleteContents],
-  );
-
-  const handleDelete = useCallback(async () => {
-    if (!canDeleteContents) {
-      toast.error("You do not have permission to delete pages.");
-      return;
-    }
-    if (!selectedPage) return;
-    if (deleteLoading) return;
-
-    try {
-      setDeleteLoading(true);
-      const response = await contentsApi.delete(selectedPage.id);
-
-      if (response.data.success) {
-        toast.success(
-          response.data.message || "Page version deleted successfully.",
-        );
-        setDeleteOpen(false);
-        setSelectedPage(null);
-        await fetchContents(true);
-      } else {
-        toast.error(response.data.message || "Unable to delete page.");
-      }
-    } catch (error: any) {
-      console.error("Delete page error:", error);
-      toast.error(
-        error?.response?.data?.message || "Unable to delete page.",
-      );
-    } finally {
-      setDeleteLoading(false);
-    }
-  }, [canDeleteContents, selectedPage, deleteLoading, fetchContents]);
 
   const handleRefresh = useCallback(() => {
     if (!canViewContents) {
@@ -2264,17 +2147,6 @@ const ContentsManagement: React.FC = () => {
               />
               Refresh
             </button>
-
-            {canCreateContents && (
-              <button
-                type="button"
-                onClick={openAdd}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.6)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FiPlus size={16} />
-                Add Page
-              </button>
-            )}
           </div>
         </motion.div>
 
@@ -2340,7 +2212,6 @@ const ContentsManagement: React.FC = () => {
               </thead>
 
               <tbody>
-                {/* ✅ initialContentsLoading par full spinner — refresh/CRUD par nahi */}
                 {initialContentsLoading ? (
                   <tr>
                     <td colSpan={6} className="px-5 py-16 text-center">
@@ -2378,7 +2249,7 @@ const ContentsManagement: React.FC = () => {
                           No pages found
                         </p>
                         <p className="mt-1 text-xs text-[#6B7280]">
-                          Try another search or create a new page.
+                          Try another search.
                         </p>
                       </div>
                     </td>
@@ -2460,17 +2331,8 @@ const ContentsManagement: React.FC = () => {
                                 <FiEdit2 size={14} />
                               </button>
                             )}
-
-                            {canDeleteContents && (
-                              <button
-                                type="button"
-                                title="Delete latest version"
-                                onClick={() => openDelete(page)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32] transition hover:border-transparent hover:bg-[#C23B32] hover:text-white"
-                              >
-                                <FiTrash2 size={14} />
-                              </button>
-                            )}
+                            
+                            {/* DELETE ICON HAS BEEN REMOVED FROM HERE AS REQUESTED */}
                           </div>
                         </td>
                       </motion.tr>
@@ -2483,7 +2345,6 @@ const ContentsManagement: React.FC = () => {
 
           {/* MOBILE CARDS */}
           <div className="block lg:hidden">
-            {/* ✅ initialContentsLoading par full spinner — refresh/CRUD par nahi */}
             {initialContentsLoading ? (
               <div className="flex flex-col items-center px-5 py-16 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -2575,16 +2436,7 @@ const ContentsManagement: React.FC = () => {
                         </button>
                       )}
 
-                      {canDeleteContents && (
-                        <button
-                          type="button"
-                          onClick={() => openDelete(page)}
-                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#C23B32]/20 bg-[#FEF2F2] text-[#C23B32]"
-                          title="Delete"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
+                      {/* DELETE ICON HAS BEEN REMOVED FROM HERE AS REQUESTED */}
                     </div>
                   </motion.div>
                 );
@@ -2674,14 +2526,13 @@ const ContentsManagement: React.FC = () => {
         }}
       />
 
-      {/* ADD / EDIT */}
-      {(canCreateContents || canUpdateContents) && (
+      {/* EDIT (only path now) */}
+      {canUpdateContents && (
         <PageFormModal
           open={addEditOpen}
           loading={saveLoading}
-          mode={modalMode}
           page={selectedPage}
-          canDeleteMedia={canDeleteContents}
+          canDeleteMedia={false} // Media deletion permission passed as false since delete UI removed
           uploadProgress={uploadProgress}
           onClose={() => {
             if (!saveLoading) {
@@ -2694,21 +2545,7 @@ const ContentsManagement: React.FC = () => {
         />
       )}
 
-      {/* DELETE */}
-      {canDeleteContents && (
-        <DeletePageModal
-          open={deleteOpen}
-          loading={deleteLoading}
-          page={selectedPage}
-          onClose={() => {
-            if (!deleteLoading) {
-              setDeleteOpen(false);
-              setSelectedPage(null);
-            }
-          }}
-          onConfirm={handleDelete}
-        />
-      )}
+      {/* Note: Delete Modals and related functions have been completely removed */}
     </>
   );
 };

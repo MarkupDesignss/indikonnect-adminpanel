@@ -61,6 +61,12 @@ import ReviewsModeration from "@/pages/ReviewsModeration";
 import CorrectionRequests from "@/components/corrections/CorrectionRequests";
 import IgniteExports from "@/components/IgniteExports/IgniteExports";
 
+// ✅ NEW — dedicated dispatch page (uses param :orderReference)
+import IndiaPostDispatchPage from "@/pages/orders/IndiaPostDispatchPage";
+// ✅ Error page (so a bad render doesn't show the red dev overlay)
+import RouteError from "@/pages/RouteError";
+
+
 const ScrollLayout = () => (
   <>
     <ScrollToTop />
@@ -70,73 +76,99 @@ const ScrollLayout = () => (
 
 export const adminRouter = createBrowserRouter(
   [
-    // AUTH ROUTES
+    // ============================================================
+    // AUTH ROUTES (outside MainLayout — no sidebar/header)
+    // ============================================================
     { path: "/login", element: <Login /> },
     { path: "/forgot-password", element: <ForgotPassword /> },
     { path: "/reset-password", element: <ResetPassword /> },
     { path: "/otp-verification", element: <OTPVerification /> },
 
-    // ADMIN ROUTES
+    // ============================================================
+    // ADMIN ROUTES (behind MainLayout)
+    // ============================================================
     {
       path: "/",
       element: <ScrollLayout />,
+      errorElement: <RouteError />,
       children: [
         {
           element: <MainLayout />,
+          errorElement: <RouteError />,
           children: [
-            // ✅ DASHBOARD — index AND /dashboard dono
+            // ✅ DASHBOARD
             { index: true, element: <Dashboard /> },
             { path: "dashboard", element: <Dashboard /> },
 
-            // ✅ ORDERS — ek canonical URL
+            // ✅ ORDERS
             { path: "orders", element: <Orders /> },
 
-            // 
-            { path: "/inventory/categories", element: <Addcategories /> },
-            { path: "/inventory/tax-categories", element: <Taxcategories /> },
-            { path: "inventory/AttributesManagement", element: <AttributesManagement /> },
+            // ✅ INDIA POST DISPATCH — order reference in URL
+            // Examples:
+            //   /indiekonnect-admin/orders/ORD-20251109-1/dispatch
+            //   /indiekonnect-admin/orders/123/dispatch
+            {
+              path: "orders/:orderReference/dispatch",
+              element: <IndiaPostDispatchPage />,
+            },
+
+            // ============================================================
+            // INVENTORY
+            // ============================================================
+            { path: "inventory/categories", element: <Addcategories /> },
+            { path: "inventory/tax-categories", element: <Taxcategories /> },
+            {
+              path: "inventory/AttributesManagement",
+              element: <AttributesManagement />,
+            },
             { path: "inventory/SubCategories", element: <SubCategories /> },
-            { path: "/inventory/products", element: <Products /> },
-            { path: "/inventory/stock", element: <Stock /> },
+            { path: "inventory/products", element: <Products /> },
+            { path: "inventory/stock", element: <Stock /> },
 
-            { path: "/return-refund", element: <ReturnRefund /> },
+            // ============================================================
+            // RETURNS / REVIEWS
+            // ============================================================
+            { path: "return-refund", element: <ReturnRefund /> },
+            { path: "reviews", element: <ReviewsModeration /> },
 
-            { path: "/reviews", element: <ReviewsModeration /> },
-
+            // ============================================================
             // USERS
+            // ============================================================
             { path: "UserManagement", element: <UserManagement /> },
-
             { path: "IgniteExports", element: <IgniteExports /> },
-
             { path: "CorrectionRequests", element: <CorrectionRequests /> },
-
-            // NOTIFICATIONS
             { path: "Notifications", element: <Notifications /> },
-
-            // SUBSCRIBERS
             { path: "Subscribers", element: <Subscribers /> },
 
+            // ============================================================
             // PAYMENT
+            // ============================================================
             { path: "Payout", element: <Payout /> },
             { path: "Payment", element: <Payment /> },
 
-            // CONTACT
+            // ============================================================
+            // CONTACT / COUPONS
+            // ============================================================
             { path: "Contact", element: <Contact /> },
-
-            // COUPONS
             { path: "Coupons", element: <Coupons /> },
 
+            // ============================================================
             // ROLE MANAGEMENT
+            // ============================================================
             { path: "RoleManagement/role", element: <RoleManagement /> },
             { path: "RoleManagement/addmember", element: <AdminManagement /> },
-          
+
+            // ============================================================
             // WAREHOUSE
+            // ============================================================
             { path: "Addwarehouse", element: <Addwarehouse /> },
             { path: "Productsaasignment", element: <Productsaasignment /> },
             { path: "warehouse/products", element: <WarehouseProducts /> },
             { path: "warehouse/inventory", element: <Inventorywarehouse /> },
 
+            // ============================================================
             // CMS
+            // ============================================================
             { path: "cms/header", element: <HeaderManagement /> },
             { path: "cms/footer", element: <FooterManagement /> },
             { path: "cms/growth", element: <GrowthSteps /> },
@@ -144,30 +176,47 @@ export const adminRouter = createBrowserRouter(
             { path: "cms/brands", element: <BrandsManagement /> },
             { path: "cms/ReelsManagement", element: <ReelsManagement /> },
             { path: "cms/FAQManagement", element: <FAQManagement /> },
-            { path: "cms/TestimonialsManagement", element: <TestimonialsManagement /> },
-            { path: "cms/NotificationTemplates", element: <NotificationTemplates /> },
+            {
+              path: "cms/TestimonialsManagement",
+              element: <TestimonialsManagement />,
+            },
+            {
+              path: "cms/NotificationTemplates",
+              element: <NotificationTemplates />,
+            },
             { path: "cms/SectionManagement", element: <SectionManagement /> },
-            { path: "cms/LandingPageManagement", element: <LandingPageManagement /> },
+            {
+              path: "cms/LandingPageManagement",
+              element: <LandingPageManagement />,
+            },
 
+            // ============================================================
             // CREDIT NOTES
+            // ============================================================
             { path: "CreditNotes", element: <CreditNotes /> },
 
+            // ============================================================
             // PROFILE
+            // ============================================================
             { path: "UpdateProfile", element: <UpdateProfile /> },
             { path: "ChangePassword", element: <ChangePassword /> },
 
+            // ============================================================
             // FINANCE
+            // ============================================================
             { path: "Fiance/CoolOff", element: <CoolOff /> },
             { path: "Fiance/BuyBack", element: <BuyBack /> },
             { path: "Fiance/CancelRefund", element: <CancelRefund /> },
 
+            // ============================================================
             // SALES
+            // ============================================================
             { path: "sales/report", element: <SalesReport /> },
 
+            // ============================================================
             // SETTINGS
+            // ============================================================
             { path: "SettingsManagement", element: <SettingsManagement /> },
-
-            //  appRoutes REMOVED — yahi problem tha
           ],
         },
       ],
