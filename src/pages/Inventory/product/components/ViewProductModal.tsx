@@ -18,6 +18,7 @@ import {
     FiClock,
     FiHeart,
     FiTarget,
+    FiStar,
 } from "react-icons/fi";
 import { SelectOption } from "@/types/product";
 import { RiMoneyRupeeCircleLine } from "react-icons/ri";
@@ -64,9 +65,11 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
             : "bg-yellow-100 text-yellow-800 border-yellow-300";
     };
 
-    const formatCurrency = (amount: number) => {
-        if (!amount && amount !== 0) return "₹0.00";
-        return `₹${Number(amount).toFixed(2)}`;
+    const formatCurrency = (amount: number | string) => {
+        if (amount === null || amount === undefined || amount === "") return "₹0.00";
+        const num = Number(amount);
+        if (Number.isNaN(num)) return "₹0.00";
+        return `₹${num.toFixed(2)}`;
     };
 
     const formatDate = (date: string) => {
@@ -168,6 +171,19 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
     const isDealOfTheDay = toBool(productData.is_deal_of_the_day);
     const isActiveDeal = toBool(productData.is_active_deal);
 
+    // ===================================================
+    // PRODUCT TYPE
+    // ===================================================
+    const productType = String(productData.product_type || "single").toLowerCase();
+    const isCombo = productType === "combo";
+
+    // ===================================================
+    // COMBO PRODUCTS
+    // ===================================================
+    const comboProducts: any[] = Array.isArray(productData.combo_products)
+        ? productData.combo_products
+        : [];
+
     return (
         <>
             {/* Backdrop */}
@@ -191,9 +207,26 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                         <div>
                             <h2
                                 id="modal-title"
-                                className="font-semibold text-xl text-gray-900"
+                                className="font-semibold text-xl text-gray-900 flex items-center gap-2"
                             >
                                 Product Details
+                                <span
+                                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                                        isCombo
+                                            ? "bg-purple-100 text-purple-700 border border-purple-300"
+                                            : "bg-slate-100 text-slate-600 border border-slate-300"
+                                    }`}
+                                >
+                                    {isCombo ? (
+                                        <>
+                                            <FiLayers size={11} /> Combo
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiPackage size={11} /> Individual
+                                        </>
+                                    )}
+                                </span>
                             </h2>
                             <p className="text-sm text-gray-500 mt-0.5">
                                 View complete product information
@@ -302,12 +335,47 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                         {isPublished ? "Published" : "Draft"}
                                     </span>
                                 </div>
+
+                                {/* ✅ Product Type */}
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        Product Type
+                                    </label>
+                                    <div className="mt-1">
+                                        <span
+                                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                                                isCombo
+                                                    ? "bg-purple-100 text-purple-700 border-purple-300"
+                                                    : "bg-slate-100 text-slate-700 border-slate-300"
+                                            }`}
+                                        >
+                                            {isCombo ? (
+                                                <>
+                                                    <FiLayers size={12} /> Combo
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <FiPackage size={12} /> Individual
+                                                </>
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                         Brand
                                     </label>
                                     <p className="text-sm font-medium text-gray-900 mt-1">
                                         {productData.brand_name || productData.brand?.name || "N/A"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                        Ignite Product ID
+                                    </label>
+                                    <p className="text-sm font-medium text-gray-900 mt-1">
+                                        {productData.ignite_product_id ?? "N/A"}
                                     </p>
                                 </div>
                                 <div>
@@ -355,7 +423,9 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                     </label>
                                     <p className="text-sm font-medium text-gray-900 mt-1">
                                         {productData.tax_category?.name ||
-                                            getTaxCategoryName(productData.tax_category_id)}
+                                            (productData.tax_category_id
+                                                ? getTaxCategoryName(productData.tax_category_id)
+                                                : "N/A")}
                                         {productData.tax_category?.rate && (
                                             <span className="ml-2 text-xs text-gray-500">
                                                 ({productData.tax_category.rate}%)
@@ -365,6 +435,155 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                 </div>
                             </div>
                         </div>
+
+                        {/* ============================================ */}
+                        {/* ✅ COMBO PRODUCTS SECTION */}
+                        {/* ============================================ */}
+                        {isCombo && (
+                            <div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <FiLayers className="text-purple-600" size={18} />
+                                    <h3 className="font-semibold text-gray-900">
+                                        Combo Products
+                                    </h3>
+                                    <span className="ml-auto text-xs font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                                        {comboProducts.length} product
+                                        {comboProducts.length !== 1 ? "s" : ""}
+                                    </span>
+                                </div>
+
+                                {comboProducts.length === 0 ? (
+                                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                                        No combo products added.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {comboProducts.map((cp: any, idx: number) => {
+                                            const primaryImage =
+                                                cp?.images?.find((i: any) => i.is_primary)?.image_url ||
+                                                cp?.images?.[0]?.image_url ||
+                                                "https://via.placeholder.com/80x80?text=No+Image";
+
+                                            const isMandatory = toBool(cp.is_mandatory);
+
+                                            return (
+                                                <div
+                                                    key={cp.id || idx}
+                                                    className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm hover:shadow-md transition-shadow"
+                                                >
+                                                    <div className="flex gap-3">
+                                                        {/* Index */}
+                                                        <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 text-[11px] font-bold text-purple-700">
+                                                            {idx + 1}
+                                                        </span>
+
+                                                        {/* Image */}
+                                                        <img
+                                                            src={primaryImage}
+                                                            alt={cp.name}
+                                                            className="h-16 w-16 flex-shrink-0 rounded-lg border border-gray-200 object-cover"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src =
+                                                                    "https://via.placeholder.com/80x80?text=No+Image";
+                                                            }}
+                                                        />
+
+                                                        {/* Details */}
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="truncate text-sm font-semibold text-gray-900">
+                                                                    {cp.name || `Product #${cp.id}`}
+                                                                </p>
+                                                                {isMandatory && (
+                                                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 border border-amber-300">
+                                                                        <FiStar size={9} /> Mandatory
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            <p className="mt-0.5 truncate text-xs text-gray-500">
+                                                                SKU:{" "}
+                                                                <span className="font-medium text-gray-700">
+                                                                    {cp.product_code || "N/A"}
+                                                                </span>
+                                                            </p>
+
+                                                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-500">
+                                                                {cp.category?.name && (
+                                                                    <span className="inline-flex items-center gap-1">
+                                                                        <FiTag size={10} />
+                                                                        {cp.category.name}
+                                                                    </span>
+                                                                )}
+                                                                {cp.subcategory?.name && (
+                                                                    <span className="inline-flex items-center gap-1">
+                                                                        <FiLayers size={10} />
+                                                                        {cp.subcategory.name}
+                                                                    </span>
+                                                                )}
+                                                                {cp.brand?.name && (
+                                                                    <span className="inline-flex items-center gap-1">
+                                                                        <FiPackage size={10} />
+                                                                        {cp.brand.name}
+                                                                    </span>
+                                                                )}
+                                                                {cp.tax_category?.name && (
+                                                                    <span className="inline-flex items-center gap-1">
+                                                                        <FiActivity size={10} />
+                                                                        {cp.tax_category.name}
+                                                                        {cp.tax_category?.rate && (
+                                                                            <span className="text-gray-400">
+                                                                                ({cp.tax_category.rate}%)
+                                                                            </span>
+                                                                        )}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Pricing row */}
+                                                            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                                                                <div className="rounded-md bg-gray-50 px-2 py-1.5">
+                                                                    <p className="text-gray-500">
+                                                                        Retail Price
+                                                                    </p>
+                                                                    <p className="font-semibold text-gray-900">
+                                                                        {formatCurrency(cp.retail_price)}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-md bg-gray-50 px-2 py-1.5">
+                                                                    <p className="text-gray-500">
+                                                                        Retail MRP
+                                                                    </p>
+                                                                    <p className="font-semibold text-gray-400 line-through">
+                                                                        {formatCurrency(cp.retail_mrp)}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-md bg-gray-50 px-2 py-1.5">
+                                                                    <p className="text-gray-500">
+                                                                        Distributor Price
+                                                                    </p>
+                                                                    <p className="font-semibold text-gray-900">
+                                                                        {formatCurrency(cp.distributor_price)}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="rounded-md bg-gray-50 px-2 py-1.5">
+                                                                    <p className="text-gray-500">
+                                                                        Commission
+                                                                    </p>
+                                                                    <p className="font-semibold text-emerald-700">
+                                                                        {formatCurrency(cp.commission_value)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Specification & Pricing - Side by side */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -488,16 +707,13 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                         </span>
                                     </div>
 
-                                    {/* ============================ */}
-                                    {/* DEAL OF THE DAY BOX */}
-                                    {/* ============================ */}
-
                                     {isDealOfTheDay && (
                                         <div
-                                            className={`mt-2 p-3 rounded-lg border ${isActiveDeal
+                                            className={`mt-2 p-3 rounded-lg border ${
+                                                isActiveDeal
                                                     ? "bg-green-50 border-green-300"
                                                     : "bg-gray-50 border-gray-300"
-                                                }`}
+                                            }`}
                                         >
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-800">
@@ -505,10 +721,11 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                                     Deal of the Day
                                                 </span>
                                                 <span
-                                                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isActiveDeal
+                                                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                                        isActiveDeal
                                                             ? "bg-green-600 text-white"
                                                             : "bg-gray-400 text-white"
-                                                        }`}
+                                                    }`}
                                                 >
                                                     {isActiveDeal ? "Active" : "Inactive"}
                                                 </span>
@@ -540,9 +757,7 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                             </div>
                         </div>
 
-                        {/* ============================================ */}
-                        {/* STOCK & INVENTORY - FULL DETAILS */}
-                        {/* ============================================ */}
+                        {/* STOCK & INVENTORY */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
                                 <FiLayers className="text-gray-500" size={18} />
@@ -557,9 +772,7 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                 </span>
                             </div>
 
-                            {/* Primary Stock Metrics */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                                {/* Current Stock */}
                                 <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
                                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                         <FiBox size={12} />
@@ -584,7 +797,6 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                         )}
                                 </div>
 
-                                {/* Initial Stock */}
                                 <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
                                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                         <FiActivity size={12} />
@@ -595,7 +807,6 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                     </p>
                                 </div>
 
-                                {/* Restock */}
                                 <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
                                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                         <FiRefreshCw size={12} />
@@ -606,7 +817,6 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                     </p>
                                 </div>
 
-                                {/* Low Stock Threshold */}
                                 <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-sm">
                                     <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">
                                         <FiAlertTriangle size={12} />
@@ -618,7 +828,6 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Stock Movement Breakdown */}
                             {stockMovement &&
                                 Object.keys(stockMovement).length > 0 && (
                                     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -688,7 +897,6 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                             </div>
                                         </div>
 
-                                        {/* Available Stock Highlight */}
                                         <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 p-3 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <FiCheckCircle
@@ -771,16 +979,37 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                                 key={variant.id || index}
                                                 className="flex items-center justify-between py-2 border-b border-gray-200 last:border-0"
                                             >
-                                                <span className="text-sm text-gray-700">
-                                                    {variant.name ||
-                                                        variant.title ||
-                                                        `Variant #${index + 1}`}
-                                                </span>
-                                                <span className="text-sm font-semibold text-gray-900">
-                                                    {variant.price
-                                                        ? formatCurrency(variant.price)
-                                                        : "N/A"}
-                                                </span>
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    {variant.image && (
+                                                        <img
+                                                            src={variant.image}
+                                                            alt={variant.name}
+                                                            className="h-9 w-9 rounded-md border border-gray-200 object-cover flex-shrink-0"
+                                                        />
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <p className="text-sm font-medium text-gray-800 truncate">
+                                                            {variant.name || `Variant #${index + 1}`}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 truncate">
+                                                            SKU: {variant.product_code || "N/A"}
+                                                            {variant.hax_color && (
+                                                                <>
+                                                                    {" · "}
+                                                                    <span className="inline-flex items-center gap-1">
+                                                                        <span
+                                                                            className="h-2.5 w-2.5 rounded-full border border-gray-300 inline-block"
+                                                                            style={{
+                                                                                backgroundColor: variant.hax_color,
+                                                                            }}
+                                                                        />
+                                                                        {variant.hax_color}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ),
                                     )}
@@ -788,10 +1017,7 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                             </div>
                         )}
 
-                        {/* ============================================ */}
-                        {/* ADDITIONAL INFORMATION - MOVED TO BOTTOM */}
-                        {/* ============================================ */}
-
+                        {/* ADDITIONAL INFORMATION */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
                                 <FiTag className="text-gray-500" size={18} />
@@ -800,89 +1026,93 @@ const ViewProductModal: React.FC<ViewProductModalProps> = ({
                                 </h3>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 rounded-lg p-4">
-                                {/* Trending */}
                                 <div className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-3 py-2.5">
                                     <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                         <FiTrendingUp size={15} className="text-gray-500" />
                                         Trending
                                     </span>
                                     <span
-                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${isTrending
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
+                                            isTrending
                                                 ? "bg-blue-100 text-blue-700 border border-blue-300"
                                                 : "bg-gray-100 text-gray-500 border border-gray-300"
-                                            }`}
+                                        }`}
                                     >
                                         <span
-                                            className={`h-1.5 w-1.5 rounded-full ${isTrending
+                                            className={`h-1.5 w-1.5 rounded-full ${
+                                                isTrending
                                                     ? "bg-blue-600"
                                                     : "bg-gray-400"
-                                                }`}
+                                            }`}
                                         />
                                         {isTrending ? "ON" : "OFF"}
                                     </span>
                                 </div>
 
-                                {/* Wishlisted */}
                                 <div className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-3 py-2.5">
                                     <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                         <FiHeart size={15} className="text-gray-500" />
                                         Wishlisted
                                     </span>
                                     <span
-                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${isWishlisted
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
+                                            isWishlisted
                                                 ? "bg-pink-100 text-pink-700 border border-pink-300"
                                                 : "bg-gray-100 text-gray-500 border border-gray-300"
-                                            }`}
+                                        }`}
                                     >
                                         <span
-                                            className={`h-1.5 w-1.5 rounded-full ${isWishlisted
+                                            className={`h-1.5 w-1.5 rounded-full ${
+                                                isWishlisted
                                                     ? "bg-pink-600"
                                                     : "bg-gray-400"
-                                                }`}
+                                            }`}
                                         />
                                         {isWishlisted ? "ON" : "OFF"}
                                     </span>
                                 </div>
 
-                                {/* Deal of the Day */}
                                 <div className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-3 py-2.5">
                                     <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                         <FiTarget size={15} className="text-gray-500" />
                                         Deal of the Day
                                     </span>
                                     <span
-                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${isDealOfTheDay
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
+                                            isDealOfTheDay
                                                 ? "bg-red-100 text-red-700 border border-red-300"
                                                 : "bg-gray-100 text-gray-500 border border-gray-300"
-                                            }`}
+                                        }`}
                                     >
                                         <span
-                                            className={`h-1.5 w-1.5 rounded-full ${isDealOfTheDay
+                                            className={`h-1.5 w-1.5 rounded-full ${
+                                                isDealOfTheDay
                                                     ? "bg-red-600"
                                                     : "bg-gray-400"
-                                                }`}
+                                            }`}
                                         />
                                         {isDealOfTheDay ? "ON" : "OFF"}
                                     </span>
                                 </div>
 
-                                {/* Active Deal */}
                                 <div className="flex items-center justify-between rounded-lg bg-white border border-gray-200 px-3 py-2.5">
                                     <span className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                                         <FiCheckCircle size={15} className="text-gray-500" />
                                         Active Deal
                                     </span>
                                     <span
-                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${isActiveDeal
+                                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
+                                            isActiveDeal
                                                 ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                                                 : "bg-gray-100 text-gray-500 border border-gray-300"
-                                            }`}
+                                        }`}
                                     >
                                         <span
-                                            className={`h-1.5 w-1.5 rounded-full ${isActiveDeal
+                                            className={`h-1.5 w-1.5 rounded-full ${
+                                                isActiveDeal
                                                     ? "bg-emerald-600"
                                                     : "bg-gray-400"
-                                                }`}
+                                            }`}
                                         />
                                         {isActiveDeal ? "ON" : "OFF"}
                                     </span>

@@ -4,6 +4,7 @@ import type { AxiosProgressEvent } from "axios";
 export type DiscountType = "percentage" | "fixed";
 export type ProductStatus = "active" | "inactive" | "draft";
 export type StockStatus = "active" | "inactive" | "out_of_stock";
+export type ProductType = "single" | "combo";
 
 /* =========================================================
    CATEGORY
@@ -140,6 +141,12 @@ export interface Product {
   marketed_by?: string | null;
   manufacturer?: string | null;
 
+  /** ✅ NEW: Product type — single or combo */
+  product_type: ProductType;
+
+  /** ✅ NEW: Combo product IDs (only relevant when product_type === "combo") */
+  combo_product_ids?: number[];
+
   category_id: number;
   category: Category;
 
@@ -264,6 +271,15 @@ export interface ProductPayload {
   slug?: string;
   description: string;
   specification: string;
+
+  /** ✅ NEW: Product type — single or combo */
+  product_type: ProductType;
+
+  /** ✅ NEW: Combo product IDs (only relevant when product_type === "combo") */
+  combo_product_ids?: number[];
+
+  /** ✅ NEW: Combo product IDs to remove (only relevant on update) */
+  remove_combo_product_ids?: number[];
 
   category_id: number;
   tax_category_id: number;
@@ -444,6 +460,153 @@ function emitUploadProgress(
     elapsedMs,
     estimatedRemainingMs,
   });
+}
+
+/* =========================================================
+   HELPER: BUILD FORM DATA FOR PRODUCT CREATE / UPDATE
+   Handles product_type + combo_product_ids + remove_combo_product_ids
+========================================================= */
+
+export function buildProductFormData(
+  payload: ProductPayload,
+  options?: { isUpdate?: boolean },
+): FormData {
+  const { isUpdate = false } = options ?? {};
+  const fd = new FormData();
+
+  // Basic fields
+  fd.append("product_code", payload.product_code);
+  fd.append("name", payload.name);
+  if (payload.slug) fd.append("slug", payload.slug);
+  fd.append("description", payload.description);
+  fd.append("specification", payload.specification);
+
+  // ✅ Product type
+  fd.append("product_type", payload.product_type);
+
+  // ✅ Combo product IDs (array-style indices)
+  if (payload.product_type === "combo" && payload.combo_product_ids) {
+    payload.combo_product_ids.forEach((id, index) => {
+      fd.append(`combo_product_ids[${index}]`, String(id));
+    });
+  }
+
+  // ✅ Remove combo product IDs (only on update)
+  if (isUpdate && payload.remove_combo_product_ids) {
+    payload.remove_combo_product_ids.forEach((id, index) => {
+      fd.append(`remove_combo_product_ids[${index}]`, String(id));
+    });
+  }
+
+  fd.append("category_id", String(payload.category_id));
+  fd.append("tax_category_id", String(payload.tax_category_id));
+
+  if (payload.ignite_product_id != null) {
+    fd.append("ignite_product_id", String(payload.ignite_product_id));
+  }
+
+  fd.append("stock_quantity", String(payload.stock_quantity));
+  fd.append("low_stock_threshold", String(payload.low_stock_threshold));
+
+  fd.append("is_published", payload.is_published ? "1" : "0");
+  fd.append("is_trending", payload.is_trending ? "1" : "0");
+  fd.append("trending_sort_order", String(payload.trending_sort_order));
+  if (payload.sale_type) fd.append("sale_type", payload.sale_type);
+
+  fd.append("retail_mrp", String(payload.retail_mrp));
+  fd.append("retail_discount_type", payload.retail_discount_type);
+  fd.append("retail_discount_value", String(payload.retail_discount_value));
+
+  fd.append("distributor_mrp", String(payload.distributor_mrp));
+  fd.append("distributor_discount_type", payload.distributor_discount_type);
+  fd.append("distributor_discount_value", String(payload.distributor_discount_value));
+
+  fd.append("commission_value", String(payload.commission_value));
+  fd.append("waiting_value", String(payload.waiting_value));
+  fd.append("shipping_charge", String(payload.shipping_charge));
+
+  if (payload.service_charge != null) {
+    fd.append("service_charge", String(payload.service_charge));
+  }
+
+  // Product images
+  if (payload.product_images?.length) {
+    payload.product_images.forEach((img, index) => {
+      fd.append(`product_images[${index}][image]`, img.image);
+      fd.append(`product_images[${index}][sort_order]`, String(img.sort_order));
+      fd.append(
+        `product_images[${index}][is_primary]`,
+        String(Number(img.is_primary)),
+      );
+    });
+  }
+
+  // Variants
+  if (payload.variants?.length) {
+    payload.variants.forEach((variant, vIndex) => {
+      fd.append(`variants[${vIndex}][sku]`, variant.sku);
+
+      Object.entries(variant.attributes ?? {}).forEach(([key, val]) => {
+        fd.append(`variants[${vIndex}][attributes][${key}]`, val);
+      });
+
+      fd.append(`variants[${vIndex}][retail_mrp]`, String(variant.retail_mrp));
+      fd.append(
+        `variants[${vIndex}][retail_discount_type]`,
+        variant.retail_discount_type,
+      );
+      fd.append(
+        `variants[${vIndex}][retail_discount_value]`,
+        String(variant.retail_discount_value),
+      );
+
+      fd.append(
+        `variants[${vIndex}][distributor_mrp]`,
+        String(variant.distributor_mrp),
+      );
+      fd.append(
+        `variants[${vIndex}][distributor_discount_type]`,
+        variant.distributor_discount_type,
+      );
+      fd.append(
+        `variants[${vIndex}][distributor_discount_value]`,
+        String(variant.distributor_discount_value),
+      );
+
+      fd.append(
+        `variants[${vIndex}][stock_quantity]`,
+        String(variant.stock_quantity),
+      );
+      fd.append(
+        `variants[${vIndex}][low_stock_threshold]`,
+        String(variant.low_stock_threshold),
+      );
+      fd.append(`variants[${vIndex}][sort_order]`, String(variant.sort_order));
+      fd.append(
+        `variants[${vIndex}][is_active]`,
+        variant.is_active ? "1" : "0",
+      );
+
+      if (variant.images?.length) {
+        variant.images.forEach((img, iIndex) => {
+          fd.append(
+            `variants[${vIndex}][images][${iIndex}][image]`,
+            img.image,
+          );
+          fd.append(
+            `variants[${vIndex}][images][${iIndex}][sort_order]`,
+            String(img.sort_order),
+          );
+          fd.append(
+            `variants[${vIndex}][images][${iIndex}][is_primary]`,
+            String(Number(img.is_primary)),
+          );
+        });
+      }
+    });
+  }
+
+  return fd;
 }
 
 /* =========================================================

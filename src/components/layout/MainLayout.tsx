@@ -1122,10 +1122,6 @@ const MainLayout = () => {
     }
   };
 
-  // =====================================================
-  // RENDER NAVIGATION ITEM
-  // =====================================================
-
   const renderNavItem = (
     item: any,
     depth: number = 0,
@@ -1142,6 +1138,57 @@ const MainLayout = () => {
 
     const parentActive =
       hasChildren && isItemActive(item);
+
+
+// =====================================================
+// HEADING (non-clickable)
+// =====================================================
+if (item.isHeading) {
+  return (
+    <div key={item.path} className="mb-0.5">
+      {/* Show heading only when it has no children */}
+      {!hasChildren && (
+        shouldShowLabels ? (
+          <div
+            className={`
+              flex
+              items-center
+              gap-2
+              px-2
+              py-1.5
+              ${depth > 0 ? "ml-2.5" : ""}
+            `}
+          >
+            <span className="material-symbols-outlined text-[15px] text-[var(--portal-primary)]/70">
+              {item.icon}
+            </span>
+
+            <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-wider text-[#8C97B2]">
+              {item.label}
+            </span>
+          </div>
+        ) : (
+          <div className="mx-auto my-1 h-px w-8 bg-[var(--portal-primary)]/10" />
+        )
+      )}
+
+      {/* Render children directly without duplicate heading */}
+      {hasChildren && shouldShowLabels && (
+        <div
+          className={
+            depth > 0
+              ? "ml-[18px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-2.5"
+              : "space-y-0.5"
+          }
+        >
+        {item.children.map((child: any) =>
+  renderNavItem(child, depth, isMobile),
+)}
+        </div>
+      )}
+    </div>
+  );
+}
 
     if (hasChildren) {
       return (
@@ -1370,7 +1417,6 @@ const MainLayout = () => {
       </NavLink>
     );
   };
-
   // =====================================================
   // GROUPED NAVIGATION
   // =====================================================

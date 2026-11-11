@@ -21,6 +21,7 @@ import {
   FiSliders,
   FiMinus,
   FiTool,
+  FiEye,
 } from "react-icons/fi";
 import { FaRupeeSign } from "react-icons/fa";
 import { toast } from "react-hot-toast";
@@ -36,6 +37,8 @@ import UploadProgressBar from "./UploadProgressBar";
    TYPES
 ========================================================= */
 
+type ProductType = "single" | "combo";
+
 interface SelectOption {
   id: number;
   name: string;
@@ -44,6 +47,8 @@ interface SelectOption {
 interface CategoryProductOption extends SelectOption {
   product_code?: string;
   image_url?: string;
+  category_id?: number | string;
+  category_name?: string;
 }
 
 interface VariantItem {
@@ -90,6 +95,7 @@ interface FormErrors {
   service_charge?: string;
   reason_for_stock_adjustment?: string;
   manual_stock_adjustment?: string;
+  combo_products?: string;
 }
 
 interface SpecItem {
@@ -381,6 +387,39 @@ const SelectBox: React.FC<{
 );
 
 /* =========================================================
+   PRODUCT TYPE DROPDOWN  (default: Individual)
+========================================================= */
+
+const ProductTypeDropdown: React.FC<{
+  value: ProductType;
+  onChange: (value: ProductType) => void;
+  disabled?: boolean;
+}> = ({ value, onChange, disabled }) => (
+  <div className="relative">
+    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500">
+      {value === "combo" ? <FiLayers size={16} /> : <FiPackage size={16} />}
+    </span>
+
+    <select
+      value={value}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.value as ProductType)}
+      className={`${inputCls(
+        false,
+      )} cursor-pointer appearance-none !pl-10 !pr-10 disabled:cursor-not-allowed disabled:opacity-60`}
+    >
+      <option value="single">Individual</option>
+      <option value="combo">Combo</option>
+    </select>
+
+    <FiChevronDown
+      size={16}
+      className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+    />
+  </div>
+);
+
+/* =========================================================
    CUSTOM VARIANT PRODUCT SELECT
 ========================================================= */
 
@@ -535,6 +574,281 @@ const VariantProductSelect: React.FC<{
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+/* =========================================================
+   COMBO PRODUCT MULTI-SELECT (ALL products, category shown below)
+========================================================= */
+
+const ComboProductPicker: React.FC<{
+  products: CategoryProductOption[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+  onSaveClose?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}> = ({ products, selectedIds, onToggle, onSaveClose, disabled, loading }) => {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.product_code ?? "").toLowerCase().includes(q) ||
+        (p.category_name ?? "").toLowerCase().includes(q),
+    );
+  }, [products, search]);
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search products by name or SKU..."
+          className={inputCls(false, "!h-10")}
+        />
+      </div>
+
+      {/* ✅ ~5 rows visible, then scroll */}
+      <div className="max-h-[280px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+        {loading ? (
+          <p className="px-2 py-4 text-center text-xs text-slate-500">
+            Loading products...
+          </p>
+        ) : filtered.length === 0 ? (
+          <p className="px-2 py-4 text-center text-xs text-slate-500">
+            No products found
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {filtered.map((product) => {
+              const isSelected = selectedIds.includes(product.id);
+
+              return (
+                <li key={product.id}>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onToggle(product.id)}
+                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition ${
+                      isSelected
+                        ? "border-blue-300 bg-blue-50/70"
+                        : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
+                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                  >
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover shadow-sm"
+                      />
+                    ) : (
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-400 shadow-sm">
+                        <FiImage size={14} />
+                      </span>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`truncate text-sm ${
+                          isSelected
+                            ? "font-bold text-blue-600"
+                            : "font-semibold text-slate-800"
+                        }`}
+                      >
+                        {product.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {product.product_code
+                          ? `SKU: ${product.product_code}`
+                          : `ID: ${product.id}`}
+                        {product.category_name && (
+                          <>
+                            {" · "}
+                            <span className="text-slate-400">
+                              {product.category_name}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition ${
+                        isSelected
+                          ? "border-blue-600 bg-blue-600 text-white"
+                          : "border-slate-300 bg-white text-transparent"
+                      }`}
+                    >
+                      <FiCheck size={12} strokeWidth={3} />
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      {/* ✅ Footer: count on the LEFT, Save button on the RIGHT */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-1 text-xs text-slate-500">
+          <FiInfo size={12} />
+          {selectedIds.length} product{selectedIds.length !== 1 ? "s" : ""} selected for combo
+        </p>
+
+        <button
+          type="button"
+          onClick={onSaveClose}
+          disabled={disabled || selectedIds.length === 0}
+          className={`${primaryBtn} h-9 px-4 text-xs`}
+        >
+          <FiCheck size={14} />
+          Save
+        </button>
+      </div>
+    </div>
+  );
+};
+/* =========================================================
+   COMBO SELECTED PRODUCTS PREVIEW (modal popup)
+========================================================= */
+
+const ComboSelectedModal: React.FC<{
+  open: boolean;
+  products: CategoryProductOption[];
+  selectedIds: number[];
+  onRemove: (id: number) => void;
+  onClose: () => void;
+  disabled?: boolean;
+}> = ({ open, products, selectedIds, onRemove, onClose, disabled }) => {
+  const selectedProducts = useMemo(
+    () =>
+      selectedIds
+        .map((id) => products.find((p) => p.id === id))
+        .filter((p): p is CategoryProductOption => !!p),
+    [products, selectedIds],
+  );
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div
+        className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+              <FiEye size={17} />
+            </span>
+            <div>
+              <h3 className="text-[15px] font-bold text-slate-800">
+                Selected combo products
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {selectedProducts.length} product
+                {selectedProducts.length !== 1 ? "s" : ""} in this combo
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close"
+          >
+            <FiX size={18} />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {selectedProducts.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-8 text-center text-sm text-slate-500">
+              No products selected yet.
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {selectedProducts.map((product, idx) => (
+                <li
+                  key={product.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-[11px] font-bold text-blue-600">
+                      {idx + 1}
+                    </span>
+
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="h-10 w-10 flex-shrink-0 rounded-lg border border-slate-200 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-100 text-slate-400">
+                        <FiImage size={14} />
+                      </span>
+                    )}
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-800">
+                        {product.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {product.product_code
+                          ? `SKU: ${product.product_code}`
+                          : `ID: ${product.id}`}
+                        {product.category_name && (
+                          <>
+                            {" · "}
+                            <span className="text-slate-400">
+                              {product.category_name}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => onRemove(product.id)}
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
+                    aria-label="Remove from combo"
+                  >
+                    <FiTrash2 size={15} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <footer className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            Close
+          </button>
+        </footer>
+      </div>
     </div>
   );
 };
@@ -720,18 +1034,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [subcategories, setSubcategories] = useState<SelectOption[]>([]);
   const [categoryProducts, setCategoryProducts] = useState<CategoryProductOption[]>([]);
+  const [allProducts, setAllProducts] = useState<CategoryProductOption[]>([]);
   const [brands, setBrands] = useState<SelectOption[]>([]);
   const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
 
   const [fetchingOptions, setFetchingOptions] = useState(false);
   const [fetchingSubcategories, setFetchingSubcategories] = useState(false);
   const [fetchingCategoryProducts, setFetchingCategoryProducts] = useState(false);
+  const [fetchingAllProducts, setFetchingAllProducts] = useState(false);
+
+  // ✅ product type & combo selection — default "single" (Individual)
+  const [productType, setProductType] = useState<ProductType>("single");
+  const [comboProductIds, setComboProductIds] = useState<number[]>([]);
+  const [removedComboProductIds, setRemovedComboProductIds] = useState<number[]>([]);
+  const [originalComboIds, setOriginalComboIds] = useState<number[]>([]);
+  const [showComboPreview, setShowComboPreview] = useState(false);
+
+  // ✅ collapse picker after Save
+  const [showComboPicker, setShowComboPicker] = useState(true);
 
   const [productCode, setProductCode] = useState("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  
+
   const DEFAULT_SPECS: SpecItem[] = [
     { key: "Manufactured By", value: "", isDefault: true },
     { key: "Marketed By", value: "", isDefault: true },
@@ -803,10 +1129,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   }, []);
 
   const predefinedColors = [
-    "#28282B", "#000000", "#FFFFFF", "#F3F4F6", 
-    "#EF4444", "#F87171", "#F59E0B", "#FBBF24", 
-    "#10B981", "#34D399", "#3B82F6", "#60A5FA", 
-    "#6366F1", "#818CF8", "#8B5CF6", "#A78BFA", 
+    "#28282B", "#000000", "#FFFFFF", "#F3F4F6",
+    "#EF4444", "#F87171", "#F59E0B", "#FBBF24",
+    "#10B981", "#34D399", "#3B82F6", "#60A5FA",
+    "#6366F1", "#818CF8", "#8B5CF6", "#A78BFA",
     "#EC4899", "#F472B6", "#14B8A6", "#2DD4BF"
   ];
 
@@ -864,7 +1190,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       { label: "Category", done: !!categoryId },
       { label: "Sub category", done: !!subcategoryId },
       { label: "Brand", done: !!brandId },
-      { label: "Tax category", done: !!taxCategoryId },
+      {
+        label: "Tax category",
+        // ✅ Tax category is optional for combo
+        done: productType === "combo" ? true : !!taxCategoryId,
+      },
+      ...(productType === "combo"
+        ? [{ label: "Combo products", done: comboProductIds.length > 0 }]
+        : []),
       { label: "Retail MRP", done: Number(retailMrp) > 0 },
       { label: "Stock quantity", done: stockQuantity !== "" },
       { label: "Product image", done: images.length > 0 },
@@ -887,6 +1220,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       subcategoryId,
       brandId,
       taxCategoryId,
+      productType,
+      comboProductIds.length,
       retailMrp,
       stockQuantity,
       images.length,
@@ -922,7 +1257,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setName("");
     setSlug("");
     setDescription("");
-    
+
+    setProductType("single");
+    setComboProductIds([]);
+    setRemovedComboProductIds([]);
+    setOriginalComboIds([]);
+    setShowComboPreview(false);
+    setShowComboPicker(true);
+
     setSpecification([
       { key: "Manufactured By", value: "", isDefault: true },
       { key: "Marketed By", value: "", isDefault: true },
@@ -1048,6 +1390,82 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     };
   }, [open]);
 
+  /* =========================================================
+     FETCH ALL PRODUCTS (for Combo — not category filtered)
+  ========================================================= */
+  useEffect(() => {
+    if (!open) {
+      setAllProducts([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchAllProducts = async () => {
+      setFetchingAllProducts(true);
+
+      try {
+        // 🔁 try common product-list method names
+        const api: any = productApi;
+        let response: any = null;
+
+        if (typeof api.getAll === "function") {
+          response = await api.getAll();
+        } else if (typeof api.getAllProducts === "function") {
+          response = await api.getAllProducts();
+        } else if (typeof api.list === "function") {
+          response = await api.list();
+        } else if (typeof api.getProducts === "function") {
+          response = await api.getProducts();
+        } else {
+          throw new Error(
+            "No product-list method found on productApi (expected getAll/getAllProducts/list/getProducts).",
+          );
+        }
+
+        if (cancelled) return;
+
+        const rows = getApiArray(response);
+
+        setAllProducts(
+          rows.map((item: any) => ({
+            id: Number(item.id),
+            name: item.name || item.title || `Product ${item.id}`,
+            product_code: item.product_code || item.sku || "",
+            image_url:
+              item?.images?.[0]?.image_url ||
+              item?.image_url ||
+              item?.image ||
+              "",
+            category_id:
+              item?.category_id ?? item?.category?.id ?? undefined,
+            category_name:
+              item?.category?.name ||
+              item?.category?.title ||
+              item?.category_name ||
+              "",
+          })),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Fetch all products error:", error);
+          setAllProducts([]);
+          toast.error("Unable to load all products for combo.");
+        }
+      } finally {
+        if (!cancelled) {
+          setFetchingAllProducts(false);
+        }
+      }
+    };
+
+    void fetchAllProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open || !categoryId) {
       setSubcategories([]);
@@ -1123,6 +1541,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 item?.image_url ||
                 item?.image ||
                 "",
+              category_id:
+                item?.category_id ?? item?.category?.id ?? undefined,
+              category_name:
+                item?.category?.name ||
+                item?.category?.title ||
+                item?.category_name ||
+                "",
             })),
         );
 
@@ -1161,6 +1586,31 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     const productKey = `${product?.id ?? "new"}-${isEdit}`;
 
     if (hydratedEditKey === productKey) return;
+
+    // ✅ product type
+    const incomingType: ProductType =
+      String(product?.product_type ?? "single").toLowerCase() === "combo"
+        ? "combo"
+        : "single";
+    setProductType(incomingType);
+
+    // ✅ hydrate combo product ids from possible shapes
+    const incomingCombo: number[] = (() => {
+      const raw =
+        product?.combo_product_ids ??
+        product?.combo_products ??
+        product?.combo ??
+        product?.comboProducts ??
+        [];
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map((p: any) => Number(p?.id ?? p))
+        .filter((n: number) => Number.isFinite(n) && n > 0);
+    })();
+
+    setComboProductIds(incomingCombo);
+    setOriginalComboIds(incomingCombo);
+    setRemovedComboProductIds([]);
 
     setProductCode(
       String(product?.product_code ?? product?.sku ?? ""),
@@ -1315,6 +1765,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setRemovedImageIds([]);
     setVariantProductId("");
     setVariantHexColor("#28282B");
+    setShowComboPicker(true);
 
     setStockAdjustmentReason("");
     setStockAdjustmentQty("");
@@ -1333,6 +1784,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setName("");
     setSlug("");
     setDescription("");
+
+    setProductType("single");
+    setComboProductIds([]);
+    setRemovedComboProductIds([]);
+    setOriginalComboIds([]);
+    setShowComboPreview(false);
+    setShowComboPicker(true);
+
     setSpecification([
       { key: "Manufactured By", value: "", isDefault: true },
       { key: "Marketed By", value: "", isDefault: true },
@@ -1358,6 +1817,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setErrors({});
     setSubcategories([]);
     setCategoryProducts([]);
+    setAllProducts([]);
     setVariants([]);
     setRemovedVariantIds([]);
     setRemovedImageIds([]);
@@ -1439,6 +1899,71 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       ...previous,
       subcategory_id: undefined,
     }));
+  };
+
+  // ✅ product type change handler
+  const handleProductTypeChange = (next: ProductType) => {
+    setProductType(next);
+    setShowComboPicker(true);
+
+    if (next === "combo") {
+      // ✅ tax category is optional for combo — clear any old error
+      setErrors((prev) => ({ ...prev, tax_category_id: undefined }));
+    }
+
+    // when switching to single, drop combo selections
+    if (next === "single") {
+      setComboProductIds([]);
+      setShowComboPreview(false);
+
+      // track removed combo ids on edit
+      if (isEdit && originalComboIds.length) {
+        setRemovedComboProductIds((prev) => {
+          const merged = new Set<number>([...prev, ...originalComboIds]);
+          return Array.from(merged);
+        });
+      }
+    }
+  };
+
+  // ✅ combo toggle
+  const handleToggleComboProduct = (id: number) => {
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    setComboProductIds((prev) => {
+      const exists = prev.includes(id);
+      const next = exists ? prev.filter((x) => x !== id) : [...prev, id];
+
+      // track removed ids on edit (originally in combo, now not selected)
+      if (isEdit) {
+        setRemovedComboProductIds((removedPrev) => {
+          const removedSet = new Set<number>(removedPrev);
+          originalComboIds.forEach((origId) => {
+            if (origId && !next.includes(origId)) {
+              removedSet.add(origId);
+            } else if (origId && next.includes(origId)) {
+              removedSet.delete(origId);
+            }
+          });
+          return Array.from(removedSet);
+        });
+      }
+
+      return next;
+    });
+
+    setErrors((prev) => ({ ...prev, combo_products: undefined }));
+  };
+
+  // ✅ Save handler for combo picker (collapses list)
+  const handleSaveCombo = () => {
+    if (comboProductIds.length === 0) return;
+    setShowComboPicker(false);
+    toast.success(
+      `${comboProductIds.length} product${
+        comboProductIds.length !== 1 ? "s" : ""
+      } saved for combo`,
+    );
   };
 
   const addSpecificationField = () =>
@@ -1803,7 +2328,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     if (!categoryId) nextErrors.category_id = "Please select a category";
     if (!subcategoryId) nextErrors.subcategory_id = "Please select a subcategory";
     if (!brandId) nextErrors.brand_id = "Please select a brand";
-    if (!taxCategoryId) nextErrors.tax_category_id = "Please select a tax category";
+
+    // ✅ Tax category is required only for Individual (not Combo)
+    if (productType !== "combo" && !taxCategoryId) {
+      nextErrors.tax_category_id = "Please select a tax category";
+    }
+
+    // ✅ combo validation
+    if (productType === "combo" && comboProductIds.length === 0) {
+      nextErrors.combo_products = "Please select at least one combo product";
+    }
 
     if (!retailMrp || Number(retailMrp) <= 0) {
       nextErrors.retail_mrp = "Please enter a valid retail MRP";
@@ -1873,6 +2407,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append("slug", slug);
     formData.append("description", description);
     formData.append("specification", JSON.stringify(specObject));
+
+    // ✅ product type
+    formData.append("product_type", productType);
+
     formData.append("category_id", String(categoryId));
     formData.append("subcategory_id", String(subcategoryId));
     formData.append("brand_id", String(brandId));
@@ -1895,6 +2433,20 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     if (isElectronicsCategory) {
       formData.append("service_charge", String(serviceCharge || 0));
+    }
+
+    // ✅ combo product ids (only when combo)
+    if (productType === "combo" && comboProductIds.length) {
+      comboProductIds.forEach((id, idx) => {
+        formData.append(`combo_product_ids[${idx}]`, String(id));
+      });
+    }
+
+    // ✅ remove combo ids (only on edit)
+    if (isEdit && removedComboProductIds.length) {
+      removedComboProductIds.forEach((id, idx) => {
+        formData.append(`remove_combo_product_ids[${idx}]`, String(id));
+      });
     }
 
     if (isEdit) {
@@ -1977,6 +2529,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     return categoryProducts.filter((p) => !addedIds.has(p.id));
   }, [categoryProducts, variants]);
 
+  // ✅ combo suggestions = ALL products (not category filtered)
+  const comboProductSuggestions = useMemo(() => {
+    if (parentProductId > 0) {
+      return allProducts.filter((p) => p.id !== parentProductId);
+    }
+    return allProducts;
+  }, [allProducts, parentProductId]);
+
+  // ✅ tax category locked when combo
+  const isTaxCategoryLocked = productType === "combo";
+
+  // ✅ selected combo products resolved (for summary view)
+  const selectedComboProducts = useMemo(
+    () =>
+      comboProductIds
+        .map((id) => comboProductSuggestions.find((p) => p.id === id))
+        .filter((p): p is CategoryProductOption => !!p),
+    [comboProductIds, comboProductSuggestions],
+  );
+
   return (
     <>
       <div
@@ -2005,6 +2577,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                       {isEdit ? "Editing" : "Draft"}
+                    </span>
+
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        productType === "combo"
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {productType === "combo" ? "Combo" : "Individual"}
                     </span>
                   </div>
 
@@ -2057,6 +2639,28 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     subtitle="Name, code and where this product lives in your catalog"
                   >
                     <div className="space-y-4">
+                      {/* ✅ Ignite Product ID first */}
+                      <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                        <Field
+                          label="Ignite Product ID"
+                          required
+                          error={errors.ignite_product_id}
+                          icon={<FiPackage size={14} className="text-blue-500" />}
+                          hint="Enter the numeric Product ID provided by Ignite."
+                        >
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            required
+                            value={igniteProductId}
+                            onChange={(event) => handleIgniteProductIdChange(event.target.value)}
+                            placeholder="Enter Ignite Product ID"
+                            className={inputCls(!!errors.ignite_product_id, "!h-12 !bg-white font-medium")}
+                          />
+                        </Field>
+                      </div>
+
                       <Field label="Product name" required error={errors.name}>
                         <input
                           type="text"
@@ -2067,7 +2671,110 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         />
                       </Field>
 
+                      {/* ✅ Product type dropdown, default Individual */}
+                      <Field label="Product type" required small>
+                        <ProductTypeDropdown
+                          value={productType}
+                          onChange={handleProductTypeChange}
+                          disabled={loading}
+                        />
+                      </Field>
+
+                      {/* ✅ COMBO PRODUCTS — right below product type, BEFORE SKU/Product code */}
+                      {productType === "combo" && (
+                        <div className="rounded-2xl border border-purple-200 bg-purple-50/30 p-4">
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <div>
+                              <h4 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+                                <FiLayers size={15} className="text-purple-600" />
+                                Combo products
+                                <span className="text-rose-500">*</span>
+                              </h4>
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {comboProductIds.length > 0
+                                  ? `${comboProductIds.length} product${comboProductIds.length !== 1 ? "s" : ""} selected`
+                                  : "Pick products from any category to build the combo"}
+                              </p>
+                            </div>
+
+                            {/* ✅ View selected button — appears only if >= 1 selected */}
+                            {comboProductIds.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setShowComboPreview(true)}
+                                className={`${softBtn} h-9 px-3 text-xs !bg-purple-100 !text-purple-700 hover:!bg-purple-200`}
+                              >
+                                <FiEye size={14} />
+                                View selected ({comboProductIds.length})
+                              </button>
+                            )}
+                          </div>
+
+                          {errors.combo_products && (
+                            <p className="error-message mb-3 flex items-center gap-1 text-xs font-medium text-rose-600">
+                              <FiInfo size={13} /> {errors.combo_products}
+                            </p>
+                          )}
+
+                          {/* ✅ Picker OR collapsed summary after Save */}
+                          {showComboPicker ? (
+                            <ComboProductPicker
+                              products={comboProductSuggestions}
+                              selectedIds={comboProductIds}
+                              onToggle={handleToggleComboProduct}
+                              onSaveClose={handleSaveCombo}
+                              disabled={fetchingAllProducts || loading}
+                              loading={fetchingAllProducts}
+                            />
+                          ) : (
+                            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5">
+                              <div className="min-w-0">
+                                <p className="text-xs text-slate-600">
+                                  <span className="font-semibold text-blue-600">
+                                    {comboProductIds.length}
+                                  </span>{" "}
+                                  product
+                                  {comboProductIds.length !== 1 ? "s" : ""} selected for combo
+                                </p>
+                                {selectedComboProducts.length > 0 && (
+                                  <p className="mt-0.5 truncate text-[11px] text-slate-400">
+                                    {selectedComboProducts
+                                      .slice(0, 3)
+                                      .map((p) => p.name)
+                                      .join(", ")}
+                                    {selectedComboProducts.length > 3
+                                      ? ` +${selectedComboProducts.length - 3} more`
+                                      : ""}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowComboPreview(true)}
+                                  className={`${softBtn} h-8 px-3 text-xs`}
+                                >
+                                  <FiEye size={13} />
+                                  View
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setShowComboPicker(true)}
+                                  className={`${softBtn} h-8 px-3 text-xs`}
+                                >
+                                  <FiEdit2 size={13} />
+                                  Edit selection
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {/* ✅ SKU / Product code above slug */}
                         <Field label="SKU / Product code" required error={errors.product_code}>
                           <input
                             type="text"
@@ -2088,27 +2795,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             readOnly
                             placeholder="product-slug"
                             className={inputCls(false, "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500")}
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-                        <Field
-                          label="Ignite Product ID"
-                          required
-                          error={errors.ignite_product_id}
-                          icon={<FiPackage size={14} className="text-blue-500" />}
-                          hint="Enter the numeric Product ID provided by Ignite."
-                        >
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            required
-                            value={igniteProductId}
-                            onChange={(event) => handleIgniteProductIdChange(event.target.value)}
-                            placeholder="Enter Ignite Product ID"
-                            className={inputCls(!!errors.ignite_product_id, "!h-12 !bg-white font-medium")}
                           />
                         </Field>
                       </div>
@@ -2166,7 +2852,17 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           />
                         </Field>
 
-                        <Field label="Tax category" required error={errors.tax_category_id}>
+                        {/* ✅ Tax category — required only for Individual, optional (locked) for Combo */}
+                        <Field
+                          label="Tax category"
+                          required={productType !== "combo"}
+                          error={errors.tax_category_id}
+                          hint={
+                            isTaxCategoryLocked
+                              ? "Optional for combo products"
+                              : undefined
+                          }
+                        >
                           <SelectBox
                             value={taxCategoryId}
                             onChange={(value) => {
@@ -2177,7 +2873,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             options={taxCategories}
                             icon={<FiPercent size={16} />}
                             hasError={!!errors.tax_category_id}
-                            disabled={fetchingOptions}
+                            disabled={fetchingOptions || isTaxCategoryLocked}
                           />
                         </Field>
                       </div>
@@ -2328,7 +3024,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             >
                               <img src={image.preview} alt="Product" className="h-full w-full object-cover" draggable={false} />
                               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70" />
-                              
+
                               <span
                                 className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${
                                   image.is_primary ? "bg-blue-600 text-white" : "bg-white/90 text-slate-700"
@@ -2408,7 +3104,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                           <Field label="Hex color" small>
                             <div className="relative flex items-center gap-2" ref={colorPickerRef}>
-                              {/* CLICKABLE COLOR BOX */}
                               <button
                                 type="button"
                                 onClick={() => setShowColorPicker((prev) => !prev)}
@@ -2418,7 +3113,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 }}
                               />
 
-                              {/* POPUP COLOR PALETTE */}
                               {showColorPicker && (
                                 <div className="absolute top-12 left-0 z-50 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/50">
                                   <div className="grid grid-cols-5 gap-1.5">
@@ -2851,6 +3545,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* ✅ Selected combo products popup */}
+      <ComboSelectedModal
+        open={showComboPreview}
+        products={comboProductSuggestions}
+        selectedIds={comboProductIds}
+        onRemove={handleToggleComboProduct}
+        onClose={() => setShowComboPreview(false)}
+        disabled={loading}
+      />
     </>
   );
 };

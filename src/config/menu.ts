@@ -28,7 +28,6 @@ export const menuItems: MenuItem[] = [
     anyOf: ['order.view', 'order.details', 'order.allow'],
   },
 
-
   {
     path: '/inventory',
     label: 'Inventory',
@@ -133,68 +132,74 @@ export const menuItems: MenuItem[] = [
   },
 
   {
-    path: '/finance',
+    path: '/finance-heading',
     label: 'Finance',
     icon: 'account_balance',
-    module: 'finance',
-    anyOf: [
-      'payout.view',
-      'return_refund.view',
-      'Cancel.details',
-      'Buyback.details',
-      'Partner Data Exports.view',
-    ],
+    isHeading: true,
     children: [
       {
-        path: '/return-refund',
-        label: 'Returns & Refunds',
-        icon: 'assignment_return',
-        permission: 'return_refund.view',
-        module: 'return_refund',
-      },
-      {
-        path: '/Fiance/CancelRefund',
-        label: 'Cancel & Refunds',
-        icon: 'currency_exchange',
-        permission: 'Cancel.details',
-        module: 'Cancel',
-      },
-      {
-        path: '/Fiance/BuyBack',
-        label: 'Buy Back',
-        icon: 'replay',
-        permission: 'Buyback.details',
-        module: 'Buyback',
-      },
-      {
-        path: '/CreditNotes',
-        label: 'Credit Notes',
-        icon: 'receipt_long',
-        permission: 'payout.view',
-        module: 'payout',
-      },
-      {
-        path: '/Payment',
-        label: 'Payment Summary',
-        icon: 'payments',
-        permission: 'payout.view',
-        module: 'payout',
-      },
-      // ✅ FIXED: correct module + permissions
-      {
-        path: '/IgniteExports',
-        label: 'Partner Data Exports',
-        icon: 'receipt_long',
-        module: 'Partner Data Exports',
-        permission: 'partner data exports.view',
+        path: '/finance',
+        label: 'Order Operations',
+        icon: 'account_balance',
+        module: 'finance',
         anyOf: [
-          'partner data exports.view',
-          'partner data exports.download',
+          'payout.view',
+          'return_refund.view',
+          'Cancel.details',
+          'Buyback.details',
+          'Partner Data Exports.view',
+        ],
+        children: [
+          {
+            path: '/return-refund',
+            label: 'Returns & Refunds',
+            icon: 'assignment_return',
+            permission: 'return_refund.view',
+            module: 'return_refund',
+          },
+          {
+            path: '/Fiance/CancelRefund',
+            label: 'Cancel & Refunds',
+            icon: 'currency_exchange',
+            permission: 'Cancel.details',
+            module: 'Cancel',
+          },
+          {
+            path: '/Fiance/BuyBack',
+            label: 'Buy Back',
+            icon: 'replay',
+            permission: 'Buyback.details',
+            module: 'Buyback',
+          },
+          {
+            path: '/CreditNotes',
+            label: 'Credit Notes',
+            icon: 'receipt_long',
+            permission: 'payout.view',
+            module: 'payout',
+          },
+          {
+            path: '/Payment',
+            label: 'Payment Summary',
+            icon: 'payments',
+            permission: 'payout.view',
+            module: 'payout',
+          },
+          {
+            path: '/IgniteExports',
+            label: 'Partner Data Exports',
+            icon: 'receipt_long',
+            module: 'Partner Data Exports',
+            permission: 'partner data exports.view',
+            anyOf: [
+              'partner data exports.view',
+              'partner data exports.download',
+            ],
+          },
         ],
       },
     ],
   },
-
   {
     path: '/sales/report',
     label: 'Sales Report',
