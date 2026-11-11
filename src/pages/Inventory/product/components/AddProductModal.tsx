@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   FiPlus,
   FiUploadCloud,
@@ -29,7 +35,10 @@ import { toast } from "react-hot-toast";
 import { categoryApi } from "../../../../api/endpoints/category";
 import { taxApi } from "../../../../api/endpoints/taxApi";
 import brandsApi from "../../../../api/endpoints/brands";
-import { productApi, type UploadProgressMeta } from "../../../../api/endpoints/product";
+import {
+  productApi,
+  type UploadProgressMeta,
+} from "../../../../api/endpoints/product";
 import { usePermissions } from "../../../permissions/usePermissions";
 import UploadProgressBar from "./UploadProgressBar";
 
@@ -83,7 +92,6 @@ interface ImageItem {
 interface FormErrors {
   product_code?: string;
   name?: string;
-  ignite_product_id?: string;
   category_id?: string;
   subcategory_id?: string;
   brand_id?: string;
@@ -113,8 +121,7 @@ type StockAdjustmentOperation = "add" | "subtract";
 const isValidDecimalInput = (value: string): boolean =>
   /^\d*\.?\d*$/.test(value);
 
-const isValidIntegerInput = (value: string): boolean =>
-  /^\d*$/.test(value);
+const isValidIntegerInput = (value: string): boolean => /^\d*$/.test(value);
 
 const isValidHexColor = (value: string): boolean =>
   /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
@@ -144,9 +151,7 @@ const formatINR = (amount: number): string =>
     maximumFractionDigits: 2,
   }).format(Number.isFinite(amount) ? amount : 0);
 
-const parseSpecification = (
-  spec: string | Record<string, any>,
-): SpecItem[] => {
+const parseSpecification = (spec: string | Record<string, any>): SpecItem[] => {
   let parsed: any = {};
   try {
     parsed = typeof spec === "string" ? JSON.parse(spec) : spec;
@@ -164,8 +169,10 @@ const parseSpecification = (
     isDefault: key.trim() === "Manufactured By" || key.trim() === "Marketed By",
   }));
 
-  const hasManufacturedBy = entries.some(e => e.key.trim() === "Manufactured By");
-  const hasMarketedBy = entries.some(e => e.key.trim() === "Marketed By");
+  const hasManufacturedBy = entries.some(
+    (e) => e.key.trim() === "Manufactured By",
+  );
+  const hasMarketedBy = entries.some((e) => e.key.trim() === "Marketed By");
 
   if (!hasManufacturedBy) {
     entries.unshift({ key: "Manufactured By", value: "", isDefault: true });
@@ -256,9 +263,7 @@ const Field: React.FC<{
   <div className="min-w-0">
     <label
       className={`mb-1.5 flex items-center gap-1.5 font-semibold ${
-        small
-          ? "text-xs text-slate-600"
-          : "text-[13px] text-slate-700"
+        small ? "text-xs text-slate-600" : "text-[13px] text-slate-700"
       }`}
     >
       {icon}
@@ -343,15 +348,7 @@ const SelectBox: React.FC<{
   icon: React.ReactNode;
   hasError?: boolean;
   disabled?: boolean;
-}> = ({
-  value,
-  onChange,
-  placeholder,
-  options,
-  icon,
-  hasError,
-  disabled,
-}) => (
+}> = ({ value, onChange, placeholder, options, icon, hasError, disabled }) => (
   <div className="relative">
     <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500">
       {icon}
@@ -367,10 +364,9 @@ const SelectBox: React.FC<{
     >
       <option value="">{placeholder}</option>
 
-      {value &&
-        !options.some((option) => String(option.id) === value) && (
-          <option value={value}>Loading... (ID: {value})</option>
-        )}
+      {value && !options.some((option) => String(option.id) === value) && (
+        <option value={value}>Loading... (ID: {value})</option>
+      )}
 
       {options.map((option) => (
         <option key={option.id} value={String(option.id)}>
@@ -430,14 +426,7 @@ const VariantProductSelect: React.FC<{
   placeholder: string;
   disabled?: boolean;
   loading?: boolean;
-}> = ({
-  value,
-  onChange,
-  products,
-  placeholder,
-  disabled,
-  loading,
-}) => {
+}> = ({ value, onChange, products, placeholder, disabled, loading }) => {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -455,8 +444,7 @@ const VariantProductSelect: React.FC<{
 
     document.addEventListener("mousedown", handleClickOutside);
 
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -483,9 +471,7 @@ const VariantProductSelect: React.FC<{
 
             <span className="truncate text-sm text-slate-800">
               {selected.name}
-              {selected.product_code
-                ? ` (${selected.product_code})`
-                : ""}
+              {selected.product_code ? ` (${selected.product_code})` : ""}
             </span>
           </>
         ) : (
@@ -527,9 +513,7 @@ const VariantProductSelect: React.FC<{
                     setOpen(false);
                   }}
                   className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                    isSelected
-                      ? "bg-blue-50"
-                      : "hover:bg-slate-50"
+                    isSelected ? "bg-blue-50" : "hover:bg-slate-50"
                   }`}
                 >
                   {product.image_url ? (
@@ -700,7 +684,8 @@ const ComboProductPicker: React.FC<{
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1 text-xs text-slate-500">
           <FiInfo size={12} />
-          {selectedIds.length} product{selectedIds.length !== 1 ? "s" : ""} selected for combo
+          {selectedIds.length} product{selectedIds.length !== 1 ? "s" : ""}{" "}
+          selected for combo
         </p>
 
         <button
@@ -881,8 +866,7 @@ const StockAdjustmentForm: React.FC<{
 }) => {
   const qty = Number(quantity) || 0;
   const stock = Number(currentStock) || 0;
-  const resultingStock =
-    operation === "add" ? stock + qty : stock - qty;
+  const resultingStock = operation === "add" ? stock + qty : stock - qty;
 
   return (
     <SectionCard
@@ -968,8 +952,7 @@ const StockAdjustmentForm: React.FC<{
           >
             <FiInfo size={14} />
             <span>
-              Stock will change from <b>{stock}</b> →{" "}
-              <b>{resultingStock}</b>
+              Stock will change from <b>{stock}</b> → <b>{resultingStock}</b>
             </span>
           </div>
         )}
@@ -1024,29 +1007,29 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       hasPermission("products.add") ||
       hasPermission("product.store")
     );
-  }, [
-    isSuperAdmin,
-    hasModuleAccess,
-    hasPermission,
-    isEdit,
-  ]);
+  }, [isSuperAdmin, hasModuleAccess, hasPermission, isEdit]);
 
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [subcategories, setSubcategories] = useState<SelectOption[]>([]);
-  const [categoryProducts, setCategoryProducts] = useState<CategoryProductOption[]>([]);
+  const [categoryProducts, setCategoryProducts] = useState<
+    CategoryProductOption[]
+  >([]);
   const [allProducts, setAllProducts] = useState<CategoryProductOption[]>([]);
   const [brands, setBrands] = useState<SelectOption[]>([]);
   const [taxCategories, setTaxCategories] = useState<SelectOption[]>([]);
 
   const [fetchingOptions, setFetchingOptions] = useState(false);
   const [fetchingSubcategories, setFetchingSubcategories] = useState(false);
-  const [fetchingCategoryProducts, setFetchingCategoryProducts] = useState(false);
+  const [fetchingCategoryProducts, setFetchingCategoryProducts] =
+    useState(false);
   const [fetchingAllProducts, setFetchingAllProducts] = useState(false);
 
   // ✅ product type & combo selection — default "single" (Individual)
   const [productType, setProductType] = useState<ProductType>("single");
   const [comboProductIds, setComboProductIds] = useState<number[]>([]);
-  const [removedComboProductIds, setRemovedComboProductIds] = useState<number[]>([]);
+  const [removedComboProductIds, setRemovedComboProductIds] = useState<
+    number[]
+  >([]);
   const [originalComboIds, setOriginalComboIds] = useState<number[]>([]);
   const [showComboPreview, setShowComboPreview] = useState(false);
 
@@ -1068,8 +1051,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [subcategoryId, setSubcategoryId] = useState("");
   const [brandId, setBrandId] = useState("");
   const [taxCategoryId, setTaxCategoryId] = useState("");
-
-  const [igniteProductId, setIgniteProductId] = useState("");
 
   const [retailMrp, setRetailMrp] = useState("");
   const [retailDiscountValue, setRetailDiscountValue] = useState("");
@@ -1124,33 +1105,42 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const predefinedColors = [
-    "#28282B", "#000000", "#FFFFFF", "#F3F4F6",
-    "#EF4444", "#F87171", "#F59E0B", "#FBBF24",
-    "#10B981", "#34D399", "#3B82F6", "#60A5FA",
-    "#6366F1", "#818CF8", "#8B5CF6", "#A78BFA",
-    "#EC4899", "#F472B6", "#14B8A6", "#2DD4BF"
+    "#28282B",
+    "#000000",
+    "#FFFFFF",
+    "#F3F4F6",
+    "#EF4444",
+    "#F87171",
+    "#F59E0B",
+    "#FBBF24",
+    "#10B981",
+    "#34D399",
+    "#3B82F6",
+    "#60A5FA",
+    "#6366F1",
+    "#818CF8",
+    "#8B5CF6",
+    "#A78BFA",
+    "#EC4899",
+    "#F472B6",
+    "#14B8A6",
+    "#2DD4BF",
   ];
 
   const isElectronicsCategory = useMemo(() => {
     if (!categoryId) return false;
-    const selected = categories.find(
-      (cat) => String(cat.id) === categoryId,
-    );
+    const selected = categories.find((cat) => String(cat.id) === categoryId);
     return isElectronicsCategoryName(selected?.name);
   }, [categoryId, categories]);
 
   const pricePreview = useMemo(() => {
     const calculate = (mrp: string, discount: string) => {
       const mrpValue = Number(mrp) || 0;
-      const discountValue = Math.min(
-        100,
-        Math.max(0, Number(discount) || 0),
-      );
+      const discountValue = Math.min(100, Math.max(0, Number(discount) || 0));
 
       const saved = (mrpValue * discountValue) / 100;
 
@@ -1164,10 +1154,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     return {
       retail: calculate(retailMrp, retailDiscountValue),
-      distributor: calculate(
-        distributorMrp,
-        distributorDiscountValue,
-      ),
+      distributor: calculate(distributorMrp, distributorDiscountValue),
     };
   }, [
     retailMrp,
@@ -1180,13 +1167,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     () => [
       { label: "Product name", done: !!name.trim() },
       { label: "Product code", done: !!productCode.trim() },
-      {
-        label: "Ignite Product ID",
-        done:
-          !!igniteProductId.trim() &&
-          isValidIntegerInput(igniteProductId) &&
-          Number(igniteProductId) > 0,
-      },
       { label: "Category", done: !!categoryId },
       { label: "Sub category", done: !!subcategoryId },
       { label: "Brand", done: !!brandId },
@@ -1205,9 +1185,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         ? [
             {
               label: "Service charge",
-              done:
-                serviceCharge !== "" &&
-                Number(serviceCharge) >= 0,
+              done: serviceCharge !== "" && Number(serviceCharge) >= 0,
             },
           ]
         : []),
@@ -1215,7 +1193,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     [
       name,
       productCode,
-      igniteProductId,
       categoryId,
       subcategoryId,
       brandId,
@@ -1230,9 +1207,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     ],
   );
 
-  const completedCount = checklist.filter(
-    (item) => item.done,
-  ).length;
+  const completedCount = checklist.filter((item) => item.done).length;
 
   const completionPercent = Math.round(
     (completedCount / checklist.length) * 100,
@@ -1274,7 +1249,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSubcategoryId("");
     setBrandId("");
     setTaxCategoryId("");
-    setIgniteProductId("");
     setRetailMrp("");
     setRetailDiscountValue("");
     setDistributorMrp("");
@@ -1332,15 +1306,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       setFetchingOptions(true);
 
       try {
-        const [
-          categoriesResponse,
-          brandsResponse,
-          taxesResponse,
-        ] = await Promise.all([
-          categoryApi.getAll(),
-          brandsApi.getAll(),
-          taxApi.getAll(),
-        ]);
+        const [categoriesResponse, brandsResponse, taxesResponse] =
+          await Promise.all([
+            categoryApi.getAll(),
+            brandsApi.getAll(),
+            taxApi.getAll(),
+          ]);
 
         if (cancelled) return;
 
@@ -1437,8 +1408,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
               item?.image_url ||
               item?.image ||
               "",
-            category_id:
-              item?.category_id ?? item?.category?.id ?? undefined,
+            category_id: item?.category_id ?? item?.category?.id ?? undefined,
             category_name:
               item?.category?.name ||
               item?.category?.title ||
@@ -1484,10 +1454,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setFetchingCategoryProducts(true);
 
     const loadCategoryData = async () => {
-      const [
-        subcategoriesResult,
-        productsResult,
-      ] = await Promise.allSettled([
+      const [subcategoriesResult, productsResult] = await Promise.allSettled([
         productApi.getSubcategoriesByCategory(selectedCategoryId),
         productApi.getProductsByCategory(selectedCategoryId),
       ]);
@@ -1519,9 +1486,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
         setSubcategories([]);
 
-        toast.error(
-          "Unable to load subcategories for this category.",
-        );
+        toast.error("Unable to load subcategories for this category.");
       }
 
       if (productsResult.status === "fulfilled") {
@@ -1529,9 +1494,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
         setCategoryProducts(
           rows
-            .filter(
-              (item: any) => Number(item.id) !== parentProductId,
-            )
+            .filter((item: any) => Number(item.id) !== parentProductId)
             .map((item: any) => ({
               id: Number(item.id),
               name: item.name || item.title || `Product ${item.id}`,
@@ -1541,8 +1504,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 item?.image_url ||
                 item?.image ||
                 "",
-              category_id:
-                item?.category_id ?? item?.category?.id ?? undefined,
+              category_id: item?.category_id ?? item?.category?.id ?? undefined,
               category_name:
                 item?.category?.name ||
                 item?.category?.title ||
@@ -1553,16 +1515,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
         setVariantProductId("");
       } else {
-        console.error(
-          "Products-by-category API error:",
-          productsResult.reason,
-        );
+        console.error("Products-by-category API error:", productsResult.reason);
 
         setCategoryProducts([]);
 
-        toast.error(
-          "Unable to load products for this category.",
-        );
+        toast.error("Unable to load products for this category.");
       }
 
       setFetchingSubcategories(false);
@@ -1612,9 +1569,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setOriginalComboIds(incomingCombo);
     setRemovedComboProductIds([]);
 
-    setProductCode(
-      String(product?.product_code ?? product?.sku ?? ""),
-    );
+    setProductCode(String(product?.product_code ?? product?.sku ?? ""));
 
     setName(String(product?.name ?? ""));
     setSlug(String(product?.slug ?? ""));
@@ -1629,11 +1584,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           ],
     );
 
-    setCategoryId(
-      normalizeId(
-        product?.category_id ?? product?.category?.id,
-      ),
-    );
+    setCategoryId(normalizeId(product?.category_id ?? product?.category?.id));
 
     setSubcategoryId(
       normalizeId(
@@ -1645,19 +1596,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       ),
     );
 
-    setBrandId(
-      normalizeId(product?.brand_id ?? product?.brand?.id),
-    );
+    setBrandId(normalizeId(product?.brand_id ?? product?.brand?.id));
 
     setTaxCategoryId(
-      normalizeId(
-        product?.tax_category_id ??
-          product?.tax_category?.id,
-      ),
-    );
-
-    setIgniteProductId(
-      normalizeId(product?.ignite_product_id),
+      normalizeId(product?.tax_category_id ?? product?.tax_category?.id),
     );
 
     const retailDiscount =
@@ -1672,47 +1614,60 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setRetailMrp(
       product?.retail_mrp !== null && product?.retail_mrp !== undefined
-        ? String(product.retail_mrp) : "",
+        ? String(product.retail_mrp)
+        : "",
     );
 
     setRetailDiscountValue(
       retailDiscount !== null && retailDiscount !== undefined
-        ? String(retailDiscount) : "",
+        ? String(retailDiscount)
+        : "",
     );
 
     setDistributorMrp(
-      product?.distributor_mrp !== null && product?.distributor_mrp !== undefined
-        ? String(product.distributor_mrp) : "",
+      product?.distributor_mrp !== null &&
+        product?.distributor_mrp !== undefined
+        ? String(product.distributor_mrp)
+        : "",
     );
 
     setDistributorDiscountValue(
       distributorDiscount !== null && distributorDiscount !== undefined
-        ? String(distributorDiscount) : "",
+        ? String(distributorDiscount)
+        : "",
     );
 
     setCommissionValue(
-      product?.commission_value !== null && product?.commission_value !== undefined
-        ? String(product.commission_value) : "",
+      product?.commission_value !== null &&
+        product?.commission_value !== undefined
+        ? String(product.commission_value)
+        : "",
     );
 
     setShippingCharge(
-      product?.shipping_charge !== null && product?.shipping_charge !== undefined
-        ? String(product.shipping_charge) : "",
+      product?.shipping_charge !== null &&
+        product?.shipping_charge !== undefined
+        ? String(product.shipping_charge)
+        : "",
     );
 
     setServiceCharge(
       product?.service_charge !== null && product?.service_charge !== undefined
-        ? String(product.service_charge) : "",
+        ? String(product.service_charge)
+        : "",
     );
 
     setStockQuantity(
       product?.stock_quantity !== null && product?.stock_quantity !== undefined
-        ? String(product.stock_quantity) : "",
+        ? String(product.stock_quantity)
+        : "",
     );
 
     setLowStockThreshold(
-      product?.low_stock_threshold !== null && product?.low_stock_threshold !== undefined
-        ? String(product.low_stock_threshold) : "10",
+      product?.low_stock_threshold !== null &&
+        product?.low_stock_threshold !== undefined
+        ? String(product.low_stock_threshold)
+        : "10",
     );
 
     setIsPublished(
@@ -1726,10 +1681,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       setImages(
         product.images.map((image: any, index: number) => ({
           id: Date.now() + index,
-          preview:
-            image?.image_url ||
-            image?.image ||
-            "",
+          preview: image?.image_url || image?.image || "",
           sort_order: image?.sort_order ?? index + 1,
           is_primary:
             image?.is_primary === true ||
@@ -1752,9 +1704,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           product_id: Number(v?.product_id ?? v?.product?.id ?? 0),
           hax_color: String(v?.hax_color ?? v?.hex_color ?? "#000000"),
           productName: v?.name ?? v?.product?.name ?? undefined,
-          productCode: v?.product_code ?? v?.product?.product_code ?? v?.sku ?? undefined,
+          productCode:
+            v?.product_code ?? v?.product?.product_code ?? v?.sku ?? undefined,
           productImage:
-            v?.image ?? v?.product?.images?.[0]?.image_url ?? v?.product?.image_url ?? undefined,
+            v?.image ??
+            v?.product?.images?.[0]?.image_url ??
+            v?.product?.image_url ??
+            undefined,
         })),
       );
     } else {
@@ -1801,7 +1757,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSubcategoryId("");
     setBrandId("");
     setTaxCategoryId("");
-    setIgniteProductId("");
     setRetailMrp("");
     setRetailDiscountValue("");
     setDistributorMrp("");
@@ -1868,15 +1823,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setErrors((previous) => ({
       ...previous,
       name: undefined,
-    }));
-  };
-
-  const handleIgniteProductIdChange = (value: string) => {
-    if (!isValidIntegerInput(value)) return;
-    setIgniteProductId(value);
-    setErrors((previous) => ({
-      ...previous,
-      ignite_product_id: undefined,
     }));
   };
 
@@ -1967,19 +1913,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   };
 
   const addSpecificationField = () =>
-    setSpecification((previous) => [
-      ...previous,
-      { key: "", value: "" },
-    ]);
+    setSpecification((previous) => [...previous, { key: "", value: "" }]);
 
   const removeSpecificationField = (index: number) => {
     if (specification[index]?.isDefault) return;
     if (specification.length <= 2) return;
 
     setSpecification((previous) =>
-      previous.filter(
-        (_, currentIndex) => currentIndex !== index,
-      ),
+      previous.filter((_, currentIndex) => currentIndex !== index),
     );
   };
 
@@ -1990,9 +1931,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   ) => {
     setSpecification((previous) =>
       previous.map((item, currentIndex) =>
-        currentIndex === index
-          ? { ...item, [field]: value }
-          : item,
+        currentIndex === index ? { ...item, [field]: value } : item,
       ),
     );
   };
@@ -2004,17 +1943,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     if (!accepted.length) return;
 
-    const newImages: ImageItem[] = accepted.map(
-      (file, index) => ({
-        id: Date.now() + index + Math.random(),
-        file,
-        preview: URL.createObjectURL(file),
-        sort_order: images.length + index + 1,
-        is_primary:
-          images.length === 0 && index === 0 ? 1 : 0,
-        is_existing: false,
-      }),
-    );
+    const newImages: ImageItem[] = accepted.map((file, index) => ({
+      id: Date.now() + index + Math.random(),
+      file,
+      preview: URL.createObjectURL(file),
+      sort_order: images.length + index + 1,
+      is_primary: images.length === 0 && index === 0 ? 1 : 0,
+      is_existing: false,
+    }));
 
     setImages((previous) => [...previous, ...newImages]);
     setErrors((previous) => ({
@@ -2023,9 +1959,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }));
   };
 
-  const handleImages = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleImages = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       addImageFiles(event.target.files);
     }
@@ -2033,9 +1967,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   };
 
   const removeImage = async (id: number) => {
-    const imageToRemove = images.find(
-      (item) => item.id === id,
-    );
+    const imageToRemove = images.find((item) => item.id === id);
 
     if (!imageToRemove) return;
 
@@ -2050,19 +1982,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       if (deletingImageIds.includes(existingImageId)) return;
 
       try {
-        setDeletingImageIds((previous) => [
-          ...previous,
-          existingImageId,
-        ]);
+        setDeletingImageIds((previous) => [...previous, existingImageId]);
 
         setRemovedImageIds((previous) => [
           ...new Set([...previous, existingImageId]),
         ]);
 
         setImages((previous) => {
-          let filtered = previous.filter(
-            (item) => item.id !== id,
-          );
+          let filtered = previous.filter((item) => item.id !== id);
 
           if (
             filtered.length &&
@@ -2098,14 +2025,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }
 
     setImages((previous) => {
-      let filtered = previous.filter(
-        (item) => item.id !== id,
-      );
+      let filtered = previous.filter((item) => item.id !== id);
 
-      if (
-        filtered.length &&
-        !filtered.some((item) => item.is_primary === 1)
-      ) {
+      if (filtered.length && !filtered.some((item) => item.is_primary === 1)) {
         filtered = filtered.map((item, index) => ({
           ...item,
           is_primary: index === 0 ? 1 : 0,
@@ -2175,11 +2097,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     draggedImageIdRef.current = null;
     setDragOverImageId(null);
 
-    if (
-      sourceImageId === null ||
-      sourceImageId === targetImageId ||
-      loading
-    ) {
+    if (sourceImageId === null || sourceImageId === targetImageId || loading) {
       return;
     }
 
@@ -2316,17 +2234,13 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
 
-    if (!productCode.trim()) nextErrors.product_code = "Product code is required";
+    if (!productCode.trim())
+      nextErrors.product_code = "Product code is required";
     if (!name.trim()) nextErrors.name = "Product name is required";
 
-    if (!igniteProductId.trim()) {
-      nextErrors.ignite_product_id = "Ignite Product ID is required";
-    } else if (!isValidIntegerInput(igniteProductId) || Number(igniteProductId) <= 0) {
-      nextErrors.ignite_product_id = "Please enter a valid Ignite Product ID";
-    }
-
     if (!categoryId) nextErrors.category_id = "Please select a category";
-    if (!subcategoryId) nextErrors.subcategory_id = "Please select a subcategory";
+    if (!subcategoryId)
+      nextErrors.subcategory_id = "Please select a subcategory";
     if (!brandId) nextErrors.brand_id = "Please select a brand";
 
     // ✅ Tax category is required only for Individual (not Combo)
@@ -2347,14 +2261,21 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       nextErrors.stock_quantity = "Please enter a valid stock quantity";
     }
 
-    if (shippingCharge !== "" && (Number.isNaN(Number(shippingCharge)) || Number(shippingCharge) < 0)) {
+    if (
+      shippingCharge !== "" &&
+      (Number.isNaN(Number(shippingCharge)) || Number(shippingCharge) < 0)
+    ) {
       nextErrors.shipping_charge = "Please enter a valid shipping charge";
     }
 
     if (isElectronicsCategory) {
       if (!serviceCharge.trim()) {
-        nextErrors.service_charge = "Service charge is required for Electronics products";
-      } else if (Number.isNaN(Number(serviceCharge)) || Number(serviceCharge) < 0) {
+        nextErrors.service_charge =
+          "Service charge is required for Electronics products";
+      } else if (
+        Number.isNaN(Number(serviceCharge)) ||
+        Number(serviceCharge) < 0
+      ) {
         nextErrors.service_charge = "Please enter a valid service charge";
       }
     }
@@ -2368,15 +2289,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       const reasonFilled = stockAdjustmentReason.trim() !== "";
 
       if (quantityFilled && Number(stockAdjustmentQty) <= 0) {
-        nextErrors.manual_stock_adjustment = "Adjustment quantity must be greater than 0";
+        nextErrors.manual_stock_adjustment =
+          "Adjustment quantity must be greater than 0";
       }
 
       if (quantityFilled && !reasonFilled) {
-        nextErrors.reason_for_stock_adjustment = "Reason is required when adjusting stock";
+        nextErrors.reason_for_stock_adjustment =
+          "Reason is required when adjusting stock";
       }
 
       if (reasonFilled && !quantityFilled) {
-        nextErrors.manual_stock_adjustment = "Quantity is required when a reason is provided";
+        nextErrors.manual_stock_adjustment =
+          "Quantity is required when a reason is provided";
       }
 
       if (
@@ -2384,7 +2308,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         quantityFilled &&
         Number(stockAdjustmentQty) > Number(stockQuantity || 0)
       ) {
-        nextErrors.manual_stock_adjustment = "Adjustment quantity cannot exceed current stock";
+        nextErrors.manual_stock_adjustment =
+          "Adjustment quantity cannot exceed current stock";
       }
     }
 
@@ -2415,7 +2340,6 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append("subcategory_id", String(subcategoryId));
     formData.append("brand_id", String(brandId));
     formData.append("tax_category_id", String(taxCategoryId));
-    formData.append("ignite_product_id", String(Number(igniteProductId)));
     formData.append("stock_quantity", String(stockQuantity || 0));
     formData.append("low_stock_threshold", String(lowStockThreshold || 0));
     formData.append("is_published", String(isPublished ? 1 : 0));
@@ -2427,7 +2351,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     formData.append("retail_discount_value", String(retailDiscountValue || 0));
     formData.append("distributor_mrp", String(distributorMrp || 0));
     formData.append("distributor_discount_type", "percentage");
-    formData.append("distributor_discount_value", String(distributorDiscountValue || 0));
+    formData.append(
+      "distributor_discount_value",
+      String(distributorDiscountValue || 0),
+    );
     formData.append("commission_value", String(Number(commissionValue || 0)));
     formData.append("shipping_charge", String(shippingCharge || 0));
 
@@ -2450,9 +2377,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     }
 
     if (isEdit) {
-      formData.append("reason_for_stock_adjustment", stockAdjustmentReason.trim());
-      formData.append("manual_stock_adjustment", stockAdjustmentQty.trim() || "0");
-      formData.append("manual_stock_adjustment_operation", stockAdjustmentOperation);
+      formData.append(
+        "reason_for_stock_adjustment",
+        stockAdjustmentReason.trim(),
+      );
+      formData.append(
+        "manual_stock_adjustment",
+        stockAdjustmentQty.trim() || "0",
+      );
+      formData.append(
+        "manual_stock_adjustment_operation",
+        stockAdjustmentOperation,
+      );
 
       const existingImageIds = images
         .filter((image) => image.is_existing && image.existing_id)
@@ -2474,8 +2410,14 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       .forEach((image, index) => {
         if (!image.file) return;
         formData.append(`product_images[${index}][image]`, image.file);
-        formData.append(`product_images[${index}][sort_order]`, String(image.sort_order));
-        formData.append(`product_images[${index}][is_primary]`, String(image.is_primary));
+        formData.append(
+          `product_images[${index}][sort_order]`,
+          String(image.sort_order),
+        );
+        formData.append(
+          `product_images[${index}][is_primary]`,
+          String(image.is_primary),
+        );
       });
 
     variants.forEach((v, index) => {
@@ -2502,7 +2444,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     if (!canSubmit) {
       toast.error(
-        isEdit ? "You don't have permission to update products." : "You don't have permission to add products."
+        isEdit
+          ? "You don't have permission to update products."
+          : "You don't have permission to add products.",
       );
       return;
     }
@@ -2639,35 +2583,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     subtitle="Name, code and where this product lives in your catalog"
                   >
                     <div className="space-y-4">
-                      {/* ✅ Ignite Product ID first */}
-                      <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-                        <Field
-                          label="Ignite Product ID"
-                          required
-                          error={errors.ignite_product_id}
-                          icon={<FiPackage size={14} className="text-blue-500" />}
-                          hint="Enter the numeric Product ID provided by Ignite."
-                        >
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            required
-                            value={igniteProductId}
-                            onChange={(event) => handleIgniteProductIdChange(event.target.value)}
-                            placeholder="Enter Ignite Product ID"
-                            className={inputCls(!!errors.ignite_product_id, "!h-12 !bg-white font-medium")}
-                          />
-                        </Field>
-                      </div>
-
                       <Field label="Product name" required error={errors.name}>
                         <input
                           type="text"
                           value={name}
-                          onChange={(event) => handleNameChange(event.target.value)}
+                          onChange={(event) =>
+                            handleNameChange(event.target.value)
+                          }
                           placeholder="e.g. SoundMax Pro 5G Smartphone"
-                          className={inputCls(!!errors.name, "!h-12 !text-[15px] font-medium")}
+                          className={inputCls(
+                            !!errors.name,
+                            "!h-12 !text-[15px] font-medium",
+                          )}
                         />
                       </Field>
 
@@ -2686,7 +2613,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <div className="mb-3 flex items-center justify-between gap-2">
                             <div>
                               <h4 className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
-                                <FiLayers size={15} className="text-purple-600" />
+                                <FiLayers
+                                  size={15}
+                                  className="text-purple-600"
+                                />
                                 Combo products
                                 <span className="text-rose-500">*</span>
                               </h4>
@@ -2734,7 +2664,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                     {comboProductIds.length}
                                   </span>{" "}
                                   product
-                                  {comboProductIds.length !== 1 ? "s" : ""} selected for combo
+                                  {comboProductIds.length !== 1 ? "s" : ""}{" "}
+                                  selected for combo
                                 </p>
                                 {selectedComboProducts.length > 0 && (
                                   <p className="mt-0.5 truncate text-[11px] text-slate-400">
@@ -2775,26 +2706,39 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         {/* ✅ SKU / Product code above slug */}
-                        <Field label="SKU / Product code" required error={errors.product_code}>
+                        <Field
+                          label="SKU / Product code"
+                          required
+                          error={errors.product_code}
+                        >
                           <input
                             type="text"
                             value={productCode}
                             onChange={(event) => {
                               setProductCode(event.target.value);
-                              setErrors((prev) => ({ ...prev, product_code: undefined }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                product_code: undefined,
+                              }));
                             }}
                             placeholder="e.g. SMP5G-BLACK-128"
                             className={inputCls(!!errors.product_code)}
                           />
                         </Field>
 
-                        <Field label="Slug" hint="Auto-generated from product name">
+                        <Field
+                          label="Slug"
+                          hint="Auto-generated from product name"
+                        >
                           <input
                             type="text"
                             value={slug}
                             readOnly
                             placeholder="product-slug"
-                            className={inputCls(false, "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500")}
+                            className={inputCls(
+                              false,
+                              "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500",
+                            )}
                           />
                         </Field>
                       </div>
@@ -2802,11 +2746,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       <div className="h-px bg-slate-100" />
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field label="Category" required error={errors.category_id}>
+                        <Field
+                          label="Category"
+                          required
+                          error={errors.category_id}
+                        >
                           <SelectBox
                             value={categoryId}
                             onChange={handleCategoryChange}
-                            placeholder={fetchingOptions ? "Loading categories..." : "Select category..."}
+                            placeholder={
+                              fetchingOptions
+                                ? "Loading categories..."
+                                : "Select category..."
+                            }
                             options={categories}
                             icon={<FiTag size={16} />}
                             hasError={!!errors.category_id}
@@ -2818,7 +2770,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           label="Sub category"
                           required
                           error={errors.subcategory_id}
-                          hint={!categoryId ? "Select a category first" : undefined}
+                          hint={
+                            !categoryId ? "Select a category first" : undefined
+                          }
                         >
                           <SelectBox
                             value={subcategoryId}
@@ -2842,7 +2796,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             value={brandId}
                             onChange={(value) => {
                               setBrandId(value);
-                              setErrors((prev) => ({ ...prev, brand_id: undefined }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                brand_id: undefined,
+                              }));
                             }}
                             placeholder="Select brand..."
                             options={brands}
@@ -2867,7 +2824,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             value={taxCategoryId}
                             onChange={(value) => {
                               setTaxCategoryId(value);
-                              setErrors((prev) => ({ ...prev, tax_category_id: undefined }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                tax_category_id: undefined,
+                              }));
                             }}
                             placeholder="Select tax..."
                             options={taxCategories}
@@ -2916,27 +2876,44 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             <input
                               type="text"
                               value={item.key}
-                              onChange={(event) => updateSpecification(index, "key", event.target.value)}
+                              onChange={(event) =>
+                                updateSpecification(
+                                  index,
+                                  "key",
+                                  event.target.value,
+                                )
+                              }
                               placeholder="Key (e.g., Display)"
                               readOnly={item.isDefault}
                               className={inputCls(
                                 false,
-                                `!h-10 min-w-0 flex-1 ${item.isDefault ? "!bg-slate-100 cursor-not-allowed" : ""}`
+                                `!h-10 min-w-0 flex-1 ${item.isDefault ? "!bg-slate-100 cursor-not-allowed" : ""}`,
                               )}
                             />
 
                             <input
                               type="text"
                               value={item.value}
-                              onChange={(event) => updateSpecification(index, "value", event.target.value)}
+                              onChange={(event) =>
+                                updateSpecification(
+                                  index,
+                                  "value",
+                                  event.target.value,
+                                )
+                              }
                               placeholder="Value (e.g., 6.7-inch AMOLED)"
-                              className={inputCls(false, "!h-10 min-w-0 flex-1")}
+                              className={inputCls(
+                                false,
+                                "!h-10 min-w-0 flex-1",
+                              )}
                             />
 
                             <button
                               type="button"
                               onClick={() => removeSpecificationField(index)}
-                              disabled={!!item.isDefault || specification.length <= 2}
+                              disabled={
+                                !!item.isDefault || specification.length <= 2
+                              }
                               className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <FiTrash2 size={16} />
@@ -2958,16 +2935,27 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         : "Upload at least one image"
                     }
                     action={
-                      <label className={`${primaryBtn} h-9 cursor-pointer px-3 text-xs`}>
+                      <label
+                        className={`${primaryBtn} h-9 cursor-pointer px-3 text-xs`}
+                      >
                         <FiPlus size={14} /> Add images
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImages}
+                        />
                       </label>
                     }
                   >
                     {images.length > 1 && (
                       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/60 px-3.5 py-2.5 text-xs text-slate-600">
                         <FiMove size={14} className="text-blue-500" />
-                        <span>Drag and drop images to change their order, or choose a cover image.</span>
+                        <span>
+                          Drag and drop images to change their order, or choose
+                          a cover image.
+                        </span>
                       </div>
                     )}
 
@@ -2982,36 +2970,61 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-500 shadow-sm ring-1 ring-slate-100">
                           <FiUploadCloud size={26} />
                         </span>
-                        <p className="mt-3 text-sm font-semibold text-slate-700">Upload product images</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Drag & drop, or <span className="font-semibold text-blue-600">browse files</span> to select multiple images
+                        <p className="mt-3 text-sm font-semibold text-slate-700">
+                          Upload product images
                         </p>
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
+                        <p className="mt-1 text-xs text-slate-500">
+                          Drag & drop, or{" "}
+                          <span className="font-semibold text-blue-600">
+                            browse files
+                          </span>{" "}
+                          to select multiple images
+                        </p>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImages}
+                        />
                       </label>
                     ) : (
                       <div className="grid grid-cols-2 gap-3 rounded-2xl p-1 sm:grid-cols-3 xl:grid-cols-4">
                         {images.map((image, index) => {
-                          const busy = image.is_existing && image.existing_id
-                            ? arrangingImageIds.includes(Number(image.existing_id))
-                            : false;
+                          const busy =
+                            image.is_existing && image.existing_id
+                              ? arrangingImageIds.includes(
+                                  Number(image.existing_id),
+                                )
+                              : false;
 
-                          const deleting = image.is_existing && image.existing_id
-                            ? deletingImageIds.includes(Number(image.existing_id))
-                            : false;
+                          const deleting =
+                            image.is_existing && image.existing_id
+                              ? deletingImageIds.includes(
+                                  Number(image.existing_id),
+                                )
+                              : false;
 
                           return (
                             <div
                               key={image.id}
                               draggable={!loading && !busy}
-                              onDragStart={(event) => handleImageDragStart(event, image.id)}
+                              onDragStart={(event) =>
+                                handleImageDragStart(event, image.id)
+                              }
                               onDragOver={(event) => {
                                 event.preventDefault();
-                                if (draggedImageIdRef.current && draggedImageIdRef.current !== image.id) {
+                                if (
+                                  draggedImageIdRef.current &&
+                                  draggedImageIdRef.current !== image.id
+                                ) {
                                   setDragOverImageId(image.id);
                                 }
                               }}
                               onDragLeave={() => setDragOverImageId(null)}
-                              onDrop={(event) => void handleImageDrop(event, image.id)}
+                              onDrop={(event) =>
+                                void handleImageDrop(event, image.id)
+                              }
                               onDragEnd={() => {
                                 draggedImageIdRef.current = null;
                                 setDragOverImageId(null);
@@ -3022,12 +3035,19 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   : "border-slate-200 hover:shadow-md"
                               } ${busy ? "opacity-70" : ""}`}
                             >
-                              <img src={image.preview} alt="Product" className="h-full w-full object-cover" draggable={false} />
+                              <img
+                                src={image.preview}
+                                alt="Product"
+                                className="h-full w-full object-cover"
+                                draggable={false}
+                              />
                               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70" />
 
                               <span
                                 className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${
-                                  image.is_primary ? "bg-blue-600 text-white" : "bg-white/90 text-slate-700"
+                                  image.is_primary
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-white/90 text-slate-700"
                                 }`}
                               >
                                 {image.is_primary ? "Cover" : `#${index + 1}`}
@@ -3037,7 +3057,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => void handleMakePrimary(image)}
-                                  disabled={!!image.is_primary || deleting || busy}
+                                  disabled={
+                                    !!image.is_primary || deleting || busy
+                                  }
                                   className="rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold text-blue-600 shadow-sm disabled:opacity-50"
                                 >
                                   {image.is_primary ? "Primary" : "Make cover"}
@@ -3064,8 +3086,16 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
                         <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition-colors hover:border-blue-300 hover:bg-blue-50/50">
                           <FiPlus size={22} className="text-blue-500" />
-                          <span className="mt-1 text-xs font-semibold text-slate-600">Add more</span>
-                          <input type="file" multiple accept="image/*" className="hidden" onChange={handleImages} />
+                          <span className="mt-1 text-xs font-semibold text-slate-600">
+                            Add more
+                          </span>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImages}
+                          />
                         </label>
                       </div>
                     )}
@@ -3080,7 +3110,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     {!categoryId ? (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                         <p className="font-semibold">Select a category first</p>
-                        <p className="mt-1 text-xs">Products will appear here after a category is selected above.</p>
+                        <p className="mt-1 text-xs">
+                          Products will appear here after a category is selected
+                          above.
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -3097,19 +3130,31 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                     ? "Choose a product..."
                                     : "No products available"
                               }
-                              disabled={fetchingCategoryProducts || availableCategoryProducts.length === 0}
+                              disabled={
+                                fetchingCategoryProducts ||
+                                availableCategoryProducts.length === 0
+                              }
                               loading={fetchingCategoryProducts}
                             />
                           </Field>
 
                           <Field label="Hex color" small>
-                            <div className="relative flex items-center gap-2" ref={colorPickerRef}>
+                            <div
+                              className="relative flex items-center gap-2"
+                              ref={colorPickerRef}
+                            >
                               <button
                                 type="button"
-                                onClick={() => setShowColorPicker((prev) => !prev)}
+                                onClick={() =>
+                                  setShowColorPicker((prev) => !prev)
+                                }
                                 className="h-10 w-10 flex-shrink-0 rounded-xl border border-slate-300 shadow-sm cursor-pointer transition-transform hover:scale-105"
                                 style={{
-                                  backgroundColor: isValidHexColor(variantHexColor) ? variantHexColor : "#ffffff",
+                                  backgroundColor: isValidHexColor(
+                                    variantHexColor,
+                                  )
+                                    ? variantHexColor
+                                    : "#ffffff",
                                 }}
                               />
 
@@ -3136,12 +3181,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               <input
                                 type="text"
                                 value={variantHexColor}
-                                onChange={(event) => setVariantHexColor(event.target.value)}
+                                onChange={(event) =>
+                                  setVariantHexColor(event.target.value)
+                                }
                                 placeholder="#28282B"
                                 maxLength={7}
                                 className={inputCls(
-                                  variantHexColor.length > 0 && !isValidHexColor(variantHexColor),
-                                  "!h-10"
+                                  variantHexColor.length > 0 &&
+                                    !isValidHexColor(variantHexColor),
+                                  "!h-10",
                                 )}
                               />
                             </div>
@@ -3150,21 +3198,32 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <button
                             type="button"
                             onClick={handleAddVariant}
-                            disabled={!categoryId || fetchingCategoryProducts || !variantProductId}
+                            disabled={
+                              !categoryId ||
+                              fetchingCategoryProducts ||
+                              !variantProductId
+                            }
                             className={`${primaryBtn} h-10 px-4 text-sm`}
                           >
                             <FiPlus size={16} /> Add
                           </button>
                         </div>
 
-                        {variantHexColor && !isValidHexColor(variantHexColor) && (
-                          <p className="text-xs font-medium text-rose-600">Use #RGB or #RRGGBB format.</p>
-                        )}
+                        {variantHexColor &&
+                          !isValidHexColor(variantHexColor) && (
+                            <p className="text-xs font-medium text-rose-600">
+                              Use #RGB or #RRGGBB format.
+                            </p>
+                          )}
 
                         {variants.length === 0 ? (
                           <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-5 text-center text-xs text-slate-500">
-                            No variants added yet. Pick a product and hex color, then click{" "}
-                            <span className="font-semibold text-blue-600">Add</span>.
+                            No variants added yet. Pick a product and hex color,
+                            then click{" "}
+                            <span className="font-semibold text-blue-600">
+                              Add
+                            </span>
+                            .
                           </div>
                         ) : (
                           <ul className="space-y-2">
@@ -3187,21 +3246,30 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                   )}
                                   <div className="min-w-0">
                                     <p className="truncate text-sm font-semibold text-slate-800">
-                                      {variant.productName || `Product #${variant.product_id}`}
+                                      {variant.productName ||
+                                        `Product #${variant.product_id}`}
                                     </p>
                                     <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
                                       <span className="truncate">
-                                        {variant.productCode ? `SKU: ${variant.productCode}` : `ID: ${variant.product_id}`}
+                                        {variant.productCode
+                                          ? `SKU: ${variant.productCode}`
+                                          : `ID: ${variant.product_id}`}
                                       </span>
                                       <span className="text-slate-300">·</span>
                                       <span className="inline-flex items-center gap-1">
                                         <span
                                           className="h-3 w-3 flex-shrink-0 rounded-full border border-slate-300 shadow-inner"
                                           style={{
-                                            backgroundColor: isValidHexColor(variant.hax_color) ? variant.hax_color : "#ffffff",
+                                            backgroundColor: isValidHexColor(
+                                              variant.hax_color,
+                                            )
+                                              ? variant.hax_color
+                                              : "#ffffff",
                                           }}
                                         />
-                                        <span className="font-mono">{variant.hax_color}</span>
+                                        <span className="font-mono">
+                                          {variant.hax_color}
+                                        </span>
                                       </span>
                                     </div>
                                   </div>
@@ -3227,33 +3295,54 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 <aside className="min-w-0 space-y-6 lg:sticky lg:top-0 lg:self-start">
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-5 text-white shadow-lg shadow-blue-500/20">
                     <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-                    <p className="relative text-xs font-medium text-blue-100">Customer pays (retail)</p>
+                    <p className="relative text-xs font-medium text-blue-100">
+                      Customer pays (retail)
+                    </p>
                     <div className="relative mt-1 flex items-end gap-2">
-                      <span className="text-3xl font-bold tracking-tight">₹{formatINR(pricePreview.retail.final)}</span>
-                      {pricePreview.retail.discount > 0 && pricePreview.retail.mrp > 0 && (
-                        <span className="mb-1 text-sm text-blue-200 line-through">₹{formatINR(pricePreview.retail.mrp)}</span>
-                      )}
+                      <span className="text-3xl font-bold tracking-tight">
+                        ₹{formatINR(pricePreview.retail.final)}
+                      </span>
+                      {pricePreview.retail.discount > 0 &&
+                        pricePreview.retail.mrp > 0 && (
+                          <span className="mb-1 text-sm text-blue-200 line-through">
+                            ₹{formatINR(pricePreview.retail.mrp)}
+                          </span>
+                        )}
                     </div>
                     <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs">
                       {pricePreview.retail.discount > 0 && (
                         <span className="rounded-full bg-emerald-400/20 px-2.5 py-1 font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
-                          {pricePreview.retail.discount}% off · save ₹{formatINR(pricePreview.retail.saved)}
+                          {pricePreview.retail.discount}% off · save ₹
+                          {formatINR(pricePreview.retail.saved)}
                         </span>
                       )}
                       {pricePreview.distributor.mrp > 0 && (
                         <span className="rounded-full bg-white/10 px-2.5 py-1 font-medium ring-1 ring-white/20">
-                          Distributor ₹{formatINR(pricePreview.distributor.final)}
+                          Distributor ₹
+                          {formatINR(pricePreview.distributor.final)}
                         </span>
                       )}
-                      {pricePreview.retail.mrp === 0 && <span className="text-blue-200">Enter MRP to preview final price</span>}
+                      {pricePreview.retail.mrp === 0 && (
+                        <span className="text-blue-200">
+                          Enter MRP to preview final price
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* PRICING */}
-                  <SectionCard icon={<FaRupeeSign size={17} />} title="Pricing" subtitle="Retail, distributor and shipping">
+                  <SectionCard
+                    icon={<FaRupeeSign size={17} />}
+                    title="Pricing"
+                    subtitle="Retail, distributor and shipping"
+                  >
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-3">
-                        <Field label="Retail MRP" required error={errors.retail_mrp}>
+                        <Field
+                          label="Retail MRP"
+                          required
+                          error={errors.retail_mrp}
+                        >
                           <AdornedInput
                             prefix="₹"
                             value={retailMrp}
@@ -3262,7 +3351,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             onChange={(value) => {
                               if (isValidDecimalInput(value)) {
                                 setRetailMrp(value);
-                                setErrors((prev) => ({ ...prev, retail_mrp: undefined }));
+                                setErrors((prev) => ({
+                                  ...prev,
+                                  retail_mrp: undefined,
+                                }));
                               }
                             }}
                           />
@@ -3273,7 +3365,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             value={retailDiscountValue}
                             placeholder="40"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) setRetailDiscountValue(value);
+                              if (isValidDecimalInput(value))
+                                setRetailDiscountValue(value);
                             }}
                           />
                         </Field>
@@ -3283,7 +3376,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             value={distributorMrp}
                             placeholder="90000"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) setDistributorMrp(value);
+                              if (isValidDecimalInput(value))
+                                setDistributorMrp(value);
                             }}
                           />
                         </Field>
@@ -3293,7 +3387,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                             value={distributorDiscountValue}
                             placeholder="35"
                             onChange={(value) => {
-                              if (isValidDecimalInput(value)) setDistributorDiscountValue(value);
+                              if (isValidDecimalInput(value))
+                                setDistributorDiscountValue(value);
                             }}
                           />
                         </Field>
@@ -3307,7 +3402,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           value={commissionValue}
                           placeholder="0"
                           onChange={(value) => {
-                            if (isValidIntegerInput(value)) setCommissionValue(value);
+                            if (isValidIntegerInput(value))
+                              setCommissionValue(value);
                           }}
                         />
                       </Field>
@@ -3326,7 +3422,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onChange={(value) => {
                             if (isValidDecimalInput(value)) {
                               setShippingCharge(value);
-                              setErrors((prev) => ({ ...prev, shipping_charge: undefined }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                shipping_charge: undefined,
+                              }));
                             }
                           }}
                         />
@@ -3337,7 +3436,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           <Field
                             label="Service Charge"
                             required
-                            icon={<FiTool size={14} className="text-blue-500" />}
+                            icon={
+                              <FiTool size={14} className="text-blue-500" />
+                            }
                             error={errors.service_charge}
                             hint="Only applicable for Electronics products"
                           >
@@ -3349,7 +3450,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               onChange={(value) => {
                                 if (isValidDecimalInput(value)) {
                                   setServiceCharge(value);
-                                  setErrors((prev) => ({ ...prev, service_charge: undefined }));
+                                  setErrors((prev) => ({
+                                    ...prev,
+                                    service_charge: undefined,
+                                  }));
                                 }
                               }}
                             />
@@ -3360,9 +3464,17 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   </SectionCard>
 
                   {/* INVENTORY */}
-                  <SectionCard icon={<FiPackage size={19} />} title="Inventory" subtitle="Stock and alerts">
+                  <SectionCard
+                    icon={<FiPackage size={19} />}
+                    title="Inventory"
+                    subtitle="Stock and alerts"
+                  >
                     <div className="grid grid-cols-2 gap-3">
-                      <Field label="Stock quantity" required error={errors.stock_quantity}>
+                      <Field
+                        label="Stock quantity"
+                        required
+                        error={errors.stock_quantity}
+                      >
                         <AdornedInput
                           inputMode="numeric"
                           value={stockQuantity}
@@ -3371,7 +3483,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           onChange={(value) => {
                             if (isValidIntegerInput(value)) {
                               setStockQuantity(value);
-                              setErrors((prev) => ({ ...prev, stock_quantity: undefined }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                stock_quantity: undefined,
+                              }));
                             }
                           }}
                         />
@@ -3382,13 +3497,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           value={lowStockThreshold}
                           placeholder="10"
                           onChange={(value) => {
-                            if (isValidIntegerInput(value)) setLowStockThreshold(value);
+                            if (isValidIntegerInput(value))
+                              setLowStockThreshold(value);
                           }}
                         />
                       </Field>
                     </div>
                     <p className="mt-3 flex items-center gap-1 text-xs text-slate-400">
-                      <FiInfo size={12} /> You'll be notified when stock falls below this number
+                      <FiInfo size={12} /> You'll be notified when stock falls
+                      below this number
                     </p>
                   </SectionCard>
 
@@ -3397,12 +3514,18 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                       reason={stockAdjustmentReason}
                       onReasonChange={(value) => {
                         setStockAdjustmentReason(value);
-                        setErrors((prev) => ({ ...prev, reason_for_stock_adjustment: undefined }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          reason_for_stock_adjustment: undefined,
+                        }));
                       }}
                       quantity={stockAdjustmentQty}
                       onQuantityChange={(value) => {
                         setStockAdjustmentQty(value);
-                        setErrors((prev) => ({ ...prev, manual_stock_adjustment: undefined }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          manual_stock_adjustment: undefined,
+                        }));
                       }}
                       operation={stockAdjustmentOperation}
                       onOperationChange={setStockAdjustmentOperation}
@@ -3412,16 +3535,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                   )}
 
                   {/* PUBLISHING */}
-                  <SectionCard icon={<FiTag size={19} />} title="Publishing" subtitle="Control store visibility">
+                  <SectionCard
+                    icon={<FiTag size={19} />}
+                    title="Publishing"
+                    subtitle="Control store visibility"
+                  >
                     <div
                       className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors ${
-                        isPublished ? "border-emerald-100 bg-emerald-50/50" : "border-slate-200 bg-slate-50"
+                        isPublished
+                          ? "border-emerald-100 bg-emerald-50/50"
+                          : "border-slate-200 bg-slate-50"
                       }`}
                     >
                       <div>
-                        <p className="text-sm font-bold text-slate-800">{isPublished ? "Published" : "Hidden"}</p>
+                        <p className="text-sm font-bold text-slate-800">
+                          {isPublished ? "Published" : "Hidden"}
+                        </p>
                         <p className="text-xs text-slate-500">
-                          {isPublished ? "Visible to customers" : "Not visible to customers"}
+                          {isPublished
+                            ? "Visible to customers"
+                            : "Not visible to customers"}
                         </p>
                       </div>
                       <button
@@ -3456,15 +3589,26 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </div>
                     <ul className="grid grid-cols-2 gap-x-3 gap-y-2">
                       {checklist.map((item) => (
-                        <li key={item.label} className="flex items-center gap-2 text-xs">
+                        <li
+                          key={item.label}
+                          className="flex items-center gap-2 text-xs"
+                        >
                           <span
                             className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                              item.done ? "bg-emerald-500 text-white" : "bg-slate-200 text-transparent"
+                              item.done
+                                ? "bg-emerald-500 text-white"
+                                : "bg-slate-200 text-transparent"
                             }`}
                           >
                             <FiCheck size={10} strokeWidth={3} />
                           </span>
-                          <span className={item.done ? "font-medium text-slate-700" : "text-slate-400"}>
+                          <span
+                            className={
+                              item.done
+                                ? "font-medium text-slate-700"
+                                : "text-slate-400"
+                            }
+                          >
                             {item.label}
                           </span>
                         </li>
@@ -3485,14 +3629,24 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                 total={uploadProgress.total}
                 bytesPerSecond={uploadProgress.bytesPerSecond}
                 estimatedRemainingMs={uploadProgress.estimatedRemainingMs}
-                label={isEdit ? "Updating product & images…" : "Uploading product & images…"}
+                label={
+                  isEdit
+                    ? "Updating product & images…"
+                    : "Uploading product & images…"
+                }
               />
             )}
 
             <div className="flex items-center justify-between gap-3">
               <p className="hidden text-xs text-slate-500 sm:block">
-                <span className="font-semibold text-blue-600">{completedCount}/{checklist.length}</span> required items complete · press{" "}
-                <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-600">Esc</kbd> to close
+                <span className="font-semibold text-blue-600">
+                  {completedCount}/{checklist.length}
+                </span>{" "}
+                required items complete · press{" "}
+                <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-600">
+                  Esc
+                </kbd>{" "}
+                to close
               </p>
 
               <div className="ml-auto flex gap-3">
@@ -3520,9 +3674,25 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     "Checking permissions..."
                   ) : loading ? (
                     <>
-                      <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      <svg
+                        className="h-4 w-4 animate-spin text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
                       </svg>
                       {isEdit ? "Updating..." : "Adding..."}
                     </>
@@ -3539,7 +3709,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
             {!permissionsLoading && !canSubmit && (
               <p className="text-right text-xs text-rose-600">
-                You don't have permission to {isEdit ? "update" : "add"} products.
+                You don't have permission to {isEdit ? "update" : "add"}{" "}
+                products.
               </p>
             )}
           </div>
