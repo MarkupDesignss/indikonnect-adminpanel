@@ -205,10 +205,9 @@ const isElectronicsCategoryName = (name?: string | null): boolean => {
 ========================================================= */
 
 const inputCls = (hasError?: boolean, extra = "") =>
-  `h-11 w-full rounded-xl border ${
-    hasError
-      ? "border-rose-400 bg-rose-50/50"
-      : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
+  `h-11 w-full rounded-xl border ${hasError
+    ? "border-rose-400 bg-rose-50/50"
+    : "border-slate-200 bg-slate-50/80 hover:border-slate-300"
   } px-3.5 text-sm text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-500/10 ${extra}`;
 
 const primaryBtn =
@@ -262,9 +261,8 @@ const Field: React.FC<{
 }> = ({ label, required, error, hint, icon, small, children }) => (
   <div className="min-w-0">
     <label
-      className={`mb-1.5 flex items-center gap-1.5 font-semibold ${
-        small ? "text-xs text-slate-600" : "text-[13px] text-slate-700"
-      }`}
+      className={`mb-1.5 flex items-center gap-1.5 font-semibold ${small ? "text-xs text-slate-600" : "text-[13px] text-slate-700"
+        }`}
     >
       {icon}
       {label}
@@ -310,35 +308,34 @@ const AdornedInput: React.FC<{
   compact,
   disabled,
 }) => (
-  <div className="relative">
-    {prefix && (
-      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-500">
-        {prefix}
-      </span>
-    )}
+    <div className="relative">
+      {prefix && (
+        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-500">
+          {prefix}
+        </span>
+      )}
 
-    <input
-      type="text"
-      inputMode={inputMode}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={`${inputCls(
-        hasError,
-        compact ? "!h-10" : "",
-      )} ${prefix ? "!pl-8" : ""} ${
-        suffix ? "!pr-10" : ""
-      } disabled:cursor-not-allowed disabled:opacity-60`}
-    />
+      <input
+        type="text"
+        inputMode={inputMode}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={`${inputCls(
+          hasError,
+          compact ? "!h-10" : "",
+        )} ${prefix ? "!pl-8" : ""} ${suffix ? "!pr-10" : ""
+          } disabled:cursor-not-allowed disabled:opacity-60`}
+      />
 
-    {suffix && (
-      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
-        {suffix}
-      </span>
-    )}
-  </div>
-);
+      {suffix && (
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
+          {suffix}
+        </span>
+      )}
+    </div>
+  );
 
 const SelectBox: React.FC<{
   value: string;
@@ -488,9 +485,8 @@ const VariantProductSelect: React.FC<{
 
         <FiChevronDown
           size={16}
-          className={`ml-auto flex-shrink-0 text-slate-400 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
+          className={`ml-auto flex-shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""
+            }`}
         />
       </button>
 
@@ -512,9 +508,8 @@ const VariantProductSelect: React.FC<{
                     onChange(String(product.id));
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${
-                    isSelected ? "bg-blue-50" : "hover:bg-slate-50"
-                  }`}
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-slate-50"
+                    }`}
                 >
                   {product.image_url ? (
                     <img
@@ -530,11 +525,10 @@ const VariantProductSelect: React.FC<{
 
                   <div className="min-w-0 flex-1">
                     <p
-                      className={`truncate text-sm ${
-                        isSelected
+                      className={`truncate text-sm ${isSelected
                           ? "font-bold text-blue-600"
                           : "font-medium text-slate-800"
-                      }`}
+                        }`}
                     >
                       {product.name}
                     </p>
@@ -620,11 +614,10 @@ const ComboProductPicker: React.FC<{
                     type="button"
                     disabled={disabled}
                     onClick={() => onToggle(product.id)}
-                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition ${
-                      isSelected
+                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition ${isSelected
                         ? "border-blue-300 bg-blue-50/70"
                         : "border-transparent bg-white hover:border-slate-200 hover:bg-slate-50"
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     {product.image_url ? (
                       <img
@@ -640,11 +633,10 @@ const ComboProductPicker: React.FC<{
 
                     <div className="min-w-0 flex-1">
                       <p
-                        className={`truncate text-sm ${
-                          isSelected
+                        className={`truncate text-sm ${isSelected
                             ? "font-bold text-blue-600"
                             : "font-semibold text-slate-800"
-                        }`}
+                          }`}
                       >
                         {product.name}
                       </p>
@@ -664,11 +656,10 @@ const ComboProductPicker: React.FC<{
                     </div>
 
                     <span
-                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition ${
-                        isSelected
+                      className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition ${isSelected
                           ? "border-blue-600 bg-blue-600 text-white"
                           : "border-slate-300 bg-white text-transparent"
-                      }`}
+                        }`}
                     >
                       <FiCheck size={12} strokeWidth={3} />
                     </span>
@@ -864,107 +855,104 @@ const StockAdjustmentForm: React.FC<{
   errors,
   currentStock,
 }) => {
-  const qty = Number(quantity) || 0;
-  const stock = Number(currentStock) || 0;
-  const resultingStock = operation === "add" ? stock + qty : stock - qty;
+    const qty = Number(quantity) || 0;
+    const stock = Number(currentStock) || 0;
+    const resultingStock = operation === "add" ? stock + qty : stock - qty;
 
-  return (
-    <SectionCard
-      icon={<FiSliders size={19} />}
-      title="Stock adjustment"
-      subtitle="Manually adjust stock and log the reason"
-    >
-      <div className="space-y-4">
-        <Field label="Operation" small>
-          <div className="inline-flex w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80 p-1">
-            <button
-              type="button"
-              onClick={() => onOperationChange("add")}
-              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${
-                operation === "add"
-                  ? "bg-emerald-500 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-white"
-              }`}
-            >
-              <FiPlus size={13} />
-              Add stock
-            </button>
+    return (
+      <SectionCard
+        icon={<FiSliders size={19} />}
+        title="Stock adjustment"
+        subtitle="Manually adjust stock and log the reason"
+      >
+        <div className="space-y-4">
+          <Field label="Operation" small>
+            <div className="inline-flex w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80 p-1">
+              <button
+                type="button"
+                onClick={() => onOperationChange("add")}
+                className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${operation === "add"
+                    ? "bg-emerald-500 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-white"
+                  }`}
+              >
+                <FiPlus size={13} />
+                Add stock
+              </button>
 
-            <button
-              type="button"
-              onClick={() => onOperationChange("subtract")}
-              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${
-                operation === "subtract"
-                  ? "bg-rose-500 text-white shadow-sm"
-                  : "text-slate-600 hover:bg-white"
-              }`}
+              <button
+                type="button"
+                onClick={() => onOperationChange("subtract")}
+                className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition ${operation === "subtract"
+                    ? "bg-rose-500 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-white"
+                  }`}
+              >
+                <FiMinus size={13} />
+                Subtract stock
+              </button>
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field
+              label="Adjustment quantity"
+              small
+              error={errors?.manual_stock_adjustment}
             >
-              <FiMinus size={13} />
-              Subtract stock
-            </button>
+              <AdornedInput
+                compact
+                inputMode="numeric"
+                value={quantity}
+                placeholder="e.g. 10"
+                hasError={!!errors?.manual_stock_adjustment}
+                onChange={(value) => {
+                  if (isValidIntegerInput(value)) {
+                    onQuantityChange(value);
+                  }
+                }}
+              />
+            </Field>
+
+            <Field
+              label="Reason for adjustment"
+              small
+              error={errors?.reason_for_stock_adjustment}
+            >
+              <input
+                value={reason}
+                onChange={(event) => onReasonChange(event.target.value)}
+                placeholder="Damaged goods, new shipment..."
+                className={inputCls(
+                  !!errors?.reason_for_stock_adjustment,
+                  "!h-10",
+                )}
+              />
+            </Field>
           </div>
-        </Field>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field
-            label="Adjustment quantity"
-            small
-            error={errors?.manual_stock_adjustment}
-          >
-            <AdornedInput
-              compact
-              inputMode="numeric"
-              value={quantity}
-              placeholder="e.g. 10"
-              hasError={!!errors?.manual_stock_adjustment}
-              onChange={(value) => {
-                if (isValidIntegerInput(value)) {
-                  onQuantityChange(value);
-                }
-              }}
-            />
-          </Field>
+          {qty > 0 && (
+            <div
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${operation === "add"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-rose-200 bg-rose-50 text-rose-800"
+                }`}
+            >
+              <FiInfo size={14} />
+              <span>
+                Stock will change from <b>{stock}</b> → <b>{resultingStock}</b>
+              </span>
+            </div>
+          )}
 
-          <Field
-            label="Reason for adjustment"
-            small
-            error={errors?.reason_for_stock_adjustment}
-          >
-            <input
-              value={reason}
-              onChange={(event) => onReasonChange(event.target.value)}
-              placeholder="Damaged goods, new shipment..."
-              className={inputCls(
-                !!errors?.reason_for_stock_adjustment,
-                "!h-10",
-              )}
-            />
-          </Field>
+          <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
+            <FiInfo size={12} className="mt-0.5 flex-shrink-0" />
+            Leave both fields empty to skip stock adjustment.
+          </p>
         </div>
-
-        {qty > 0 && (
-          <div
-            className={`flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs ${
-              operation === "add"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-rose-200 bg-rose-50 text-rose-800"
-            }`}
-          >
-            <FiInfo size={14} />
-            <span>
-              Stock will change from <b>{stock}</b> → <b>{resultingStock}</b>
-            </span>
-          </div>
-        )}
-
-        <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-400">
-          <FiInfo size={12} className="mt-0.5 flex-shrink-0" />
-          Leave both fields empty to skip stock adjustment.
-        </p>
-      </div>
-    </SectionCard>
-  );
-};
+      </SectionCard>
+    );
+  };
 
 /* =========================================================
    MAIN COMPONENT
@@ -1058,6 +1046,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
   const [distributorDiscountValue, setDistributorDiscountValue] = useState("");
 
   const [commissionValue, setCommissionValue] = useState("");
+  const [blueCoin, setBlueCoin] = useState("");
+  const [greenCoin, setGreenCoin] = useState("");
   const [shippingCharge, setShippingCharge] = useState("");
   const [serviceCharge, setServiceCharge] = useState("");
   const [stockQuantity, setStockQuantity] = useState("");
@@ -1183,11 +1173,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       { label: "Product image", done: images.length > 0 },
       ...(isElectronicsCategory
         ? [
-            {
-              label: "Service charge",
-              done: serviceCharge !== "" && Number(serviceCharge) >= 0,
-            },
-          ]
+          {
+            label: "Service charge",
+            done: serviceCharge !== "" && Number(serviceCharge) >= 0,
+          },
+        ]
         : []),
     ],
     [
@@ -1254,6 +1244,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setDistributorMrp("");
     setDistributorDiscountValue("");
     setCommissionValue("");
+    setBlueCoin("");
+    setGreenCoin("");
     setShippingCharge("");
     setServiceCharge("");
     setStockQuantity("");
@@ -1579,9 +1571,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       product?.specification
         ? parseSpecification(product.specification)
         : [
-            { key: "Manufactured By", value: "", isDefault: true },
-            { key: "Marketed By", value: "", isDefault: true },
-          ],
+          { key: "Manufactured By", value: "", isDefault: true },
+          { key: "Marketed By", value: "", isDefault: true },
+        ],
     );
 
     setCategoryId(normalizeId(product?.category_id ?? product?.category?.id));
@@ -1589,10 +1581,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     setSubcategoryId(
       normalizeId(
         product?.subcategory_id ??
-          product?.["subcategory_id "] ??
-          product?.sub_category_id ??
-          product?.subcategory?.id ??
-          product?.sub_category?.id,
+        product?.["subcategory_id "] ??
+        product?.sub_category_id ??
+        product?.subcategory?.id ??
+        product?.sub_category?.id,
       ),
     );
 
@@ -1644,6 +1636,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
         : "",
     );
 
+    setBlueCoin(product?.blue_coin != null ? String(product.blue_coin) : "");
+    setGreenCoin(product?.green_coin != null ? String(product.green_coin) : "");
+
     setShippingCharge(
       product?.shipping_charge !== null &&
         product?.shipping_charge !== undefined
@@ -1672,9 +1667,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
 
     setIsPublished(
       product?.is_published === true ||
-        product?.is_published === 1 ||
-        product?.is_published === "1" ||
-        product?.is_published === "true",
+      product?.is_published === 1 ||
+      product?.is_published === "1" ||
+      product?.is_published === "true",
     );
 
     if (Array.isArray(product?.images)) {
@@ -1685,8 +1680,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
           sort_order: image?.sort_order ?? index + 1,
           is_primary:
             image?.is_primary === true ||
-            image?.is_primary === 1 ||
-            image?.is_primary === "1"
+              image?.is_primary === 1 ||
+              image?.is_primary === "1"
               ? 1
               : 0,
           existing_id: image?.id,
@@ -1906,8 +1901,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     if (comboProductIds.length === 0) return;
     setShowComboPicker(false);
     toast.success(
-      `${comboProductIds.length} product${
-        comboProductIds.length !== 1 ? "s" : ""
+      `${comboProductIds.length} product${comboProductIds.length !== 1 ? "s" : ""
       } saved for combo`,
     );
   };
@@ -2356,6 +2350,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
       String(distributorDiscountValue || 0),
     );
     formData.append("commission_value", String(Number(commissionValue || 0)));
+    formData.append("blue_coin", String(Number(blueCoin || 0)));
+    formData.append("green_coin", String(Number(greenCoin || 0)));
     formData.append("shipping_charge", String(shippingCharge || 0));
 
     if (isElectronicsCategory) {
@@ -2524,11 +2520,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     </span>
 
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        productType === "combo"
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${productType === "combo"
                           ? "bg-purple-100 text-purple-700"
                           : "bg-slate-100 text-slate-600"
-                      }`}
+                        }`}
                     >
                       {productType === "combo" ? "Combo" : "Individual"}
                     </span>
@@ -2994,15 +2989,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           const busy =
                             image.is_existing && image.existing_id
                               ? arrangingImageIds.includes(
-                                  Number(image.existing_id),
-                                )
+                                Number(image.existing_id),
+                              )
                               : false;
 
                           const deleting =
                             image.is_existing && image.existing_id
                               ? deletingImageIds.includes(
-                                  Number(image.existing_id),
-                                )
+                                Number(image.existing_id),
+                              )
                               : false;
 
                           return (
@@ -3029,11 +3024,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 draggedImageIdRef.current = null;
                                 setDragOverImageId(null);
                               }}
-                              className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border bg-slate-100 shadow-sm transition-all active:cursor-grabbing ${
-                                dragOverImageId === image.id
+                              className={`group relative aspect-square cursor-grab overflow-hidden rounded-2xl border bg-slate-100 shadow-sm transition-all active:cursor-grabbing ${dragOverImageId === image.id
                                   ? "scale-[1.03] border-blue-500 ring-4 ring-blue-500/20"
                                   : "border-slate-200 hover:shadow-md"
-                              } ${busy ? "opacity-70" : ""}`}
+                                } ${busy ? "opacity-70" : ""}`}
                             >
                               <img
                                 src={image.preview}
@@ -3044,11 +3038,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-70" />
 
                               <span
-                                className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${
-                                  image.is_primary
+                                className={`absolute left-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold shadow ${image.is_primary
                                     ? "bg-blue-600 text-white"
                                     : "bg-white/90 text-slate-700"
-                                }`}
+                                  }`}
                               >
                                 {image.is_primary ? "Cover" : `#${index + 1}`}
                               </span>
@@ -3188,7 +3181,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                                 maxLength={7}
                                 className={inputCls(
                                   variantHexColor.length > 0 &&
-                                    !isValidHexColor(variantHexColor),
+                                  !isValidHexColor(variantHexColor),
                                   "!h-10",
                                 )}
                               />
@@ -3408,6 +3401,45 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         />
                       </Field>
 
+                      {/* Admin-managed coin values — distinct visual colors */}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3 [&_input]:border-blue-200 [&_input]:bg-white [&_input]:focus:border-blue-500 [&_input]:focus:ring-blue-500/10">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-blue-200">
+                              <FiAward size={16} />
+                            </span>
+                            <span className="text-sm font-bold text-blue-800">Blue Coin</span>
+                          </div>
+                          <AdornedInput
+                            inputMode="numeric"
+                            value={blueCoin}
+                            placeholder="Enter blue coin value"
+                            onChange={(value) => {
+                              if (isValidIntegerInput(value)) setBlueCoin(value);
+                            }}
+                          />
+                          <p className="mt-1.5 text-xs text-blue-600">Enter the blue coin value</p>
+                        </div>
+
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 [&_input]:border-emerald-200 [&_input]:bg-white [&_input]:focus:border-emerald-500 [&_input]:focus:ring-emerald-500/10">
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200">
+                              <FiAward size={16} />
+                            </span>
+                            <span className="text-sm font-bold text-emerald-800">Green Coin</span>
+                          </div>
+                          <AdornedInput
+                            inputMode="numeric"
+                            value={greenCoin}
+                            placeholder="Enter green coin value"
+                            onChange={(value) => {
+                              if (isValidIntegerInput(value)) setGreenCoin(value);
+                            }}
+                          />
+                          <p className="mt-1.5 text-xs text-emerald-600">Enter the green coin value</p>
+                        </div>
+                      </div>
+
                       <Field
                         label="Shipping charge"
                         icon={<FiTruck size={14} className="text-blue-500" />}
@@ -3541,11 +3573,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                     subtitle="Control store visibility"
                   >
                     <div
-                      className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors ${
-                        isPublished
+                      className={`flex items-center justify-between gap-3 rounded-xl border p-3.5 transition-colors ${isPublished
                           ? "border-emerald-100 bg-emerald-50/50"
                           : "border-slate-200 bg-slate-50"
-                      }`}
+                        }`}
                     >
                       <div>
                         <p className="text-sm font-bold text-slate-800">
@@ -3562,14 +3593,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                         role="switch"
                         aria-checked={isPublished}
                         onClick={() => setIsPublished((prev) => !prev)}
-                        className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${
-                          isPublished ? "bg-emerald-500" : "bg-slate-300"
-                        }`}
+                        className={`relative h-7 w-12 flex-shrink-0 rounded-full transition-colors ${isPublished ? "bg-emerald-500" : "bg-slate-300"
+                          }`}
                       >
                         <span
-                          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
-                            isPublished ? "left-[22px]" : "left-0.5"
-                          }`}
+                          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${isPublished ? "left-[22px]" : "left-0.5"
+                            }`}
                         />
                       </button>
                     </div>
@@ -3594,11 +3623,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           className="flex items-center gap-2 text-xs"
                         >
                           <span
-                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors ${
-                              item.done
+                            className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors ${item.done
                                 ? "bg-emerald-500 text-white"
                                 : "bg-slate-200 text-transparent"
-                            }`}
+                              }`}
                           >
                             <FiCheck size={10} strokeWidth={3} />
                           </span>
