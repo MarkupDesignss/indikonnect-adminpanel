@@ -299,22 +299,8 @@ const prettyStatus = (value: any) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const dateIndia = (value: any): string => {
-  if (!isPresent(value)) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return asText(value);
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Kolkata",
-  });
-};
-
 const addressToText = (value: any): string => {
-  if (!isPresent(value)) return "-";
+  if (!isPresent(value)) return "";
   if (typeof value === "string") return asText(value);
   if (typeof value !== "object") return asText(value);
   const parts = [
@@ -507,24 +493,6 @@ export const openInvoicePdfInNewTab = async (
     const orderReference = asText(
       firstPresent(order.order_reference, order.id),
     );
-    const buyerName = asText(
-      firstPresent(buyer.name, order.user?.name, order.customer),
-    );
-    const buyerAddress = addressToText(
-      firstPresent(
-        order.billing_address,
-        buyer.address,
-        order.delivery_address,
-        order.shipping_address,
-      ),
-    );
-    const deliveryAddress = addressToText(
-      firstPresent(
-        order.delivery_address,
-        order.shipping_address,
-        buyer.address,
-      ),
-    );
     const sellerAddress = addressToText(
       firstPresent(seller.address, seller.full_address),
     );
@@ -684,13 +652,9 @@ export const openInvoicePdfInNewTab = async (
 
     // 2. SELLER / QR ROW.
     const sellerNameLines = wrap(DISPLAY_SELLER_NAME, LEFT_W - 15, 8.4, true);
-    const sellerAddrLines = wrap(
-      sellerAddress === "-"
-        ? "Seller address not provided by API"
-        : sellerAddress,
-      LEFT_W - 16,
-      7.2,
-    );
+    const sellerAddrLines = sellerAddress
+      ? wrap(sellerAddress, LEFT_W - 16, 7.2)
+      : [];
     const sellerPairs: Array<[string, any]> = [
       ["GSTIN", firstPresent(seller.gstin, seller.gst_number)],
       [
@@ -749,38 +713,100 @@ export const openInvoicePdfInNewTab = async (
     });
     y += sellerH;
 
-    // 3. INVOICE TO / ORDER IDENTIFIERS.
-    // Addresses are explicitly taken from the full order object, not the
-    // abbreviated invoice.buyer.address string.
-    const buyerRows: Array<[string, any]> = [
-      ["Name", buyerName],
-      ["Address", buyerAddress],
-      ["Delivery To", deliveryAddress],
+    // 3. THREE-COLUMN ORDER / BILL TO / SHIP TO DETAILS.
+    // Keep the same thin, compact black borders as the Blinkit-style invoice.
+    // The invoice API buyer.address is often abbreviated (for example "Noida").
+    // Prefer the FULL billing/delivery address returned by the order API.
+    const billAddress = addressToText(
+      firstPresent(
+        order.billing_address,
+        buyer.address,
+        order.delivery_address,
+        order.shipping_address,
+      ),
+    );
+    const shipAddress = addressToText(
+      firstPresent(
+        order.delivery_address,
+        order.shipping_address,
+        order.billing_address,
+        buyer.address,
+      ),
+    );
+    const billToName = asText(
+      firstPresent(
+        order.billing_address?.name,
+        order.billing_address?.full_name,
+        buyer.name,
+        order.user?.name,
+        order.customer,
+      ),
+    );
+    const shipToName = asText(
+      firstPresent(
+        order.delivery_address?.name,
+        order.delivery_address?.full_name,
+        buyer.name,
+        order.user?.name,
+        order.customer,
+      ),
+    );
+    const billPhone = firstPresent(
+      order.billing_address?.phone,
+      order.billing_address?.mobile,
+      buyer.phone,
+      order.user?.phone,
+    );
+    const shipPhone = firstPresent(
+      order.delivery_address?.phone,
+      order.delivery_address?.mobile,
+      buyer.phone,
+      order.user?.phone,
+    );
+    const billEmail = firstPresent(
+      order.billing_address?.email,
+      order.user?.email,
+    );
+    const shipEmail = firstPresent(order.delivery_address?.email);
+
+    const shortDate = (value: any): string => {
+      if (!isPresent(value)) return "-";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return asText(value);
+      // GST invoice dates shown as dd-mm-yyyy in India local time.
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+        .format(parsed)
+        .replace(/\//g, "-");
+    };
+
+    const colOrderW = W * 0.28;
+    const colBillW = W * 0.36;
+    const colShipW = W - colOrderW - colBillW;
+    const xOrder = M;
+    const xBill = M + colOrderW;
+    const xShip = xBill + colBillW;
+    const innerGap = 8;
+    const orderTextW = colOrderW - innerGap * 2;
+    const bodyLineH = 9.6;
+
+    const orderIdLines = wrap(orderReference, orderTextW, 8.1, true);
+    const orderMeta: Array<[string, any]> = [
       [
-        "PIN Code",
-        firstPresent(
-          order.billing_address?.pincode,
-          order.delivery_address?.pincode,
-        ),
+        "Order Date",
+        shortDate(firstPresent(order.created_at, order.order_date)),
       ],
-      ["State", state],
-      ["Email", order.user?.email],
-      ["Phone", order.user?.phone],
-    ].filter(
-      ([label, value]) => label !== "Delivery To" || value !== buyerAddress,
-    ) as Array<[string, any]>;
-    const infoRows: Array<[string, any]> = [
-      ["Order Id", orderReference],
       [
         "Invoice Date",
-        dateIndia(
+        shortDate(
           firstPresent(invoice.issued_at, invoice.created_at, order.created_at),
         ),
       ],
-      [
-        "Order Date",
-        dateIndia(firstPresent(order.created_at, order.order_date)),
-      ],
+      ["PAN", firstPresent(seller.pan, invoice.pan)],
       ["Place of Supply", state],
       [
         "Order Status",
@@ -788,55 +814,148 @@ export const openInvoicePdfInNewTab = async (
       ],
       ["Order Type", prettyStatus(order.order_type)],
     ];
-    const leftLabelWidth = 82;
-    const rightLabelWidth = 79;
-    const calcRowsH = (
-      rows: Array<[string, any]>,
-      colWidth: number,
-      labelW: number,
-    ) =>
-      rows.reduce(
-        (total, [, value]) =>
-          total +
-          Math.max(
-            14,
-            wrap(value, colWidth - labelW - 14, 7.2).length * 9.2 + 4,
-          ),
-        33,
-      );
-    const infoH = Math.max(
-      99,
-      calcRowsH(buyerRows, LEFT_W, leftLabelWidth),
-      calcRowsH(infoRows, RIGHT_W, rightLabelWidth),
-    );
-    room(infoH);
-    borderRect(M, y, W, infoH);
-    rule(DIVIDER, y, DIVIDER, y + infoH);
-    text("Invoice To", M + 6, y + 13, 7.8, true);
-    const drawDetails = (
-      rows: Array<[string, any]>,
+    const orderMetaValueWidth = colOrderW - 77;
+    const measuredMeta = orderMeta.map(([label, value]) => ({
+      label,
+      values: wrap(value, orderMetaValueWidth, 7.0),
+    }));
+    const orderBlockH =
+      15 +
+      13 +
+      orderIdLines.length * 10 +
+      7 +
+      measuredMeta.reduce(
+        (sum, entry) => sum + Math.max(13, entry.values.length * 9.3 + 2),
+        0,
+      ) +
+      9;
+
+    // Names and addresses are wrapped INSIDE their respective columns.
+    // Height is derived from content to prevent overlapping the product table.
+    type AddressColumn = {
+      title: string;
+      x: number;
+      width: number;
+      person: string[];
+      address: string[];
+      phone: string[];
+      email: string[];
+      height: number;
+    };
+    const makeAddressColumn = (
+      title: string,
       x: number,
       width: number,
-      labelW: number,
-    ) => {
-      let cursor = y + 26;
-      rows.forEach(([label, value]) => {
-        const wrapped = wrap(value, width - labelW - 14, 7.2);
-        text(label, x + 6, cursor, 7.2, true);
-        wrapped.forEach((line, i) =>
-          text(
-            `${i === 0 ? ": " : "  "}${line}`,
-            x + labelW,
-            cursor + i * 9.2,
-            7.2,
-          ),
-        );
-        cursor += Math.max(14, wrapped.length * 9.2 + 4);
+      name: string,
+      address: string,
+      phone: any,
+      email: any,
+    ): AddressColumn => {
+      const textW = width - innerGap * 2;
+      const person = wrap(name, textW, 8.2, true);
+      const locationLines = address ? wrap(address, textW, 7.4) : [];
+      const phoneLines = isPresent(phone)
+        ? wrap(`Phone: ${phone}`, textW, 7.1)
+        : [];
+      const emailLines = isPresent(email)
+        ? wrap(`Email: ${email}`, textW, 7.1)
+        : [];
+      const height =
+        15 +
+        14 +
+        person.length * 10.2 +
+        4 +
+        locationLines.length * bodyLineH +
+        5 +
+        phoneLines.length * bodyLineH +
+        (emailLines.length ? 3 + emailLines.length * bodyLineH : 0) +
+        10;
+      return {
+        title,
+        x,
+        width,
+        person,
+        address: locationLines,
+        phone: phoneLines,
+        email: emailLines,
+        height,
+      };
+    };
+    const billCol = makeAddressColumn(
+      "Bill To",
+      xBill,
+      colBillW,
+      billToName,
+      billAddress,
+      billPhone,
+      billEmail,
+    );
+    const shipCol = makeAddressColumn(
+      "Ship To",
+      xShip,
+      colShipW,
+      shipToName,
+      shipAddress,
+      shipPhone,
+      shipEmail,
+    );
+    const infoBlockH = Math.max(
+      100,
+      orderBlockH,
+      billCol.height,
+      shipCol.height,
+    );
+    room(infoBlockH);
+    borderRect(M, y, W, infoBlockH);
+    rule(xBill, y, xBill, y + infoBlockH);
+    rule(xShip, y, xShip, y + infoBlockH);
+
+    // Left column - order ID, dates and seller PAN.
+    let orderY = y + 14;
+    text("Order ID:", xOrder + innerGap, orderY, 8.0, true);
+    orderY += 13;
+    orderIdLines.forEach((line) => {
+      text(line, xOrder + innerGap, orderY, 8.1, true);
+      orderY += 10;
+    });
+    orderY += 7;
+    measuredMeta.forEach((entry) => {
+      text(`${entry.label}:`, xOrder + innerGap, orderY, 7.0, true);
+      entry.values.forEach((line, index) => {
+        text(line, xOrder + 75, orderY + index * 9.3, 7.0);
+      });
+      orderY += Math.max(13, entry.values.length * 9.3 + 2);
+    });
+
+    // Center and right columns - separated Bill To and Ship To blocks.
+    const drawAddressColumn = (column: AddressColumn) => {
+      let cursor = y + 14;
+      const x = column.x + innerGap;
+      text(column.title, x, cursor, 9.0, true);
+      cursor += 15;
+      column.person.forEach((line) => {
+        text(line, x, cursor, 8.2, true);
+        cursor += 10.2;
+      });
+      cursor += 4;
+      column.address.forEach((line) => {
+        text(line, x, cursor, 7.4);
+        cursor += bodyLineH;
+      });
+      cursor += 5;
+      column.phone.forEach((line) => {
+        text(line, x, cursor, 7.1);
+        cursor += bodyLineH;
+      });
+      if (column.email.length) cursor += 3;
+      column.email.forEach((line) => {
+        text(line, x, cursor, 7.1);
+        cursor += bodyLineH;
       });
     };
-    drawDetails(buyerRows, M, LEFT_W, leftLabelWidth);
-    drawDetails(infoRows, DIVIDER, RIGHT_W, rightLabelWidth);
-    y += infoH;
+    drawAddressColumn(billCol);
+    drawAddressColumn(shipCol);
+    y += infoBlockH;
 
     // 4. PRODUCT GRID / CGST / SGST / IGST / DELIVERY LINES.
     // 14 columns are intentionally narrow, like the reference PDF.
