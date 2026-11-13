@@ -2499,20 +2499,91 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const handleOpenInvoicePdf = async (orderId: number, itemId?: number) => {
+  const handleOpenInvoicePdf = async (orderId: number, _itemId?: number) => {
+    // Open synchronously on click to avoid popup blockers.
+    const pdfWindow = window.open("", "_blank");
+    if (pdfWindow) {
+      pdfWindow.document.title = "Preparing Indiekonnect invoice";
+      pdfWindow.document.body.textContent = "Loading complete order and generating PDF...";
+    }
+
     try {
-      toast.loading("Generating invoice PDF...", { id: "invoice-pdf" });
-      const response = await orderInvoiceApi.getByOrderId(orderId);
-      toast.dismiss("invoice-pdf");
-      if (response.data.success && response.data.data) {
-        openInvoicePdfInNewTab(response.data.data, itemId ?? null);
-      } else {
-        toast.error(response.data.message || "Failed to fetch invoice data");
+      toast.loading("Loading complete invoice...", { id: "invoice-pdf" });
+      // Invoice and order-detail endpoints are different: fetch both so an
+      // item-specific invoice record cannot silently remove other products.
+      const [invoiceResult, detailsResult] = await Promise.allSettled([
+        orderInvoiceApi.getByOrderId(orderId),
+        orderApi.getOrderDetails(String(orderId)),
+      ]);
+
+      if (invoiceResult.status !== "fulfilled") {
+        throw invoiceResult.reason;
       }
+      const response = invoiceResult.value;
+      if (!response?.data?.success || !response?.data?.data) {
+        throw new Error(response?.data?.message || "Invoice data unavailable");
+      }
+
+      const payload = response.data.data;
+      const existingOrder = payload.order || {};
+      const detailResponse = detailsResult.status === "fulfilled"
+        ? detailsResult.value?.data?.data || detailsResult.value?.data
+        : null;
+      const detailOrder = detailResponse?.order || detailResponse || {};
+      const originalItems = Array.isArray(existingOrder.order_items)
+        ? existingOrder.order_items : [];
+      const detailItems = Array.isArray(detailOrder.order_items)
+        ? detailOrder.order_items
+        : Array.isArray(detailOrder.items) ? detailOrder.items : [];
+
+      const normalizedDetailItems = detailItems.map((item: any) => ({
+        ...item,
+        id: item.id ?? item.line_id,
+        product_name: item.product_name ?? item.name,
+        product_code: item.product_code ?? item.sku,
+        unit_price: item.unit_price,
+        taxable_value: item.taxable_value ?? Number(item.unit_price || 0) * Number(item.quantity || 0),
+        total_shipping_charge: item.total_shipping_charge ?? item.total_delivery_charge,
+      }));
+
+      // Keep the invoice API as the primary source; only use details to
+      // supplement it when the detail endpoint has MORE distinct order lines.
+      const fullItems = normalizedDetailItems.length > originalItems.length
+        ? normalizedDetailItems : originalItems;
+      const mergedOrder = {
+        ...detailOrder,
+        ...existingOrder,
+        billing_address: existingOrder.billing_address || detailOrder.billing_address,
+        delivery_address: existingOrder.delivery_address || detailOrder.delivery_address,
+        user: existingOrder.user || detailOrder.user,
+        order_items: fullItems,
+      };
+
+      console.info("FULL INVOICE SOURCE CHECK", {
+        orderId,
+        invoiceType: payload.invoice_type,
+        invoiceItems: originalItems.length,
+        detailItems: normalizedDetailItems.length,
+        pdfItems: fullItems.length,
+        productNames: fullItems.map((item: any) => item.product_name),
+      });
+
+      if (!fullItems.length) {
+        throw new Error("Neither API returned order items. Cannot generate full invoice.");
+      }
+      if (detailsResult.status === "rejected") {
+        console.warn("Order details request failed; using invoice response", detailsResult.reason);
+      }
+
+      await openInvoicePdfInNewTab(
+        { ...payload, order: mergedOrder }, null, pdfWindow,
+      );
     } catch (err: any) {
+      pdfWindow?.close();
+      console.error("Invoice PDF error:", err);
+      toast.error(err?.response?.data?.message || err?.message || "Failed to load invoice.");
+    } finally {
       toast.dismiss("invoice-pdf");
-      console.error("Invoice fetch error:", err);
-      toast.error(err?.response?.data?.message || "Failed to load invoice.");
     }
   };
 
