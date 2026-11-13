@@ -27,8 +27,12 @@ import {
   FiCheckCircle,
   FiFileText,
   FiDownload,
+  FiMoreVertical,
+  FiCreditCard,
+  FiClock,
+  FiRefreshCw,
 } from "react-icons/fi";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
@@ -108,17 +112,11 @@ const TableRowSkeleton: React.FC = () => (
       <SkeletonBlock className="mx-auto h-6 w-20 rounded-full" />
     </td>
     <td className="px-3 py-3 text-center">
-      <SkeletonBlock className="mx-auto h-6 w-24 rounded-full" />
-    </td>
-    <td className="px-3 py-3">
       <div className="flex items-center justify-center gap-1.5">
         <SkeletonBlock className="h-8 w-8 rounded-lg" />
         <SkeletonBlock className="h-8 w-8 rounded-lg" />
         <SkeletonBlock className="h-8 w-8 rounded-lg" />
       </div>
-    </td>
-    <td className="px-3 py-3 text-center">
-      <SkeletonBlock className="mx-auto h-6 w-16 rounded-lg" />
     </td>
   </tr>
 );
@@ -169,85 +167,27 @@ const StatCardSkeleton: React.FC = () => (
    ===================================================== */
 
 const ClipboardIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 13H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 17H12"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M8 13H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M8 17H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
 
 const CheckCircleIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path
-      d="M9 12L11.5 14.5L16 9"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+    <path d="M9 12L11.5 14.5L16 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
 
 const DollarIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path
-      d="M8 8H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 12H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M8 16H16"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
+    <path d="M8 8H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M8 16H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 );
 
@@ -399,6 +339,26 @@ interface ViewOrderPopupProps {
   onViewInvoice?: (orderId: number, itemId?: number) => void;
 }
 
+const normalizeOrderDetailsPayload = (raw: any) => {
+  if (!raw) return null;
+
+  let data = raw?.data ?? raw;
+
+  if (Array.isArray(data)) {
+    data = data[0];
+  }
+
+  if (data?.order && typeof data.order === "object") {
+    data = data.order;
+  }
+
+  if (Array.isArray(data)) {
+    data = data[0]?.order || data[0];
+  }
+
+  return data && typeof data === "object" ? data : null;
+};
+
 const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   isOpen,
   onClose,
@@ -406,51 +366,92 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   orderData,
   onViewInvoice,
 }) => {
-  const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking">(
-    "items",
+  const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking" | "payment">(
+    "items"
   );
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && orderId) {
-      if (orderData) {
-        setOrderDetails(orderData);
-        setLoading(false);
-        setError(null);
+  const fetchOrderDetails = useCallback(
+    async (id: string, silent = false) => {
+      if (silent) {
+        setRefreshing(true);
       } else {
-        fetchOrderDetails(orderId);
+        setLoading(true);
+        setError(null);
       }
-    }
-    if (isOpen) setActiveTab("items");
-  }, [isOpen, orderId, orderData]);
 
-  const fetchOrderDetails = async (id: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await orderApi.getOrderDetails(id);
-      let data = null;
-      if (response?.data?.data) data = response.data.data;
-      else if (response?.data) data = response.data;
-      if (data) setOrderDetails(data);
-      else setError("No data received from API");
-    } catch (err) {
-      setError("An error occurred while fetching order details");
-      console.error("API Error:", err);
-    } finally {
+      try {
+        const response = await orderApi.getOrderDetails(id);
+        const payload =
+          response?.data?.data ?? response?.data ?? response;
+        const data = normalizeOrderDetailsPayload(payload);
+
+        if (data) {
+          setOrderDetails(data);
+          setLastRefreshedAt(new Date());
+        } else if (!silent) {
+          setError("No data received from API");
+        }
+      } catch (err: any) {
+        console.error("API Error:", err);
+
+        // Keep the last successfully loaded timeline visible during background refresh.
+        if (!silent) {
+          setError(
+            err?.response?.data?.message ||
+              err?.message ||
+              "An error occurred while fetching order details"
+          );
+        }
+      } finally {
+        if (silent) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isOpen || !orderId) return;
+
+    const initialData = normalizeOrderDetailsPayload(orderData);
+
+    if (initialData) {
+      setOrderDetails(initialData);
       setLoading(false);
+      setError(null);
+
+      // Load the latest server-side timeline without hiding the already available order.
+      fetchOrderDetails(orderId, true);
+    } else {
+      setOrderDetails(null);
+      fetchOrderDetails(orderId);
     }
-  };
+
+    setActiveTab("items");
+  }, [isOpen, orderId, orderData, fetchOrderDetails]);
+
+  // Keep the order timeline up to date while the order popup is open.
+  useEffect(() => {
+    if (!isOpen || !orderId) return;
+
+    const refreshTimer = window.setInterval(() => {
+      fetchOrderDetails(orderId, true);
+    }, 30000);
+
+    return () => window.clearInterval(refreshTimer);
+  }, [isOpen, orderId, fetchOrderDetails]);
 
   if (loading) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
           <ModalLoader message="Loading order details..." />
@@ -461,11 +462,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   if (error || !orderDetails) {
     return (
-      <GlobalModal
-        isOpen={isOpen}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
           <ModalError error={error || "Order not found"} onClose={onClose} />
@@ -484,6 +481,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     order_date,
     shipping_address,
     shipping_details,
+    payment_gateway,
+    gateway_transaction_id,
+    amount_paid,
+    payment_status,
   } = orderDetails;
 
   const subtotal = orderDetails.subtotal || 0;
@@ -501,11 +502,283 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     });
   };
 
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return "N/A";
+    const date = new Date(dateStr);
+    return date.toLocaleString("en-IN", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // API timestamps are returned as "YYYY-MM-DD HH:mm:ss".
+  // Normalize them before parsing so sorting remains consistent in browsers.
+  const parseTimelineDate = (value: any): Date | null => {
+    if (!value || typeof value !== "string") return null;
+
+    const normalizedValue = value.includes("T")
+      ? value
+      : value.trim().replace(" ", "T");
+    const parsedDate = new Date(normalizedValue);
+
+    return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  };
+
+  const formatTimelineDateTime = (value: string) => {
+    const parsedDate = parseTimelineDate(value);
+    if (!parsedDate) return value || "Date unavailable";
+
+    return parsedDate.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+  };
+
+  type TimelineEventDefinition = {
+    key: string;
+    title: string;
+    description: string;
+    category: "order" | "shipping" | "cancel" | "return" | "buyback";
+  };
+
+  const timelineEventDefinitions: TimelineEventDefinition[] = [
+    {
+      key: "order_placed",
+      title: "Order Placed",
+      description: "The order was successfully placed.",
+      category: "order",
+    },
+    {
+      key: "order_confirmed",
+      title: "Order Confirmed",
+      description: "The order was confirmed successfully.",
+      category: "order",
+    },
+    {
+      key: "dispatched_at",
+      title: "Dispatched",
+      description: "The order was handed over for dispatch.",
+      category: "shipping",
+    },
+    {
+      key: "shipped_at",
+      title: "Shipped",
+      description: "The shipment was marked as shipped.",
+      category: "shipping",
+    },
+    {
+      key: "delivered_at",
+      title: "Delivered",
+      description: "The order was marked as delivered.",
+      category: "shipping",
+    },
+    {
+      key: "cancelled_at",
+      title: "Order Cancelled",
+      description: "The order cancellation was recorded.",
+      category: "cancel",
+    },
+    {
+      key: "return_requested_at",
+      title: "Return Requested",
+      description: "A return request was submitted.",
+      category: "return",
+    },
+    {
+      key: "return_approved_at",
+      title: "Return Approved",
+      description: "The return request was approved.",
+      category: "return",
+    },
+    {
+      key: "return_rejected_at",
+      title: "Return Rejected",
+      description: "The return request was rejected.",
+      category: "return",
+    },
+    {
+      key: "return_completed_at",
+      title: "Return Completed",
+      description: "The return process was completed.",
+      category: "return",
+    },
+    {
+      key: "buyback_requested_at",
+      title: "Buyback Requested",
+      description: "A buyback request was submitted.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_approved_at",
+      title: "Buyback Approved",
+      description: "The buyback request was approved.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_rejected_at",
+      title: "Buyback Rejected",
+      description: "The buyback request was rejected.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_refunded_at",
+      title: "Buyback Refund Processed",
+      description: "The buyback refund was processed.",
+      category: "buyback",
+    },
+  ];
+
+  const rawTimelineItems = Array.isArray(items) ? items : [];
+  const timelineSourceItems =
+    rawTimelineItems.length > 0
+      ? rawTimelineItems
+      : [
+          {
+            timeline: orderDetails?.timeline || {},
+            order_date,
+            confirmed_date: orderDetails?.confirmed_date,
+            product_name: "Order",
+          },
+        ];
+
+  // Merge identical item milestones, but keep milestones separate when their
+  // timestamps differ (for example, partial dispatch or partial delivery).
+  const timelineEventMap = new Map<
+    string,
+    {
+      key: string;
+      title: string;
+      description: string;
+      category: TimelineEventDefinition["category"];
+      timestamp: string;
+      sortAt: number;
+      itemNames: string[];
+      sequence: number;
+    }
+  >();
+
+  timelineSourceItems.forEach((item: any) => {
+    const itemTimeline = item?.timeline || {};
+    const itemName = String(
+      item?.product_name ||
+        item?.name ||
+        item?.item_reference_id ||
+        "Order"
+    );
+
+    const eventValues: Record<string, any> = {
+      order_placed:
+        itemTimeline.order_placed ||
+        item?.order_date ||
+        orderDetails?.order_date ||
+        order_date,
+      order_confirmed:
+        itemTimeline.order_confirmed ||
+        item?.confirmed_date ||
+        orderDetails?.confirmed_date,
+      dispatched_at: itemTimeline.dispatched_at,
+      shipped_at: itemTimeline.shipped_at,
+      delivered_at: itemTimeline.delivered_at,
+      cancelled_at: itemTimeline.cancelled_at,
+      return_requested_at: itemTimeline.return_requested_at,
+      return_approved_at: itemTimeline.return_approved_at,
+      return_rejected_at: itemTimeline.return_rejected_at,
+      return_completed_at: itemTimeline.return_completed_at,
+      buyback_requested_at: itemTimeline.buyback_requested_at,
+      buyback_approved_at: itemTimeline.buyback_approved_at,
+      buyback_rejected_at: itemTimeline.buyback_rejected_at,
+      buyback_refunded_at: itemTimeline.buyback_refunded_at,
+    };
+
+    timelineEventDefinitions.forEach((definition, sequence) => {
+      const timestamp = eventValues[definition.key];
+      const parsedDate = parseTimelineDate(timestamp);
+
+      if (!parsedDate) return;
+
+      const eventId = `${definition.key}_${parsedDate.getTime()}`;
+      const existingEvent = timelineEventMap.get(eventId);
+
+      if (existingEvent) {
+        if (!existingEvent.itemNames.includes(itemName)) {
+          existingEvent.itemNames.push(itemName);
+        }
+        return;
+      }
+
+      timelineEventMap.set(eventId, {
+        key: definition.key,
+        title: definition.title,
+        description: definition.description,
+        category: definition.category,
+        timestamp: String(timestamp),
+        sortAt: parsedDate.getTime(),
+        itemNames: [itemName],
+        sequence,
+      });
+    });
+  });
+
+  const timelineEvents = Array.from(timelineEventMap.values()).sort(
+    (a, b) => a.sortAt - b.sortAt || a.sequence - b.sequence
+  );
+
+  // Return applicability is a deadline, not an action event. Show it separately.
+  const returnWindowMap = new Map<
+    number,
+    { timestamp: string; itemNames: string[] }
+  >();
+
+  timelineSourceItems.forEach((item: any) => {
+    const returnUntil = item?.timeline?.return_applicable_till;
+    const parsedDate = parseTimelineDate(returnUntil);
+    if (!parsedDate) return;
+
+    const key = parsedDate.getTime();
+    const existingWindow = returnWindowMap.get(key);
+    const itemName = String(
+      item?.product_name ||
+        item?.name ||
+        item?.item_reference_id ||
+        "Order"
+    );
+
+    if (existingWindow) {
+      if (!existingWindow.itemNames.includes(itemName)) {
+        existingWindow.itemNames.push(itemName);
+      }
+    } else {
+      returnWindowMap.set(key, {
+        timestamp: String(returnUntil),
+        itemNames: [itemName],
+      });
+    }
+  });
+
+  const returnWindows = Array.from(returnWindowMap.values()).sort(
+    (a, b) =>
+      (parseTimelineDate(a.timestamp)?.getTime() || 0) -
+      (parseTimelineDate(b.timestamp)?.getTime() || 0)
+  );
+
+  const timelineCurrentStatus =
+    order_status ||
+    rawTimelineItems[0]?.delivery_status ||
+    rawTimelineItems[0]?.return_status ||
+    "pending";
+
   const uiItems: OrderItem[] = (items || []).map((item: any) => ({
     id: String(item.line_id || ""),
     lineId: item.line_id,
-    orderReference:
-      item.order_reference || orderDetails?.order_reference || "N/A",
+    orderReference: item.order_reference || orderDetails?.order_reference || "N/A",
     itemReferenceId: item.item_reference_id || "N/A",
     productName: item.product_name || "N/A",
     categoryName: item.category_name || undefined,
@@ -517,8 +790,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     unitPrice: item.unit_price || 0,
     lineTotal: item.line_total || 0,
     status: item.delivery_status
-      ? item.delivery_status.charAt(0).toUpperCase() +
-      item.delivery_status.slice(1)
+      ? item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1)
       : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
@@ -615,10 +887,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "items"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -626,10 +899,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "details"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
               {orderDetails?.order_type === "retail"
@@ -639,13 +913,26 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                }`}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "tracking"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("payment")}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                activeTab === "payment"
+                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+              }`}
+            >
+              <FiCreditCard className="mr-1.5 inline" size={13} />
+              Payment
             </button>
           </div>
         </div>
@@ -730,10 +1017,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     {(item.categoryName || item.brandName) && (
                                       <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
                                         {item.categoryName && (
-                                          <p
-                                            className="truncate"
-                                            title={item.categoryName}
-                                          >
+                                          <p className="truncate" title={item.categoryName}>
                                             <span className="font-medium text-[#374151]">
                                               Category:
                                             </span>{" "}
@@ -741,10 +1025,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                           </p>
                                         )}
                                         {item.brandName && (
-                                          <p
-                                            className="truncate"
-                                            title={item.brandName}
-                                          >
+                                          <p className="truncate" title={item.brandName}>
                                             <span className="font-medium text-[#374151]">
                                               Brand:
                                             </span>{" "}
@@ -777,9 +1058,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     {item.courier_tracking_number}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-[#6B7280]">
-                                    —
-                                  </span>
+                                  <span className="text-xs text-[#6B7280]">—</span>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-center">
@@ -791,32 +1070,26 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                 </span>
                               </td>
                               <td className="px-3 py-3 text-center">
-                                {hasInvoice &&
-                                  orderDetails?.id &&
-                                  onViewInvoice && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const oid = orderDetails?.id;
-                                        if (oid)
-                                          onViewInvoice(oid, item.lineId);
-                                      }}
-                                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                    >
-                                      <FiFileText size={13} />
-                                      {item.invoiceNumber || "Invoice"}
-                                    </button>
-                                  )}
+                                {hasInvoice && orderDetails?.id && onViewInvoice && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const oid = orderDetails?.id;
+                                      if (oid) onViewInvoice(oid, item.lineId);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                                  >
+                                    <FiFileText size={13} />
+                                    {item.invoiceNumber || "Invoice"}
+                                  </button>
+                                )}
                               </td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td
-                            colSpan={10}
-                            className="px-4 py-8 text-center text-sm text-[#6B7280]"
-                          >
+                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-[#6B7280]">
                             No items found in this order
                           </td>
                         </tr>
@@ -992,32 +1265,175 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               </div>
 
               <div className="rounded-2xl border border-[#2D6FE8]/10 bg-[#F4F8FD] p-5">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
-                    <FiCalendar size={17} />
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                      <FiCalendar size={17} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[#111827]">Order Timeline</h4>
+                      <p className="mt-0.5 text-[11px] text-[#6B7280]">
+                        All recorded milestones in chronological order
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-[#111827]">Order Timeline</h4>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/15 bg-white px-2.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                      Auto refresh: 30 sec
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        orderId && fetchOrderDetails(orderId, true)
+                      }
+                      disabled={refreshing || !orderId}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {refreshing ? (
+                        <FiLoader size={12} className="animate-spin" />
+                      ) : (
+                        <FiRefreshCw size={12} />
+                      )}
+                      {refreshing ? "Refreshing..." : "Refresh"}
+                    </button>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#2D6FE8]" />
-                    <span className="text-xs text-[#6B7280]">
-                      Order Placed:
+
+                <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                  <span className="text-xs text-[#6B7280]">
+                    Current Order Status:
+                  </span>
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${getStatusBadge(
+                      timelineCurrentStatus
+                    )}`}
+                  >
+                    {getStatusText(timelineCurrentStatus)}
+                  </span>
+                  {lastRefreshedAt && (
+                    <span className="ml-auto text-[10px] text-[#9CA3AF]">
+                      Last synced{" "}
+                      {lastRefreshedAt.toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                     </span>
-                    <span className="text-sm font-semibold text-[#111827]">
-                      {formatDate(order_date)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <div className="h-2.5 w-2.5 rounded-full bg-[#F2C94C]" />
-                    <span className="text-xs text-[#6B7280]">
-                      Current Status:
-                    </span>
-                    <span className="text-sm font-bold capitalize text-[#2D6FE8]">
-                      {getStatusText(order_status || "N/A")}
-                    </span>
-                  </div>
+                  )}
                 </div>
+
+                {returnWindows.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {returnWindows.map((windowItem, index) => (
+                      <div
+                        key={`return-window-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#F2C94C]/30 bg-[#FFFDF3] p-3"
+                      >
+                        <div className="flex items-center gap-2">
+                          <FiClock className="text-[#A16207]" size={15} />
+                          <div>
+                            <p className="text-xs font-bold text-[#92400E]">
+                              Return Window Ends
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-[#A16207]">
+                              {windowItem.itemNames.length > 1
+                                ? `${windowItem.itemNames.length} items`
+                                : windowItem.itemNames[0]}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-[#92400E]">
+                          {formatTimelineDateTime(windowItem.timestamp)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {timelineEvents.length > 0 ? (
+                  <div className="relative">
+                    {timelineEvents.map((event, index) => {
+                      const isLast = index === timelineEvents.length - 1;
+                      const tone =
+                        event.category === "cancel"
+                          ? {
+                              line: "bg-[#C23B32]/20",
+                              marker: "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
+                              card: "border-[#C23B32]/15",
+                              title: "text-[#B42318]",
+                            }
+                          : event.category === "return"
+                          ? {
+                              line: "bg-[#D69E36]/25",
+                              marker: "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
+                              card: "border-[#F2C94C]/25",
+                              title: "text-[#92400E]",
+                            }
+                          : event.category === "buyback"
+                          ? {
+                              line: "bg-[#8B5CF6]/20",
+                              marker: "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
+                              card: "border-[#8B5CF6]/15",
+                              title: "text-[#6D28D9]",
+                            }
+                          : {
+                              line: "bg-[#2D6FE8]/20",
+                              marker: "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
+                              card: "border-[#2D6FE8]/15",
+                              title: "text-[#111827]",
+                            };
+
+                      return (
+                        <div
+                          key={`${event.key}-${event.sortAt}`}
+                          className="relative flex gap-3 pb-4 last:pb-0"
+                        >
+                          {!isLast && (
+                            <div
+                              className={`absolute bottom-0 left-[15px] top-8 w-px ${tone.line}`}
+                            />
+                          )}
+
+                          <div
+                            className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${tone.marker}`}
+                          >
+                            <FiCheck size={15} strokeWidth={2.5} />
+                          </div>
+
+                          <div
+                            className={`min-w-0 flex-1 rounded-xl border bg-white p-3 ${tone.card}`}
+                          >
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                              <div className="min-w-0">
+                                <p className={`text-sm font-bold ${tone.title}`}>
+                                  {event.title}
+                                </p>
+                                <p className="mt-0.5 text-[11px] text-[#6B7280]">
+                                  {event.description}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-[11px] font-semibold text-[#374151] sm:text-right">
+                                {formatTimelineDateTime(event.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-[#D6E2F0] bg-white px-4 py-8 text-center">
+                    <FiClock className="mx-auto text-[#9CA3AF]" size={22} />
+                    <p className="mt-2 text-sm font-semibold text-[#374151]">
+                      No timeline events available yet
+                    </p>
+                    <p className="mt-1 text-xs text-[#6B7280]">
+                      Timeline milestones will appear here as soon as the API
+                      records them.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1041,7 +1457,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         <span className="rounded-full bg-white px-2 py-1 font-semibold text-[#2D6FE8]">
                           {getStatusText(
                             indiaPostInfo.tracking_status ||
-                            indiaPostInfo.booking_status,
+                              indiaPostInfo.booking_status
                           )}
                         </span>
                       </div>
@@ -1122,6 +1538,68 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       </p>
                     </div>
                   ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "payment" && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-[#2D6FE8]/10 bg-[#F4F8FD] p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiCreditCard size={17} />
+                  </div>
+                  <h4 className="font-bold text-[#111827]">
+                    Payment Details
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                    <span className="text-xs text-[#6B7280]">Payment Gateway</span>
+                    <span className="text-sm font-semibold capitalize text-[#111827]">
+                      {payment_gateway || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                    <span className="text-xs text-[#6B7280]">Transaction ID</span>
+                    <span className="text-sm font-semibold text-[#111827] truncate max-w-[200px]" title={gateway_transaction_id}>
+                      {gateway_transaction_id || "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                    <span className="text-xs text-[#6B7280]">Amount Paid</span>
+                    <span className="text-sm font-bold text-[#2D6FE8]">
+                      ₹{Number(amount_paid || 0).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                    <span className="text-xs text-[#6B7280]">Payment Status</span>
+                    <span className="rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold capitalize text-[#2D6FE8]">
+                      {payment_status || "N/A"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-4 border-t border-[#2D6FE8]/10 pt-4">
+                  <h5 className="text-xs font-bold uppercase tracking-wide text-[#111827] mb-3">Order Breakdown</h5>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
+                      <p className="text-[10px] text-[#6B7280]">Subtotal</p>
+                      <p className="text-sm font-bold text-[#111827]">₹{Number(subtotal).toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
+                      <p className="text-[10px] text-[#6B7280]">Shipping</p>
+                      <p className="text-sm font-bold text-[#111827]">₹{Number(shippingCharge).toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
+                      <p className="text-[10px] text-[#6B7280]">Tax (GST)</p>
+                      <p className="text-sm font-bold text-[#111827]">₹{Number(totalGst).toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="rounded-xl bg-[#EAF3FF] p-2 border border-[#2D6FE8]/20 text-center">
+                      <p className="text-[10px] font-bold text-[#2D6FE8]">Total</p>
+                      <p className="text-sm font-bold text-[#1E40AF]">₹{Number(totalPayable).toLocaleString("en-IN")}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1347,7 +1825,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
       const response = await orderApi.dispatchOrder(dispatchData);
       if (response.data.success) {
         toast.success(
-          `✅ Successfully dispatched ${itemsToDispatch.length} item(s)`,
+          `✅ Successfully dispatched ${itemsToDispatch.length} item(s)`
         );
         onDispatch({
           orderId: order.id,
@@ -1511,8 +1989,8 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                    ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
-                    : `Dispatch ${itemsToDispatch.length} Items`}
+                  ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
+                  : `Dispatch ${itemsToDispatch.length} Items`}
               </button>
             </div>
           </form>
@@ -1559,7 +2037,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
         .toLowerCase()
         .replace(/\s+/g, "_");
       return status === "dispatched";
-    },
+    }
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1705,18 +2183,12 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                           {item.productName}
                         </span>
                         {item.categoryName && (
-                          <span
-                            className="mt-0.5 block truncate text-[10px] text-[#4B5563]"
-                            title={item.categoryName}
-                          >
+                          <span className="mt-0.5 block truncate text-[10px] text-[#4B5563]" title={item.categoryName}>
                             Category: {item.categoryName}
                           </span>
                         )}
                         {item.brandName && (
-                          <span
-                            className="block truncate text-[10px] text-[#4B5563]"
-                            title={item.brandName}
-                          >
+                          <span className="block truncate text-[10px] text-[#4B5563]" title={item.brandName}>
                             Brand: {item.brandName}
                           </span>
                         )}
@@ -1755,8 +2227,8 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                    ? `Ship Entire Order (${itemsToShip.length} items)`
-                    : `Ship ${itemsToShip.length} Items`}
+                  ? `Ship Entire Order (${itemsToShip.length} items)`
+                  : `Ship ${itemsToShip.length} Items`}
               </button>
             </div>
           </form>
@@ -1812,7 +2284,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
       const response = await orderApi.deliverOrder(deliverData);
       if (response.data.success) {
         toast.success(
-          `✅ Successfully delivered ${itemsToDeliver.length} item(s)`,
+          `✅ Successfully delivered ${itemsToDeliver.length} item(s)`
         );
         onDeliver({
           orderId: order.id,
@@ -1940,18 +2412,12 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                           {item.productName}
                         </span>
                         {item.categoryName && (
-                          <span
-                            className="mt-0.5 block truncate text-[10px] text-[#4B5563]"
-                            title={item.categoryName}
-                          >
+                          <span className="mt-0.5 block truncate text-[10px] text-[#4B5563]" title={item.categoryName}>
                             Category: {item.categoryName}
                           </span>
                         )}
                         {item.brandName && (
-                          <span
-                            className="block truncate text-[10px] text-[#4B5563]"
-                            title={item.brandName}
-                          >
+                          <span className="block truncate text-[10px] text-[#4B5563]" title={item.brandName}>
                             Brand: {item.brandName}
                           </span>
                         )}
@@ -1990,8 +2456,8 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                    ? `Deliver Entire Order (${itemsToDeliver.length} items)`
-                    : `Deliver ${itemsToDeliver.length} Items`}
+                  ? `Deliver Entire Order (${itemsToDeliver.length} items)`
+                  : `Deliver ${itemsToDeliver.length} Items`}
               </button>
             </div>
           </form>
@@ -2023,28 +2489,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const canDispatch = useMemo(
     () => isSuperAdmin || hasPermission("order.dispatch"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
   const canShip = useMemo(
     () => isSuperAdmin || hasPermission("order.shipped"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
   const canDeliver = useMemo(
     () => isSuperAdmin || hasPermission("order.delivered"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
   const canMarkUndelivered = useMemo(
     () => isSuperAdmin || hasPermission("order.undelivered"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
-  // ✅ FIX: backend sends "order.allow" (not "order.cancel_return")
   const canToggleCancelReturn = useMemo(
     () => isSuperAdmin || hasPermission("order.allow"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
   const canViewInvoice = useMemo(
@@ -2052,7 +2517,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       isSuperAdmin ||
       hasPermission("order.view") ||
       hasPermission("order.details"),
-    [isSuperAdmin, hasPermission],
+    [isSuperAdmin, hasPermission]
   );
 
   const [search, setSearch] = useState("");
@@ -2081,7 +2546,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     OrderItem[]
   >([]);
   const [selectedItemsForShip, setSelectedItemsForShip] = useState<OrderItem[]>(
-    [],
+    []
   );
   const [selectedItemsForDeliver, setSelectedItemsForDeliver] = useState<
     OrderItem[]
@@ -2091,14 +2556,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: number; title: string }[]>(
-    [],
+    []
   );
   const [brands, setBrands] = useState<{ id: number; title: string }[]>([]);
-  // Lookup loading flags — used to decide when to show skeleton rows
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [brandsLoading, setBrandsLoading] = useState(true);
 
-  // Dispatch choice popup state
   const [showDispatchChoicePopup, setShowDispatchChoicePopup] = useState(false);
   const [selectedOrderForDispatchChoice, setSelectedOrderForDispatchChoice] =
     useState<Order | null>(null);
@@ -2106,11 +2569,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     useState<OrderItem | null>(null);
 
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(
-    new Set(),
+    new Set()
   );
+
+  // State for the 3-dot menu
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const itemsPerPage = 20;
 
@@ -2122,6 +2588,18 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Click outside to close 3-dot menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.action-menu-container')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const fetchCategories = async () => {
     setCategoriesLoading(true);
     try {
@@ -2131,7 +2609,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           (response.data.data || []).map((c: any) => ({
             id: c.id,
             title: c.title,
-          })),
+          }))
         );
       }
     } catch (err) {
@@ -2150,7 +2628,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           (response.data.data || []).map((b: any) => ({
             id: b.id,
             title: b.title,
-          })),
+          }))
         );
       }
     } catch (err) {
@@ -2219,7 +2697,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const convertToItemRows = (
-    apiOrder: any,
+    apiOrder: any
   ): Array<Order & { singleItem: OrderItem }> => {
     const orderBase = {
       id: apiOrder.order_reference,
@@ -2227,10 +2705,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
         : "N/A",
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
@@ -2271,7 +2749,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           categoryName:
             item.category_name ||
             categories.find(
-              (category) => String(category.id) === String(item.category_id),
+              (category) => String(category.id) === String(item.category_id)
             )?.title ||
             undefined,
           brandName:
@@ -2287,7 +2765,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           lineTotal: item.line_total || 0,
           status:
             item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
+              item.delivery_status?.slice(1) || "Pending",
           delivery_status: item.delivery_status || "pending",
           image: item.primary_image || item.product_image || undefined,
           productId: item.product_id,
@@ -2421,13 +2899,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
     if (categoryFilter !== "Category: All") {
       const cat = categories.find(
-        (c) => String(c.id) === categoryFilter.replace("Category: ", ""),
+        (c) => String(c.id) === categoryFilter.replace("Category: ", "")
       );
       if (cat) parts.push(cat.title);
     }
     if (brandFilter !== "Brand: All") {
       const br = brands.find(
-        (b) => String(b.id) === brandFilter.replace("Brand: ", ""),
+        (b) => String(b.id) === brandFilter.replace("Brand: ", "")
       );
       if (br) parts.push(br.title);
     }
@@ -2465,7 +2943,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const visibleRows = filteredRows.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const changePage = (page: number) => {
@@ -2500,7 +2978,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const handleOpenInvoicePdf = async (orderId: number, _itemId?: number) => {
-    // Open synchronously on click to avoid popup blockers.
     const pdfWindow = window.open("", "_blank");
     if (pdfWindow) {
       pdfWindow.document.title = "Preparing Indiekonnect invoice";
@@ -2509,8 +2986,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
     try {
       toast.loading("Loading complete invoice...", { id: "invoice-pdf" });
-      // Invoice and order-detail endpoints are different: fetch both so an
-      // item-specific invoice record cannot silently remove other products.
       const [invoiceResult, detailsResult] = await Promise.allSettled([
         orderInvoiceApi.getByOrderId(orderId),
         orderApi.getOrderDetails(String(orderId)),
@@ -2526,15 +3001,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       const payload = response.data.data;
       const existingOrder = payload.order || {};
-      const detailResponse = detailsResult.status === "fulfilled"
-        ? detailsResult.value?.data?.data || detailsResult.value?.data
-        : null;
+      const detailResponse =
+        detailsResult.status === "fulfilled"
+          ? detailsResult.value?.data?.data || detailsResult.value?.data
+          : null;
       const detailOrder = detailResponse?.order || detailResponse || {};
       const originalItems = Array.isArray(existingOrder.order_items)
-        ? existingOrder.order_items : [];
+        ? existingOrder.order_items
+        : [];
       const detailItems = Array.isArray(detailOrder.order_items)
         ? detailOrder.order_items
-        : Array.isArray(detailOrder.items) ? detailOrder.items : [];
+        : Array.isArray(detailOrder.items)
+        ? detailOrder.items
+        : [];
 
       const normalizedDetailItems = detailItems.map((item: any) => ({
         ...item,
@@ -2542,46 +3021,53 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         product_name: item.product_name ?? item.name,
         product_code: item.product_code ?? item.sku,
         unit_price: item.unit_price,
-        taxable_value: item.taxable_value ?? Number(item.unit_price || 0) * Number(item.quantity || 0),
-        total_shipping_charge: item.total_shipping_charge ?? item.total_delivery_charge,
+        taxable_value:
+          item.taxable_value ??
+          Number(item.unit_price || 0) * Number(item.quantity || 0),
+        total_shipping_charge:
+          item.total_shipping_charge ?? item.total_delivery_charge,
       }));
 
-      // Keep the invoice API as the primary source; only use details to
-      // supplement it when the detail endpoint has MORE distinct order lines.
-      const fullItems = normalizedDetailItems.length > originalItems.length
-        ? normalizedDetailItems : originalItems;
+      const fullItems =
+        normalizedDetailItems.length > originalItems.length
+          ? normalizedDetailItems
+          : originalItems;
       const mergedOrder = {
         ...detailOrder,
         ...existingOrder,
-        billing_address: existingOrder.billing_address || detailOrder.billing_address,
-        delivery_address: existingOrder.delivery_address || detailOrder.delivery_address,
+        billing_address:
+          existingOrder.billing_address || detailOrder.billing_address,
+        delivery_address:
+          existingOrder.delivery_address || detailOrder.delivery_address,
         user: existingOrder.user || detailOrder.user,
         order_items: fullItems,
       };
 
-      console.info("FULL INVOICE SOURCE CHECK", {
-        orderId,
-        invoiceType: payload.invoice_type,
-        invoiceItems: originalItems.length,
-        detailItems: normalizedDetailItems.length,
-        pdfItems: fullItems.length,
-        productNames: fullItems.map((item: any) => item.product_name),
-      });
-
       if (!fullItems.length) {
-        throw new Error("Neither API returned order items. Cannot generate full invoice.");
+        throw new Error(
+          "Neither API returned order items. Cannot generate full invoice."
+        );
       }
       if (detailsResult.status === "rejected") {
-        console.warn("Order details request failed; using invoice response", detailsResult.reason);
+        console.warn(
+          "Order details request failed; using invoice response",
+          detailsResult.reason
+        );
       }
 
       await openInvoicePdfInNewTab(
-        { ...payload, order: mergedOrder }, null, pdfWindow,
+        { ...payload, order: mergedOrder },
+        null,
+        pdfWindow
       );
     } catch (err: any) {
       pdfWindow?.close();
       console.error("Invoice PDF error:", err);
-      toast.error(err?.response?.data?.message || err?.message || "Failed to load invoice.");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to load invoice."
+      );
     } finally {
       toast.dismiss("invoice-pdf");
     }
@@ -2676,7 +3162,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         toast.success(
           newValue
             ? "Cancel/Return option activated"
-            : "Cancel/Return option deactivated",
+            : "Cancel/Return option deactivated"
         );
 
         setOrders((prevOrders) =>
@@ -2690,7 +3176,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 return { ...it, is_cancel_return_allowed: newValue };
               }),
             };
-          }),
+          })
         );
       } else {
         toast.error(response.data.message || "Failed to update");
@@ -2733,7 +3219,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             return { ...it, delivery_status: "undelivered" };
           }),
         };
-      }),
+      })
     );
 
     try {
@@ -2749,8 +3235,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-        err?.message ||
-        "Failed to mark as undelivered",
+          err?.message ||
+          "Failed to mark as undelivered"
       );
       await fetchOrders();
     } finally {
@@ -2783,7 +3269,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsForDeliver([]);
   };
 
-  // Dispatch choice handlers
   const openDispatchChoicePopup = (row: Order & { singleItem: OrderItem }) => {
     setSelectedOrderForDispatchChoice(row);
     setSelectedItemForDispatchChoice(row.singleItem);
@@ -2830,8 +3315,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   };
 
   const showSkeletonRows =
-    loading ||
-    (orders.length > 0 && (categoriesLoading || brandsLoading));
+    loading || (orders.length > 0 && (categoriesLoading || brandsLoading));
 
   if (initialLoading) {
     return (
@@ -2992,10 +3476,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${hasActiveFilters
-                  ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
-                  : "text-[#9CA3AF] hover:text-[#2D6FE8]"
-                  }`}
+                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
+                  hasActiveFilters
+                    ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
+                    : "text-[#9CA3AF] hover:text-[#2D6FE8]"
+                }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
                 Clear
@@ -3142,13 +3627,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     Status
                   </th>
                   <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Cancel/Return
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
                     Actions
-                  </th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
-                    Invoice
                   </th>
                 </tr>
               </thead>
@@ -3162,7 +3641,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   visibleRows.map((row, index) => {
                     const item = row.singleItem;
                     const itemStatusBadge = getStatusBadge(
-                      item.delivery_status || item.status || "pending",
+                      item.delivery_status || item.status || "pending"
                     );
 
                     const isDispatchable = canItemDispatch(item) && canDispatch;
@@ -3172,10 +3651,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       canItemMarkUndelivered(item) && canMarkUndelivered;
                     const isDelivered = isFullyDelivered(item);
                     const isMarking = markingUndelivered.has(
-                      `${row.id}-${item.id}`,
+                      `${row.id}-${item.id}`
                     );
                     const isTogglingReturn = togglingCancelReturn.has(
-                      `${row.id}-${item.id}`,
+                      `${row.id}-${item.id}`
                     );
                     const hasInvoice = Boolean(item.invoiceNumber);
                     const isClosed = isTerminalStatus(item);
@@ -3183,10 +3662,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     return (
                       <tr
                         key={`${row.id}-${item.id}-${index}`}
-                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${selectedOrderId === row.id
-                          ? "bg-[#EAF3FF]"
-                          : "bg-white"
-                          }`}
+                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${
+                          selectedOrderId === row.id
+                            ? "bg-[#EAF3FF]"
+                            : "bg-white"
+                        }`}
                       >
                         <td className="px-3 py-3">
                           <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
@@ -3289,7 +3769,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     India Post ·{" "}
                                     {formatStatus(
                                       row.indiaPost.tracking_status ||
-                                      row.indiaPost.booking_status,
+                                        row.indiaPost.booking_status
                                     )}
                                   </p>
                                   <p
@@ -3312,46 +3792,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           >
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
                             {formatStatus(
-                              item.delivery_status || item.status || "pending",
+                              item.delivery_status || item.status || "pending"
                             )}
                           </span>
-                        </td>
-
-                        <td className="px-3 py-3 text-center">
-                          {isClosed ? (
-                            <span className="inline-flex min-w-[90px] cursor-not-allowed items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-[#D6E2F0] bg-[#F4F8FD] px-3 py-1.5 text-[10px] font-bold text-[#9CA3AF] opacity-70">
-                              <FiCheckCircle size={12} />
-                              Closed
-                            </span>
-                          ) : canToggleCancelReturn ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleToggleCancelReturn(row, item)
-                              }
-                              disabled={isTogglingReturn}
-                              className={`inline-flex min-w-[90px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[10px] font-bold transition-all disabled:opacity-60 ${item.is_cancel_return_allowed
-                                ? "border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                : "border-[#D6E2F0] bg-[#F4F8FD] text-[#6B7280] hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                                }`}
-                            >
-                              {isTogglingReturn ? (
-                                <FiLoader size={12} className="animate-spin" />
-                              ) : item.is_cancel_return_allowed ? (
-                                <>
-                                  <FiCheckCircle size={12} />
-                                  Allowed
-                                </>
-                              ) : (
-                                <>
-                                  <FiX size={12} />
-                                  Not Allowed
-                                </>
-                              )}
-                            </button>
-                          ) : (
-                            <span className="text-xs text-[#6B7280]">—</span>
-                          )}
                         </td>
 
                         <td className="px-3 py-3 text-center">
@@ -3430,31 +3873,92 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 ✓
                               </span>
                             )}
+                            
+                            {/* Three Dot Menu */}
+                            <div className="action-menu-container relative">
+                              <button
+                                type="button"
+                                onClick={() => setOpenMenuId(openMenuId === `${row.id}-${item.id}` ? null : `${row.id}-${item.id}`)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                                title="More Actions"
+                              >
+                                <FiMoreVertical size={14} />
+                              </button>
+                              
+                              <AnimatePresence>
+                                {openMenuId === `${row.id}-${item.id}` && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-lg"
+                                  >
+                                    {hasInvoice && row.orderId && canViewInvoice && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null);
+                                          handleOpenInvoicePdf(
+                                            row.orderId!,
+                                            item.lineId || parseInt(item.id)
+                                          );
+                                        }}
+                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-[#111827] hover:bg-[#F4F8FD]"
+                                      >
+                                        <FiFileText size={13} className="text-[#2D6FE8]" />
+                                        View Invoice
+                                      </button>
+                                    )}
+                                    
+                                    {!isClosed && canToggleCancelReturn && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleToggleCancelReturn(row, item);
+                                          setOpenMenuId(null);
+                                        }}
+                                        disabled={isTogglingReturn}
+                                        className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${
+                                          item.is_cancel_return_allowed
+                                            ? "text-[#2D6FE8]"
+                                            : "text-[#6B7280]"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          {isTogglingReturn ? (
+                                            <FiLoader size={13} className="animate-spin" />
+                                          ) : item.is_cancel_return_allowed ? (
+                                            <FiCheckCircle size={13} />
+                                          ) : (
+                                            <FiX size={13} />
+                                          )}
+                                          Cancel/Return
+                                        </div>
+                                        <span className="text-[10px] font-semibold">
+                                          {item.is_cancel_return_allowed ? "Allowed" : "Not Allowed"}
+                                        </span>
+                                      </button>
+                                    )}
+                                    {isClosed && (
+                                      <div className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-[#9CA3AF] cursor-not-allowed">
+                                        <FiCheckCircle size={13} />
+                                        Closed
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            
                           </div>
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          {hasInvoice && row.orderId && canViewInvoice && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleOpenInvoicePdf(
-                                  row.orderId!,
-                                  item.lineId || parseInt(item.id),
-                                )
-                              }
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                            >
-                              <FiFileText size={13} />
-                              Invoice
-                            </button>
-                          )}
                         </td>
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={11} className="px-6 py-16 text-center">
+                    <td colSpan={9} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiSearch size={24} />
@@ -3489,10 +3993,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   canItemMarkUndelivered(item) && canMarkUndelivered;
                 const isDelivered = isFullyDelivered(item);
                 const isMarking = markingUndelivered.has(
-                  `${row.id}-${item.id}`,
+                  `${row.id}-${item.id}`
                 );
                 const isTogglingReturn = togglingCancelReturn.has(
-                  `${row.id}-${item.id}`,
+                  `${row.id}-${item.id}`
                 );
                 const hasInvoice = Boolean(item.invoiceNumber);
                 const isClosed = isTerminalStatus(item);
@@ -3500,8 +4004,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 return (
                   <div
                     key={`${row.id}-${item.id}-${index}`}
-                    className={`border-b border-[#2D6FE8]/10 bg-white p-4 ${selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
-                      }`}
+                    className={`border-b border-[#2D6FE8]/10 bg-white p-4 ${
+                      selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
+                    }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -3517,11 +4022,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       </div>
                       <span
                         className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                          item.delivery_status || item.status || "pending",
+                          item.delivery_status || item.status || "pending"
                         )}`}
                       >
                         {formatStatus(
-                          item.delivery_status || item.status || "pending",
+                          item.delivery_status || item.status || "pending"
                         )}
                       </span>
                     </div>
@@ -3580,7 +4085,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           <span className="font-semibold text-[#111827]">
                             {formatStatus(
                               row.indiaPost.tracking_status ||
-                              row.indiaPost.booking_status,
+                                row.indiaPost.booking_status
                             )}
                           </span>
                         </div>
@@ -3608,16 +4113,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           type="button"
                           onClick={() => handleToggleCancelReturn(row, item)}
                           disabled={isTogglingReturn}
-                          className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${item.is_cancel_return_allowed
-                            ? "bg-[#EAF3FF] text-[#2D6FE8]"
-                            : "bg-[#F4F8FD] text-[#6B7280]"
-                            }`}
+                          className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
+                            item.is_cancel_return_allowed
+                              ? "bg-[#EAF3FF] text-[#2D6FE8]"
+                              : "bg-[#F4F8FD] text-[#6B7280]"
+                          }`}
                         >
                           {isTogglingReturn
                             ? "Saving..."
                             : item.is_cancel_return_allowed
-                              ? "Return: Allowed"
-                              : "Return: Not Allowed"}
+                            ? "Return: Allowed"
+                            : "Return: Not Allowed"}
                         </button>
                       ) : null}
 
@@ -3672,7 +4178,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           onClick={() =>
                             handleOpenInvoicePdf(
                               row.orderId!,
-                              item.lineId || parseInt(item.id),
+                              item.lineId || parseInt(item.id)
                             )
                           }
                           className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
@@ -3735,10 +4241,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         key={page}
                         type="button"
                         onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                        }`}
                       >
                         {page}
                       </button>
@@ -3750,10 +4257,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
-                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                          }`}
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
+                          currentPage === totalPages
+                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
+                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                        }`}
                       >
                         {totalPages}
                       </button>
@@ -3913,7 +4421,7 @@ const Orders: React.FC = () => {
   const canViewOrders = useMemo(
     () =>
       isSuperAdmin || hasModuleAccess("order") || hasPermission("order.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
+    [isSuperAdmin, hasModuleAccess, hasPermission]
   );
 
   const canExport = useMemo(
@@ -3922,7 +4430,7 @@ const Orders: React.FC = () => {
       hasModuleAccess("order") ||
       hasPermission("order.details") ||
       hasPermission("order.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
+    [isSuperAdmin, hasModuleAccess, hasPermission]
   );
 
   useEffect(() => {
@@ -3943,7 +4451,7 @@ const Orders: React.FC = () => {
 
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" && /^https?:\/\//i.test(value.trim())
         );
 
         if (!cancelled && resolvedLogo) {
@@ -4012,7 +4520,7 @@ const Orders: React.FC = () => {
   const totalEarnings = useMemo(() => {
     return ordersData.reduce(
       (sum, order) => sum + (order.total_payable || 0),
-      0,
+      0
     );
   }, [ordersData]);
 
@@ -4020,10 +4528,10 @@ const Orders: React.FC = () => {
     const totalItems = allItemRows.length;
     const confirmed = allItemRows.filter(
       (r) =>
-        r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing",
+        r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing"
     ).length;
     const delivered = allItemRows.filter(
-      (r) => r.deliveryStatus === "delivered",
+      (r) => r.deliveryStatus === "delivered"
     ).length;
 
     return { total: totalItems, confirmed, delivered };
