@@ -182,6 +182,21 @@ export const menuItems: MenuItem[] = [
             permission: 'payout.view',
             module: 'payout',
           },
+
+          {
+            path: '/Fiance/CommissionCalendar',
+            label: 'Commission History',
+            icon: 'calendar_month',
+            permission: 'payout.view',
+            module: 'payout',
+            anyOf: [
+              'payout.view',
+              'finance.commission-export',
+              'finance.commission_export',
+              'finance.commissionExport',
+            ],
+          },
+
           {
             path: '/Payment',
             label: 'Payment Summary',
@@ -189,6 +204,7 @@ export const menuItems: MenuItem[] = [
             permission: 'payout.view',
             module: 'payout',
           },
+
           {
             path: '/IgniteExports',
             label: 'Partner Data Exports',

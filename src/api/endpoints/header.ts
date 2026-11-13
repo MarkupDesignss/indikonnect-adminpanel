@@ -77,6 +77,29 @@ export interface GlobalSearchResponse {
   data: GlobalSearchData;
 }
 
+
+// ✅ NEW: Order type
+export interface GlobalSearchOrder {
+  id: number;
+  master_order_id: string;
+  email: string;
+  phone?: string;
+  tracking_number?: string | null;
+  created_at?: string;
+  // ... other fields as needed
+}
+
+export interface GlobalSearchResponse {
+  success: boolean;
+  data: {
+    products: GlobalSearchProduct[];
+    admins: GlobalSearchAdmin[];
+    users: GlobalSearchUser[];
+    orders?: GlobalSearchOrder[]; // ✅ NEW
+    total_results: number;
+  };
+}
+
 // =====================================================
 // CREATE HEADER / MENU
 // POST /header/add

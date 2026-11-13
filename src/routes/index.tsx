@@ -60,11 +60,9 @@ import ReturnRefund from "@/pages/Fiance/ReturnRefund";
 import ReviewsModeration from "@/pages/ReviewsModeration";
 import CorrectionRequests from "@/components/corrections/CorrectionRequests";
 import IgniteExports from "@/components/IgniteExports/IgniteExports";
-
-// ✅ NEW — dedicated dispatch page (uses param :orderReference)
 import IndiaPostDispatchPage from "@/pages/orders/IndiaPostDispatchPage";
-// ✅ Error page (so a bad render doesn't show the red dev overlay)
 import RouteError from "@/pages/RouteError";
+import CommissionCalendar from "@/pages/Commission/CommissionCalendar";
 
 
 const ScrollLayout = () => (
@@ -207,6 +205,10 @@ export const adminRouter = createBrowserRouter(
             { path: "Fiance/CoolOff", element: <CoolOff /> },
             { path: "Fiance/BuyBack", element: <BuyBack /> },
             { path: "Fiance/CancelRefund", element: <CancelRefund /> },
+            {
+              path: "Fiance/CommissionCalendar",
+              element: <CommissionCalendar />,
+            },
 
             // ============================================================
             // SALES

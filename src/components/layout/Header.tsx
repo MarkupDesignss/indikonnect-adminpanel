@@ -10,6 +10,7 @@ import { adminApi, AdminProfile } from "../../api/endpoints/Auth";
 
 import headerApi, {
   GlobalSearchAdmin,
+  GlobalSearchOrder,
   GlobalSearchProduct,
   GlobalSearchUser,
 } from "../../api/endpoints/header";
@@ -25,6 +26,8 @@ import {
   FiLoader,
   FiChevronRight,
   FiCommand,
+  FiShoppingBag,
+  FiHash,
 } from "react-icons/fi";
 
 import {
@@ -57,6 +60,7 @@ interface SearchResults {
   products: GlobalSearchProduct[];
   admins: GlobalSearchAdmin[];
   users: GlobalSearchUser[];
+  orders: GlobalSearchOrder[];
   total_results: number;
 }
 
@@ -79,15 +83,27 @@ const getInitials = (name?: string) => {
   return parts[0].slice(0, 2).toUpperCase();
 };
 
-/**
- * Role slug ko readable label me convert karo
- * e.g. "warehouse-manager" => "Warehouse Manager"
- */
 const formatRoleLabel = (slug: string): string => {
   return slug
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+};
+
+const formatDate = (dateStr?: string): string => {
+  if (!dateStr) return "";
+
+  try {
+    const date = new Date(dateStr);
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
 };
 
 // =====================================================
@@ -102,10 +118,6 @@ const Header = ({
 }: HeaderProps) => {
   const navigate = useNavigate();
 
-  // ===================================================
-  // ✅ PORTAL INFO (URL + API combined)
-  // ===================================================
-
   const {
     portalName,
     warehouseName,
@@ -113,15 +125,7 @@ const Header = ({
     isWarehousePortal,
   } = usePortalInfo();
 
-  // ===================================================
-  // ✅ PERMISSIONS (role ke liye)
-  // ===================================================
-
   const { primaryRole, roles: adminRoles } = usePermissions();
-
-  // ===================================================
-  // ✅ DYNAMIC ROLE LABEL
-  // ===================================================
 
   const roleLabel = useMemo(() => {
     if (primaryRole && adminRoles.length > 0) {
@@ -165,6 +169,7 @@ const Header = ({
     products: [],
     admins: [],
     users: [],
+    orders: [],
     total_results: 0,
   });
 
@@ -262,7 +267,7 @@ const Header = ({
   }, []);
 
   // ===================================================
-  // PRODUCT IMAGE
+  // IMAGE HELPERS
   // ===================================================
 
   const getProductImage = (
@@ -295,10 +300,6 @@ const Header = ({
 
     return null;
   };
-
-  // ===================================================
-  // USER / ADMIN IMAGE
-  // ===================================================
 
   const getProfileImage = (
     person:
@@ -333,6 +334,7 @@ const Header = ({
           products: [],
           admins: [],
           users: [],
+          orders: [],
           total_results: 0,
         });
 
@@ -360,6 +362,7 @@ const Header = ({
           products: data?.products || [],
           admins: data?.admins || [],
           users: data?.users || [],
+          orders: data?.orders || [],
           total_results: data?.total_results || 0,
         });
       } catch (error) {
@@ -369,6 +372,7 @@ const Header = ({
           products: [],
           admins: [],
           users: [],
+          orders: [],
           total_results: 0,
         });
       } finally {
@@ -394,6 +398,7 @@ const Header = ({
         products: [],
         admins: [],
         users: [],
+        orders: [],
         total_results: 0,
       });
 
@@ -421,20 +426,24 @@ const Header = ({
       products: [],
       admins: [],
       users: [],
+      orders: [],
       total_results: 0,
     });
   };
 
   // ===================================================
   // SEARCH NAVIGATION
+  // ✅ Unique _ts bhej rahe hain taaki same route pe bhi
+  //    navigate() naya state inject kare
   // ===================================================
 
   const goToSearchResult = (
-    type: "product" | "admin" | "user",
+    type: "product" | "admin" | "user" | "order",
     item:
       | GlobalSearchProduct
       | GlobalSearchAdmin
-      | GlobalSearchUser,
+      | GlobalSearchUser
+      | GlobalSearchOrder,
   ) => {
     setSearch("");
     setIsSearchOpen(false);
@@ -443,7 +452,10 @@ const Header = ({
       const product = item as GlobalSearchProduct;
 
       navigate("/inventory/products", {
-        state: { product },
+        state: {
+          product,
+          _ts: Date.now(),
+        },
       });
 
       return;
@@ -453,7 +465,10 @@ const Header = ({
       const searchAdmin = item as GlobalSearchAdmin;
 
       navigate("/RoleManagement/addmember", {
-        state: { admin: searchAdmin },
+        state: {
+          admin: searchAdmin,
+          _ts: Date.now(),
+        },
       });
 
       return;
@@ -463,8 +478,29 @@ const Header = ({
       const user = item as GlobalSearchUser;
 
       navigate("/UserManagement", {
-        state: { user },
+        state: {
+          user,
+          _ts: Date.now(),
+        },
       });
+
+      return;
+    }
+
+    if (type === "order") {
+      const order = item as GlobalSearchOrder;
+
+      navigate("/orders", {
+        state: {
+          order,
+          orderId: order.id,
+          orderReference: order.master_order_id,
+          openView: true,
+          _ts: Date.now(),
+        },
+      });
+
+      return;
     }
   };
 
@@ -514,6 +550,7 @@ const Header = ({
         products: [],
         admins: [],
         users: [],
+        orders: [],
         total_results: 0,
       });
 
@@ -528,27 +565,21 @@ const Header = ({
     }
   };
 
-  // ===================================================
-  // PROFILE
-  // ===================================================
-
   const toggleDropdown = () => {
     setIsDropdownOpen((previous) => !previous);
   };
 
-  // ===================================================
-  // SEARCH STATE
-  // ===================================================
-
   const hasResults =
     searchResults.products.length > 0 ||
     searchResults.admins.length > 0 ||
-    searchResults.users.length > 0;
+    searchResults.users.length > 0 ||
+    searchResults.orders.length > 0;
 
   const totalSearchItems =
     searchResults.products.length +
     searchResults.admins.length +
-    searchResults.users.length;
+    searchResults.users.length +
+    searchResults.orders.length;
 
   // ===================================================
   // RENDER
@@ -584,13 +615,8 @@ const Header = ({
         }
       `}
     >
-      {/* ===================================================
-          LEFT
-      =================================================== */}
-
+      {/* LEFT */}
       <div className="flex shrink-0 items-center">
-        {/* DESKTOP SIDEBAR BUTTON */}
-
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -620,8 +646,6 @@ const Header = ({
             <FiMenu size={20} />
           )}
         </button>
-
-        {/* MOBILE SIDEBAR BUTTON */}
 
         <button
           type="button"
@@ -653,10 +677,7 @@ const Header = ({
         </button>
       </div>
 
-      {/* ===================================================
-          SEARCH
-      =================================================== */}
-
+      {/* SEARCH */}
       <div
         ref={searchRef}
         className="
@@ -670,8 +691,6 @@ const Header = ({
         "
       >
         <div className="group relative">
-          {/* SEARCH ICON */}
-
           <div
             className="
               absolute
@@ -687,8 +706,6 @@ const Header = ({
             <FiSearch size={16} />
           </div>
 
-          {/* INPUT */}
-
           <input
             type="text"
             value={search}
@@ -700,7 +717,7 @@ const Header = ({
                 setIsSearchOpen(true);
               }
             }}
-            placeholder="Search products, users, admins..."
+            placeholder="Search products, users, admins, orders..."
             autoComplete="off"
             className="
               h-[40px]
@@ -724,8 +741,6 @@ const Header = ({
               focus:ring-primary/10
             "
           />
-
-          {/* SHORTCUT */}
 
           {!search && (
             <div
@@ -755,8 +770,6 @@ const Header = ({
             </div>
           )}
 
-          {/* LOADER */}
-
           {isSearchLoading && (
             <FiLoader
               className="
@@ -770,8 +783,6 @@ const Header = ({
               size={16}
             />
           )}
-
-          {/* CLEAR */}
 
           {!isSearchLoading && search && (
             <button
@@ -800,10 +811,6 @@ const Header = ({
           )}
         </div>
 
-        {/* ===================================================
-            SEARCH RESULTS PANEL
-        =================================================== */}
-
         {isSearchOpen && (
           <div
             className="
@@ -820,8 +827,6 @@ const Header = ({
               shadow-[0_16px_45px_rgba(0,0,0,0.12)]
             "
           >
-            {/* LOADING */}
-
             {isSearchLoading && !hasResults && (
               <div className="px-5 py-7 text-center">
                 <div
@@ -849,12 +854,10 @@ const Header = ({
                 </p>
 
                 <p className="mt-0.5 text-[11px] text-gray-400">
-                  Looking across products, users and admins
+                  Looking across products, users, admins and orders
                 </p>
               </div>
             )}
-
-            {/* NO RESULTS */}
 
             {!isSearchLoading &&
               search.trim() &&
@@ -882,19 +885,13 @@ const Header = ({
                   </p>
 
                   <p className="mt-0.5 text-[11px] text-gray-400">
-                    Try a different name, email or product
+                    Try a different name, email, order id or product
                   </p>
                 </div>
               )}
 
-            {/* =================================================
-                RESULTS
-            ================================================= */}
-
             {hasResults && (
               <div className="max-h-[72vh] overflow-y-auto">
-                {/* TOP BAR */}
-
                 <div
                   className="
                     sticky
@@ -941,7 +938,6 @@ const Header = ({
                 </div>
 
                 {/* PRODUCTS */}
-
                 {searchResults.products.length > 0 && (
                   <section className="border-b border-gray-100 py-1.5">
                     <div className="flex items-center justify-between px-3.5 py-1.5">
@@ -1087,8 +1083,172 @@ const Header = ({
                   </section>
                 )}
 
-                {/* ADMINS */}
+                {/* ORDERS */}
+                {searchResults.orders.length > 0 && (
+                  <section className="border-b border-gray-100 py-1.5">
+                    <div className="flex items-center justify-between px-3.5 py-1.5">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="
+                            flex
+                            h-6
+                            w-6
+                            items-center
+                            justify-center
+                            rounded-md
+                            bg-amber-50
+                            text-amber-600
+                          "
+                        >
+                          <FiShoppingBag size={12} />
+                        </div>
 
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-gray-700">
+                          Orders
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[8.5px] font-semibold text-gray-500">
+                        {searchResults.orders.length}
+                      </span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      {searchResults.orders.map((order) => (
+                        <button
+                          key={`order-${order.id}`}
+                          type="button"
+                          onClick={() =>
+                            goToSearchResult("order", order)
+                          }
+                          className="
+                            group
+                            flex
+                            w-full
+                            items-start
+                            gap-2.5
+                            px-3.5
+                            py-2.5
+                            text-left
+                            transition-all
+                            hover:bg-gray-50
+                          "
+                        >
+                          <div
+                            className="
+                              flex
+                              h-9
+                              w-9
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-lg
+                              bg-gradient-to-br
+                              from-amber-400
+                              to-amber-600
+                              text-white
+                              shadow-sm
+                            "
+                          >
+                            <FiShoppingBag size={15} />
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className="
+                                truncate
+                                text-[12.5px]
+                                font-semibold
+                                text-gray-800
+                                group-hover:text-primary
+                              "
+                            >
+                              {order.master_order_id}
+                            </p>
+
+                            {order.email && (
+                              <div className="mt-1 flex items-center gap-1">
+                                <FiMail
+                                  size={10}
+                                  className="shrink-0 text-gray-400"
+                                />
+
+                                <p className="truncate text-[10px] text-gray-400">
+                                  {order.email}
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              {order.tracking_number && (
+                                <span
+                                  className="
+                                    inline-flex
+                                    items-center
+                                    gap-0.5
+                                    rounded
+                                    bg-gray-100
+                                    px-1.5
+                                    py-0.5
+                                    text-[7.5px]
+                                    font-medium
+                                    text-gray-500
+                                  "
+                                >
+                                  <FiHash size={7} />
+                                  {order.tracking_number}
+                                </span>
+                              )}
+
+                              {order.phone && (
+                                <span
+                                  className="
+                                    rounded
+                                    bg-gray-100
+                                    px-1.5
+                                    py-0.5
+                                    text-[7.5px]
+                                    font-medium
+                                    text-gray-500
+                                  "
+                                >
+                                  {order.phone}
+                                </span>
+                              )}
+
+                              {order.created_at && (
+                                <span className="text-[7.5px] font-medium text-gray-400">
+                                  {formatDate(order.created_at)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div
+                            className="
+                              mt-1.5
+                              flex
+                              h-6
+                              w-6
+                              shrink-0
+                              items-center
+                              justify-center
+                              rounded-md
+                              text-gray-300
+                              transition-all
+                              group-hover:bg-primary/10
+                              group-hover:text-primary
+                            "
+                          >
+                            <FiChevronRight size={13} />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* ADMINS */}
                 {searchResults.admins.length > 0 && (
                   <section className="border-b border-gray-100 py-1.5">
                     <div className="flex items-center justify-between px-3.5 py-1.5">
@@ -1298,7 +1458,6 @@ const Header = ({
                 )}
 
                 {/* USERS */}
-
                 {searchResults.users.length > 0 && (
                   <section className="py-1.5">
                     <div className="flex items-center justify-between px-3.5 py-1.5">
@@ -1433,8 +1592,6 @@ const Header = ({
                   </section>
                 )}
 
-                {/* FOOTER */}
-
                 <div
                   className="
                     border-t
@@ -1454,13 +1611,8 @@ const Header = ({
         )}
       </div>
 
-      {/* ===================================================
-          RIGHT
-      =================================================== */}
-
+      {/* RIGHT */}
       <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-        {/* NOTIFICATION */}
-
         <Link to="/notifications">
           <button
             type="button"
@@ -1497,8 +1649,6 @@ const Header = ({
           </button>
         </Link>
 
-        {/* SETTINGS */}
-
         <Link
           to="/SettingsManagement"
           className="hidden md:block"
@@ -1523,8 +1673,6 @@ const Header = ({
           </button>
         </Link>
 
-        {/* DIVIDER */}
-
         <div
           className="
             mx-1
@@ -1536,10 +1684,7 @@ const Header = ({
           "
         />
 
-        {/* =================================================
-            PROFILE
-        ================================================= */}
-
+        {/* PROFILE */}
         <div ref={dropdownRef} className="relative">
           <button
             type="button"
@@ -1558,8 +1703,6 @@ const Header = ({
             "
             aria-label="Profile menu"
           >
-            {/* AVATAR */}
-
             <div
               className="
                 relative
@@ -1596,8 +1739,6 @@ const Header = ({
                 </div>
               )}
             </div>
-
-            {/* NAME + ROLE */}
 
             <div
               className="
@@ -1638,8 +1779,6 @@ const Header = ({
               </p>
             </div>
 
-            {/* ARROW */}
-
             <HiOutlineChevronDown
               className={`
                 shrink-0
@@ -1651,10 +1790,6 @@ const Header = ({
               `}
             />
           </button>
-
-          {/* =================================================
-              PROFILE DROPDOWN
-          ================================================= */}
 
           {isDropdownOpen && (
             <div
@@ -1673,8 +1808,6 @@ const Header = ({
                 shadow-[0_16px_50px_rgba(0,0,0,0.14)]
               "
             >
-              {/* HEADER */}
-
               <div
                 className="
                   bg-gradient-to-br
@@ -1721,8 +1854,6 @@ const Header = ({
                     <p className="mt-0.5 truncate text-[10px] text-gray-400">
                       {admin?.email || "admin@example.com"}
                     </p>
-
-                    {/* ✅ DYNAMIC ROLE + PORTAL */}
 
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       <span
@@ -1776,8 +1907,6 @@ const Header = ({
                   </div>
                 </div>
               </div>
-
-              {/* ROLES */}
 
               {Array.isArray((admin as any)?.roles) &&
                 (admin as any).roles.length > 0 && (
@@ -1899,8 +2028,6 @@ const Header = ({
                     </div>
                   </div>
                 )}
-
-              {/* MENU */}
 
               <div className="border-t border-gray-100 p-1.5">
                 <Link to="/UpdateProfile">

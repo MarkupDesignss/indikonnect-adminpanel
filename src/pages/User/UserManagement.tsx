@@ -94,6 +94,7 @@ interface KycProfileLike {
   bank_holder_name?: string | null;
   bank_name?: string | null;
   bank_ifsc?: string | null;
+  complete_bank_account?: string | null;
   account_type?: string | null;
 
   title?: string | null;
@@ -1338,6 +1339,11 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const completePan =
     userWithExtraFields?.complete_pan_card;
 
+  const completeBankAccount =
+    userWithExtraFields?.complete_bank_account ||
+    kycProfile?.complete_bank_account ||
+    null;
+
   const withdrawAllowed = user ? isWithdrawAllowed(user) : true;
 
   const showWithdrawControl =
@@ -1825,16 +1831,17 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </p>
                     </div>
 
-                    {/* BANK ACCOUNT */}
+                    {/* COMPLETE BANK ACCOUNT NUMBER */}
                     <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
-                        Bank Account
+                        Bank Account Number
                       </p>
 
-                      <p className="mt-1 text-sm font-bold text-[#111827]">
-                        {user.account_last4
-                          ? `XXXX${user.account_last4}`
-                          : "Not Available"}
+                      <p className="mt-1 break-all text-sm font-bold text-[#111827]">
+                        {completeBankAccount?.trim() ||
+                          (user.account_last4
+                            ? `XXXX${user.account_last4}`
+                            : "Not Available")}
                       </p>
 
                       <p
