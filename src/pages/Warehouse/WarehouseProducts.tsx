@@ -21,7 +21,6 @@ import {
   FiXCircle,
   FiTrendingUp,
   FiPercent,
-  FiAward,
   FiRefreshCw,
   FiAlertCircle,
 } from "react-icons/fi";
@@ -559,16 +558,15 @@ const WarehouseProducts = () => {
             {/* TABLE */}
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1080px] table-fixed border-collapse">
+              <table className="w-full min-w-[960px] table-fixed border-collapse">
                 <colgroup>
                   <col className="w-[55px]" />
-                  <col className="w-[24%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[13%]" />
+                  <col className="w-[28%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[9%]" />
-                  <col className="w-[14%]" />
+                  <col className="w-[16%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[16%]" />
                 </colgroup>
 
                 <thead>
@@ -591,10 +589,6 @@ const WarehouseProducts = () => {
 
                     <th className="px-3 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                       Pricing
-                    </th>
-
-                    <th className="px-3 py-3.5 text-right text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                      Commission
                     </th>
 
                     <th className="px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
@@ -718,16 +712,6 @@ const WarehouseProducts = () => {
                           <p className="text-[10px] text-[#6B7280] line-through">
                             {formatCurrency(product.retail_mrp)}
                           </p>
-                        </td>
-
-                        {/* COMMISSION */}
-
-                        <td className="px-3 py-2.5 text-right">
-                          <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-[#2D6FE8]/15 bg-[#EAF3FF] px-2 py-1 text-[11px] font-semibold text-[#2D6FE8]">
-                            <FiAward className="text-[10px]" />
-
-                            {formatCurrency(product.commission_value)}
-                          </span>
                         </td>
 
                         {/* STOCK */}

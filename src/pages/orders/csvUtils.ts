@@ -43,6 +43,15 @@ export const formatCsvStatus = (status?: string) =>
     ? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "";
 
+/**
+ * Item-based CSV generator.
+ *
+ * Every entry in `orders` may either be:
+ *   - a full order (with `.items`), OR
+ *   - a single-row order whose `.items` contains only the filtered item(s).
+ *
+ * In either case, the resulting CSV will contain ONE ROW PER ITEM.
+ */
 export const generateOrdersCsv = (orders: any[]): string => {
   const headers = [
     "S.No.",
@@ -87,7 +96,11 @@ export const generateOrdersCsv = (orders: any[]): string => {
       const row = [
         counter,
         order.order_reference || order.id || "",
-        formatCsvDate(order.order_date || order.date) || "",
+        // Prefer the raw order date field (set by the item-row converter),
+        // then fall back to `.date` / `.order_date`.
+        formatCsvDate(
+          order.orderDateRaw || order.order_date || order.date,
+        ) || "",
         order.user?.name || order.customer || "",
         order.user?.email || order.userEmail || "",
         order.user?.phone || order.userPhone || "",
@@ -138,6 +151,15 @@ export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
   }
 
   try {
+    // Count actual item rows that will be written (not just order records).
+    const itemRowCount = orders.reduce((total, order) => {
+      const count =
+        Array.isArray(order.items) && order.items.length
+          ? order.items.length
+          : 1;
+      return total + count;
+    }, 0);
+
     const content = `\uFEFF${generateOrdersCsv(orders)}`;
     const url = URL.createObjectURL(
       new Blob([content], { type: "text/csv;charset=utf-8;" }),
@@ -149,7 +171,9 @@ export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(`CSV downloaded — ${orders.length} orders exported`);
+    toast.success(
+      `CSV downloaded — ${itemRowCount} item row(s) from ${orders.length} order(s)`,
+    );
   } catch (error) {
     console.error("CSV download error:", error);
     toast.error("Failed to download CSV. Please try again.");
@@ -794,11 +818,6 @@ export const openInvoicePdfInNewTab = async (
     y += infoBlockH;
 
     // 4. PRODUCT TABLE — ONLY THE REQUESTED FIELDS
-    // Columns:
-    //   Sr | HSN/SKU | Description | Qty | Taxable (line_price_excl_gst)
-    //   | Price (line_price_incl_gst) | GST (line_gst_amount) | IGST (igst_amount)
-    //   | Total Excl (line_total_excl_gst) | Total GST (line_total_gst_amount)
-    //   | Total Incl (line_total_incl_gst)
     const widths = [22, 56, 150, 28, 52, 52, 48, 48, 60, 52, 60];
     const totalWidthRatio = W / widths.reduce((sum, n) => sum + n, 0);
     const columnStyles: Record<number, any> = {};

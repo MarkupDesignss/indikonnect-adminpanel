@@ -1,3 +1,4 @@
+// src/pages/orders/Orders.tsx
 import React, {
   useMemo,
   useState,
@@ -59,7 +60,58 @@ const itemVariants = {
 };
 
 const DEFAULT_LOGO_URL =
-  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+  "https://www.markupdesigns.net/indiekonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+/* =====================================================
+   DATE RANGE HELPERS
+   ===================================================== */
+
+type DateRangeKey = "all" | "week" | "month" | "year";
+
+const DATE_RANGE_OPTIONS: { value: DateRangeKey; label: string }[] = [
+  { value: "all", label: "All Time" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+  { value: "year", label: "This Year" },
+];
+
+const parseOrderDate = (value?: string | null): Date | null => {
+  if (!value) return null;
+  const normalized = value.includes("T") ? value : value.trim().replace(" ", "T");
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const getDateRangeBounds = (
+  key: DateRangeKey
+): { start: number; end: number } | null => {
+  if (key === "all") return null;
+
+  const now = new Date();
+  const start = new Date(now);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  if (key === "week") {
+    // Monday as start of week
+    const day = now.getDay(); // 0 = Sunday
+    const diff = day === 0 ? 6 : day - 1;
+    start.setDate(now.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.getTime(), end: end.getTime() };
+  }
+
+  if (key === "month") {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    return { start: start.getTime(), end: end.getTime() };
+  }
+
+  // year
+  start.setMonth(0, 1);
+  start.setHours(0, 0, 0, 0);
+  return { start: start.getTime(), end: end.getTime() };
+};
 
 /* =====================================================
    SKELETON PRIMITIVES
@@ -273,6 +325,8 @@ export interface Order {
   gatewayTransactionId?: string;
   categoryId?: number | string;
   brandId?: number | string;
+  /** Raw ISO/DB date used for date-range filtering */
+  orderDateRaw?: string | null;
 }
 
 interface ModalLoaderProps {
@@ -2080,6 +2134,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [categoryFilter, setCategoryFilter] = useState("Category: All");
   const [brandFilter, setBrandFilter] = useState("Brand: All");
   const [orderTypeFilter, setOrderTypeFilter] = useState("Order Type: All");
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeKey>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showViewPopup, setShowViewPopup] = useState(false);
@@ -2343,6 +2398,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             year: "numeric",
           })
         : "N/A",
+      orderDateRaw: apiOrder.order_date ?? null,
       customer: apiOrder.user?.name || "N/A",
       customerName: apiOrder.user?.name || "N/A",
       total: `₹${Number(apiOrder.total_payable || 0).toLocaleString("en-IN")}`,
@@ -2461,12 +2517,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderTypeFilter === "Order Type: All"
         ? null
         : orderTypeFilter.replace("Order Type: ", "");
+    const dateBounds = getDateRangeBounds(dateRangeFilter);
 
     return allItemRows.filter((row) => {
       const item = row.singleItem;
 
       if (orderTypeValue !== null && row.orderType !== orderTypeValue)
         return false;
+
+      // ─── Date range filter ─────────────────────────────
+      if (dateBounds) {
+        const rowDate = parseOrderDate(row.orderDateRaw);
+        if (!rowDate) return false;
+        const t = rowDate.getTime();
+        if (t < dateBounds.start || t > dateBounds.end) return false;
+      }
+      // ───────────────────────────────────────────────────
 
       if (filterStatusValue !== null) {
         const itemStatus = getItemStatus(item);
@@ -2519,6 +2585,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     categoryFilter,
     brandFilter,
     orderTypeFilter,
+    dateRangeFilter,
   ]);
 
   const initialSearchHandledRef = useRef<string | null>(null);
@@ -2600,6 +2667,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       );
       if (br) parts.push(br.title);
     }
+    if (dateRangeFilter !== "all") {
+      const label = DATE_RANGE_OPTIONS.find(
+        (o) => o.value === dateRangeFilter
+      )?.label;
+      if (label) parts.push(label);
+    }
     if (search.trim()) parts.push("Search");
     return parts.length > 0 ? parts.join(" • ") : "All Orders";
   }, [
@@ -2607,6 +2680,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     statusFilter,
     categoryFilter,
     brandFilter,
+    dateRangeFilter,
     search,
     categories,
     brands,
@@ -2620,13 +2694,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   useEffect(() => {
     if (onFilteredChangeRef.current) {
-      const uniqueOrders = filteredRows.reduce((acc, row) => {
-        if (!acc.find((o) => o.id === row.id)) {
-          acc.push({ ...row, items: [row.singleItem] });
+      // ✅ ITEM-BASED export payload:
+      //   Group the filtered rows back by order so the export "order"
+      //   contains ONLY the matching items. Then flatten to a single
+      //   item-level array — the CSV util already writes one row per item.
+      const byOrder = new Map<string, Order & { items: OrderItem[] }>();
+      filteredRows.forEach((row) => {
+        const existing = byOrder.get(row.id);
+        if (existing) {
+          existing.items.push(row.singleItem);
+        } else {
+          byOrder.set(row.id, { ...row, items: [row.singleItem] });
         }
-        return acc;
-      }, [] as Order[]);
-      onFilteredChangeRef.current(uniqueOrders, activeFilterLabel);
+      });
+      onFilteredChangeRef.current(Array.from(byOrder.values()), activeFilterLabel);
     }
   }, [filteredRows, activeFilterLabel]);
 
@@ -2647,6 +2728,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setCategoryFilter("Category: All");
     setBrandFilter("Brand: All");
     setOrderTypeFilter("Order Type: All");
+    setDateRangeFilter("all");
     setCurrentPage(1);
   };
 
@@ -2655,7 +2737,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     getFilterStatusValue(statusFilter) !== null ||
     categoryFilter !== "Category: All" ||
     brandFilter !== "Brand: All" ||
-    orderTypeFilter !== "Order Type: All";
+    orderTypeFilter !== "Order Type: All" ||
+    dateRangeFilter !== "all";
 
   const handleViewOrder = (orderId: string) => {
     const apiOrder = orders.find((o) => o.order_reference === orderId);
@@ -2673,22 +2756,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error("Item ID is required to fetch the invoice.");
       return;
     }
-  
+
     const pdfWindow = window.open("", "_blank");
     if (pdfWindow) {
       pdfWindow.document.title = "Preparing Indiekonnect invoice";
       pdfWindow.document.body.textContent =
         "Loading item invoice and generating PDF...";
     }
-  
+
     try {
       toast.loading("Loading item invoice...", { id: "invoice-pdf" });
-  
+
       const [invoiceResult, detailsResult] = await Promise.allSettled([
         orderInvoiceApi.getByOrderId(orderId, itemId),
         orderApi.getOrderDetails(String(orderId)),
       ]);
-  
+
       if (invoiceResult.status !== "fulfilled") {
         throw invoiceResult.reason;
       }
@@ -2696,7 +2779,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       if (!response?.data?.success || !response?.data?.data) {
         throw new Error(response?.data?.message || "Invoice data unavailable");
       }
-  
+
       const payload = response.data.data;
       const invoiceType = payload.invoice_type;         // "single_item" | "full_order"
       const existingOrder = payload.order || {};
@@ -2705,24 +2788,21 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           ? detailsResult.value?.data?.data || detailsResult.value?.data
           : null;
       const detailOrder = detailResponse?.order || detailResponse || {};
-  
-      // ✅ Normalize invoice items — API may return a single OBJECT (single_item)
-      // or an ARRAY (full_order).
+
       const rawInvoiceItems = existingOrder.order_items ?? existingOrder.items;
       const invoiceItemsArray: any[] = Array.isArray(rawInvoiceItems)
         ? rawInvoiceItems
         : rawInvoiceItems && typeof rawInvoiceItems === "object"
           ? [rawInvoiceItems]
           : [];
-  
-      // ✅ Normalize order-details items (only used for full_order invoices).
+
       const rawDetailItems = detailOrder.order_items ?? detailOrder.items;
       const detailItemsArray: any[] = Array.isArray(rawDetailItems)
         ? rawDetailItems
         : rawDetailItems && typeof rawDetailItems === "object"
           ? [rawDetailItems]
           : [];
-  
+
       const normalizedDetailItems = detailItemsArray.map((item: any) => ({
         ...item,
         id: item.id ?? item.line_id ?? item.order_line_id,
@@ -2735,10 +2815,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         total_shipping_charge:
           item.total_shipping_charge ?? item.total_delivery_charge,
       }));
-  
-      // ✅ THE KEY FIX:
-      //  - single_item → use ONLY the invoice's own line(s). Never merge order-details.
-      //  - full_order  → prefer whichever set has MORE items (invoice may omit some).
+
       let fullItems: any[];
       if (invoiceType === "single_item") {
         fullItems = invoiceItemsArray;
@@ -2747,13 +2824,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           ? invoiceItemsArray
           : normalizedDetailItems;
       }
-  
+
       if (!fullItems.length) {
         throw new Error(
           "Invoice response did not include order items. Cannot generate PDF.",
         );
       }
-  
+
       const mergedOrder = {
         ...detailOrder,
         ...existingOrder,
@@ -2768,14 +2845,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         user: existingOrder.user || detailOrder.user,
         order_items: fullItems,
       };
-  
+
       if (detailsResult.status === "rejected") {
         console.warn(
           "Order details request failed; using invoice response",
           detailsResult.reason,
         );
       }
-  
+
       await openInvoicePdfInNewTab(
         { ...payload, order: mergedOrder },
         itemId,
@@ -3194,6 +3271,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
+              {/* ✅ NEW: Date Range filter */}
+              <div className="relative w-[150px]">
+                <FiCalendar
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
+                  size={13}
+                />
+                <select
+                  value={dateRangeFilter}
+                  onChange={(e) => {
+                    setDateRangeFilter(e.target.value as DateRangeKey);
+                    setCurrentPage(1);
+                  }}
+                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-8 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+                >
+                  {DATE_RANGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown
+                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={14}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={clearFilters}
@@ -3298,6 +3401,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   {brands.map((b) => (
                     <option key={b.id} value={`Brand: ${b.id}`}>
                       {b.title}
+                    </option>
+                  ))}
+                </select>
+                <FiChevronDown
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
+                  size={16}
+                />
+              </div>
+              {/* ✅ NEW: Date Range filter (mobile) */}
+              <div className="relative">
+                <select
+                  value={dateRangeFilter}
+                  onChange={(e) => {
+                    setDateRangeFilter(e.target.value as DateRangeKey);
+                    setCurrentPage(1);
+                  }}
+                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
+                >
+                  {DATE_RANGE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
@@ -4457,8 +4581,7 @@ const Orders: React.FC = () => {
           initialSearchOrderReference={initialSearchOrderReference}
           initialSearchOrderId={initialSearchOrderId}
           initialSearchAutoOpenView={initialSearchAutoOpenView}
-          onInitialSearchConsumed={() => {
-          }}
+          onInitialSearchConsumed={() => {}}
         />
       </div>
     </div>
