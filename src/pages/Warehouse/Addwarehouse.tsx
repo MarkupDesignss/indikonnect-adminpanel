@@ -33,7 +33,6 @@ import warehousesApi, {
 
 import logoApi from "../../api/endpoints/logoApi";
 
-// ✅ PERMISSIONS
 import { usePermissions } from "../permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
@@ -43,6 +42,8 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+const ITEMS_PER_PAGE = 15;
 
 // =====================================================
 // ANIMATIONS
@@ -76,6 +77,9 @@ const itemVariants = {
   },
 };
 
+// =====================================================
+// FORM INTERFACE
+// =====================================================
 
 interface WarehouseForm {
   name: string;
@@ -142,6 +146,101 @@ const normalizeTime = (value?: string | null) => {
 };
 
 // =====================================================
+// INPUT FIELD
+// IMPORTANT: KEEP THIS OUTSIDE Addwarehouse
+// This prevents input focus loss on every keystroke.
+// =====================================================
+
+interface InputFieldProps {
+  label: string;
+  value: string | number;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  required?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
+}) => {
+  return (
+    <div>
+      <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+        {label}
+
+        {required && (
+          <span className="ml-1 text-[#C23B32]">*</span>
+        )}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-9 w-full rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+      />
+    </div>
+  );
+};
+
+// =====================================================
+// TOGGLE FIELD
+// IMPORTANT: KEEP THIS OUTSIDE Addwarehouse
+// =====================================================
+
+interface ToggleFieldProps {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  description: string;
+}
+
+const ToggleField: React.FC<ToggleFieldProps> = ({
+  label,
+  checked,
+  onChange,
+  description,
+}) => {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-left transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
+    >
+      <div className="pr-4">
+        <div className="text-xs font-bold text-[#111827]">
+          {label}
+        </div>
+
+        <div className="mt-0.5 text-[10px] leading-4 text-[#6B7280]">
+          {description}
+        </div>
+      </div>
+
+      <div
+        className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+          checked
+            ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
+            : "bg-[#D1D5DB]"
+        }`}
+      >
+        <span
+          className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
+            checked ? "left-6" : "left-1"
+          }`}
+        />
+      </div>
+    </button>
+  );
+};
+
+// =====================================================
 // COMPONENT
 // =====================================================
 
@@ -182,14 +281,11 @@ const Addwarehouse: React.FC = () => {
   // INITIAL LOADING STATES
   // ===================================================
 
-  // First warehouse-list request only
   const [initialDataLoading, setInitialDataLoading] =
     useState(true);
 
-  // Logo API request
   const [logoLoading, setLogoLoading] = useState(true);
 
-  // Default logo is used until the API returns a valid logo.
   const [logoUrl, setLogoUrl] = useState<string>(
     DEFAULT_LOGO_URL,
   );
@@ -205,8 +301,6 @@ const Addwarehouse: React.FC = () => {
   // ===================================================
   // PAGINATION
   // ===================================================
-
-  const ITEMS_PER_PAGE = 15;
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -265,7 +359,6 @@ const Addwarehouse: React.FC = () => {
       } catch (error) {
         console.error("Fetch logo error:", error);
 
-        // Keep the default logo if the API fails.
         if (isMounted) {
           setLogoUrl(DEFAULT_LOGO_URL);
         }
@@ -316,8 +409,6 @@ const Addwarehouse: React.FC = () => {
       } finally {
         setLoading(false);
 
-        // Initial logo loader ends only after this first request.
-        // Refresh and pagination do not reopen the page loader.
         if (isInitialLoad) {
           setInitialDataLoading(false);
         }
@@ -585,7 +676,6 @@ const Addwarehouse: React.FC = () => {
       setAddModalOpen(false);
       resetForm();
 
-      // Use table skeleton, not the logo page loader.
       await fetchWarehouses(currentPage);
     } catch (error: any) {
       console.error("Create warehouse error:", error);
@@ -629,7 +719,6 @@ const Addwarehouse: React.FC = () => {
       setSelectedWarehouse(null);
       resetForm();
 
-      // Use table skeleton, not the logo page loader.
       await fetchWarehouses(currentPage);
     } catch (error: any) {
       console.error("Update warehouse error:", error);
@@ -705,95 +794,7 @@ const Addwarehouse: React.FC = () => {
   };
 
   // ===================================================
-  // INPUT COMPONENT — BLUE THEME
-  // ===================================================
-
-  const InputField = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-    type = "text",
-    required = false,
-  }: {
-    label: string;
-    value: string | number;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    type?: string;
-    required?: boolean;
-  }) => {
-    return (
-      <div>
-        <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#111827]">
-          {label}
-
-          {required && (
-            <span className="ml-1 text-[#C23B32]">*</span>
-          )}
-        </label>
-
-        <input
-          type={type}
-          value={value}
-          placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-full rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-xs text-[#111827] outline-none transition-all placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
-        />
-      </div>
-    );
-  };
-
-  // ===================================================
-  // TOGGLE — BLUE THEME
-  // ===================================================
-
-  const ToggleField = ({
-    label,
-    checked,
-    onChange,
-    description,
-  }: {
-    label: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-    description: string;
-  }) => {
-    return (
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className="flex w-full items-center justify-between rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 py-2.5 text-left transition hover:border-[#4F8FF7]/40 hover:bg-[#EAF3FF]"
-      >
-        <div className="pr-4">
-          <div className="text-xs font-bold text-[#111827]">
-            {label}
-          </div>
-
-          <div className="mt-0.5 text-[10px] leading-4 text-[#6B7280]">
-            {description}
-          </div>
-        </div>
-
-        <div
-          className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-            checked
-              ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8]"
-              : "bg-[#D1D5DB]"
-          }`}
-        >
-          <span
-            className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
-              checked ? "left-6" : "left-1"
-            }`}
-          />
-        </div>
-      </button>
-    );
-  };
-
-  // ===================================================
-  // FORM — BLUE/YELLOW THEME
+  // FORM
   // ===================================================
 
   const renderWarehouseForm = (editMode: boolean) => {
@@ -1154,7 +1155,6 @@ const Addwarehouse: React.FC = () => {
 
   // ===================================================
   // ACCESS DENIED
-  // Content-area only — sidebar/navbar remain visible
   // ===================================================
 
   if (!canViewWarehouses) {
@@ -1207,7 +1207,7 @@ const Addwarehouse: React.FC = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
             <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
-            Warehouses Management
+              Warehouses Management
             </span>
           </div>
 
@@ -1297,7 +1297,7 @@ const Addwarehouse: React.FC = () => {
               Refresh
             </motion.button>
 
-            {/* ADD — PERMISSION BASED */}
+            {/* ADD */}
 
             {canCreateWarehouse && (
               <motion.button
@@ -1365,7 +1365,7 @@ const Addwarehouse: React.FC = () => {
             </thead>
 
             <tbody>
-              {/* REFRESH / PAGINATION SKELETON */}
+              {/* LOADING SKELETON */}
 
               {loading ? (
                 Array.from({ length: 6 }).map((_, index) => (
@@ -1553,7 +1553,7 @@ const Addwarehouse: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* ACTION — PERMISSION BASED */}
+                    {/* ACTION */}
 
                     {canUpdateWarehouse && (
                       <td className="px-4 py-2.5 text-right">
@@ -1639,7 +1639,7 @@ const Addwarehouse: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* CREATE MODAL — PERMISSION BASED */}
+      {/* CREATE MODAL */}
 
       {canCreateWarehouse && (
         <GlobalModal
@@ -1651,7 +1651,7 @@ const Addwarehouse: React.FC = () => {
         </GlobalModal>
       )}
 
-      {/* EDIT MODAL — PERMISSION BASED */}
+      {/* EDIT MODAL */}
 
       {canUpdateWarehouse && (
         <GlobalModal

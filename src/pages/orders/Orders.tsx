@@ -59,6 +59,115 @@ const itemVariants = {
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
+/* =====================================================
+   SKELETON PRIMITIVES
+   ===================================================== */
+
+const SkeletonBlock: React.FC<{
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ className = "", style }) => (
+  <div
+    style={style}
+    className={`animate-pulse rounded-md bg-[#E5EDF7] ${className}`}
+  />
+);
+
+const TableRowSkeleton: React.FC = () => (
+  <tr className="border-b border-[#2D6FE8]/10 bg-white">
+    <td className="px-3 py-3">
+      <SkeletonBlock className="h-5 w-24" />
+      <SkeletonBlock className="mt-1.5 h-3 w-32" />
+    </td>
+    <td className="px-3 py-3">
+      <div className="flex items-center gap-2.5">
+        <SkeletonBlock className="h-8 w-8 rounded-lg" />
+        <div className="min-w-0 flex-1">
+          <SkeletonBlock className="h-3 w-40" />
+          <SkeletonBlock className="mt-1 h-2.5 w-24" />
+          <SkeletonBlock className="mt-1 h-2.5 w-20" />
+        </div>
+      </div>
+    </td>
+    <td className="px-3 py-3">
+      <SkeletonBlock className="h-5 w-20" />
+    </td>
+    <td className="px-3 py-3 text-center">
+      <SkeletonBlock className="mx-auto h-4 w-6" />
+    </td>
+    <td className="px-3 py-3">
+      <SkeletonBlock className="ml-auto h-4 w-16" />
+    </td>
+    <td className="px-3 py-3">
+      <SkeletonBlock className="ml-auto h-4 w-20" />
+    </td>
+    <td className="px-3 py-3">
+      <SkeletonBlock className="h-5 w-24" />
+    </td>
+    <td className="px-3 py-3 text-center">
+      <SkeletonBlock className="mx-auto h-6 w-20 rounded-full" />
+    </td>
+    <td className="px-3 py-3 text-center">
+      <SkeletonBlock className="mx-auto h-6 w-24 rounded-full" />
+    </td>
+    <td className="px-3 py-3">
+      <div className="flex items-center justify-center gap-1.5">
+        <SkeletonBlock className="h-8 w-8 rounded-lg" />
+        <SkeletonBlock className="h-8 w-8 rounded-lg" />
+        <SkeletonBlock className="h-8 w-8 rounded-lg" />
+      </div>
+    </td>
+    <td className="px-3 py-3 text-center">
+      <SkeletonBlock className="mx-auto h-6 w-16 rounded-lg" />
+    </td>
+  </tr>
+);
+
+const MobileRowSkeleton: React.FC = () => (
+  <div className="border-b border-[#2D6FE8]/10 bg-white p-4">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <SkeletonBlock className="h-4 w-24" />
+        <SkeletonBlock className="mt-2 h-3 w-16" />
+        <SkeletonBlock className="mt-1 h-3 w-28" />
+      </div>
+      <SkeletonBlock className="h-6 w-20 rounded-full" />
+    </div>
+    <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3">
+      <SkeletonBlock className="h-10 w-10 rounded-lg" />
+      <div className="min-w-0 flex-1">
+        <SkeletonBlock className="h-3 w-40" />
+        <SkeletonBlock className="mt-1.5 h-2.5 w-28" />
+        <SkeletonBlock className="mt-1 h-2.5 w-24" />
+      </div>
+      <SkeletonBlock className="h-4 w-12" />
+    </div>
+    <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <SkeletonBlock className="h-8 flex-1 rounded-lg" />
+      <SkeletonBlock className="h-8 flex-1 rounded-lg" />
+      <SkeletonBlock className="h-8 flex-1 rounded-lg" />
+    </div>
+  </div>
+);
+
+const StatCardSkeleton: React.FC = () => (
+  <div className="relative min-h-[135px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-5 shadow-sm">
+    <SkeletonBlock className="absolute left-0 top-0 h-1 w-full" />
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 flex-1">
+        <SkeletonBlock className="h-2.5 w-24" />
+        <SkeletonBlock className="mt-2.5 h-7 w-16" />
+        <SkeletonBlock className="mt-1.5 h-3 w-32" />
+      </div>
+      <SkeletonBlock className="h-8 w-8 rounded-lg" />
+    </div>
+  </div>
+);
+
+/* =====================================================
+   ICONS
+   ===================================================== */
+
 const ClipboardIcon = () => (
   <svg
     width="34"
@@ -87,38 +196,6 @@ const ClipboardIcon = () => (
     />
     <path
       d="M8 17H12"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const CreditCardIcon = () => (
-  <svg
-    width="34"
-    height="34"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <rect
-      x="2"
-      y="5"
-      width="20"
-      height="14"
-      rx="2"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    />
-    <path
-      d="M2 10H22"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-    />
-    <path
-      d="M7 15H10"
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
@@ -1066,7 +1143,137 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 };
 
 // =====================================================
-// DISPATCH POPUP
+// DISPATCH CHOICE POPUP
+// =====================================================
+
+interface DispatchChoicePopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+  order: Order | null;
+  item: OrderItem | null;
+  onChooseIndiaPost: () => void;
+  onChooseManual: () => void;
+}
+
+const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
+  isOpen,
+  onClose,
+  order,
+  item,
+  onChooseIndiaPost,
+  onChooseManual,
+}) => {
+  if (!isOpen || !order || !item) return null;
+
+  return (
+    <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
+
+        <div className="sticky top-0 z-10 border-b border-[#2D6FE8]/10 bg-white/95 px-6 py-3 backdrop-blur-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Dispatch Mode
+                </span>
+              </div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-[#111827]">
+                <FiTruck className="text-[#2D6FE8]" />
+                Choose Dispatch Method
+              </h2>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                {order.id} • {order.customer}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF]"
+            >
+              <FiX size={19} />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-5 sm:p-6">
+          <div className="rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] p-4">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+              Item
+            </p>
+            <p className="mt-1 break-words text-sm font-semibold text-[#111827]">
+              {item.productName}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#4B5563]">
+              SKU: {item.sku} • Qty: {item.quantity}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold text-[#2D6FE8]">
+              Item Ref: {item.itemReferenceId}
+            </p>
+          </div>
+
+          <p className="text-sm font-medium text-[#111827]">
+            How would you like to dispatch this item?
+          </p>
+
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              type="button"
+              onClick={onChooseIndiaPost}
+              className="group flex items-start gap-3 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-4 text-left transition hover:border-[#2D6FE8] hover:bg-[#DBEAFE]"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8] shadow-sm">
+                <FiSend size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-[#1E40AF]">
+                  Dispatch via India Post
+                </p>
+                <p className="mt-0.5 text-[11px] leading-4 text-[#4B5563]">
+                  Book the shipment through India Post. AWB / tracking number
+                  will be generated automatically.
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={onChooseManual}
+              className="group flex items-start gap-3 rounded-xl border border-[#D6E2F0] bg-white p-4 text-left transition hover:border-[#2D6FE8] hover:bg-[#F4F8FD]"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiPackage size={20} />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-[#111827]">
+                  Manual Dispatch
+                </p>
+                <p className="mt-0.5 text-[11px] leading-4 text-[#4B5563]">
+                  Enter your own courier details — tracking number, courier
+                  name, expected delivery, and notes.
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div className="sticky bottom-0 flex justify-end border-t border-[#2D6FE8]/10 bg-[#FAFBFF]/95 px-6 py-3 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-[#2D6FE8]/20 bg-white px-5 py-2.5 text-sm font-semibold text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
+
+// =====================================================
+// DISPATCH POPUP (Manual)
 // =====================================================
 
 interface DispatchPopupProps {
@@ -1194,9 +1401,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               </h2>
               <p className="mt-1 text-sm text-[#6B7280]">
                 {order.id} • {order.customer}
-                {!isFullOrder &&
-                  ` • ${itemsToDispatch.length} item(s) selected`}
-                {isFullOrder && ` • All ${itemsToDispatch.length} item(s)`}
               </p>
             </div>
             <button
@@ -1215,107 +1419,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
               <div className="rounded-xl border border-[#C23B32]/20 bg-[#EEF5FF] p-4 text-sm text-[#C23B32]">
                 <FiAlertCircle className="mr-2 inline" size={16} />
                 {error}
-              </div>
-            )}
-
-            <div className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/15 bg-[#F4F8FD] p-5">
-              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/20" />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    Order Total
-                  </span>
-                  <p className="mt-1 text-lg font-bold text-[#111827]">
-                    {order.total}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    Items
-                  </span>
-                  <p className="mt-1 text-lg font-bold text-[#2D6FE8]">
-                    {itemsToDispatch.length}{" "}
-                    <span className="text-xs font-semibold text-[#6B7280]">
-                      {isFullOrder ? "(All)" : "(Selected)"}
-                    </span>
-                  </p>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    Shipping Address
-                  </span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#111827]">
-                    {order.shippingAddress || "N/A"}
-                  </p>
-                </div>
-              </div>
-              {isFullOrder && (
-                <div className="mt-4 rounded-xl border border-[#2D6FE8]/15 bg-white p-3">
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-[#2D6FE8]">
-                    <FiPackage size={13} />
-                    Dispatching all items in this order
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {itemsToDispatch.length > 0 && (
-              <div className="rounded-2xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-5">
-                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#111827]">
-                  <FiPackage className="text-[#2D6FE8]" />
-                  {isFullOrder
-                    ? "All Items in Order"
-                    : "Selected Items to Dispatch"}
-                </h4>
-                <div className="max-h-48 space-y-2 overflow-y-auto">
-                  {itemsToDispatch.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-[#2D6FE8]/10 bg-white p-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {item.image ? (
-                          <img
-                            src={item.image}
-                            alt={item.productName}
-                            className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                            <FiPackage size={12} />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <span className="block break-words text-sm font-normal leading-5 text-[#111827]">
-                            {item.productName}
-                          </span>
-                          {item.categoryName && (
-                            <span
-                              className="mt-0.5 block truncate text-[10px] text-[#4B5563]"
-                              title={item.categoryName}
-                            >
-                              Category: {item.categoryName}
-                            </span>
-                          )}
-                          {item.brandName && (
-                            <span
-                              className="block truncate text-[10px] text-[#4B5563]"
-                              title={item.brandName}
-                            >
-                              Brand: {item.brandName}
-                            </span>
-                          )}
-                          <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">
-                            Item: {item.itemReferenceId}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-xs text-[#6B7280]">
-                        Qty: {item.quantity} • SKU: {item.sku}
-                      </span>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
@@ -1755,11 +1858,6 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                   ? "Deliver Entire Order"
                   : `Deliver ${itemsToDeliver.length} Items`}
               </h2>
-              <p className="mt-1 text-sm text-[#6B7280]">
-                {order.id} • {order.customer}
-                {!isFullOrder && ` • ${itemsToDeliver.length} item(s) selected`}
-                {isFullOrder && ` • All ${itemsToDeliver.length} item(s)`}
-              </p>
             </div>
             <button
               type="button"
@@ -1943,8 +2041,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     [isSuperAdmin, hasPermission],
   );
 
+  // ✅ FIX: backend sends "order.allow" (not "order.cancel_return")
   const canToggleCancelReturn = useMemo(
-    () => isSuperAdmin || hasPermission("order.cancel_return"),
+    () => isSuperAdmin || hasPermission("order.allow"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -1995,6 +2094,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     [],
   );
   const [brands, setBrands] = useState<{ id: number; title: string }[]>([]);
+  // Lookup loading flags — used to decide when to show skeleton rows
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [brandsLoading, setBrandsLoading] = useState(true);
+
+  // Dispatch choice popup state
+  const [showDispatchChoicePopup, setShowDispatchChoicePopup] = useState(false);
+  const [selectedOrderForDispatchChoice, setSelectedOrderForDispatchChoice] =
+    useState<Order | null>(null);
+  const [selectedItemForDispatchChoice, setSelectedItemForDispatchChoice] =
+    useState<OrderItem | null>(null);
 
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(
     new Set(),
@@ -2014,6 +2123,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   }, []);
 
   const fetchCategories = async () => {
+    setCategoriesLoading(true);
     try {
       const response = await categoryApi.getAll();
       if (response.data.success) {
@@ -2026,10 +2136,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
     } catch (err) {
       console.error("Failed to fetch categories:", err);
+    } finally {
+      setCategoriesLoading(false);
     }
   };
 
   const fetchBrands = async () => {
+    setBrandsLoading(true);
     try {
       const response = await brandsApi.getAll();
       if (response.data.success) {
@@ -2042,6 +2155,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
     } catch (err) {
       console.error("Failed to fetch brands:", err);
+    } finally {
+      setBrandsLoading(false);
     }
   };
 
@@ -2401,13 +2516,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  /**
-   * India Post dispatch must use the numeric database order primary key.
-   * Never substitute the human-readable order reference as an order ID.
-   */
   const openIndiaPostDispatch = (row: Order & { singleItem: OrderItem }) => {
     const rawOrderId = row.orderId;
-    const orderId = typeof rawOrderId === "number" ? rawOrderId : Number(rawOrderId);
+    const orderId =
+      typeof rawOrderId === "number" ? rawOrderId : Number(rawOrderId);
 
     if (
       rawOrderId === undefined ||
@@ -2599,6 +2711,56 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedOrderForDeliver(null);
     setSelectedItemsForDeliver([]);
   };
+
+  // Dispatch choice handlers
+  const openDispatchChoicePopup = (row: Order & { singleItem: OrderItem }) => {
+    setSelectedOrderForDispatchChoice(row);
+    setSelectedItemForDispatchChoice(row.singleItem);
+    setShowDispatchChoicePopup(true);
+  };
+
+  const closeDispatchChoicePopup = () => {
+    setShowDispatchChoicePopup(false);
+    setSelectedOrderForDispatchChoice(null);
+    setSelectedItemForDispatchChoice(null);
+  };
+
+  const handleChooseIndiaPost = () => {
+    const row = selectedOrderForDispatchChoice;
+    if (!row) return;
+    const rawOrderId = row.orderId;
+    const orderId =
+      typeof rawOrderId === "number" ? rawOrderId : Number(rawOrderId);
+
+    if (
+      rawOrderId === undefined ||
+      rawOrderId === null ||
+      String(rawOrderId).trim() === "" ||
+      !Number.isSafeInteger(orderId) ||
+      orderId <= 0
+    ) {
+      toast.error("Invalid database order ID. Please refresh the orders list.");
+      return;
+    }
+
+    closeDispatchChoicePopup();
+    navigate(`/orders/${orderId}/dispatch`);
+  };
+
+  const handleChooseManual = () => {
+    const row = selectedOrderForDispatchChoice;
+    const item = selectedItemForDispatchChoice;
+    if (!row || !item) return;
+
+    closeDispatchChoicePopup();
+    setSelectedOrderForDispatch(row);
+    setSelectedItemsForDispatch([item]);
+    setShowDispatchPopup(true);
+  };
+
+  const showSkeletonRows =
+    loading ||
+    (orders.length > 0 && (categoriesLoading || brandsLoading));
 
   if (initialLoading) {
     return (
@@ -2921,7 +3083,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               </thead>
 
               <tbody>
-                {visibleRows.length > 0 ? (
+                {showSkeletonRows ? (
+                  [...Array(6)].map((_, i) => (
+                    <TableRowSkeleton key={`skeleton-${i}`} />
+                  ))
+                ) : visibleRows.length > 0 ? (
                   visibleRows.map((row, index) => {
                     const item = row.singleItem;
                     const itemStatusBadge = getStatusBadge(
@@ -3131,9 +3297,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             {isDispatchable && (
                               <button
                                 type="button"
-                                onClick={() => openIndiaPostDispatch(row)}
+                                onClick={() => openDispatchChoicePopup(row)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Open India Post Dispatch"
+                                title="Dispatch (India Post / Manual)"
                               >
                                 <FiTruck size={14} />
                               </button>
@@ -3238,7 +3404,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
           {/* MOBILE VIEW */}
           <div className="block lg:hidden">
-            {visibleRows.length > 0 ? (
+            {showSkeletonRows ? (
+              [...Array(4)].map((_, i) => (
+                <MobileRowSkeleton key={`m-skeleton-${i}`} />
+              ))
+            ) : visibleRows.length > 0 ? (
               visibleRows.map((row, index) => {
                 const item = row.singleItem;
                 const isDispatchable = canItemDispatch(item) && canDispatch;
@@ -3383,7 +3553,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       {isDispatchable && (
                         <button
                           type="button"
-                          onClick={() => openIndiaPostDispatch(row)}
+                          onClick={() => openDispatchChoicePopup(row)}
                           className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
                         >
                           Dispatch
@@ -3459,7 +3629,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           </div>
 
           {/* PAGINATION */}
-          {filteredRows.length > 0 && (
+          {!showSkeletonRows && filteredRows.length > 0 && (
             <div className="border-t border-[#2D6FE8]/10 bg-[#FAFBFF] px-5 py-3">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-[#6B7280]">
@@ -3541,6 +3711,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         orderData={selectedOrderDataForView}
         onViewInvoice={handleOpenInvoicePdf}
       />
+
+      {/* Dispatch choice popup */}
+      <DispatchChoicePopup
+        isOpen={showDispatchChoicePopup}
+        onClose={closeDispatchChoicePopup}
+        order={selectedOrderForDispatchChoice}
+        item={selectedItemForDispatchChoice}
+        onChooseIndiaPost={handleChooseIndiaPost}
+        onChooseManual={handleChooseManual}
+      />
+
       <DispatchPopup
         isOpen={showDispatchPopup}
         onClose={closeDispatchPopup}

@@ -88,7 +88,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     key: "finance",
-    label: "Order Operation",
+    label: "Order finance",
     match: [
       "finance",
       "fiance",

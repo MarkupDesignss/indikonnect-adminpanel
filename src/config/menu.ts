@@ -9,6 +9,8 @@ export interface MenuItem {
   anyOf?: string[];
   allOf?: string[];
   isHeading?: boolean;
+  /** If true, item is ALWAYS visible regardless of permissions */
+  isPublic?: boolean;
   children?: MenuItem[];
 }
 
@@ -17,6 +19,7 @@ export const menuItems: MenuItem[] = [
     path: '/dashboard',
     label: 'Dashboard',
     icon: 'dashboard',
+    isPublic: true,
   },
 
   {
@@ -38,6 +41,7 @@ export const menuItems: MenuItem[] = [
       'category.view',
       'attribute.view',
       'tax_category.view',
+      'stock.view',
     ],
     children: [
       {
@@ -280,8 +284,8 @@ export const menuItems: MenuItem[] = [
         path: '/cms/NotificationTemplates',
         label: 'Notification Templates',
         icon: 'notifications_active',
-        permission: 'notification.view',
-        module: 'notification',
+        permission: 'view',
+        module: 'Notification Templates', 
       },
     ],
   },
@@ -363,17 +367,18 @@ export const menuItems: MenuItem[] = [
     module: 'contact_us',
   },
 
+  // ✅ Account items — ALWAYS visible to every logged-in user
   {
     path: '/UpdateProfile',
     label: 'Update Profile',
     icon: 'person',
-    isHeading: true,
+    isPublic: true,
   },
   {
     path: '/ChangePassword',
     label: 'Change Password',
     icon: 'lock',
-    isHeading: true,
+    isPublic: true,
   },
   {
     path: '/SettingsManagement',
