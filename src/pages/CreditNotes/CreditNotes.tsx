@@ -218,7 +218,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                Invoice
+                Order Reference
               </p>
               <p className="mt-1 text-sm font-bold text-[#111827]">
                 {note.original_invoice_number}

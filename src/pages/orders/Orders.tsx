@@ -50,10 +50,7 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
 
 const itemVariants = {
@@ -342,21 +339,10 @@ interface ViewOrderPopupProps {
 
 const normalizeOrderDetailsPayload = (raw: any) => {
   if (!raw) return null;
-
   let data = raw?.data ?? raw;
-
-  if (Array.isArray(data)) {
-    data = data[0];
-  }
-
-  if (data?.order && typeof data.order === "object") {
-    data = data.order;
-  }
-
-  if (Array.isArray(data)) {
-    data = data[0]?.order || data[0];
-  }
-
+  if (Array.isArray(data)) data = data[0];
+  if (data?.order && typeof data.order === "object") data = data.order;
+  if (Array.isArray(data)) data = data[0]?.order || data[0];
   return data && typeof data === "object" ? data : null;
 };
 
@@ -378,17 +364,15 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const fetchOrderDetails = useCallback(
     async (id: string, silent = false) => {
-      if (silent) {
-        setRefreshing(true);
-      } else {
+      if (silent) setRefreshing(true);
+      else {
         setLoading(true);
         setError(null);
       }
 
       try {
         const response = await orderApi.getOrderDetails(id);
-        const payload =
-          response?.data?.data ?? response?.data ?? response;
+        const payload = response?.data?.data ?? response?.data ?? response;
         const data = normalizeOrderDetailsPayload(payload);
 
         if (data) {
@@ -399,7 +383,6 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         }
       } catch (err: any) {
         console.error("API Error:", err);
-
         if (!silent) {
           setError(
             err?.response?.data?.message ||
@@ -408,11 +391,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
           );
         }
       } finally {
-        if (silent) {
-          setRefreshing(false);
-        } else {
-          setLoading(false);
-        }
+        if (silent) setRefreshing(false);
+        else setLoading(false);
       }
     },
     []
@@ -420,30 +400,24 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   useEffect(() => {
     if (!isOpen || !orderId) return;
-
     const initialData = normalizeOrderDetailsPayload(orderData);
-
     if (initialData) {
       setOrderDetails(initialData);
       setLoading(false);
       setError(null);
-
       fetchOrderDetails(orderId, true);
     } else {
       setOrderDetails(null);
       fetchOrderDetails(orderId);
     }
-
     setActiveTab("items");
   }, [isOpen, orderId, orderData, fetchOrderDetails]);
 
   useEffect(() => {
     if (!isOpen || !orderId) return;
-
     const refreshTimer = window.setInterval(() => {
       fetchOrderDetails(orderId, true);
     }, 30000);
-
     return () => window.clearInterval(refreshTimer);
   }, [isOpen, orderId, fetchOrderDetails]);
 
@@ -502,19 +476,16 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const parseTimelineDate = (value: any): Date | null => {
     if (!value || typeof value !== "string") return null;
-
     const normalizedValue = value.includes("T")
       ? value
       : value.trim().replace(" ", "T");
     const parsedDate = new Date(normalizedValue);
-
     return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
   };
 
   const formatTimelineDateTime = (value: string) => {
     const parsedDate = parseTimelineDate(value);
     if (!parsedDate) return value || "Date unavailable";
-
     return parsedDate.toLocaleString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -534,90 +505,20 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   };
 
   const timelineEventDefinitions: TimelineEventDefinition[] = [
-    {
-      key: "order_placed",
-      title: "Order Placed",
-      description: "The order was successfully placed.",
-      category: "order",
-    },
-    {
-      key: "order_confirmed",
-      title: "Order Confirmed",
-      description: "The order was confirmed successfully.",
-      category: "order",
-    },
-    {
-      key: "dispatched_at",
-      title: "Dispatched",
-      description: "The order was handed over for dispatch.",
-      category: "shipping",
-    },
-    {
-      key: "shipped_at",
-      title: "Shipped",
-      description: "The shipment was marked as shipped.",
-      category: "shipping",
-    },
-    {
-      key: "delivered_at",
-      title: "Delivered",
-      description: "The order was marked as delivered.",
-      category: "shipping",
-    },
-    {
-      key: "cancelled_at",
-      title: "Order Cancelled",
-      description: "The order cancellation was recorded.",
-      category: "cancel",
-    },
-    {
-      key: "return_requested_at",
-      title: "Return Requested",
-      description: "A return request was submitted.",
-      category: "return",
-    },
-    {
-      key: "return_approved_at",
-      title: "Return Approved",
-      description: "The return request was approved.",
-      category: "return",
-    },
-    {
-      key: "return_rejected_at",
-      title: "Return Rejected",
-      description: "The return request was rejected.",
-      category: "return",
-    },
-    {
-      key: "return_completed_at",
-      title: "Return Completed",
-      description: "The return process was completed.",
-      category: "return",
-    },
-    {
-      key: "buyback_requested_at",
-      title: "Buyback Requested",
-      description: "A buyback request was submitted.",
-      category: "buyback",
-    },
-    {
-      key: "buyback_approved_at",
-      title: "Buyback Approved",
-      description: "The buyback request was approved.",
-      category: "buyback",
-    },
-    {
-      key: "buyback_rejected_at",
-      title: "Buyback Rejected",
-      description: "The buyback request was rejected.",
-      category: "buyback",
-    },
-    {
-      key: "buyback_refunded_at",
-      title: "Buyback Refund Processed",
-      description: "The buyback refund was processed.",
-      category: "buyback",
-    },
+    { key: "order_placed", title: "Order Placed", description: "The order was successfully placed.", category: "order" },
+    { key: "order_confirmed", title: "Order Confirmed", description: "The order was confirmed successfully.", category: "order" },
+    { key: "dispatched_at", title: "Dispatched", description: "The order was handed over for dispatch.", category: "shipping" },
+    { key: "shipped_at", title: "Shipped", description: "The shipment was marked as shipped.", category: "shipping" },
+    { key: "delivered_at", title: "Delivered", description: "The order was marked as delivered.", category: "shipping" },
+    { key: "cancelled_at", title: "Order Cancelled", description: "The order cancellation was recorded.", category: "cancel" },
+    { key: "return_requested_at", title: "Return Requested", description: "A return request was submitted.", category: "return" },
+    { key: "return_approved_at", title: "Return Approved", description: "The return request was approved.", category: "return" },
+    { key: "return_rejected_at", title: "Return Rejected", description: "The return request was rejected.", category: "return" },
+    { key: "return_completed_at", title: "Return Completed", description: "The return process was completed.", category: "return" },
+    { key: "buyback_requested_at", title: "Buyback Requested", description: "A buyback request was submitted.", category: "buyback" },
+    { key: "buyback_approved_at", title: "Buyback Approved", description: "The buyback request was approved.", category: "buyback" },
+    { key: "buyback_rejected_at", title: "Buyback Rejected", description: "The buyback request was rejected.", category: "buyback" },
+    { key: "buyback_refunded_at", title: "Buyback Refund Processed", description: "The buyback refund was processed.", category: "buyback" },
   ];
 
   const rawTimelineItems = Array.isArray(items) ? items : [];
@@ -650,22 +551,12 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   timelineSourceItems.forEach((item: any) => {
     const itemTimeline = item?.timeline || {};
     const itemName = String(
-      item?.product_name ||
-        item?.name ||
-        item?.item_reference_id ||
-        "Order"
+      item?.product_name || item?.name || item?.item_reference_id || "Order"
     );
 
     const eventValues: Record<string, any> = {
-      order_placed:
-        itemTimeline.order_placed ||
-        item?.order_date ||
-        orderDetails?.order_date ||
-        order_date,
-      order_confirmed:
-        itemTimeline.order_confirmed ||
-        item?.confirmed_date ||
-        orderDetails?.confirmed_date,
+      order_placed: itemTimeline.order_placed || item?.order_date || orderDetails?.order_date || order_date,
+      order_confirmed: itemTimeline.order_confirmed || item?.confirmed_date || orderDetails?.confirmed_date,
       dispatched_at: itemTimeline.dispatched_at,
       shipped_at: itemTimeline.shipped_at,
       delivered_at: itemTimeline.delivered_at,
@@ -683,7 +574,6 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     timelineEventDefinitions.forEach((definition, sequence) => {
       const timestamp = eventValues[definition.key];
       const parsedDate = parseTimelineDate(timestamp);
-
       if (!parsedDate) return;
 
       const eventId = `${definition.key}_${parsedDate.getTime()}`;
@@ -726,10 +616,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     const key = parsedDate.getTime();
     const existingWindow = returnWindowMap.get(key);
     const itemName = String(
-      item?.product_name ||
-        item?.name ||
-        item?.item_reference_id ||
-        "Order"
+      item?.product_name || item?.name || item?.item_reference_id || "Order"
     );
 
     if (existingWindow) {
@@ -815,9 +702,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const getStatusText = (status: string) => {
     if (!status) return "N/A";
-    return status
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const getShippingAddress = () => {
@@ -887,9 +772,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
-              {orderDetails?.order_type === "retail"
-                ? "Customer Details"
-                : "Distributor Details"}
+              {orderDetails?.order_type === "retail" ? "Customer Details" : "Distributor Details"}
             </button>
             <button
               type="button"
@@ -943,10 +826,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         uiItems.map((item, idx) => {
                           const hasInvoice = Boolean(item.invoiceNumber);
                           return (
-                            <tr
-                              key={item.id}
-                              className="border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF]"
-                            >
+                            <tr key={item.id} className="border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF]">
                               <td className="px-3 py-3 text-xs text-[#2D6FE8]">{idx + 1}</td>
                               <td className="px-3 py-3">
                                 <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
@@ -2641,11 +2521,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     orderTypeFilter,
   ]);
 
-  // =====================================================
-  // ✅ HEADER SEARCH SE AAYE ORDER KO AUTO-SELECT
-  // Same-page pe bhi naya search aane par trigger hoga
-  // =====================================================
-
   const initialSearchHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -2793,20 +2668,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const handleOpenInvoicePdf = async (orderId: number, _itemId?: number) => {
+  const handleOpenInvoicePdf = async (orderId: number, itemId?: number) => {
+    if (!itemId || !Number.isFinite(Number(itemId)) || Number(itemId) <= 0) {
+      toast.error("Item ID is required to fetch the invoice.");
+      return;
+    }
+  
     const pdfWindow = window.open("", "_blank");
     if (pdfWindow) {
       pdfWindow.document.title = "Preparing Indiekonnect invoice";
-      pdfWindow.document.body.textContent = "Loading complete order and generating PDF...";
+      pdfWindow.document.body.textContent =
+        "Loading item invoice and generating PDF...";
     }
-
+  
     try {
-      toast.loading("Loading complete invoice...", { id: "invoice-pdf" });
+      toast.loading("Loading item invoice...", { id: "invoice-pdf" });
+  
       const [invoiceResult, detailsResult] = await Promise.allSettled([
-        orderInvoiceApi.getByOrderId(orderId),
+        orderInvoiceApi.getByOrderId(orderId, itemId),
         orderApi.getOrderDetails(String(orderId)),
       ]);
-
+  
       if (invoiceResult.status !== "fulfilled") {
         throw invoiceResult.reason;
       }
@@ -2814,26 +2696,36 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       if (!response?.data?.success || !response?.data?.data) {
         throw new Error(response?.data?.message || "Invoice data unavailable");
       }
-
+  
       const payload = response.data.data;
+      const invoiceType = payload.invoice_type;         // "single_item" | "full_order"
       const existingOrder = payload.order || {};
       const detailResponse =
         detailsResult.status === "fulfilled"
           ? detailsResult.value?.data?.data || detailsResult.value?.data
           : null;
       const detailOrder = detailResponse?.order || detailResponse || {};
-      const originalItems = Array.isArray(existingOrder.order_items)
-        ? existingOrder.order_items
-        : [];
-      const detailItems = Array.isArray(detailOrder.order_items)
-        ? detailOrder.order_items
-        : Array.isArray(detailOrder.items)
-        ? detailOrder.items
-        : [];
-
-      const normalizedDetailItems = detailItems.map((item: any) => ({
+  
+      // ✅ Normalize invoice items — API may return a single OBJECT (single_item)
+      // or an ARRAY (full_order).
+      const rawInvoiceItems = existingOrder.order_items ?? existingOrder.items;
+      const invoiceItemsArray: any[] = Array.isArray(rawInvoiceItems)
+        ? rawInvoiceItems
+        : rawInvoiceItems && typeof rawInvoiceItems === "object"
+          ? [rawInvoiceItems]
+          : [];
+  
+      // ✅ Normalize order-details items (only used for full_order invoices).
+      const rawDetailItems = detailOrder.order_items ?? detailOrder.items;
+      const detailItemsArray: any[] = Array.isArray(rawDetailItems)
+        ? rawDetailItems
+        : rawDetailItems && typeof rawDetailItems === "object"
+          ? [rawDetailItems]
+          : [];
+  
+      const normalizedDetailItems = detailItemsArray.map((item: any) => ({
         ...item,
-        id: item.id ?? item.line_id,
+        id: item.id ?? item.line_id ?? item.order_line_id,
         product_name: item.product_name ?? item.name,
         product_code: item.product_code ?? item.sku,
         unit_price: item.unit_price,
@@ -2843,38 +2735,51 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         total_shipping_charge:
           item.total_shipping_charge ?? item.total_delivery_charge,
       }));
-
-      const fullItems =
-        normalizedDetailItems.length > originalItems.length
-          ? normalizedDetailItems
-          : originalItems;
+  
+      // ✅ THE KEY FIX:
+      //  - single_item → use ONLY the invoice's own line(s). Never merge order-details.
+      //  - full_order  → prefer whichever set has MORE items (invoice may omit some).
+      let fullItems: any[];
+      if (invoiceType === "single_item") {
+        fullItems = invoiceItemsArray;
+      } else {
+        fullItems = invoiceItemsArray.length
+          ? invoiceItemsArray
+          : normalizedDetailItems;
+      }
+  
+      if (!fullItems.length) {
+        throw new Error(
+          "Invoice response did not include order items. Cannot generate PDF.",
+        );
+      }
+  
       const mergedOrder = {
         ...detailOrder,
         ...existingOrder,
         billing_address:
-          existingOrder.billing_address || detailOrder.billing_address,
+          existingOrder.billing_address ||
+          detailOrder.billing_address ||
+          detailOrder.user?.billing_address,
         delivery_address:
-          existingOrder.delivery_address || detailOrder.delivery_address,
+          existingOrder.delivery_address ||
+          detailOrder.delivery_address ||
+          detailOrder.user?.delivery_address,
         user: existingOrder.user || detailOrder.user,
         order_items: fullItems,
       };
-
-      if (!fullItems.length) {
-        throw new Error(
-          "Neither API returned order items. Cannot generate full invoice."
-        );
-      }
+  
       if (detailsResult.status === "rejected") {
         console.warn(
           "Order details request failed; using invoice response",
-          detailsResult.reason
+          detailsResult.reason,
         );
       }
-
+  
       await openInvoicePdfInNewTab(
         { ...payload, order: mergedOrder },
-        null,
-        pdfWindow
+        itemId,
+        pdfWindow,
       );
     } catch (err: any) {
       pdfWindow?.close();
@@ -2882,7 +2787,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to load invoice."
+          "Failed to load invoice.",
       );
     } finally {
       toast.dismiss("invoice-pdf");
@@ -4254,8 +4159,6 @@ const Orders: React.FC = () => {
   const [filteredForExport, setFilteredForExport] = useState<Order[]>([]);
   const [filterLabel, setFilterLabel] = useState<string>("All Orders");
 
-  // ✅ Same-route navigation pe bhi naya state aane pe trigger hoga
-  // Initial values null hain, useEffect me set hote hain
   const [initialSearchOrderReference, setInitialSearchOrderReference] =
     useState<string | null>(null);
   const [initialSearchOrderId, setInitialSearchOrderId] = useState<
@@ -4264,9 +4167,6 @@ const Orders: React.FC = () => {
   const [initialSearchAutoOpenView, setInitialSearchAutoOpenView] =
     useState<boolean>(false);
 
-  // ✅ HAR navigation pe chalega (same route bhi)
-  // location.key har navigate pe naya hota hai
-  // location.state._ts fallback hai agar key same ho
   useEffect(() => {
     const navState = (location.state || {}) as {
       order?: any;
@@ -4288,7 +4188,6 @@ const Orders: React.FC = () => {
     setInitialSearchOrderId(id);
     setInitialSearchAutoOpenView(Boolean(navState.openView));
 
-    // URL state clear — refresh pe dobara trigger na ho
     window.history.replaceState({}, document.title);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4559,8 +4458,6 @@ const Orders: React.FC = () => {
           initialSearchOrderId={initialSearchOrderId}
           initialSearchAutoOpenView={initialSearchAutoOpenView}
           onInitialSearchConsumed={() => {
-            // ✅ Ref tracking ke wajah se yahan null karne se koi issue nahi
-            // (OrdersTable ka internal handler searchKey se dedupe karta hai)
           }}
         />
       </div>

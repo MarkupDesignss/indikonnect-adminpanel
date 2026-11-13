@@ -1,17 +1,12 @@
 // src/pages/orders/csvUtils.ts
 
 // Indiekonnect — CSV exports + compact GST tax-invoice PDF.
-
 // Required: npm install jspdf jspdf-autotable qrcode
-
-//            npm install -D @types/qrcode
+//           npm install -D @types/qrcode
 
 import { toast } from "react-hot-toast";
-
 import jsPDF from "jspdf";
-
 import autoTable from "jspdf-autotable";
-
 import QRCode from "qrcode";
 
 import {
@@ -20,42 +15,25 @@ import {
   INVOICE_LOGO_HEIGHT,
 } from "../../utils/invoiceLogoData";
 
-// Logo: The ORIGINAL PNG is bundled as a data URI at build time.
-
-// Generate it ONCE with: node scripts/embed-invoice-logo.mjs
-
-// No runtime CORS, fetch, basePath, or /logo API dependency.
-
 // =====================================================
-
-// CSV HELPERS (existing functionality preserved)
-
+// CSV HELPERS
 // =====================================================
 
 export const escapeCsvValue = (value: any): string => {
   if (value === null || value === undefined) return "";
-
   const str = String(value);
-
   return /[,"\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 };
 
 export const formatCsvDate = (value?: string | null) => {
   if (!value) return "";
-
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return String(value);
-
   return date.toLocaleString("en-IN", {
     day: "2-digit",
-
     month: "short",
-
     year: "numeric",
-
     hour: "2-digit",
-
     minute: "2-digit",
   });
 };
@@ -68,64 +46,36 @@ export const formatCsvStatus = (status?: string) =>
 export const generateOrdersCsv = (orders: any[]): string => {
   const headers = [
     "S.No.",
-
     "Order Reference",
-
     "Order Date",
-
     "Customer Name",
-
     "Customer Email",
-
     "Customer Phone",
-
     "Order Type",
-
     "Order Status",
-
     "Payment Status",
-
     "Payment Gateway",
-
     "Transaction ID",
-
     "Subtotal",
-
     "Total GST",
-
     "Shipping Charge",
-
     "Total Payable",
-
     "Amount Paid",
-
     "Shipping Address",
-
     "Courier Company",
-
     "Courier Tracking Number",
-
     "Courier Delivery Date",
-
     "Item Reference",
-
     "Product Name",
-
     "SKU",
-
     "Quantity",
-
     "Unit Price",
-
     "Item Total",
-
     "Item Delivery Status",
-
     "Item Tracking Number",
   ];
 
   const rows: string[] = [headers.map(escapeCsvValue).join(",")];
-
   let counter = 0;
 
   orders.forEach((order) => {
@@ -134,75 +84,46 @@ export const generateOrdersCsv = (orders: any[]): string => {
 
     items.forEach((item: any) => {
       counter += 1;
-
       const row = [
         counter,
-
         order.order_reference || order.id || "",
-
         formatCsvDate(order.order_date || order.date) || "",
-
         order.user?.name || order.customer || "",
-
         order.user?.email || order.userEmail || "",
-
         order.user?.phone || order.userPhone || "",
-
         order.order_type === "retail" ? "Customer" : order.order_type || "",
-
         formatCsvStatus(order.order_status || order.orderStatus) || "",
-
         formatCsvStatus(order.payment_status || order.paymentStatus) || "",
-
         order.payment_gateway || order.paymentGateway || "",
-
         order.gateway_transaction_id || order.gatewayTransactionId || "",
-
         Number(order.subtotal || 0).toFixed(2),
-
         Number(order.total_gst || order.totalGst || 0).toFixed(2),
-
         Number(order.shipping_charge || order.shippingCharge || 0).toFixed(2),
-
         Number(order.total_payable || order.totalPayable || 0).toFixed(2),
-
         Number(order.amount_paid || order.amountPaid || 0).toFixed(2),
-
         order.shipping_address?.full_address || order.shippingAddress || "",
-
         order.courier_company || order.courierCompany || "",
-
         order.courier_tracking_number || order.courierTrackingNumber || "",
-
         formatCsvDate(
           order.courier_delivery_date || order.courierDeliveryDate,
         ) || "",
-
         item?.item_reference_id || item?.itemReferenceId || "",
-
         item?.product_name || item?.productName || "",
-
         item?.product_code || item?.sku || "",
-
         item?.quantity ?? "",
-
         item?.unit_price != null
           ? Number(item.unit_price).toFixed(2)
           : item?.unitPrice != null
             ? Number(item.unitPrice).toFixed(2)
             : "",
-
         item?.line_total != null
           ? Number(item.line_total).toFixed(2)
           : item?.lineTotal != null
             ? Number(item.lineTotal).toFixed(2)
             : "",
-
         formatCsvStatus(item?.delivery_status || item?.status) || "",
-
         item?.courier_tracking_number || item?.courierTrackingNumber || "",
       ];
-
       rows.push(row.map(escapeCsvValue).join(","));
     });
   });
@@ -213,48 +134,48 @@ export const generateOrdersCsv = (orders: any[]): string => {
 export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
   if (!orders?.length) {
     toast.error("No orders available to export.");
-
     return;
   }
 
   try {
     const content = `\uFEFF${generateOrdersCsv(orders)}`;
-
     const url = URL.createObjectURL(
       new Blob([content], { type: "text/csv;charset=utf-8;" }),
     );
-
     const link = document.createElement("a");
-
     link.href = url;
-
     link.download = `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
-
     document.body.appendChild(link);
-
     link.click();
-
     link.remove();
-
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-
     toast.success(`CSV downloaded — ${orders.length} orders exported`);
   } catch (error) {
     console.error("CSV download error:", error);
-
     toast.error("Failed to download CSV. Please try again.");
   }
 };
 
 // =====================================================
-// BLINKIT-STYLE GST INVOICE - COMPLETE FULL-ORDER DATA
+// GST INVOICE PDF — ONLY THESE API FIELDS
 // =====================================================
-// IMPORTANT:
-// 1. Orders.tsx MUST continue to merge the invoice and order-details APIs.
-// 2. This function NEVER filters products by orderItemId.
-// 3. The order API is used for full-order totals; invoice API totals are
-//    disclosed separately and flagged if they disagree.
-// 4. This order-history QR is NOT an official signed GST e-invoice QR.
+//
+// Product line fields displayed:
+//   line_price_excl_gst
+//   line_price_incl_gst
+//   line_gst_amount
+//   igst_amount
+//   line_total_excl_gst
+//   line_total_gst_amount
+//   line_total_incl_gst
+//
+// Shipping (per-line) fields displayed:
+//   shipping_excl_gst
+//   shipping_incl_gst
+//   shipping_gst_amount
+//
+// No MRP, no discount, no CGST/SGST split — unless API explicitly returns them.
+// No reconciliation "Note" row.
 
 type InvoicePayload = {
   invoice?: Record<string, any>;
@@ -266,9 +187,8 @@ type AnyObject = Record<string, any>;
 type RGB = [number, number, number];
 
 const ORDER_HISTORY_URL =
-  "https://www.markupdesigns.net/indikonnect-distributor/distributor/order-history/";
+  "https://www.markupdesigns.net/indiekonnect-distributor/distributor/order-history/";
 
-// Confirm registered legal name against the seller's legal/GST records.
 const DISPLAY_SELLER_NAME = "INDIEKONNECT ENTERPRISE PRIVATE LIMITED";
 
 const isPresent = (value: any): boolean =>
@@ -308,6 +228,7 @@ const addressToText = (value: any): string => {
     value.address_line_2 ?? value.address_line2,
     value.landmark,
     value.city,
+    value.post_office,
     value.district,
     value.state,
     firstPresent(value.pincode, value.pin_code, value.postal_code),
@@ -317,39 +238,12 @@ const addressToText = (value: any): string => {
 };
 
 const smallWords = [
-  "",
-  "One",
-  "Two",
-  "Three",
-  "Four",
-  "Five",
-  "Six",
-  "Seven",
-  "Eight",
-  "Nine",
-  "Ten",
-  "Eleven",
-  "Twelve",
-  "Thirteen",
-  "Fourteen",
-  "Fifteen",
-  "Sixteen",
-  "Seventeen",
-  "Eighteen",
-  "Nineteen",
+  "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+  "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+  "Seventeen", "Eighteen", "Nineteen",
 ];
-const tensWords = [
-  "",
-  "",
-  "Twenty",
-  "Thirty",
-  "Forty",
-  "Fifty",
-  "Sixty",
-  "Seventy",
-  "Eighty",
-  "Ninety",
-];
+const tensWords = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
 const hundredsToWords = (amount: number): string => {
   let n = Math.floor(amount);
   const out: string[] = [];
@@ -365,6 +259,7 @@ const hundredsToWords = (amount: number): string => {
   }
   return out.join(" ");
 };
+
 const integerToIndianWords = (amount: number): string => {
   let n = Math.floor(Math.abs(amount));
   if (!n) return "Zero";
@@ -383,6 +278,7 @@ const integerToIndianWords = (amount: number): string => {
   if (n) pieces.push(hundredsToWords(n));
   return pieces.join(" ");
 };
+
 const amountInWords = (value: number): string => {
   const paise = Math.round(Math.abs(value) * 100);
   const whole = Math.floor(paise / 100);
@@ -393,73 +289,49 @@ const amountInWords = (value: number): string => {
   );
 };
 
-// A single source row may already include delivery charges in line_total.
-// Split it only when the API amounts establish that relationship.
+// =====================================================
+// LINE NORMALIZATION — READS ONLY THE REQUESTED FIELDS
+// =====================================================
+
 type InvoiceLine = {
   source: AnyObject;
   qty: number;
-  taxable: number;
-  cgst: number;
-  sgst: number;
-  igst: number;
-  cess: number;
-  shipping: number;
-  itemTotal: number;
-  fullLineTotal: number;
-  splitShipping: boolean;
+  linePriceInclGst: number;
+  linePriceExclGst: number;
+  lineGstAmount: number;
+  shippingInclGst: number;
+  shippingExclGst: number;
+  shippingGstAmount: number;
+  lineTotalInclGst: number;
+  lineTotalExclGst: number;
+  lineTotalGstAmount: number;
+  igstAmount: number;
 };
 
-const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => {
-  const qty = asNumber(item.quantity, 1);
-  const unit = asNumber(firstPresent(item.unit_price, item.unitPrice));
-  const taxable = asNumber(
-    firstPresent(item.taxable_value, item.taxable_amount),
-    unit * qty,
-  );
-  const cgst = asNumber(firstPresent(item.cgst_amount, item.cgst));
-  const sgst = asNumber(firstPresent(item.sgst_amount, item.sgst));
-  const explicitIgst = firstPresent(item.igst_amount, item.igst);
-  // Do not label unclassified GST as IGST without supporting data.
-  const igst = asNumber(explicitIgst);
-  const cess = asNumber(firstPresent(item.cess_amount, item.cess));
-  const shipping = asNumber(
-    firstPresent(
-      item.total_shipping_charge,
-      item.total_delivery_charge,
-      hasNumber(item.shipping_charge_per_unit)
-        ? asNumber(item.shipping_charge_per_unit) * qty
-        : null,
-    ),
-  );
-  const base = taxable + cgst + sgst + igst + cess;
-  const fullLineTotal = asNumber(
-    firstPresent(item.line_total, item.lineTotal),
-    base + shipping,
-  );
-  const splitShipping =
-    shipping > 0.00001 && Math.abs(fullLineTotal - (base + shipping)) <= 1.0;
-  const itemTotal = splitShipping ? fullLineTotal - shipping : fullLineTotal;
-  return {
-    source: item,
-    qty,
-    taxable,
-    cgst,
-    sgst,
-    igst,
-    cess,
-    shipping,
-    itemTotal,
-    fullLineTotal,
-    splitShipping,
-  };
-};
+const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => ({
+  source: item,
+  qty:                asNumber(item.quantity, 1),
+  linePriceInclGst:   asNumber(item.line_price_incl_gst),
+  linePriceExclGst:   asNumber(item.line_price_excl_gst),
+  lineGstAmount:      asNumber(item.line_gst_amount),
+  shippingInclGst:    asNumber(item.shipping_incl_gst),
+  shippingExclGst:    asNumber(item.shipping_excl_gst),
+  shippingGstAmount:  asNumber(item.shipping_gst_amount),
+  lineTotalInclGst:   asNumber(item.line_total_incl_gst),
+  lineTotalExclGst:   asNumber(item.line_total_excl_gst),
+  lineTotalGstAmount: asNumber(item.line_total_gst_amount),
+  igstAmount:         asNumber(item.igst_amount),
+});
+
+// =====================================================
+// MAIN INVOICE PDF BUILDER
+// =====================================================
 
 export const openInvoicePdfInNewTab = async (
   payload: InvoicePayload,
   _orderItemId: number | null = null,
   targetWindow?: Window | null,
 ): Promise<void> => {
-  // If the caller already opened a tab on click, reuse it to avoid popup blocks.
   const popup =
     targetWindow === undefined ? window.open("", "_blank") : targetWindow;
 
@@ -468,20 +340,23 @@ export const openInvoicePdfInNewTab = async (
     const order: AnyObject = payload?.order ?? {};
     const seller: AnyObject = invoice.seller ?? {};
     const buyer: AnyObject = invoice.buyer ?? {};
-    const orderItems: AnyObject[] =
-      Array.isArray(order.order_items) && order.order_items.length
-        ? order.order_items
-        : Array.isArray(order.items)
-          ? order.items
-          : [];
+
+    // order_items may be an ARRAY (full_order) or an OBJECT (single_item).
+    const orderItems: AnyObject[] = (() => {
+      const raw = (order as any).order_items ?? (order as any).items;
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === "object") return [raw];
+      return [];
+    })();
+
     if (!orderItems.length) {
       throw new Error(
-        "Full-order item data is empty. Check the invoice and order API responses.",
+        "Invoice item data is empty. Check the invoice API response.",
       );
     }
 
-    // Full order, irrespective of which row's invoice button was clicked.
     const lines = orderItems.map(normalizeInvoiceLine);
+
     const invoiceNumber = asText(
       firstPresent(
         invoice.invoice_number,
@@ -490,39 +365,39 @@ export const openInvoicePdfInNewTab = async (
         order.id,
       ),
     );
-    const orderReference = asText(
-      firstPresent(order.order_reference, order.id),
-    );
+    const orderReference = asText(firstPresent(order.order_reference, order.id));
+
     const sellerAddress = addressToText(
       firstPresent(seller.address, seller.full_address),
     );
     const state = firstPresent(
       invoice.delivery_state,
       invoice.place_of_supply,
+      buyer.delivery_address?.state,
+      buyer.billing_address?.state,
       order.delivery_address?.state,
       order.billing_address?.state,
     );
-    const payable = asNumber(
-      firstPresent(order.total_payable, invoice.total_payable),
-    );
-    const invoicePayable = asNumber(invoice.total_payable);
-    const itemSum = lines.reduce((acc, row) => acc + row.fullLineTotal, 0);
-    const countQty = lines.reduce((acc, row) => acc + row.qty, 0);
-    const taxableTotal = lines.reduce((acc, row) => acc + row.taxable, 0);
-    const cgstTotal = lines.reduce((acc, row) => acc + row.cgst, 0);
-    const sgstTotal = lines.reduce((acc, row) => acc + row.sgst, 0);
-    const igstTotal = lines.reduce((acc, row) => acc + row.igst, 0);
-    const cessTotal = lines.reduce((acc, row) => acc + row.cess, 0);
 
-    console.info("GENERATING COMPLETE BLINKIT-STYLE PDF", {
+    const payable = asNumber(
+      firstPresent(invoice.total_payable, order.total_payable),
+    );
+
+    // Totals
+    const totalQty = lines.reduce((s, r) => s + r.qty, 0);
+    const totalTaxable = lines.reduce((s, r) => s + r.linePriceExclGst, 0);
+    const totalPriceIncl = lines.reduce((s, r) => s + r.linePriceInclGst, 0);
+    const totalLineGst = lines.reduce((s, r) => s + r.lineGstAmount, 0);
+    const totalIgst = lines.reduce((s, r) => s + r.igstAmount, 0);
+    const totalExcl = lines.reduce((s, r) => s + r.lineTotalExclGst, 0);
+    const totalLineGstAmt = lines.reduce((s, r) => s + r.lineTotalGstAmount, 0);
+    const totalIncl = lines.reduce((s, r) => s + r.lineTotalInclGst, 0);
+
+    console.info("GENERATING INVOICE PDF (real API fields only)", {
       invoiceNumber,
       orderId: order.id,
       productCount: lines.length,
-      productNames: lines.map(
-        (line) => line.source.product_name ?? line.source.name,
-      ),
-      orderPayable: payable,
-      invoicePayable,
+      invoicePayable: payable,
     });
 
     const doc = new jsPDF({
@@ -531,12 +406,14 @@ export const openInvoicePdfInNewTab = async (
       format: "a4",
       compress: true,
     });
+
     doc.setProperties({
       title: `Indiekonnect Tax Invoice ${invoiceNumber}`,
       subject: `Order ${orderReference}`,
       author: "Indiekonnect",
       creator: "Indiekonnect Admin Panel",
     });
+
     const PW = doc.internal.pageSize.getWidth();
     const PH = doc.internal.pageSize.getHeight();
     const M = 34;
@@ -545,6 +422,7 @@ export const openInvoicePdfInNewTab = async (
     const DIVIDER = M + W * 0.69;
     const RIGHT_W = R - DIVIDER;
     const LEFT_W = DIVIDER - M;
+
     const INK: RGB = [35, 35, 35];
     const GRAY: RGB = [87, 87, 87];
     const LINE: RGB = [67, 67, 67];
@@ -575,17 +453,9 @@ export const openInvoicePdfInNewTab = async (
       bold = false,
     ): string[] => {
       setFont(size, bold);
-      return doc.splitTextToSize(
-        asText(value),
-        Math.max(12, width),
-      ) as string[];
+      return doc.splitTextToSize(asText(value), Math.max(12, width)) as string[];
     };
-    const borderRect = (
-      x: number,
-      top: number,
-      width: number,
-      height: number,
-    ) => {
+    const borderRect = (x: number, top: number, width: number, height: number) => {
       doc.setDrawColor(...LINE);
       doc.setLineWidth(0.52);
       doc.rect(x, top, width, height, "S");
@@ -603,10 +473,11 @@ export const openInvoicePdfInNewTab = async (
       if (y + height > PH - 43) nextPage();
     };
 
-    // 1. COMPACT TWO-COLUMN HEADER — same geometry as reference invoice.
+    // 1. HEADER
     const headerH = 70;
     borderRect(M, y, W, headerH);
     rule(DIVIDER, y, DIVIDER, y + headerH);
+
     const logo =
       typeof INVOICE_LOGO_DATA_URL === "string"
         ? INVOICE_LOGO_DATA_URL.trim()
@@ -632,11 +503,10 @@ export const openInvoicePdfInNewTab = async (
         console.warn("Unable to render bundled Indiekonnect logo:", err);
       }
     }
+
     if (!logoDrawn) {
       text("INDIEKONNECT", M + 10, y + 38, 17, true);
     } else {
-      // The original tall logo is kept fully visible; brand wordmark fills
-      // the wide left half of the reference-style header.
       text(
         "INDIEKONNECT",
         M + Math.max(68, logoDrawWidth + 17),
@@ -650,20 +520,20 @@ export const openInvoicePdfInNewTab = async (
     });
     y += headerH;
 
-    // 2. SELLER / QR ROW.
+    // 2. SELLER / QR
     const sellerNameLines = wrap(DISPLAY_SELLER_NAME, LEFT_W - 15, 8.4, true);
     const sellerAddrLines = sellerAddress
       ? wrap(sellerAddress, LEFT_W - 16, 7.2)
       : [];
-    const sellerPairs: Array<[string, any]> = [
-      ["GSTIN", firstPresent(seller.gstin, seller.gst_number)],
+    const sellerPairs: Array<[string, any]> = (
       [
-        "FSSAI Licence No.",
-        firstPresent(seller.fssai_license_number, seller.fssai),
-      ],
-      ["CIN", seller.cin],
-      ["PAN", seller.pan],
-    ].filter((entry) => isPresent(entry[1])) as Array<[string, any]>;
+        ["GSTIN", firstPresent(seller.gstin, seller.gst_number)],
+        ["FSSAI Licence No.", firstPresent(seller.fssai_license_number, seller.fssai)],
+        ["CIN", seller.cin],
+        ["PAN", seller.pan],
+      ] as Array<[string, any]>
+    ).filter(([, v]) => isPresent(v));
+
     const sellerNeeded =
       36 +
       sellerNameLines.length * 10 +
@@ -671,9 +541,11 @@ export const openInvoicePdfInNewTab = async (
       sellerPairs.length * 11 +
       9;
     const sellerH = Math.max(110, sellerNeeded);
+
     borderRect(M, y, W, sellerH);
     rule(DIVIDER, y, DIVIDER, y + sellerH);
     text("Sold By / Seller", M + 6, y + 12, 7.5, true, {}, true);
+
     let sellerAt = y + 25;
     sellerNameLines.forEach((line) => {
       text(line, M + 6, sellerAt, 8.4, true);
@@ -688,6 +560,7 @@ export const openInvoicePdfInNewTab = async (
       text(`: ${asText(value)}`, M + 119, sellerAt, 7.2);
       sellerAt += 11;
     });
+
     const qrDataUrl = await QRCode.toDataURL(ORDER_HISTORY_URL, {
       width: 280,
       margin: 1,
@@ -698,43 +571,38 @@ export const openInvoicePdfInNewTab = async (
     const qrY = y + 5;
     doc.addImage(qrDataUrl, "PNG", qrX, qrY, QR_SIZE, QR_SIZE);
     doc.link(qrX, qrY, QR_SIZE, QR_SIZE, { url: ORDER_HISTORY_URL });
-    text(
-      "Scan for Order History",
-      DIVIDER + RIGHT_W / 2,
-      qrY + QR_SIZE + 9,
-      6.0,
-      false,
-      { align: "center" },
-      true,
-    );
+    text("Scan for Order History", DIVIDER + RIGHT_W / 2, qrY + QR_SIZE + 9, 6.0, false, { align: "center" }, true);
+
     text("Invoice Number:", DIVIDER + 6, y + sellerH - 12, 6.7, true);
     text(invoiceNumber, DIVIDER + 76, y + sellerH - 12, 6.7, false, {
       maxWidth: RIGHT_W - 81,
     });
     y += sellerH;
 
-    // 3. THREE-COLUMN ORDER / BILL TO / SHIP TO DETAILS.
-    // Keep the same thin, compact black borders as the Blinkit-style invoice.
-    // The invoice API buyer.address is often abbreviated (for example "Noida").
-    // Prefer the FULL billing/delivery address returned by the order API.
+    // 3. ORDER / BILL TO / SHIP TO
     const billAddress = addressToText(
       firstPresent(
         order.billing_address,
+        buyer.billing_address,
         buyer.address,
         order.delivery_address,
+        buyer.delivery_address,
         order.shipping_address,
       ),
     );
     const shipAddress = addressToText(
       firstPresent(
         order.delivery_address,
+        buyer.delivery_address,
         order.shipping_address,
+        buyer.billing_address,
         order.billing_address,
-        buyer.address,
       ),
     );
     const billToName = asText(
       firstPresent(
+        order.billing_address?.recipient_name,
+        buyer.billing_address?.recipient_name,
         order.billing_address?.name,
         order.billing_address?.full_name,
         buyer.name,
@@ -744,36 +612,42 @@ export const openInvoicePdfInNewTab = async (
     );
     const shipToName = asText(
       firstPresent(
+        buyer.delivery_address?.recipient_name,
+        order.delivery_address?.recipient_name,
         order.delivery_address?.name,
-        order.delivery_address?.full_name,
         buyer.name,
         order.user?.name,
         order.customer,
       ),
     );
     const billPhone = firstPresent(
+      buyer.billing_address?.contact_number,
       order.billing_address?.phone,
       order.billing_address?.mobile,
       buyer.phone,
       order.user?.phone,
     );
     const shipPhone = firstPresent(
+      buyer.delivery_address?.contact_number,
       order.delivery_address?.phone,
       order.delivery_address?.mobile,
       buyer.phone,
       order.user?.phone,
     );
     const billEmail = firstPresent(
+      buyer.billing_address?.email,
       order.billing_address?.email,
       order.user?.email,
     );
-    const shipEmail = firstPresent(order.delivery_address?.email);
+    const shipEmail = firstPresent(
+      buyer.delivery_address?.email,
+      order.delivery_address?.email,
+    );
 
     const shortDate = (value: any): string => {
       if (!isPresent(value)) return "-";
       const parsed = new Date(value);
       if (Number.isNaN(parsed.getTime())) return asText(value);
-      // GST invoice dates shown as dd-mm-yyyy in India local time.
       return new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Kolkata",
         day: "2-digit",
@@ -796,24 +670,13 @@ export const openInvoicePdfInNewTab = async (
 
     const orderIdLines = wrap(orderReference, orderTextW, 8.1, true);
     const orderMeta: Array<[string, any]> = [
-      [
-        "Order Date",
-        shortDate(firstPresent(order.created_at, order.order_date)),
-      ],
-      [
-        "Invoice Date",
-        shortDate(
-          firstPresent(invoice.issued_at, invoice.created_at, order.created_at),
-        ),
-      ],
-      ["PAN", firstPresent(seller.pan, invoice.pan)],
+      ["Order Date", shortDate(firstPresent(order.created_at, order.order_date))],
+      ["Invoice Date", shortDate(firstPresent(invoice.issued_at, invoice.created_at, order.created_at))],
       ["Place of Supply", state],
-      [
-        "Order Status",
-        prettyStatus(firstPresent(order.status, order.order_status)),
-      ],
+      ["Order Status", prettyStatus(firstPresent(order.status, order.order_status))],
       ["Order Type", prettyStatus(order.order_type)],
-    ];
+    ].filter(([, v]) => isPresent(v)) as Array<[string, any]>;
+
     const orderMetaValueWidth = colOrderW - 77;
     const measuredMeta = orderMeta.map(([label, value]) => ({
       label,
@@ -830,8 +693,6 @@ export const openInvoicePdfInNewTab = async (
       ) +
       9;
 
-    // Names and addresses are wrapped INSIDE their respective columns.
-    // Height is derived from content to prevent overlapping the product table.
     type AddressColumn = {
       title: string;
       x: number;
@@ -854,12 +715,8 @@ export const openInvoicePdfInNewTab = async (
       const textW = width - innerGap * 2;
       const person = wrap(name, textW, 8.2, true);
       const locationLines = address ? wrap(address, textW, 7.4) : [];
-      const phoneLines = isPresent(phone)
-        ? wrap(`Phone: ${phone}`, textW, 7.1)
-        : [];
-      const emailLines = isPresent(email)
-        ? wrap(`Email: ${email}`, textW, 7.1)
-        : [];
+      const phoneLines = isPresent(phone) ? wrap(`Phone: ${phone}`, textW, 7.1) : [];
+      const emailLines = isPresent(email) ? wrap(`Email: ${email}`, textW, 7.1) : [];
       const height =
         15 +
         14 +
@@ -881,36 +738,16 @@ export const openInvoicePdfInNewTab = async (
         height,
       };
     };
-    const billCol = makeAddressColumn(
-      "Bill To",
-      xBill,
-      colBillW,
-      billToName,
-      billAddress,
-      billPhone,
-      billEmail,
-    );
-    const shipCol = makeAddressColumn(
-      "Ship To",
-      xShip,
-      colShipW,
-      shipToName,
-      shipAddress,
-      shipPhone,
-      shipEmail,
-    );
-    const infoBlockH = Math.max(
-      100,
-      orderBlockH,
-      billCol.height,
-      shipCol.height,
-    );
+
+    const billCol = makeAddressColumn("Bill To", xBill, colBillW, billToName, billAddress, billPhone, billEmail);
+    const shipCol = makeAddressColumn("Ship To", xShip, colShipW, shipToName, shipAddress, shipPhone, shipEmail);
+
+    const infoBlockH = Math.max(100, orderBlockH, billCol.height, shipCol.height);
     room(infoBlockH);
     borderRect(M, y, W, infoBlockH);
     rule(xBill, y, xBill, y + infoBlockH);
     rule(xShip, y, xShip, y + infoBlockH);
 
-    // Left column - order ID, dates and seller PAN.
     let orderY = y + 14;
     text("Order ID:", xOrder + innerGap, orderY, 8.0, true);
     orderY += 13;
@@ -927,7 +764,6 @@ export const openInvoicePdfInNewTab = async (
       orderY += Math.max(13, entry.values.length * 9.3 + 2);
     });
 
-    // Center and right columns - separated Bill To and Ship To blocks.
     const drawAddressColumn = (column: AddressColumn) => {
       let cursor = y + 14;
       const x = column.x + innerGap;
@@ -957,88 +793,61 @@ export const openInvoicePdfInNewTab = async (
     drawAddressColumn(shipCol);
     y += infoBlockH;
 
-    // 4. PRODUCT GRID / CGST / SGST / IGST / DELIVERY LINES.
-    // 14 columns are intentionally narrow, like the reference PDF.
-    const widths = [18, 46, 104, 36, 30, 20, 45, 25, 31, 25, 31, 36, 31, 49];
-    const ratio = W / widths.reduce((sum, next) => sum + next, 0);
+    // 4. PRODUCT TABLE — ONLY THE REQUESTED FIELDS
+    // Columns:
+    //   Sr | HSN/SKU | Description | Qty | Taxable (line_price_excl_gst)
+    //   | Price (line_price_incl_gst) | GST (line_gst_amount) | IGST (igst_amount)
+    //   | Total Excl (line_total_excl_gst) | Total GST (line_total_gst_amount)
+    //   | Total Incl (line_total_incl_gst)
+    const widths = [22, 56, 150, 28, 52, 52, 48, 48, 60, 52, 60];
+    const totalWidthRatio = W / widths.reduce((sum, n) => sum + n, 0);
     const columnStyles: Record<number, any> = {};
     widths.forEach((width, index) => {
       columnStyles[index] = {
-        cellWidth: width * ratio,
+        cellWidth: width * totalWidthRatio,
         halign:
-          index === 2 || index === 1
+          index === 1 || index === 2
             ? "left"
-            : index === 0 || index === 5
+            : index === 0
               ? "center"
               : "right",
       };
     });
+
     const body: string[][] = [];
     lines.forEach((row, index) => {
-      const source = row.source;
-      const mrp = firstPresent(
-        source.mrp,
-        source.mrp_price,
-        source.maximum_retail_price,
-        source.unit_price,
-      );
-      const explicitDiscount = firstPresent(
-        source.discount_amount,
-        source.discount_value,
-      );
-      const gstRate = asNumber(firstPresent(source.gst_rate, source.tax_rate));
-      const cgstRate = firstPresent(
-        source.cgst_rate,
-        row.cgst > 0 && gstRate ? gstRate / 2 : null,
-      );
-      const sgstRate = firstPresent(
-        source.sgst_rate,
-        row.sgst > 0 && gstRate ? gstRate / 2 : null,
-      );
+      const src = row.source;
       body.push([
         String(index + 1),
-        asText(
-          firstPresent(
-            source.hsn_code,
-            source.hsn,
-            source.product_code,
-            source.sku,
-          ),
-        ),
-        asText(
-          firstPresent(source.product_name, source.productName, source.name),
-        ),
-        formatMoney(mrp),
-        isPresent(explicitDiscount) ? formatMoney(explicitDiscount) : "-",
+        asText(firstPresent(src.hsn_code, src.product_code)),
+        asText(firstPresent(src.product_name, src.name)),
         asText(row.qty),
-        formatMoney(row.taxable),
-        isPresent(cgstRate) ? formatMoney(cgstRate) : "-",
-        formatMoney(row.cgst),
-        isPresent(sgstRate) ? formatMoney(sgstRate) : "-",
-        formatMoney(row.sgst),
-        formatMoney(row.igst),
-        formatMoney(row.cess),
-        formatMoney(row.itemTotal),
+        formatMoney(row.linePriceExclGst),   // Taxable (excl.)
+        formatMoney(row.linePriceInclGst),   // Price (incl.)
+        formatMoney(row.lineGstAmount),      // GST amount
+        formatMoney(row.igstAmount),         // IGST amount
+        formatMoney(row.lineTotalExclGst),   // Line total (excl.)
+        formatMoney(row.lineTotalGstAmount), // Line total GST
+        formatMoney(row.lineTotalInclGst),   // Line total (incl.)
       ]);
-      if (row.splitShipping) {
+
+      if (row.shippingInclGst > 0 || row.shippingExclGst > 0) {
         body.push([
           "-",
           "-",
-          "Delivery and other charges",
+          "Delivery / shipping charges",
           "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          "-",
-          formatMoney(row.shipping),
+          formatMoney(row.shippingExclGst),
+          formatMoney(row.shippingInclGst),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingExclGst),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingInclGst),
         ]);
       }
     });
+
     autoTable(doc, {
       startY: y,
       margin: { left: M, right: M, top: 49, bottom: 45 },
@@ -1048,17 +857,14 @@ export const openInvoicePdfInNewTab = async (
           "Sr.\nNo.",
           "HSN /\nSKU",
           "Item Description",
-          "MRP",
-          "Disc.",
           "Qty.",
-          "Taxable\nValue",
-          "CGST\n(%)",
-          "CGST\n(INR)",
-          "SGST\n(%)",
-          "SGST\n(INR)",
-          "IGST /\nGST",
-          "Cess\n(INR)",
-          "Total",
+          "Taxable\n(excl. GST)",
+          "Price\n(incl. GST)",
+          "GST\nAmount",
+          "IGST\nAmount",
+          "Total\n(excl. GST)",
+          "Total\nGST",
+          "Total\n(incl. GST)",
         ],
       ],
       body,
@@ -1066,24 +872,23 @@ export const openInvoicePdfInNewTab = async (
         [
           {
             content: "Total",
-            colSpan: 5,
+            colSpan: 3,
             styles: { halign: "center", fontStyle: "bold" },
           },
-          asText(countQty),
-          formatMoney(taxableTotal),
-          "",
-          formatMoney(cgstTotal),
-          "",
-          formatMoney(sgstTotal),
-          formatMoney(igstTotal),
-          formatMoney(cessTotal),
-          formatMoney(itemSum),
+          asText(totalQty),
+          formatMoney(totalTaxable),
+          formatMoney(totalPriceIncl),
+          formatMoney(totalLineGst),
+          formatMoney(totalIgst),
+          formatMoney(totalExcl),
+          formatMoney(totalLineGstAmt),
+          formatMoney(totalIncl),
         ],
       ],
       showFoot: "lastPage",
       styles: {
         font: "helvetica",
-        fontSize: 6.25,
+        fontSize: 6.5,
         textColor: INK,
         lineColor: LINE,
         lineWidth: 0.5,
@@ -1102,11 +907,12 @@ export const openInvoicePdfInNewTab = async (
       footStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
       columnStyles,
     });
+
     y =
       (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
         ?.finalY ?? y;
 
-    // 5. AMOUNT IN WORDS — directly below the product table like Blinkit.
+    // 5. AMOUNT IN WORDS
     const wordsLines = wrap(
       `Amount in Words: ${amountInWords(payable)}`,
       W - 13,
@@ -1121,16 +927,16 @@ export const openInvoicePdfInNewTab = async (
     );
     y += wordsH;
 
-    // 6. SELLER / AUTHORISED SIGNATORY BOX.
+    // 6. SELLER / AUTHORISED SIGNATORY BOX
     const signatureH = 65;
     room(signatureH);
     borderRect(M, y, W, signatureH);
     rule(DIVIDER, y, DIVIDER, y + signatureH);
     text(DISPLAY_SELLER_NAME, M + 6, y + 13, 8.1, true);
-    if (isPresent(seller.gstin))
-      text(`GSTIN: ${seller.gstin}`, M + 6, y + 28, 7);
+    if (isPresent(seller.gstin)) text(`GSTIN: ${seller.gstin}`, M + 6, y + 28, 7);
     if (isPresent(seller.pan)) text(`PAN: ${seller.pan}`, M + 6, y + 40, 7);
     if (isPresent(seller.cin)) text(`CIN: ${seller.cin}`, M + 6, y + 52, 7);
+
     const signature = firstPresent(
       invoice.signature_data_url,
       seller.signature_data_url,
@@ -1162,81 +968,65 @@ export const openInvoicePdfInNewTab = async (
     );
     y += signatureH;
 
-    // 7. REVERSE CHARGE — don't invent a "No" when API doesn't specify it.
-    room(21);
-    borderRect(M, y, W, 21);
+    // 7. REVERSE CHARGE
     const reverse = firstPresent(
       invoice.reverse_charge,
       invoice.is_reverse_charge,
     );
-    const reverseText =
-      reverse === null
-        ? "Not specified"
-        : [true, 1, "1", "yes", "true"].includes(reverse)
-          ? "Yes"
-          : "No";
-    text(
-      `Whether tax is payable on reverse charge: ${reverseText}`,
-      M + 6,
-      y + 13,
-      7.4,
-      true,
-    );
-    y += 21;
+    if (reverse !== null) {
+      room(21);
+      borderRect(M, y, W, 21);
+      const reverseText = [true, 1, "1", "yes", "true"].includes(reverse)
+        ? "Yes"
+        : "No";
+      text(
+        `Whether tax is payable on reverse charge: ${reverseText}`,
+        M + 6,
+        y + 13,
+        7.4,
+        true,
+      );
+      y += 21;
+    }
 
-    // 8. ANNEXURE — only supplied or item-level delivery charges.
-    const suppliedCharges: AnyObject[] = Array.isArray(invoice.charges)
-      ? invoice.charges
-      : Array.isArray(invoice.annexure)
-        ? invoice.annexure
-        : [];
-    const charges: AnyObject[] = suppliedCharges.length
-      ? suppliedCharges
-      : lines
-          .filter((line) => line.shipping > 0)
-          .map((line) => ({
-            name: `Delivery / shipping: ${asText(firstPresent(line.source.product_name, line.source.name))}`,
-            amount: line.shipping,
-          }));
+    // 8. ANNEXURE — ONLY REQUESTED SHIPPING FIELDS
+    const charges = lines
+      .filter((line) => line.shippingInclGst > 0 || line.shippingExclGst > 0)
+      .map((line) => ({
+        name: `Delivery / shipping: ${asText(firstPresent(line.source.product_name, line.source.name))}`,
+        chargeExcl: line.shippingExclGst,
+        chargeIncl: line.shippingInclGst,
+        gst: line.shippingGstAmount,
+        igst: line.shippingGstAmount,
+      }));
+
     if (charges.length) {
       room(40);
-      text("Annexure", M, y + 10, 8, true);
+      text("Annexure — Delivery / Shipping Charges", M, y + 10, 8, true);
       y += 13;
       autoTable(doc, {
         startY: y,
         margin: { left: M, right: M, top: 49, bottom: 45 },
         theme: "grid",
-        head: [
-          [
-            "S.No.",
-            "Nature of charge",
-            "Tax Rate",
-            "Cess Rate",
-            "Charge (INR)",
-            "CGST",
-            "SGST",
-            "IGST / GST",
-            "Cess",
-          ],
-        ],
-        body: charges.map((charge, index) => [
-          String(index + 1),
-          asText(firstPresent(charge.name, charge.label, charge.description)),
-          hasNumber(charge.tax_rate) ? `${formatMoney(charge.tax_rate)}%` : "-",
-          hasNumber(charge.cess_rate)
-            ? `${formatMoney(charge.cess_rate)}%`
-            : "-",
-          formatMoney(
-            firstPresent(charge.amount, charge.taxable_value, charge.total),
-          ),
-          hasNumber(charge.cgst_amount) ? formatMoney(charge.cgst_amount) : "-",
-          hasNumber(charge.sgst_amount) ? formatMoney(charge.sgst_amount) : "-",
-          hasNumber(charge.igst_amount) ? formatMoney(charge.igst_amount) : "-",
-          hasNumber(charge.cess_amount) ? formatMoney(charge.cess_amount) : "-",
+        head: [[
+          "S.No.",
+          "Nature of charge",
+          "Charge\n(excl. GST)",
+          "Charge\n(incl. GST)",
+          "GST Amount",
+          "IGST Amount",
+        ]],
+        body: charges.map((c, i) => [
+          String(i + 1),
+          asText(c.name),
+          formatMoney(c.chargeExcl),
+          formatMoney(c.chargeIncl),
+          formatMoney(c.gst),
+          formatMoney(c.igst),
         ]),
         styles: {
           font: "helvetica",
-          fontSize: 6.35,
+          fontSize: 6.5,
           cellPadding: 3,
           lineColor: LINE,
           lineWidth: 0.5,
@@ -1244,25 +1034,11 @@ export const openInvoicePdfInNewTab = async (
           overflow: "linebreak",
         },
         headStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
-        columnStyles: {
-          0: { cellWidth: 28 },
-          1: { cellWidth: W - 28 - 7 * 53 },
-          2: { cellWidth: 53 },
-          3: { cellWidth: 53 },
-          4: { cellWidth: 53 },
-          5: { cellWidth: 53 },
-          6: { cellWidth: 53 },
-          7: { cellWidth: 53 },
-          8: { cellWidth: 53 },
-        },
       });
       y =
         ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
           ?.finalY ?? y) + 8;
     }
-
-    // No forced supplementary/continued pages. The core invoice ends after
-    // the Annexure above. Table overflow may still paginate automatically.
 
     // Consistent printed footer on every page.
     const pageCount = doc.getNumberOfPages();
@@ -1284,7 +1060,6 @@ export const openInvoicePdfInNewTab = async (
     const pdfUrl = URL.createObjectURL(pdfBlob);
     if (popup && !popup.closed) {
       popup.location.replace(pdfUrl);
-      // Keep the object URL alive while the browser PDF viewer loads it.
       setTimeout(() => URL.revokeObjectURL(pdfUrl), 5 * 60 * 1000);
     } else {
       doc.save(`${invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`);
