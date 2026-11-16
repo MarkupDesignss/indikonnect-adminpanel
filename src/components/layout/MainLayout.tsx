@@ -8,7 +8,7 @@ import {
 
 import { useMenuItemsState } from "../../pages/permissions/useMenuItems";
 import { usePortalInfo } from "../../pages/permissions/usePortalInfo";
-import { usePermissions } from "../../pages/permissions/usePermissions";
+import { useRoleTheme } from "../../pages/permissions/useRoleTheme";
 
 import Header from "./Header";
 
@@ -20,7 +20,6 @@ import {
 } from "react";
 
 import type {
-  CSSProperties,
   ReactNode,
   RefObject,
 } from "react";
@@ -159,91 +158,6 @@ const ACCOUNT_PATHS = [
   "/ChangePassword",
   "/SettingsManagement",
 ];
-
-// =====================================================
-// ROLE-BASED SIDEBAR COLORS
-// =====================================================
-
-type SidebarRole = "admin" | "sales" | "warehouse" | "finance" | "support" | "default";
-
-interface SidebarTheme {
-  primary: string;
-  light: string;
-  mid: string;
-  dark: string;
-  pale: string;
-  soft: string;
-  border: string;
-}
-
-const SIDEBAR_THEMES: Record<SidebarRole, SidebarTheme> = {
-  admin: {
-    primary: "#2D6FE8",
-    light: "#5A95F6",
-    mid: "#8BB7FF",
-    dark: "#1E5AD1",
-    pale: "#EAF3FF",
-    soft: "#F2F7FC",
-    border: "#D7E7FF",
-  },
-  sales: {
-    primary: "#7C3AED",
-    light: "#A78BFA",
-    mid: "#C4B5FD",
-    dark: "#5B21B6",
-    pale: "#F3E8FF",
-    soft: "#FAF5FF",
-    border: "#E9D5FF",
-  },
-  warehouse: {
-    primary: "#0FA3A3",
-    light: "#2CC2B8",
-    mid: "#6FE0D6",
-    dark: "#0B7C7C",
-    pale: "#E6FBFA",
-    soft: "#F2FCFB",
-    border: "#CDEFEA",
-  },
-  finance: {
-    primary: "#15803D",
-    light: "#4ADE80",
-    mid: "#86EFAC",
-    dark: "#166534",
-    pale: "#DCFCE7",
-    soft: "#F0FDF4",
-    border: "#CDEBD5",
-  },
-  support: {
-    primary: "#0891B2",
-    light: "#22D3EE",
-    mid: "#67E8F9",
-    dark: "#0E7490",
-    pale: "#CFFAFE",
-    soft: "#ECFEFF",
-    border: "#CBEFF5",
-  },
-  default: {
-    primary: "#6366F1",
-    light: "#818CF8",
-    mid: "#A5B4FC",
-    dark: "#4338CA",
-    pale: "#EEF0FF",
-    soft: "#F7F7FF",
-    border: "#E4E7F5",
-  },
-};
-
-const getRoleNames = (roles: any): string => {
-  const list = Array.isArray(roles) ? roles : roles ? [roles] : [];
-  return list
-    .flatMap((role: any) => {
-      if (typeof role === "string") return [role];
-      if (!role || typeof role !== "object") return [];
-      return [role.name, role.slug, role.role, role.key, role.title].filter(Boolean);
-    })
-    .join(" ")
-    .toLowerCase();
-};
 
 // =====================================================
 // MENU SIGNATURE
@@ -773,8 +687,11 @@ const MainLayout = () => {
     loading: isSidebarLoading,
   } = useMenuItemsState();
 
-  const { portalName, warehouseName } = usePortalInfo();
-  const { roles = [] } = usePermissions() as any;
+  // ✅ SINGLE SOURCE OF TRUTH — role + theme + CSS vars
+  const { role: sidebarRole, theme: sidebarTheme, cssVars: portalThemeStyle } =
+    useRoleTheme();
+
+  const sidebarPortalLabel: string = sidebarTheme.label;
 
   // =====================================================
   // LOGO FETCH
@@ -809,41 +726,9 @@ const MainLayout = () => {
     };
   }, []);
 
-  const roleNames = useMemo(() => getRoleNames(roles), [roles]);
-  const currentPathname = typeof window !== "undefined" ? window.location.pathname : "";
-  const sidebarRole: SidebarRole = useMemo(() => {
-    const portal = String(portalName || "").toLowerCase();
-    const path = String(currentPathname || "").toLowerCase();
-
-    if (roleNames.includes("warehouse") || portal.includes("warehouse") || path.includes("indiekonnect-warehouse") || (warehouseName && !portalName)) return "warehouse";
-    if (roleNames.includes("finance") || portal.includes("finance") || path.includes("indiekonnect-finance")) return "finance";
-    if (roleNames.includes("sales") || portal.includes("sales") || path.includes("indiekonnect-sales")) return "sales";
-    if (roleNames.includes("support") || portal.includes("support")) return "support";
-    if (roleNames.includes("admin") || portal.includes("admin") || path.includes("indiekonnect-admin")) return "admin";
-    return "default";
-  }, [roleNames, portalName, warehouseName, currentPathname]);
-
-  const sidebarTheme = SIDEBAR_THEMES[sidebarRole];
-  const sidebarPortalLabel: string =
-    sidebarRole === "support"
-      ? "Support Workspace"
-      : sidebarRole === "sales"
-        ? "Sales Workspace"
-        : sidebarRole === "warehouse"
-          ? "Warehouse Portal"
-          : sidebarRole === "finance"
-            ? "Finance Portal"
-            : portalName || "Admin Portal";
-
-  const portalThemeStyle = {
-    "--portal-primary": sidebarTheme.primary,
-    "--portal-light": sidebarTheme.light,
-    "--portal-mid": sidebarTheme.mid,
-    "--portal-dark": sidebarTheme.dark,
-    "--portal-pale": sidebarTheme.pale,
-    "--portal-soft": sidebarTheme.soft,
-    "--portal-border": sidebarTheme.border,
-  } as CSSProperties;
+  // =====================================================
+  // STATE
+  // =====================================================
 
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);

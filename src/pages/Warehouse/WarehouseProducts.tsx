@@ -23,6 +23,7 @@ import {
   FiPercent,
   FiRefreshCw,
   FiAlertCircle,
+  FiDownload,
 } from "react-icons/fi";
 
 import warehouseStocksApi, {
@@ -74,6 +75,40 @@ const STOCK_STATUS_META = {
 type StockStatus = keyof typeof STOCK_STATUS_META;
 
 // =====================================================
+// HELPERS
+// =====================================================
+
+const formatCurrency = (value: string | number) => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  if (isNaN(num)) {
+    return "—";
+  }
+
+  return `₹${num.toLocaleString("en-IN")}`;
+};
+
+const getStockStatus = (product: WarehouseProduct): StockStatus => {
+  const status = product.warehouse_stock?.stock_status;
+
+  if (
+    status === "in_stock" ||
+    status === "low_stock" ||
+    status === "out_of_stock"
+  ) {
+    return status;
+  }
+
+  return "out_of_stock";
+};
+
+const csvEscape = (value: unknown): string => {
+  const str = value === null || value === undefined ? "" : String(value);
+  const escaped = str.replace(/"/g, '""');
+  return `"${escaped}"`;
+};
+
+// =====================================================
 // HELPER COMPONENTS
 // =====================================================
 
@@ -93,12 +128,9 @@ const StatBadge = ({
   >
     <Icon className={`text-[13px] ${color}`} />
 
-    <span className="text-[11px] font-semibold text-[#111827]">
-      {value}
-    </span>
+    <span className="text-[11px] font-semibold text-[#111827]">{value}</span>
   </div>
 );
-
 
 const AccessDenied: React.FC = () => {
   return (
@@ -108,9 +140,7 @@ const AccessDenied: React.FC = () => {
           <FiAlertCircle size={26} />
         </div>
 
-        <h2 className="text-lg font-bold text-[#111827]">
-          Access Denied
-        </h2>
+        <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
 
         <p className="mt-2 text-sm text-[#6B7280]">
           You don't have permission to access the Warehouse Products module.
@@ -154,9 +184,7 @@ const WarehouseProducts = () => {
   // ===================================================
 
   const canViewWarehouseProducts = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("warehouse_product.view"),
+    () => isSuperAdmin || hasPermission("warehouse_product.view"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -164,17 +192,12 @@ const WarehouseProducts = () => {
   // INITIAL LOADING STATES
   // ===================================================
 
-  const [initialDataLoading, setInitialDataLoading] =
-    useState(true);
+  const [initialDataLoading, setInitialDataLoading] = useState(true);
 
-  const [logoLoading, setLogoLoading] =
-    useState(true);
+  const [logoLoading, setLogoLoading] = useState(true);
 
-  const [logoUrl, setLogoUrl] = useState<string>(
-    DEFAULT_LOGO_URL,
-  );
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
 
-  // Track the first products request separately from refreshes.
   const hasStartedInitialFetch = useRef(false);
 
   // ===================================================
@@ -196,6 +219,8 @@ const WarehouseProducts = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const [total, setTotal] = useState(0);
+
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // ===================================================
   // FETCH LOGO
@@ -225,7 +250,6 @@ const WarehouseProducts = () => {
       } catch (error) {
         console.error("Fetch logo error:", error);
 
-        // Keep the default logo if the logo API fails.
         if (isMounted) {
           setLogoUrl(DEFAULT_LOGO_URL);
         }
@@ -252,47 +276,29 @@ const WarehouseProducts = () => {
       try {
         setIsLoading(true);
 
-        const res = await warehouseStocksApi.getByWarehouse(
-          warehouseId,
-          {
-            page,
-            per_page: perPage,
-          },
-        );
+        const res = await warehouseStocksApi.getByWarehouse(warehouseId, {
+          page,
+          per_page: perPage,
+        });
 
         if (res.data) {
           setProducts(res.data.data ?? []);
 
-          setWarehouseName(
-            res.data.warehouse?.name ?? "",
-          );
+          setWarehouseName(res.data.warehouse?.name ?? "");
 
-          setTotal(
-            res.data.pagination?.total ?? 0,
-          );
+          setTotal(res.data.pagination?.total ?? 0);
 
-          setTotalPages(
-            Math.max(
-              res.data.pagination?.last_page ?? 1,
-              1,
-            ),
-          );
+          setTotalPages(Math.max(res.data.pagination?.last_page ?? 1, 1));
         }
       } catch (err: any) {
-        console.error(
-          "Warehouse products fetch error:",
-          err,
-        );
+        console.error("Warehouse products fetch error:", err);
 
         toast.error(
-          err?.response?.data?.message ||
-            "Failed to load warehouse products",
+          err?.response?.data?.message || "Failed to load warehouse products",
         );
       } finally {
         setIsLoading(false);
 
-        // Only the first request releases initial-page loading.
-        // Refresh and pagination keep using the table spinner.
         if (isInitialLoad) {
           setInitialDataLoading(false);
         }
@@ -321,20 +327,13 @@ const WarehouseProducts = () => {
     hasStartedInitialFetch.current = true;
 
     void fetchProducts(isInitialLoad);
-  }, [
-    permissionsLoading,
-    canViewWarehouseProducts,
-    fetchProducts,
-  ]);
+  }, [permissionsLoading, canViewWarehouseProducts, fetchProducts]);
 
   // ===================================================
   // COMBINED INITIAL LOADING
   // ===================================================
 
-  const pageLoading =
-    permissionsLoading ||
-    logoLoading ||
-    initialDataLoading;
+  const pageLoading = permissionsLoading || logoLoading || initialDataLoading;
 
   // ===================================================
   // CLIENT-SIDE SEARCH
@@ -358,39 +357,133 @@ const WarehouseProducts = () => {
   }, [products, search]);
 
   // ===================================================
-  // HELPERS
+  // DOWNLOAD FULL CSV (ALL PAGES)
   // ===================================================
 
-  const formatCurrency = (
-    value: string | number,
-  ) => {
-    const num =
-      typeof value === "string"
-        ? parseFloat(value)
-        : value;
-
-    if (isNaN(num)) {
-      return "—";
+  const handleDownloadCsv = useCallback(async () => {
+    if (isDownloading) {
+      return;
     }
 
-    return `₹${num.toLocaleString("en-IN")}`;
-  };
+    try {
+      setIsDownloading(true);
 
-  const getStockStatus = (
-    product: WarehouseProduct,
-  ): StockStatus => {
-    const status = product.warehouse_stock?.stock_status;
+      const CSV_PER_PAGE = 200;
 
-    if (
-      status === "in_stock" ||
-      status === "low_stock" ||
-      status === "out_of_stock"
-    ) {
-      return status;
+      const firstRes = await warehouseStocksApi.getByWarehouse(warehouseId, {
+        page: 1,
+        per_page: CSV_PER_PAGE,
+      });
+
+      const firstPageData = firstRes.data?.data ?? [];
+
+      const lastPage = Math.max(
+        firstRes.data?.pagination?.last_page ?? 1,
+        1,
+      );
+
+      let allProducts: WarehouseProduct[] = [...firstPageData];
+
+      for (let p = 2; p <= lastPage; p++) {
+        const res = await warehouseStocksApi.getByWarehouse(warehouseId, {
+          page: p,
+          per_page: CSV_PER_PAGE,
+        });
+
+        const pageData = res.data?.data ?? [];
+
+        if (pageData.length === 0) {
+          break;
+        }
+
+        allProducts = [...allProducts, ...pageData];
+      }
+
+      if (allProducts.length === 0) {
+        toast.info("No products available to download.");
+        return;
+      }
+
+      const headers = [
+        "S.No.",
+        "Product Name",
+        "Product Code",
+        "Brand",
+        "Category",
+        "Subcategory",
+        "Retail Price",
+        "Retail MRP",
+        "Stock Quantity",
+        "Stock Status",
+        "Trending",
+        "Deal of the Day",
+      ];
+
+      const rows = allProducts.map((product, idx) => {
+        const status = getStockStatus(product);
+        const stockQty = product.warehouse_stock?.total_quantity ?? 0;
+
+        return [
+          idx + 1,
+          product.name ?? "",
+          product.product_code ?? "",
+          product.brand?.title ?? "",
+          product.category?.title ?? "",
+          product.subcategory?.name ?? "",
+          product.retail_price ?? "",
+          product.retail_mrp ?? "",
+          stockQty,
+          STOCK_STATUS_META[status].label,
+          product.is_trending ? "Yes" : "No",
+          product.is_deal_of_the_day ? "Yes" : "No",
+        ]
+          .map(csvEscape)
+          .join(",");
+      });
+
+      const csvContent = [headers.map(csvEscape).join(","), ...rows].join(
+        "\r\n",
+      );
+
+      const blob = new Blob(["\uFEFF" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+
+      const safeWarehouseName = (warehouseName || "warehouse")
+        .replace(/[^\w\-]+/g, "_")
+        .replace(/_+/g, "_");
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      link.href = url;
+      link.download = `${safeWarehouseName}_products_${today}.csv`;
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        `Downloaded ${allProducts.length} product${
+          allProducts.length > 1 ? "s" : ""
+        } as CSV.`,
+      );
+    } catch (err: any) {
+      console.error("CSV download error:", err);
+
+      toast.error(
+        err?.response?.data?.message || "Failed to download product CSV.",
+      );
+    } finally {
+      setIsDownloading(false);
     }
-
-    return "out_of_stock";
-  };
+  }, [isDownloading, warehouseId, warehouseName]);
 
   // ===================================================
   // LOGO LOADING STATE
@@ -416,10 +509,14 @@ const WarehouseProducts = () => {
     <div className="min-h-screen bg-white p-4 font-poppins md:p-6">
       {/* =================================================
           HEADER
+          - Line 1: Title (All Products + warehouse subtitle)
+          - Line 2: Search (left) + Stats & CSV (right)
       ================================================= */}
 
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
+      <div className="mb-4">
+        {/* LINE 1: TITLE */}
+
+        <div className="mb-3">
           <div className="mb-1.5 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
 
@@ -445,75 +542,94 @@ const WarehouseProducts = () => {
                   ? `Warehouse: ${warehouseName}`
                   : "Warehouse inventory"}
 
-                {total > 0 &&
-                  ` • ${total} product${total > 1 ? "s" : ""}`}
+                {total > 0 && ` • ${total} product${total > 1 ? "s" : ""}`}
               </p>
             </div>
           </div>
         </div>
 
-        {/* SEARCH */}
+        {/* LINE 2: SEARCH LEFT + STATS/CSV RIGHT */}
 
-        <div className="relative w-full md:w-[320px]">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]" />
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {/* SEARCH (LEFT) */}
 
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products..."
-            className="w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] py-2.5 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#6B7280] outline-none transition-colors focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
-          />
+          <div className="relative w-full md:w-[320px]">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]" />
+
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search products..."
+              className="w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] py-2.5 pl-10 pr-4 text-sm text-[#111827] placeholder:text-[#6B7280] outline-none transition-colors focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
+            />
+          </div>
+
+          {/* STATS + CSV (RIGHT) */}
+
+          <div className="flex flex-wrap items-center gap-2 md:justify-end">
+            {!isLoading && products.length > 0 && (
+              <>
+                <StatBadge
+                  icon={FiPackage}
+                  value={`${total} Total`}
+                  bg="bg-[#EAF3FF]"
+                  color="text-[#2D6FE8]"
+                />
+
+                <StatBadge
+                  icon={FiCheckCircle}
+                  value={`${
+                    products.filter((p) => getStockStatus(p) === "in_stock")
+                      .length
+                  } In Stock`}
+                  bg="bg-[#EAF3FF]"
+                  color="text-[#2D6FE8]"
+                />
+
+                <StatBadge
+                  icon={FiAlertTriangle}
+                  value={`${
+                    products.filter((p) => getStockStatus(p) === "low_stock")
+                      .length
+                  } Low Stock`}
+                  bg="bg-[#FEF9C3]"
+                  color="text-[#A16207]"
+                />
+
+                <StatBadge
+                  icon={FiXCircle}
+                  value={`${
+                    products.filter(
+                      (p) => getStockStatus(p) === "out_of_stock",
+                    ).length
+                  } Out of Stock`}
+                  bg="bg-[#FEF2F2]"
+                  color="text-[#C23B32]"
+                />
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              disabled={isDownloading || total === 0}
+              title="Download full product data as CSV"
+              className="flex h-[34px] flex-shrink-0 items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/25 bg-[#EAF3FF] px-3.5 text-[11px] font-semibold text-[#2D6FE8] transition hover:border-[#2D6FE8]/40 hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDownloading ? (
+                <FiRefreshCw className="animate-spin text-[13px]" />
+              ) : (
+                <FiDownload className="text-[13px]" />
+              )}
+
+              <span className="hidden sm:inline">
+                {isDownloading ? "Downloading..." : "Download CSV"}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* =================================================
-          STATS
-      ================================================= */}
-
-      {!isLoading && products.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <StatBadge
-            icon={FiPackage}
-            value={`${total} Total`}
-            bg="bg-[#EAF3FF]"
-            color="text-[#2D6FE8]"
-          />
-
-          <StatBadge
-            icon={FiCheckCircle}
-            value={`${
-              products.filter(
-                (p) => getStockStatus(p) === "in_stock",
-              ).length
-            } In Stock`}
-            bg="bg-[#EAF3FF]"
-            color="text-[#2D6FE8]"
-          />
-
-          <StatBadge
-            icon={FiAlertTriangle}
-            value={`${
-              products.filter(
-                (p) => getStockStatus(p) === "low_stock",
-              ).length
-            } Low Stock`}
-            bg="bg-[#FEF9C3]"
-            color="text-[#A16207]"
-          />
-
-          <StatBadge
-            icon={FiXCircle}
-            value={`${
-              products.filter(
-                (p) => getStockStatus(p) === "out_of_stock",
-              ).length
-            } Out of Stock`}
-            bg="bg-[#FEF2F2]"
-            color="text-[#C23B32]"
-          />
-        </div>
-      )}
 
       {/* =================================================
           TABLE CARD
@@ -523,10 +639,7 @@ const WarehouseProducts = () => {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-              <FiRefreshCw
-                size={22}
-                className="animate-spin"
-              />
+              <FiRefreshCw size={22} className="animate-spin" />
             </div>
 
             <p className="text-sm font-semibold text-[#111827]">
@@ -555,8 +668,6 @@ const WarehouseProducts = () => {
           </div>
         ) : (
           <>
-            {/* TABLE */}
-
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] table-fixed border-collapse">
                 <colgroup>
@@ -626,15 +737,11 @@ const WarehouseProducts = () => {
                         }}
                         className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
                       >
-                        {/* S.NO. */}
-
                         <td className="px-3 py-2.5 align-top">
                           <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
                             {idx + 1}
                           </span>
                         </td>
-
-                        {/* PRODUCT */}
 
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2.5">
@@ -680,15 +787,11 @@ const WarehouseProducts = () => {
                           </div>
                         </td>
 
-                        {/* CODE */}
-
                         <td className="px-3 py-2.5">
                           <span className="font-mono text-[11px] text-[#6B7280]">
                             {product.product_code}
                           </span>
                         </td>
-
-                        {/* BRAND / CATEGORY */}
 
                         <td className="px-3 py-2.5">
                           <div className="flex flex-col gap-0.5">
@@ -702,8 +805,6 @@ const WarehouseProducts = () => {
                           </div>
                         </td>
 
-                        {/* PRICING */}
-
                         <td className="px-3 py-2.5 text-right">
                           <p className="text-[12px] font-semibold text-[#111827]">
                             {formatCurrency(product.retail_price)}
@@ -714,8 +815,6 @@ const WarehouseProducts = () => {
                           </p>
                         </td>
 
-                        {/* STOCK */}
-
                         <td className="px-3 py-2.5 text-center">
                           <span
                             className={`inline-flex min-w-[38px] items-center justify-center rounded-lg px-2 py-1 text-[12px] font-bold ${meta.bg} ${meta.color}`}
@@ -723,8 +822,6 @@ const WarehouseProducts = () => {
                             {stockQty}
                           </span>
                         </td>
-
-                        {/* STATUS */}
 
                         <td className="px-3 py-2.5 text-center">
                           <span
@@ -742,23 +839,13 @@ const WarehouseProducts = () => {
               </table>
             </div>
 
-            {/* PAGINATION */}
-
             {totalPages > 1 && (
               <div className="flex flex-col items-center justify-between gap-3 border-t border-[#DCE6F2] px-4 py-4 md:flex-row">
                 <p className="text-[11px] text-[#6B7280]">
-                  Page{" "}
-                  <span className="font-bold text-[#111827]">
-                    {page}
-                  </span>{" "}
+                  Page <span className="font-bold text-[#111827]">{page}</span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#111827]">
-                    {totalPages}
-                  </span>{" "}
-                  •{" "}
-                  <span className="font-bold text-[#111827]">
-                    {total}
-                  </span>{" "}
+                  <span className="font-bold text-[#111827]">{totalPages}</span>{" "}
+                  • <span className="font-bold text-[#111827]">{total}</span>{" "}
                   total
                 </p>
 
@@ -766,9 +853,7 @@ const WarehouseProducts = () => {
                   <button
                     type="button"
                     disabled={page === 1 || isLoading}
-                    onClick={() =>
-                      setPage((p) => Math.max(1, p - 1))
-                    }
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <FiChevronLeft />
@@ -778,9 +863,7 @@ const WarehouseProducts = () => {
                     type="button"
                     disabled={page === totalPages || isLoading}
                     onClick={() =>
-                      setPage((p) =>
-                        Math.min(totalPages, p + 1),
-                      )
+                      setPage((p) => Math.min(totalPages, p + 1))
                     }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-40"
                   >

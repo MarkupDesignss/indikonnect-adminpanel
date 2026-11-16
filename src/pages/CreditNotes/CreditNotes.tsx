@@ -12,6 +12,12 @@ import {
   FiX,
   FiBriefcase,
   FiAlertCircle,
+  FiPackage,
+  FiCreditCard,
+  FiTruck,
+  FiMapPin,
+  FiHash,
+  FiTag,
 } from "react-icons/fi";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -22,14 +28,12 @@ import creditNotesApi, {
 } from "../../api/endpoints/creditNotes";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
-// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / CancelRefund / BuyBack)
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 // =====================================================
 // DEFAULT LOGO
 // =====================================================
-
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
@@ -40,27 +44,19 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.04,
-    },
+    transition: { staggerChildren: 0.04 },
   },
 };
 
 const itemVariants = {
-  hidden: {
-    opacity: 0,
-    y: 12,
-  },
+  hidden: { opacity: 0, y: 12 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 110,
-      damping: 16,
-    },
+    transition: { type: "spring", stiffness: 110, damping: 16 },
   },
 };
+
 // =====================================================
 // HELPERS
 // =====================================================
@@ -71,8 +67,6 @@ const formatAmount = (value: string | number | null | undefined) => {
     maximumFractionDigits: 2,
   })}`;
 };
-// Used inside PDF because built-in Helvetica
-// does not reliably support ₹ symbol.
 
 const formatAmountPdf = (value: string | number | null | undefined) => {
   const amount = Number(value ?? 0);
@@ -112,7 +106,6 @@ const capitalize = (value?: string | null) => {
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
-// ✅ BLUE & YELLOW THEME
 
 const getReasonClass = (reason?: string) => {
   switch (reason?.toLowerCase()) {
@@ -129,21 +122,16 @@ const getReasonClass = (reason?: string) => {
 const getBuyerInitials = (name?: string) => {
   if (!name || name === "Unknown") return "CN";
   const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
 };
-// =====================================================
-// ACCOUNT TYPE HELPERS — BLUE & YELLOW THEME
-// =====================================================
+
 const getAccountTypeLabel = (accountType?: string | null) => {
   if (!accountType) return "Customer";
   return accountType
     .replace(/_/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
-// ✅ BLUE & YELLOW THEME
 
 const getAccountTypeClass = (accountType?: string | null) => {
   switch (accountType) {
@@ -165,6 +153,30 @@ const getCreditNoteAccountType = (note: any): string => {
   return note.buyer_type || note.order?.order_type || "customer";
 };
 
+// ✅ NEW: order status style
+const getOrderStatusClass = (status?: string | null) => {
+  switch (status?.toLowerCase()) {
+    case "completed":
+    case "delivered":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "cancelled":
+      return "border-red-200 bg-red-50 text-red-700";
+    case "pending":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "partial_dispatched":
+    case "dispatched":
+    case "shipped":
+      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
+    case "refunded":
+      return "border-purple-200 bg-purple-50 text-purple-700";
+    default:
+      return "border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280]";
+  }
+};
+
+// =====================================================
+// VIEW MODAL
+// =====================================================
 interface CreditNoteViewModalProps {
   open: boolean;
   note: CreditNote | null;
@@ -180,15 +192,17 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   onDownload,
   canDownload = false,
 }) => {
-  if (!open || !note) {
-    return null;
-  }
+  if (!open || !note) return null;
+
   const accountType = getCreditNoteAccountType(note);
+  const order: any = (note as any).order;
+  const refund: any = (note as any).refund;
+
   return (
     <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick title="">
-      <div className="w-full max-w-[760px] overflow-hidden rounded-[22px] border border-[#2D6FE8]/10 bg-white font-poppins shadow-2xl">
-        {/* TOP ACCENT — BLUE */}
+      <div className="w-full max-w-[860px] overflow-hidden rounded-[22px] border border-[#2D6FE8]/10 bg-white font-poppins shadow-2xl">
         <div className="h-[3px] w-full bg-gradient-to-r from-[#4F8FF7] via-[#4F8FF7] to-[#2D6FE8]" />
+
         {/* HEADER */}
         <div className="flex items-start justify-between border-b border-[#DCE6F2] px-5 py-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -212,6 +226,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             <FiX size={17} />
           </button>
         </div>
+
         {/* BODY */}
         <div className="max-h-[75vh] overflow-y-auto bg-[#F4F8FD] p-5 sm:p-6">
           {/* TOP SUMMARY */}
@@ -220,9 +235,12 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Order Reference
               </p>
-              <p className="mt-1 text-sm font-bold text-[#111827]">
-                {note.original_invoice_number}
-              </p>
+           
+              {order?.order_reference && (
+                <p className="mt-1 break-all text-sm font-bold text-[#111827]">
+                  {order.order_reference}
+                </p>
+              )}
             </div>
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
@@ -245,6 +263,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               </p>
             </div>
           </div>
+
           {/* BUYER */}
           <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4">
             <div className="mb-4 flex items-center gap-3 border-b border-[#DCE6F2] pb-3">
@@ -298,8 +317,244 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   {note.buyer_gstin || "—"}
                 </p>
               </div>
+              {note.buyer_address && (
+                <div className="sm:col-span-2">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Address
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[#111827]">
+                    {note.buyer_address}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* ✅ ORDER DETAILS */}
+          {order && (
+            <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4">
+              <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[#DCE6F2] pb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiPackage size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-[#111827]">
+                  Order Details
+                </h3>
+                <span
+                  className={`ml-auto inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getOrderStatusClass(
+                    order.status,
+                  )}`}
+                >
+                  {capitalize(order.status)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Order Ref
+                  </p>
+                  <p className="mt-1 break-all text-xs font-semibold text-[#111827]">
+                    {order.order_reference || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Order Type
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {getAccountTypeLabel(order.order_type)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Payment Gateway
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {capitalize(order.payment_gateway)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Subtotal
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatAmount(order.subtotal)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Shipping
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatAmount(order.shipping_charge)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Total Payable
+                  </p>
+                  <p className="mt-1 text-xs font-bold text-[#2D6FE8]">
+                    {formatAmount(order.total_payable)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Amount Paid
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatAmount(order.amount_paid)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Delivery Status
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {capitalize(order.delivery_status)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Return Status
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {capitalize(order.return_status)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Confirmed At
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatDateTime(order.confirmed_at)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Created At
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatDateTime(order.created_at)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Gateway Txn ID
+                  </p>
+                  <p className="mt-1 break-all font-mono text-[10px] text-[#6B7280]">
+                    {order.gateway_transaction_id || "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ REFUND DETAILS */}
+          {refund && (
+            <div className="mt-4 rounded-xl border border-[#DCE6F2] bg-white p-4">
+              <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-[#DCE6F2] pb-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FiCreditCard size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-[#111827]">
+                  Refund Details
+                </h3>
+                <span
+                  className={`ml-auto inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getOrderStatusClass(
+                    refund.status,
+                  )}`}
+                >
+                  {capitalize(refund.status)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Refund Amount
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-[#2D6FE8]">
+                    {formatAmount(refund.amount)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Refund Method
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {capitalize(refund.refund_method)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Gateway Reference
+                  </p>
+                  <p className="mt-1 break-all font-mono text-[10px] text-[#6B7280]">
+                    {refund.gateway_reference || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Completed At
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-[#111827]">
+                    {formatDateTime(refund.completed_at)}
+                  </p>
+                </div>
+              </div>
+
+              {/* DEDUCTION BREAKDOWN */}
+              {refund.deduction_breakdown && (
+                <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+                    Deduction Breakdown
+                  </p>
+                  <div className="space-y-2">
+                    {refund.deduction_breakdown.gross_refund && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-[#6B7280]">Gross Refund</span>
+                        <span className="font-semibold text-[#111827]">
+                          {formatAmount(
+                            refund.deduction_breakdown.gross_refund.total,
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {Array.isArray(
+                      refund.deduction_breakdown.deductions,
+                    ) &&
+                      refund.deduction_breakdown.deductions.map(
+                        (d: any, i: number) => (
+                          <div
+                            key={i}
+                            className="flex justify-between text-xs"
+                          >
+                            <span className="text-[#6B7280]">{d.label}</span>
+                            <span className="font-semibold text-[#C23B32]">
+                              - {formatAmount(d.amount)}
+                            </span>
+                          </div>
+                        ),
+                      )}
+                    <div className="border-t border-[#DCE6F2] pt-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-bold text-[#111827]">
+                          Net Refund
+                        </span>
+                        <span className="font-bold text-[#2D6FE8]">
+                          {formatAmount(
+                            refund.deduction_breakdown.net_refund,
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ITEMS */}
           <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
             <div className="border-b border-[#DCE6F2] px-4 py-3">
@@ -312,58 +567,73 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               </p>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse">
-                <thead>
-                  <tr className="bg-[#F4F8FD]">
-                    <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Product
-                    </th>
-                    <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Qty
-                    </th>
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Taxable
-                    </th>
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      GST
-                    </th>
-                    <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(note.items || []).map((item) => (
-                    <tr
-                      key={`${item.order_line_id}-${item.product_id}`}
-                      className="border-t border-[#DCE6F2]"
-                    >
-                      <td className="px-4 py-3">
-                        <p className="text-xs font-semibold text-[#111827]">
-                          {item.product_name}
-                        </p>
-                        <p className="mt-0.5 font-mono text-[9px] text-[#6B7280]">
-                          Code: {item.product_code || "—"}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs font-semibold text-[#6B7280]">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs font-semibold text-[#6B7280]">
-                        {formatAmount(item.taxable_value)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs font-semibold text-[#6B7280]">
-                        {item.gst_rate}%
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs font-bold text-[#2D6FE8]">
-                        {formatAmount(item.line_total)}
-                      </td>
+              {note.items && note.items.length > 0 ? (
+                <table className="w-full min-w-[620px] border-collapse">
+                  <thead>
+                    <tr className="bg-[#F4F8FD]">
+                      <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Product
+                      </th>
+                      <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Qty
+                      </th>
+                      <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Taxable
+                      </th>
+                      <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        GST
+                      </th>
+                      <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                        Total
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {note.items.map((item) => (
+                      <tr
+                        key={`${item.order_line_id}-${item.product_id}`}
+                        className="border-t border-[#DCE6F2]"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-semibold text-[#111827]">
+                            {item.product_name}
+                          </p>
+                          <p className="mt-0.5 font-mono text-[9px] text-[#6B7280]">
+                            Code: {item.product_code || "—"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 text-center text-xs font-semibold text-[#6B7280]">
+                          {item.quantity}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#6B7280]">
+                          {formatAmount(item.taxable_value)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-semibold text-[#6B7280]">
+                          {item.gst_rate}%
+                        </td>
+                        <td className="px-4 py-3 text-right text-xs font-bold text-[#2D6FE8]">
+                          {formatAmount(item.line_total)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="px-4 py-8 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                    <FiFileText size={20} />
+                  </div>
+                  <p className="mt-3 text-xs font-semibold text-[#111827]">
+                    No line items available
+                  </p>
+                  <p className="mt-1 text-[10px] text-[#6B7280]">
+                    This credit note has no item breakdown.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
           {/* TAX + TOTAL */}
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
@@ -421,10 +691,19 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                     Issued {formatDate(note.issued_at)}
                   </span>
                 </div>
+                {refund && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <FiTag size={13} className="text-[#4F8FF7]" />
+                    <span className="text-[10px] font-semibold text-[#6B7280]">
+                      Refund ID: {refund.id}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
+
         {/* FOOTER */}
         <div className="flex justify-end gap-2 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:px-6">
           <button
@@ -449,20 +728,17 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
     </GlobalModal>
   );
 };
+
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
 const CreditNotes: React.FC = () => {
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
   const {
     hasPermission,
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
-  // Exact backend permission:
-  // "Credit Notes": ["view", "download"]
+
   const canViewCreditNotes = useMemo(
     () => isSuperAdmin || hasPermission("Credit Notes.view"),
     [isSuperAdmin, hasPermission],
@@ -471,22 +747,13 @@ const CreditNotes: React.FC = () => {
     () => isSuperAdmin || hasPermission("Credit Notes.download"),
     [isSuperAdmin, hasPermission],
   );
-  // ===================================================
-  // LOGO STATE (same pattern as Orders / ReturnRefund / BuyBack)
-  // ===================================================
 
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
 
-  // ===================================================
-  // STATE
-  // ===================================================
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
-
-  // ✅ first load only
   const [initialCreditNotesLoading, setInitialCreditNotesLoading] =
     useState(true);
-  // ✅ subsequent fetch (refresh/pagination) — does NOT block page
   const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -499,23 +766,16 @@ const CreditNotes: React.FC = () => {
   const [selectedNote, setSelectedNote] = useState<CreditNote | null>(null);
   const [viewOpen, setViewOpen] = useState(false);
   const ITEMS_PER_PAGE = 20;
-  // ===================================================
-  // DUPLICATE API PROTECTION
-  // ===================================================
+
   const fetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasInitialFetchRef = useRef(false);
 
-  // ===================================================
-  // LOGO FETCH (same as Orders / ReturnRefund / BuyBack)
-  // ===================================================
-
+  // LOGO FETCH
   useEffect(() => {
     let cancelled = false;
-
     const fetchLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
-
         const possibleLogos: unknown[] = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -524,46 +784,34 @@ const CreditNotes: React.FC = () => {
           response?.data?.logo_url,
           response?.logo,
         ];
-
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
             typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
-
         if (!cancelled && resolvedLogo) {
           setLogoUrl(resolvedLogo.trim());
         }
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
+        if (!cancelled) setLogoLoading(false);
       }
     };
-
     void fetchLogo();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // ===================================================
   // FETCH
-  // isInitialLoad = true ONLY FOR THE FIRST LOAD
-  // ===================================================
   const fetchCreditNotes = async (
     page = currentPage,
     force = false,
     isInitialLoad = false,
   ) => {
-    if (fetchInFlightRef.current) {
-      return fetchInFlightRef.current;
-    }
-    if (!force && page === 1 && hasInitialFetchRef.current) {
-      return;
-    }
+    if (fetchInFlightRef.current) return fetchInFlightRef.current;
+    if (!force && page === 1 && hasInitialFetchRef.current) return;
+
     const requestPromise = (async () => {
       try {
         setLoading(true);
@@ -574,9 +822,7 @@ const CreditNotes: React.FC = () => {
           setCurrentPage(pagination?.current_page || page);
           setLastPage(pagination?.last_page || 1);
           setTotalRecords(pagination?.total || 0);
-          if (page === 1) {
-            hasInitialFetchRef.current = true;
-          }
+          if (page === 1) hasInitialFetchRef.current = true;
         } else {
           toast.error(
             response.data.message || "Unable to fetch credit notes.",
@@ -589,12 +835,10 @@ const CreditNotes: React.FC = () => {
         );
       } finally {
         setLoading(false);
-
-        if (isInitialLoad) {
-          setInitialCreditNotesLoading(false);
-        }
+        if (isInitialLoad) setInitialCreditNotesLoading(false);
       }
     })();
+
     fetchInFlightRef.current = requestPromise;
     try {
       await requestPromise;
@@ -602,13 +846,10 @@ const CreditNotes: React.FC = () => {
       fetchInFlightRef.current = null;
     }
   };
-  // ===================================================
+
   // INITIAL FETCH
-  // WAIT FOR PERMISSIONS BEFORE REQUESTING CREDIT NOTES
-  // ===================================================
   useEffect(() => {
     if (permissionsLoading) return;
-
     if (canViewCreditNotes && !hasInitialFetchRef.current) {
       void fetchCreditNotes(1, false, true);
     } else if (!canViewCreditNotes) {
@@ -618,36 +859,46 @@ const CreditNotes: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewCreditNotes]);
 
-  // ===================================================
-  // COMBINED INITIAL LOADING
-  // ===================================================
-
   const pageLoading =
-    permissionsLoading ||
-    logoLoading ||
-    initialCreditNotesLoading;
+    permissionsLoading || logoLoading || initialCreditNotesLoading;
 
   // ===================================================
-  // FILTER
+  // ✅ FILTER — INCLUDES ORDER FIELDS (order ref, type, status, etc.)
   // ===================================================
   const filteredCreditNotes = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return creditNotes.filter((note) => {
-      const matchesSearch =
-        !query ||
-        [
-          note.credit_note_number,
-          note.original_invoice_number,
-          note.buyer_name,
-          note.buyer_email,
-          String(note.id),
-          String(note.order_id),
-          note.reason,
-          getCreditNoteAccountType(note),
-        ]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
+    return creditNotes.filter((note: any) => {
+      const order = note.order;
+      const refund = note.refund;
+
+      const searchable = [
+        note.credit_note_number,
+        note.original_invoice_number,
+        note.buyer_name,
+        note.buyer_email,
+        String(note.id),
+        String(note.order_id),
+        note.reason,
+        getCreditNoteAccountType(note),
+        // ✅ ORDER FIELDS
+        order?.order_reference,
+        order?.order_type,
+        order?.status,
+        order?.delivery_status,
+        order?.return_status,
+        order?.payment_gateway,
+        order?.gateway_transaction_id,
+        // ✅ REFUND FIELDS
+        refund?.gateway_reference,
+        refund?.refund_method,
+        refund?.status,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = !query || searchable.includes(query);
+
       let matchesReason = true;
       if (reasonFilter === "return") {
         matchesReason = note.reason?.toLowerCase() === "return";
@@ -658,9 +909,7 @@ const CreditNotes: React.FC = () => {
       return matchesSearch && matchesReason;
     });
   }, [creditNotes, search, reasonFilter]);
-  // ===================================================
-  // DISPLAY PAGINATION
-  // ===================================================
+
   const startEntry =
     totalRecords === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1;
   const endEntry =
@@ -670,38 +919,24 @@ const CreditNotes: React.FC = () => {
           startEntry + filteredCreditNotes.length - 1,
           totalRecords,
         );
-  // ===================================================
-  // PAGE CHANGE
-  // ===================================================
+
   const goToPage = (page: number) => {
-    if (
-      page < 1 ||
-      page > lastPage ||
-      page === currentPage ||
-      loading
-    ) {
-      return;
-    }
+    if (page < 1 || page > lastPage || page === currentPage || loading) return;
     fetchCreditNotes(page, true);
   };
-  // ===================================================
-  // REFRESH
-  // ===================================================
+
   const handleRefresh = async () => {
     if (!canViewCreditNotes || loading) return;
     await fetchCreditNotes(currentPage, true);
     toast.success("Credit notes refreshed.");
   };
-  // ===================================================
-  // VIEW
-  // ===================================================
+
   const handleView = (note: CreditNote) => {
     setSelectedNote(note);
     setViewOpen(true);
   };
-  // ===================================================
-  // PDF DOWNLOAD
-  // ===================================================
+
+  // PDF
   const generateCreditNotePdf = (note: CreditNote) => {
     if (!canDownloadCreditNotes) {
       toast.error(
@@ -710,17 +945,15 @@ const CreditNotes: React.FC = () => {
       return;
     }
     try {
-      const doc = new jsPDF({
-        unit: "mm",
-        format: "a4",
-      });
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageWidth = doc.internal.pageSize.getWidth();
       const accountType = getCreditNoteAccountType(note);
+      const order: any = (note as any).order;
+      const refund: any = (note as any).refund;
       let y = 18;
-      // =================================================
-      // HEADER — BLUE
-      // =================================================
-      doc.setFillColor(45, 111, 232); // #2D6FE8
+
+      // HEADER
+      doc.setFillColor(45, 111, 232);
       doc.rect(0, 0, pageWidth, 31, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(20);
@@ -729,7 +962,6 @@ const CreditNotes: React.FC = () => {
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text("IndieKonnect", 15, 22);
-      doc.setFontSize(9);
       doc.text(note.credit_note_number, pageWidth - 15, 13, {
         align: "right",
       });
@@ -737,15 +969,12 @@ const CreditNotes: React.FC = () => {
         `Issued: ${formatDate(note.issued_at)}`,
         pageWidth - 15,
         20,
-        {
-          align: "right",
-        },
+        { align: "right" },
       );
       y = 41;
-      // =================================================
+
       // BUYER / DOCUMENT
-      // =================================================
-      doc.setTextColor(17, 24, 39); // #111827
+      doc.setTextColor(17, 24, 39);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("Buyer Details", 15, y);
@@ -770,28 +999,48 @@ const CreditNotes: React.FC = () => {
       doc.text(`Reason: ${capitalize(note.reason)}`, 112, y);
       y += 5;
       doc.text(`GSTIN: ${note.buyer_gstin || "—"}`, 15, y);
-      // =================================================
-      // DIVIDER
-      // =================================================
+
+      // ✅ ORDER DETAILS IN PDF
+      if (order) {
+        y += 6;
+        doc.text(`Order Ref: ${order.order_reference || "—"}`, 112, y);
+        y += 5;
+        doc.text(`Order Status: ${capitalize(order.status)}`, 112, y);
+        y += 5;
+        doc.text(
+          `Total Payable: ${formatAmountPdf(order.total_payable)}`,
+          112,
+          y,
+        );
+      }
+
+      // ✅ REFUND DETAILS IN PDF
+      if (refund) {
+        y += 5;
+        doc.text(
+          `Refund Status: ${capitalize(refund.status)} (${formatAmountPdf(
+            refund.amount,
+          )})`,
+          112,
+          y,
+        );
+      }
+
       y += 10;
-      doc.setDrawColor(220, 230, 242); // #DCE6F2
+      doc.setDrawColor(220, 230, 242);
       doc.line(15, y, pageWidth - 15, y);
       y += 9;
-      // =================================================
-      // ITEMS TITLE
-      // =================================================
+
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("Credit Note Items", 15, y);
       y += 7;
-      // =================================================
-      // TABLE HEADER — LIGHT BLUE BG
-      // =================================================
-      doc.setFillColor(234, 243, 255); // #EAF3FF
+
+      doc.setFillColor(234, 243, 255);
       doc.rect(15, y - 5, pageWidth - 30, 8, "F");
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(45, 111, 232); // #2D6FE8
+      doc.setTextColor(45, 111, 232);
       doc.text("Product", 17, y);
       doc.text("Qty", 104, y, { align: "center" });
       doc.text("Taxable", 145, y, { align: "right" });
@@ -799,9 +1048,7 @@ const CreditNotes: React.FC = () => {
       doc.text("Total", pageWidth - 17, y, { align: "right" });
       y += 7;
       doc.setFont("helvetica", "normal");
-      // =================================================
-      // ITEMS
-      // =================================================
+
       (note.items || []).forEach((item) => {
         const productName = item.product_name || "Product";
         const wrapped = doc.splitTextToSize(productName, 75);
@@ -819,37 +1066,25 @@ const CreditNotes: React.FC = () => {
         doc.line(15, y + rowHeight - 2, pageWidth - 15, y + rowHeight - 2);
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(107, 114, 128); // #6B7280
+        doc.setTextColor(107, 114, 128);
         doc.text(wrapped, 17, y);
-        doc.text(String(item.quantity), 104, y, {
-          align: "center",
-        });
-        doc.text(
-          formatAmountPdf(item.taxable_value),
-          145,
-          y,
-          { align: "right" },
-        );
-        doc.text(`${item.gst_rate}%`, 170, y, {
+        doc.text(String(item.quantity), 104, y, { align: "center" });
+        doc.text(formatAmountPdf(item.taxable_value), 145, y, {
           align: "right",
         });
-        doc.text(
-          formatAmountPdf(item.line_total),
-          pageWidth - 17,
-          y,
-          { align: "right" },
-        );
+        doc.text(`${item.gst_rate}%`, 170, y, { align: "right" });
+        doc.text(formatAmountPdf(item.line_total), pageWidth - 17, y, {
+          align: "right",
+        });
         y += rowHeight;
       });
-      // =================================================
-      // TOTALS
-      // =================================================
+
       y += 7;
       if (y > 245) {
         doc.addPage();
         y = 20;
       }
-      doc.setDrawColor(79, 143, 247); // #4F8FF7
+      doc.setDrawColor(79, 143, 247);
       doc.line(110, y, pageWidth - 15, y);
       y += 7;
       const totals: Array<[string, string]> = [
@@ -862,20 +1097,16 @@ const CreditNotes: React.FC = () => {
       doc.setFontSize(9);
       totals.forEach(([label, value]) => {
         doc.setFont("helvetica", "normal");
-        doc.setTextColor(107, 114, 128); // #6B7280
+        doc.setTextColor(107, 114, 128);
         doc.text(label, 112, y);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(17, 24, 39);
-        doc.text(value, pageWidth - 17, y, {
-          align: "right",
-        });
+        doc.text(value, pageWidth - 17, y, { align: "right" });
         y += 6;
       });
       y += 3;
-      // =================================================
-      // FINAL AMOUNT — LIGHT BLUE BG
-      // =================================================
-      doc.setFillColor(234, 243, 255); // #EAF3FF
+
+      doc.setFillColor(234, 243, 255);
       doc.roundedRect(107, y, pageWidth - 122, 18, 3, 3, "F");
       doc.setTextColor(45, 111, 232);
       doc.setFont("helvetica", "bold");
@@ -885,31 +1116,22 @@ const CreditNotes: React.FC = () => {
       doc.text(formatAmountPdf(note.amount), pageWidth - 17, y + 12, {
         align: "right",
       });
-      // =================================================
-      // FOOTER
-      // =================================================
+
       const footerY = 286;
       doc.setDrawColor(220, 230, 242);
       doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(107, 114, 128); // #6B7280
+      doc.setTextColor(107, 114, 128);
       doc.text(
         "This credit note is generated electronically.",
         15,
         footerY,
       );
-      doc.text(
-        `Refund ID: ${note.refund_id ?? "—"}`,
-        pageWidth - 15,
-        footerY,
-        {
-          align: "right",
-        },
-      );
-      // =================================================
-      // DOWNLOAD
-      // =================================================
+      doc.text(`Refund ID: ${note.refund_id ?? "—"}`, pageWidth - 15, footerY, {
+        align: "right",
+      });
+
       doc.save(`${note.credit_note_number}.pdf`);
       toast.success("Credit note PDF downloaded successfully.");
     } catch (error) {
@@ -917,17 +1139,12 @@ const CreditNotes: React.FC = () => {
       toast.error("Unable to generate PDF.");
     }
   };
-  // ===================================================
-  // PAGE NUMBERS
-  // ===================================================
+
   const visiblePages = useMemo(() => {
-    if (lastPage <= 5) {
+    if (lastPage <= 5)
       return Array.from({ length: lastPage }, (_, index) => index + 1);
-    }
-    if (currentPage <= 3) {
-      return [1, 2, 3, 4, 5];
-    }
-    if (currentPage >= lastPage - 2) {
+    if (currentPage <= 3) return [1, 2, 3, 4, 5];
+    if (currentPage >= lastPage - 2)
       return [
         lastPage - 4,
         lastPage - 3,
@@ -935,7 +1152,6 @@ const CreditNotes: React.FC = () => {
         lastPage - 1,
         lastPage,
       ];
-    }
     return [
       currentPage - 2,
       currentPage - 1,
@@ -945,18 +1161,9 @@ const CreditNotes: React.FC = () => {
     ];
   }, [currentPage, lastPage]);
 
-  // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
-  // ===================================================
-
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
-
-  // ===================================================
-  // ACCESS DENIED
-  // ===================================================
 
   if (!canViewCreditNotes) {
     return (
@@ -965,11 +1172,7 @@ const CreditNotes: React.FC = () => {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
             <FiAlertCircle size={26} />
           </div>
-
-          <h2 className="text-lg font-bold text-[#111827]">
-            Access Denied
-          </h2>
-
+          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
           <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
           </p>
@@ -978,9 +1181,6 @@ const CreditNotes: React.FC = () => {
     );
   }
 
-  // ===================================================
-  // UI
-  // ===================================================
   return (
     <>
       <motion.div
@@ -1025,12 +1225,12 @@ const CreditNotes: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
           </motion.div>
+
           {/* MAIN CARD */}
           <motion.div
             variants={itemVariants}
             className="overflow-hidden rounded-[22px] border border-[#DCE6F2] bg-white shadow-sm"
           >
-
             {/* TOOLBAR */}
             <div className="flex flex-col gap-4 border-b border-[#DCE6F2] p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -1044,7 +1244,7 @@ const CreditNotes: React.FC = () => {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 {/* SEARCH */}
-                <div className="relative w-full sm:w-[330px]">
+                <div className="relative w-full sm:w-[380px]">
                   <FiSearch
                     size={17}
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
@@ -1053,7 +1253,7 @@ const CreditNotes: React.FC = () => {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search credit note, invoice or buyer..."
+                    placeholder="Search credit note, order ref (ORD...), invoice, buyer..."
                     className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
                   />
                   {search && (
@@ -1089,9 +1289,10 @@ const CreditNotes: React.FC = () => {
                 </div>
               </div>
             </div>
+
             {/* DESKTOP TABLE */}
             <div className="hidden overflow-x-auto lg:block rounded-2xl">
-              <table className="w-full min-w-[1120px] border-collapse">
+              <table className="w-full min-w-[1180px] border-collapse">
                 <thead>
                   <tr className="bg-[#4F8FF7]">
                     <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
@@ -1099,6 +1300,9 @@ const CreditNotes: React.FC = () => {
                     </th>
                     <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                       Credit Note
+                    </th>
+                    <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                      Order Ref
                     </th>
                     <th className="px-5 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
                       Buyer
@@ -1121,13 +1325,15 @@ const CreditNotes: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* ✅ initialCreditNotesLoading par full spinner — refresh/pagination par nahi */}
                   {initialCreditNotesLoading ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-16 text-center">
+                      <td colSpan={9} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                            <FiRefreshCw size={22} className="animate-spin" />
+                            <FiRefreshCw
+                              size={22}
+                              className="animate-spin"
+                            />
                           </div>
                           <p className="mt-4 text-sm font-bold text-[#111827]">
                             Loading credit notes...
@@ -1137,10 +1343,13 @@ const CreditNotes: React.FC = () => {
                     </tr>
                   ) : loading && creditNotes.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-16 text-center">
+                      <td colSpan={9} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                            <FiRefreshCw size={22} className="animate-spin" />
+                            <FiRefreshCw
+                              size={22}
+                              className="animate-spin"
+                            />
                           </div>
                           <p className="mt-4 text-sm font-bold text-[#111827]">
                             Loading credit notes...
@@ -1150,7 +1359,7 @@ const CreditNotes: React.FC = () => {
                     </tr>
                   ) : filteredCreditNotes.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-16 text-center">
+                      <td colSpan={9} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                             <FiFileText size={24} />
@@ -1165,7 +1374,7 @@ const CreditNotes: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    filteredCreditNotes.map((note, index) => {
+                    filteredCreditNotes.map((note: any, index: number) => {
                       const accountType = getCreditNoteAccountType(note);
                       return (
                         <motion.tr
@@ -1175,13 +1384,11 @@ const CreditNotes: React.FC = () => {
                           transition={{ delay: index * 0.025 }}
                           className="border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                         >
-                          {/* S.NO */}
                           <td className="px-5 py-4">
                             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F4F8FD] text-xs font-bold text-[#2D6FE8]">
                               {startEntry + index}
                             </span>
                           </td>
-                          {/* CREDIT NOTE */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
                               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white">
@@ -1194,7 +1401,31 @@ const CreditNotes: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          {/* BUYER */}
+                          {/* ✅ ORDER REF COLUMN */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-2">
+                              <FiPackage
+                                size={13}
+                                className="text-[#2D6FE8]"
+                              />
+                              <div className="min-w-0">
+                                <p className="break-all text-xs font-semibold text-[#111827]">
+                                  {note.order?.order_reference ||
+                                    note.original_invoice_number ||
+                                    "—"}
+                                </p>
+                                {note.order?.status && (
+                                  <span
+                                    className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getOrderStatusClass(
+                                      note.order.status,
+                                    )}`}
+                                  >
+                                    {capitalize(note.order.status)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2.5">
                               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
@@ -1215,13 +1446,11 @@ const CreditNotes: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          {/* INVOICE */}
                           <td className="px-5 py-4">
                             <p className="text-xs font-semibold text-[#6B7280]">
                               {note.original_invoice_number}
                             </p>
                           </td>
-                          {/* DATE */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <FiCalendar
@@ -1240,7 +1469,6 @@ const CreditNotes: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          {/* REASON */}
                           <td className="px-5 py-4">
                             <span
                               className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getReasonClass(
@@ -1250,7 +1478,6 @@ const CreditNotes: React.FC = () => {
                               {capitalize(note.reason)}
                             </span>
                           </td>
-                          {/* AMOUNT */}
                           <td className="px-5 py-4 text-right">
                             <p className="text-sm font-bold text-[#2D6FE8]">
                               {formatAmount(note.amount)}
@@ -1259,10 +1486,8 @@ const CreditNotes: React.FC = () => {
                               GST {formatAmount(note.total_gst)}
                             </p>
                           </td>
-                          {/* ACTIONS */}
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-center gap-2">
-                              {/* VIEW */}
                               <button
                                 type="button"
                                 onClick={() => handleView(note)}
@@ -1271,7 +1496,6 @@ const CreditNotes: React.FC = () => {
                               >
                                 <FiEye size={15} />
                               </button>
-                              {/* DOWNLOAD */}
                               {canDownloadCreditNotes && (
                                 <button
                                   type="button"
@@ -1293,9 +1517,9 @@ const CreditNotes: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
             {/* MOBILE */}
             <div className="block lg:hidden">
-              {/* ✅ initialCreditNotesLoading par full spinner — refresh/pagination par nahi */}
               {initialCreditNotesLoading ? (
                 <div className="flex flex-col items-center justify-center bg-white px-5 py-16 text-center">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1315,7 +1539,7 @@ const CreditNotes: React.FC = () => {
                   </p>
                 </div>
               ) : filteredCreditNotes.length > 0 ? (
-                filteredCreditNotes.map((note, index) => {
+                filteredCreditNotes.map((note: any, index: number) => {
                   const accountType = getCreditNoteAccountType(note);
                   return (
                     <motion.div
@@ -1341,6 +1565,7 @@ const CreditNotes: React.FC = () => {
                           #{startEntry + index}
                         </span>
                       </div>
+
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
                           <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
@@ -1369,6 +1594,28 @@ const CreditNotes: React.FC = () => {
                             {formatAmount(note.amount)}
                           </p>
                         </div>
+
+                        {/* ✅ ORDER REF */}
+                        <div className="col-span-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                            Order Reference
+                          </p>
+                          <p className="mt-1 break-all text-xs font-semibold text-[#111827]">
+                            {note.order?.order_reference ||
+                              note.original_invoice_number ||
+                              "—"}
+                          </p>
+                          {note.order?.status && (
+                            <span
+                              className={`mt-1.5 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getOrderStatusClass(
+                                note.order.status,
+                              )}`}
+                            >
+                              {capitalize(note.order.status)}
+                            </span>
+                          )}
+                        </div>
+
                         <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
                           <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                             Issued
@@ -1390,6 +1637,7 @@ const CreditNotes: React.FC = () => {
                           </span>
                         </div>
                       </div>
+
                       <div className="mt-3 flex justify-end gap-2">
                         <button
                           type="button"
@@ -1427,6 +1675,7 @@ const CreditNotes: React.FC = () => {
                 </div>
               )}
             </div>
+
             {/* PAGINATION */}
             {!pageLoading && lastPage > 1 && (
               <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
@@ -1485,6 +1734,7 @@ const CreditNotes: React.FC = () => {
           </motion.div>
         </div>
       </motion.div>
+
       {/* VIEW MODAL */}
       <CreditNoteViewModal
         open={viewOpen}

@@ -1621,20 +1621,6 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                   />
                 </div>
               </div>
-
-              <div>
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]">
-                  Expected Delivery Date
-                </label>
-                <input
-                  type="date"
-                  value={expectedDelivery}
-                  onChange={(e) => setExpectedDelivery(e.target.value)}
-                  min={minDate}
-                  className="h-12 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                  disabled={loading}
-                />
-              </div>
               <div>
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]">
                   Notes (Optional)

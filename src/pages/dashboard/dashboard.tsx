@@ -61,7 +61,14 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 // DASHBOARD ROLE
 // =====================================================
 
-type DashboardRole = "admin" | "sales" | "warehouse" | "finance" | "support" | "default";
+type DashboardRole =
+  | "super-admin"
+  | "admin"
+  | "sales"
+  | "warehouse"
+  | "finance"
+  | "support"
+  | "default";
 
 // =====================================================
 // THEME DEFINITIONS
@@ -115,6 +122,108 @@ interface DashboardTheme {
   avatarTones: string[];
   pieColors: string[];
 }
+
+
+
+
+const SUPER_ADMIN_THEME: DashboardTheme = {
+  // Primary dashboard teal
+  primary: "#199B91",
+  primaryLight: "#35B8AC",
+  primaryDark: "#137D76",
+  primarySoft: "#75D2C9",
+  primaryPale: "#E8F5F3",
+
+  // Secondary accent
+  accent: "#199B91",
+  accentSoft: "#55BEB3",
+  accentDark: "#137D76",
+  accentLight: "#DDF1EE",
+
+  danger: "#C23B32",
+
+  classes: {
+    pageBg: "bg-[#FFFFFF]",
+    surface: "bg-white",
+    border: "border-[#EEEEEE]",
+    textPrimary: "text-[#252525]",
+    textMuted: "text-[#858585]",
+
+    // Dashboard pastel cards
+    primaryTile: "bg-[#FFF0E2]",
+    primaryText: "text-[#704C36]",
+
+    accentTile: "bg-[#EDF5E9]",
+    accentText: "text-[#416B4C]",
+
+    primaryBar: "bg-[#199B91]",
+    accentBar: "bg-[#55BEB3]",
+
+    primaryChip:
+      "bg-[#DDF1EE] text-[#137D76] ring-[#199B91]/20",
+
+    accentChip:
+      "bg-[#EDF5E9] text-[#416B4C] ring-[#6FAF83]/20",
+
+    pageGradient:
+      "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(25,155,145,0.07),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(255,240,226,0.25),transparent)]",
+
+    primaryButton:
+      "bg-[#199B91] text-white hover:bg-[#137D76] shadow-sm",
+
+    accentButton:
+      "bg-gradient-to-br from-[#35B8AC] to-[#137D76] text-white shadow-[0_8px_20px_-8px_rgba(25,155,145,0.4)] hover:from-[#199B91] hover:to-[#08766F]",
+  },
+
+  gradients: {
+    barPrimaryFrom: "#35B8AC",
+    barPrimaryTo: "#199B91",
+
+    barAccentFrom: "#75D2C9",
+    barAccentTo: "#35B8AC",
+
+    barSoftFrom: "#B5E7DF",
+    barSoftTo: "#75D2C9",
+
+    lineFrom: "#137D76",
+    lineMid: "#199B91",
+    lineTo: "#35B8AC",
+  },
+
+  avatarTones: [
+    "from-[#35B8AC] to-[#199B91] text-white",
+    "from-[#FFE0C6] to-[#F4C49F] text-[#704C36]",
+    "from-[#DDE2FA] to-[#BFC9F0] text-[#394A85]",
+    "from-[#DDF1E2] to-[#A9D6B5] text-[#28613C]",
+    "from-[#FFE7A8] to-[#F2CD6F] text-[#73551B]",
+    "from-[#DCEBFC] to-[#B9D2F4] text-[#355580]",
+  ],
+
+  pieColors: [
+    "#199B91",
+    "#F4C49F",
+    "#BFC9F0",
+    "#A9D6B5",
+    "#F2CD6F",
+    "#B9D2F4",
+  ],
+};
+
+// Individual dashboard KPI card colors
+const KPI_CARD_COLORS = [
+  "bg-[#FFF0E2] border-[#F5E1D0]",
+  "bg-[#EDF5E9] border-[#DDEBD7]",
+  "bg-[#E9ECFC] border-[#DCE1F8]",
+  "bg-[#FFF4D6] border-[#F5E9C5]",
+  "bg-[#EAF0FC] border-[#DCE6F7]",
+  "bg-[#EAF5F3] border-[#D6ECE7]",
+];
+
+
+
+// =====================================================
+// ADMIN THEME (Blue — same as original)
+// =====================================================
 
 const ADMIN_THEME: DashboardTheme = {
   primary: "#2D6FE8",
@@ -174,6 +283,10 @@ const ADMIN_THEME: DashboardTheme = {
   pieColors: ["#2D6FE8", "#FACC15", "#4F8FF7"],
 };
 
+// =====================================================
+// WAREHOUSE THEME (Teal — same as original)
+// =====================================================
+
 const WAREHOUSE_THEME: DashboardTheme = {
   primary: "#0FA3A3",
   primaryLight: "#2CC2B8",
@@ -231,6 +344,10 @@ const WAREHOUSE_THEME: DashboardTheme = {
 
   pieColors: ["#0FA3A3", "#F5B841", "#2CC2B8"],
 };
+
+// =====================================================
+// DEFAULT THEME (Indigo — same as original)
+// =====================================================
 
 const DEFAULT_THEME: DashboardTheme = {
   primary: "#6366F1",
@@ -290,6 +407,10 @@ const DEFAULT_THEME: DashboardTheme = {
   pieColors: ["#6366F1", "#FB7185", "#818CF8"],
 };
 
+// =====================================================
+// SALES THEME (Violet → Orange — same as original)
+// =====================================================
+
 const SALES_THEME: DashboardTheme = {
   ...DEFAULT_THEME,
   primary: "#7C3AED",
@@ -312,9 +433,11 @@ const SALES_THEME: DashboardTheme = {
     accentBar: "bg-[#F97316]",
     primaryChip: "bg-[#F3E8FF] text-[#5B21B6] ring-[#7C3AED]/20",
     accentChip: "bg-[#FFF0E5] text-[#C2410C] ring-[#F97316]/30",
-    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(249,115,22,0.10),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(124,58,237,0.07),transparent)]",
+    pageGradient:
+      "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(249,115,22,0.10),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(124,58,237,0.07),transparent)]",
     primaryButton: "bg-gradient-to-br from-[#A78BFA] to-[#7C3AED] text-white",
-    accentButton: "bg-gradient-to-br from-[#FDBA74] to-[#F97316] text-white shadow-[0_8px_20px_-8px_rgba(249,115,22,0.45)] hover:from-[#F97316] hover:to-[#EA580C]",
+    accentButton:
+      "bg-gradient-to-br from-[#FDBA74] to-[#F97316] text-white shadow-[0_8px_20px_-8px_rgba(249,115,22,0.45)] hover:from-[#F97316] hover:to-[#EA580C]",
   },
   gradients: {
     barPrimaryFrom: "#A78BFA",
@@ -336,6 +459,9 @@ const SALES_THEME: DashboardTheme = {
   pieColors: ["#7C3AED", "#F97316", "#A78BFA"],
 };
 
+// =====================================================
+// FINANCE THEME (Green → Orange — same as original)
+// =====================================================
 
 const FINANCE_THEME: DashboardTheme = {
   ...DEFAULT_THEME,
@@ -359,9 +485,11 @@ const FINANCE_THEME: DashboardTheme = {
     accentBar: "bg-[#EA580C]",
     primaryChip: "bg-[#DCFCE7] text-[#166534] ring-[#15803D]/20",
     accentChip: "bg-[#FFEDD5] text-[#9A3412] ring-[#EA580C]/30",
-    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(234,88,12,0.09),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(21,128,61,0.06),transparent)]",
+    pageGradient:
+      "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(234,88,12,0.09),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(21,128,61,0.06),transparent)]",
     primaryButton: "bg-gradient-to-br from-[#4ADE80] to-[#15803D] text-white",
-    accentButton: "bg-gradient-to-br from-[#FDBA74] to-[#EA580C] text-white shadow-[0_8px_20px_-8px_rgba(234,88,12,0.45)] hover:from-[#EA580C] hover:to-[#C2410C]",
+    accentButton:
+      "bg-gradient-to-br from-[#FDBA74] to-[#EA580C] text-white shadow-[0_8px_20px_-8px_rgba(234,88,12,0.45)] hover:from-[#EA580C] hover:to-[#C2410C]",
   },
   gradients: {
     barPrimaryFrom: "#4ADE80",
@@ -382,6 +510,10 @@ const FINANCE_THEME: DashboardTheme = {
   ],
   pieColors: ["#15803D", "#EA580C", "#4ADE80"],
 };
+
+// =====================================================
+// SUPPORT THEME (Cyan → Rose — same as original)
+// =====================================================
 
 const SUPPORT_THEME: DashboardTheme = {
   ...DEFAULT_THEME,
@@ -405,9 +537,11 @@ const SUPPORT_THEME: DashboardTheme = {
     accentBar: "bg-[#F43F5E]",
     primaryChip: "bg-[#CFFAFE] text-[#0E7490] ring-[#0891B2]/20",
     accentChip: "bg-[#FFE4E6] text-[#BE123C] ring-[#F43F5E]/30",
-    pageGradient: "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(244,63,94,0.08),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(8,145,178,0.07),transparent)]",
+    pageGradient:
+      "bg-[radial-gradient(900px_420px_at_100%_-5%,rgba(244,63,94,0.08),transparent),radial-gradient(900px_480px_at_-5%_0%,rgba(8,145,178,0.07),transparent)]",
     primaryButton: "bg-gradient-to-br from-[#22D3EE] to-[#0891B2] text-white",
-    accentButton: "bg-gradient-to-br from-[#FDA4AF] to-[#F43F5E] text-white shadow-[0_8px_20px_-8px_rgba(244,63,94,0.45)] hover:from-[#F43F5E] hover:to-[#BE123C]",
+    accentButton:
+      "bg-gradient-to-br from-[#FDA4AF] to-[#F43F5E] text-white shadow-[0_8px_20px_-8px_rgba(244,63,94,0.45)] hover:from-[#F43F5E] hover:to-[#BE123C]",
   },
   gradients: {
     barPrimaryFrom: "#22D3EE",
@@ -430,12 +564,67 @@ const SUPPORT_THEME: DashboardTheme = {
 };
 
 const DASHBOARD_THEMES: Record<DashboardRole, DashboardTheme> = {
+  "super-admin": SUPER_ADMIN_THEME,
   admin: ADMIN_THEME,
   sales: SALES_THEME,
   warehouse: WAREHOUSE_THEME,
   finance: FINANCE_THEME,
   support: SUPPORT_THEME,
   default: DEFAULT_THEME,
+};
+
+// =====================================================
+// ROLE DETECTION — single source of truth
+// =====================================================
+
+const ROLE_PRIORITY: Array<[DashboardRole, RegExp]> = [
+  ["super-admin", /super[-_ ]?admin/],
+  ["warehouse", /warehouse|wh\b|inventory/],
+  ["finance", /finance|fiance|account|billing|payout/],
+  ["sales", /sales|seller|vendor/],
+  ["support", /support|helpdesk|ticket/],
+  ["admin", /admin|manager/],
+];
+
+const detectDashboardRole = (opts: {
+  roles: any;
+  portalName?: string | null;
+  warehouseName?: string | null;
+  isWarehouseHint?: boolean;
+  backendRole?: string | null;
+}): DashboardRole => {
+  const { roles, portalName, warehouseName, isWarehouseHint, backendRole } = opts;
+
+  const list = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  const roleStr = list
+    .flatMap((r: any) => {
+      if (typeof r === "string") return [r];
+      if (!r || typeof r !== "object") return [];
+      return [r.slug, r.name, r.role, r.key, r.title].filter(Boolean);
+    })
+    .join(" ")
+    .toLowerCase();
+
+  // 1. Role slug match
+  for (const [role, re] of ROLE_PRIORITY) {
+    if (re.test(roleStr)) return role;
+  }
+
+  // 2. Backend hint
+  const backend = String(backendRole ?? "").toLowerCase();
+  if (backend === "warehouse") return "warehouse";
+  if (backend === "admin") return "admin";
+
+  // 3. Portal name match
+  const portal = String(portalName ?? "").toLowerCase();
+  for (const [role, re] of ROLE_PRIORITY) {
+    if (re.test(portal)) return role;
+  }
+
+  // 4. Warehouse presence
+  if (isWarehouseHint && warehouseName) return "warehouse";
+
+  return "default";
 };
 
 // =====================================================
@@ -688,7 +877,7 @@ interface NormalizedDashboard {
 }
 
 // =====================================================
-// NORMALIZE API RESPONSE
+// NORMALIZE API RESPONSE — same as original
 // =====================================================
 
 const normalizeDashboardData = (
@@ -977,7 +1166,7 @@ const normalizeDashboardData = (
 };
 
 // =====================================================
-// ANIMATIONS
+// ANIMATIONS — same
 // =====================================================
 
 const containerVariants = {
@@ -1003,7 +1192,7 @@ const itemVariants = {
 };
 
 // =====================================================
-// ICON MAPS
+// ICON MAPS — same
 // =====================================================
 
 const iconMap: Record<string, React.ElementType> = {
@@ -1053,7 +1242,7 @@ const buildMetricTheme = (theme: DashboardTheme) => ({
 });
 
 // =====================================================
-// HELPERS
+// HELPERS — same
 // =====================================================
 
 const formatCurrency = (value: string | number | null | undefined) => {
@@ -1168,7 +1357,7 @@ const stockNumber = (item: any) => {
 };
 
 // =====================================================
-// ICON HELPERS
+// ICON HELPERS — same
 // =====================================================
 
 const MetricIcon = ({ name, className = "" }: { name?: string; className?: string }) => {
@@ -1182,7 +1371,7 @@ const TrendIcon = ({ name, className = "" }: { name?: string; className?: string
 };
 
 // =====================================================
-// MINI SPARKLINE
+// MINI SPARKLINE — same
 // =====================================================
 
 const MiniSparkline = ({
@@ -1234,7 +1423,7 @@ const SalesLineDot = (props: any) => {
 };
 
 // =====================================================
-// SKELETON PRIMITIVES — theme-aware
+// SKELETON PRIMITIVES — same
 // =====================================================
 
 const SkeletonBlock = ({
@@ -1565,29 +1754,18 @@ const Dashboard = () => {
     portalName?.toLowerCase().includes("warehouse") || (warehouseName && !portalName),
   );
 
-  // ---- Resolve the actual assigned role before falling back to the portal path.
-  // API roles may be strings or objects such as { name: "Support", slug: "support" }.
-  const activeRole: DashboardRole = useMemo(() => {
-    const roleList = Array.isArray(roles) ? roles : roles ? [roles] : [];
-    const roleNames = roleList
-      .flatMap((role: any) => {
-        if (typeof role === "string") return [role];
-        if (!role || typeof role !== "object") return [];
-        return [role.name, role.slug, role.role, role.key, role.title].filter(Boolean);
-      })
-      .join(" ")
-      .toLowerCase();
-    const portal = String(portalName || "").toLowerCase();
-    const backendRole = String(dashboard?._ui_role || "").toLowerCase();
-
-    // Specific assigned roles must take priority over the generic Admin Portal path.
-    if (isWarehouseHint || roleNames.includes("warehouse") || backendRole === "warehouse") return "warehouse";
-    if (roleNames.includes("finance") || portal.includes("finance")) return "finance";
-    if (roleNames.includes("sales") || portal.includes("sales")) return "sales";
-    if (roleNames.includes("support") || portal.includes("support")) return "support";
-    if (roleNames.includes("admin") || portal.includes("admin") || backendRole === "admin") return "admin";
-    return "default";
-  }, [dashboard?._ui_role, isWarehouseHint, roles, portalName]);
+  // ✅ FIXED ROLE DETECTION — super-admin / sales / finance / support / warehouse / admin sab unique
+  const activeRole: DashboardRole = useMemo(
+    () =>
+      detectDashboardRole({
+        roles,
+        portalName,
+        warehouseName,
+        isWarehouseHint,
+        backendRole: dashboard?._ui_role,
+      }),
+    [dashboard?._ui_role, isWarehouseHint, roles, portalName, warehouseName],
+  );
 
   const isWarehouseMode = activeRole === "warehouse" || dashboard?._ui_role === "warehouse";
   const theme = DASHBOARD_THEMES[activeRole];
@@ -1612,24 +1790,13 @@ const Dashboard = () => {
     [hasModuleAccess, hasPermission],
   );
 
-  // ===================================================
-  // LOWER-CONTENT VISIBILITY FLAGS
-  // ---------------------------------------------------
-  // We use these to avoid rendering an empty column.
-  // ===================================================
-
   const showKycPanel = canSeeKyc && !isWarehouseMode;
   const showInventoryPanel = canSeeInventory;
   const showSupportPanel = !isWarehouseMode && canSeeSupport;
   const showWarehouseActivity = isWarehouseMode;
 
-  // Left column only renders if at least one of its panels is visible.
   const hasLowerLeftContent = showKycPanel || showInventoryPanel;
-
-  // Right column only renders if its panel is visible.
   const hasLowerRightContent = showWarehouseActivity || showSupportPanel;
-
-  // Lower grid only renders if there's anything in it.
   const hasLowerContent = hasLowerLeftContent || hasLowerRightContent;
 
   const handleReview = (review: any) => {
@@ -2059,13 +2226,15 @@ const Dashboard = () => {
                 <span className="ml-1 text-[9px] font-bold uppercase tracking-[0.22em] text-[#6B7280] sm:text-[10px]">
                   {isWarehouseMode
                     ? "Warehouse Overview"
-                    : activeRole === "finance"
-                      ? "Finance Overview"
-                      : activeRole === "sales"
-                        ? "Sales Overview"
-                        : activeRole === "support"
-                          ? "Support Overview"
-                          : "Business Overview"}
+                    : activeRole === "super-admin"
+                      ? "Super Admin Overview"
+                      : activeRole === "finance"
+                        ? "Finance Overview"
+                        : activeRole === "sales"
+                          ? "Sales Overview"
+                          : activeRole === "support"
+                            ? "Support Overview"
+                            : "Business Overview"}
                 </span>
               </div>
 
@@ -2081,11 +2250,15 @@ const Dashboard = () => {
                     color: theme.primaryDark,
                   }}
                 >
-                  {activeRole === "support"
-                    ? "Support Role"
-                    : activeRole === "sales"
-                      ? "Sales Role"
-                      : portalName || `${activeRole} dashboard`}
+                  {activeRole === "super-admin"
+                    ? "Super Admin"
+                    : activeRole === "support"
+                      ? "Support Role"
+                      : activeRole === "sales"
+                        ? "Sales Role"
+                        : activeRole === "finance"
+                          ? "Finance Role"
+                          : portalName || `${activeRole} dashboard`}
                 </span>
                 {warehouseName && (
                   <span
@@ -2530,8 +2703,7 @@ const Dashboard = () => {
           )}
         </motion.div>
 
-        {/* LOWER CONTENT — only renders if there's something visible.
-            "No modules available" block has been completely removed. */}
+        {/* LOWER CONTENT */}
         {hasLowerContent && (
           <motion.div
             variants={containerVariants}
@@ -2805,52 +2977,40 @@ const Dashboard = () => {
                             <motion.div
                               key={ticket.id}
                               whileHover={{ x: 3 }}
-                              className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${unread ? "bg-[#F5F9FF]" : "bg-white"
-                                }`}
-                              style={{ borderColor: unread ? `${theme.primary}66` : undefined }}
+                              className={`relative rounded-2xl border p-3.5 transition hover:shadow-[0_8px_20px_-10px_rgba(45,111,232,0.35)] ${unread ? "border-[#DCE6F2] bg-[#F8FBFF]" : "border-[#DCE6F2] bg-white"}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex min-w-0 items-center gap-2.5">
                                   <div
-                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-extrabold ${theme.avatarTones[idx % theme.avatarTones.length]
-                                      }`}
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-[12px] font-semibold text-white ${theme.avatarTones[idx % theme.avatarTones.length]}`}
                                   >
                                     {String(ticket.name || "?").charAt(0).toUpperCase()}
                                   </div>
                                   <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5">
-                                      {unread && (
-                                        <span
-                                          className="h-2 w-2 shrink-0 rounded-full ring-2"
-                                          style={{
-                                            background: theme.primary,
-                                            ["--tw-ring-color" as any]: `${theme.primary}33`,
-                                          }}
-                                        />
-                                      )}
-                                      <span className="truncate text-[12px] font-bold text-[#111827]">{ticket.name}</span>
-                                    </div>
-                                    <div className="text-[10px] text-[#6B7280]">
-                                      {formatDate(ticket.created_at)} · {getRelativeTime(ticket.created_at)}
-                                    </div>
+                                    <div className="truncate text-[12px] font-bold text-[#111827]">{ticket.name}</div>
+                                    <div className="truncate text-[10px] text-[#6B7280]">{ticket.email}</div>
                                   </div>
                                 </div>
-                                <span
-                                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${unread ? theme.classes.accentChip : "bg-[#F3F6FB] text-[#6B7280]"
-                                    }`}
-                                >
-                                  {unread ? "Unread" : "Read"}
-                                </span>
+                                {unread && (
+                                  <span className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: theme.primaryPale, color: theme.primary }}>
+                                    New
+                                  </span>
+                                )}
                               </div>
-                              <div className="mt-2.5 flex items-start gap-2">
-                                <span
-                                  className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
-                                  style={{ background: theme.primaryPale, color: theme.primaryDark }}
-                                >
-                                  <FiMail size={10} />
-                                  {category}
+
+                              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#374151]">
+                                <span className="font-semibold text-[#111827]">[{category}]</span> {body}
+                              </p>
+
+                              <div className="mt-2 flex items-center justify-between text-[10px] text-[#6B7280]">
+                                <span className="inline-flex items-center gap-1">
+                                  <FiClock size={10} /> {getRelativeTime(ticket.created_at)}
                                 </span>
-                                <p className="line-clamp-2 text-[12px] leading-5 text-[#374151]">{body}</p>
+                                {ticket.phone && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <FiMail size={10} /> {ticket.phone}
+                                  </span>
+                                )}
                               </div>
                             </motion.div>
                           );
@@ -2858,8 +3018,8 @@ const Dashboard = () => {
                         {tickets.length === 0 && (
                           <EmptyState
                             icon={<FiInbox size={18} />}
-                            title="Inbox is empty"
-                            hint="New contact requests will show up here."
+                            title="No contact requests"
+                            hint="Customer messages will appear here."
                             theme={theme}
                           />
                         )}
@@ -2871,53 +3031,6 @@ const Dashboard = () => {
             )}
           </motion.div>
         )}
-
-        {/* BOTTOM SUMMARY */}
-        {summaryItems.length > 0 && (
-          <motion.div
-            variants={containerVariants}
-            className={`mt-5 grid grid-cols-1 gap-3 ${summaryItems.length === 1
-                ? "sm:grid-cols-1"
-                : summaryItems.length === 2
-                  ? "sm:grid-cols-2"
-                  : "sm:grid-cols-3"
-              }`}
-          >
-            {summaryItems.map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <motion.div
-                  key={item.title}
-                  variants={itemVariants}
-                  whileHover={{ y: -2 }}
-                  animate={isRefreshing ? { opacity: [1, 0.5, 1] } : { opacity: 1 }}
-                  transition={isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}}
-                  className="relative flex items-center justify-between overflow-hidden rounded-[18px] border border-[#DCE6F2] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(45,111,232,0.06)]"
-                >
-                  <span className={`absolute inset-y-0 left-0 w-1.5 ${item.bar}`} />
-                  <div className="flex items-center gap-3.5">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${item.tile}`}>
-                      <Icon size={20} />
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-bold text-[#111827]">{item.title}</div>
-                      <div className="mt-0.5 text-[11px] text-[#6B7280]">{item.subtitle}</div>
-                    </div>
-                  </div>
-                  <motion.div
-                    animate={isRefreshing ? { scale: [1, 1.15, 1] } : { scale: 1 }}
-                    transition={isRefreshing ? { duration: 0.4, delay: idx * 0.08 } : {}}
-                    className="text-[26px] font-semibold leading-none tracking-tight text-[#111827]"
-                  >
-                    {item.value}
-                  </motion.div>
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
-
-        <div className="h-3" />
       </motion.div>
     </div>
   );
