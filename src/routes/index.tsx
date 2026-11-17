@@ -63,6 +63,8 @@ import IgniteExports from "@/components/IgniteExports/IgniteExports";
 import IndiaPostDispatchPage from "@/pages/orders/IndiaPostDispatchPage";
 import RouteError from "@/pages/RouteError";
 import CommissionCalendar from "@/pages/Commission/CommissionCalendar";
+import DeliveryReport from "@/pages/Report/DeliveryReport";
+import SalesReportproducts from "@/pages/Report/SalesReportproducts";
 
 
 const ScrollLayout = () => (
@@ -150,6 +152,13 @@ export const adminRouter = createBrowserRouter(
             { path: "Contact", element: <Contact /> },
             { path: "Coupons", element: <Coupons /> },
 
+
+            // ============================================================
+            // SALES / REPORTS
+            // ============================================================
+            { path: "sales/report", element: <SalesReportproducts /> },
+            { path: "delivery-report", element: <DeliveryReport /> },
+            
             // ============================================================
             // ROLE MANAGEMENT
             // ============================================================

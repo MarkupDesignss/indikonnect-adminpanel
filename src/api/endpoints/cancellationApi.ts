@@ -230,6 +230,13 @@ export interface CancellationActionResponse {
   };
 }
 
+// Response type for warehouse receive product
+export interface WarehouseReceiveProductResponse {
+  success: boolean;
+  message?: string;
+  data?: any;
+}
+
 // =====================================================
 // API SERVICE
 // =====================================================
@@ -329,6 +336,19 @@ export const cancellationApi = {
     apiClient.post<CancellationActionResponse>(
       `/admin/cancellation-requests/${orderLineId}/pay`,
       { amount }
+    ),
+
+  /**
+   * POST /warehouse-receive-product/:orderReference
+   * Body: { warehouse_id: number }
+   */
+  receiveProductAtWarehouse: (
+    orderReference: string,
+    warehouse_id: number
+  ) =>
+    apiClient.post<WarehouseReceiveProductResponse>(
+      `/warehouse-receive-product/${orderReference}`,
+      { warehouse_id }
     ),
 };
 
