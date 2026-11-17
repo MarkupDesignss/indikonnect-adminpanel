@@ -111,7 +111,6 @@ const extractList = <T,>(response: any, namedKey?: string): T[] => {
   }
   return [];
 };
-
 interface OrderLine {
   line_id: number;
   product_name?: string;
@@ -147,7 +146,6 @@ function assertLine(response: any, orderId: number, scope: IndiaPostLineScope) {
   }
   return data;
 }
-
 export default function IndiaPostDispatchPanel(
   props: IndiaPostDispatchPanelProps,
 ) {
@@ -293,7 +291,6 @@ function OrderDispatch({
           blocked to prevent changes to the wrong order.
         </p>
       )}
-
       {/* Order info card */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
@@ -352,7 +349,6 @@ function OrderDispatch({
           )}
         </div>
       </div>
-
       {error && (
         <p
           role="alert"
@@ -424,7 +420,6 @@ function OrderDispatch({
     </section>
   );
 }
-
 function LineWorkflow({
   orderId,
   scope,
@@ -592,7 +587,6 @@ function LineWorkflow({
       setWarehousesLoading(false);
     }
   }, []);
-
   useEffect(() => {
     void loadWarehouses();
     void readShipments().catch(() => {});
@@ -628,6 +622,45 @@ function LineWorkflow({
     preview?.booking_enabled === true &&
     readiness?.line_booking_enabled === true &&
     preview?.awb === awb;
+  // Explain every disabled condition without weakening any booking guard.
+  const bookingBlockers: string[] = [];
+  if (busy) bookingBlockers.push(`Processing ${busy}…`);
+  if (shipmentsLoading) bookingBlockers.push("Loading parcel records.");
+  if (!shipmentsReadOk)
+    bookingBlockers.push(
+      "Parcel records are not verified. Reload or reconcile.",
+    );
+  if (knownLegacy)
+    bookingBlockers.push("Legacy parcel requires reconciliation.");
+  if (
+    shipments.length > 0 ||
+    localAttempts.length > 0 ||
+    attempted.has(`book:${scopeKey}`)
+  ) {
+    bookingBlockers.push(
+      "A booking or attempt already exists. Reconcile; do not submit again.",
+    );
+  }
+  if (!packageValid)
+    bookingBlockers.push("Enter valid warehouse and measured package details.");
+  if (mapping !== "linked" || !isAwb(awb))
+    bookingBlockers.push("Verify the allocated AWB and line mapping.");
+  if (readiness?.ready_for_preview !== true || readiness?.allocated_awb !== awb)
+    bookingBlockers.push("Run Check Readiness for this AWB.");
+  if (readiness && readiness.line_booking_enabled !== true)
+    bookingBlockers.push("Order-line booking is disabled on the server.");
+  if (preview?.ready_for_booking !== true || preview?.awb !== awb)
+    bookingBlockers.push(
+      "Generate and review the booking preview for this AWB.",
+    );
+  if (preview && preview.booking_enabled !== true)
+    bookingBlockers.push("Booking is disabled on the server.");
+  if (!contentsVerified)
+    bookingBlockers.push("Tick the selected parcel contents confirmation.");
+  if (!uatBookingAuthorized)
+    bookingBlockers.push(
+      "After reviewing the preview, tick authorized UAT approval.",
+    );
   const run = async (label: string, action: () => Promise<void>) => {
     if (opLock.current || shipmentsLoading) return;
     opLock.current = true;
@@ -904,7 +937,6 @@ function LineWorkflow({
           </span>
         </label>
       </div>
-
       {knownLegacy && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
           Existing order-level AWB must be reconciled before independent
@@ -950,6 +982,27 @@ function LineWorkflow({
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
           Booking attempted during this session. Reconcile shipment records; do
           not submit again.
+        </p>
+      )}
+      {!canBook || busy ? (
+        <div
+          role="status"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"
+        >
+          <p className="font-semibold">Why Submit UAT Booking is disabled</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            {bookingBlockers.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p
+          role="status"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800"
+        >
+          Ready to submit the authorized UAT booking for {awb}. Submit only
+          once.
         </p>
       )}
       <div className="flex flex-wrap gap-2">
