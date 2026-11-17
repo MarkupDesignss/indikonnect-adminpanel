@@ -2912,92 +2912,64 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return "partial";
   };
 
-  /**
-   * ORDER-LEVEL toggle: applies Allowed / Not Allowed to ALL (non-closed)
-   * items of the order.
-   */
   const handleToggleOrderCancelReturn = async (group: OrderGroup) => {
-    // use the FULL order (not just filtered items) so the whole order is updated
-    const fullGroup =
-      allOrderGroups.find((g) => g.id === group.id) || group;
+    const fullGroup = allOrderGroups.find((g) => g.id === group.id) || group;
     const eligible = fullGroup.items.filter((it) => !isTerminalStatus(it));
-
+  
     if (eligible.length === 0) {
       toast.error("This order is closed. Cancel/Return cannot be changed.");
       return;
     }
-
+  
     const allAllowed = eligible.every((it) =>
       Boolean(it.is_cancel_return_allowed)
     );
     const newValue = !allAllowed;
+    const orderReference = group.orderReference || group.id; // id nahi, order_reference
     const key = `order-${group.id}`;
-
-    setTogglingCancelReturn((prev) => {
-      const next = new Set(prev);
-      next.add(key);
-      return next;
-    });
-
+  
+    setTogglingCancelReturn((prev) => new Set(prev).add(key));
+  
     try {
-      const results = await Promise.allSettled(
-        eligible.map(async (it) => {
-          const lineId = it.lineId || parseInt(it.id);
-          if (!lineId || isNaN(lineId)) {
-            throw new Error("Invalid order line ID");
-          }
-          const response = await orderApi.toggleCancelReturn(lineId, newValue);
-          if (!response?.data?.success) {
-            throw new Error(response?.data?.message || "Failed to update");
-          }
-          return lineId;
+      const response = await orderApi.toggleCancelReturnByReference(
+        orderReference,
+        newValue
+      );
+  
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Failed to update");
+      }
+  
+      // local state update: sirf non-terminal items
+      const eligibleLineIds = new Set(
+        eligible.map((it) => Number(it.lineId || it.id))
+      );
+      setOrders((prevOrders) =>
+        prevOrders.map((o) => {
+          if (o.order_reference !== orderReference) return o;
+          return {
+            ...o,
+            items: (o.items || []).map((it: any) =>
+              eligibleLineIds.has(Number(it.line_id || it.id))
+                ? { ...it, is_cancel_return_allowed: newValue }
+                : it
+            ),
+          };
         })
       );
-
-      const succeededLineIds = new Set<number>();
-      results.forEach((r) => {
-        if (r.status === "fulfilled") succeededLineIds.add(Number(r.value));
-      });
-      const failedCount = results.length - succeededLineIds.size;
-
-      if (succeededLineIds.size > 0) {
-        setOrders((prevOrders) =>
-          prevOrders.map((o) => {
-            if (o.order_reference !== group.orderReference) return o;
-            return {
-              ...o,
-              items: (o.items || []).map((it: any) => {
-                const itLineId = Number(it.line_id || it.id);
-                if (!succeededLineIds.has(itLineId)) return it;
-                return { ...it, is_cancel_return_allowed: newValue };
-              }),
-            };
-          })
-        );
-      }
-
-      if (failedCount === 0) {
-        toast.success(
-          newValue
-            ? "Cancel/Return allowed for this order"
-            : "Cancel/Return not allowed for this order"
-        );
-      } else if (succeededLineIds.size > 0) {
-        toast.error(
-          `Updated ${succeededLineIds.size} item(s), ${failedCount} failed`
-        );
-      } else {
-        const firstError = results.find(
-          (r): r is PromiseRejectedResult => r.status === "rejected"
-        );
-        toast.error(
-          (firstError?.reason as any)?.message ||
-            "Failed to update cancel/return option"
-        );
-      }
+  
+      toast.success(
+        newValue
+          ? "Cancel/Return allowed for this order"
+          : "Cancel/Return not allowed for this order"
+      );
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || "Failed to update cancel/return option");
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update cancel/return option"
+      );
     } finally {
       setTogglingCancelReturn((prev) => {
         const next = new Set(prev);
@@ -3006,7 +2978,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       });
     }
   };
-
   const handleMarkUndelivered = async (order: Order, item: OrderItem) => {
     const lineId = item.lineId || parseInt(item.id);
     if (!lineId || isNaN(lineId)) {

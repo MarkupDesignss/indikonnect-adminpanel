@@ -1,3 +1,4 @@
+
 export interface MenuItem {
   path: string;
   label: string;
@@ -13,6 +14,9 @@ export interface MenuItem {
 }
 
 export const menuItems: MenuItem[] = [
+  // =====================================================
+  // DASHBOARD
+  // =====================================================
   {
     path: "/dashboard",
     label: "Dashboard",
@@ -20,6 +24,9 @@ export const menuItems: MenuItem[] = [
     isPublic: true,
   },
 
+  // =====================================================
+  // ORDERS
+  // =====================================================
   {
     path: "/orders",
     label: "Orders",
@@ -56,7 +63,6 @@ export const menuItems: MenuItem[] = [
         path: "/cms/brands",
         label: "Brands",
         icon: "sell",
-        // API module is "Brand" -> normalized "brand"
         permission: "brand.view",
         module: "brand",
       },
@@ -64,7 +70,6 @@ export const menuItems: MenuItem[] = [
         path: "/inventory/SubCategories",
         label: "Sub Categories",
         icon: "account_tree",
-        // API module is "Sub Category" -> normalized "sub category"
         permission: "category.view",
         module: "category",
       },
@@ -110,7 +115,7 @@ export const menuItems: MenuItem[] = [
     anyOf: [
       "warehouse.view",
       "warehouse.create",
-      "warehouse.edit", // API uses "edit", not "update"
+      "warehouse.edit",
     ],
     children: [
       {
@@ -124,7 +129,6 @@ export const menuItems: MenuItem[] = [
         path: "/Productsaasignment",
         label: "Product Assignment",
         icon: "assignment_ind",
-        // API module is "Product Assignment" -> "product assignment"
         permission: "product assignment.add",
         module: "product assignment",
       },
@@ -178,7 +182,6 @@ export const menuItems: MenuItem[] = [
             path: "/Fiance/CancelRefund",
             label: "Cancel & Refunds",
             icon: "currency_exchange",
-            // API module is "Cancel" -> normalized "cancel"
             permission: "cancel.details",
             module: "cancel",
           },
@@ -186,7 +189,6 @@ export const menuItems: MenuItem[] = [
             path: "/Fiance/BuyBack",
             label: "Buy Back",
             icon: "replay",
-            // API module is "Buyback" -> normalized "buyback"
             permission: "buyback.details",
             module: "buyback",
           },
@@ -235,16 +237,28 @@ export const menuItems: MenuItem[] = [
   },
 
   // =====================================================
+  // SALES PANEL
+  // Separate Sales Panel Report
+  // =====================================================
+  {
+    path: "/sales-heading",
+    label: "Sales",
+    icon: "point_of_sale",
+    isHeading: true,
+    children: [
+      {
+        path: "/sales-panel",
+        label: "Sales Report",
+        icon: "assessment",
+        module: "sales",
+        permission: "sales.report",
+      },
+    ],
+  },
+
+  // =====================================================
   // REPORTS
-  // API groups:
-  //   return_refund_report: ["return_refund.view", "return_refund.download"]
-  //   sales_product_report: ["sales.view", "sales.download"]
-  //   delivery_report:      ["delivery.download", "delivery.view"]
-  //
-  // NOTE: the actions above contain a dot, so the stored slugs look like
-  //   return_refund_report.return_refund.view  (3 parts!)
-  // The patched `usePermissions` handles this via suffix-match, so
-  // we can safely use the "inner" two-part slugs here.
+  // Product-wise Sales Report remains here
   // =====================================================
   {
     path: "/reports",
@@ -269,9 +283,6 @@ export const menuItems: MenuItem[] = [
         label: "Sales Report",
         icon: "trending_up",
         module: "sales_product_report",
-        // API also has "sales.report" under the "sales" module,
-        // so both work. Using "sales.view" aligns with the report-specific
-        // permissions.
         permission: "sales.view",
       },
       {
@@ -303,8 +314,6 @@ export const menuItems: MenuItem[] = [
 
   // =====================================================
   // CORRECTION REQUESTS
-  // API: correction: ["send link", "View", "reject"]
-  // Normalized: correction.send link, correction.view, correction.reject
   // =====================================================
   {
     path: "/CorrectionRequests",
@@ -351,7 +360,6 @@ export const menuItems: MenuItem[] = [
         path: "/cms/LandingPageManagement",
         label: "LandingPage Management",
         icon: "description",
-        // API: "Landing Page": ["create","view","edit","details"]
         permission: "landing page.view",
         module: "landing page",
       },
@@ -359,7 +367,6 @@ export const menuItems: MenuItem[] = [
         path: "/cms/ReelsManagement",
         label: "Reels Management",
         icon: "movie",
-        // API: "Reels": ["create","view","edit","delete"]
         permission: "reels.view",
         module: "reels",
       },
@@ -367,7 +374,6 @@ export const menuItems: MenuItem[] = [
         path: "/cms/TestimonialsManagement",
         label: "Testimonials Management",
         icon: "format_quote",
-        // API: "Testimonial": ["create","view","edit","delete"]
         permission: "testimonial.view",
         module: "testimonial",
       },
@@ -382,7 +388,6 @@ export const menuItems: MenuItem[] = [
         path: "/cms/NotificationTemplates",
         label: "Notification Templates",
         icon: "notifications_active",
-        // API: "Notification Templates": ["view"]
         permission: "notification templates.view",
         module: "notification templates",
       },
@@ -391,7 +396,6 @@ export const menuItems: MenuItem[] = [
 
   // =====================================================
   // FAQ MANAGEMENT
-  // API: FAQ: ["create","edit","view","delete"]
   // =====================================================
   {
     path: "/cms/faq",
@@ -465,7 +469,6 @@ export const menuItems: MenuItem[] = [
     path: "/subscribers",
     label: "Newsletter",
     icon: "subscriptions",
-    // API module is "Newsletter" -> "newsletter"
     permission: "newsletter.view",
     module: "newsletter",
   },
@@ -483,7 +486,6 @@ export const menuItems: MenuItem[] = [
 
   // =====================================================
   // CONTACT
-  // API: Contacts: ["view","delete"]
   // =====================================================
   {
     path: "/contact",
@@ -495,7 +497,6 @@ export const menuItems: MenuItem[] = [
 
   // =====================================================
   // ACCOUNT ITEMS
-  // ALWAYS VISIBLE TO LOGGED-IN USERS
   // =====================================================
   {
     path: "/UpdateProfile",
@@ -513,9 +514,6 @@ export const menuItems: MenuItem[] = [
     path: "/SettingsManagement",
     label: "Admin Settings",
     icon: "settings",
-    // ⚠️ API does NOT currently expose an "Admin Settings" module.
-    // This item will stay hidden until the backend adds it.
-    // If you want it always visible, set `isPublic: true` instead.
     module: "admin settings",
     permission: "admin settings.view",
   },

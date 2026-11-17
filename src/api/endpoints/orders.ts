@@ -328,13 +328,12 @@ markUndelivered: (orderLineId: number) =>
   ),
 
 
-  // =====================================================
-  // NEW: TOGGLE CANCEL/RETURN ALLOWED
-  // POST /api/order-lines/:id/cancel-return
-  // =====================================================
-  toggleCancelReturn: (orderLineId: number, isCancelReturnAllowed: boolean) =>
-    apiClient.post<ToggleCancelReturnResponse>(
-      `/order-lines/${orderLineId}/cancel-return`,
+  toggleCancelReturnByReference: (
+    orderReference: string,
+    isCancelReturnAllowed: boolean
+  ) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(
+      `/order-lines/${encodeURIComponent(orderReference)}/cancel-return`, 
       {
         is_cancel_return_allowed: isCancelReturnAllowed,
       }

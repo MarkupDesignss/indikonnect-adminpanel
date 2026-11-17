@@ -227,7 +227,7 @@ export const adminRouter = createBrowserRouter(
             // ============================================================
             // SALES
             // ============================================================
-            { path: "sales/report", element: <SalesReport /> },
+            { path: "/sales-panel", element: <SalesReport /> },
 
             // ============================================================
             // SETTINGS
