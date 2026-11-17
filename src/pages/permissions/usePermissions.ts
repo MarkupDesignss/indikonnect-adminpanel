@@ -114,14 +114,44 @@ interface UsePermissionsReturn {
 // HELPERS
 // =====================================================
 
+/**
+ * Normalizes a value into a stable, comparable slug.
+ *
+ * - trims and lowercases
+ * - collapses whitespace
+ * - converts underscores AND hyphens to a single space (so
+ *   `send_link`, `send link`, `send-link` all compare equal)
+ * - collapses leftover multiple spaces
+ *
+ * NOTE: we intentionally keep dots (`.`) untouched so `module.action`
+ * keeps working.
+ */
 const normalize = (value: unknown): string =>
   String(value ?? "")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, " ");
+    .replace(/[\s_-]+/g, " ")
+    .trim();
+
+/** Normalizes a module name into a single-token key (no spaces). */
+const normalizeModule = (value: unknown): string =>
+  normalize(value).replace(/\s+/g, " ");
+
+/** Normalizes an action fragment, keeping dots if any. */
+const normalizeAction = (value: unknown): string => normalize(value);
 
 const getRoleSlug = (role: AdminRole): string =>
   normalize(role?.slug || role?.name || "");
+
+/**
+ * Splits a full permission slug into its module + action parts.
+ * `"return_refund_report.return_refund.view"` →
+ *   { module: "return_refund report", action: "return refund view" }
+ */
+const splitSlug = (slug: string): { module: string; action: string } => {
+  const [module = "", ...rest] = slug.split(".");
+  return { module, action: rest.join(".") };
+};
 
 // =====================================================
 // SHARED /ME STORE
@@ -256,11 +286,11 @@ export const usePermissions = (): UsePermissionsReturn => {
 
     const normalized: Record<string, string[]> = {};
     Object.entries(source).forEach(([module, actions]) => {
-      const normalizedModule = normalize(module);
+      const normalizedModule = normalizeModule(module);
       if (!normalizedModule || !Array.isArray(actions)) return;
 
       normalized[normalizedModule] = [
-        ...new Set(actions.map(normalize).filter(Boolean)),
+        ...new Set(actions.map(normalizeAction).filter(Boolean)),
       ];
     });
     return normalized;
@@ -271,9 +301,10 @@ export const usePermissions = (): UsePermissionsReturn => {
     Object.entries(permissionsGrouped).forEach(([module, actions]) => {
       if (!Array.isArray(actions)) return;
       actions.forEach((action) => {
-        const normalizedModule = normalize(module);
-        const normalizedAction = normalize(action);
+        const normalizedModule = normalizeModule(module);
+        const normalizedAction = normalizeAction(action);
         if (normalizedModule && normalizedAction) {
+          // Skip empty tokens (defensive)
           slugs.push(`${normalizedModule}.${normalizedAction}`);
         }
       });
@@ -286,19 +317,47 @@ export const usePermissions = (): UsePermissionsReturn => {
     [roleSlugs],
   );
 
+  /**
+   * Returns true if any "suffix" of the requested slug matches a stored slug.
+   *
+   * This handles the case where the API emits nested action names like
+   *   "return_refund_report": ["return_refund.view"]
+   * producing `return_refund_report.return_refund.view`,
+   * but a caller asks for `return_refund.view`.
+   */
+  const matchesSlugSuffix = useCallback(
+    (normalizedSlug: string): boolean => {
+      return allSlugs.some(
+        (stored) =>
+          stored === normalizedSlug || stored.endsWith(`.${normalizedSlug}`),
+      );
+    },
+    [allSlugs],
+  );
+
   const hasPermission = useCallback(
     (slug: string): boolean => {
       if (isSuperAdmin) return true;
 
       const normalizedSlug = normalize(slug);
       if (!normalizedSlug) return false;
+
+      // exact match
       if (allSlugs.includes(normalizedSlug)) return true;
+
+      // global wildcard
       if (allSlugs.includes("*")) return true;
 
-      const [module] = normalizedSlug.split(".");
-      return Boolean(module && allSlugs.includes(`${module}.*`));
+      // module-level wildcard: "product.*"
+      const { module } = splitSlug(normalizedSlug);
+      if (module && allSlugs.includes(`${module}.*`)) return true;
+
+      // suffix match (handles nested action names from the API)
+      if (matchesSlugSuffix(normalizedSlug)) return true;
+
+      return false;
     },
-    [allSlugs, isSuperAdmin],
+    [allSlugs, isSuperAdmin, matchesSlugSuffix],
   );
 
   const hasAnyPermission = useCallback(
@@ -321,8 +380,8 @@ export const usePermissions = (): UsePermissionsReturn => {
 
   const can = useCallback(
     (module: string, action: string): boolean => {
-      const normalizedModule = normalize(module);
-      const normalizedAction = normalize(action);
+      const normalizedModule = normalizeModule(module);
+      const normalizedAction = normalizeAction(action);
       if (!normalizedModule || !normalizedAction) return false;
       return hasPermission(`${normalizedModule}.${normalizedAction}`);
     },
@@ -333,13 +392,16 @@ export const usePermissions = (): UsePermissionsReturn => {
     (module: string): boolean => {
       if (isSuperAdmin) return true;
 
-      const normalizedModule = normalize(module);
+      const normalizedModule = normalizeModule(module);
       if (!normalizedModule) return false;
 
       const actions = permissionsGrouped[normalizedModule];
       if (Array.isArray(actions) && actions.length > 0) return true;
+
+      // wildcard at module level
       if (allSlugs.includes(`${normalizedModule}.*`)) return true;
 
+      // any slug that starts with module + "."
       return allSlugs.some((slug) =>
         slug.startsWith(`${normalizedModule}.`),
       );

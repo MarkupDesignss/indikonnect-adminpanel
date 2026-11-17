@@ -57,7 +57,7 @@ const salesReportApi = {
     params: SalesReportParams = {}
   ): Promise<SalesReportResponse> => {
     const response = await apiClient.get<SalesReportResponse>(
-      "/sales-report",
+      "/admin/sales-report",
       {
         params: {
           page: params.page ?? 1,

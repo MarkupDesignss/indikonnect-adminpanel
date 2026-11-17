@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -17,18 +16,14 @@ import {
   CheckCircle2,
   Clock3,
   CalendarDays,
-  X,
   ChevronLeft,
   ChevronRight,
+  X,
   FileText,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-  Hash,
-  Filter,
   ArrowUpRight,
   Loader2,
+  Filter,
+  ShieldAlert,
 } from "lucide-react";
 
 import { toast } from "react-hot-toast";
@@ -37,18 +32,20 @@ import deliveryReportApi, {
   DeliveryReportItem,
 } from "../../api/endpoints/report/deliveryReport";
 
+import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
+
 /* ================= THEME ================= */
 
 const THEME = {
   primary: "#2D6FE8",
   primaryDark: "#1E40AF",
-  primaryLight: "#4F8FF7",
   primarySoft: "#EAF3FF",
   background: "#F4F8FD",
   border: "#DCE6F2",
   text: "#111827",
   muted: "#6B7280",
-  white: "#FFFFFF",
   green: "#15803D",
   greenSoft: "#DCFCE7",
   orange: "#C2410C",
@@ -56,9 +53,24 @@ const THEME = {
   purple: "#6D28D9",
   purpleSoft: "#EDE9FE",
   red: "#C23B32",
+  redSoft: "#FEE2E2",
 };
 
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 /* ================= HELPERS ================= */
+
+const numberFormat = (value: number | null | undefined) => {
+  return Number(value || 0).toLocaleString("en-IN");
+};
+
+const safeValue = (value: unknown) => {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  return String(value);
+};
 
 const formatDate = (value: string | null) => {
   if (!value) return "—";
@@ -77,44 +89,26 @@ const formatDate = (value: string | null) => {
 };
 
 const getStatusStyle = (status: string) => {
-  const value = status?.toLowerCase();
+  const value = (status || "").toLowerCase();
 
-  if (value === "delivered") {
-    return {
-      background: THEME.greenSoft,
-      color: THEME.green,
-      dot: THEME.green,
-    };
+  if (value === "delivered" || value === "completed") {
+    return { bg: THEME.greenSoft, color: THEME.green };
   }
 
   if (value === "shipped") {
-    return {
-      background: THEME.purpleSoft,
-      color: THEME.purple,
-      dot: THEME.purple,
-    };
+    return { bg: THEME.purpleSoft, color: THEME.purple };
   }
 
   if (value === "dispatched") {
-    return {
-      background: THEME.primarySoft,
-      color: THEME.primaryDark,
-      dot: THEME.primary,
-    };
+    return { bg: THEME.primarySoft, color: THEME.primaryDark };
   }
 
-  return {
-    background: THEME.orangeSoft,
-    color: THEME.orange,
-    dot: THEME.orange,
-  };
+  return { bg: THEME.orangeSoft, color: THEME.orange };
 };
 
 const escapeCsv = (value: unknown) => {
-  const text = value === null || value === undefined
-    ? ""
-    : String(value);
-
+  const text =
+    value === null || value === undefined ? "" : String(value);
   return `"${text.replace(/"/g, '""')}"`;
 };
 
@@ -122,7 +116,6 @@ const formatDateInput = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 };
 
@@ -133,43 +126,24 @@ const StatusBadge = ({ status }: { status: string }) => {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold capitalize"
       style={{
-        background: style.background,
+        background: style.bg,
         color: style.color,
       }}
     >
       <span
         className="h-1.5 w-1.5 rounded-full"
-        style={{ background: style.dot }}
+        style={{ background: style.color }}
       />
       {status || "Unknown"}
     </span>
   );
 };
 
-/* ================= DATE ITEM ================= */
+/* ================= COMPACT SUMMARY CARD ================= */
 
-const DateItem = ({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | null;
-}) => (
-  <div className="min-w-0">
-    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-      {label}
-    </p>
-    <p className="mt-1 text-xs font-medium text-gray-700">
-      {formatDate(value)}
-    </p>
-  </div>
-);
-
-/* ================= SUMMARY CARD ================= */
-
-const SummaryCard = ({
+const CompactSummaryCard = ({
   title,
   value,
   subtitle,
@@ -178,47 +152,62 @@ const SummaryCard = ({
   bg,
 }: {
   title: string;
-  value: number;
+  value: number | string;
   subtitle: string;
   icon: React.ElementType;
   color: string;
   bg: string;
 }) => (
-  <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-gray-500">{title}</p>
+  <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+      style={{ background: bg, color }}
+    >
+      <Icon size={17} />
+    </div>
 
-        <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-          {value.toLocaleString("en-IN")}
-        </h3>
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
+        {title}
+      </p>
 
-        <p className="mt-1 text-[11px] text-gray-400">
-          {subtitle}
-        </p>
-      </div>
+      <h3 className="mt-0.5 break-words text-sm font-bold tracking-tight text-gray-900 sm:text-base">
+        {typeof value === "string" ? value : numberFormat(value)}
+      </h3>
 
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: bg, color }}
-      >
-        <Icon size={19} />
-      </div>
+      <p className="mt-0.5 truncate text-[9px] text-gray-400">
+        {subtitle}
+      </p>
     </div>
   </div>
 );
 
-/* ================= ORDER CARD ================= */
+/* ================= DETAIL ITEM ================= */
 
-const MobileOrderCard = ({
+const DetailItem = ({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) => (
+  <div className="min-w-0">
+    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      {label}
+    </p>
+    <div className="mt-1 break-words text-xs font-semibold text-gray-700">
+      {value || "—"}
+    </div>
+  </div>
+);
+
+/* ================= MOBILE CARD ================= */
+
+const MobileDeliveryCard = ({
   item,
-  index,
 }: {
   item: DeliveryReportItem;
-  index: number;
 }) => {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
       <div className="p-4">
@@ -229,117 +218,109 @@ const MobileOrderCard = ({
             </p>
 
             <p className="mt-1 break-all text-sm font-bold text-gray-900">
-              {item["Order Reference"]}
+              {safeValue(item["Order Reference"])}
             </p>
 
             <p className="mt-1 text-xs text-gray-500">
-              Invoice: {item["Invoice Number"] || "—"}
+              Invoice: {safeValue(item["Invoice Number"])}
             </p>
           </div>
 
           <StatusBadge status={item["Delivery Status"]} />
         </div>
 
-        <div className="mt-4 flex items-center gap-3 rounded-lg bg-[#F7FAFE] p-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-            <Package size={19} />
-          </div>
+        <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+              <Package size={19} />
+            </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-gray-800">
-              {item["Item Name"]}
-            </p>
-            <p className="mt-0.5 text-xs text-gray-500">
-              SKU: {item.SKU} · Qty: {item.QTY}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[10px] text-gray-400">Recipient</p>
-            <p className="mt-1 truncate text-xs font-semibold text-gray-800">
-              {item["Recipient Name"]}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] text-gray-400">Carrier</p>
-            <p className="mt-1 truncate text-xs font-semibold text-gray-800">
-              {item.Carrier || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] text-gray-400">Shipment Number</p>
-            <p className="mt-1 text-xs font-semibold text-gray-800">
-              {item["Shipment Number"] || "—"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-[10px] text-gray-400">Placed At</p>
-            <p className="mt-1 text-xs font-semibold text-gray-800">
-              {formatDate(item["Placed At"])}
-            </p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-800">
+                {safeValue(item["Item Name"])}
+              </p>
+              <p className="mt-0.5 text-xs text-gray-500">
+                SKU: {safeValue(item.SKU)} · Qty:{" "}
+                {safeValue(item.QTY)}
+              </p>
+            </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="mt-4 flex w-full items-center justify-between border-t border-gray-100 pt-3 text-xs font-semibold text-[#2D6FE8]"
-        >
-          {expanded ? "Hide Details" : "View Full Details"}
-          <ChevronRight
-            size={16}
-            className={`transition-transform ${expanded ? "rotate-90" : ""}`}
-          />
-        </button>
+        <div className="mt-4 rounded-lg border border-gray-100 p-3">
+          <p className="mb-3 text-xs font-bold text-gray-800">
+            Recipient Information
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <DetailItem
+              label="Name"
+              value={safeValue(item["Recipient Name"])}
+            />
+            <DetailItem
+              label="Phone"
+              value={safeValue(item["Recipient Phone"])}
+            />
+            <DetailItem
+              label="Email"
+              value={safeValue(item["Recipient Email"])}
+            />
+            <DetailItem
+              label="Placed At"
+              value={formatDate(item["Placed At"])}
+            />
+          </div>
+        </div>
 
-        <div
-          className={`grid transition-all duration-300 ${
-            expanded
-              ? "grid-rows-[1fr] opacity-100"
-              : "grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="space-y-4 pt-3">
-              <div className="grid grid-cols-2 gap-3">
-                <DateItem
-                  label="Dispatched At"
-                  value={item["Dispatched At"]}
-                />
-                <DateItem
-                  label="Shipped At"
-                  value={item["Shipped At"]}
-                />
-                <DateItem
-                  label="Delivered At"
-                  value={item["Delivered At"]}
-                />
-                <DateItem
-                  label="Placed At"
-                  value={item["Placed At"]}
-                />
-              </div>
+        <div className="mt-4 rounded-lg border border-gray-100 p-3">
+          <p className="mb-3 text-xs font-bold text-gray-800">
+            Shipment Information
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <DetailItem
+              label="Carrier"
+              value={safeValue(item.Carrier)}
+            />
+            <DetailItem
+              label="AWB"
+              value={safeValue(item["Shipment Number"])}
+            />
+          </div>
+        </div>
 
-              <div className="rounded-lg bg-gray-50 p-3">
-                <p className="mb-2 text-xs font-semibold text-gray-800">
-                  Recipient Details
-                </p>
-
-                <p className="flex items-center gap-2 break-all text-xs text-gray-600">
-                  <Phone size={13} />
-                  {item["Recipient Phone"] || "—"}
-                </p>
-
-                <p className="mt-2 flex items-center gap-2 break-all text-xs text-gray-600">
-                  <Mail size={13} />
-                  {item["Recipient Email"] || "—"}
-                </p>
-              </div>
+        <div className="mt-4 rounded-lg border border-gray-100 p-3">
+          <p className="mb-3 text-xs font-bold text-gray-800">
+            Timeline
+          </p>
+          <div className="space-y-2">
+            <div className="flex justify-between gap-2">
+              <span className="text-[10px] text-gray-400">
+                Dispatched
+              </span>
+              <span className="text-xs font-semibold text-gray-700">
+                {item["Dispatched At"]
+                  ? formatDate(item["Dispatched At"])
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-[10px] text-gray-400">
+                Shipped
+              </span>
+              <span className="text-xs font-semibold text-gray-700">
+                {item["Shipped At"]
+                  ? formatDate(item["Shipped At"])
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-[10px] text-gray-400">
+                Delivered
+              </span>
+              <span className="text-xs font-semibold text-gray-700">
+                {item["Delivered At"]
+                  ? formatDate(item["Delivered At"])
+                  : "—"}
+              </span>
             </div>
           </div>
         </div>
@@ -351,6 +332,100 @@ const MobileOrderCard = ({
 /* ================= MAIN PAGE ================= */
 
 const DeliveryReport = () => {
+  /* ---------- PERMISSIONS ---------- */
+  const {
+    hasPermission,
+    hasAnyPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  // Can user access this report at all?
+  const canViewReport = useMemo(() => {
+    if (isSuperAdmin) return true;
+
+    return (
+      hasModuleAccess("delivery_report") ||
+      hasModuleAccess("reports") ||
+      hasAnyPermission([
+        "delivery_report.view",
+        "delivery_report.delivery.view",
+        "delivery.view",
+        "delivery.report",
+      ]) ||
+      hasPermission("reports.view")
+    );
+  }, [
+    isSuperAdmin,
+    hasModuleAccess,
+    hasAnyPermission,
+    hasPermission,
+  ]);
+
+  // Can user export CSV?
+  const canExport = useMemo(() => {
+    if (isSuperAdmin) return true;
+
+    return (
+      hasModuleAccess("delivery_report") ||
+      hasAnyPermission([
+        "delivery_report.download",
+        "delivery_report.delivery.download",
+        "delivery.download",
+        "delivery.export",
+      ])
+    );
+  }, [isSuperAdmin, hasModuleAccess, hasAnyPermission]);
+
+  /* ---------- LOGO ---------- */
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL
+  );
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim())
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---------- DATA ---------- */
   const [reports, setReports] = useState<DeliveryReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -362,12 +437,10 @@ const DeliveryReport = () => {
   const [toDate, setToDate] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage] = useState(500);
+  const [perPage] = useState(100);
 
   const [totalRecords, setTotalRecords] = useState(0);
   const [lastPage, setLastPage] = useState(1);
-
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   /* ================= FETCH ================= */
 
@@ -388,16 +461,22 @@ const DeliveryReport = () => {
         });
 
         if (response.status) {
-          setReports(Array.isArray(response.data) ? response.data : []);
+          setReports(
+            Array.isArray(response.data) ? response.data : []
+          );
 
           setTotalRecords(
-            response.pagination?.total ?? response.data?.length ?? 0
+            response.pagination?.total ??
+              response.data?.length ??
+              0
           );
 
           setLastPage(response.pagination?.last_page ?? 1);
         } else {
           setReports([]);
-          toast.error(response.message || "Unable to fetch delivery report");
+          toast.error(
+            response.message || "Unable to fetch delivery report"
+          );
         }
       } catch (error: any) {
         console.error("Delivery report error:", error);
@@ -414,9 +493,17 @@ const DeliveryReport = () => {
     [currentPage, perPage, fromDate, toDate]
   );
 
+  // Gate the initial fetch on permissions.
   useEffect(() => {
+    if (permissionsLoading) return;
+
+    if (!canViewReport) {
+      setLoading(false);
+      return;
+    }
+
     fetchReports();
-  }, [fetchReports]);
+  }, [permissionsLoading, canViewReport, fetchReports]);
 
   /* ================= FILTER ================= */
 
@@ -457,29 +544,33 @@ const DeliveryReport = () => {
     return {
       total: reports.length,
       confirmed: reports.filter(
-        (item) => item["Delivery Status"]?.toLowerCase() === "confirmed"
+        (item) =>
+          item["Delivery Status"]?.toLowerCase() === "confirmed"
       ).length,
       dispatched: reports.filter(
-        (item) => item["Delivery Status"]?.toLowerCase() === "dispatched"
+        (item) =>
+          item["Delivery Status"]?.toLowerCase() === "dispatched"
       ).length,
       shipped: reports.filter(
-        (item) => item["Delivery Status"]?.toLowerCase() === "shipped"
+        (item) =>
+          item["Delivery Status"]?.toLowerCase() === "shipped"
       ).length,
       delivered: reports.filter(
-        (item) => item["Delivery Status"]?.toLowerCase() === "delivered"
+        (item) =>
+          item["Delivery Status"]?.toLowerCase() === "delivered"
       ).length,
     };
   }, [reports]);
 
-  /* ================= DATE FILTER ================= */
+  /* ================= FILTER ACTIONS ================= */
 
   const applyDateFilter = () => {
     if (fromDate && toDate && fromDate > toDate) {
       toast.error("From date cannot be greater than To date");
       return;
     }
-
     setCurrentPage(1);
+    fetchReports();
   };
 
   const clearFilters = () => {
@@ -490,28 +581,26 @@ const DeliveryReport = () => {
     setCurrentPage(1);
   };
 
-  const hasFilters =
-    search || statusFilter !== "all" || fromDate || toDate;
-
   /* ================= CSV EXPORT ================= */
 
   const exportCSV = () => {
+    if (!canExport) {
+      toast.error("You don't have permission to export this report.");
+      return;
+    }
+
     if (!filteredReports.length) {
       toast.error("No delivery records available to export");
       return;
     }
 
     const headers = [
+      "Bill Id",
       "Invoice Number",
-      "Order Reference",
       "Item Name",
       "SKU",
       "QTY",
       "Delivery Status",
-      "Placed At",
-      "Dispatched At",
-      "Shipped At",
-      "Delivered At",
       "Shipment Number",
       "Carrier",
       "Recipient Name",
@@ -521,6 +610,9 @@ const DeliveryReport = () => {
 
     const rows = filteredReports.map((item) =>
       headers.map((header) => {
+        if (header === "Bill Id") {
+          return escapeCsv((item as any)["Bill Id"] || "");
+        }
         return escapeCsv(
           item[header as keyof DeliveryReportItem]
         );
@@ -532,16 +624,17 @@ const DeliveryReport = () => {
       ...rows.map((row) => row.join(",")),
     ].join("\r\n");
 
-    const blob = new Blob(
-      ["\uFEFF" + csvContent],
-      { type: "text/csv;charset=utf-8;" }
-    );
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = `delivery-report-${formatDateInput(new Date())}.csv`;
+    link.download = `delivery-report-${formatDateInput(
+      new Date()
+    )}.csv`;
 
     document.body.appendChild(link);
     link.click();
@@ -563,6 +656,34 @@ const DeliveryReport = () => {
     currentPage * perPage,
     totalRecords
   );
+
+  /* ================= LOADING ================= */
+
+  const pageLoading = permissionsLoading || logoLoading;
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  /* ================= ACCESS DENIED ================= */
+
+  if (!canViewReport) {
+    return (
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <ShieldAlert size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            You don't have permission to view the Delivery Report.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   /* ================= UI ================= */
 
@@ -604,22 +725,24 @@ const DeliveryReport = () => {
             Refresh
           </button>
 
-          <button
-            type="button"
-            onClick={exportCSV}
-            disabled={!filteredReports.length}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download size={16} />
-            Export CSV
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              onClick={exportCSV}
+              disabled={!filteredReports.length}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+          )}
         </div>
       </div>
 
-      {/* SUMMARY CARDS */}
+      {/* COMPACT SUMMARY CARDS */}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <SummaryCard
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <CompactSummaryCard
           title="Total Records"
           value={totalRecords}
           subtitle="All delivery records"
@@ -628,7 +751,7 @@ const DeliveryReport = () => {
           bg="#EAF3FF"
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Confirmed"
           value={summary.confirmed}
           subtitle="Orders confirmed"
@@ -637,7 +760,7 @@ const DeliveryReport = () => {
           bg="#FFEDD5"
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Dispatched"
           value={summary.dispatched}
           subtitle="Orders dispatched"
@@ -646,7 +769,7 @@ const DeliveryReport = () => {
           bg="#EAF3FF"
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Shipped"
           value={summary.shipped}
           subtitle="Orders in transit"
@@ -655,7 +778,7 @@ const DeliveryReport = () => {
           bg="#EDE9FE"
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Delivered"
           value={summary.delivered}
           subtitle="Successfully delivered"
@@ -663,9 +786,18 @@ const DeliveryReport = () => {
           color="#15803D"
           bg="#DCFCE7"
         />
+
+        <CompactSummaryCard
+          title="Current Page"
+          value={`${currentPage} / ${Math.max(lastPage, 1)}`}
+          subtitle="Pagination"
+          icon={FileText}
+          color="#C2410C"
+          bg="#FFEDD5"
+        />
       </div>
 
-      {/* FILTER SECTION */}
+      {/* FILTERS */}
 
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
@@ -675,15 +807,12 @@ const DeliveryReport = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.6fr)_1fr_1fr_1fr_auto]">
-          {/* SEARCH */}
-
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_auto]">
           <div className="relative">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               type="text"
               value={search}
@@ -692,8 +821,6 @@ const DeliveryReport = () => {
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
             />
           </div>
-
-          {/* STATUS */}
 
           <select
             value={statusFilter}
@@ -707,14 +834,11 @@ const DeliveryReport = () => {
             <option value="delivered">Delivered</option>
           </select>
 
-          {/* FROM DATE */}
-
           <div className="relative">
             <CalendarDays
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               type="date"
               value={fromDate}
@@ -723,14 +847,11 @@ const DeliveryReport = () => {
             />
           </div>
 
-          {/* TO DATE */}
-
           <div className="relative">
             <CalendarDays
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               type="date"
               value={toDate}
@@ -739,14 +860,14 @@ const DeliveryReport = () => {
             />
           </div>
 
-          {/* ACTIONS */}
-
           <div className="flex gap-2">
             <button
               type="button"
               onClick={applyDateFilter}
-              className="h-10 flex-1 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white transition hover:bg-[#1E40AF]"
+              disabled={loading}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white transition hover:bg-[#1E40AF] disabled:opacity-60"
             >
+              <Filter size={15} />
               Apply
             </button>
 
@@ -754,47 +875,15 @@ const DeliveryReport = () => {
               type="button"
               onClick={clearFilters}
               title="Clear filters"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-gray-500 transition hover:bg-gray-50 hover:text-red-500"
+              className="flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-red-500"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>
-
-        {hasFilters && (
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-gray-400">
-              Active filters:
-            </span>
-
-            {statusFilter !== "all" && (
-              <span className="rounded-full bg-[#EAF3FF] px-3 py-1 text-[11px] font-semibold capitalize text-[#1E40AF]">
-                {statusFilter}
-              </span>
-            )}
-
-            {fromDate && (
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-600">
-                From: {fromDate}
-              </span>
-            )}
-
-            {toDate && (
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-600">
-                To: {toDate}
-              </span>
-            )}
-
-            {search && (
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-600">
-                Search: {search}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* REPORT TABLE */}
+      {/* TABLE */}
 
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
@@ -812,8 +901,6 @@ const DeliveryReport = () => {
           </span>
         </div>
 
-        {/* LOADING */}
-
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
             <Loader2
@@ -821,12 +908,10 @@ const DeliveryReport = () => {
               className="animate-spin text-[#2D6FE8]"
             />
             <p className="mt-3 text-sm font-medium text-gray-500">
-              Loading delivery reports...
+              Loading delivery report...
             </p>
           </div>
         ) : filteredReports.length === 0 ? (
-          /* EMPTY STATE */
-
           <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FileText size={25} />
@@ -838,7 +923,6 @@ const DeliveryReport = () => {
 
             <p className="mt-1 max-w-sm text-sm text-gray-500">
               No records match your search or selected filters.
-              Try changing your filters.
             </p>
 
             <button
@@ -858,17 +942,16 @@ const DeliveryReport = () => {
                 <thead>
                   <tr className="bg-[#F7FAFE]">
                     {[
-                      "Order Details",
+                      "Order / Invoice",
                       "Product",
                       "Recipient",
                       "Shipment",
                       "Timeline",
                       "Status",
-                      "Action",
                     ].map((heading) => (
                       <th
                         key={heading}
-                        className="whitespace-nowrap border-b border-[#DCE6F2] px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-gray-500"
+                        className="whitespace-nowrap border-b border-[#DCE6F2] px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-gray-500"
                       >
                         {heading}
                       </th>
@@ -877,238 +960,94 @@ const DeliveryReport = () => {
                 </thead>
 
                 <tbody>
-                  {filteredReports.map((item, index) => {
-                    const key = `${item["Order Reference"]}-${item.SKU}-${index}`;
-                    const expanded = expandedOrder === key;
+                  {filteredReports.map((item, index) => (
+                    <tr
+                      key={`${item["Order Reference"]}-${item.SKU}-${index}`}
+                      className="transition hover:bg-[#F8FBFF]"
+                    >
+                      <td className="px-4 py-4 align-top">
+                        <p className="text-xs font-bold text-gray-900">
+                          {safeValue(item["Order Reference"])}
+                        </p>
+                        <p className="mt-1 whitespace-nowrap text-[11px] text-gray-500">
+                          Invoice:{" "}
+                          {safeValue(item["Invoice Number"])}
+                        </p>
+                        <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
+                          {formatDate(item["Placed At"])}
+                        </p>
+                      </td>
 
-                    return (
-                      <React.Fragment key={key}>
-                        <tr className="transition hover:bg-[#F8FBFF]">
-                          {/* ORDER */}
+                      <td className="max-w-[190px] px-4 py-4 align-top">
+                        <p className="truncate text-xs font-semibold text-gray-800">
+                          {safeValue(item["Item Name"])}
+                        </p>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          SKU: {safeValue(item.SKU)}
+                        </p>
+                        <p className="mt-1 text-[10px] text-gray-400">
+                          Qty: {safeValue(item.QTY)}
+                        </p>
+                      </td>
 
-                          <td className="px-4 py-4 align-top">
-                            <p className="text-xs font-bold text-gray-900">
-                              {item["Order Reference"]}
-                            </p>
+                      <td className="max-w-[190px] px-4 py-4 align-top">
+                        <p className="truncate text-xs font-semibold text-gray-800">
+                          {safeValue(item["Recipient Name"])}
+                        </p>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          {safeValue(item["Recipient Phone"])}
+                        </p>
+                        <p className="mt-1 truncate text-[10px] text-gray-400">
+                          {safeValue(item["Recipient Email"])}
+                        </p>
+                      </td>
 
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              Invoice: {item["Invoice Number"] || "—"}
-                            </p>
+                      <td className="px-4 py-4 align-top">
+                        <p className="text-xs font-semibold text-gray-800">
+                          {safeValue(item.Carrier)}
+                        </p>
+                        <p className="mt-1 whitespace-nowrap text-[11px] text-gray-500">
+                          AWB:{" "}
+                          {safeValue(item["Shipment Number"])}
+                        </p>
+                      </td>
 
-                            <p className="mt-1 text-[11px] text-gray-400">
-                              {formatDate(item["Placed At"])}
-                            </p>
-                          </td>
+                      <td className="px-4 py-4 align-top">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] text-gray-500">
+                            Dispatched:{" "}
+                            <span className="font-semibold text-gray-700">
+                              {item["Dispatched At"]
+                                ? formatDate(item["Dispatched At"])
+                                : "—"}
+                            </span>
+                          </p>
+                          <p className="text-[10px] text-gray-500">
+                            Shipped:{" "}
+                            <span className="font-semibold text-gray-700">
+                              {item["Shipped At"]
+                                ? formatDate(item["Shipped At"])
+                                : "—"}
+                            </span>
+                          </p>
+                          <p className="text-[10px] text-gray-500">
+                            Delivered:{" "}
+                            <span className="font-semibold text-gray-700">
+                              {item["Delivered At"]
+                                ? formatDate(item["Delivered At"])
+                                : "—"}
+                            </span>
+                          </p>
+                        </div>
+                      </td>
 
-                          {/* PRODUCT */}
-
-                          <td className="max-w-[190px] px-4 py-4 align-top">
-                            <p className="truncate text-xs font-semibold text-gray-800">
-                              {item["Item Name"]}
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              SKU: {item.SKU}
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              Quantity: {item.QTY}
-                            </p>
-                          </td>
-
-                          {/* RECIPIENT */}
-
-                          <td className="max-w-[190px] px-4 py-4 align-top">
-                            <p className="truncate text-xs font-semibold text-gray-800">
-                              {item["Recipient Name"]}
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              {item["Recipient Phone"]}
-                            </p>
-
-                            <p className="mt-1 truncate text-[11px] text-gray-400">
-                              {item["Recipient Email"]}
-                            </p>
-                          </td>
-
-                          {/* SHIPMENT */}
-
-                          <td className="px-4 py-4 align-top">
-                            <p className="text-xs font-semibold text-gray-800">
-                              {item.Carrier || "—"}
-                            </p>
-
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              AWB: {item["Shipment Number"] || "—"}
-                            </p>
-                          </td>
-
-                          {/* TIMELINE */}
-
-                          <td className="px-4 py-4 align-top">
-                            <div className="space-y-1.5">
-                              <p className="text-[11px] text-gray-500">
-                                Dispatched:{" "}
-                                <span className="font-medium text-gray-700">
-                                  {item["Dispatched At"]
-                                    ? formatDate(item["Dispatched At"])
-                                    : "—"}
-                                </span>
-                              </p>
-
-                              <p className="text-[11px] text-gray-500">
-                                Shipped:{" "}
-                                <span className="font-medium text-gray-700">
-                                  {item["Shipped At"]
-                                    ? formatDate(item["Shipped At"])
-                                    : "—"}
-                                </span>
-                              </p>
-
-                              <p className="text-[11px] text-gray-500">
-                                Delivered:{" "}
-                                <span className="font-medium text-gray-700">
-                                  {item["Delivered At"]
-                                    ? formatDate(item["Delivered At"])
-                                    : "—"}
-                                </span>
-                              </p>
-                            </div>
-                          </td>
-
-                          {/* STATUS */}
-
-                          <td className="px-4 py-4 align-top">
-                            <StatusBadge
-                              status={item["Delivery Status"]}
-                            />
-                          </td>
-
-                          {/* ACTION */}
-
-                          <td className="px-4 py-4 align-top">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedOrder(
-                                  expanded ? null : key
-                                )
-                              }
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#DCE6F2] px-3 py-2 text-xs font-semibold text-[#2D6FE8] transition hover:bg-[#EAF3FF]"
-                            >
-                              Details
-                              <ChevronRight
-                                size={14}
-                                className={`transition-transform ${
-                                  expanded ? "rotate-90" : ""
-                                }`}
-                              />
-                            </button>
-                          </td>
-                        </tr>
-
-                        {/* EXPANDED DETAILS */}
-
-                        {expanded && (
-                          <tr className="bg-[#F8FBFF]">
-                            <td colSpan={7} className="px-5 py-4">
-                              <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                                <div>
-                                  <p className="mb-3 text-xs font-bold text-gray-800">
-                                    Delivery Timeline
-                                  </p>
-
-                                  <div className="space-y-3">
-                                    <DateItem
-                                      label="Placed At"
-                                      value={item["Placed At"]}
-                                    />
-                                    <DateItem
-                                      label="Dispatched At"
-                                      value={item["Dispatched At"]}
-                                    />
-                                    <DateItem
-                                      label="Shipped At"
-                                      value={item["Shipped At"]}
-                                    />
-                                    <DateItem
-                                      label="Delivered At"
-                                      value={item["Delivered At"]}
-                                    />
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <p className="mb-3 text-xs font-bold text-gray-800">
-                                    Recipient Information
-                                  </p>
-
-                                  <div className="space-y-3 text-xs text-gray-600">
-                                    <p className="flex items-center gap-2">
-                                      <User
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      {item["Recipient Name"]}
-                                    </p>
-
-                                    <p className="flex items-center gap-2 break-all">
-                                      <Phone
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      {item["Recipient Phone"]}
-                                    </p>
-
-                                    <p className="flex items-center gap-2 break-all">
-                                      <Mail
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      {item["Recipient Email"]}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <p className="mb-3 text-xs font-bold text-gray-800">
-                                    Shipment Information
-                                  </p>
-
-                                  <div className="space-y-3 text-xs text-gray-600">
-                                    <p className="flex items-center gap-2">
-                                      <Truck
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      Carrier: {item.Carrier || "—"}
-                                    </p>
-
-                                    <p className="flex items-center gap-2">
-                                      <Hash
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      Shipment: {item["Shipment Number"] || "—"}
-                                    </p>
-
-                                    <p className="flex items-center gap-2">
-                                      <Package
-                                        size={14}
-                                        className="text-[#2D6FE8]"
-                                      />
-                                      Quantity: {item.QTY}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                      <td className="px-4 py-4 align-top">
+                        <StatusBadge
+                          status={item["Delivery Status"]}
+                        />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1117,10 +1056,9 @@ const DeliveryReport = () => {
 
             <div className="space-y-3 p-3 lg:hidden">
               {filteredReports.map((item, index) => (
-                <MobileOrderCard
+                <MobileDeliveryCard
                   key={`${item["Order Reference"]}-${item.SKU}-${index}`}
                   item={item}
-                  index={index}
                 />
               ))}
             </div>
@@ -1172,22 +1110,6 @@ const DeliveryReport = () => {
             </div>
           </>
         )}
-      </div>
-
-      {/* FOOTER NOTE */}
-
-      <div className="flex items-start gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 py-3">
-        <FileText
-          size={15}
-          className="mt-0.5 shrink-0 text-[#2D6FE8]"
-        />
-
-        <p className="text-[11px] leading-5 text-gray-500">
-          Delivery records are fetched from the delivery report API.
-          The summary cards reflect the records currently loaded from
-          the API. Missing invoice, shipment or delivery information
-          is displayed as —.
-        </p>
       </div>
     </div>
   );

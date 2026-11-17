@@ -16,13 +16,11 @@ import {
   FiX,
   FiEye,
   FiTruck,
-  FiChevronUp,
   FiPackage,
   FiUser,
   FiCalendar,
   FiMapPin,
   FiCheck,
-  FiSquare,
   FiLoader,
   FiAlertCircle,
   FiSend,
@@ -148,9 +146,6 @@ const TableRowSkeleton: React.FC = () => (
     </td>
     <td className="px-3 py-3 text-center">
       <SkeletonBlock className="mx-auto h-4 w-6" />
-    </td>
-    <td className="px-3 py-3">
-      <SkeletonBlock className="ml-auto h-4 w-16" />
     </td>
     <td className="px-3 py-3">
       <SkeletonBlock className="ml-auto h-4 w-20" />
@@ -328,6 +323,9 @@ export interface Order {
   /** Raw ISO/DB date used for date-range filtering */
   orderDateRaw?: string | null;
 }
+
+/** One order with ONLY its (filtered) items nested inside */
+type OrderGroup = Order & { items: OrderItem[] };
 
 interface ModalLoaderProps {
   message?: string;
@@ -2055,7 +2053,7 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
 };
 
 // =====================================================
-// ORDERS TABLE — ITEM-WISE VIEW ONLY
+// ORDERS TABLE — ORDER-WISE VIEW (items nested inside each order)
 // =====================================================
 
 interface OrdersTableProps {
@@ -2068,6 +2066,8 @@ interface OrdersTableProps {
   initialSearchAutoOpenView?: boolean;
   onInitialSearchConsumed?: () => void;
 }
+
+type CancelReturnState = "allowed" | "not_allowed" | "partial" | "closed";
 
 const OrdersTable: React.FC<OrdersTableProps> = ({
   onSelectOrder,
@@ -2164,6 +2164,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [selectedItemForDispatchChoice, setSelectedItemForDispatchChoice] =
     useState<OrderItem | null>(null);
 
+  // keys: `order-${orderRef}` for order-level toggle
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(
     new Set()
   );
@@ -2171,6 +2172,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     new Set()
   );
 
+  // openMenuId: `order:${orderRef}` | `item:${orderRef}:${itemId}`
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{
     top: number;
@@ -2221,7 +2223,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     []
   );
 
-  const itemsPerPage = 20;
+  const itemsPerPage = 20; // orders per page
 
   useEffect(() => {
     fetchOrders();
@@ -2318,7 +2320,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     try {
       const response = await orderApi.getOrders();
       const data = response.data.data || [];
-      const extractedOrders = data.map((item: any) => item.order);
+      const extractedOrders = data
+        .map((item: any) => item?.order ?? item)
+        .filter((o: any) => o && typeof o === "object");
       setOrders(extractedOrders);
     } catch (err) {
       setError("An error occurred while fetching orders");
@@ -2370,10 +2374,56 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
-  const convertToItemRows = (
-    apiOrder: any
-  ): Array<Order & { singleItem: OrderItem }> => {
-    const orderBase = {
+  /** API order -> one OrderGroup (order with ALL its items nested) */
+  const convertToOrderGroup = (apiOrder: any): OrderGroup => {
+    const items: OrderItem[] =
+      apiOrder.items?.map((item: any) => ({
+        id: String(item.line_id || item.id || ""),
+        lineId: item.line_id || item.id,
+        orderReference:
+          item.order_reference || apiOrder.order_reference || "N/A",
+        itemReferenceId: item.item_reference_id || "N/A",
+        productName: item.product_name || "N/A",
+        categoryName:
+          item.category_name ||
+          categories.find(
+            (category) => String(category.id) === String(item.category_id)
+          )?.title ||
+          undefined,
+        brandName:
+          item.brand_name ||
+          brands.find((brand) => String(brand.id) === String(item.brand_id))
+            ?.title ||
+          undefined,
+        sku: item.product_code || "N/A",
+        quantity: item.quantity || 0,
+        price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
+        total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
+        unitPrice: item.unit_price || 0,
+        lineTotal: item.line_total || 0,
+        status:
+          item.delivery_status?.charAt(0).toUpperCase() +
+            item.delivery_status?.slice(1) || "Pending",
+        delivery_status: item.delivery_status || "pending",
+        image: item.primary_image || item.product_image || undefined,
+        productId: item.product_id,
+        isReturnable: item.is_returnable,
+        availableForReturn: item.available_for_return,
+        gstRate: item.gst_rate,
+        gstAmount: item.gst_amount,
+        categoryId: item.category_id,
+        brandId: item.brand_id,
+        is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
+        courier_tracking_number:
+          apiOrder.indiapost?.awb || item.courier_tracking_number || undefined,
+        courierTrackingNumber:
+          apiOrder.indiapost?.awb || item.courier_tracking_number || undefined,
+        invoiceNumber: item.invoice?.invoice_number || undefined,
+        invoice_number: item.invoice?.invoice_number || undefined,
+        invoice: item.invoice || null,
+      })) || [];
+
+    return {
       id: apiOrder.order_reference,
       orderId: apiOrder.id,
       orderReference: apiOrder.order_reference,
@@ -2413,66 +2463,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       indiaPost: apiOrder.indiapost ?? null,
       courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
       shippingDetails: apiOrder.shipping_details || undefined,
-      items:
-        apiOrder.items?.map((item: any) => ({
-          id: String(item.line_id || item.id || ""),
-          lineId: item.line_id || item.id,
-          orderReference:
-            item.order_reference || apiOrder.order_reference || "N/A",
-          itemReferenceId: item.item_reference_id || "N/A",
-          productName: item.product_name || "N/A",
-          categoryName:
-            item.category_name ||
-            categories.find(
-              (category) => String(category.id) === String(item.category_id)
-            )?.title ||
-            undefined,
-          brandName:
-            item.brand_name ||
-            brands.find((brand) => String(brand.id) === String(item.brand_id))
-              ?.title ||
-            undefined,
-          sku: item.product_code || "N/A",
-          quantity: item.quantity || 0,
-          price: `₹${Number(item.unit_price || 0).toLocaleString("en-IN")}`,
-          total: `₹${Number(item.line_total || 0).toLocaleString("en-IN")}`,
-          unitPrice: item.unit_price || 0,
-          lineTotal: item.line_total || 0,
-          status:
-            item.delivery_status?.charAt(0).toUpperCase() +
-              item.delivery_status?.slice(1) || "Pending",
-          delivery_status: item.delivery_status || "pending",
-          image: item.primary_image || item.product_image || undefined,
-          productId: item.product_id,
-          isReturnable: item.is_returnable,
-          availableForReturn: item.available_for_return,
-          gstRate: item.gst_rate,
-          gstAmount: item.gst_amount,
-          categoryId: item.category_id,
-          brandId: item.brand_id,
-          is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-          courier_tracking_number:
-            apiOrder.indiapost?.awb ||
-            item.courier_tracking_number ||
-            undefined,
-          courierTrackingNumber:
-            apiOrder.indiapost?.awb ||
-            item.courier_tracking_number ||
-            undefined,
-          invoiceNumber: item.invoice?.invoice_number || undefined,
-          invoice_number: item.invoice?.invoice_number || undefined,
-          invoice: item.invoice || null,
-        })) || [],
+      items,
     };
-
-    return (orderBase.items || []).map((item) => ({
-      ...orderBase,
-      singleItem: item,
-    }));
   };
 
-  const allItemRows = useMemo(() => {
-    return orders.flatMap((order) => convertToItemRows(order));
+  const allOrderGroups = useMemo(() => {
+    return orders.map((order) => convertToOrderGroup(order));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, categories, brands]);
 
@@ -2489,7 +2485,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const normalizePhone = (phone: string) =>
     String(phone || "").replace(/\D/g, "");
 
-  const filteredRows = useMemo(() => {
+  /** Orders (with ONLY matching items nested) after all filters */
+  const filteredGroups = useMemo<OrderGroup[]>(() => {
     const searchText = search.toLowerCase().trim();
     const searchDigits = normalizePhone(searchText);
     const filterStatusValue = getFilterStatusValue(statusFilter);
@@ -2505,67 +2502,74 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         : orderTypeFilter.replace("Order Type: ", "");
     const dateBounds = getDateRangeBounds(dateRangeFilter);
 
-    return allItemRows.filter((row) => {
-      const item = row.singleItem;
+    const result: OrderGroup[] = [];
 
-      if (orderTypeValue !== null && row.orderType !== orderTypeValue)
-        return false;
+    allOrderGroups.forEach((group) => {
+      if (orderTypeValue !== null && group.orderType !== orderTypeValue) return;
 
-      // ─── Date range filter ─────────────────────────────
       if (dateBounds) {
-        const rowDate = parseOrderDate(row.orderDateRaw);
-        if (!rowDate) return false;
+        const rowDate = parseOrderDate(group.orderDateRaw);
+        if (!rowDate) return;
         const t = rowDate.getTime();
-        if (t < dateBounds.start || t > dateBounds.end) return false;
-      }
-      // ───────────────────────────────────────────────────
-
-      if (filterStatusValue !== null) {
-        const itemStatus = getItemStatus(item);
-        if (itemStatus !== filterStatusValue) return false;
+        if (t < dateBounds.start || t > dateBounds.end) return;
       }
 
-      if (
-        categoryValue !== null &&
-        String(item.categoryId ?? "") !== String(categoryValue)
-      ) {
-        return false;
-      }
-
-      if (
-        brandValue !== null &&
-        String(item.brandId ?? "") !== String(brandValue)
-      ) {
-        return false;
-      }
-
+      // order-level search match (then all items of that order are eligible)
+      let orderLevelMatch = false;
       if (searchText) {
-        const phoneDigits = normalizePhone(row.userPhone);
-        const phoneMatch =
-          searchDigits.length > 0 && phoneDigits.includes(searchDigits);
-
-        return (
-          phoneMatch ||
-          (row.id || "").toLowerCase().includes(searchText) ||
-          (row.customer || "").toLowerCase().includes(searchText) ||
-          (row.userEmail || "").toLowerCase().includes(searchText) ||
-          (row.gatewayTransactionId || "").toLowerCase().includes(searchText) ||
-          (item.productName || "").toLowerCase().includes(searchText) ||
-          (item.sku || "").toLowerCase().includes(searchText) ||
-          String(item.courier_tracking_number || "")
-            .toLowerCase()
-            .includes(searchText) ||
-          String(item.invoiceNumber || "")
-            .toLowerCase()
-            .includes(searchText) ||
-          (item.itemReferenceId || "").toLowerCase().includes(searchText)
-        );
+        const phoneDigits = normalizePhone(group.userPhone);
+        orderLevelMatch =
+          (searchDigits.length > 0 && phoneDigits.includes(searchDigits)) ||
+          (group.id || "").toLowerCase().includes(searchText) ||
+          (group.customer || "").toLowerCase().includes(searchText) ||
+          (group.userEmail || "").toLowerCase().includes(searchText) ||
+          (group.gatewayTransactionId || "").toLowerCase().includes(searchText);
       }
 
-      return true;
+      const matchedItems = group.items.filter((item) => {
+        if (filterStatusValue !== null) {
+          if (getItemStatus(item) !== filterStatusValue) return false;
+        }
+
+        if (
+          categoryValue !== null &&
+          String(item.categoryId ?? "") !== String(categoryValue)
+        ) {
+          return false;
+        }
+
+        if (
+          brandValue !== null &&
+          String(item.brandId ?? "") !== String(brandValue)
+        ) {
+          return false;
+        }
+
+        if (searchText && !orderLevelMatch) {
+          return (
+            (item.productName || "").toLowerCase().includes(searchText) ||
+            (item.sku || "").toLowerCase().includes(searchText) ||
+            String(item.courier_tracking_number || "")
+              .toLowerCase()
+              .includes(searchText) ||
+            String(item.invoiceNumber || "")
+              .toLowerCase()
+              .includes(searchText) ||
+            (item.itemReferenceId || "").toLowerCase().includes(searchText)
+          );
+        }
+
+        return true;
+      });
+
+      if (matchedItems.length > 0) {
+        result.push({ ...group, items: matchedItems });
+      }
     });
+
+    return result;
   }, [
-    allItemRows,
+    allOrderGroups,
     search,
     statusFilter,
     categoryFilter,
@@ -2574,12 +2578,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     dateRangeFilter,
   ]);
 
+  const filteredItemCount = useMemo(
+    () => filteredGroups.reduce((sum, g) => sum + g.items.length, 0),
+    [filteredGroups]
+  );
+
   const initialSearchHandledRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!initialSearchOrderReference && !initialSearchOrderId) return;
     if (loading) return;
-    if (allItemRows.length === 0) return;
+    if (allOrderGroups.length === 0) return;
 
     const searchKey = `${initialSearchOrderReference || ""}-${
       initialSearchOrderId || ""
@@ -2602,7 +2611,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       setCurrentPage(1);
       setSearch(matchedApiOrder.order_reference || "");
 
-      const uiOrder = allItemRows.find(
+      const uiOrder = allOrderGroups.find(
         (r) => r.id === matchedApiOrder.order_reference
       );
       if (uiOrder) onSelectOrder(uiOrder);
@@ -2628,7 +2637,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     initialSearchOrderReference,
     initialSearchOrderId,
     loading,
-    allItemRows.length,
+    allOrderGroups.length,
     orders.length,
   ]);
 
@@ -2680,26 +2689,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   useEffect(() => {
     if (onFilteredChangeRef.current) {
-      // ✅ ITEM-BASED export payload:
-      //   Group the filtered rows back by order so the export "order"
-      //   contains ONLY the matching items. Then flatten to a single
-      //   item-level array — the CSV util already writes one row per item.
-      const byOrder = new Map<string, Order & { items: OrderItem[] }>();
-      filteredRows.forEach((row) => {
-        const existing = byOrder.get(row.id);
-        if (existing) {
-          existing.items.push(row.singleItem);
-        } else {
-          byOrder.set(row.id, { ...row, items: [row.singleItem] });
-        }
-      });
-      onFilteredChangeRef.current(Array.from(byOrder.values()), activeFilterLabel);
+      // Each filtered group already holds ONLY the matching items.
+      onFilteredChangeRef.current(filteredGroups, activeFilterLabel);
     }
-  }, [filteredRows, activeFilterLabel]);
+  }, [filteredGroups, activeFilterLabel]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / itemsPerPage));
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / itemsPerPage));
 
-  const visibleRows = filteredRows.slice(
+  const visibleGroups = filteredGroups.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -2732,7 +2729,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       setSelectedOrderForView(apiOrder.order_reference);
       setSelectedOrderDataForView(apiOrder);
       setShowViewPopup(true);
-      const uiOrder = allItemRows.find((o) => o.id === orderId);
+      const uiOrder = allOrderGroups.find((o) => o.id === orderId);
       if (uiOrder) onSelectOrder(uiOrder);
     }
   };
@@ -2857,25 +2854,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
-  const openIndiaPostDispatch = (row: Order & { singleItem: OrderItem }) => {
-    const rawOrderId = row.orderId;
-    const orderId =
-      typeof rawOrderId === "number" ? rawOrderId : Number(rawOrderId);
-
-    if (
-      rawOrderId === undefined ||
-      rawOrderId === null ||
-      String(rawOrderId).trim() === "" ||
-      !Number.isSafeInteger(orderId) ||
-      orderId <= 0
-    ) {
-      toast.error("Invalid database order ID. Please refresh the orders list.");
-      return;
-    }
-
-    navigate(`/orders/${orderId}/dispatch`);
-  };
-
   const canItemDispatch = (item: OrderItem) =>
     getItemStatus(item) === "confirmed";
   const canItemShip = (item: OrderItem) => getItemStatus(item) === "dispatched";
@@ -2922,16 +2900,38 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return TERMINAL_STATUSES.includes(status);
   };
 
-  const handleToggleCancelReturn = async (order: Order, item: OrderItem) => {
-    const lineId = item.lineId || parseInt(item.id);
-    if (!lineId || isNaN(lineId)) {
-      toast.error("Invalid order line ID");
+  /** Cancel/Return state for the WHOLE order (looks at non-closed items) */
+  const getOrderCancelReturnState = (group: OrderGroup): CancelReturnState => {
+    const eligible = group.items.filter((it) => !isTerminalStatus(it));
+    if (eligible.length === 0) return "closed";
+    const allowedCount = eligible.filter((it) =>
+      Boolean(it.is_cancel_return_allowed)
+    ).length;
+    if (allowedCount === eligible.length) return "allowed";
+    if (allowedCount === 0) return "not_allowed";
+    return "partial";
+  };
+
+  /**
+   * ORDER-LEVEL toggle: applies Allowed / Not Allowed to ALL (non-closed)
+   * items of the order.
+   */
+  const handleToggleOrderCancelReturn = async (group: OrderGroup) => {
+    // use the FULL order (not just filtered items) so the whole order is updated
+    const fullGroup =
+      allOrderGroups.find((g) => g.id === group.id) || group;
+    const eligible = fullGroup.items.filter((it) => !isTerminalStatus(it));
+
+    if (eligible.length === 0) {
+      toast.error("This order is closed. Cancel/Return cannot be changed.");
       return;
     }
 
-    const key = `${order.id}-${item.id}`;
-    const currentValue = Boolean(item.is_cancel_return_allowed);
-    const newValue = !currentValue;
+    const allAllowed = eligible.every((it) =>
+      Boolean(it.is_cancel_return_allowed)
+    );
+    const newValue = !allAllowed;
+    const key = `order-${group.id}`;
 
     setTogglingCancelReturn((prev) => {
       const next = new Set(prev);
@@ -2940,30 +2940,60 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     });
 
     try {
-      const response = await orderApi.toggleCancelReturn(lineId, newValue);
+      const results = await Promise.allSettled(
+        eligible.map(async (it) => {
+          const lineId = it.lineId || parseInt(it.id);
+          if (!lineId || isNaN(lineId)) {
+            throw new Error("Invalid order line ID");
+          }
+          const response = await orderApi.toggleCancelReturn(lineId, newValue);
+          if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Failed to update");
+          }
+          return lineId;
+        })
+      );
 
-      if (response.data.success) {
-        toast.success(
-          newValue
-            ? "Cancel/Return option activated"
-            : "Cancel/Return option deactivated"
-        );
+      const succeededLineIds = new Set<number>();
+      results.forEach((r) => {
+        if (r.status === "fulfilled") succeededLineIds.add(Number(r.value));
+      });
+      const failedCount = results.length - succeededLineIds.size;
 
+      if (succeededLineIds.size > 0) {
         setOrders((prevOrders) =>
           prevOrders.map((o) => {
-            if (o.order_reference !== order.orderReference) return o;
+            if (o.order_reference !== group.orderReference) return o;
             return {
               ...o,
               items: (o.items || []).map((it: any) => {
-                const itLineId = it.line_id || it.id;
-                if (itLineId !== lineId) return it;
+                const itLineId = Number(it.line_id || it.id);
+                if (!succeededLineIds.has(itLineId)) return it;
                 return { ...it, is_cancel_return_allowed: newValue };
               }),
             };
           })
         );
+      }
+
+      if (failedCount === 0) {
+        toast.success(
+          newValue
+            ? "Cancel/Return allowed for this order"
+            : "Cancel/Return not allowed for this order"
+        );
+      } else if (succeededLineIds.size > 0) {
+        toast.error(
+          `Updated ${succeededLineIds.size} item(s), ${failedCount} failed`
+        );
       } else {
-        toast.error(response.data.message || "Failed to update");
+        const firstError = results.find(
+          (r): r is PromiseRejectedResult => r.status === "rejected"
+        );
+        toast.error(
+          (firstError?.reason as any)?.message ||
+            "Failed to update cancel/return option"
+        );
       }
     } catch (err: any) {
       console.error(err);
@@ -3053,9 +3083,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setSelectedItemsForDeliver([]);
   };
 
-  const openDispatchChoicePopup = (row: Order & { singleItem: OrderItem }) => {
-    setSelectedOrderForDispatchChoice(row);
-    setSelectedItemForDispatchChoice(row.singleItem);
+  const openDispatchChoicePopup = (group: OrderGroup, item: OrderItem) => {
+    setSelectedOrderForDispatchChoice(group);
+    setSelectedItemForDispatchChoice(item);
     setShowDispatchChoicePopup(true);
   };
 
@@ -3100,6 +3130,264 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const showSkeletonRows =
     loading || (orders.length > 0 && (categoriesLoading || brandsLoading));
+
+  /* ---------- shared small renderers ---------- */
+
+  const renderCancelReturnPill = (state: CancelReturnState) => {
+    if (state === "closed") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#D6E2F0] bg-[#F3F4F6] px-2 py-0.5 text-[10px] font-bold text-[#9CA3AF]">
+          Cancel/Return: Closed
+        </span>
+      );
+    }
+    if (state === "allowed") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#2D6FE8]/25 bg-[#EAF3FF] px-2 py-0.5 text-[10px] font-bold text-[#2D6FE8]">
+          <FiCheckCircle size={10} /> Cancel/Return: Allowed
+        </span>
+      );
+    }
+    if (state === "partial") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full border border-[#F2C94C]/40 bg-[#FFF7D6] px-2 py-0.5 text-[10px] font-bold text-[#A16207]">
+          Cancel/Return: Partial
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-[#D6E2F0] bg-[#F3F4F6] px-2 py-0.5 text-[10px] font-bold text-[#6B7280]">
+        <FiX size={10} /> Cancel/Return: Not Allowed
+      </span>
+    );
+  };
+
+  /** Open / close the three-dot menu */
+  const toggleMenu = (
+    menuId: string,
+    trigger: HTMLButtonElement,
+    estimatedHeight: number
+  ) => {
+    if (openMenuId === menuId) {
+      setOpenMenuId(null);
+      return;
+    }
+    menuTriggerRef.current = trigger;
+    setMenuPosition(getActionMenuPosition(trigger, estimatedHeight));
+    setOpenMenuId(menuId);
+  };
+
+  /** Floating menu (portal) – order-level OR item-level */
+  const renderActionMenuPortal = () => {
+    if (!openMenuId || !menuPosition || typeof document === "undefined") {
+      return null;
+    }
+
+    let content: React.ReactNode = null;
+
+    if (openMenuId.startsWith("order:")) {
+      const orderRef = openMenuId.slice("order:".length);
+      const group = filteredGroups.find((g) => g.id === orderRef);
+      if (!group) return null;
+
+      const state = getOrderCancelReturnState(group);
+      const isToggling = togglingCancelReturn.has(`order-${group.id}`);
+
+      content =
+        state === "closed" ? (
+          <div className="flex w-full cursor-not-allowed items-center gap-2 px-4 py-2 text-left text-xs text-[#9CA3AF]">
+            <FiCheckCircle size={13} />
+            Closed
+          </div>
+        ) : canToggleCancelReturn ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpenMenuId(null);
+              handleToggleOrderCancelReturn(group);
+            }}
+            disabled={isToggling}
+            className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${
+              state === "allowed" ? "text-[#2D6FE8]" : "text-[#6B7280]"
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              {isToggling ? (
+                <FiLoader size={13} className="animate-spin" />
+              ) : state === "allowed" ? (
+                <FiCheckCircle size={13} />
+              ) : (
+                <FiX size={13} />
+              )}
+              Cancel/Return
+            </div>
+            <span className="text-[10px] font-semibold">
+              {state === "allowed"
+                ? "Allowed"
+                : state === "partial"
+                ? "Partial"
+                : "Not Allowed"}
+            </span>
+          </button>
+        ) : (
+          <div className="px-4 py-2 text-xs text-[#9CA3AF]">
+            No actions available
+          </div>
+        );
+    } else if (openMenuId.startsWith("item:")) {
+      const [, orderRef, itemId] = openMenuId.split(":");
+      const group = filteredGroups.find((g) => g.id === orderRef);
+      const item = group?.items.find((it) => it.id === itemId);
+      if (!group || !item) return null;
+
+      const hasInvoice = Boolean(item.invoiceNumber);
+
+      content =
+        hasInvoice && group.orderId && canViewInvoice ? (
+          <button
+            type="button"
+            onClick={() => {
+              setOpenMenuId(null);
+              handleOpenInvoicePdf(
+                group.orderId!,
+                item.lineId || parseInt(item.id)
+              );
+            }}
+            className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-[#111827] hover:bg-[#F4F8FD]"
+          >
+            <FiFileText size={13} className="text-[#2D6FE8]" />
+            View Invoice
+          </button>
+        ) : (
+          <div className="px-4 py-2 text-xs text-[#9CA3AF]">
+            No invoice available
+          </div>
+        );
+    }
+
+    if (!content) return null;
+
+    return createPortal(
+      <AnimatePresence>
+        <motion.div
+          ref={menuPanelRef}
+          initial={{
+            opacity: 0,
+            scale: 0.95,
+            y: menuPosition.placement === "above" ? 8 : -8,
+          }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{
+            opacity: 0,
+            scale: 0.95,
+            y: menuPosition.placement === "above" ? 8 : -8,
+          }}
+          transition={{ duration: 0.15 }}
+          style={{
+            top: menuPosition.top,
+            left: menuPosition.left,
+            transformOrigin:
+              menuPosition.placement === "above" ? "bottom right" : "top right",
+          }}
+          className="orders-action-menu-portal fixed z-[99999] max-h-[calc(100vh-24px)] w-48 overflow-y-auto rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-xl"
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>,
+      document.body
+    );
+  };
+
+  /** Item action buttons (dispatch / ship / deliver / undelivered) */
+  const renderItemActionButtons = (group: OrderGroup, item: OrderItem) => {
+    const isDispatchable = canItemDispatch(item) && canDispatch;
+    const isShipable = canItemShip(item) && canShip;
+    const isDeliverable = canItemDeliver(item) && canDeliver;
+    const isUndeliverable = canItemMarkUndelivered(item) && canMarkUndelivered;
+    const isDelivered = isFullyDelivered(item);
+    const isMarking = markingUndelivered.has(`${group.id}-${item.id}`);
+    const hasInvoice = Boolean(item.invoiceNumber);
+    const itemMenuId = `item:${group.id}:${item.id}`;
+
+    return (
+      <div className="flex items-center justify-center gap-1.5">
+        {isDispatchable && (
+          <button
+            type="button"
+            onClick={() => openDispatchChoicePopup(group, item)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+            title="Dispatch (India Post / Manual)"
+          >
+            <FiTruck size={14} />
+          </button>
+        )}
+
+        {isShipable && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedOrderForShip(group);
+              setSelectedItemsForShip([item]);
+              setShowShipPopup(true);
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+            title="Ship Item"
+          >
+            <FiSend size={14} />
+          </button>
+        )}
+
+        {isDeliverable && !isDelivered && (
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedOrderForDeliver(group);
+              setSelectedItemsForDeliver([item]);
+              setShowDeliverPopup(true);
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+            title="Deliver Item"
+          >
+            <FiCheckCircle size={14} />
+          </button>
+        )}
+
+        {isUndeliverable && (
+          <button
+            type="button"
+            onClick={() => handleMarkUndelivered(group, item)}
+            disabled={isMarking}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#EEF5FF] text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
+            title="Mark as Undelivered"
+          >
+            {isMarking ? (
+              <FiLoader size={14} className="animate-spin" />
+            ) : (
+              <FiAlertCircle size={14} />
+            )}
+          </button>
+        )}
+
+        {isDelivered && (
+          <span className="text-xs font-bold text-[#2D6FE8]">✓</span>
+        )}
+
+        {/* ITEM three-dot: only Invoice (stays item-wise) */}
+        {hasInvoice && group.orderId && canViewInvoice && (
+          <div className="action-menu-container relative">
+            <button
+              type="button"
+              onClick={(event) => toggleMenu(itemMenuId, event.currentTarget, 48)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+              title="Item Actions (Invoice)"
+            >
+              <FiMoreVertical size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (initialLoading) {
     return (
@@ -3257,7 +3545,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 />
               </div>
 
-              {/* ✅ NEW: Date Range filter */}
               <div className="relative w-[150px]">
                 <FiCalendar
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
@@ -3395,7 +3682,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   size={16}
                 />
               </div>
-              {/* ✅ NEW: Date Range filter (mobile) */}
               <div className="relative">
                 <select
                   value={dateRangeFilter}
@@ -3427,395 +3713,271 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           )}
         </div>
 
-        {/* ORDER TABLE — ITEM WISE */}
+        {/* ORDER TABLE — ORDER WISE, ITEMS NESTED */}
         <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm">
           <div className="hidden overflow-x-auto lg:block">
             <table className="w-full min-w-[1120px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Order ID</th>
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Item Ref</th>
                   <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Product</th>
                   <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">SKU</th>
                   <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Qty</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Price</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Total</th>
+                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Amount</th>
                   <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Tracking No.</th>
                   <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Status</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Actions</th>
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Item Actions</th>
                 </tr>
               </thead>
 
-              <tbody>
-                {showSkeletonRows ? (
-                  [...Array(6)].map((_, i) => (
+              {showSkeletonRows ? (
+                <tbody>
+                  {[...Array(6)].map((_, i) => (
                     <TableRowSkeleton key={`skeleton-${i}`} />
-                  ))
-                ) : visibleRows.length > 0 ? (
-                  visibleRows.map((row, index) => {
-                    const item = row.singleItem;
-                    const itemStatusBadge = getStatusBadge(
-                      item.delivery_status || item.status || "pending"
-                    );
+                  ))}
+                </tbody>
+              ) : visibleGroups.length > 0 ? (
+                visibleGroups.map((group) => {
+                  const cancelState = getOrderCancelReturnState(group);
+                  const orderMenuId = `order:${group.id}`;
+                  const orderMenuHeight = 48;
 
-                    const isDispatchable = canItemDispatch(item) && canDispatch;
-                    const isShipable = canItemShip(item) && canShip;
-                    const isDeliverable = canItemDeliver(item) && canDeliver;
-                    const isUndeliverable =
-                      canItemMarkUndelivered(item) && canMarkUndelivered;
-                    const isDelivered = isFullyDelivered(item);
-                    const isMarking = markingUndelivered.has(
-                      `${row.id}-${item.id}`
-                    );
-                    const isTogglingReturn = togglingCancelReturn.has(
-                      `${row.id}-${item.id}`
-                    );
-                    const hasInvoice = Boolean(item.invoiceNumber);
-                    const isClosed = isTerminalStatus(item);
-                    const actionMenuItemCount =
-                      Number(Boolean(hasInvoice && row.orderId && canViewInvoice)) +
-                      Number(Boolean(!isClosed && canToggleCancelReturn)) +
-                      Number(Boolean(isClosed));
-                    const actionMenuEstimatedHeight = Math.max(
-                      40,
-                      actionMenuItemCount * 36 + 8
-                    );
-
-                    return (
+                  return (
+                    <tbody
+                      key={group.id}
+                      className="border-b-2 border-[#2D6FE8]/15"
+                    >
+                      {/* ORDER HEADER ROW */}
                       <tr
-                        key={`${row.id}-${item.id}-${index}`}
-                        className={`border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF] ${
-                          selectedOrderId === row.id
-                            ? "bg-[#EAF3FF]"
-                            : "bg-white"
+                        className={`${
+                          selectedOrderId === group.id
+                            ? "bg-[#DBEAFE]"
+                            : "bg-[#EAF3FF]"
                         }`}
                       >
-                        <td className="px-3 py-3">
-                          <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
-                            {item.itemReferenceId || "N/A"}
-                          </span>
-                          <p className="mt-1 max-w-[180px] truncate text-[10px] text-[#6B7280]">
-                            {row.customer} • {row.date}
-                          </p>
-                        </td>
-
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-2.5">
-                            {item.image ? (
-                              <img
-                                src={item.image}
-                                alt={item.productName}
-                                className="h-8 w-8 flex-shrink-0 rounded-lg border border-[#2D6FE8]/10 object-cover"
-                              />
-                            ) : (
-                              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                                <FiPackage size={13} />
+                        <td colSpan={8} className="px-3 py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#2D6FE8] shadow-sm">
+                                <FiPackage size={16} />
                               </div>
-                            )}
-
-                            <div className="min-w-0 max-w-[240px]">
-                              <p
-                                title={item.productName}
-                                className="break-words text-xs font-normal leading-4 text-[#111827]"
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-[#111827]">
+                                  {group.id}
+                                </p>
+                                <p className="mt-0.5 text-[11px] text-[#4B5563]">
+                                  {group.customer} • {group.date} •{" "}
+                                  <span className="capitalize">
+                                    {group.orderType === "retail"
+                                      ? "Customer"
+                                      : group.orderType}
+                                  </span>{" "}
+                                  • {group.items.length} item
+                                  {group.items.length > 1 ? "s" : ""}
+                                </p>
+                              </div>
+                              <span
+                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                                  group.orderStatus
+                                )}`}
                               >
-                                {item.productName
-                                  ?.trim()
-                                  .split(/\s+/)
-                                  .slice(0, 3)
-                                  .join(" ")}
-                              </p>
-
-                              {(item.categoryName || item.brandName) && (
-                                <div className="mt-0.5 space-y-0.5 text-[10px] leading-4 text-[#4B5563]">
-                                  {item.categoryName && (
-                                    <p
-                                      title={item.categoryName}
-                                      className="break-words"
-                                    >
-                                      <span className="font-medium text-[#374151]">
-                                        Category:
-                                      </span>{" "}
-                                      {item.categoryName
-                                        .trim()
-                                        .split(/\s+/)
-                                        .slice(0, 3)
-                                        .join(" ")}
-                                    </p>
-                                  )}
-
-                                  {item.brandName && (
-                                    <p
-                                      title={item.brandName}
-                                      className="break-words"
-                                    >
-                                      <span className="font-medium text-[#374151]">
-                                        Brand:
-                                      </span>{" "}
-                                      {item.brandName
-                                        .trim()
-                                        .split(/\s+/)
-                                        .slice(0, 3)
-                                        .join(" ")}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-3 py-3">
-                          <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
-                            {item.sku}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-center text-xs font-semibold text-[#111827]">
-                          {item.quantity}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-right text-xs text-[#111827]">
-                          {item.price}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">
-                          {item.total}
-                        </td>
-                        <td className="px-3 py-3">
-                          {item.courier_tracking_number ? (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                                <FiTruck size={11} />
-                                {item.courier_tracking_number}
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                {formatStatus(group.orderStatus)}
                               </span>
-                              {row.indiaPost && (
-                                <>
-                                  <p className="text-[10px] font-semibold text-[#4B5563]">
-                                    India Post ·{" "}
-                                    {formatStatus(
-                                      row.indiaPost.tracking_status ||
-                                        row.indiaPost.booking_status
-                                    )}
-                                  </p>
-                                  <p
-                                    className="max-w-[200px] truncate text-[10px] text-[#6B7280]"
-                                    title={row.indiaPost.latest_event || ""}
-                                  >
-                                    {row.indiaPost.latest_event ||
-                                      "Awaiting courier scan"}
-                                  </p>
-                                </>
-                              )}
+                              {renderCancelReturnPill(cancelState)}
                             </div>
-                          ) : (
-                            <span className="text-xs text-[#6B7280]">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${itemStatusBadge}`}
-                          >
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                            {formatStatus(
-                              item.delivery_status || item.status || "pending"
-                            )}
-                          </span>
-                        </td>
 
-                        <td className="px-3 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleViewOrder(row.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                              title="View Order"
-                            >
-                              <FiEye size={14} />
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                                  Order Total
+                                </p>
+                                <p className="text-sm font-bold text-[#1E40AF]">
+                                  {group.total}
+                                </p>
+                              </div>
 
-                            {isDispatchable && (
                               <button
                                 type="button"
-                                onClick={() => openDispatchChoicePopup(row)}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Dispatch (India Post / Manual)"
+                                onClick={() => handleViewOrder(group.id)}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white hover:shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                                title="View Order"
                               >
-                                <FiTruck size={14} />
+                                <FiEye size={14} />
                               </button>
-                            )}
 
-                            {isShipable && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderForShip(row);
-                                  setSelectedItemsForShip([item]);
-                                  setShowShipPopup(true);
-                                }}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Ship Item"
-                              >
-                                <FiSend size={14} />
-                              </button>
-                            )}
-
-                            {isDeliverable && !isDelivered && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderForDeliver(row);
-                                  setSelectedItemsForDeliver([item]);
-                                  setShowDeliverPopup(true);
-                                }}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/30 bg-[#EAF3FF] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="Deliver Item"
-                              >
-                                <FiCheckCircle size={14} />
-                              </button>
-                            )}
-
-                            {isUndeliverable && (
-                              <button
-                                type="button"
-                                onClick={() => handleMarkUndelivered(row, item)}
-                                disabled={isMarking}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#C23B32]/20 bg-[#EEF5FF] text-[#C23B32] transition-all hover:border-transparent hover:bg-[#C23B32] hover:text-white disabled:opacity-60"
-                                title="Mark as Undelivered"
-                              >
-                                {isMarking ? (
-                                  <FiLoader
-                                    size={14}
-                                    className="animate-spin"
-                                  />
-                                ) : (
-                                  <FiAlertCircle size={14} />
-                                )}
-                              </button>
-                            )}
-
-                            {isDelivered && (
-                              <span className="text-xs font-bold text-[#2D6FE8]">
-                                ✓
-                              </span>
-                            )}
-
-                            <div className="action-menu-container relative">
-                              <button
-                                type="button"
-                                onClick={(event) => {
-                                  const menuId = `${row.id}-${item.id}`;
-
-                                  if (openMenuId === menuId) {
-                                    setOpenMenuId(null);
-                                    return;
-                                  }
-
-                                  menuTriggerRef.current = event.currentTarget;
-                                  setMenuPosition(
-                                    getActionMenuPosition(
+                              {/* ORDER three-dot: Cancel/Return Allowed / Not Allowed */}
+                              <div className="action-menu-container relative">
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    toggleMenu(
+                                      orderMenuId,
                                       event.currentTarget,
-                                      actionMenuEstimatedHeight
+                                      orderMenuHeight
                                     )
-                                  );
-                                  setOpenMenuId(menuId);
-                                }}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-                                title="More Actions"
-                              >
-                                <FiMoreVertical size={14} />
-                              </button>
+                                  }
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
+                                  title="Order Actions"
+                                >
+                                  <FiMoreVertical size={14} />
+                                </button>
+                              </div>
                             </div>
-
-                            {openMenuId === `${row.id}-${item.id}` &&
-                              menuPosition &&
-                              typeof document !== "undefined" &&
-                              createPortal(
-                                <AnimatePresence>
-                                  <motion.div
-                                    ref={menuPanelRef}
-                                    initial={{
-                                      opacity: 0,
-                                      scale: 0.95,
-                                      y: menuPosition.placement === "above" ? 8 : -8,
-                                    }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{
-                                      opacity: 0,
-                                      scale: 0.95,
-                                      y: menuPosition.placement === "above" ? 8 : -8,
-                                    }}
-                                    transition={{ duration: 0.15 }}
-                                    style={{
-                                      top: menuPosition.top,
-                                      left: menuPosition.left,
-                                      transformOrigin:
-                                        menuPosition.placement === "above"
-                                          ? "bottom right"
-                                          : "top right",
-                                    }}
-                                    className="orders-action-menu-portal fixed z-[99999] max-h-[calc(100vh-24px)] w-48 overflow-y-auto rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-xl"
-                                  >
-                                    {hasInvoice && row.orderId && canViewInvoice && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          handleOpenInvoicePdf(
-                                            row.orderId!,
-                                            item.lineId || parseInt(item.id)
-                                          );
-                                        }}
-                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-[#111827] hover:bg-[#F4F8FD]"
-                                      >
-                                        <FiFileText size={13} className="text-[#2D6FE8]" />
-                                        View Invoice
-                                      </button>
-                                    )}
-
-                                    {!isClosed && canToggleCancelReturn && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          handleToggleCancelReturn(row, item);
-                                          setOpenMenuId(null);
-                                        }}
-                                        disabled={isTogglingReturn}
-                                        className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${
-                                          item.is_cancel_return_allowed
-                                            ? "text-[#2D6FE8]"
-                                            : "text-[#6B7280]"
-                                        }`}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          {isTogglingReturn ? (
-                                            <FiLoader size={13} className="animate-spin" />
-                                          ) : item.is_cancel_return_allowed ? (
-                                            <FiCheckCircle size={13} />
-                                          ) : (
-                                            <FiX size={13} />
-                                          )}
-                                          Cancel/Return
-                                        </div>
-                                        <span className="text-[10px] font-semibold">
-                                          {item.is_cancel_return_allowed ? "Allowed" : "Not Allowed"}
-                                        </span>
-                                      </button>
-                                    )}
-
-                                    {isClosed && (
-                                      <div className="flex w-full cursor-not-allowed items-center gap-2 px-4 py-2 text-left text-xs text-[#9CA3AF]">
-                                        <FiCheckCircle size={13} />
-                                        Closed
-                                      </div>
-                                    )}
-                                  </motion.div>
-                                </AnimatePresence>,
-                                document.body
-                              )}
                           </div>
                         </td>
                       </tr>
-                    );
-                  })
-                ) : (
+
+                      {/* ITEM ROWS (nested inside the order) */}
+                      {group.items.map((item) => {
+                        const itemStatusBadge = getStatusBadge(
+                          item.delivery_status || item.status || "pending"
+                        );
+
+                        return (
+                          <tr
+                            key={`${group.id}-${item.id}`}
+                            className="border-t border-[#2D6FE8]/10 bg-white transition hover:bg-[#FAFBFF]"
+                          >
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="h-6 w-0.5 rounded-full bg-[#2D6FE8]/30" />
+                                <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
+                                  {item.itemReferenceId || "N/A"}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="px-3 py-3">
+                              <div className="flex items-center gap-2.5">
+                                {item.image ? (
+                                  <img
+                                    src={item.image}
+                                    alt={item.productName}
+                                    className="h-8 w-8 flex-shrink-0 rounded-lg border border-[#2D6FE8]/10 object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                                    <FiPackage size={13} />
+                                  </div>
+                                )}
+
+                                <div className="min-w-0 max-w-[240px]">
+                                  <p
+                                    title={item.productName}
+                                    className="break-words text-xs font-normal leading-4 text-[#111827]"
+                                  >
+                                    {item.productName
+                                      ?.trim()
+                                      .split(/\s+/)
+                                      .slice(0, 3)
+                                      .join(" ")}
+                                  </p>
+
+                                  {(item.categoryName || item.brandName) && (
+                                    <div className="mt-0.5 space-y-0.5 text-[10px] leading-4 text-[#4B5563]">
+                                      {item.categoryName && (
+                                        <p
+                                          title={item.categoryName}
+                                          className="break-words"
+                                        >
+                                          <span className="font-medium text-[#374151]">
+                                            Category:
+                                          </span>{" "}
+                                          {item.categoryName
+                                            .trim()
+                                            .split(/\s+/)
+                                            .slice(0, 3)
+                                            .join(" ")}
+                                        </p>
+                                      )}
+
+                                      {item.brandName && (
+                                        <p
+                                          title={item.brandName}
+                                          className="break-words"
+                                        >
+                                          <span className="font-medium text-[#374151]">
+                                            Brand:
+                                          </span>{" "}
+                                          {item.brandName
+                                            .trim()
+                                            .split(/\s+/)
+                                            .slice(0, 3)
+                                            .join(" ")}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-3 py-3">
+                              <span className="inline-flex whitespace-nowrap rounded-lg bg-[#F4F8FD] px-2 py-1 text-[11px] font-bold tracking-wide text-[#111827]">
+                                {item.sku}
+                              </span>
+                            </td>
+                            <td className="px-3 py-3 text-center text-xs font-semibold text-[#111827]">
+                              {item.quantity}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">
+                              {item.total}
+                            </td>
+                            <td className="px-3 py-3">
+                              {item.courier_tracking_number ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                                    <FiTruck size={11} />
+                                    {item.courier_tracking_number}
+                                  </span>
+                                  {group.indiaPost && (
+                                    <>
+                                      <p className="text-[10px] font-semibold text-[#4B5563]">
+                                        India Post ·{" "}
+                                        {formatStatus(
+                                          group.indiaPost.tracking_status ||
+                                            group.indiaPost.booking_status
+                                        )}
+                                      </p>
+                                      <p
+                                        className="max-w-[200px] truncate text-[10px] text-[#6B7280]"
+                                        title={group.indiaPost.latest_event || ""}
+                                      >
+                                        {group.indiaPost.latest_event ||
+                                          "Awaiting courier scan"}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-[#6B7280]">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 text-center">
+                              <span
+                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${itemStatusBadge}`}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                {formatStatus(
+                                  item.delivery_status || item.status || "pending"
+                                )}
+                              </span>
+                            </td>
+
+                            <td className="px-3 py-3 text-center">
+                              {renderItemActionButtons(group, item)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  );
+                })
+              ) : (
+                <tbody>
                   <tr>
-                    <td colSpan={9} className="px-6 py-16 text-center">
+                    <td colSpan={8} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                           <FiSearch size={24} />
@@ -3829,8 +3991,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
+                </tbody>
+              )}
             </table>
           </div>
 
@@ -3840,209 +4002,253 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               [...Array(4)].map((_, i) => (
                 <MobileRowSkeleton key={`m-skeleton-${i}`} />
               ))
-            ) : visibleRows.length > 0 ? (
-              visibleRows.map((row, index) => {
-                const item = row.singleItem;
-                const isDispatchable = canItemDispatch(item) && canDispatch;
-                const isShipable = canItemShip(item) && canShip;
-                const isDeliverable = canItemDeliver(item) && canDeliver;
-                const isUndeliverable =
-                  canItemMarkUndelivered(item) && canMarkUndelivered;
-                const isDelivered = isFullyDelivered(item);
-                const isMarking = markingUndelivered.has(
-                  `${row.id}-${item.id}`
+            ) : visibleGroups.length > 0 ? (
+              visibleGroups.map((group) => {
+                const cancelState = getOrderCancelReturnState(group);
+                const isTogglingOrder = togglingCancelReturn.has(
+                  `order-${group.id}`
                 );
-                const isTogglingReturn = togglingCancelReturn.has(
-                  `${row.id}-${item.id}`
-                );
-                const hasInvoice = Boolean(item.invoiceNumber);
-                const isClosed = isTerminalStatus(item);
 
                 return (
                   <div
-                    key={`${row.id}-${item.id}-${index}`}
-                    className={`border-b border-[#2D6FE8]/10 bg-white p-4 ${
-                      selectedOrderId === row.id ? "bg-[#EAF3FF]" : ""
+                    key={group.id}
+                    className={`border-b-2 border-[#2D6FE8]/15 ${
+                      selectedOrderId === group.id ? "bg-[#EAF3FF]" : "bg-white"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2 py-0.5 text-[11px] font-bold text-[#111827]">
-                          {item.itemReferenceId || "N/A"}
+                    {/* ORDER HEADER */}
+                    <div className="bg-[#EAF3FF] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#111827]">
+                            {group.id}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-[#4B5563]">
+                            {group.customer} • {group.date}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-[#4B5563]">
+                            <span className="capitalize">
+                              {group.orderType === "retail"
+                                ? "Customer"
+                                : group.orderType}
+                            </span>{" "}
+                            • {group.items.length} item
+                            {group.items.length > 1 ? "s" : ""} •{" "}
+                            <span className="font-bold text-[#1E40AF]">
+                              {group.total}
+                            </span>
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                            group.orderStatus
+                          )}`}
+                        >
+                          {formatStatus(group.orderStatus)}
                         </span>
-                        <p className="mt-1.5 text-[10px] text-[#6B7280]">
-                          {row.date}
-                        </p>
-                        <p className="mt-0.5 text-xs font-semibold text-[#111827]">
-                          {row.customer}
-                        </p>
                       </div>
-                      <span
-                        className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                          item.delivery_status || item.status || "pending"
-                        )}`}
-                      >
-                        {formatStatus(
-                          item.delivery_status || item.status || "pending"
-                        )}
-                      </span>
+
+                      <div className="mt-2">{renderCancelReturnPill(cancelState)}</div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleViewOrder(group.id)}
+                          className="flex-1 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
+                        >
+                          View Order
+                        </button>
+
+                        {cancelState === "closed" ? (
+                          <span className="flex-1 cursor-not-allowed rounded-lg bg-[#F4F8FD] px-3 py-2 text-center text-[11px] font-bold text-[#9CA3AF] opacity-70">
+                            Closed
+                          </span>
+                        ) : canToggleCancelReturn ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleOrderCancelReturn(group)}
+                            disabled={isTogglingOrder}
+                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
+                              cancelState === "allowed"
+                                ? "bg-white text-[#2D6FE8]"
+                                : "bg-[#F4F8FD] text-[#6B7280]"
+                            }`}
+                          >
+                            {isTogglingOrder
+                              ? "Saving..."
+                              : cancelState === "allowed"
+                              ? "Return: Allowed"
+                              : cancelState === "partial"
+                              ? "Return: Partial"
+                              : "Return: Not Allowed"}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
 
-                    <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3">
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.productName}
-                          className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
-                          <FiPackage size={14} />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words text-xs font-normal leading-4 text-[#111827]">
-                          {item.productName}
-                        </p>
-                        {(item.categoryName || item.brandName) && (
-                          <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
-                            {item.categoryName && (
-                              <p className="break-words">
-                                <span className="font-medium text-[#374151]">
-                                  Category:
-                                </span>{" "}
-                                {item.categoryName}
-                              </p>
+                    {/* ITEMS NESTED */}
+                    <div className="space-y-3 p-3">
+                      {group.items.map((item) => {
+                        const isDispatchable = canItemDispatch(item) && canDispatch;
+                        const isShipable = canItemShip(item) && canShip;
+                        const isDeliverable = canItemDeliver(item) && canDeliver;
+                        const isUndeliverable =
+                          canItemMarkUndelivered(item) && canMarkUndelivered;
+                        const isDelivered = isFullyDelivered(item);
+                        const isMarking = markingUndelivered.has(
+                          `${group.id}-${item.id}`
+                        );
+                        const hasInvoice = Boolean(item.invoiceNumber);
+
+                        return (
+                          <div
+                            key={`${group.id}-${item.id}`}
+                            className="rounded-xl border border-[#2D6FE8]/10 bg-[#FAFBFF] p-3"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="inline-flex rounded-lg bg-[#F4F8FD] px-2 py-0.5 text-[11px] font-bold text-[#111827]">
+                                {item.itemReferenceId || "N/A"}
+                              </span>
+                              <span
+                                className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
+                                  item.delivery_status || item.status || "pending"
+                                )}`}
+                              >
+                                {formatStatus(
+                                  item.delivery_status || item.status || "pending"
+                                )}
+                              </span>
+                            </div>
+
+                            <div className="mt-2 flex items-center gap-2.5">
+                              {item.image ? (
+                                <img
+                                  src={item.image}
+                                  alt={item.productName}
+                                  className="h-10 w-10 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
+                                  <FiPackage size={14} />
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <p className="break-words text-xs font-normal leading-4 text-[#111827]">
+                                  {item.productName}
+                                </p>
+                                {(item.categoryName || item.brandName) && (
+                                  <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
+                                    {item.categoryName && (
+                                      <p className="break-words">
+                                        <span className="font-medium text-[#374151]">
+                                          Category:
+                                        </span>{" "}
+                                        {item.categoryName}
+                                      </p>
+                                    )}
+                                    {item.brandName && (
+                                      <p className="break-words">
+                                        <span className="font-medium text-[#374151]">
+                                          Brand:
+                                        </span>{" "}
+                                        {item.brandName}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                <p className="mt-1 break-words text-[11px] text-[#4B5563]">
+                                  SKU: {item.sku} • Qty: {item.quantity}
+                                </p>
+                              </div>
+                              <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">
+                                {item.total}
+                              </span>
+                            </div>
+
+                            {group.indiaPost && item.courier_tracking_number && (
+                              <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="font-bold text-[#2D6FE8]">
+                                    India Post: {group.indiaPost.awb}
+                                  </span>
+                                  <span className="font-semibold text-[#111827]">
+                                    {formatStatus(
+                                      group.indiaPost.tracking_status ||
+                                        group.indiaPost.booking_status
+                                    )}
+                                  </span>
+                                </div>
+                                <p className="mt-1 text-[#4B5563]">
+                                  {group.indiaPost.latest_event ||
+                                    "Awaiting courier scan"}
+                                </p>
+                              </div>
                             )}
-                            {item.brandName && (
-                              <p className="break-words">
-                                <span className="font-medium text-[#374151]">
-                                  Brand:
-                                </span>{" "}
-                                {item.brandName}
-                              </p>
-                            )}
+
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              {isDispatchable && (
+                                <button
+                                  type="button"
+                                  onClick={() => openDispatchChoicePopup(group, item)}
+                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                                >
+                                  Dispatch
+                                </button>
+                              )}
+                              {isShipable && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderForShip(group);
+                                    setSelectedItemsForShip([item]);
+                                    setShowShipPopup(true);
+                                  }}
+                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                                >
+                                  Ship
+                                </button>
+                              )}
+                              {isDeliverable && !isDelivered && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderForDeliver(group);
+                                    setSelectedItemsForDeliver([item]);
+                                    setShowDeliverPopup(true);
+                                  }}
+                                  className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
+                                >
+                                  Delivered
+                                </button>
+                              )}
+                              {isUndeliverable && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkUndelivered(group, item)}
+                                  disabled={isMarking}
+                                  className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
+                                >
+                                  {isMarking ? "Saving..." : "Undelivered"}
+                                </button>
+                              )}
+                              {hasInvoice && group.orderId && canViewInvoice && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenInvoicePdf(
+                                      group.orderId!,
+                                      item.lineId || parseInt(item.id)
+                                    )
+                                  }
+                                  className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
+                                >
+                                  Invoice
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        )}
-                        <p className="mt-1 break-words text-[11px] text-[#4B5563]">
-                          SKU: {item.sku} • Qty: {item.quantity}
-                        </p>
-                      </div>
-                      <span className="ml-auto shrink-0 text-xs font-bold text-[#2D6FE8]">
-                        {item.total}
-                      </span>
-                    </div>
-
-                    {row.indiaPost && (
-                      <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-bold text-[#2D6FE8]">
-                            India Post: {row.indiaPost.awb}
-                          </span>
-                          <span className="font-semibold text-[#111827]">
-                            {formatStatus(
-                              row.indiaPost.tracking_status ||
-                                row.indiaPost.booking_status
-                            )}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-[#4B5563]">
-                          {row.indiaPost.latest_event ||
-                            "Awaiting courier scan"}
-                        </p>
-                      </div>
-                    )}
-                    <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleViewOrder(row.id)}
-                        className="flex-1 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
-                      >
-                        View
-                      </button>
-
-                      {isClosed ? (
-                        <span className="flex-1 cursor-not-allowed rounded-lg bg-[#F4F8FD] px-3 py-2 text-center text-[11px] font-bold text-[#9CA3AF] opacity-70">
-                          Closed
-                        </span>
-                      ) : canToggleCancelReturn ? (
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCancelReturn(row, item)}
-                          disabled={isTogglingReturn}
-                          className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
-                            item.is_cancel_return_allowed
-                              ? "bg-[#EAF3FF] text-[#2D6FE8]"
-                              : "bg-[#F4F8FD] text-[#6B7280]"
-                          }`}
-                        >
-                          {isTogglingReturn
-                            ? "Saving..."
-                            : item.is_cancel_return_allowed
-                            ? "Return: Allowed"
-                            : "Return: Not Allowed"}
-                        </button>
-                      ) : null}
-
-                      {isDispatchable && (
-                        <button
-                          type="button"
-                          onClick={() => openDispatchChoicePopup(row)}
-                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                        >
-                          Dispatch
-                        </button>
-                      )}
-                      {isShipable && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedOrderForShip(row);
-                            setSelectedItemsForShip([item]);
-                            setShowShipPopup(true);
-                          }}
-                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                        >
-                          Ship
-                        </button>
-                      )}
-                      {isDeliverable && !isDelivered && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedOrderForDeliver(row);
-                            setSelectedItemsForDeliver([item]);
-                            setShowDeliverPopup(true);
-                          }}
-                          className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
-                        >
-                          Delivered
-                        </button>
-                      )}
-                      {isUndeliverable && (
-                        <button
-                          type="button"
-                          onClick={() => handleMarkUndelivered(row, item)}
-                          disabled={isMarking}
-                          className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
-                        >
-                          {isMarking ? "Saving..." : "Undelivered"}
-                        </button>
-                      )}
-                      {hasInvoice && row.orderId && canViewInvoice && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleOpenInvoicePdf(
-                              row.orderId!,
-                              item.lineId || parseInt(item.id)
-                            )
-                          }
-                          className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
-                        >
-                          Invoice
-                        </button>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -4063,7 +4269,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           </div>
 
           {/* PAGINATION */}
-          {!showSkeletonRows && filteredRows.length > 0 && (
+          {!showSkeletonRows && filteredGroups.length > 0 && (
             <div className="border-t border-[#2D6FE8]/10 bg-[#FAFBFF] px-5 py-3">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-[#6B7280]">
@@ -4073,13 +4279,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   </span>{" "}
                   to{" "}
                   <span className="font-bold text-[#111827]">
-                    {Math.min(currentPage * itemsPerPage, filteredRows.length)}
+                    {Math.min(currentPage * itemsPerPage, filteredGroups.length)}
                   </span>{" "}
                   of{" "}
                   <span className="font-bold text-[#111827]">
-                    {filteredRows.length}
+                    {filteredGroups.length}
                   </span>{" "}
-                  entries
+                  orders{" "}
+                  <span className="text-[#9CA3AF]">
+                    ({filteredItemCount} items)
+                  </span>
                 </p>
 
                 <div className="flex items-center justify-center gap-1.5">
@@ -4138,6 +4347,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           )}
         </div>
       </div>
+
+      {/* three-dot floating menu (order-level or item-level) */}
+      {renderActionMenuPortal()}
 
       {/* POPUPS */}
       <ViewOrderPopup
@@ -4371,7 +4583,9 @@ const Orders: React.FC = () => {
       const response = await orderApi.getOrders();
       if (response.data.success) {
         const data = response.data.data || [];
-        const extractedOrders = data.map((item: any) => item.order);
+        const extractedOrders = data
+        .map((item: any) => item?.order ?? item)
+        .filter((o: any) => o && typeof o === "object");
         setOrdersData(extractedOrders);
       }
     } catch (err) {

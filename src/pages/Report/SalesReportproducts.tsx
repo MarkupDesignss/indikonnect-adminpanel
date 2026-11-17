@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, {
@@ -16,23 +15,14 @@ import {
   IndianRupee,
   TrendingUp,
   Receipt,
-  Package,
   ChevronLeft,
   ChevronRight,
   X,
-  User,
-  Phone,
-  MapPin,
-  CalendarDays,
-  CreditCard,
   FileText,
-  Truck,
   Percent,
   Wallet,
   Loader2,
-  Eye,
-  ChevronDown,
-  ChevronUp,
+  ShieldAlert,
 } from "lucide-react";
 
 import { toast } from "react-hot-toast";
@@ -40,6 +30,10 @@ import { toast } from "react-hot-toast";
 import salesReportApi, {
   SalesReportItem,
 } from "../../api/endpoints/report/salesReport";
+
+import { usePermissions } from "../../pages/permissions/usePermissions";
+import logoApi from "../../api/endpoints/logoApi";
+import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 /* ================= THEME ================= */
 
@@ -60,6 +54,9 @@ const THEME = {
   red: "#C23B32",
   redSoft: "#FEE2E2",
 };
+
+const DEFAULT_LOGO_URL =
+  "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 /* ================= HELPERS ================= */
 
@@ -205,9 +202,9 @@ const StatusBadge = ({
   );
 };
 
-/* ================= SUMMARY CARD ================= */
+/* ================= COMPACT SUMMARY CARD ================= */
 
-const SummaryCard = ({
+const CompactSummaryCard = ({
   title,
   value,
   subtitle,
@@ -224,31 +221,26 @@ const SummaryCard = ({
   bg: string;
   isMoney?: boolean;
 }) => (
-  <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-gray-500">
-          {title}
-        </p>
+  <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+      style={{ background: bg, color }}
+    >
+      <Icon size={17} />
+    </div>
 
-        <h3 className="mt-2 break-words text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
-          {isMoney ? money(value) : numberFormat(value)}
-        </h3>
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
+        {title}
+      </p>
 
-        <p className="mt-1 text-[11px] text-gray-400">
-          {subtitle}
-        </p>
-      </div>
+      <h3 className="mt-0.5 break-words text-sm font-bold tracking-tight text-gray-900 sm:text-base">
+        {isMoney ? money(value) : numberFormat(value)}
+      </h3>
 
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{
-          background: bg,
-          color,
-        }}
-      >
-        <Icon size={19} />
-      </div>
+      <p className="mt-0.5 truncate text-[9px] text-gray-400">
+        {subtitle}
+      </p>
     </div>
   </div>
 );
@@ -280,8 +272,6 @@ const MobileSalesCard = ({
 }: {
   item: SalesReportItem;
 }) => {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
       <div className="p-4">
@@ -365,134 +355,110 @@ const MobileSalesCard = ({
           />
         </div>
 
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="mt-4 flex w-full items-center justify-between border-t border-gray-100 pt-3 text-xs font-semibold text-[#2D6FE8]"
-        >
-          {expanded ? "Hide Full Details" : "View Full Details"}
+        <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <DetailItem
+              label="Gross Total"
+              value={money(item["Gross Total"])}
+            />
 
-          {expanded ? (
-            <ChevronUp size={16} />
-          ) : (
-            <ChevronDown size={16} />
-          )}
-        </button>
+            <DetailItem
+              label="Total List Price"
+              value={money(item["Total List Price"])}
+            />
 
-        <div
-          className={`grid transition-all duration-300 ${
-            expanded
-              ? "grid-rows-[1fr] opacity-100"
-              : "grid-rows-[0fr] opacity-0"
-          }`}
-        >
-          <div className="overflow-hidden">
-            <div className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-3">
-                <DetailItem
-                  label="Gross Total"
-                  value={money(item["Gross Total"])}
-                />
+            <DetailItem
+              label="Discount"
+              value={money(item["Discount Amount"])}
+            />
 
-                <DetailItem
-                  label="Total List Price"
-                  value={money(item["Total List Price"])}
-                />
+            <DetailItem
+              label="Shipping Charge"
+              value={money(item["Shipping Charge"])}
+            />
 
-                <DetailItem
-                  label="Discount"
-                  value={money(item["Discount Amount"])}
-                />
+            <DetailItem
+              label="CV"
+              value={numberFormat(item.CV)}
+            />
 
-                <DetailItem
-                  label="Shipping Charge"
-                  value={money(item["Shipping Charge"])}
-                />
+            <DetailItem
+              label="Username"
+              value={safeValue(item["User Name"])}
+            />
+          </div>
 
-                <DetailItem
-                  label="CV"
-                  value={numberFormat(item.CV)}
-                />
+          <div className="rounded-lg border border-gray-100 p-3">
+            <p className="mb-3 text-xs font-bold text-gray-800">
+              Tax Breakdown
+            </p>
 
-                <DetailItem
-                  label="Username"
-                  value={safeValue(item["User Name"])}
-                />
-              </div>
+            <div className="grid grid-cols-3 gap-2">
+              <DetailItem
+                label="CGST"
+                value={money(item.CGST)}
+              />
 
-              <div className="rounded-lg border border-gray-100 p-3">
-                <p className="mb-3 text-xs font-bold text-gray-800">
-                  Tax Breakdown
-                </p>
+              <DetailItem
+                label="SGST"
+                value={money(item.SGST)}
+              />
 
-                <div className="grid grid-cols-3 gap-2">
-                  <DetailItem
-                    label="CGST"
-                    value={money(item.CGST)}
-                  />
+              <DetailItem
+                label="IGST"
+                value={money(item.IGST)}
+              />
+            </div>
+          </div>
 
-                  <DetailItem
-                    label="SGST"
-                    value={money(item.SGST)}
-                  />
+          <div className="rounded-lg border border-gray-100 p-3">
+            <p className="mb-3 text-xs font-bold text-gray-800">
+              Customer Information
+            </p>
 
-                  <DetailItem
-                    label="IGST"
-                    value={money(item.IGST)}
-                  />
-                </div>
-              </div>
+            <div className="space-y-3">
+              <DetailItem
+                label="Customer GSTIN"
+                value={safeValue(item["Customer GSTIN"])}
+              />
 
-              <div className="rounded-lg border border-gray-100 p-3">
-                <p className="mb-3 text-xs font-bold text-gray-800">
-                  Customer Information
-                </p>
+              <DetailItem
+                label="Shipping State"
+                value={safeValue(item["Customer Shipping State"])}
+              />
 
-                <div className="space-y-3">
-                  <DetailItem
-                    label="Customer GSTIN"
-                    value={safeValue(item["Customer GSTIN"])}
-                  />
+              <DetailItem
+                label="Shipping Date"
+                value={formatDate(item["Shipping Date"])}
+              />
+            </div>
+          </div>
 
-                  <DetailItem
-                    label="Shipping State"
-                    value={safeValue(item["Customer Shipping State"])}
-                  />
+          <div className="rounded-lg border border-gray-100 p-3">
+            <p className="mb-3 text-xs font-bold text-gray-800">
+              Refund Information
+            </p>
 
-                  <DetailItem
-                    label="Shipping Date"
-                    value={formatDate(item["Shipping Date"])}
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <DetailItem
+                label="Is Refunded"
+                value={item["Is Refunded"]}
+              />
 
-              <div className="rounded-lg border border-gray-100 p-3">
-                <p className="mb-3 text-xs font-bold text-gray-800">
-                  Refund Information
-                </p>
+              <DetailItem
+                label="Refund Status"
+                value={safeValue(item["Refund Status"])}
+              />
 
-                <div className="grid grid-cols-2 gap-3">
-                  <DetailItem
-                    label="Is Refunded"
-                    value={item["Is Refunded"]}
-                  />
+              <DetailItem
+                label="Refunded Items"
+                value={item["Refunded Items"]}
+              />
 
-                  <DetailItem
-                    label="Refund Status"
-                    value={safeValue(item["Refund Status"])}
-                  />
-
-                  <DetailItem
-                    label="Refunded Items"
-                    value={item["Refunded Items"]}
-                  />
-
-                  <DetailItem
-                    label="Last Refund Date"
-                    value={safeValue(item["Last Refund Date"])}
-                  />
-                </div>
-              </div>
+              <DetailItem
+                label="Last Refund Date"
+                value={safeValue(item["Last Refund Date"])}
+              />
             </div>
           </div>
         </div>
@@ -504,6 +470,103 @@ const MobileSalesCard = ({
 /* ================= MAIN PAGE ================= */
 
 const SalesReportproducts = () => {
+  /* ---------- PERMISSIONS ---------- */
+  const {
+    hasPermission,
+    hasAnyPermission,
+    hasModuleAccess,
+    isSuperAdmin,
+    loading: permissionsLoading,
+  } = usePermissions();
+
+  // Can user view this report?
+  const canViewReport = useMemo(() => {
+    if (isSuperAdmin) return true;
+
+    return (
+      hasModuleAccess("sales_product_report") ||
+      hasModuleAccess("reports") ||
+      hasModuleAccess("sales") ||
+      hasAnyPermission([
+        "sales_product_report.view",
+        "sales_product_report.sales.view",
+        "sales.view",
+        "sales.report",
+      ]) ||
+      hasPermission("reports.view")
+    );
+  }, [
+    isSuperAdmin,
+    hasModuleAccess,
+    hasAnyPermission,
+    hasPermission,
+  ]);
+
+  // Can user export CSV?
+  const canExport = useMemo(() => {
+    if (isSuperAdmin) return true;
+
+    return (
+      hasModuleAccess("sales_product_report") ||
+      hasModuleAccess("sales") ||
+      hasAnyPermission([
+        "sales_product_report.download",
+        "sales_product_report.sales.download",
+        "sales.download",
+        "sales.export",
+        "sales.report",
+      ])
+    );
+  }, [isSuperAdmin, hasModuleAccess, hasAnyPermission]);
+
+  /* ---------- LOGO ---------- */
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL
+  );
+  const [logoLoading, setLogoLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
+      try {
+        const response: any = await logoApi.getLogo();
+
+        const possibleLogos: unknown[] = [
+          response?.data?.data?.logo,
+          response?.data?.logo,
+          response?.data?.data?.data?.logo,
+          response?.data?.data?.logo_url,
+          response?.data?.logo_url,
+          response?.logo,
+        ];
+
+        const resolvedLogo = possibleLogos.find(
+          (value): value is string =>
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim())
+        );
+
+        if (!cancelled && resolvedLogo) {
+          setLogoUrl(resolvedLogo.trim());
+        }
+      } catch (error) {
+        console.error("Logo API error:", error);
+      } finally {
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
+      }
+    };
+
+    void fetchLogo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* ---------- DATA ---------- */
   const [reports, setReports] = useState<SalesReportItem[]>([]);
 
   const [loading, setLoading] = useState(true);
@@ -519,8 +582,6 @@ const SalesReportproducts = () => {
 
   const [totalRecords, setTotalRecords] = useState(0);
   const [lastPage, setLastPage] = useState(1);
-
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   /* ================= FETCH API ================= */
 
@@ -567,9 +628,17 @@ const SalesReportproducts = () => {
     [currentPage, perPage]
   );
 
+  // Gate the initial fetch on permissions.
   useEffect(() => {
+    if (permissionsLoading) return;
+
+    if (!canViewReport) {
+      setLoading(false);
+      return;
+    }
+
     fetchReports();
-  }, [fetchReports]);
+  }, [permissionsLoading, canViewReport, fetchReports]);
 
   /* ================= FILTER DATA ================= */
 
@@ -658,15 +727,14 @@ const SalesReportproducts = () => {
     setRefundFilter("all");
   };
 
-  const hasFilters =
-    search ||
-    orderStatus !== "all" ||
-    deliveryStatus !== "all" ||
-    refundFilter !== "all";
-
   /* ================= CSV EXPORT ================= */
 
   const exportCSV = () => {
+    if (!canExport) {
+      toast.error("You don't have permission to export this report.");
+      return;
+    }
+
     if (!filteredReports.length) {
       toast.error("No sales records available to export");
       return;
@@ -747,6 +815,34 @@ const SalesReportproducts = () => {
     totalRecords
   );
 
+  /* ================= LOADING ================= */
+
+  const pageLoading = permissionsLoading || logoLoading;
+
+  if (pageLoading) {
+    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+
+  /* ================= ACCESS DENIED ================= */
+
+  if (!canViewReport) {
+    return (
+      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
+        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
+            <ShieldAlert size={26} />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            You don't have permission to view the Sales Report.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   /* ================= UI ================= */
 
   return (
@@ -787,41 +883,43 @@ const SalesReportproducts = () => {
             Refresh
           </button>
 
-          <button
-            type="button"
-            onClick={exportCSV}
-            disabled={!filteredReports.length}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Download size={16} />
-            Export CSV
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              onClick={exportCSV}
+              disabled={!filteredReports.length}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={16} />
+              Export CSV
+            </button>
+          )}
         </div>
       </div>
 
-      {/* SUMMARY CARDS */}
+      {/* COMPACT SUMMARY CARDS — 6 in one row */}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <CompactSummaryCard
           title="Total Orders"
           value={totalRecords}
-          subtitle="Total records from API"
+          subtitle="Total records"
           icon={ShoppingCart}
           color="#2D6FE8"
           bg="#EAF3FF"
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Order Amount"
           value={summary.orderAmount}
-          subtitle="Loaded page order amount"
+          subtitle="Loaded page"
           icon={IndianRupee}
           color="#15803D"
           bg="#DCFCE7"
           isMoney
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Net Sales"
           value={summary.netAmount}
           subtitle="After refunds"
@@ -831,8 +929,8 @@ const SalesReportproducts = () => {
           isMoney
         />
 
-        <SummaryCard
-          title="Refunded Amount"
+        <CompactSummaryCard
+          title="Refunded"
           value={summary.refunded}
           subtitle="Refund amount"
           icon={Wallet}
@@ -840,38 +938,25 @@ const SalesReportproducts = () => {
           bg="#FEE2E2"
           isMoney
         />
-      </div>
 
-      {/* SECONDARY SUMMARY */}
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <SummaryCard
+        <CompactSummaryCard
           title="Gross Total"
           value={summary.grossTotal}
-          subtitle="Total gross value on loaded page"
-          icon={Receipt}
+          subtitle="Loaded page"
+          icon={IndianRupee}
           color="#2D6FE8"
           bg="#EAF3FF"
           isMoney
         />
 
-        <SummaryCard
+        <CompactSummaryCard
           title="Total Tax"
           value={summary.tax}
-          subtitle="CGST + SGST + IGST"
+          subtitle="CGST+SGST+IGST"
           icon={Percent}
           color="#C2410C"
           bg="#FFEDD5"
           isMoney
-        />
-
-        <SummaryCard
-          title="Total Items"
-          value={summary.items}
-          subtitle="Items in loaded orders"
-          icon={Package}
-          color="#6D28D9"
-          bg="#EDE9FE"
         />
       </div>
 
@@ -1018,7 +1103,6 @@ const SalesReportproducts = () => {
                       "Items",
                       "Order Status",
                       "Delivery",
-                      "Action",
                     ].map((heading) => (
                       <th
                         key={heading}
@@ -1033,273 +1117,106 @@ const SalesReportproducts = () => {
                 <tbody>
                   {filteredReports.map((item, index) => {
                     const key = `${item["Bill Id"]}-${index}`;
-                    const expanded = expandedRow === key;
 
                     return (
-                      <React.Fragment key={key}>
-                        <tr className="transition hover:bg-[#F8FBFF]">
-                          {/* BILL */}
+                      <tr
+                        key={key}
+                        className="transition hover:bg-[#F8FBFF]"
+                      >
+                        {/* BILL */}
 
-                          <td className="px-4 py-4 align-top">
-                            <p className="text-xs font-bold text-gray-900">
-                              {item["Bill Id"]}
+                        <td className="px-4 py-4 align-top">
+                          <p className="text-xs font-bold text-gray-900">
+                            {item["Bill Id"]}
+                          </p>
+
+                          <p className="mt-1 whitespace-nowrap text-[11px] text-gray-500">
+                            {formatDate(item["Order Date"])}
+                          </p>
+
+                          <p className="mt-1 text-[10px] text-gray-400">
+                            User: {item["User Name"] || "—"}
+                          </p>
+                        </td>
+
+                        {/* CUSTOMER */}
+
+                        <td className="max-w-[180px] px-4 py-4 align-top">
+                          <p className="truncate text-xs font-semibold text-gray-800">
+                            {item["Customer Name"]}
+                          </p>
+
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            {item["Customer Mobile"]}
+                          </p>
+
+                          <p className="mt-1 truncate text-[10px] text-gray-400">
+                            {item["Customer Shipping State"] || "—"}
+                          </p>
+                        </td>
+
+                        {/* ORDER AMOUNT */}
+
+                        <td className="px-4 py-4 align-top">
+                          <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
+                            {money(item["Order Amount"])}
+                          </p>
+
+                          <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
+                            Gross: {money(item["Gross Total"])}
+                          </p>
+                        </td>
+
+                        {/* NET */}
+
+                        <td className="px-4 py-4 align-top">
+                          <p className="whitespace-nowrap text-xs font-bold text-[#15803D]">
+                            {money(item["Net Order Amount"])}
+                          </p>
+
+                          {Number(item["Refunded Amount"]) > 0 && (
+                            <p className="mt-1 whitespace-nowrap text-[10px] text-red-500">
+                              Refund: {money(item["Refunded Amount"])}
                             </p>
+                          )}
+                        </td>
 
-                            <p className="mt-1 whitespace-nowrap text-[11px] text-gray-500">
-                              {formatDate(item["Order Date"])}
-                            </p>
+                        {/* TAX */}
 
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              User: {item["User Name"] || "—"}
-                            </p>
-                          </td>
+                        <td className="px-4 py-4 align-top">
+                          <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
+                            {money(item["Total Tax"])}
+                          </p>
 
-                          {/* CUSTOMER */}
+                          <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
+                            IGST: {money(item.IGST)}
+                          </p>
+                        </td>
 
-                          <td className="max-w-[180px] px-4 py-4 align-top">
-                            <p className="truncate text-xs font-semibold text-gray-800">
-                              {item["Customer Name"]}
-                            </p>
+                        {/* ITEMS */}
 
-                            <p className="mt-1 text-[11px] text-gray-500">
-                              {item["Customer Mobile"]}
-                            </p>
+                        <td className="px-4 py-4 align-top">
+                          <p className="text-xs font-semibold text-gray-800">
+                            {item["Total Items"]}
+                          </p>
 
-                            <p className="mt-1 truncate text-[10px] text-gray-400">
-                              {item["Customer Shipping State"] || "—"}
-                            </p>
-                          </td>
+                          <p className="mt-1 text-[10px] text-gray-400">
+                            CV: {numberFormat(item.CV)}
+                          </p>
+                        </td>
 
-                          {/* ORDER AMOUNT */}
+                        {/* ORDER STATUS */}
 
-                          <td className="px-4 py-4 align-top">
-                            <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
-                              {money(item["Order Amount"])}
-                            </p>
+                        <td className="px-4 py-4 align-top">
+                          <StatusBadge status={item["Order Status"]} />
+                        </td>
 
-                            <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
-                              Gross: {money(item["Gross Total"])}
-                            </p>
-                          </td>
+                        {/* DELIVERY */}
 
-                          {/* NET */}
-
-                          <td className="px-4 py-4 align-top">
-                            <p className="whitespace-nowrap text-xs font-bold text-[#15803D]">
-                              {money(item["Net Order Amount"])}
-                            </p>
-
-                            {Number(item["Refunded Amount"]) > 0 && (
-                              <p className="mt-1 whitespace-nowrap text-[10px] text-red-500">
-                                Refund: {money(item["Refunded Amount"])}
-                              </p>
-                            )}
-                          </td>
-
-                          {/* TAX */}
-
-                          <td className="px-4 py-4 align-top">
-                            <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
-                              {money(item["Total Tax"])}
-                            </p>
-
-                            <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
-                              IGST: {money(item.IGST)}
-                            </p>
-                          </td>
-
-                          {/* ITEMS */}
-
-                          <td className="px-4 py-4 align-top">
-                            <p className="text-xs font-semibold text-gray-800">
-                              {item["Total Items"]}
-                            </p>
-
-                            <p className="mt-1 text-[10px] text-gray-400">
-                              CV: {numberFormat(item.CV)}
-                            </p>
-                          </td>
-
-                          {/* ORDER STATUS */}
-
-                          <td className="px-4 py-4 align-top">
-                            <StatusBadge status={item["Order Status"]} />
-                          </td>
-
-                          {/* DELIVERY */}
-
-                          <td className="px-4 py-4 align-top">
-                            <StatusBadge status={item["Delivery Status"]} />
-                          </td>
-
-                          {/* ACTION */}
-
-                          <td className="px-4 py-4 align-top">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedRow(expanded ? null : key)
-                              }
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#DCE6F2] px-3 py-2 text-xs font-semibold text-[#2D6FE8] transition hover:bg-[#EAF3FF]"
-                            >
-                              <Eye size={14} />
-                              Details
-                            </button>
-                          </td>
-                        </tr>
-
-                        {/* EXPANDED ROW */}
-
-                        {expanded && (
-                          <tr className="bg-[#F8FBFF]">
-                            <td colSpan={9} className="px-5 py-5">
-                              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-                                {/* ORDER INFORMATION */}
-
-                                <div>
-                                  <h3 className="mb-4 text-xs font-bold text-gray-800">
-                                    Order Information
-                                  </h3>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <DetailItem
-                                      label="Gross Total"
-                                      value={money(item["Gross Total"])}
-                                    />
-
-                                    <DetailItem
-                                      label="List Price"
-                                      value={money(item["Total List Price"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Discount"
-                                      value={money(item["Discount Amount"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Shipping Charge"
-                                      value={money(item["Shipping Charge"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Total Items"
-                                      value={item["Total Items"]}
-                                    />
-
-                                    <DetailItem
-                                      label="CV"
-                                      value={numberFormat(item.CV)}
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* TAX INFORMATION */}
-
-                                <div>
-                                  <h3 className="mb-4 text-xs font-bold text-gray-800">
-                                    Tax Breakdown
-                                  </h3>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <DetailItem
-                                      label="Total Tax"
-                                      value={money(item["Total Tax"])}
-                                    />
-
-                                    <DetailItem
-                                      label="CGST"
-                                      value={money(item.CGST)}
-                                    />
-
-                                    <DetailItem
-                                      label="SGST"
-                                      value={money(item.SGST)}
-                                    />
-
-                                    <DetailItem
-                                      label="IGST"
-                                      value={money(item.IGST)}
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* CUSTOMER INFORMATION */}
-
-                                <div>
-                                  <h3 className="mb-4 text-xs font-bold text-gray-800">
-                                    Customer Information
-                                  </h3>
-
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <DetailItem
-                                      label="Customer Name"
-                                      value={item["Customer Name"]}
-                                    />
-
-                                    <DetailItem
-                                      label="Username"
-                                      value={safeValue(item["User Name"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Mobile"
-                                      value={item["Customer Mobile"]}
-                                    />
-
-                                    <DetailItem
-                                      label="GSTIN"
-                                      value={safeValue(item["Customer GSTIN"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Shipping State"
-                                      value={safeValue(item["Customer Shipping State"])}
-                                    />
-
-                                    <DetailItem
-                                      label="Shipping Date"
-                                      value={formatDate(item["Shipping Date"])}
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* REFUND INFORMATION */}
-
-                                <div className="md:col-span-3">
-                                  <div className="rounded-lg border border-[#DCE6F2] bg-white p-4">
-                                    <h3 className="mb-4 text-xs font-bold text-gray-800">
-                                      Refund Information
-                                    </h3>
-
-                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                                      <DetailItem
-                                        label="Is Refunded"
-                                        value={safeValue(item["Is Refunded"])}
-                                      />
-
-                                      <DetailItem
-                                        label="Refund Status"
-                                        value={safeValue(item["Refund Status"])}
-                                      />
-
-                                      <DetailItem
-                                        label="Refunded Items"
-                                        value={numberFormat(item["Refunded Items"])}
-                                      />
-
-                                      <DetailItem
-                                        label="Last Refund Date"
-                                        value={safeValue(item["Last Refund Date"])}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
+                        <td className="px-4 py-4 align-top">
+                          <StatusBadge status={item["Delivery Status"]} />
+                        </td>
+                      </tr>
                     );
                   })}
                 </tbody>
@@ -1366,21 +1283,7 @@ const SalesReportproducts = () => {
         )}
       </div>
 
-      {/* FOOTER */}
-
-      <div className="flex items-start gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 py-3">
-        <FileText
-          size={15}
-          className="mt-0.5 shrink-0 text-[#2D6FE8]"
-        />
-
-        <p className="text-[11px] leading-5 text-gray-500">
-          Sales data is fetched from the admin sales report API.
-          Summary cards show totals for the currently loaded API page,
-          while the total order count comes from API pagination metadata.
-          Search and status filters apply to the currently loaded records.
-        </p>
-      </div>
+  
     </div>
   );
 };

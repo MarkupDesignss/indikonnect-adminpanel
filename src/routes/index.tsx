@@ -65,6 +65,7 @@ import RouteError from "@/pages/RouteError";
 import CommissionCalendar from "@/pages/Commission/CommissionCalendar";
 import DeliveryReport from "@/pages/Report/DeliveryReport";
 import SalesReportproducts from "@/pages/Report/SalesReportproducts";
+import ReturnsArticleReport from "@/pages/Report/ReturnsArticleReport";
 
 
 const ScrollLayout = () => (
@@ -156,9 +157,13 @@ export const adminRouter = createBrowserRouter(
             // ============================================================
             // SALES / REPORTS
             // ============================================================
+            // ============================================================
+            // SALES / REPORTS
+            // ============================================================
+
             { path: "sales/report", element: <SalesReportproducts /> },
             { path: "delivery-report", element: <DeliveryReport /> },
-            
+            { path: "returns-report", element: <ReturnsArticleReport /> },
             // ============================================================
             // ROLE MANAGEMENT
             // ============================================================

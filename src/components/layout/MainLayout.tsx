@@ -1,4 +1,3 @@
-// src/layouts/MainLayout.tsx
 
 import {
   Outlet,
@@ -36,6 +35,9 @@ import { getPortalLoginUrl } from "../../config/portalConfig";
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
+// =====================================================
+// NAVIGATION GROUPS
+// =====================================================
 
 interface NavGroup {
   key: string;
@@ -108,6 +110,20 @@ const NAV_GROUPS: NavGroup[] = [
       "cooloff",
     ],
   },
+
+  // ===================================================
+  // REPORTS GROUP
+  // Separate sidebar heading
+  // ===================================================
+  {
+    key: "reports",
+    label: "Report",
+    match: [
+      "report",
+      "reports",
+    ],
+  },
+
   {
     key: "sales",
     label: "Sales",
@@ -177,6 +193,10 @@ const getMenuSignature = (items: any[]): string => {
   );
 };
 
+// =====================================================
+// RESOLVE MENU GROUP
+// =====================================================
+
 const resolveGroupKey = (item: any): string => {
   if (item?.group && typeof item.group === "string") {
     return item.group.toLowerCase();
@@ -191,6 +211,10 @@ const resolveGroupKey = (item: any): string => {
 
   return found ? found.key : FALLBACK_GROUP.key;
 };
+
+// =====================================================
+// GROUPED MENU
+// =====================================================
 
 interface GroupedMenu {
   key: string;
@@ -326,7 +350,8 @@ const SidebarSkeleton = ({
             alt="Logo"
             className="h-full w-full object-contain"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = DEFAULT_LOGO_URL;
+              (e.target as HTMLImageElement).src =
+                DEFAULT_LOGO_URL;
             }}
           />
         </div>
@@ -351,7 +376,6 @@ const SidebarSkeleton = ({
                   <p className="truncate text-[11.5px] font-semibold text-[var(--portal-dark)]">
                     {warehouseName}
                   </p>
-
                   <SkeletonLine className="h-2 w-16" />
                 </>
               ) : (
@@ -407,7 +431,9 @@ const SidebarSkeleton = ({
               <div className="mb-1.5 flex items-center gap-2 px-2">
                 <SkeletonLine
                   className={`h-2 ${
-                    sectionIndex % 2 === 0 ? "w-16" : "w-20"
+                    sectionIndex % 2 === 0
+                      ? "w-16"
+                      : "w-20"
                   }`}
                 />
 
@@ -539,7 +565,8 @@ const SidebarContent = ({
               alt="Logo"
               className="relative z-10 h-full w-full object-contain"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = DEFAULT_LOGO_URL;
+                (e.target as HTMLImageElement).src =
+                  DEFAULT_LOGO_URL;
               }}
             />
           </div>
@@ -687,17 +714,22 @@ const MainLayout = () => {
     loading: isSidebarLoading,
   } = useMenuItemsState();
 
-  // ✅ SINGLE SOURCE OF TRUTH — role + theme + CSS vars
-  const { role: sidebarRole, theme: sidebarTheme, cssVars: portalThemeStyle } =
-    useRoleTheme();
+  // SINGLE SOURCE OF TRUTH — role + theme + CSS vars
+  const {
+    role: sidebarRole,
+    theme: sidebarTheme,
+    cssVars: portalThemeStyle,
+  } = useRoleTheme();
 
   const sidebarPortalLabel: string = sidebarTheme.label;
 
-  // =====================================================
+  // ===================================================
   // LOGO FETCH
-  // =====================================================
+  // ===================================================
 
-  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [logoUrl, setLogoUrl] = useState<string>(
+    DEFAULT_LOGO_URL,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -726,9 +758,9 @@ const MainLayout = () => {
     };
   }, []);
 
-  // =====================================================
+  // ===================================================
   // STATE
-  // =====================================================
+  // ===================================================
 
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -738,18 +770,18 @@ const MainLayout = () => {
 
   const location = useLocation();
 
-  // =====================================================
+  // ===================================================
   // MENU SIGNATURE
-  // =====================================================
+  // ===================================================
 
   const menuSignature = useMemo(
     () => getMenuSignature(menuItems as any[]),
     [menuItems],
   );
 
-  // =====================================================
+  // ===================================================
   // ACTIVE PATH HANDLING
-  // =====================================================
+  // ===================================================
 
   const isPathActive = (path?: string) => {
     if (!path) return false;
@@ -778,9 +810,9 @@ const MainLayout = () => {
     return isPathActive(item.path);
   };
 
-  // =====================================================
+  // ===================================================
   // ACCOUNT / GROUPED MENU
-  // =====================================================
+  // ===================================================
 
   const accountItems = useMemo(
     () =>
@@ -800,9 +832,9 @@ const MainLayout = () => {
     [menuItems],
   );
 
-  // =====================================================
+  // ===================================================
   // MOBILE SCROLL
-  // =====================================================
+  // ===================================================
 
   const mobileNavRef = useRef<HTMLDivElement>(null);
   const mobileScrollTopRef = useRef(0);
@@ -829,9 +861,9 @@ const MainLayout = () => {
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // =====================================================
+  // ===================================================
   // AUTOMATICALLY EXPAND ACTIVE PARENTS
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     const parents: string[] = [];
@@ -866,9 +898,9 @@ const MainLayout = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, menuSignature]);
 
-  // =====================================================
+  // ===================================================
   // PREVENT BACKGROUND SCROLL ON MOBILE
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     if (isMobileSidebarOpen) {
@@ -885,9 +917,9 @@ const MainLayout = () => {
     };
   }, [isMobileSidebarOpen]);
 
-  // =====================================================
+  // ===================================================
   // ESCAPE KEY
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -911,9 +943,9 @@ const MainLayout = () => {
     isMobileSidebarOpen,
   ]);
 
-  // =====================================================
+  // ===================================================
   // RESTORE MOBILE SCROLL
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     if (!isMobileSidebarOpen) return;
@@ -933,9 +965,9 @@ const MainLayout = () => {
     isSidebarLoading,
   ]);
 
-  // =====================================================
+  // ===================================================
   // TOGGLE MENU
-  // =====================================================
+  // ===================================================
 
   const toggleMenu = (path: string) => {
     if (mobileNavRef.current) {
@@ -950,9 +982,9 @@ const MainLayout = () => {
     );
   };
 
-  // =====================================================
+  // ===================================================
   // LOGOUT
-  // =====================================================
+  // ===================================================
 
   const openLogoutModal = () => {
     if (isLoggingOut) return;
@@ -1007,6 +1039,10 @@ const MainLayout = () => {
     }
   };
 
+  // ===================================================
+  // RENDER NAV ITEM
+  // ===================================================
+
   const renderNavItem = (
     item: any,
     depth: number = 0,
@@ -1024,56 +1060,59 @@ const MainLayout = () => {
     const parentActive =
       hasChildren && isItemActive(item);
 
+    // =================================================
+    // HEADING (NON-CLICKABLE)
+    // =================================================
 
-// =====================================================
-// HEADING (non-clickable)
-// =====================================================
-if (item.isHeading) {
-  return (
-    <div key={item.path} className="mb-0.5">
-      {/* Show heading only when it has no children */}
-      {!hasChildren && (
-        shouldShowLabels ? (
-          <div
-            className={`
-              flex
-              items-center
-              gap-2
-              px-2
-              py-1.5
-              ${depth > 0 ? "ml-2.5" : ""}
-            `}
-          >
-            <span className="material-symbols-outlined text-[15px] text-[var(--portal-primary)]/70">
-              {item.icon}
-            </span>
+    if (item.isHeading) {
+      return (
+        <div key={item.path} className="mb-0.5">
+          {!hasChildren && (
+            shouldShowLabels ? (
+              <div
+                className={`
+                  flex
+                  items-center
+                  gap-2
+                  px-2
+                  py-1.5
+                  ${depth > 0 ? "ml-2.5" : ""}
+                `}
+              >
+                <span className="material-symbols-outlined text-[15px] text-[var(--portal-primary)]/70">
+                  {item.icon}
+                </span>
 
-            <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-wider text-[#8C97B2]">
-              {item.label}
-            </span>
-          </div>
-        ) : (
-          <div className="mx-auto my-1 h-px w-8 bg-[var(--portal-primary)]/10" />
-        )
-      )}
+                <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-wider text-[#8C97B2]">
+                  {item.label}
+                </span>
+              </div>
+            ) : (
+              <div className="mx-auto my-1 h-px w-8 bg-[var(--portal-primary)]/10" />
+            )
+          )}
 
-      {/* Render children directly without duplicate heading */}
-      {hasChildren && shouldShowLabels && (
-        <div
-          className={
-            depth > 0
-              ? "ml-[18px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-2.5"
-              : "space-y-0.5"
-          }
-        >
-        {item.children.map((child: any) =>
-  renderNavItem(child, depth, isMobile),
-)}
+          {/* Render heading children directly */}
+          {hasChildren && shouldShowLabels && (
+            <div
+              className={
+                depth > 0
+                  ? "ml-[18px] space-y-0.5 border-l border-[var(--portal-primary)]/15 pl-2.5"
+                  : "space-y-0.5"
+              }
+            >
+              {item.children.map((child: any) =>
+                renderNavItem(child, depth, isMobile),
+              )}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
+      );
+    }
+
+    // =================================================
+    // DROPDOWN PARENT
+    // =================================================
 
     if (hasChildren) {
       return (
@@ -1161,6 +1200,7 @@ if (item.isHeading) {
             )}
           </button>
 
+          {/* DROPDOWN CHILDREN */}
           {shouldShowLabels && (
             <div
               className={`
@@ -1190,6 +1230,10 @@ if (item.isHeading) {
         </div>
       );
     }
+
+    // =================================================
+    // NORMAL NAVIGATION LINK
+    // =================================================
 
     return (
       <NavLink
@@ -1302,6 +1346,7 @@ if (item.isHeading) {
       </NavLink>
     );
   };
+
   // =====================================================
   // GROUPED NAVIGATION
   // =====================================================
@@ -1506,7 +1551,7 @@ if (item.isHeading) {
           onToggleMobileSidebar={toggleMobileSidebar}
         />
 
-        <main className="flex-1 pt-[62px] bg-white">
+        <main className="flex-1 bg-white pt-[62px]">
           <div
             className="mx-auto max-w-full"
             key={`${location.pathname}${location.search}`}
