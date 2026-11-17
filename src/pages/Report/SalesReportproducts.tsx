@@ -31,7 +31,7 @@ import salesReportApi, {
   SalesReportItem,
 } from "../../api/endpoints/report/salesReport";
 
-import { usePermissions } from "../../pages/permissions/usePermissions";
+import { usePermissions } from "../permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 

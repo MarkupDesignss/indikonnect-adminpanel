@@ -818,18 +818,18 @@ const SalesReport: React.FC = () => {
                 {/* HEADER */}
                 <motion.header variants={itemVariants} className="mb-6 flex flex-col justify-between gap-4 border-b pb-5 xl:flex-row xl:items-center" style={{ borderColor: BORDER }}>
                     <div>
-                        <div className="mb-2 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#4F7FE8]" /><span className="h-2 w-2 rounded-full bg-[#FACC15]" /><span className="h-2 w-2 rounded-full bg-[#72C6A1]" /><span className="ml-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#647084]">Reports & Analytics</span></div>
-                        <div className="flex flex-wrap items-center gap-3"><h1 className="text-[22px] font-semibold tracking-[-0.035em] text-[#172033] sm:text-[24px]">Sales Report</h1><span className="inline-flex items-center gap-1.5 rounded-full border border-[#F1DEAC] bg-[#FFF6DF] px-3 py-1 text-[11px] font-bold text-[#95651D]"><span className="h-2 w-2 rounded-full bg-[#EAB308]" />Live data</span></div>
+                        <div className="mb-2 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#4F7FE8]" /><span className="h-2 w-2 rounded-full bg-[#FACC15]" /><span className="h-2 w-2 rounded-full bg-[#72C6A1]" /><span className="ml-1 text-[11px] font-bold uppercase tracking-[0.18em] text-[#647084]">Sales & Analytics</span></div>
+                        <div className="flex flex-wrap items-center gap-3"><h1 className="text-[22px] font-semibold tracking-[-0.035em] text-[#172033] sm:text-[24px]">Sales Analytics</h1><span className="inline-flex items-center gap-1.5 rounded-full border border-[#F1DEAC] bg-[#FFF6DF] px-3 py-1 text-[11px] font-bold text-[#95651D]"><span className="h-2 w-2 rounded-full bg-[#EAB308]" />Live data</span></div>
                         <p className="mt-0.5 max-w-2xl text-[13px] leading-5 text-[#647084]">Track revenue, orders, category performance, distributors and payments.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                         <button type="button" disabled={isRefreshing || isLoading} onClick={handleRefresh} className="flex h-11 items-center gap-2 rounded-xl border border-[#D5E2FF] bg-[#F7F9FF] px-4 text-[12px] font-bold text-[#426CD0] shadow-sm transition hover:bg-[#ECF1FF] disabled:opacity-50"><motion.span animate={{ rotate: isRefreshing ? 360 : 0 }} transition={{ repeat: isRefreshing ? Infinity : 0, duration: 0.8, ease: "linear" }} className="flex"><FiRefreshCw size={15} /></motion.span>{isRefreshing ? "Refreshing..." : "Refresh"}</button>
-                        <button type="button" disabled={isExporting || isLoading} onClick={handleExport} className="flex h-11 items-center gap-2 rounded-xl border border-[#F1DCA5] bg-gradient-to-br from-[#FFF3D2] to-[#FFE5A5] px-5 text-[12px] font-bold text-[#78520B] transition hover:border-[#EBCB79] hover:from-[#FFEDBF] hover:to-[#FFDEA0] disabled:opacity-50"><FiDownload size={15} />{isExporting ? "Exporting..." : "Export CSV"}</button>
+                        {/* <button type="button" disabled={isExporting || isLoading} onClick={handleExport} className="flex h-11 items-center gap-2 rounded-xl border border-[#F1DCA5] bg-gradient-to-br from-[#FFF3D2] to-[#FFE5A5] px-5 text-[12px] font-bold text-[#78520B] transition hover:border-[#EBCB79] hover:from-[#FFEDBF] hover:to-[#FFDEA0] disabled:opacity-50"><FiDownload size={15} />{isExporting ? "Exporting..." : "Export CSV"}</button> */}
                     </div>
                 </motion.header>
 
                 {/* PERIOD + DATE FILTERS */}
-                <motion.section variants={itemVariants} className="mb-6 overflow-hidden rounded-[20px] border bg-white shadow-[0_4px_22px_rgba(79,127,232,0.06)]" style={{ borderColor: PANEL_TONES.blue.border }}>
+                {/* <motion.section variants={itemVariants} className="mb-6 overflow-hidden rounded-[20px] border bg-white shadow-[0_4px_22px_rgba(79,127,232,0.06)]" style={{ borderColor: PANEL_TONES.blue.border }}>
                     <div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" style={{ borderColor: PANEL_TONES.blue.border, background: PANEL_TONES.blue.header }}>
                         <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E1EAFE] text-[#426CD0] ring-1 ring-[#D3DFFF]"><FiCalendar size={17} /></div><div><h2 className="text-[15px] font-bold text-[#172033]">Filter sales report</h2><p className="mt-0.5 text-[12px] text-[#647084]">Choose a reporting period or customize the date range.</p></div></div>
                         <div className="flex flex-wrap gap-2">{PERIOD_OPTIONS.map((option) => <button key={option.value} type="button" disabled={isLoading || isRefreshing} onClick={() => applyPeriodPreset(option.value)} className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition disabled:opacity-50 ${appliedPeriod === option.value ? "border-[#4F7FE8] bg-[#4F7FE8] text-white" : "border-[#D5E2FF] bg-white text-[#426CD0] hover:border-[#B9CCFF] hover:bg-[#EAF0FF]"}`}>{option.label}</button>)}</div>
@@ -843,7 +843,7 @@ const SalesReport: React.FC = () => {
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-[#647084]"><span>Applied report:</span><span className="rounded-md bg-[#EAF0FF] px-2 py-0.5 font-semibold text-[#315FCA]">{formatLabel(appliedPeriod)}</span><span className="rounded-md bg-[#EAF0FF] px-2 py-0.5 font-semibold text-[#315FCA]">{appliedFromDate} to {appliedToDate}</span>{(fromDate !== appliedFromDate || toDate !== appliedToDate || period !== appliedPeriod) && <span className="font-semibold text-[#B7792D]">Filters changed — click Apply filters.</span>}</div>
                     </div>
-                </motion.section>
+                </motion.section> */}
 
                 {/* SUMMARY CARDS */}
                 <motion.div variants={containerVariants} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

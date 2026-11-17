@@ -66,6 +66,8 @@ import CommissionCalendar from "@/pages/Commission/CommissionCalendar";
 import DeliveryReport from "@/pages/Report/DeliveryReport";
 import SalesReportproducts from "@/pages/Report/SalesReportproducts";
 import ReturnsArticleReport from "@/pages/Report/ReturnsArticleReport";
+import ProductSalesReport from "@/pages/SalesReport/ProductSalesReport";
+import CategorySalesReport from "@/pages/SalesReport/CategorySalesReport";
 
 
 const ScrollLayout = () => (
@@ -227,8 +229,9 @@ export const adminRouter = createBrowserRouter(
             // ============================================================
             // SALES
             // ============================================================
-            { path: "/sales-panel", element: <SalesReport /> },
-
+            { path: "/sales-analytics", element: <SalesReport /> },
+            { path: "/product-sales-report", element: <ProductSalesReport /> },
+            { path: "/category-sales-report", element: <CategorySalesReport /> },
             // ============================================================
             // SETTINGS
             // ============================================================

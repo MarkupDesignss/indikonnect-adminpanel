@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -27,7 +28,6 @@ import { toast } from "react-hot-toast";
 import {
   productApi,
   Product,
-  ProductVariant,
 } from "../../api/endpoints/product";
 
 import warehousesApi, {
@@ -36,7 +36,6 @@ import warehousesApi, {
 
 import logoApi from "../../api/endpoints/logoApi";
 
-// ✅ PERMISSIONS
 import { usePermissions } from "../permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
@@ -46,6 +45,9 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+const PER_PAGE = 12;
+const API_PER_PAGE = 100;
 
 // =====================================================
 // HELPERS
@@ -75,34 +77,116 @@ const getProductImage = (product: Product) => {
   return (
     product.primary_image_url ||
     product.primary_image ||
-    product.images?.find((img) => img.is_primary)?.image_url ||
+    product.images?.find((img: any) => img.is_primary)?.image_url ||
     product.images?.[0]?.image_url ||
     ""
   );
 };
 
-const getVariantLabel = (
-  variant: ProductVariant,
-) => {
-  const attributes = Object.entries(
-    variant.attributes || {},
-  );
+/**
+ * Product status is different from stock status.
+ *
+ * API response may not contain a `status` field.
+ * In that case, use is_published and stock_status.
+ */
+const getProductStatus = (product: Product): string => {
+  const item = product as any;
 
-  if (!attributes.length) {
-    return variant.sku || `Variant #${variant.id}`;
+  const apiStatus = String(item.status || "").toLowerCase();
+
+  if (
+    ["active", "inactive", "draft"].includes(apiStatus)
+  ) {
+    return apiStatus;
   }
 
-  return attributes
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(" • ");
+  if (
+    item.is_published === true ||
+    Number(item.is_published) === 1
+  ) {
+    return "active";
+  }
+
+  // API response example:
+  // is_published: false
+  // stock_status: "draft"
+  if (
+    String(item.stock_status || "").toLowerCase() === "draft"
+  ) {
+    return "draft";
+  }
+
+  return "inactive";
 };
 
+/**
+ * Normalize stock status using actual available quantity.
+ *
+ * Priority:
+ * 1. Out of stock
+ * 2. Inactive
+ * 3. Low stock
+ * 4. In stock
+ */
+const getProductStockStatus = (
+  product: Product,
+): string => {
+  const item = product as any;
+
+  const apiStockStatus = String(
+    item.stock_status || "",
+  ).toLowerCase();
+
+  const quantity = Number(
+    item.stock_quantity ??
+      item.stock_movement?.available_stock ??
+      0,
+  );
+
+  const lowStockThreshold = Number(
+    item.low_stock_threshold ?? 0,
+  );
+
+  if (
+    apiStockStatus === "out_of_stock" ||
+    quantity <= 0
+  ) {
+    return "out_of_stock";
+  }
+
+  if (apiStockStatus === "inactive") {
+    return "inactive";
+  }
+
+  if (
+    apiStockStatus === "low_stock" ||
+    (lowStockThreshold > 0 &&
+      quantity <= lowStockThreshold)
+  ) {
+    return "low_stock";
+  }
+
+  if (
+    apiStockStatus === "active" ||
+    quantity > 0
+  ) {
+    return "active";
+  }
+
+  return "inactive";
+};
+
+// =====================================================
+// STATUS BADGE
+// =====================================================
 
 const StatusBadge = ({
-  status,
+  product,
 }: {
-  status: Product["status"];
+  product: Product;
 }) => {
+  const status = getProductStatus(product);
+
   const configMap: Record<
     string,
     {
@@ -129,8 +213,8 @@ const StatusBadge = ({
     },
   };
 
-  const config = configMap[status as string] || {
-    label: status ? String(status) : "Unknown",
+  const config = configMap[status] || {
+    label: status || "Unknown",
     className:
       "bg-[#F4F8FD] text-[#6B7280] border-[#DCE6F2]",
   };
@@ -149,10 +233,12 @@ const StatusBadge = ({
 // =====================================================
 
 const StockBadge = ({
-  status,
+  product,
 }: {
-  status: Product["stock_status"];
+  product: Product;
 }) => {
+  const status = getProductStockStatus(product);
+
   const configMap: Record<
     string,
     {
@@ -164,6 +250,12 @@ const StockBadge = ({
       label: "In Stock",
       className:
         "bg-[#EAF3FF] text-[#2D6FE8] border-[#2D6FE8]/20",
+    },
+
+    low_stock: {
+      label: "Low Stock",
+      className:
+        "bg-[#FEF9C3] text-[#A16207] border-[#FACC15]/40",
     },
 
     inactive: {
@@ -179,8 +271,8 @@ const StockBadge = ({
     },
   };
 
-  const config = configMap[status as string] || {
-    label: status ? String(status) : "Unknown",
+  const config = configMap[status] || {
+    label: status || "Unknown",
     className:
       "bg-[#F4F8FD] text-[#6B7280] border-[#DCE6F2]",
   };
@@ -233,15 +325,13 @@ const Productsaasignment: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
-  // =====================================================
-  // INITIAL LOADING STATES
-  // =====================================================
+  // ===================================================
+  // INITIAL LOADING
+  // ===================================================
 
-  // True until the first product request completes.
   const [initialDataLoading, setInitialDataLoading] =
     useState(true);
 
-  // True until the logo API request completes.
   const [logoLoading, setLogoLoading] =
     useState(true);
 
@@ -249,28 +339,37 @@ const Productsaasignment: React.FC = () => {
     DEFAULT_LOGO_URL,
   );
 
-  // =====================================================
+  // ===================================================
   // PRODUCTS
-  // =====================================================
+  // ===================================================
 
+  // Products currently visible in the table.
   const [products, setProducts] = useState<Product[]>([]);
+
+  // Complete filtered product list.
+  // Used when applying filters across all API pages.
+  const [filteredProducts, setFilteredProducts] =
+    useState<Product[]>([]);
+
   const [loading, setLoading] = useState(false);
 
   const [search, setSearch] = useState("");
+
   const [statusFilter, setStatusFilter] =
     useState<string>("all");
+
   const [stockFilter, setStockFilter] =
     useState<string>("all");
 
   const [currentPage, setCurrentPage] = useState(1);
+
   const [lastPage, setLastPage] = useState(1);
+
   const [totalProducts, setTotalProducts] = useState(0);
 
-  const PER_PAGE = 12;
-
-  // =====================================================
+  // ===================================================
   // SELECTION
-  // =====================================================
+  // ===================================================
 
   const [selectionMode, setSelectionMode] =
     useState(false);
@@ -278,9 +377,9 @@ const Productsaasignment: React.FC = () => {
   const [selectedProducts, setSelectedProducts] =
     useState<Product[]>([]);
 
-  // =====================================================
+  // ===================================================
   // WAREHOUSE MODAL
-  // =====================================================
+  // ===================================================
 
   const [assignModalOpen, setAssignModalOpen] =
     useState(false);
@@ -297,13 +396,12 @@ const Productsaasignment: React.FC = () => {
   const [assignLoading, setAssignLoading] =
     useState(false);
 
-  // productId -> variantId/null
   const [selectedVariants, setSelectedVariants] =
     useState<Record<number, number | null>>({});
 
-  // =====================================================
+  // ===================================================
   // FETCH LOGO
-  // =====================================================
+  // ===================================================
 
   useEffect(() => {
     let isMounted = true;
@@ -311,6 +409,7 @@ const Productsaasignment: React.FC = () => {
     const fetchLogo = async () => {
       try {
         const response = await logoApi.getLogo();
+
         const responseData = response?.data as any;
 
         const receivedLogo =
@@ -329,7 +428,6 @@ const Productsaasignment: React.FC = () => {
       } catch (error) {
         console.error("Fetch logo error:", error);
 
-        // Keep default logo if logo API fails.
         if (isMounted) {
           setLogoUrl(DEFAULT_LOGO_URL);
         }
@@ -347,47 +445,179 @@ const Productsaasignment: React.FC = () => {
     };
   }, []);
 
-  // =====================================================
+  // ===================================================
+  // FILTER HELPERS
+  // ===================================================
+
+  const applyProductFilters = useCallback(
+    (productList: Product[]) => {
+      return productList.filter((product) => {
+        const matchesStatus =
+          statusFilter === "all" ||
+          getProductStatus(product) === statusFilter;
+
+        const matchesStock =
+          stockFilter === "all" ||
+          getProductStockStatus(product) === stockFilter;
+
+        return matchesStatus && matchesStock;
+      });
+    },
+    [statusFilter, stockFilter],
+  );
+
+  // ===================================================
   // FETCH PRODUCTS
-  // =====================================================
+  // ===================================================
 
   const fetchProducts = useCallback(
     async (isInitialLoad = false) => {
       try {
         setLoading(true);
 
-        const response = await productApi.getProducts({
-          page: currentPage,
-          per_page: PER_PAGE,
+        const filtersActive =
+          statusFilter !== "all" ||
+          stockFilter !== "all";
 
-          ...(search.trim()
-            ? { search: search.trim() }
-            : {}),
+        let productList: Product[] = [];
 
-          ...(statusFilter !== "all"
-            ? { status: statusFilter }
-            : {}),
+        // -------------------------------------------------
+        // FILTER MODE
+        // Fetch all search-result pages first.
+        // Then apply both filters locally.
+        // -------------------------------------------------
 
-          ...(stockFilter !== "all"
-            ? { stock_status: stockFilter }
-            : {}),
-        });
+        if (filtersActive) {
+          const firstResponse =
+            await productApi.getProducts({
+              page: 1,
+              per_page: API_PER_PAGE,
 
-        const apiData = response?.data;
+              ...(search.trim()
+                ? { search: search.trim() }
+                : {}),
+            });
 
-        const productList = Array.isArray(apiData?.data)
-          ? apiData.data
-          : [];
+          const firstData = firstResponse?.data;
 
-        setProducts(productList);
+          const firstProducts = Array.isArray(firstData?.data)
+            ? firstData.data
+            : [];
 
-        setTotalProducts(
-          apiData?.pagination?.total || 0,
-        );
+          productList = [...firstProducts];
 
-        setLastPage(
-          Math.max(apiData?.pagination?.last_page || 1, 1),
-        );
+          const apiLastPage = Math.max(
+            Number(firstData?.pagination?.last_page || 1),
+            1,
+          );
+
+          // Fetch remaining pages if API returns more than 100.
+          if (apiLastPage > 1) {
+            const remainingPages = Array.from(
+              { length: apiLastPage - 1 },
+              (_, index) => index + 2,
+            );
+
+            const remainingResponses = await Promise.all(
+              remainingPages.map((page) =>
+                productApi.getProducts({
+                  page,
+                  per_page: API_PER_PAGE,
+
+                  ...(search.trim()
+                    ? { search: search.trim() }
+                    : {}),
+                }),
+              ),
+            );
+
+            remainingResponses.forEach((response) => {
+              const pageData = response?.data;
+
+              const pageProducts = Array.isArray(pageData?.data)
+                ? pageData.data
+                : [];
+
+              productList.push(...pageProducts);
+            });
+          }
+
+          // Avoid duplicate products if API pages overlap.
+          const uniqueProducts = Array.from(
+            new Map(
+              productList.map((product) => [
+                product.id,
+                product,
+              ]),
+            ).values(),
+          );
+
+          // Apply both filters independently.
+          const matchingProducts =
+            applyProductFilters(uniqueProducts);
+
+          setFilteredProducts(matchingProducts);
+
+          setTotalProducts(matchingProducts.length);
+
+          const calculatedLastPage = Math.max(
+            Math.ceil(matchingProducts.length / PER_PAGE),
+            1,
+          );
+
+          setLastPage(calculatedLastPage);
+
+          // Keep the current page within valid range.
+          const safePage = Math.min(
+            currentPage,
+            calculatedLastPage,
+          );
+
+          const startIndex = (safePage - 1) * PER_PAGE;
+
+          setProducts(
+            matchingProducts.slice(
+              startIndex,
+              startIndex + PER_PAGE,
+            ),
+          );
+        } else {
+          // -------------------------------------------------
+          // NORMAL MODE
+          // Use standard server-side pagination.
+          // -------------------------------------------------
+
+          const response =
+            await productApi.getProducts({
+              page: currentPage,
+              per_page: PER_PAGE,
+
+              ...(search.trim()
+                ? { search: search.trim() }
+                : {}),
+            });
+
+          const apiData = response?.data;
+
+          productList = Array.isArray(apiData?.data)
+            ? apiData.data
+            : [];
+
+          setProducts(productList);
+
+          setFilteredProducts(productList);
+
+          setTotalProducts(
+            Number(apiData?.pagination?.total || 0),
+          );
+
+          setLastPage(
+            Math.max(
+              Number(apiData?.pagination?.last_page || 1),
+              1,
+            ),
+          );
+        }
       } catch (error: any) {
         console.error("Products API Error:", error);
 
@@ -397,13 +627,12 @@ const Productsaasignment: React.FC = () => {
         );
 
         setProducts([]);
+        setFilteredProducts([]);
         setLastPage(1);
         setTotalProducts(0);
       } finally {
         setLoading(false);
 
-        // Only changes the initial loader on the first request.
-        // Later refreshes/filter requests use the table skeleton.
         if (isInitialLoad) {
           setInitialDataLoading(false);
         }
@@ -414,12 +643,13 @@ const Productsaasignment: React.FC = () => {
       search,
       statusFilter,
       stockFilter,
+      applyProductFilters,
     ],
   );
 
-  // =====================================================
-  // INITIAL FETCH AFTER PERMISSIONS
-  // =====================================================
+  // ===================================================
+  // FETCH AFTER PERMISSIONS
+  // ===================================================
 
   useEffect(() => {
     if (permissionsLoading) {
@@ -438,30 +668,55 @@ const Productsaasignment: React.FC = () => {
     permissionsLoading,
   ]);
 
-  // =====================================================
-  // COMBINED INITIAL LOADING
-  // =====================================================
+  // ===================================================
+  // PAGE LOADING
+  // ===================================================
 
   const pageLoading =
     permissionsLoading ||
     logoLoading ||
     initialDataLoading;
 
-  // =====================================================
-  // SEARCH / FILTER RESET
-  // =====================================================
+  // ===================================================
+  // FILTER CHANGE HANDLERS
+  // ===================================================
 
-  useEffect(() => {
+  const handleSearchChange = (
+    value: string,
+  ) => {
+    setSearch(value);
     setCurrentPage(1);
-  }, [
-    search,
-    statusFilter,
-    stockFilter,
-  ]);
+  };
 
-  // =====================================================
+  const handleStatusFilterChange = (
+    value: string,
+  ) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleStockFilterChange = (
+    value: string,
+  ) => {
+    setStockFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setStockFilter("all");
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    statusFilter !== "all" ||
+    stockFilter !== "all";
+
+  // ===================================================
   // SELECTION HELPERS
-  // =====================================================
+  // ===================================================
 
   const isSelected = (productId: number) => {
     return selectedProducts.some(
@@ -529,15 +784,16 @@ const Productsaasignment: React.FC = () => {
     setAssignModalOpen(false);
   };
 
-  // =====================================================
+  // ===================================================
   // LOAD WAREHOUSES
-  // =====================================================
+  // ===================================================
 
   const loadWarehouses = async () => {
     try {
       setWarehouseLoading(true);
 
       const response = await warehousesApi.getAll(1, 100);
+
       const apiResponse = response?.data;
 
       const warehouseList = Array.isArray(
@@ -570,9 +826,9 @@ const Productsaasignment: React.FC = () => {
     }
   };
 
-  // =====================================================
+  // ===================================================
   // OPEN ASSIGN MODAL
-  // =====================================================
+  // ===================================================
 
   const handleOpenAssign = async () => {
     if (!selectedProducts.length) {
@@ -596,9 +852,9 @@ const Productsaasignment: React.FC = () => {
     await loadWarehouses();
   };
 
-  // =====================================================
+  // ===================================================
   // CHANGE VARIANT
-  // =====================================================
+  // ===================================================
 
   const handleVariantChange = (
     productId: number,
@@ -613,9 +869,9 @@ const Productsaasignment: React.FC = () => {
     }));
   };
 
-  // =====================================================
+  // ===================================================
   // ASSIGN PRODUCTS
-  // =====================================================
+  // ===================================================
 
   const handleAssignProducts = async () => {
     if (!selectedWarehouseId) {
@@ -671,7 +927,6 @@ const Productsaasignment: React.FC = () => {
       setSelectedVariants({});
       setSelectionMode(false);
 
-      // Refresh uses the existing table spinner.
       await fetchProducts();
     } catch (error: any) {
       console.error("Assign Warehouse Error:", error);
@@ -685,9 +940,9 @@ const Productsaasignment: React.FC = () => {
     }
   };
 
-  // =====================================================
+  // ===================================================
   // PAGINATION
-  // =====================================================
+  // ===================================================
 
   const paginationText = useMemo(() => {
     if (!totalProducts) {
@@ -704,18 +959,17 @@ const Productsaasignment: React.FC = () => {
     return `${start}-${end} of ${totalProducts} products`;
   }, [currentPage, totalProducts]);
 
-  // =====================================================
-  // LOGO LOADING STATE
-  // =====================================================
+  // ===================================================
+  // LOADING STATE
+  // ===================================================
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
-  // =====================================================
+  // ===================================================
   // ACCESS DENIED
-  // Content-area only — sidebar/navbar remain visible
-  // =====================================================
+  // ===================================================
 
   if (!canViewProducts) {
     return (
@@ -737,15 +991,15 @@ const Productsaasignment: React.FC = () => {
     );
   }
 
-  // =====================================================
-  // COLUMN COUNT (WITH S.NO.)
-  // =====================================================
+  // ===================================================
+  // COLUMN COUNT
+  // ===================================================
 
   const columnCount = (selectionMode ? 1 : 0) + 9;
 
-  // =====================================================
+  // ===================================================
   // RENDER
-  // =====================================================
+  // ===================================================
 
   return (
     <div className="min-h-screen bg-white p-4 font-poppins md:p-6">
@@ -798,8 +1052,6 @@ const Productsaasignment: React.FC = () => {
                   : "Select All"}
               </button>
 
-              {/* ASSIGN — PERMISSION BASED */}
-
               {canAssignProducts && (
                 <button
                   type="button"
@@ -814,11 +1066,7 @@ const Productsaasignment: React.FC = () => {
 
                   {warehouseLoading
                     ? "Loading..."
-                    : `Assign to Warehouse${
-                        selectedProducts.length
-                          ? ` (${selectedProducts.length})`
-                          : ""
-                      }`}
+                    : `Assign to Warehouse (${selectedProducts.length})`}
                 </button>
               )}
             </>
@@ -854,6 +1102,8 @@ const Productsaasignment: React.FC = () => {
 
       <div className="mb-4 rounded-2xl border border-[#DCE6F2] bg-white p-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          {/* SEARCH */}
+
           <div className="relative flex-1">
             <Search
               size={17}
@@ -863,11 +1113,15 @@ const Productsaasignment: React.FC = () => {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) =>
+                handleSearchChange(e.target.value)
+              }
               placeholder="Search product name or product code..."
               className="h-11 w-full rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-4 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
             />
           </div>
+
+          {/* PRODUCT STATUS FILTER */}
 
           <div className="relative">
             <SlidersHorizontal
@@ -877,8 +1131,10 @@ const Productsaasignment: React.FC = () => {
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-11 min-w-[150px] appearance-none rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] pl-9 pr-8 text-sm font-medium text-[#111827] outline-none focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
+              onChange={(e) =>
+                handleStatusFilterChange(e.target.value)
+              }
+              className="h-11 min-w-[160px] appearance-none rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] pl-9 pr-8 text-sm font-medium text-[#111827] outline-none focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -887,23 +1143,85 @@ const Productsaasignment: React.FC = () => {
             </select>
           </div>
 
-          <select
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="h-11 min-w-[150px] rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-sm font-medium text-[#111827] outline-none focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
-          >
-            <option value="all">All Stock</option>
-            <option value="active">In Stock</option>
-            <option value="inactive">Inactive</option>
-            <option value="out_of_stock">Out of Stock</option>
-          </select>
+          {/* STOCK STATUS FILTER */}
+
+          <div className="relative">
+            <Boxes
+              size={15}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]"
+            />
+
+            <select
+              value={stockFilter}
+              onChange={(e) =>
+                handleStockFilterChange(e.target.value)
+              }
+              className="h-11 min-w-[165px] appearance-none rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] pl-9 pr-8 text-sm font-medium text-[#111827] outline-none focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
+            >
+              <option value="all">All Stock</option>
+              <option value="active">In Stock</option>
+              <option value="low_stock">Low Stock</option>
+              <option value="inactive">Inactive</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </select>
+          </div>
+
+          {/* CLEAR FILTERS */}
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#C23B32] transition hover:bg-[#FEF2F2]"
+            >
+              <X size={15} />
+              Clear Filters
+            </button>
+          )}
         </div>
+
+        {/* ACTIVE FILTER SUMMARY */}
+
+        {hasActiveFilters && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#DCE6F2] pt-3">
+            <span className="text-xs font-semibold text-[#6B7280]">
+              Active filters:
+            </span>
+
+            {search.trim() && (
+              <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                Search: {search.trim()}
+              </span>
+            )}
+
+            {statusFilter !== "all" && (
+              <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-semibold text-[#2D6FE8]">
+                Status:{" "}
+                {statusFilter.charAt(0).toUpperCase() +
+                  statusFilter.slice(1)}
+              </span>
+            )}
+
+            {stockFilter !== "all" && (
+              <span className="rounded-full bg-[#FEF9C3] px-2.5 py-1 text-[10px] font-semibold text-[#A16207]">
+                Stock:{" "}
+                {stockFilter === "active"
+                  ? "In Stock"
+                  : stockFilter === "low_stock"
+                    ? "Low Stock"
+                    : stockFilter === "out_of_stock"
+                      ? "Out of Stock"
+                      : "Inactive"}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* SELECTED INFO */}
 
       {selectionMode && (
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-3">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 py-3">
           <div className="flex items-center gap-2">
             <Check size={16} className="text-[#2D6FE8]" />
 
@@ -926,12 +1244,11 @@ const Productsaasignment: React.FC = () => {
       <div className="overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-[0_8px_30px_rgba(45,111,232,0.04)]">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1080px] table-fixed">
-            {/* COLUMN WIDTHS */}
-
             <colgroup>
               {selectionMode && (
                 <col style={{ width: "45px" }} />
               )}
+
               <col style={{ width: "55px" }} />
               <col style={{ width: "260px" }} />
               <col style={{ width: "120px" }} />
@@ -951,7 +1268,7 @@ const Productsaasignment: React.FC = () => {
                       type="checkbox"
                       checked={allCurrentSelected}
                       onChange={toggleSelectAllCurrentPage}
-                      disabled={!products.length}
+                      disabled={!products.length || loading}
                       className="h-3.5 w-3.5 cursor-pointer accent-white"
                     />
                   </th>
@@ -996,7 +1313,7 @@ const Productsaasignment: React.FC = () => {
             </thead>
 
             <tbody>
-              {/* TABLE SKELETON FOR REFRESH / FILTER / PAGINATION */}
+              {/* TABLE SKELETON */}
 
               {loading ? (
                 Array.from({ length: 7 }).map((_, index) => (
@@ -1034,7 +1351,10 @@ const Productsaasignment: React.FC = () => {
                 ))
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={columnCount} className="px-6 py-16">
+                  <td
+                    colSpan={columnCount}
+                    className="px-6 py-16"
+                  >
                     <div className="flex flex-col items-center justify-center text-center">
                       <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#EAF3FF]">
                         <Package
@@ -1050,12 +1370,23 @@ const Productsaasignment: React.FC = () => {
                       <p className="mt-1 text-xs text-[#6B7280]">
                         Try changing your search or filters.
                       </p>
+
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={handleClearFilters}
+                          className="mt-3 text-xs font-semibold text-[#2D6FE8] hover:underline"
+                        >
+                          Clear all filters
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ) : (
                 products.map((product, index) => {
                   const selected = isSelected(product.id);
+
                   const image = getProductImage(product);
 
                   return (
@@ -1072,7 +1403,9 @@ const Productsaasignment: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => toggleProduct(product)}
+                            onChange={() =>
+                              toggleProduct(product)
+                            }
                             className="mt-1.5 h-3.5 w-3.5 cursor-pointer accent-[#2D6FE8]"
                           />
                         </td>
@@ -1082,7 +1415,9 @@ const Productsaasignment: React.FC = () => {
 
                       <td className="px-3 py-3 align-top">
                         <span className="mt-1.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
-                          {index + 1}
+                          {(currentPage - 1) * PER_PAGE +
+                            index +
+                            1}
                         </span>
                       </td>
 
@@ -1126,7 +1461,7 @@ const Productsaasignment: React.FC = () => {
 
                       <td className="px-3 py-3 align-top">
                         <span className="mt-1 inline-block rounded-md bg-[#F4F8FD] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#111827]">
-                          {product.product_code || "-"}
+                          {product.product_code?.trim() || "-"}
                         </span>
                       </td>
 
@@ -1162,13 +1497,19 @@ const Productsaasignment: React.FC = () => {
                       <td className="px-3 py-3 align-top">
                         <div className="mt-1">
                           <p className="text-[11px] font-bold text-[#2D6FE8]">
-                            {formatCurrency(product.distributor_price)}
+                            {formatCurrency(
+                              product.distributor_price,
+                            )}
                           </p>
 
                           {Number(product.distributor_mrp) >
-                            Number(product.distributor_price) && (
+                            Number(
+                              product.distributor_price,
+                            ) && (
                             <p className="text-[10px] text-[#6B7280] line-through">
-                              {formatCurrency(product.distributor_mrp)}
+                              {formatCurrency(
+                                product.distributor_mrp,
+                              )}
                             </p>
                           )}
                         </div>
@@ -1189,7 +1530,8 @@ const Productsaasignment: React.FC = () => {
                             </p>
 
                             <p className="text-[9px] text-[#6B7280]">
-                              Min: {product.low_stock_threshold ?? 0}
+                              Min:{" "}
+                              {product.low_stock_threshold ?? 0}
                             </p>
                           </div>
                         </div>
@@ -1199,14 +1541,7 @@ const Productsaasignment: React.FC = () => {
 
                       <td className="px-3 py-3 align-top">
                         <div className="mt-1.5">
-                          <StatusBadge
-                            status={
-                              (product.status ??
-                                (product.is_published
-                                  ? "active"
-                                  : "inactive")) as Product["status"]
-                            }
-                          />
+                          <StatusBadge product={product} />
                         </div>
                       </td>
 
@@ -1214,7 +1549,7 @@ const Productsaasignment: React.FC = () => {
 
                       <td className="px-3 py-3 align-top">
                         <div className="mt-1.5">
-                          <StockBadge status={product.stock_status} />
+                          <StockBadge product={product} />
                         </div>
                       </td>
                     </tr>
@@ -1238,7 +1573,9 @@ const Productsaasignment: React.FC = () => {
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() =>
-                  setCurrentPage((page) => Math.max(1, page - 1))
+                  setCurrentPage((page) =>
+                    Math.max(1, page - 1),
+                  )
                 }
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -1248,6 +1585,10 @@ const Productsaasignment: React.FC = () => {
               <div className="flex h-8 min-w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-3 text-xs font-bold text-white">
                 {currentPage}
               </div>
+
+              <span className="text-xs text-[#6B7280]">
+                of {lastPage}
+              </span>
 
               <button
                 type="button"
@@ -1266,7 +1607,7 @@ const Productsaasignment: React.FC = () => {
         )}
       </div>
 
-      {/* ASSIGN WAREHOUSE MODAL — PERMISSION BASED */}
+      {/* ASSIGN WAREHOUSE MODAL */}
 
       {canAssignProducts && assignModalOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#111827]/45 p-4 backdrop-blur-[2px]">
@@ -1292,7 +1633,9 @@ const Productsaasignment: React.FC = () => {
 
                     <p className="mt-0.5 text-xs text-[#6B7280]">
                       {selectedProducts.length} selected product
-                      {selectedProducts.length === 1 ? "" : "s"}
+                      {selectedProducts.length === 1
+                        ? ""
+                        : "s"}
                     </p>
                   </div>
                 </div>
@@ -1316,20 +1659,26 @@ const Productsaasignment: React.FC = () => {
               <div className="mb-5">
                 <label className="mb-2 block text-sm font-semibold text-[#111827]">
                   Select Warehouse
-                  <span className="ml-1 text-[#C23B32]">*</span>
+                  <span className="ml-1 text-[#C23B32]">
+                    *
+                  </span>
                 </label>
 
                 <select
                   value={selectedWarehouseId}
                   onChange={(e) =>
                     setSelectedWarehouseId(
-                      e.target.value ? Number(e.target.value) : "",
+                      e.target.value
+                        ? Number(e.target.value)
+                        : "",
                     )
                   }
                   disabled={assignLoading}
                   className="h-11 w-full rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] px-3 text-sm text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-4 focus:ring-[#2D6FE8]/10"
                 >
-                  <option value="">Select warehouse</option>
+                  <option value="">
+                    Select warehouse
+                  </option>
 
                   {warehouses.map((warehouse) => (
                     <option
@@ -1337,7 +1686,9 @@ const Productsaasignment: React.FC = () => {
                       value={warehouse.id}
                     >
                       {warehouse.name}
-                      {warehouse.code ? ` (${warehouse.code})` : ""}
+                      {warehouse.code
+                        ? ` (${warehouse.code})`
+                        : ""}
                     </option>
                   ))}
                 </select>
@@ -1388,7 +1739,7 @@ const Productsaasignment: React.FC = () => {
                             </p>
 
                             <p className="mt-0.5 text-xs text-[#6B7280]">
-                              {product.product_code}
+                              {product.product_code?.trim() || "-"}
                             </p>
                           </div>
                         </div>
@@ -1413,9 +1764,11 @@ const Productsaasignment: React.FC = () => {
 
                     <p className="mt-1 text-xs leading-5 text-[#6B7280]">
                       {selectedProducts.length} selected product
-                      {selectedProducts.length === 1 ? "" : "s"} will be
-                      assigned to the selected warehouse. Please verify
-                      the warehouse before clicking{" "}
+                      {selectedProducts.length === 1
+                        ? ""
+                        : "s"}{" "}
+                      will be assigned to the selected warehouse.
+                      Please verify the warehouse before clicking{" "}
                       <span className="font-semibold text-[#2D6FE8]">
                         Assign Products
                       </span>

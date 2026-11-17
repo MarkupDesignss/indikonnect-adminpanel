@@ -236,10 +236,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
 
-  // =====================================================
-  // SALES PANEL
-  // Separate Sales Panel Report
-  // =====================================================
   {
     path: "/sales-heading",
     label: "Sales",
@@ -247,15 +243,35 @@ export const menuItems: MenuItem[] = [
     isHeading: true,
     children: [
       {
+        path: "/sales-analytics",
+        label: "Sales Analytics",
+        icon: "analytics",
+        module: "sales",
+        permission: "sales.analytics",
+      },
+      {
         path: "/sales-panel",
         label: "Sales Report",
         icon: "assessment",
-        module: "sales",
-        permission: "sales.report",
+        children: [
+          {
+            path: "/product-sales-report",
+            label: "Product Sales Report",
+            icon: "inventory_2",
+            module: "sales_product_report",
+            permission: "sales.view",
+          },
+          {
+            path: "/category-sales-report",
+            label: "Category Sales Report",
+            icon: "category",
+            module: "sales_category_report",
+            permission: "sales.view",
+          },
+        ],
       },
     ],
   },
-
   // =====================================================
   // REPORTS
   // Product-wise Sales Report remains here
