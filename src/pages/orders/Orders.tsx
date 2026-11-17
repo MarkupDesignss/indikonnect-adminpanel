@@ -75,13 +75,15 @@ const DATE_RANGE_OPTIONS: { value: DateRangeKey; label: string }[] = [
 
 const parseOrderDate = (value?: string | null): Date | null => {
   if (!value) return null;
-  const normalized = value.includes("T") ? value : value.trim().replace(" ", "T");
+  const normalized = value.includes("T")
+    ? value
+    : value.trim().replace(" ", "T");
   const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const getDateRangeBounds = (
-  key: DateRangeKey
+  key: DateRangeKey,
 ): { start: number; end: number } | null => {
   if (key === "all") return null;
 
@@ -212,27 +214,85 @@ const StatCardSkeleton: React.FC = () => (
    ===================================================== */
 
 const ClipboardIcon = () => (
-  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M8 13H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M8 17H12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  <svg
+    width="34"
+    height="34"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M16 4H18C19.1046 4 20 4.89543 20 6V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V6C4 4.89543 4.89543 4 6 4H8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M15 2H9C8.44772 2 8 2.44772 8 3V5C8 5.55228 8.44772 6 9 6H15C15.5523 6 16 5.55228 16 5V3C16 2.44772 15.5523 2 15 2Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 13H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 17H12"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 const CheckCircleIcon = () => (
-  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    width="34"
+    height="34"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M9 12L11.5 14.5L16 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path
+      d="M9 12L11.5 14.5L16 9"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
 const DollarIcon = () => (
-  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    width="34"
+    height="34"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-    <path d="M8 8H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M8 12H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-    <path d="M8 16H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path
+      d="M8 8H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 12H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 16H16"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -270,11 +330,15 @@ export interface OrderItem {
   is_cancel_return_allowed?: boolean;
   courier_tracking_number?: string;
   courierTrackingNumber?: string;
+  indiaPost?: IndiaPostOrderSummary | null;
   invoice?: { id: number; invoice_number: string } | null;
 }
 
 export interface IndiaPostOrderSummary {
-  shipment_id: number;
+  shipment_id: number | null;
+  order_id?: number;
+  order_reference?: string;
+  order_line_id?: number;
   courier: string;
   awb: string;
   booking_status: string;
@@ -284,8 +348,65 @@ export interface IndiaPostOrderSummary {
   latest_event: string | null;
   latest_event_code: string | null;
   latest_event_at: string | null;
-  tracking_source: "stored_tracking" | "webhook";
+  tracking_source: "stored_tracking" | "webhook" | "allocation";
   local_record_updated_at: string | null;
+}
+
+// Never inherit an AWB from the parent order or another product.
+function verifiedItemIndiaPost(
+  parent: any,
+  item: any,
+): IndiaPostOrderSummary | null {
+  const info = item?.indiapost;
+  const oid = Number(parent?.id);
+  const lid = Number(item?.line_id);
+  const ref = parent?.order_reference;
+  if (
+    !info ||
+    !Number.isSafeInteger(oid) ||
+    oid <= 0 ||
+    !Number.isSafeInteger(lid) ||
+    lid <= 0 ||
+    (item.order_id != null && Number(item.order_id) !== oid) ||
+    (item.order_reference != null && item.order_reference !== ref) ||
+    typeof ref !== "string" ||
+    !ref ||
+    Number(info.order_id) !== oid ||
+    info.order_reference !== ref ||
+    Number(info.order_line_id) !== lid ||
+    typeof info.awb !== "string" ||
+    !/^[A-Z]{2}\d{9}IN$/.test(info.awb)
+  )
+    return null;
+  return info;
+}
+
+function itemTrackingNumber(parent: any, item: any): string | undefined {
+  const info = verifiedItemIndiaPost(parent, item);
+  if (info) return info.awb;
+  // Existing manual/other-courier tracking remains item-specific.
+  const manual =
+    item?.courier_tracking_number ??
+    item?.shipping_details?.courier_tracking_number;
+  const company = String(item?.shipping_details?.courier_company ?? "");
+  if (/india\s*post|speed\s*post|department\s+of\s+posts/i.test(company))
+    return undefined;
+  if (
+    typeof manual !== "string" ||
+    !manual.trim() ||
+    /^[A-Z]{2}\d{9}IN$/i.test(manual.trim())
+  )
+    return undefined;
+  return manual.trim();
+}
+
+function indiaPostStatus(info: IndiaPostOrderSummary): string {
+  const status = info.tracking_status || info.booking_status || "pending";
+  if (status === "submitted") return "Booking submitted";
+  if (status === "allocated") return "AWB assigned";
+  if (["unknown", "submitting", "needs_reconciliation"].includes(status))
+    return "Needs reconciliation";
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export interface Order {
@@ -405,9 +526,9 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   orderData,
   onViewInvoice,
 }) => {
-  const [activeTab, setActiveTab] = useState<"items" | "details" | "tracking" | "payment">(
-    "items"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "items" | "details" | "tracking" | "payment"
+  >("items");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -423,12 +544,49 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
       }
 
       try {
-        const response = await orderApi.getOrderDetails(id);
+        const initial = normalizeOrderDetailsPayload(orderData);
+        const initialId = Number(initial?.id);
+        const numericId =
+          Number.isSafeInteger(initialId) &&
+          initialId > 0 &&
+          (String(initial.order_reference) === id || String(initialId) === id)
+            ? String(initialId)
+            : id;
+        const response = await orderApi.getOrderDetails(numericId);
         const payload = response?.data?.data ?? response?.data ?? response;
         const data = normalizeOrderDetailsPayload(payload);
 
-        if (data) {
-          setOrderDetails(data);
+        if (
+          data &&
+          (!initial ||
+            (Number(data.id) === Number(initial.id) &&
+              data.order_reference === initial.order_reference))
+        ) {
+          const originalItems = Array.isArray(initial?.items)
+            ? initial.items
+            : [];
+          const mergedItems = Array.isArray(data.items)
+            ? data.items.map((item: any) => {
+                const old = originalItems.find(
+                  (x: any) => Number(x.line_id) === Number(item.line_id),
+                );
+                if (!old) return item;
+                return {
+                  ...item,
+                  courier_tracking_number:
+                    item.courier_tracking_number ??
+                    (item.indiapost
+                      ? undefined
+                      : itemTrackingNumber(initial, {
+                          ...old,
+                          indiapost: null,
+                        })),
+                  shipping_details:
+                    item.shipping_details ?? old.shipping_details,
+                };
+              })
+            : data.items;
+          setOrderDetails({ ...data, items: mergedItems });
           setLastRefreshedAt(new Date());
         } else if (!silent) {
           setError("No data received from API");
@@ -439,7 +597,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
           setError(
             err?.response?.data?.message ||
               err?.message ||
-              "An error occurred while fetching order details"
+              "An error occurred while fetching order details",
           );
         }
       } finally {
@@ -447,7 +605,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         else setLoading(false);
       }
     },
-    []
+    [orderData],
   );
 
   useEffect(() => {
@@ -475,7 +633,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   if (loading) {
     return (
-      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+      <GlobalModal
+        isOpen={isOpen}
+        onClose={onClose}
+        closeOnOverlayClick={false}
+      >
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
           <ModalLoader message="Loading order details..." />
@@ -486,7 +648,11 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   if (error || !orderDetails) {
     return (
-      <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+      <GlobalModal
+        isOpen={isOpen}
+        onClose={onClose}
+        closeOnOverlayClick={false}
+      >
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] via-[#5A95F6] to-[#8BB7FF]" />
           <ModalError error={error || "Order not found"} onClose={onClose} />
@@ -557,20 +723,90 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   };
 
   const timelineEventDefinitions: TimelineEventDefinition[] = [
-    { key: "order_placed", title: "Order Placed", description: "The order was successfully placed.", category: "order" },
-    { key: "order_confirmed", title: "Order Confirmed", description: "The order was confirmed successfully.", category: "order" },
-    { key: "dispatched_at", title: "Dispatched", description: "The order was handed over for dispatch.", category: "shipping" },
-    { key: "shipped_at", title: "Shipped", description: "The shipment was marked as shipped.", category: "shipping" },
-    { key: "delivered_at", title: "Delivered", description: "The order was marked as delivered.", category: "shipping" },
-    { key: "cancelled_at", title: "Order Cancelled", description: "The order cancellation was recorded.", category: "cancel" },
-    { key: "return_requested_at", title: "Return Requested", description: "A return request was submitted.", category: "return" },
-    { key: "return_approved_at", title: "Return Approved", description: "The return request was approved.", category: "return" },
-    { key: "return_rejected_at", title: "Return Rejected", description: "The return request was rejected.", category: "return" },
-    { key: "return_completed_at", title: "Return Completed", description: "The return process was completed.", category: "return" },
-    { key: "buyback_requested_at", title: "Buyback Requested", description: "A buyback request was submitted.", category: "buyback" },
-    { key: "buyback_approved_at", title: "Buyback Approved", description: "The buyback request was approved.", category: "buyback" },
-    { key: "buyback_rejected_at", title: "Buyback Rejected", description: "The buyback request was rejected.", category: "buyback" },
-    { key: "buyback_refunded_at", title: "Buyback Refund Processed", description: "The buyback refund was processed.", category: "buyback" },
+    {
+      key: "order_placed",
+      title: "Order Placed",
+      description: "The order was successfully placed.",
+      category: "order",
+    },
+    {
+      key: "order_confirmed",
+      title: "Order Confirmed",
+      description: "The order was confirmed successfully.",
+      category: "order",
+    },
+    {
+      key: "dispatched_at",
+      title: "Dispatched",
+      description: "The order was handed over for dispatch.",
+      category: "shipping",
+    },
+    {
+      key: "shipped_at",
+      title: "Shipped",
+      description: "The shipment was marked as shipped.",
+      category: "shipping",
+    },
+    {
+      key: "delivered_at",
+      title: "Delivered",
+      description: "The order was marked as delivered.",
+      category: "shipping",
+    },
+    {
+      key: "cancelled_at",
+      title: "Order Cancelled",
+      description: "The order cancellation was recorded.",
+      category: "cancel",
+    },
+    {
+      key: "return_requested_at",
+      title: "Return Requested",
+      description: "A return request was submitted.",
+      category: "return",
+    },
+    {
+      key: "return_approved_at",
+      title: "Return Approved",
+      description: "The return request was approved.",
+      category: "return",
+    },
+    {
+      key: "return_rejected_at",
+      title: "Return Rejected",
+      description: "The return request was rejected.",
+      category: "return",
+    },
+    {
+      key: "return_completed_at",
+      title: "Return Completed",
+      description: "The return process was completed.",
+      category: "return",
+    },
+    {
+      key: "buyback_requested_at",
+      title: "Buyback Requested",
+      description: "A buyback request was submitted.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_approved_at",
+      title: "Buyback Approved",
+      description: "The buyback request was approved.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_rejected_at",
+      title: "Buyback Rejected",
+      description: "The buyback request was rejected.",
+      category: "buyback",
+    },
+    {
+      key: "buyback_refunded_at",
+      title: "Buyback Refund Processed",
+      description: "The buyback refund was processed.",
+      category: "buyback",
+    },
   ];
 
   const rawTimelineItems = Array.isArray(items) ? items : [];
@@ -603,12 +839,19 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   timelineSourceItems.forEach((item: any) => {
     const itemTimeline = item?.timeline || {};
     const itemName = String(
-      item?.product_name || item?.name || item?.item_reference_id || "Order"
+      item?.product_name || item?.name || item?.item_reference_id || "Order",
     );
 
     const eventValues: Record<string, any> = {
-      order_placed: itemTimeline.order_placed || item?.order_date || orderDetails?.order_date || order_date,
-      order_confirmed: itemTimeline.order_confirmed || item?.confirmed_date || orderDetails?.confirmed_date,
+      order_placed:
+        itemTimeline.order_placed ||
+        item?.order_date ||
+        orderDetails?.order_date ||
+        order_date,
+      order_confirmed:
+        itemTimeline.order_confirmed ||
+        item?.confirmed_date ||
+        orderDetails?.confirmed_date,
       dispatched_at: itemTimeline.dispatched_at,
       shipped_at: itemTimeline.shipped_at,
       delivered_at: itemTimeline.delivered_at,
@@ -652,7 +895,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   });
 
   const timelineEvents = Array.from(timelineEventMap.values()).sort(
-    (a, b) => a.sortAt - b.sortAt || a.sequence - b.sequence
+    (a, b) => a.sortAt - b.sortAt || a.sequence - b.sequence,
   );
 
   const returnWindowMap = new Map<
@@ -668,7 +911,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     const key = parsedDate.getTime();
     const existingWindow = returnWindowMap.get(key);
     const itemName = String(
-      item?.product_name || item?.name || item?.item_reference_id || "Order"
+      item?.product_name || item?.name || item?.item_reference_id || "Order",
     );
 
     if (existingWindow) {
@@ -686,7 +929,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   const returnWindows = Array.from(returnWindowMap.values()).sort(
     (a, b) =>
       (parseTimelineDate(a.timestamp)?.getTime() || 0) -
-      (parseTimelineDate(b.timestamp)?.getTime() || 0)
+      (parseTimelineDate(b.timestamp)?.getTime() || 0),
   );
 
   const timelineCurrentStatus =
@@ -698,7 +941,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
   const uiItems: OrderItem[] = (items || []).map((item: any) => ({
     id: String(item.line_id || ""),
     lineId: item.line_id,
-    orderReference: item.order_reference || orderDetails?.order_reference || "N/A",
+    orderReference:
+      item.order_reference || orderDetails?.order_reference || "N/A",
     itemReferenceId: item.item_reference_id || "N/A",
     productName: item.product_name || "N/A",
     categoryName: item.category_name || undefined,
@@ -710,7 +954,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     unitPrice: item.unit_price || 0,
     lineTotal: item.line_total || 0,
     status: item.delivery_status
-      ? item.delivery_status.charAt(0).toUpperCase() + item.delivery_status.slice(1)
+      ? item.delivery_status.charAt(0).toUpperCase() +
+        item.delivery_status.slice(1)
       : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
@@ -720,10 +965,9 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     gstRate: item.gst_rate,
     gstAmount: item.gst_amount,
     is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-    courier_tracking_number:
-      orderDetails?.indiapost?.awb || item.courier_tracking_number || undefined,
-    courierTrackingNumber:
-      orderDetails?.indiapost?.awb || item.courier_tracking_number || undefined,
+    indiaPost: verifiedItemIndiaPost(orderDetails, item),
+    courier_tracking_number: itemTrackingNumber(orderDetails, item),
+    courierTrackingNumber: itemTrackingNumber(orderDetails, item),
     invoiceNumber: item.invoice?.invoice_number || undefined,
     invoice_number: item.invoice?.invoice_number || undefined,
   }));
@@ -754,7 +998,9 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const getStatusText = (status: string) => {
     if (!status) return "N/A";
-    return status.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+    return status
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   const getShippingAddress = () => {
@@ -765,10 +1011,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
 
   const addr = getShippingAddress();
   const trackingInfo =
-    shipping_details ||
-    (items && items.length > 0 ? items[0].shipping_details : null);
-  const indiaPostInfo: IndiaPostOrderSummary | null =
-    orderDetails?.indiapost ?? null;
+    Array.isArray(items) && items.length === 1
+      ? items[0].shipping_details || shipping_details
+      : null;
+  const indiaPostItems = uiItems.filter((item) => item.indiaPost);
 
   return (
     <GlobalModal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
@@ -824,7 +1070,9 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
-              {orderDetails?.order_type === "retail" ? "Customer Details" : "Distributor Details"}
+              {orderDetails?.order_type === "retail"
+                ? "Customer Details"
+                : "Distributor Details"}
             </button>
             <button
               type="button"
@@ -861,16 +1109,36 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   <table className="w-full min-w-[1000px] border-collapse">
                     <thead>
                       <tr className="bg-[#4F8FF7]">
-                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">#</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Item Ref</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Product</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">SKU</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Qty</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">Price</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">Total</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">Tracking</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Status</th>
-                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">Invoice</th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                          #
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                          Item Ref
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                          Product
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                          SKU
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                          Qty
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                          Price
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                          Total
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                          Tracking
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                          Status
+                        </th>
+                        <th className="whitespace-nowrap px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                          Invoice
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -878,8 +1146,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         uiItems.map((item, idx) => {
                           const hasInvoice = Boolean(item.invoiceNumber);
                           return (
-                            <tr key={item.id} className="border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF]">
-                              <td className="px-3 py-3 text-xs text-[#2D6FE8]">{idx + 1}</td>
+                            <tr
+                              key={item.id}
+                              className="border-b border-[#2D6FE8]/10 transition hover:bg-[#FAFBFF]"
+                            >
+                              <td className="px-3 py-3 text-xs text-[#2D6FE8]">
+                                {idx + 1}
+                              </td>
                               <td className="px-3 py-3">
                                 <span className="inline-flex whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold tracking-wide text-[#2D6FE8]">
                                   {item.itemReferenceId || "N/A"}
@@ -899,20 +1172,33 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     </div>
                                   )}
                                   <div className="min-w-0 max-w-[220px]">
-                                    <p title={item.productName} className="truncate text-xs font-normal leading-4 text-[#111827]">
+                                    <p
+                                      title={item.productName}
+                                      className="truncate text-xs font-normal leading-4 text-[#111827]"
+                                    >
                                       {item.productName}
                                     </p>
                                     {(item.categoryName || item.brandName) && (
                                       <div className="mt-0.5 space-y-0.5 text-[10px] leading-3.5 text-[#4B5563]">
                                         {item.categoryName && (
-                                          <p className="truncate" title={item.categoryName}>
-                                            <span className="font-medium text-[#374151]">Category:</span>{" "}
+                                          <p
+                                            className="truncate"
+                                            title={item.categoryName}
+                                          >
+                                            <span className="font-medium text-[#374151]">
+                                              Category:
+                                            </span>{" "}
                                             {item.categoryName}
                                           </p>
                                         )}
                                         {item.brandName && (
-                                          <p className="truncate" title={item.brandName}>
-                                            <span className="font-medium text-[#374151]">Brand:</span>{" "}
+                                          <p
+                                            className="truncate"
+                                            title={item.brandName}
+                                          >
+                                            <span className="font-medium text-[#374151]">
+                                              Brand:
+                                            </span>{" "}
                                             {item.brandName}
                                           </p>
                                         )}
@@ -926,9 +1212,15 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                   {item.sku}
                                 </span>
                               </td>
-                              <td className="px-3 py-3 text-center text-xs text-[#111827]">{item.quantity}</td>
-                              <td className="whitespace-nowrap px-3 py-3 text-right text-xs text-[#111827]">{item.price}</td>
-                              <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">{item.total}</td>
+                              <td className="px-3 py-3 text-center text-xs text-[#111827]">
+                                {item.quantity}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-right text-xs text-[#111827]">
+                                {item.price}
+                              </td>
+                              <td className="whitespace-nowrap px-3 py-3 text-right text-xs font-bold text-[#111827]">
+                                {item.total}
+                              </td>
                               <td className="px-3 py-3">
                                 {item.courier_tracking_number ? (
                                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
@@ -936,36 +1228,46 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                     {item.courier_tracking_number}
                                   </span>
                                 ) : (
-                                  <span className="text-xs text-[#6B7280]">—</span>
+                                  <span className="text-xs text-[#6B7280]">
+                                    —
+                                  </span>
                                 )}
                               </td>
                               <td className="px-3 py-3 text-center">
-                                <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}>
+                                <span
+                                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(item.status)}`}
+                                >
                                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
                                   {getStatusText(item.status)}
                                 </span>
                               </td>
                               <td className="px-3 py-3 text-center">
-                                {hasInvoice && orderDetails?.id && onViewInvoice && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const oid = orderDetails?.id;
-                                      if (oid) onViewInvoice(oid, item.lineId);
-                                    }}
-                                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
-                                  >
-                                    <FiFileText size={13} />
-                                    {item.invoiceNumber || "Invoice"}
-                                  </button>
-                                )}
+                                {hasInvoice &&
+                                  orderDetails?.id &&
+                                  onViewInvoice && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const oid = orderDetails?.id;
+                                        if (oid)
+                                          onViewInvoice(oid, item.lineId);
+                                      }}
+                                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-[#EAF3FF] px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
+                                    >
+                                      <FiFileText size={13} />
+                                      {item.invoiceNumber || "Invoice"}
+                                    </button>
+                                  )}
                               </td>
                             </tr>
                           );
                         })
                       ) : (
                         <tr>
-                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-[#6B7280]">
+                          <td
+                            colSpan={10}
+                            className="px-4 py-8 text-center text-sm text-[#6B7280]"
+                          >
                             No items found in this order
                           </td>
                         </tr>
@@ -979,24 +1281,42 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/20" />
                 <div className="mb-4 flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-                  <h4 className="text-sm font-bold text-[#111827]">Order Summary</h4>
+                  <h4 className="text-sm font-bold text-[#111827]">
+                    Order Summary
+                  </h4>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div className="rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">Subtotal</p>
-                    <p className="mt-1 text-base font-bold text-[#111827]">₹{Number(subtotal || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                      Subtotal
+                    </p>
+                    <p className="mt-1 text-base font-bold text-[#111827]">
+                      ₹{Number(subtotal || 0).toLocaleString("en-IN")}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">Shipping</p>
-                    <p className="mt-1 text-base font-bold text-[#111827]">₹{Number(shippingCharge || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                      Shipping
+                    </p>
+                    <p className="mt-1 text-base font-bold text-[#111827]">
+                      ₹{Number(shippingCharge || 0).toLocaleString("en-IN")}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">Tax (GST)</p>
-                    <p className="mt-1 text-base font-bold text-[#111827]">₹{Number(totalGst || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
+                      Tax (GST)
+                    </p>
+                    <p className="mt-1 text-base font-bold text-[#111827]">
+                      ₹{Number(totalGst || 0).toLocaleString("en-IN")}
+                    </p>
                   </div>
                   <div className="rounded-xl border border-[#2D6FE8]/20 bg-gradient-to-br from-[#EAF3FF] to-[#DBEAFE] p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">Total Payable</p>
-                    <p className="mt-1 text-xl font-bold text-[#1E40AF]">₹{Number(totalPayable || 0).toLocaleString("en-IN")}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
+                      Total Payable
+                    </p>
+                    <p className="mt-1 text-xl font-bold text-[#1E40AF]">
+                      ₹{Number(totalPayable || 0).toLocaleString("en-IN")}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1012,32 +1332,46 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <FiUser size={17} />
                     </div>
                     <h4 className="font-bold text-[#111827]">
-                      {orderDetails?.order_type === "retail" ? "Customer Information" : "Distributor Information"}
+                      {orderDetails?.order_type === "retail"
+                        ? "Customer Information"
+                        : "Distributor Information"}
                     </h4>
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/10 pb-2.5">
                       <span className="text-xs text-[#6B7280]">Name</span>
-                      <span className="text-right text-sm font-semibold text-[#111827]">{user?.name || "N/A"}</span>
+                      <span className="text-right text-sm font-semibold text-[#111827]">
+                        {user?.name || "N/A"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/10 pb-2.5">
                       <span className="text-xs text-[#6B7280]">Email</span>
-                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#111827]">{user?.email || "N/A"}</span>
+                      <span className="max-w-[65%] truncate text-right text-sm font-semibold text-[#111827]">
+                        {user?.email || "N/A"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/10 pb-2.5">
                       <span className="text-xs text-[#6B7280]">Phone</span>
-                      <span className="text-right text-sm font-semibold text-[#111827]">{user?.phone || "N/A"}</span>
+                      <span className="text-right text-sm font-semibold text-[#111827]">
+                        {user?.phone || "N/A"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/10 pb-2.5">
                       <span className="text-xs text-[#6B7280]">Order Type</span>
                       <span className="text-sm font-semibold capitalize text-[#2D6FE8]">
-                        {orderDetails?.order_type === "retail" ? "Customer" : orderDetails?.order_type || "N/A"}
+                        {orderDetails?.order_type === "retail"
+                          ? "Customer"
+                          : orderDetails?.order_type || "N/A"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-[#6B7280]">Payment Status</span>
+                      <span className="text-xs text-[#6B7280]">
+                        Payment Status
+                      </span>
                       <span className="rounded-full border border-[#2D6FE8]/20 bg-white px-2.5 py-1 text-xs font-bold capitalize text-[#2D6FE8]">
-                        {payment?.payment_status || orderDetails?.payment_status || "N/A"}
+                        {payment?.payment_status ||
+                          orderDetails?.payment_status ||
+                          "N/A"}
                       </span>
                     </div>
                   </div>
@@ -1048,22 +1382,62 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                       <FiMapPin size={17} />
                     </div>
-                    <h4 className="font-bold text-[#111827]">Shipping Address</h4>
+                    <h4 className="font-bold text-[#111827]">
+                      Shipping Address
+                    </h4>
                   </div>
                   {addr ? (
                     <>
-                      <p className="text-sm leading-6 text-[#111827]">{addr.full_address || "No address provided"}</p>
+                      <p className="text-sm leading-6 text-[#111827]">
+                        {addr.full_address || "No address provided"}
+                      </p>
                       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-[#2D6FE8]/10 bg-white p-3 text-xs">
-                        <div><span className="text-[#6B7280]">Address Line 1:</span><span className="ml-1 font-semibold text-[#111827]">{addr.address_line_1 || "N/A"}</span></div>
-                        <div><span className="text-[#6B7280]">Address Line 2:</span><span className="ml-1 font-semibold text-[#111827]">{addr.address_line_2 || "N/A"}</span></div>
-                        <div><span className="text-[#6B7280]">City:</span><span className="ml-1 font-semibold text-[#111827]">{addr.city || "N/A"}</span></div>
-                        <div><span className="text-[#6B7280]">State:</span><span className="ml-1 font-semibold text-[#111827]">{addr.state || "N/A"}</span></div>
-                        <div><span className="text-[#6B7280]">Country:</span><span className="ml-1 font-semibold text-[#111827]">{addr.country || "N/A"}</span></div>
-                        <div><span className="text-[#6B7280]">Pincode:</span><span className="ml-1 font-semibold text-[#111827]">{addr.postal_code || addr.pincode || "N/A"}</span></div>
+                        <div>
+                          <span className="text-[#6B7280]">
+                            Address Line 1:
+                          </span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.address_line_1 || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7280]">
+                            Address Line 2:
+                          </span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.address_line_2 || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7280]">City:</span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.city || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7280]">State:</span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.state || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7280]">Country:</span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.country || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[#6B7280]">Pincode:</span>
+                          <span className="ml-1 font-semibold text-[#111827]">
+                            {addr.postal_code || addr.pincode || "N/A"}
+                          </span>
+                        </div>
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-[#6B7280]">No address provided</p>
+                    <p className="text-sm text-[#6B7280]">
+                      No address provided
+                    </p>
                   )}
                 </div>
               </div>
@@ -1075,8 +1449,12 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       <FiCalendar size={17} />
                     </div>
                     <div>
-                      <h4 className="font-bold text-[#111827]">Order Timeline</h4>
-                      <p className="mt-0.5 text-[11px] text-[#6B7280]">All recorded milestones in chronological order</p>
+                      <h4 className="font-bold text-[#111827]">
+                        Order Timeline
+                      </h4>
+                      <p className="mt-0.5 text-[11px] text-[#6B7280]">
+                        All recorded milestones in chronological order
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -1086,25 +1464,39 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                     </span>
                     <button
                       type="button"
-                      onClick={() => orderId && fetchOrderDetails(orderId, true)}
+                      onClick={() =>
+                        orderId && fetchOrderDetails(orderId, true)
+                      }
                       disabled={refreshing || !orderId}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-[#2D6FE8]/20 bg-white px-3 py-1.5 text-[11px] font-bold text-[#2D6FE8] transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {refreshing ? <FiLoader size={12} className="animate-spin" /> : <FiRefreshCw size={12} />}
+                      {refreshing ? (
+                        <FiLoader size={12} className="animate-spin" />
+                      ) : (
+                        <FiRefreshCw size={12} />
+                      )}
                       {refreshing ? "Refreshing..." : "Refresh"}
                     </button>
                   </div>
                 </div>
 
                 <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                  <span className="text-xs text-[#6B7280]">Current Order Status:</span>
-                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${getStatusBadge(timelineCurrentStatus)}`}>
+                  <span className="text-xs text-[#6B7280]">
+                    Current Order Status:
+                  </span>
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${getStatusBadge(timelineCurrentStatus)}`}
+                  >
                     {getStatusText(timelineCurrentStatus)}
                   </span>
                   {lastRefreshedAt && (
                     <span className="ml-auto text-[10px] text-[#9CA3AF]">
                       Last synced{" "}
-                      {lastRefreshedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                      {lastRefreshedAt.toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
                     </span>
                   )}
                 </div>
@@ -1112,17 +1504,26 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 {returnWindows.length > 0 && (
                   <div className="mb-4 space-y-2">
                     {returnWindows.map((windowItem, index) => (
-                      <div key={`return-window-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#F2C94C]/30 bg-[#FFFDF3] p-3">
+                      <div
+                        key={`return-window-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#F2C94C]/30 bg-[#FFFDF3] p-3"
+                      >
                         <div className="flex items-center gap-2">
                           <FiClock className="text-[#A16207]" size={15} />
                           <div>
-                            <p className="text-xs font-bold text-[#92400E]">Return Window Ends</p>
+                            <p className="text-xs font-bold text-[#92400E]">
+                              Return Window Ends
+                            </p>
                             <p className="mt-0.5 text-[10px] text-[#A16207]">
-                              {windowItem.itemNames.length > 1 ? `${windowItem.itemNames.length} items` : windowItem.itemNames[0]}
+                              {windowItem.itemNames.length > 1
+                                ? `${windowItem.itemNames.length} items`
+                                : windowItem.itemNames[0]}
                             </p>
                           </div>
                         </div>
-                        <span className="text-xs font-bold text-[#92400E]">{formatTimelineDateTime(windowItem.timestamp)}</span>
+                        <span className="text-xs font-bold text-[#92400E]">
+                          {formatTimelineDateTime(windowItem.timestamp)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1135,42 +1536,63 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                         event.category === "cancel"
                           ? {
                               line: "bg-[#C23B32]/20",
-                              marker: "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
+                              marker:
+                                "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
                               card: "border-[#C23B32]/15",
                               title: "text-[#B42318]",
                             }
                           : event.category === "return"
-                          ? {
-                              line: "bg-[#D69E36]/25",
-                              marker: "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
-                              card: "border-[#F2C94C]/25",
-                              title: "text-[#92400E]",
-                            }
-                          : event.category === "buyback"
-                          ? {
-                              line: "bg-[#8B5CF6]/20",
-                              marker: "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
-                              card: "border-[#8B5CF6]/15",
-                              title: "text-[#6D28D9]",
-                            }
-                          : {
-                              line: "bg-[#2D6FE8]/20",
-                              marker: "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
-                              card: "border-[#2D6FE8]/15",
-                              title: "text-[#111827]",
-                            };
+                            ? {
+                                line: "bg-[#D69E36]/25",
+                                marker:
+                                  "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
+                                card: "border-[#F2C94C]/25",
+                                title: "text-[#92400E]",
+                              }
+                            : event.category === "buyback"
+                              ? {
+                                  line: "bg-[#8B5CF6]/20",
+                                  marker:
+                                    "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
+                                  card: "border-[#8B5CF6]/15",
+                                  title: "text-[#6D28D9]",
+                                }
+                              : {
+                                  line: "bg-[#2D6FE8]/20",
+                                  marker:
+                                    "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
+                                  card: "border-[#2D6FE8]/15",
+                                  title: "text-[#111827]",
+                                };
 
                       return (
-                        <div key={`${event.key}-${event.sortAt}`} className="relative flex gap-3 pb-4 last:pb-0">
-                          {!isLast && <div className={`absolute bottom-0 left-[15px] top-8 w-px ${tone.line}`} />}
-                          <div className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${tone.marker}`}>
+                        <div
+                          key={`${event.key}-${event.sortAt}`}
+                          className="relative flex gap-3 pb-4 last:pb-0"
+                        >
+                          {!isLast && (
+                            <div
+                              className={`absolute bottom-0 left-[15px] top-8 w-px ${tone.line}`}
+                            />
+                          )}
+                          <div
+                            className={`relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${tone.marker}`}
+                          >
                             <FiCheck size={15} strokeWidth={2.5} />
                           </div>
-                          <div className={`min-w-0 flex-1 rounded-xl border bg-white p-3 ${tone.card}`}>
+                          <div
+                            className={`min-w-0 flex-1 rounded-xl border bg-white p-3 ${tone.card}`}
+                          >
                             <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                               <div className="min-w-0">
-                                <p className={`text-sm font-bold ${tone.title}`}>{event.title}</p>
-                                <p className="mt-0.5 text-[11px] text-[#6B7280]">{event.description}</p>
+                                <p
+                                  className={`text-sm font-bold ${tone.title}`}
+                                >
+                                  {event.title}
+                                </p>
+                                <p className="mt-0.5 text-[11px] text-[#6B7280]">
+                                  {event.description}
+                                </p>
                               </div>
                               <span className="shrink-0 text-[11px] font-semibold text-[#374151] sm:text-right">
                                 {formatTimelineDateTime(event.timestamp)}
@@ -1184,8 +1606,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 ) : (
                   <div className="rounded-xl border border-dashed border-[#D6E2F0] bg-white px-4 py-8 text-center">
                     <FiClock className="mx-auto text-[#9CA3AF]" size={22} />
-                    <p className="mt-2 text-sm font-semibold text-[#374151]">No timeline events available yet</p>
-                    <p className="mt-1 text-xs text-[#6B7280]">Timeline milestones will appear here as soon as the API records them.</p>
+                    <p className="mt-2 text-sm font-semibold text-[#374151]">
+                      No timeline events available yet
+                    </p>
+                    <p className="mt-1 text-xs text-[#6B7280]">
+                      Timeline milestones will appear here as soon as the API
+                      records them.
+                    </p>
                   </div>
                 )}
               </div>
@@ -1199,58 +1626,90 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
                     <FiTruck size={17} />
                   </div>
-                  <h4 className="font-bold text-[#111827]">Tracking Information</h4>
+                  <h4 className="font-bold text-[#111827]">
+                    Tracking Information
+                  </h4>
                 </div>
                 <div className="space-y-2.5">
-                  {indiaPostInfo && (
-                    <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-4 text-xs text-[#111827]">
+                  {indiaPostItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-4 text-xs text-[#111827]"
+                    >
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-bold">India Post</span>
+                        <span className="font-bold">
+                          {item.productName} · India Post
+                        </span>
                         <span className="rounded-full bg-white px-2 py-1 font-semibold text-[#2D6FE8]">
-                          {getStatusText(indiaPostInfo.tracking_status || indiaPostInfo.booking_status)}
+                          {indiaPostStatus(item.indiaPost!)}
                         </span>
                       </div>
-                      <p className="mt-2 font-semibold">AWB: {indiaPostInfo.awb}</p>
-                      <p className="mt-1 text-[#4B5563]">Booking: {getStatusText(indiaPostInfo.booking_status)}</p>
-                      <p className="mt-1 text-[#4B5563]">Latest event: {indiaPostInfo.latest_event || "No carrier scan received yet"}</p>
-                      {indiaPostInfo.latest_event_at && (
-                        <p className="mt-1 text-[#4B5563]">Event at: {indiaPostInfo.latest_event_at}</p>
-                      )}
-                      <p className="mt-1 text-[10px] text-[#6B7280]">
-                        Source: {indiaPostInfo.tracking_source === "webhook" ? "Webhook" : "Last saved tracking sync"}
+                      <p className="mt-2 font-semibold">
+                        AWB: {item.indiaPost!.awb}
                       </p>
+                      <p className="mt-1 text-[#4B5563]">
+                        Latest event:{" "}
+                        {item.indiaPost!.latest_event ||
+                          "No carrier scan received yet"}
+                      </p>
+                      {item.indiaPost!.latest_event_at && (
+                        <p className="mt-1 text-[#4B5563]">
+                          Event at: {item.indiaPost!.latest_event_at}
+                        </p>
+                      )}
                     </div>
-                  )}
+                  ))}
                   {trackingInfo ? (
                     <>
                       <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                        <span className="text-xs text-[#6B7280]">Courier Company</span>
-                        <span className="text-sm font-semibold text-[#111827]">{trackingInfo.courier_company || "N/A"}</span>
+                        <span className="text-xs text-[#6B7280]">
+                          Courier Company
+                        </span>
+                        <span className="text-sm font-semibold text-[#111827]">
+                          {trackingInfo.courier_company || "N/A"}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                        <span className="text-xs text-[#6B7280]">Tracking Number</span>
-                        <span className="text-sm font-semibold text-[#111827]">{trackingInfo.courier_tracking_number || "N/A"}</span>
+                        <span className="text-xs text-[#6B7280]">
+                          Tracking Number
+                        </span>
+                        <span className="text-sm font-semibold text-[#111827]">
+                          {trackingInfo.courier_tracking_number || "N/A"}
+                        </span>
                       </div>
                       {trackingInfo.courier_delivery_date && (
                         <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                          <span className="text-xs text-[#6B7280]">Expected Delivery</span>
-                          <span className="text-sm font-semibold text-[#111827]">{formatDate(trackingInfo.courier_delivery_date)}</span>
+                          <span className="text-xs text-[#6B7280]">
+                            Expected Delivery
+                          </span>
+                          <span className="text-sm font-semibold text-[#111827]">
+                            {formatDate(trackingInfo.courier_delivery_date)}
+                          </span>
                         </div>
                       )}
                       {trackingInfo.delivery_notes && (
                         <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                          <span className="text-xs text-[#6B7280]">Delivery Notes</span>
-                          <span className="text-sm font-semibold text-[#111827]">{trackingInfo.delivery_notes}</span>
+                          <span className="text-xs text-[#6B7280]">
+                            Delivery Notes
+                          </span>
+                          <span className="text-sm font-semibold text-[#111827]">
+                            {trackingInfo.delivery_notes}
+                          </span>
                         </div>
                       )}
                     </>
-                  ) : !indiaPostInfo ? (
+                  ) : indiaPostItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8] mb-3">
                         <FiTruck size={22} />
                       </div>
-                      <p className="text-sm font-semibold text-[#111827]">No Tracking Info Available</p>
-                      <p className="text-xs text-[#6B7280]">This order has not been dispatched yet or tracking details are pending.</p>
+                      <p className="text-sm font-semibold text-[#111827]">
+                        No Tracking Info Available
+                      </p>
+                      <p className="text-xs text-[#6B7280]">
+                        This order has not been dispatched yet or tracking
+                        details are pending.
+                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -1269,44 +1728,69 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Payment Gateway</span>
-                    <span className="text-sm font-semibold capitalize text-[#111827]">{payment_gateway || "N/A"}</span>
+                    <span className="text-xs text-[#6B7280]">
+                      Payment Gateway
+                    </span>
+                    <span className="text-sm font-semibold capitalize text-[#111827]">
+                      {payment_gateway || "N/A"}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Transaction ID</span>
-                    <span className="text-sm font-semibold text-[#111827] truncate max-w-[200px]" title={gateway_transaction_id}>
+                    <span className="text-xs text-[#6B7280]">
+                      Transaction ID
+                    </span>
+                    <span
+                      className="text-sm font-semibold text-[#111827] truncate max-w-[200px]"
+                      title={gateway_transaction_id}
+                    >
                       {gateway_transaction_id || "N/A"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
                     <span className="text-xs text-[#6B7280]">Amount Paid</span>
-                    <span className="text-sm font-bold text-[#2D6FE8]">₹{Number(amount_paid || 0).toLocaleString("en-IN")}</span>
+                    <span className="text-sm font-bold text-[#2D6FE8]">
+                      ₹{Number(amount_paid || 0).toLocaleString("en-IN")}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
-                    <span className="text-xs text-[#6B7280]">Payment Status</span>
+                    <span className="text-xs text-[#6B7280]">
+                      Payment Status
+                    </span>
                     <span className="rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold capitalize text-[#2D6FE8]">
                       {payment_status || "N/A"}
                     </span>
                   </div>
                 </div>
                 <div className="mt-4 border-t border-[#2D6FE8]/10 pt-4">
-                  <h5 className="text-xs font-bold uppercase tracking-wide text-[#111827] mb-3">Order Breakdown</h5>
+                  <h5 className="text-xs font-bold uppercase tracking-wide text-[#111827] mb-3">
+                    Order Breakdown
+                  </h5>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
                       <p className="text-[10px] text-[#6B7280]">Subtotal</p>
-                      <p className="text-sm font-bold text-[#111827]">₹{Number(subtotal).toLocaleString("en-IN")}</p>
+                      <p className="text-sm font-bold text-[#111827]">
+                        ₹{Number(subtotal).toLocaleString("en-IN")}
+                      </p>
                     </div>
                     <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
                       <p className="text-[10px] text-[#6B7280]">Shipping</p>
-                      <p className="text-sm font-bold text-[#111827]">₹{Number(shippingCharge).toLocaleString("en-IN")}</p>
+                      <p className="text-sm font-bold text-[#111827]">
+                        ₹{Number(shippingCharge).toLocaleString("en-IN")}
+                      </p>
                     </div>
                     <div className="rounded-xl bg-white p-2 border border-[#2D6FE8]/10 text-center">
                       <p className="text-[10px] text-[#6B7280]">Tax (GST)</p>
-                      <p className="text-sm font-bold text-[#111827]">₹{Number(totalGst).toLocaleString("en-IN")}</p>
+                      <p className="text-sm font-bold text-[#111827]">
+                        ₹{Number(totalGst).toLocaleString("en-IN")}
+                      </p>
                     </div>
                     <div className="rounded-xl bg-[#EAF3FF] p-2 border border-[#2D6FE8]/20 text-center">
-                      <p className="text-[10px] font-bold text-[#2D6FE8]">Total</p>
-                      <p className="text-sm font-bold text-[#1E40AF]">₹{Number(totalPayable).toLocaleString("en-IN")}</p>
+                      <p className="text-[10px] font-bold text-[#2D6FE8]">
+                        Total
+                      </p>
+                      <p className="text-sm font-bold text-[#1E40AF]">
+                        ₹{Number(totalPayable).toLocaleString("en-IN")}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1362,13 +1846,17 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">Dispatch Mode</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Dispatch Mode
+                </span>
               </div>
               <h2 className="flex items-center gap-2 text-lg font-bold text-[#111827]">
                 <FiTruck className="text-[#2D6FE8]" />
                 Choose Dispatch Method
               </h2>
-              <p className="mt-1 text-xs text-[#6B7280]">{order.id} • {order.customer}</p>
+              <p className="mt-1 text-xs text-[#6B7280]">
+                {order.id} • {order.customer}
+              </p>
             </div>
             <button
               type="button"
@@ -1382,13 +1870,23 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
 
         <div className="space-y-4 p-5 sm:p-6">
           <div className="rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] p-4">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Item</p>
-            <p className="mt-1 break-words text-sm font-semibold text-[#111827]">{item.productName}</p>
-            <p className="mt-0.5 text-[11px] text-[#4B5563]">SKU: {item.sku} • Qty: {item.quantity}</p>
-            <p className="mt-1 text-[11px] font-semibold text-[#2D6FE8]">Item Ref: {item.itemReferenceId}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+              Item
+            </p>
+            <p className="mt-1 break-words text-sm font-semibold text-[#111827]">
+              {item.productName}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#4B5563]">
+              SKU: {item.sku} • Qty: {item.quantity}
+            </p>
+            <p className="mt-1 text-[11px] font-semibold text-[#2D6FE8]">
+              Item Ref: {item.itemReferenceId}
+            </p>
           </div>
 
-          <p className="text-sm font-medium text-[#111827]">How would you like to dispatch this item?</p>
+          <p className="text-sm font-medium text-[#111827]">
+            How would you like to dispatch this item?
+          </p>
 
           <div className="grid grid-cols-1 gap-3">
             <button
@@ -1400,9 +1898,12 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
                 <FiSend size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-[#1E40AF]">Dispatch via India Post</p>
+                <p className="text-sm font-bold text-[#1E40AF]">
+                  Dispatch via India Post
+                </p>
                 <p className="mt-0.5 text-[11px] leading-4 text-[#4B5563]">
-                  Book the shipment through India Post. AWB / tracking number will be generated automatically.
+                  Book the shipment through India Post. AWB / tracking number
+                  will be generated automatically.
                 </p>
               </div>
             </button>
@@ -1416,9 +1917,12 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
                 <FiPackage size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-[#111827]">Manual Dispatch</p>
+                <p className="text-sm font-bold text-[#111827]">
+                  Manual Dispatch
+                </p>
                 <p className="mt-0.5 text-[11px] leading-4 text-[#4B5563]">
-                  Enter your own courier details — tracking number, courier name, expected delivery, and notes.
+                  Enter your own courier details — tracking number, courier
+                  name, expected delivery, and notes.
                 </p>
               </div>
             </button>
@@ -1513,7 +2017,9 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
       }
       const response = await orderApi.dispatchOrder(dispatchData);
       if (response.data.success) {
-        toast.success(`✅ Successfully dispatched ${itemsToDispatch.length} item(s)`);
+        toast.success(
+          `✅ Successfully dispatched ${itemsToDispatch.length} item(s)`,
+        );
         onDispatch({
           orderId: order.id,
           items: itemsToDispatch.map((item) => ({
@@ -1554,13 +2060,19 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">Fulfillment</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Fulfillment
+                </span>
               </div>
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#111827]">
                 <FiTruck className="text-[#2D6FE8]" />
-                {isFullOrder ? "Dispatch Entire Order" : `Dispatch ${itemsToDispatch.length} Items`}
+                {isFullOrder
+                  ? "Dispatch Entire Order"
+                  : `Dispatch ${itemsToDispatch.length} Items`}
               </h2>
-              <p className="mt-1 text-sm text-[#6B7280]">{order.id} • {order.customer}</p>
+              <p className="mt-1 text-sm text-[#6B7280]">
+                {order.id} • {order.customer}
+              </p>
             </div>
             <button
               type="button"
@@ -1648,12 +2160,16 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_22px_-8px_rgba(45,111,232,0.7)] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiTruck size={17} />}
+                {loading ? (
+                  <FiLoader size={17} className="animate-spin" />
+                ) : (
+                  <FiTruck size={17} />
+                )}
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
-                  : `Dispatch ${itemsToDispatch.length} Items`}
+                    ? `Dispatch Entire Order (${itemsToDispatch.length} items)`
+                    : `Dispatch ${itemsToDispatch.length} Items`}
               </button>
             </div>
           </form>
@@ -1700,7 +2216,7 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
         .toLowerCase()
         .replace(/\s+/g, "_");
       return status === "dispatched";
-    }
+    },
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1751,11 +2267,15 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">Shipment</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Shipment
+                </span>
               </div>
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#111827]">
                 <FiSend className="text-[#2D6FE8]" />
-                {isFullOrder ? "Ship Entire Order" : `Ship ${itemsToShip.length} Items`}
+                {isFullOrder
+                  ? "Ship Entire Order"
+                  : `Ship ${itemsToShip.length} Items`}
               </h2>
               <p className="mt-1 text-sm text-[#6B7280]">
                 {order.id} • {order.customer}
@@ -1785,19 +2305,31 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/20" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Order Total</span>
-                  <p className="mt-1 text-lg font-bold text-[#111827]">{order.total}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Order Total
+                  </span>
+                  <p className="mt-1 text-lg font-bold text-[#111827]">
+                    {order.total}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Items</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Items
+                  </span>
                   <p className="mt-1 text-lg font-bold text-[#2D6FE8]">
                     {itemsToShip.length}{" "}
-                    <span className="text-xs font-semibold text-[#6B7280]">{isFullOrder ? "(All)" : "(Selected)"}</span>
+                    <span className="text-xs font-semibold text-[#6B7280]">
+                      {isFullOrder ? "(All)" : "(Selected)"}
+                    </span>
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Shipping Address</span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#111827]">{order.shippingAddress || "N/A"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Shipping Address
+                  </span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#111827]">
+                    {order.shippingAddress || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1809,27 +2341,50 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
               </h4>
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToShip.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-[#2D6FE8]/10 bg-white p-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
+                        <img
+                          src={item.image}
+                          alt={item.productName}
+                          className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
+                        />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block break-words text-sm font-normal leading-5 text-[#111827]">{item.productName}</span>
+                        <span className="block break-words text-sm font-normal leading-5 text-[#111827]">
+                          {item.productName}
+                        </span>
                         {item.categoryName && (
-                          <span className="mt-0.5 block truncate text-[10px] text-[#4B5563]" title={item.categoryName}>Category: {item.categoryName}</span>
+                          <span
+                            className="mt-0.5 block truncate text-[10px] text-[#4B5563]"
+                            title={item.categoryName}
+                          >
+                            Category: {item.categoryName}
+                          </span>
                         )}
                         {item.brandName && (
-                          <span className="block truncate text-[10px] text-[#4B5563]" title={item.brandName}>Brand: {item.brandName}</span>
+                          <span
+                            className="block truncate text-[10px] text-[#4B5563]"
+                            title={item.brandName}
+                          >
+                            Brand: {item.brandName}
+                          </span>
                         )}
-                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Item: {item.itemReferenceId}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">
+                          Item: {item.itemReferenceId}
+                        </span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#6B7280]">Qty: {item.quantity} • SKU: {item.sku}</span>
+                    <span className="shrink-0 text-xs text-[#6B7280]">
+                      Qty: {item.quantity} • SKU: {item.sku}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1849,12 +2404,16 @@ const ShipPopup: React.FC<ShipPopupProps> = ({
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiSend size={17} />}
+                {loading ? (
+                  <FiLoader size={17} className="animate-spin" />
+                ) : (
+                  <FiSend size={17} />
+                )}
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Ship Entire Order (${itemsToShip.length} items)`
-                  : `Ship ${itemsToShip.length} Items`}
+                    ? `Ship Entire Order (${itemsToShip.length} items)`
+                    : `Ship ${itemsToShip.length} Items`}
               </button>
             </div>
           </form>
@@ -1909,7 +2468,9 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
       }
       const response = await orderApi.deliverOrder(deliverData);
       if (response.data.success) {
-        toast.success(`✅ Successfully delivered ${itemsToDeliver.length} item(s)`);
+        toast.success(
+          `✅ Successfully delivered ${itemsToDeliver.length} item(s)`,
+        );
         onDeliver({
           orderId: order.id,
           items: itemsToDeliver.map((item) => ({
@@ -1944,11 +2505,15 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
             <div>
               <div className="mb-1 flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">Delivery</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
+                  Delivery
+                </span>
               </div>
               <h2 className="flex items-center gap-2 text-xl font-bold text-[#111827]">
                 <FiCheckCircle className="text-[#2D6FE8]" />
-                {isFullOrder ? "Deliver Entire Order" : `Deliver ${itemsToDeliver.length} Items`}
+                {isFullOrder
+                  ? "Deliver Entire Order"
+                  : `Deliver ${itemsToDeliver.length} Items`}
               </h2>
             </div>
             <button
@@ -1973,19 +2538,31 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full border border-[#2D6FE8]/20" />
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Order Total</span>
-                  <p className="mt-1 text-lg font-bold text-[#111827]">{order.total}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Order Total
+                  </span>
+                  <p className="mt-1 text-lg font-bold text-[#111827]">
+                    {order.total}
+                  </p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Items</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Items
+                  </span>
                   <p className="mt-1 text-lg font-bold text-[#2D6FE8]">
                     {itemsToDeliver.length}{" "}
-                    <span className="text-xs font-semibold text-[#6B7280]">{isFullOrder ? "(All)" : "(Selected)"}</span>
+                    <span className="text-xs font-semibold text-[#6B7280]">
+                      {isFullOrder ? "(All)" : "(Selected)"}
+                    </span>
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">Shipping Address</span>
-                  <p className="mt-1 text-sm font-semibold leading-6 text-[#111827]">{order.shippingAddress || "N/A"}</p>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
+                    Shipping Address
+                  </span>
+                  <p className="mt-1 text-sm font-semibold leading-6 text-[#111827]">
+                    {order.shippingAddress || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1993,31 +2570,56 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
             <div className="rounded-2xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-5">
               <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#111827]">
                 <FiPackage className="text-[#2D6FE8]" />
-                {isFullOrder ? "All Items in Order" : "Selected Items to Deliver"}
+                {isFullOrder
+                  ? "All Items in Order"
+                  : "Selected Items to Deliver"}
               </h4>
               <div className="max-h-48 space-y-2 overflow-y-auto">
                 {itemsToDeliver.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-[#2D6FE8]/10 bg-white p-3"
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       {item.image ? (
-                        <img src={item.image} alt={item.productName} className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0" />
+                        <img
+                          src={item.image}
+                          alt={item.productName}
+                          className="h-8 w-8 rounded-lg border border-[#2D6FE8]/10 object-cover flex-shrink-0"
+                        />
                       ) : (
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8] flex-shrink-0">
                           <FiPackage size={12} />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <span className="block break-words text-sm font-normal leading-5 text-[#111827]">{item.productName}</span>
+                        <span className="block break-words text-sm font-normal leading-5 text-[#111827]">
+                          {item.productName}
+                        </span>
                         {item.categoryName && (
-                          <span className="mt-0.5 block truncate text-[10px] text-[#4B5563]" title={item.categoryName}>Category: {item.categoryName}</span>
+                          <span
+                            className="mt-0.5 block truncate text-[10px] text-[#4B5563]"
+                            title={item.categoryName}
+                          >
+                            Category: {item.categoryName}
+                          </span>
                         )}
                         {item.brandName && (
-                          <span className="block truncate text-[10px] text-[#4B5563]" title={item.brandName}>Brand: {item.brandName}</span>
+                          <span
+                            className="block truncate text-[10px] text-[#4B5563]"
+                            title={item.brandName}
+                          >
+                            Brand: {item.brandName}
+                          </span>
                         )}
-                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">Item: {item.itemReferenceId}</span>
+                        <span className="block truncate text-[10px] font-semibold text-[#2D6FE8]">
+                          Item: {item.itemReferenceId}
+                        </span>
                       </div>
                     </div>
-                    <span className="shrink-0 text-xs text-[#6B7280]">Qty: {item.quantity} • SKU: {item.sku}</span>
+                    <span className="shrink-0 text-xs text-[#6B7280]">
+                      Qty: {item.quantity} • SKU: {item.sku}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -2037,12 +2639,16 @@ const DeliverPopup: React.FC<DeliverPopupProps> = ({
                 disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.6)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {loading ? <FiLoader size={17} className="animate-spin" /> : <FiCheckCircle size={17} />}
+                {loading ? (
+                  <FiLoader size={17} className="animate-spin" />
+                ) : (
+                  <FiCheckCircle size={17} />
+                )}
                 {loading
                   ? "Processing..."
                   : isFullOrder
-                  ? `Deliver Entire Order (${itemsToDeliver.length} items)`
-                  : `Deliver ${itemsToDeliver.length} Items`}
+                    ? `Deliver Entire Order (${itemsToDeliver.length} items)`
+                    : `Deliver ${itemsToDeliver.length} Items`}
               </button>
             </div>
           </form>
@@ -2084,27 +2690,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const canDispatch = useMemo(
     () => isSuperAdmin || hasPermission("order.dispatch"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const canShip = useMemo(
     () => isSuperAdmin || hasPermission("order.shipped"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const canDeliver = useMemo(
     () => isSuperAdmin || hasPermission("order.delivered"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const canMarkUndelivered = useMemo(
     () => isSuperAdmin || hasPermission("order.undelivered"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const canToggleCancelReturn = useMemo(
     () => isSuperAdmin || hasPermission("order.allow"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const canViewInvoice = useMemo(
@@ -2112,7 +2718,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       isSuperAdmin ||
       hasPermission("order.view") ||
       hasPermission("order.details"),
-    [isSuperAdmin, hasPermission]
+    [isSuperAdmin, hasPermission],
   );
 
   const [search, setSearch] = useState("");
@@ -2142,7 +2748,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     OrderItem[]
   >([]);
   const [selectedItemsForShip, setSelectedItemsForShip] = useState<OrderItem[]>(
-    []
+    [],
   );
   const [selectedItemsForDeliver, setSelectedItemsForDeliver] = useState<
     OrderItem[]
@@ -2152,7 +2758,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ id: number; title: string }[]>(
-    []
+    [],
   );
   const [brands, setBrands] = useState<{ id: number; title: string }[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -2166,10 +2772,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   // keys: `order-${orderRef}` for order-level toggle
   const [togglingCancelReturn, setTogglingCancelReturn] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [markingUndelivered, setMarkingUndelivered] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // openMenuId: `order:${orderRef}` | `item:${orderRef}:${itemId}`
@@ -2189,7 +2795,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const menuWidth = 192;
       const menuHeight = Math.min(
         preferredHeight,
-        Math.max(40, window.innerHeight - viewportPadding * 2)
+        Math.max(40, window.innerHeight - viewportPadding * 2),
       );
 
       const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
@@ -2201,26 +2807,24 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           : "above";
 
       const rawTop =
-        placement === "above"
-          ? rect.top - menuHeight - 8
-          : rect.bottom + 8;
+        placement === "above" ? rect.top - menuHeight - 8 : rect.bottom + 8;
 
       const top = Math.max(
         viewportPadding,
-        Math.min(rawTop, window.innerHeight - menuHeight - viewportPadding)
+        Math.min(rawTop, window.innerHeight - menuHeight - viewportPadding),
       );
 
       const left = Math.max(
         viewportPadding,
         Math.min(
           rect.right - menuWidth,
-          window.innerWidth - menuWidth - viewportPadding
-        )
+          window.innerWidth - menuWidth - viewportPadding,
+        ),
       );
 
       return { top, left, placement };
     },
-    []
+    [],
   );
 
   const itemsPerPage = 20; // orders per page
@@ -2238,9 +2842,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const target = event.target as Element | null;
 
       if (
-        !target?.closest(
-          ".action-menu-container, .orders-action-menu-portal"
-        )
+        !target?.closest(".action-menu-container, .orders-action-menu-portal")
       ) {
         setOpenMenuId(null);
       }
@@ -2285,7 +2887,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           (response.data.data || []).map((c: any) => ({
             id: c.id,
             title: c.title,
-          }))
+          })),
         );
       }
     } catch (err) {
@@ -2304,7 +2906,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           (response.data.data || []).map((b: any) => ({
             id: b.id,
             title: b.title,
-          }))
+          })),
         );
       }
     } catch (err) {
@@ -2387,7 +2989,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         categoryName:
           item.category_name ||
           categories.find(
-            (category) => String(category.id) === String(item.category_id)
+            (category) => String(category.id) === String(item.category_id),
           )?.title ||
           undefined,
         brandName:
@@ -2414,10 +3016,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         categoryId: item.category_id,
         brandId: item.brand_id,
         is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
-        courier_tracking_number:
-          apiOrder.indiapost?.awb || item.courier_tracking_number || undefined,
-        courierTrackingNumber:
-          apiOrder.indiapost?.awb || item.courier_tracking_number || undefined,
+        indiaPost: verifiedItemIndiaPost(apiOrder, item),
+        courier_tracking_number: itemTrackingNumber(apiOrder, item),
+        courierTrackingNumber: itemTrackingNumber(apiOrder, item),
         invoiceNumber: item.invoice?.invoice_number || undefined,
         invoice_number: item.invoice?.invoice_number || undefined,
         invoice: item.invoice || null,
@@ -2451,16 +3052,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       userPhone: apiOrder.user?.phone || "N/A",
       shippingAddress: apiOrder.shipping_address?.full_address || "N/A",
       shippingAddressFull: apiOrder.shipping_address?.full_address || "N/A",
-      trackingNumber:
-        apiOrder.indiapost?.awb || apiOrder.courier_tracking_number || "N/A",
+      trackingNumber: apiOrder.courier_tracking_number || "N/A",
       paymentGateway: apiOrder.payment_gateway || undefined,
       gatewayTransactionId: apiOrder.gateway_transaction_id || undefined,
       courierCompany: apiOrder.courier_company || undefined,
-      courierTrackingNumber:
-        apiOrder.indiapost?.awb ||
-        apiOrder.courier_tracking_number ||
-        undefined,
-      indiaPost: apiOrder.indiapost ?? null,
+      courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
+      indiaPost: null,
       courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
       shippingDetails: apiOrder.shipping_details || undefined,
       items,
@@ -2580,7 +3177,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const filteredItemCount = useMemo(
     () => filteredGroups.reduce((sum, g) => sum + g.items.length, 0),
-    [filteredGroups]
+    [filteredGroups],
   );
 
   const initialSearchHandledRef = useRef<string | null>(null);
@@ -2612,7 +3209,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       setSearch(matchedApiOrder.order_reference || "");
 
       const uiOrder = allOrderGroups.find(
-        (r) => r.id === matchedApiOrder.order_reference
+        (r) => r.id === matchedApiOrder.order_reference,
       );
       if (uiOrder) onSelectOrder(uiOrder);
 
@@ -2652,19 +3249,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
     if (categoryFilter !== "Category: All") {
       const cat = categories.find(
-        (c) => String(c.id) === categoryFilter.replace("Category: ", "")
+        (c) => String(c.id) === categoryFilter.replace("Category: ", ""),
       );
       if (cat) parts.push(cat.title);
     }
     if (brandFilter !== "Brand: All") {
       const br = brands.find(
-        (b) => String(b.id) === brandFilter.replace("Brand: ", "")
+        (b) => String(b.id) === brandFilter.replace("Brand: ", ""),
       );
       if (br) parts.push(br.title);
     }
     if (dateRangeFilter !== "all") {
       const label = DATE_RANGE_OPTIONS.find(
-        (o) => o.value === dateRangeFilter
+        (o) => o.value === dateRangeFilter,
       )?.label;
       if (label) parts.push(label);
     }
@@ -2694,11 +3291,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   }, [filteredGroups, activeFilterLabel]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredGroups.length / itemsPerPage),
+  );
 
   const visibleGroups = filteredGroups.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   const changePage = (page: number) => {
@@ -2764,7 +3364,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
 
       const payload = response.data.data;
-      const invoiceType = payload.invoice_type;         // "single_item" | "full_order"
+      const invoiceType = payload.invoice_type; // "single_item" | "full_order"
       const existingOrder = payload.order || {};
       const detailResponse =
         detailsResult.status === "fulfilled"
@@ -2905,7 +3505,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     const eligible = group.items.filter((it) => !isTerminalStatus(it));
     if (eligible.length === 0) return "closed";
     const allowedCount = eligible.filter((it) =>
-      Boolean(it.is_cancel_return_allowed)
+      Boolean(it.is_cancel_return_allowed),
     ).length;
     if (allowedCount === eligible.length) return "allowed";
     if (allowedCount === 0) return "not_allowed";
@@ -2915,34 +3515,34 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const handleToggleOrderCancelReturn = async (group: OrderGroup) => {
     const fullGroup = allOrderGroups.find((g) => g.id === group.id) || group;
     const eligible = fullGroup.items.filter((it) => !isTerminalStatus(it));
-  
+
     if (eligible.length === 0) {
       toast.error("This order is closed. Cancel/Return cannot be changed.");
       return;
     }
-  
+
     const allAllowed = eligible.every((it) =>
-      Boolean(it.is_cancel_return_allowed)
+      Boolean(it.is_cancel_return_allowed),
     );
     const newValue = !allAllowed;
     const orderReference = group.orderReference || group.id; // id nahi, order_reference
     const key = `order-${group.id}`;
-  
+
     setTogglingCancelReturn((prev) => new Set(prev).add(key));
-  
+
     try {
       const response = await orderApi.toggleCancelReturnByReference(
         orderReference,
-        newValue
+        newValue,
       );
-  
+
       if (!response?.data?.success) {
         throw new Error(response?.data?.message || "Failed to update");
       }
-  
+
       // local state update: sirf non-terminal items
       const eligibleLineIds = new Set(
-        eligible.map((it) => Number(it.lineId || it.id))
+        eligible.map((it) => Number(it.lineId || it.id)),
       );
       setOrders((prevOrders) =>
         prevOrders.map((o) => {
@@ -2952,23 +3552,23 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             items: (o.items || []).map((it: any) =>
               eligibleLineIds.has(Number(it.line_id || it.id))
                 ? { ...it, is_cancel_return_allowed: newValue }
-                : it
+                : it,
             ),
           };
-        })
+        }),
       );
-  
+
       toast.success(
         newValue
           ? "Cancel/Return allowed for this order"
-          : "Cancel/Return not allowed for this order"
+          : "Cancel/Return not allowed for this order",
       );
     } catch (err: any) {
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to update cancel/return option"
+          "Failed to update cancel/return option",
       );
     } finally {
       setTogglingCancelReturn((prev) => {
@@ -3004,7 +3604,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             return { ...it, delivery_status: "undelivered" };
           }),
         };
-      })
+      }),
     );
 
     try {
@@ -3021,7 +3621,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to mark as undelivered"
+          "Failed to mark as undelivered",
       );
       await fetchOrders();
     } finally {
@@ -3137,7 +3737,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const toggleMenu = (
     menuId: string,
     trigger: HTMLButtonElement,
-    estimatedHeight: number
+    estimatedHeight: number,
   ) => {
     if (openMenuId === menuId) {
       setOpenMenuId(null);
@@ -3196,8 +3796,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               {state === "allowed"
                 ? "Allowed"
                 : state === "partial"
-                ? "Partial"
-                : "Not Allowed"}
+                  ? "Partial"
+                  : "Not Allowed"}
             </span>
           </button>
         ) : (
@@ -3221,7 +3821,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               setOpenMenuId(null);
               handleOpenInvoicePdf(
                 group.orderId!,
-                item.lineId || parseInt(item.id)
+                item.lineId || parseInt(item.id),
               );
             }}
             className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs text-[#111827] hover:bg-[#F4F8FD]"
@@ -3265,7 +3865,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           {content}
         </motion.div>
       </AnimatePresence>,
-      document.body
+      document.body,
     );
   };
 
@@ -3348,7 +3948,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           <div className="action-menu-container relative">
             <button
               type="button"
-              onClick={(event) => toggleMenu(itemMenuId, event.currentTarget, 48)}
+              onClick={(event) =>
+                toggleMenu(itemMenuId, event.currentTarget, 48)
+              }
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
               title="Item Actions (Invoice)"
             >
@@ -3690,14 +4292,30 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             <table className="w-full min-w-[1120px] border-collapse">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Item Ref</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Product</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">SKU</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Qty</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">Amount</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">Tracking No.</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Status</th>
-                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">Item Actions</th>
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Item Ref
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Product
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    SKU
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Qty
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-white">
+                    Amount
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-white">
+                    Tracking No.
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Status
+                  </th>
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+                    Item Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -3749,7 +4367,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               </div>
                               <span
                                 className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  group.orderStatus
+                                  group.orderStatus,
                                 )}`}
                               >
                                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -3785,7 +4403,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     toggleMenu(
                                       orderMenuId,
                                       event.currentTarget,
-                                      orderMenuHeight
+                                      orderMenuHeight,
                                     )
                                   }
                                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-white text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
@@ -3802,7 +4420,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       {/* ITEM ROWS (nested inside the order) */}
                       {group.items.map((item) => {
                         const itemStatusBadge = getStatusBadge(
-                          item.delivery_status || item.status || "pending"
+                          item.delivery_status || item.status || "pending",
                         );
 
                         return (
@@ -3902,27 +4520,28 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                     <FiTruck size={11} />
                                     {item.courier_tracking_number}
                                   </span>
-                                  {group.indiaPost && (
+                                  {item.indiaPost && (
                                     <>
                                       <p className="text-[10px] font-semibold text-[#4B5563]">
                                         India Post ·{" "}
-                                        {formatStatus(
-                                          group.indiaPost.tracking_status ||
-                                            group.indiaPost.booking_status
-                                        )}
+                                        {indiaPostStatus(item.indiaPost)}
                                       </p>
                                       <p
                                         className="max-w-[200px] truncate text-[10px] text-[#6B7280]"
-                                        title={group.indiaPost.latest_event || ""}
+                                        title={
+                                          item.indiaPost.latest_event || ""
+                                        }
                                       >
-                                        {group.indiaPost.latest_event ||
+                                        {item.indiaPost.latest_event ||
                                           "Awaiting courier scan"}
                                       </p>
                                     </>
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-xs text-[#6B7280]">—</span>
+                                <span className="text-xs text-[#6B7280]">
+                                  —
+                                </span>
                               )}
                             </td>
                             <td className="px-3 py-3 text-center">
@@ -3931,7 +4550,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               >
                                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
                                 {formatStatus(
-                                  item.delivery_status || item.status || "pending"
+                                  item.delivery_status ||
+                                    item.status ||
+                                    "pending",
                                 )}
                               </span>
                             </td>
@@ -3977,7 +4598,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               visibleGroups.map((group) => {
                 const cancelState = getOrderCancelReturnState(group);
                 const isTogglingOrder = togglingCancelReturn.has(
-                  `order-${group.id}`
+                  `order-${group.id}`,
                 );
 
                 return (
@@ -4012,14 +4633,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         </div>
                         <span
                           className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                            group.orderStatus
+                            group.orderStatus,
                           )}`}
                         >
                           {formatStatus(group.orderStatus)}
                         </span>
                       </div>
 
-                      <div className="mt-2">{renderCancelReturnPill(cancelState)}</div>
+                      <div className="mt-2">
+                        {renderCancelReturnPill(cancelState)}
+                      </div>
 
                       <div className="mt-3 flex flex-wrap items-center gap-1.5">
                         <button
@@ -4048,10 +4671,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             {isTogglingOrder
                               ? "Saving..."
                               : cancelState === "allowed"
-                              ? "Return: Allowed"
-                              : cancelState === "partial"
-                              ? "Return: Partial"
-                              : "Return: Not Allowed"}
+                                ? "Return: Allowed"
+                                : cancelState === "partial"
+                                  ? "Return: Partial"
+                                  : "Return: Not Allowed"}
                           </button>
                         ) : null}
                       </div>
@@ -4060,14 +4683,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     {/* ITEMS NESTED */}
                     <div className="space-y-3 p-3">
                       {group.items.map((item) => {
-                        const isDispatchable = canItemDispatch(item) && canDispatch;
+                        const isDispatchable =
+                          canItemDispatch(item) && canDispatch;
                         const isShipable = canItemShip(item) && canShip;
-                        const isDeliverable = canItemDeliver(item) && canDeliver;
+                        const isDeliverable =
+                          canItemDeliver(item) && canDeliver;
                         const isUndeliverable =
                           canItemMarkUndelivered(item) && canMarkUndelivered;
                         const isDelivered = isFullyDelivered(item);
                         const isMarking = markingUndelivered.has(
-                          `${group.id}-${item.id}`
+                          `${group.id}-${item.id}`,
                         );
                         const hasInvoice = Boolean(item.invoiceNumber);
 
@@ -4082,11 +4707,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               </span>
                               <span
                                 className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
-                                  item.delivery_status || item.status || "pending"
+                                  item.delivery_status ||
+                                    item.status ||
+                                    "pending",
                                 )}`}
                               >
                                 {formatStatus(
-                                  item.delivery_status || item.status || "pending"
+                                  item.delivery_status ||
+                                    item.status ||
+                                    "pending",
                                 )}
                               </span>
                             </div>
@@ -4136,31 +4765,36 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               </span>
                             </div>
 
-                            {group.indiaPost && item.courier_tracking_number && (
+                            {item.indiaPost && item.courier_tracking_number && (
                               <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <span className="font-bold text-[#2D6FE8]">
-                                    India Post: {group.indiaPost.awb}
+                                    India Post: {item.indiaPost.awb}
                                   </span>
                                   <span className="font-semibold text-[#111827]">
-                                    {formatStatus(
-                                      group.indiaPost.tracking_status ||
-                                        group.indiaPost.booking_status
-                                    )}
+                                    {indiaPostStatus(item.indiaPost)}
                                   </span>
                                 </div>
                                 <p className="mt-1 text-[#4B5563]">
-                                  {group.indiaPost.latest_event ||
+                                  {item.indiaPost.latest_event ||
                                     "Awaiting courier scan"}
                                 </p>
                               </div>
                             )}
 
+                            {!item.indiaPost &&
+                              item.courier_tracking_number && (
+                                <div className="mt-2 text-[11px] font-medium text-[#2D6FE8]">
+                                  Tracking No.: {item.courier_tracking_number}
+                                </div>
+                              )}
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
                               {isDispatchable && (
                                 <button
                                   type="button"
-                                  onClick={() => openDispatchChoicePopup(group, item)}
+                                  onClick={() =>
+                                    openDispatchChoicePopup(group, item)
+                                  }
                                   className="flex-1 rounded-lg bg-[#2D6FE8] px-3 py-2 text-[11px] font-bold text-white"
                                 >
                                   Dispatch
@@ -4195,27 +4829,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {isUndeliverable && (
                                 <button
                                   type="button"
-                                  onClick={() => handleMarkUndelivered(group, item)}
+                                  onClick={() =>
+                                    handleMarkUndelivered(group, item)
+                                  }
                                   disabled={isMarking}
                                   className="flex-1 rounded-lg bg-[#C23B32] px-3 py-2 text-[11px] font-bold text-white disabled:opacity-60"
                                 >
                                   {isMarking ? "Saving..." : "Undelivered"}
                                 </button>
                               )}
-                              {hasInvoice && group.orderId && canViewInvoice && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenInvoicePdf(
-                                      group.orderId!,
-                                      item.lineId || parseInt(item.id)
-                                    )
-                                  }
-                                  className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
-                                >
-                                  Invoice
-                                </button>
-                              )}
+                              {hasInvoice &&
+                                group.orderId &&
+                                canViewInvoice && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOpenInvoicePdf(
+                                        group.orderId!,
+                                        item.lineId || parseInt(item.id),
+                                      )
+                                    }
+                                    className="flex-1 rounded-lg bg-[#EAF3FF] px-3 py-2 text-[11px] font-bold text-[#2D6FE8]"
+                                  >
+                                    Invoice
+                                  </button>
+                                )}
                             </div>
                           </div>
                         );
@@ -4250,7 +4888,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   </span>{" "}
                   to{" "}
                   <span className="font-bold text-[#111827]">
-                    {Math.min(currentPage * itemsPerPage, filteredGroups.length)}
+                    {Math.min(
+                      currentPage * itemsPerPage,
+                      filteredGroups.length,
+                    )}
                   </span>{" "}
                   of{" "}
                   <span className="font-bold text-[#111827]">
@@ -4470,9 +5111,7 @@ const Orders: React.FC = () => {
     };
 
     const ref =
-      navState.orderReference ||
-      navState.order?.master_order_id ||
-      null;
+      navState.orderReference || navState.order?.master_order_id || null;
     const id = navState.orderId ?? navState.order?.id ?? null;
 
     if (!ref && !id) return;
@@ -4496,7 +5135,7 @@ const Orders: React.FC = () => {
   const canViewOrders = useMemo(
     () =>
       isSuperAdmin || hasModuleAccess("order") || hasPermission("order.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission]
+    [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
   const canExport = useMemo(
@@ -4505,7 +5144,7 @@ const Orders: React.FC = () => {
       hasModuleAccess("order") ||
       hasPermission("order.details") ||
       hasPermission("order.view"),
-    [isSuperAdmin, hasModuleAccess, hasPermission]
+    [isSuperAdmin, hasModuleAccess, hasPermission],
   );
 
   useEffect(() => {
@@ -4526,7 +5165,7 @@ const Orders: React.FC = () => {
 
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim())
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
 
         if (!cancelled && resolvedLogo) {
@@ -4555,8 +5194,8 @@ const Orders: React.FC = () => {
       if (response.data.success) {
         const data = response.data.data || [];
         const extractedOrders = data
-        .map((item: any) => item?.order ?? item)
-        .filter((o: any) => o && typeof o === "object");
+          .map((item: any) => item?.order ?? item)
+          .filter((o: any) => o && typeof o === "object");
         setOrdersData(extractedOrders);
       }
     } catch (err) {
@@ -4597,7 +5236,7 @@ const Orders: React.FC = () => {
   const totalEarnings = useMemo(() => {
     return ordersData.reduce(
       (sum, order) => sum + (order.total_payable || 0),
-      0
+      0,
     );
   }, [ordersData]);
 
@@ -4605,10 +5244,10 @@ const Orders: React.FC = () => {
     const totalItems = allItemRows.length;
     const confirmed = allItemRows.filter(
       (r) =>
-        r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing"
+        r.deliveryStatus === "confirmed" || r.deliveryStatus === "processing",
     ).length;
     const delivered = allItemRows.filter(
-      (r) => r.deliveryStatus === "delivered"
+      (r) => r.deliveryStatus === "delivered",
     ).length;
 
     return { total: totalItems, confirmed, delivered };
