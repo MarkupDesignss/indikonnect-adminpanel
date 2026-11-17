@@ -11,8 +11,10 @@ import apiClient from "../client";
  *   authorized UAT approval. Unknown results must be reconciled, never retried blindly.
  * - The Admin GET for allocated-but-not-booked AWB was not documented as implemented.
  *   getShipments returns linked shipments, NOT a proof of no prior AWB allocation.
- * - Write endpoints still expect internal numeric order_id. A public order_reference
- *   is resolved to orders.id in the admin UI before any write operation.
+ * - Legacy order-level methods use numeric order_id. The new line-level methods
+ *   use the exact public order_reference and verified order line ID.
+ * - Never fall back to an order-level write after a line-level API error.
+ * - Keep independent allocation/booking disabled until approved UAT.
  */
 
 export interface IndiaPostPackageDetails {
@@ -69,6 +71,8 @@ export interface IndiaPostWarehouse {
 export interface IndiaPostShipment {
   barcode_no?: string;
   order_id?: number;
+  order_line_id?: number | null;
+  order_reference?: string;
   booking_status?: string;
   latest_event?: string | null;
   latest_event_at?: string | null;
@@ -77,6 +81,7 @@ export interface IndiaPostShipment {
 
 export interface IndiaPostTracking {
   order_id?: number;
+  order_line_id?: number;
   order_reference?: string;
   allocated_awb?: string | null;
   allocated_at?: string | null;
@@ -100,7 +105,115 @@ const buildReadinessQuery = (params: IndiaPostReadinessParams) =>
     height_cm: String(params.height_cm),
   }).toString();
 
+export interface IndiaPostLineScope {
+  orderReference: string;
+  orderLineId: number;
+}
+
+export interface IndiaPostParcelLinkPayload {
+  barcode_no: string;
+  confirm_parcel_contents: true;
+}
+
+const linePath = ({ orderReference, orderLineId }: IndiaPostLineScope) => {
+  const reference = orderReference.trim();
+  if (
+    !reference ||
+    reference.length > 100 ||
+    !Number.isSafeInteger(orderLineId) ||
+    orderLineId < 1
+  ) {
+    throw new Error(
+      "A verified order reference and order line ID are required.",
+    );
+  }
+  return `/orders/${encodeURIComponent(reference)}/lines/${orderLineId}/indiapost`;
+};
+
+const readOptions = { headers: { Accept: "application/json" } };
+const writeOptions = {
+  headers: { Accept: "application/json", "Content-Type": "application/json" },
+};
+
 export const indiaPostApi = {
+  /** Admin: read-only verification for the selected order line. */
+  getLineReadiness: (
+    scope: IndiaPostLineScope,
+    params: IndiaPostReadinessParams,
+  ) =>
+    apiClient.get<IndiaPostApiResponse>(
+      `${linePath(scope)}/readiness?${buildReadinessQuery(params)}`,
+      readOptions,
+    ),
+
+  /** Admin: verified mapped parcels, allocations and local booking attempts. */
+  getLineShipments: (scope: IndiaPostLineScope) =>
+    apiClient.get<IndiaPostApiResponse>(
+      `${linePath(scope)}/shipments`,
+      readOptions,
+    ),
+
+  /** Admin: explicit AWB allocation only, never call on page load. */
+  allocateLineAwb: (
+    scope: IndiaPostLineScope,
+    payload: IndiaPostPackageDetails & { confirm_parcel_contents: true },
+  ) =>
+    apiClient.post<IndiaPostApiResponse>(
+      `${linePath(scope)}/allocate-awb`,
+      payload,
+      writeOptions,
+    ),
+
+  /** Admin: preview only, no carrier booking. */
+  previewLineBooking: (
+    scope: IndiaPostLineScope,
+    payload: IndiaPostBookingPreviewPayload,
+  ) =>
+    apiClient.post<IndiaPostApiResponse>(
+      `${linePath(scope)}/booking/preview`,
+      payload,
+      writeOptions,
+    ),
+
+  /** Admin: actual provider write, only after authorized UAT and verified preview. */
+  submitLineBooking: (
+    scope: IndiaPostLineScope,
+    payload: IndiaPostBookingSubmitPayload & { confirm_parcel_contents: true },
+  ) =>
+    apiClient.post<IndiaPostApiResponse>(
+      `${linePath(scope)}/booking/submit`,
+      payload,
+      writeOptions,
+    ),
+
+  /** Admin: sync only the selected line's verified parcel records. */
+  syncLineTracking: (scope: IndiaPostLineScope) =>
+    apiClient.post<IndiaPostApiResponse>(
+      `${linePath(scope)}/sync`,
+      undefined,
+      readOptions,
+    ),
+
+  /** Admin: associate an existing parcel after physically verifying its contents.
+   * Never allocate a new AWB or book automatically using this method.
+   */
+  linkExistingParcel: (
+    scope: IndiaPostLineScope,
+    payload: IndiaPostParcelLinkPayload,
+  ) =>
+    apiClient.post<IndiaPostApiResponse>(
+      `${linePath(scope)}/parcel-links`,
+      payload,
+      writeOptions,
+    ),
+
+  /** Customer only: authenticated owner of the order, not an admin token. */
+  getCustomerLineTracking: (scope: IndiaPostLineScope) =>
+    apiClient.get<IndiaPostApiResponse<IndiaPostTracking>>(
+      `${linePath(scope)}/tracking`,
+      readOptions,
+    ),
+
   /**
    * GET /admin/all-orders?order_reference=...
    * Admin only. Backend must have the exact-match filter deployed.
