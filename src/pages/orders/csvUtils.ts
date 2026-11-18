@@ -211,7 +211,7 @@ type AnyObject = Record<string, any>;
 type RGB = [number, number, number];
 
 const ORDER_HISTORY_URL =
-  "https://www.markupdesigns.net/indiekonnect-distributor/distributor/order-history/";
+  "https://www.markupdesigns.net/indiekonnect-admin/orders";
 
 const DISPLAY_SELLER_NAME = "INDIEKONNECT ENTERPRISE PRIVATE LIMITED";
 
