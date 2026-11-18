@@ -170,6 +170,25 @@ export interface ReturnActionResponse {
   };
 }
 
+// ===================== WAREHOUSE RECEIVE TYPES =====================
+
+export interface WarehouseReceiveProductResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    warehouse_id?: number;
+    order_reference?: string;
+    received_items?: Array<{
+      order_line_id?: number;
+      product_id?: number;
+      quantity?: number;
+      new_stock?: number;
+      warehouse_id?: number;
+    }>;
+    [key: string]: any;
+  };
+}
+
 // ===================== API SERVICE =====================
 
 export const returnApi = {
@@ -299,6 +318,21 @@ export const returnApi = {
           admin_notes: payload.admin_notes.trim(),
         }),
       }
+    ),
+
+  /**
+   * POST /warehouse-receive-product/:orderReference
+   * Receive returned product back into warehouse inventory.
+   * Payload:
+   * {
+   *   warehouse_id: number   // required
+   * }
+   */
+  receiveProductAtWarehouse: (
+    orderReference: string,
+  ) =>
+    apiClient.post<WarehouseReceiveProductResponse>(
+      `/warehouse-receive-product/${orderReference}`
     ),
 };
 

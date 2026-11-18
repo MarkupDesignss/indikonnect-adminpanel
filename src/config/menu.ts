@@ -8,7 +8,6 @@ export interface MenuItem {
   anyOf?: string[];
   allOf?: string[];
   isHeading?: boolean;
-  /** If true, item is ALWAYS visible regardless of permissions */
   isPublic?: boolean;
   children?: MenuItem[];
 }
@@ -70,8 +69,8 @@ export const menuItems: MenuItem[] = [
         path: "/inventory/SubCategories",
         label: "Sub Categories",
         icon: "account_tree",
-        permission: "category.view",
-        module: "category",
+        permission: "sub category.view",
+        module: "sub category",
       },
       {
         path: "/inventory/tax-categories",
@@ -236,6 +235,9 @@ export const menuItems: MenuItem[] = [
     ],
   },
 
+  // =====================================================
+  // SALES
+  // =====================================================
   {
     path: "/sales-heading",
     label: "Sales",
@@ -246,8 +248,8 @@ export const menuItems: MenuItem[] = [
         path: "/sales-analytics",
         label: "Sales Analytics",
         icon: "analytics",
-        module: "sales",
-        permission: "sales.analytics",
+        module: "sales_Analytics",
+        permission: "sales_Analytics.view",
       },
       {
         path: "/sales-panel",
@@ -259,22 +261,22 @@ export const menuItems: MenuItem[] = [
             label: "Product Sales Report",
             icon: "inventory_2",
             module: "sales_product_report",
-            permission: "sales.view",
+            permission: "sales_product_report.view",
           },
           {
             path: "/category-sales-report",
             label: "Category Sales Report",
             icon: "category",
             module: "sales_category_report",
-            permission: "sales.view",
+            permission: "sales_category_report.view",
           },
         ],
       },
     ],
   },
+
   // =====================================================
   // REPORTS
-  // Product-wise Sales Report remains here
   // =====================================================
   {
     path: "/reports",
@@ -282,9 +284,9 @@ export const menuItems: MenuItem[] = [
     icon: "assessment",
     module: "reports",
     anyOf: [
-      "sales.view",
-      "delivery.view",
-      "return_refund.view",
+      "delivery_report.view",
+      "sales_report.view",
+      "return_refund_report.view",
     ],
     children: [
       {
@@ -292,25 +294,24 @@ export const menuItems: MenuItem[] = [
         label: "Delivery Report",
         icon: "local_shipping",
         module: "delivery_report",
-        permission: "delivery.view",
+        permission: "delivery_report.view",
       },
       {
         path: "/sales/report",
         label: "Sales Report",
         icon: "trending_up",
-        module: "sales_product_report",
-        permission: "sales.view",
+        module: "sales_report",
+        permission: "sales_report.view",
       },
       {
         path: "/returns-report",
         label: "Returns Report",
         icon: "assignment_return",
         module: "return_refund_report",
-        permission: "return_refund.view",
+        permission: "return_refund_report.view",
       },
     ],
   },
-
   // =====================================================
   // USER MANAGEMENT
   // =====================================================

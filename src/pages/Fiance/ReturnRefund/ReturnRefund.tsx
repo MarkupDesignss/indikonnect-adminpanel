@@ -91,6 +91,13 @@ interface ActionLoading {
 
 type ResolutionType = "refund" | "replacement";
 
+interface InventoryMoveTarget {
+  id: number;
+  orderReference: string;
+  customerName: string;
+  customerLabel: string;
+}
+
 // =====================================================
 // HELPERS
 // =====================================================
@@ -212,6 +219,60 @@ const getItemReferenceId = (record: any): string => {
   return reference ? String(reference) : "—";
 };
 
+/**
+ * ✅ Actual ORDER reference (NOT item reference).
+ * Used for the "Move to Inventory" API call.
+ */
+const getOrderReference = (record: any): string | null => {
+  const reference =
+    record?.order_reference ??
+    record?.order?.order_reference ??
+    record?.order?.reference ??
+    record?.order_number ??
+    record?.order?.order_number ??
+    null;
+
+  return reference ? String(reference) : null;
+};
+
+/**
+ * ✅ UPDATED: is_inventory_back logic
+ *   - is_inventory_back === 1  -> inventory me already wapas aa gaya -> button HIDE
+ *   - is_inventory_back === 0  -> button SHOW
+ *
+ * Ye flag order_lines_timeline[] ki har line me aata hai.
+ * Agar SAARI lines ka flag 1 hai tabhi button hide hoga.
+ * Agar koi bhi ek line 0 hai to button show rahega.
+ */
+const isInventoryBackLine = (line: any): boolean => {
+  const value = line?.is_inventory_back;
+
+  return value === 1 || value === true || value === "1";
+};
+
+const isMovedToInventory = (record: any): boolean => {
+  if (!record) return false;
+
+  // 1) Line-level flag (list response + detail response)
+  const lines: any[] = Array.isArray(record.order_lines_timeline)
+    ? record.order_lines_timeline
+    : [];
+
+  if (lines.length > 0) {
+    return lines.every((line) => isInventoryBackLine(line));
+  }
+
+  // 2) Fallback: items[] (agar detail response me flag items ke andar ho)
+  const items: any[] = Array.isArray(record.items) ? record.items : [];
+
+  if (items.length > 0 && items.every((item) => "is_inventory_back" in item)) {
+    return items.every((item) => isInventoryBackLine(item));
+  }
+
+  // 3) Fallback: record-level flag
+  return isInventoryBackLine(record);
+};
+
 const getRequestAccountType = (record: any): string | null => {
   const user = getRequestUser(record);
   return (
@@ -292,7 +353,7 @@ const formatMethodLabel = (method?: string | null) => {
 };
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NEW: RETURN METHOD LABEL HELPER                                          */
+/* RETURN METHOD LABEL HELPER                                                 */
 /* -------------------------------------------------------------------------- */
 
 function getReturnMethodLabel(returnMethod?: string | null): string {
@@ -304,7 +365,7 @@ function getReturnMethodLabel(returnMethod?: string | null): string {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
+/* REFUNDED AMOUNT EXTRACTOR                                                  */
 /* -------------------------------------------------------------------------- */
 
 function getRefundedAmount(record: any): number | null {
@@ -337,7 +398,7 @@ function getRefundedAmount(record: any): number | null {
 }
 
 /* -------------------------------------------------------------------------- */
-/* ✅ NEW: RETURN AMOUNT EXTRACTOR (Buyback Amount Equivalent)                */
+/* RETURN AMOUNT EXTRACTOR (Buyback Amount Equivalent)                        */
 /* -------------------------------------------------------------------------- */
 
 function getReturnAmount(record: any): number | null {
@@ -1026,6 +1087,124 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   );
 };
 
+
+// =====================================================
+// MOVE TO INVENTORY CONFIRMATION POPUP
+// ✅ UPDATED: Warehouse ID field REMOVED.
+//    Ab sirf confirmation popup hai -> OK dabao -> API call.
+// =====================================================
+
+interface MoveToInventoryPopupProps {
+  open: boolean;
+  loading: boolean;
+  orderReference: string;
+  customerName: string;
+  customerLabel: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}
+
+const MoveToInventoryPopup: React.FC<MoveToInventoryPopupProps> = ({
+  open,
+  loading,
+  orderReference,
+  customerName,
+  customerLabel,
+  onClose,
+  onConfirm,
+}) => {
+  if (!open) return null;
+
+  return (
+    <GlobalModal
+      isOpen={open}
+      onClose={onClose}
+      closeOnOverlayClick={!loading}
+    >
+      <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
+
+        <div className="flex flex-col items-center px-5 py-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+            <FiPackage size={26} />
+          </div>
+
+          <h2 className="mt-4 text-base font-bold text-[#111827]">
+            Move Returned Items
+          </h2>
+
+          <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
+            Are you sure you want to move the returned products into
+            inventory?
+          </p>
+
+          <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+            <div className="flex justify-between gap-3">
+              <span className="text-[11px] text-[#6B7280]">
+                Order Reference
+              </span>
+
+              <span className="break-all text-right text-xs font-bold text-[#2D6FE8]">
+                {orderReference}
+              </span>
+            </div>
+
+            <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
+              <span className="text-[11px] text-[#6B7280]">
+                {customerLabel}
+              </span>
+
+              <span className="text-right text-xs font-semibold text-[#111827]">
+                {customerName}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
+            <div className="flex items-start gap-2">
+              <FiAlertCircle
+                size={14}
+                className="mt-0.5 shrink-0 text-[#2D6FE8]"
+              />
+
+              <p className="text-[11px] leading-4 text-[#4B5563]">
+                The returned products will be added back to inventory and
+                the stock will be updated. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? (
+              <FiRefreshCw size={14} className="animate-spin" />
+            ) : (
+              <FiCheck size={14} />
+            )}
+
+            {loading ? "Moving..." : "OK"}
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
+
 // =====================================================
 // COMPLETE POPUP
 // =====================================================
@@ -1526,10 +1705,13 @@ interface ReturnDetailModalProps {
   onReject: () => void;
   onReceived: () => void;
   onComplete: () => void;
+  onMoveToInventory?: () => void;
   canApprove?: boolean;
   canReject?: boolean;
   canMarkReceived?: boolean;
   canComplete?: boolean;
+  canMoveToInventory?: boolean;
+  inventoryAlreadyMoved?: boolean;
 }
 
 const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
@@ -1542,10 +1724,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   onReject,
   onReceived,
   onComplete,
+  onMoveToInventory,
   canApprove = false,
   canReject = false,
   canMarkReceived = false,
   canComplete = false,
+  canMoveToInventory = false,
+  inventoryAlreadyMoved = false,
 }) => {
   const [refundBreakdownOpen, setRefundBreakdownOpen] = useState(true);
 
@@ -1658,6 +1843,14 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   // ✅ Refunded amount
   const actualRefundedAmount = getRefundedAmount(rawDetail);
   const returnAmount = getReturnAmount(rawDetail);
+
+  // ✅ Move to inventory visibility
+  // status completed + permission + is_inventory_back === 0 (isMovedToInventory false)
+  const showMoveToInventory =
+    detail.status === "completed" &&
+    canMoveToInventory &&
+    !inventoryAlreadyMoved &&
+    !isMovedToInventory(rawDetail);
 
   return (
     <GlobalModal
@@ -2652,6 +2845,18 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   Complete Return
                 </button>
               )}
+
+              {/* ✅ Move to Inventory — completed + is_inventory_back === 0 */}
+              {showMoveToInventory && onMoveToInventory && (
+                <button
+                  type="button"
+                  onClick={onMoveToInventory}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
+                >
+                  <FiPackage size={14} />
+                  Move to Inventory
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2703,6 +2908,34 @@ const ReturnRefund: React.FC = () => {
     () => isSuperAdmin || hasPermission("return_refund.completed"),
     [isSuperAdmin, hasPermission],
   );
+
+  // Move to inventory permission.
+  // Falls back to the "completed" permission so existing roles keep working.
+  const canMoveToInventory = useMemo(
+    () =>
+      isSuperAdmin ||
+      hasPermission("return_refund.move_to_inventory") ||
+      hasPermission("return_refund.completed"),
+    [isSuperAdmin, hasPermission],
+  );
+
+  // ===================================================
+  // MOVE TO INVENTORY STATE
+  // ✅ warehouseId state REMOVED
+  // ===================================================
+
+  const [inventoryMoveModalOpen, setInventoryMoveModalOpen] =
+    useState(false);
+
+  const [inventoryTarget, setInventoryTarget] =
+    useState<InventoryMoveTarget | null>(null);
+
+  const [inventoryMoveLoading, setInventoryMoveLoading] =
+    useState(false);
+
+  // Prevent duplicate actions during the current page session.
+  const [inventoryMovedOrders, setInventoryMovedOrders] =
+    useState<Set<string>>(new Set());
 
   // ===================================================
   // LOGO STATE (same pattern as Orders.tsx)
@@ -2954,6 +3187,28 @@ const ReturnRefund: React.FC = () => {
   );
 
   // ===================================================
+  // ✅ SHOULD SHOW "MOVE TO INVENTORY" BUTTON?
+  //   - status === "completed"
+  //   - user has permission
+  //   - is_inventory_back === 0  (isMovedToInventory => false)
+  //   - is session me abhi move nahi kiya
+  // ===================================================
+
+  const shouldShowMoveToInventory = (record: any): boolean => {
+    if (!record) return false;
+    if (record.status !== "completed") return false;
+    if (!canMoveToInventory) return false;
+    if (isMovedToInventory(record)) return false;
+
+    const orderReference = getOrderReference(record);
+    if (orderReference && inventoryMovedOrders.has(orderReference)) {
+      return false;
+    }
+
+    return true;
+  };
+
+  // ===================================================
   // FETCH DETAIL
   // ===================================================
 
@@ -2995,6 +3250,99 @@ const ReturnRefund: React.FC = () => {
     setSelectedDetail(null);
 
     await fetchReturnDetail(id);
+  };
+
+  // ===================================================
+  // OPEN MOVE TO INVENTORY POPUP
+  // Works with both list item (table/mobile) and detail record.
+  // ===================================================
+
+  const handleOpenMoveToInventory = (record: any) => {
+    if (record?.status !== "completed") {
+      toast.error("Only completed returns can be moved to inventory.");
+      return;
+    }
+
+    // Use actual order reference, NOT item reference.
+    const orderReference = getOrderReference(record);
+
+    if (!orderReference) {
+      toast.error("Order reference not found.");
+      return;
+    }
+
+    if (isMovedToInventory(record) || inventoryMovedOrders.has(orderReference)) {
+      toast.error("This order has already been moved to inventory.");
+      return;
+    }
+
+    const user = getRequestUser(record);
+
+    setInventoryTarget({
+      id: Number(record.id),
+      orderReference,
+      customerName: getCustomerName(user),
+      customerLabel: getAccountTypeLabel(getRequestAccountType(record)),
+    });
+
+    setInventoryMoveModalOpen(true);
+  };
+
+  // ===================================================
+  // CONFIRM MOVE TO INVENTORY API
+  // ✅ Ab sirf orderReference bhejna hai (warehouse ID nahi)
+  // ===================================================
+
+  const handleConfirmMoveToInventory = async () => {
+    if (!inventoryTarget) return;
+
+    const { orderReference, id } = inventoryTarget;
+
+    try {
+      setInventoryMoveLoading(true);
+
+      const response = await returnApi.receiveProductAtWarehouse(
+        orderReference,
+      );
+
+      if (response.data.success) {
+        toast.success(
+          response.data.message ||
+          "Returned products moved to inventory successfully.",
+        );
+
+        // Hide the button for this order during this page session.
+        setInventoryMovedOrders((previous) => {
+          const updated = new Set(previous);
+          updated.add(orderReference);
+          return updated;
+        });
+
+        setInventoryMoveModalOpen(false);
+        setInventoryTarget(null);
+
+        // Refresh returns list (is_inventory_back ab 1 aayega).
+        await fetchReturnRequests();
+
+        // Refresh currently open detail, if it belongs to this return.
+        if (selectedDetail?.id === id && detailModalOpen) {
+          await fetchReturnDetail(id);
+        }
+      } else {
+        toast.error(
+          response.data.message || "Unable to move products to inventory.",
+        );
+      }
+    } catch (error: any) {
+      console.error("Move to inventory error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+        "Unable to move products to inventory.",
+      );
+    } finally {
+      setInventoryMoveLoading(false);
+    }
   };
 
   // ===================================================
@@ -3108,7 +3456,7 @@ const ReturnRefund: React.FC = () => {
   };
 
   // ===================================================
-  // ✅ NEW: OPEN MARK RECEIVED DIRECTLY FROM TABLE
+  // OPEN MARK RECEIVED DIRECTLY FROM TABLE
   // ===================================================
   const handleOpenReceivedFromTable = async (id: number) => {
     if (selectedDetail?.id !== id) {
@@ -3607,6 +3955,10 @@ const ReturnRefund: React.FC = () => {
                     const showComplete =
                       request.status === "received" && canCompleteReturn;
 
+                    // ✅ show Move to Inventory only when completed + is_inventory_back === 0
+                    const showMoveToInventory =
+                      shouldShowMoveToInventory(request);
+
                     const rowRefunded = getRefundedAmount(request);
                     const rowIsRefunded = isRefundProcessed(request);
                     const rowReturnAmount = getReturnAmount(request);
@@ -3630,7 +3982,7 @@ const ReturnRefund: React.FC = () => {
 
                           <td className="break-words px-2 py-3">
                             <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                              {/* ✅ CHANGED: show item_reference instead of order_reference */}
+                              {/* show item_reference instead of order_reference */}
                               {getItemReferenceId(request)}
                             </span>
                           </td>
@@ -3788,7 +4140,7 @@ const ReturnRefund: React.FC = () => {
                               {showMarkReceived && (
                                 <button
                                   type="button"
-                                  // ✅ CHANGED: Directly open Mark Received Popup
+                                  // Directly open Mark Received Popup
                                   onClick={() => handleOpenReceivedFromTable(request.id)}
                                   className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
                                 >
@@ -3805,6 +4157,18 @@ const ReturnRefund: React.FC = () => {
                                 >
                                   <FiCheckCircle size={11} />
                                   Complete
+                                </button>
+                              )}
+
+                              {/* ✅ Move to Inventory (completed + is_inventory_back === 0) */}
+                              {showMoveToInventory && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenMoveToInventory(request)}
+                                  className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#1E40AF] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#2D6FE8] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
+                                >
+                                  <FiPackage size={11} />
+                                  Move to Inventory
                                 </button>
                               )}
                             </div>
@@ -3834,6 +4198,10 @@ const ReturnRefund: React.FC = () => {
                 const showComplete =
                   request.status === "received" && canCompleteReturn;
 
+                // ✅ show Move to Inventory only when completed + is_inventory_back === 0
+                const showMoveToInventory =
+                  shouldShowMoveToInventory(request);
+
                 // ✅ Refunded / Return amount
                 const rowRefunded = getRefundedAmount(request);
                 const rowIsRefunded = isRefundProcessed(request);
@@ -3855,7 +4223,7 @@ const ReturnRefund: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
-                          {/* ✅ CHANGED: show item_reference instead of order_reference */}
+                          {/* show item_reference instead of order_reference */}
                           {getItemReferenceId(request)}
                         </span>
                       </div>
@@ -3995,7 +4363,7 @@ const ReturnRefund: React.FC = () => {
                       <div className="mt-3">
                         <button
                           type="button"
-                          // ✅ CHANGED: Directly open Mark Received Popup
+                          // Directly open Mark Received Popup
                           onClick={() => handleOpenReceivedFromTable(request.id)}
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
@@ -4014,6 +4382,20 @@ const ReturnRefund: React.FC = () => {
                         >
                           <FiCheckCircle size={14} />
                           Complete Return
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ✅ Move to Inventory (mobile, completed + is_inventory_back === 0) */}
+                    {showMoveToInventory && (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMoveToInventory(request)}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
+                        >
+                          <FiPackage size={14} />
+                          Move to Inventory
                         </button>
                       </div>
                     )}
@@ -4139,10 +4521,16 @@ const ReturnRefund: React.FC = () => {
         onReject={handleOpenRejectFromModal}
         onReceived={handleOpenReceived}
         onComplete={handleOpenComplete}
+        onMoveToInventory={() => handleOpenMoveToInventory(selectedDetail)}
         canApprove={canApproveReturn}
         canReject={canRejectReturn}
         canMarkReceived={canMarkReceived}
         canComplete={canCompleteReturn}
+        canMoveToInventory={canMoveToInventory}
+        inventoryAlreadyMoved={
+          Boolean(selectedDetail) &&
+          inventoryMovedOrders.has(getOrderReference(selectedDetail) || "")
+        }
       />
 
       {/* APPROVE POPUP */}
@@ -4230,6 +4618,24 @@ const ReturnRefund: React.FC = () => {
             setPendingReplacementData(null);
           }}
           onConfirm={handleConfirmReplacement}
+        />
+      )}
+
+      {/* ✅ MOVE TO INVENTORY CONFIRMATION POPUP (warehouse ID removed) */}
+
+      {canMoveToInventory && (
+        <MoveToInventoryPopup
+          open={inventoryMoveModalOpen}
+          loading={inventoryMoveLoading}
+          orderReference={inventoryTarget?.orderReference || "—"}
+          customerName={inventoryTarget?.customerName || "—"}
+          customerLabel={inventoryTarget?.customerLabel || "Customer"}
+          onClose={() => {
+            if (inventoryMoveLoading) return;
+            setInventoryMoveModalOpen(false);
+            setInventoryTarget(null);
+          }}
+          onConfirm={handleConfirmMoveToInventory}
         />
       )}
     </>
