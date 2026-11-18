@@ -305,7 +305,7 @@ export const menuItems: MenuItem[] = [
       },
       {
         path: "/returns-report",
-        label: "Returns Report",
+        label: "Returns article Report",
         icon: "assignment_return",
         module: "return_refund_report",
         permission: "return_refund_report.view",

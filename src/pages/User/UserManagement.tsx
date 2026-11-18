@@ -129,12 +129,23 @@ interface KycProfileLike {
   [key: string]: any;
 }
 
+interface BeneficiaryLike {
+  id?: number | null;
+  user_id?: number | null;
+  full_name?: string | null;
+  relationship?: string | null;
+  age?: number | string | null;
+}
+
 interface UserWithBuyback extends RegisteredUser {
   buyback_untill?: string | null;
 
   // Complete KYC details from API
   complete_pan_card?: string | null;
   complete_aadhar_card?: string | null;
+
+  // Beneficiaries from API
+  beneficiaries?: BeneficiaryLike[] | null;
 }
 
 // =====================================================
@@ -1344,6 +1355,16 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
     kycProfile?.complete_bank_account ||
     null;
 
+  // ===================================================
+  // BENEFICIARIES FROM API
+  // ===================================================
+
+  const beneficiaries: BeneficiaryLike[] = Array.isArray(
+    userWithExtraFields?.beneficiaries,
+  )
+    ? (userWithExtraFields?.beneficiaries as BeneficiaryLike[])
+    : [];
+
   const withdrawAllowed = user ? isWithdrawAllowed(user) : true;
 
   const showWithdrawControl =
@@ -1738,6 +1759,89 @@ const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* BENEFICIARIES */}
+              {user.account_type === "distributor" && (
+                <div className="mt-5 rounded-2xl border border-[#DCE6F2] bg-[#F4F8FD] p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#111827]">
+                        <FiUsers size={17} />
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-bold text-[#111827]">
+                          Beneficiary Details
+                        </h3>
+
+                        <p className="mt-0.5 text-xs text-[#111827]">
+                          Nominees added by this distributor.
+                        </p>
+                      </div>
+                    </div>
+
+                    <span className="rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                      {beneficiaries.length}{" "}
+                      {beneficiaries.length === 1
+                        ? "Beneficiary"
+                        : "Beneficiaries"}
+                    </span>
+                  </div>
+
+                  {beneficiaries.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {beneficiaries.map((beneficiary, index) => (
+                        <div
+                          key={beneficiary.id ?? index}
+                          className="rounded-xl border border-[#DCE6F2] bg-white p-4"
+                        >
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="col-span-3 sm:col-span-1">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                                Full Name
+                              </p>
+
+                              <p className="mt-1 break-words text-sm font-bold text-[#111827]">
+                                {beneficiary.full_name?.trim() || "N/A"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                                Age
+                              </p>
+
+                              <p className="mt-1 text-sm font-bold text-[#111827]">
+                                {beneficiary.age !== null &&
+                                beneficiary.age !== undefined &&
+                                beneficiary.age !== ""
+                                  ? beneficiary.age
+                                  : "N/A"}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-[#111827]">
+                                Relation
+                              </p>
+
+                              <p className="mt-1 text-sm font-bold capitalize text-[#111827]">
+                                {beneficiary.relationship?.trim() || "N/A"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-[#DCE6F2] bg-white py-6 text-center">
+                      <p className="text-xs font-semibold text-[#6B7280]">
+                        No beneficiaries added.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -1,3 +1,4 @@
+//laoyot fix 
 
 import {
   Outlet,
@@ -25,7 +26,39 @@ import type {
 
 import { adminApi } from "../../api/endpoints/Auth";
 import logoApi from "../../api/endpoints/logoApi";
-import { FiX, FiLogOut } from "react-icons/fi";
+import type { IconType } from "react-icons";
+import {
+  FiX,
+  FiLogOut,
+  FiChevronDown,
+  FiHome,
+  FiShoppingCart,
+  FiPackage,
+  FiTruck,
+  FiDollarSign,
+  FiCreditCard,
+  FiFileText,
+  FiBarChart2,
+  FiTrendingUp,
+  FiGlobe,
+  FiHelpCircle,
+  FiBell,
+  FiSettings,
+  FiUsers,
+  FiUser,
+  FiShield,
+  FiLayers,
+  FiMapPin,
+  FiGrid,
+  FiImage,
+  FiMessageSquare,
+  FiMonitor,
+  FiBriefcase,
+  FiTag,
+  FiDatabase,
+  FiArchive,
+  FiClipboard,
+} from "react-icons/fi";
 import { getPortalLoginUrl } from "../../config/portalConfig";
 
 // =====================================================
@@ -34,6 +67,109 @@ import { getPortalLoginUrl } from "../../config/portalConfig";
 
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
+// =====================================================
+// SIDEBAR ICONS
+// Use SVG icons instead of Material Symbols ligature text.
+// This prevents raw values such as "shopping_cart" from
+// flashing/overlapping when a web font loads late or fails.
+// =====================================================
+
+const MENU_ICON_MAP: Record<string, IconType> = {
+  dashboard: FiHome,
+  home: FiHome,
+  space_dashboard: FiHome,
+  shopping_cart: FiShoppingCart,
+  shopping_bag: FiShoppingCart,
+  storefront: FiShoppingCart,
+  store: FiShoppingCart,
+  inventory: FiPackage,
+  inventory_2: FiPackage,
+  package: FiPackage,
+  products: FiPackage,
+  product: FiPackage,
+  warehouse: FiArchive,
+  warehouse_2: FiArchive,
+  local_shipping: FiTruck,
+  truck: FiTruck,
+  delivery_dining: FiTruck,
+  payments: FiDollarSign,
+  paid: FiDollarSign,
+  account_balance_wallet: FiCreditCard,
+  account_balance: FiCreditCard,
+  credit_card: FiCreditCard,
+  receipt: FiFileText,
+  receipt_long: FiFileText,
+  description: FiFileText,
+  article: FiFileText,
+  assignment: FiClipboard,
+  assignment_turned_in: FiClipboard,
+  bar_chart: FiBarChart2,
+  bar_chart_4_bars: FiBarChart2,
+  analytics: FiBarChart2,
+  monitoring: FiTrendingUp,
+  trending_up: FiTrendingUp,
+  query_stats: FiTrendingUp,
+  language: FiGlobe,
+  public: FiGlobe,
+  web: FiGlobe,
+  quiz: FiHelpCircle,
+  help: FiHelpCircle,
+  help_outline: FiHelpCircle,
+  faq: FiHelpCircle,
+  notifications: FiBell,
+  notification_important: FiBell,
+  settings: FiSettings,
+  manage_accounts: FiSettings,
+  tune: FiSettings,
+  group: FiUsers,
+  groups: FiUsers,
+  people: FiUsers,
+  people_alt: FiUsers,
+  person: FiUser,
+  person_outline: FiUser,
+  account_circle: FiUser,
+  shield: FiShield,
+  security: FiShield,
+  verified_user: FiShield,
+  layers: FiLayers,
+  category: FiLayers,
+  location_on: FiMapPin,
+  place: FiMapPin,
+  image: FiImage,
+  photo: FiImage,
+  collections: FiImage,
+  chat: FiMessageSquare,
+  message: FiMessageSquare,
+  forum: FiMessageSquare,
+  computer: FiMonitor,
+  desktop_windows: FiMonitor,
+  monitor: FiMonitor,
+  business: FiBriefcase,
+  business_center: FiBriefcase,
+  sell: FiTag,
+  local_offer: FiTag,
+  database: FiDatabase,
+  storage: FiDatabase,
+  inventory_management: FiArchive,
+};
+
+const MenuIcon = ({
+  name,
+  className,
+}: {
+  name?: string;
+  className?: string;
+}) => {
+  const key = (name ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  const Icon = MENU_ICON_MAP[key] ?? FiGrid;
+
+  return <Icon aria-hidden="true" className={className} />;
+};
 
 // =====================================================
 // NAVIGATION GROUPS
@@ -594,9 +730,10 @@ const SidebarContent = ({
               warehouseCode ? ` (${warehouseCode})` : ""
             }`}
           >
-            <span className="material-symbols-outlined flex-shrink-0 text-[16px] text-[var(--portal-primary)]">
-              warehouse
-            </span>
+            <FiArchive
+              aria-hidden="true"
+              className="flex-shrink-0 text-[16px] text-[var(--portal-primary)]"
+            />
 
             <div className="min-w-0">
               <p className="truncate text-[11.5px] font-semibold leading-tight text-[var(--portal-dark)]">
@@ -711,7 +848,7 @@ const SidebarContent = ({
 const MainLayout = () => {
   const {
     menuItems,
-    loading: isSidebarLoading,
+    loading: isMenuLoading,
   } = useMenuItemsState();
 
   // SINGLE SOURCE OF TRUTH — role + theme + CSS vars
@@ -774,10 +911,43 @@ const MainLayout = () => {
   // MENU SIGNATURE
   // ===================================================
 
-  const menuSignature = useMemo(
-    () => getMenuSignature(menuItems as any[]),
+  const safeMenuItems = useMemo(
+    () => (Array.isArray(menuItems) ? menuItems : []),
     [menuItems],
   );
+
+  const menuSignature = useMemo(
+    () => getMenuSignature(safeMenuItems),
+    [safeMenuItems],
+  );
+
+  // Keep the sidebar skeleton visible on the first paint and whenever
+  // permission/menu data changes. The two-frame settle avoids exposing
+  // a half-painted menu during hard refresh and React state hydration.
+  const [isSidebarSettled, setIsSidebarSettled] = useState(false);
+
+  useEffect(() => {
+    setIsSidebarSettled(false);
+
+    if (isMenuLoading) return;
+
+    let secondFrame = 0;
+
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        setIsSidebarSettled(true);
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [isMenuLoading, menuSignature, sidebarRole]);
+
+  const isSidebarLoading = isMenuLoading || !isSidebarSettled;
 
   // ===================================================
   // ACTIVE PATH HANDLING
@@ -816,20 +986,20 @@ const MainLayout = () => {
 
   const accountItems = useMemo(
     () =>
-      (menuItems as any[]).filter((item) =>
+      safeMenuItems.filter((item) =>
         ACCOUNT_PATHS.includes(item.path),
       ),
-    [menuItems],
+    [safeMenuItems],
   );
 
   const groupedMenu = useMemo(
     () =>
       groupMenuItems(
-        (menuItems as any[]).filter(
+        safeMenuItems.filter(
           (item) => !ACCOUNT_PATHS.includes(item.path),
         ),
       ),
-    [menuItems],
+    [safeMenuItems],
   );
 
   // ===================================================
@@ -881,7 +1051,7 @@ const MainLayout = () => {
       });
     };
 
-    walk(menuItems as any[]);
+    walk(safeMenuItems);
 
     if (parents.length === 0) return;
 
@@ -1079,9 +1249,10 @@ const MainLayout = () => {
                   ${depth > 0 ? "ml-2.5" : ""}
                 `}
               >
-                <span className="material-symbols-outlined text-[15px] text-[var(--portal-primary)]/70">
-                  {item.icon}
-                </span>
+                <MenuIcon
+                  name={item.icon}
+                  className="text-[15px] text-[var(--portal-primary)]/70"
+                />
 
                 <span className="flex-1 text-left text-[11px] font-bold uppercase tracking-wider text-[#8C97B2]">
                   {item.label}
@@ -1171,9 +1342,10 @@ const MainLayout = () => {
                 }
               `}
             >
-              <span className="material-symbols-outlined text-[16px] text-[var(--portal-primary)]">
-                {item.icon}
-              </span>
+              <MenuIcon
+                name={item.icon}
+                className="text-[16px] text-[var(--portal-primary)]"
+              />
             </span>
 
             {shouldShowLabels && (
@@ -1182,9 +1354,10 @@ const MainLayout = () => {
                   {item.label}
                 </span>
 
-                <span
+                <FiChevronDown
+                  aria-hidden="true"
                   className={`
-                    material-symbols-outlined
+                    flex-shrink-0
                     text-[14px]
                     text-[var(--portal-primary)]/60
                     transition-transform
@@ -1193,9 +1366,7 @@ const MainLayout = () => {
                     motion-reduce:transition-none
                     ${isExpanded ? "rotate-180" : ""}
                   `}
-                >
-                  expand_more
-                </span>
+                />
               </>
             )}
           </button>
@@ -1313,9 +1484,9 @@ const MainLayout = () => {
                   }
                 `}
               >
-                <span
+                <MenuIcon
+                  name={item.icon}
                   className={`
-                    material-symbols-outlined
                     text-[16px]
                     ${
                       isActive
@@ -1323,9 +1494,7 @@ const MainLayout = () => {
                         : "text-[#4A5778] group-hover:text-[var(--portal-primary)]"
                     }
                   `}
-                >
-                  {item.icon}
-                </span>
+                />
               </span>
             )}
 
@@ -1407,6 +1576,7 @@ const MainLayout = () => {
       <nav
         aria-label="Main navigation"
         aria-busy={isSidebarLoading}
+        data-sidebar-loading={isSidebarLoading ? "true" : "false"}
         className={`
           fixed
           left-0
@@ -1472,6 +1642,7 @@ const MainLayout = () => {
       <nav
         aria-label="Main navigation"
         aria-busy={isSidebarLoading}
+        data-sidebar-loading={isSidebarLoading ? "true" : "false"}
         className={`
           fixed
           left-0
