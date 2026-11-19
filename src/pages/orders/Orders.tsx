@@ -548,8 +548,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         const initialId = Number(initial?.id);
         const numericId =
           Number.isSafeInteger(initialId) &&
-          initialId > 0 &&
-          (String(initial.order_reference) === id || String(initialId) === id)
+            initialId > 0 &&
+            (String(initial.order_reference) === id || String(initialId) === id)
             ? String(initialId)
             : id;
         const response = await orderApi.getOrderDetails(numericId);
@@ -567,24 +567,24 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             : [];
           const mergedItems = Array.isArray(data.items)
             ? data.items.map((item: any) => {
-                const old = originalItems.find(
-                  (x: any) => Number(x.line_id) === Number(item.line_id),
-                );
-                if (!old) return item;
-                return {
-                  ...item,
-                  courier_tracking_number:
-                    item.courier_tracking_number ??
-                    (item.indiapost
-                      ? undefined
-                      : itemTrackingNumber(initial, {
-                          ...old,
-                          indiapost: null,
-                        })),
-                  shipping_details:
-                    item.shipping_details ?? old.shipping_details,
-                };
-              })
+              const old = originalItems.find(
+                (x: any) => Number(x.line_id) === Number(item.line_id),
+              );
+              if (!old) return item;
+              return {
+                ...item,
+                courier_tracking_number:
+                  item.courier_tracking_number ??
+                  (item.indiapost
+                    ? undefined
+                    : itemTrackingNumber(initial, {
+                      ...old,
+                      indiapost: null,
+                    })),
+                shipping_details:
+                  item.shipping_details ?? old.shipping_details,
+              };
+            })
             : data.items;
           setOrderDetails({ ...data, items: mergedItems });
           setLastRefreshedAt(new Date());
@@ -596,8 +596,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
         if (!silent) {
           setError(
             err?.response?.data?.message ||
-              err?.message ||
-              "An error occurred while fetching order details",
+            err?.message ||
+            "An error occurred while fetching order details",
           );
         }
       } finally {
@@ -814,13 +814,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     rawTimelineItems.length > 0
       ? rawTimelineItems
       : [
-          {
-            timeline: orderDetails?.timeline || {},
-            order_date,
-            confirmed_date: orderDetails?.confirmed_date,
-            product_name: "Order",
-          },
-        ];
+        {
+          timeline: orderDetails?.timeline || {},
+          order_date,
+          confirmed_date: orderDetails?.confirmed_date,
+          product_name: "Order",
+        },
+      ];
 
   const timelineEventMap = new Map<
     string,
@@ -955,7 +955,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     lineTotal: item.line_total || 0,
     status: item.delivery_status
       ? item.delivery_status.charAt(0).toUpperCase() +
-        item.delivery_status.slice(1)
+      item.delivery_status.slice(1)
       : "Pending",
     delivery_status: item.delivery_status || "pending",
     image: item.primary_image || undefined,
@@ -1051,11 +1051,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("items")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "items"
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
                   ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
                   : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-              }`}
+                }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
               Items ({items?.length || 0})
@@ -1063,11 +1062,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("details")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "details"
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
                   ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
                   : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-              }`}
+                }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
               {orderDetails?.order_type === "retail"
@@ -1077,11 +1075,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("tracking")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "tracking"
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
                   ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
                   : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-              }`}
+                }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
               Tracking
@@ -1089,11 +1086,10 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab("payment")}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
-                activeTab === "payment"
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "payment"
                   ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
                   : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-              }`}
+                }`}
             >
               <FiCreditCard className="mr-1.5 inline" size={13} />
               Payment
@@ -1535,35 +1531,35 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                       const tone =
                         event.category === "cancel"
                           ? {
-                              line: "bg-[#C23B32]/20",
-                              marker:
-                                "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
-                              card: "border-[#C23B32]/15",
-                              title: "text-[#B42318]",
-                            }
+                            line: "bg-[#C23B32]/20",
+                            marker:
+                              "border-[#C23B32]/20 bg-[#FDECEC] text-[#C23B32]",
+                            card: "border-[#C23B32]/15",
+                            title: "text-[#B42318]",
+                          }
                           : event.category === "return"
                             ? {
-                                line: "bg-[#D69E36]/25",
-                                marker:
-                                  "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
-                                card: "border-[#F2C94C]/25",
-                                title: "text-[#92400E]",
-                              }
+                              line: "bg-[#D69E36]/25",
+                              marker:
+                                "border-[#F2C94C]/40 bg-[#FFF7D6] text-[#A16207]",
+                              card: "border-[#F2C94C]/25",
+                              title: "text-[#92400E]",
+                            }
                             : event.category === "buyback"
                               ? {
-                                  line: "bg-[#8B5CF6]/20",
-                                  marker:
-                                    "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
-                                  card: "border-[#8B5CF6]/15",
-                                  title: "text-[#6D28D9]",
-                                }
+                                line: "bg-[#8B5CF6]/20",
+                                marker:
+                                  "border-[#8B5CF6]/20 bg-[#F3EFFF] text-[#6D28D9]",
+                                card: "border-[#8B5CF6]/15",
+                                title: "text-[#6D28D9]",
+                              }
                               : {
-                                  line: "bg-[#2D6FE8]/20",
-                                  marker:
-                                    "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
-                                  card: "border-[#2D6FE8]/15",
-                                  title: "text-[#111827]",
-                                };
+                                line: "bg-[#2D6FE8]/20",
+                                marker:
+                                  "border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8]",
+                                card: "border-[#2D6FE8]/15",
+                                title: "text-[#111827]",
+                              };
 
                       return (
                         <div
@@ -1831,7 +1827,7 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
   onClose,
   order,
   item,
-  onChooseIndiaPost,
+  // onChooseIndiaPost, // Temporarily disabled; restore with the button below.
   onChooseManual,
 }) => {
   if (!isOpen || !order || !item) return null;
@@ -1889,6 +1885,7 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
           </p>
 
           <div className="grid grid-cols-1 gap-3">
+            {/* Automated India Post dispatch temporarily disabled.
             <button
               type="button"
               onClick={onChooseIndiaPost}
@@ -1907,6 +1904,7 @@ const DispatchChoicePopup: React.FC<DispatchChoicePopupProps> = ({
                 </p>
               </div>
             </button>
+            */}
 
             <button
               type="button"
@@ -1966,6 +1964,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 }) => {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [courierName, setCourierName] = useState("");
+  const [otherCourierName, setOtherCourierName] = useState("");
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1978,6 +1977,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
     if (isOpen) {
       setTrackingNumber("");
       setCourierName("");
+      setOtherCourierName("");
       setExpectedDelivery("");
       setNotes("");
       setError(null);
@@ -1998,13 +1998,27 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
+    const finalCourierName =
+      courierName === "Other" ? otherCourierName.trim() : courierName;
+
+    if (!courierName || !finalCourierName) {
+      setError("Please select or enter a courier name.");
+      return;
+    }
+    if (!trackingNumber.trim()) {
+      setError("Please enter a tracking number.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const dispatchData: any = {
         order_reference: order.id,
-        courier_tracking_number: trackingNumber,
-        courier_company: courierName,
+        courier_tracking_number: trackingNumber.trim(),
+        courier_company: finalCourierName,
         delivery_notes: notes || undefined,
         courier_delivery_date: expectedDelivery || undefined,
       };
@@ -2030,8 +2044,8 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
             lineId: item.lineId || parseInt(item.id),
           })),
           itemCount: itemsToDispatch.length,
-          trackingNumber,
-          courierName,
+          trackingNumber: trackingNumber.trim(),
+          courierName: finalCourierName,
           expectedDelivery,
           notes,
           isFullOrder,
@@ -2117,18 +2131,56 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]">
+                  <label
+                    htmlFor="dispatch-courier-name"
+                    className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]"
+                  >
                     Courier Name <span className="text-[#C23B32]">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={courierName}
-                    onChange={(e) => setCourierName(e.target.value)}
-                    placeholder="Enter courier name"
-                    className="h-12 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                    required
-                    disabled={loading}
-                  />
+                  <div className="relative">
+                    <select
+                      id="dispatch-courier-name"
+                      value={courierName}
+                      onChange={(e) => {
+                        setCourierName(e.target.value);
+                        setOtherCourierName("");
+                        setError(null);
+                      }}
+                      className={`h-12 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-4 pr-10 text-sm outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 ${courierName ? "text-[#111827]" : "text-[#9CA3AF]"}`}
+                      required
+                      disabled={loading}
+                    >
+                      <option value="" disabled>Select courier</option>
+                      <option value="India Post">India Post</option>
+                      <option value="BVC">BVC</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <FiChevronDown
+                      aria-hidden="true"
+                      size={17}
+                      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7280]"
+                    />
+                  </div>
+                  {courierName === "Other" && (
+                    <div className="mt-3">
+                      <label
+                        htmlFor="dispatch-other-courier-name"
+                        className="mb-2 block text-xs font-bold uppercase tracking-wide text-[#111827]"
+                      >
+                        Other Courier Name <span className="text-[#C23B32]">*</span>
+                      </label>
+                      <input
+                        id="dispatch-other-courier-name"
+                        type="text"
+                        value={otherCourierName}
+                        onChange={(e) => setOtherCourierName(e.target.value)}
+                        placeholder="Enter courier name"
+                        className="h-12 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 text-sm text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
@@ -3005,7 +3057,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         lineTotal: item.line_total || 0,
         status:
           item.delivery_status?.charAt(0).toUpperCase() +
-            item.delivery_status?.slice(1) || "Pending",
+          item.delivery_status?.slice(1) || "Pending",
         delivery_status: item.delivery_status || "pending",
         image: item.primary_image || item.product_image || undefined,
         productId: item.product_id,
@@ -3030,10 +3082,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       orderReference: apiOrder.order_reference,
       date: apiOrder.order_date
         ? new Date(apiOrder.order_date).toLocaleDateString("en-IN", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
         : "N/A",
       orderDateRaw: apiOrder.order_date ?? null,
       customer: apiOrder.user?.name || "N/A",
@@ -3187,9 +3239,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     if (loading) return;
     if (allOrderGroups.length === 0) return;
 
-    const searchKey = `${initialSearchOrderReference || ""}-${
-      initialSearchOrderId || ""
-    }`;
+    const searchKey = `${initialSearchOrderReference || ""}-${initialSearchOrderId || ""
+      }`;
 
     if (initialSearchHandledRef.current === searchKey) return;
     initialSearchHandledRef.current = searchKey;
@@ -3446,8 +3497,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error("Invoice PDF error:", err);
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load invoice.",
+        err?.message ||
+        "Failed to load invoice.",
       );
     } finally {
       toast.dismiss("invoice-pdf");
@@ -3567,8 +3618,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to update cancel/return option",
+        err?.message ||
+        "Failed to update cancel/return option",
       );
     } finally {
       setTogglingCancelReturn((prev) => {
@@ -3620,8 +3671,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       console.error(err);
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "Failed to mark as undelivered",
+        err?.message ||
+        "Failed to mark as undelivered",
       );
       await fetchOrders();
     } finally {
@@ -3778,9 +3829,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               handleToggleOrderCancelReturn(group);
             }}
             disabled={isToggling}
-            className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${
-              state === "allowed" ? "text-[#2D6FE8]" : "text-[#6B7280]"
-            }`}
+            className={`flex w-full items-center justify-between px-4 py-2 text-left text-xs hover:bg-[#F4F8FD] disabled:opacity-60 ${state === "allowed" ? "text-[#2D6FE8]" : "text-[#6B7280]"
+              }`}
           >
             <div className="flex items-center gap-2">
               {isToggling ? (
@@ -3887,7 +3937,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             type="button"
             onClick={() => openDispatchChoicePopup(group, item)}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D6FE8]/20 bg-[#F4F8FD] text-[#2D6FE8] transition-all hover:border-transparent hover:bg-[#2D6FE8] hover:text-white"
-            title="Dispatch (India Post / Manual)"
+            title="Manual Dispatch"
           >
             <FiTruck size={14} />
           </button>
@@ -4146,11 +4196,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <button
                 type="button"
                 onClick={clearFilters}
-                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${
-                  hasActiveFilters
+                className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${hasActiveFilters
                     ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
                     : "text-[#9CA3AF] hover:text-[#2D6FE8]"
-                }`}
+                  }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
                 Clear
@@ -4338,11 +4387,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     >
                       {/* ORDER HEADER ROW */}
                       <tr
-                        className={`${
-                          selectedOrderId === group.id
+                        className={`${selectedOrderId === group.id
                             ? "bg-[#DBEAFE]"
                             : "bg-[#EAF3FF]"
-                        }`}
+                          }`}
                       >
                         <td colSpan={8} className="px-3 py-3">
                           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -4551,8 +4599,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 <span className="h-1.5 w-1.5 rounded-full bg-current" />
                                 {formatStatus(
                                   item.delivery_status ||
-                                    item.status ||
-                                    "pending",
+                                  item.status ||
+                                  "pending",
                                 )}
                               </span>
                             </td>
@@ -4604,9 +4652,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 return (
                   <div
                     key={group.id}
-                    className={`border-b-2 border-[#2D6FE8]/15 ${
-                      selectedOrderId === group.id ? "bg-[#EAF3FF]" : "bg-white"
-                    }`}
+                    className={`border-b-2 border-[#2D6FE8]/15 ${selectedOrderId === group.id ? "bg-[#EAF3FF]" : "bg-white"
+                      }`}
                   >
                     {/* ORDER HEADER */}
                     <div className="bg-[#EAF3FF] p-4">
@@ -4662,11 +4709,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             type="button"
                             onClick={() => handleToggleOrderCancelReturn(group)}
                             disabled={isTogglingOrder}
-                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${
-                              cancelState === "allowed"
+                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${cancelState === "allowed"
                                 ? "bg-white text-[#2D6FE8]"
                                 : "bg-[#F4F8FD] text-[#6B7280]"
-                            }`}
+                              }`}
                           >
                             {isTogglingOrder
                               ? "Saving..."
@@ -4708,14 +4754,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               <span
                                 className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusBadge(
                                   item.delivery_status ||
-                                    item.status ||
-                                    "pending",
+                                  item.status ||
+                                  "pending",
                                 )}`}
                               >
                                 {formatStatus(
                                   item.delivery_status ||
-                                    item.status ||
-                                    "pending",
+                                  item.status ||
+                                  "pending",
                                 )}
                               </span>
                             </div>
@@ -4919,11 +4965,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         key={page}
                         type="button"
                         onClick={() => changePage(page)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                          currentPage === page
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
                             ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
                             : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                        }`}
+                          }`}
                       >
                         {page}
                       </button>
@@ -4935,11 +4980,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       <button
                         type="button"
                         onClick={() => changePage(totalPages)}
-                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${
-                          currentPage === totalPages
+                        className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
                             ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
                             : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
-                        }`}
+                          }`}
                       >
                         {totalPages}
                       </button>
@@ -5391,7 +5435,7 @@ const Orders: React.FC = () => {
           initialSearchOrderReference={initialSearchOrderReference}
           initialSearchOrderId={initialSearchOrderId}
           initialSearchAutoOpenView={initialSearchAutoOpenView}
-          onInitialSearchConsumed={() => {}}
+          onInitialSearchConsumed={() => { }}
         />
       </div>
     </div>
