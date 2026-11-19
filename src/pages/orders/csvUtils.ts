@@ -1,175 +1,266 @@
-"use client";
+// src/pages/orders/csvUtils.ts
+
+// Indiekonnect — CSV exports + compact GST tax-invoice PDF.
+// Required: npm install jspdf jspdf-autotable qrcode
+//           npm install -D @types/qrcode
+
+import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import QRCode from "qrcode";
-import Logo from "../../../public/indiekonnect-web/images/logo.png";
+
+import {
+  INVOICE_LOGO_DATA_URL,
+  INVOICE_LOGO_WIDTH,
+  INVOICE_LOGO_HEIGHT,
+} from "../../utils/invoiceLogoData";
+
 // =====================================================
-// CONFIGURATION
+// CSV HELPERS
 // =====================================================
-type InvoiceRecord = Record<string, any>;
-type RGB = [number, number, number];
-const LOGO_PATHS = [
-  Logo.src,
-  "/indiekonnect-web/images/logo.png",
-  "/images/logo.png",
-  "/logo.png",
-];
-const INK: RGB = [30, 30, 30];
-const GRAY: RGB = [95, 95, 95];
-const BORDER: RGB = [75, 75, 75];
-const LIGHT: RGB = [242, 242, 242];
-// =====================================================
-// COMMON HELPERS
-// =====================================================
-const isPresent = (value: any): boolean =>
-  value !== undefined && value !== null && String(value).trim() !== "";
-const firstValue = (...values: any[]): any => values.find(isPresent);
-const safeText = (value: any, fallback = "-"): string =>
-  isPresent(value) ? String(value).trim() : fallback;
-const toNumber = (value: any): number | null => {
-  if (!isPresent(value)) return null;
-  const number = Number(String(value).replace(/[,₹]/g, "").trim());
-  return Number.isFinite(number) ? number : null;
+
+export const escapeCsvValue = (value: any): string => {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  return /[,"\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 };
-const formatMoney = (value: any): string => {
-  const number = toNumber(value);
-  if (number === null) return "-";
-  return number.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-const formatDate = (value: any): string => {
-  if (!value) return "-";
+
+export const formatCsvDate = (value?: string | null) => {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-IN", {
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
-const prettyStatus = (value: any): string =>
-  safeText(value)
-    .replace(/[_-]/g, " ")
+
+export const formatCsvStatus = (status?: string) =>
+  status
+    ? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    : "";
+
+/**
+ * Item-based CSV generator.
+ *
+ * Every entry in `orders` may either be:
+ *   - a full order (with `.items`), OR
+ *   - a single-row order whose `.items` contains only the filtered item(s).
+ *
+ * In either case, the resulting CSV will contain ONE ROW PER ITEM.
+ */
+export const generateOrdersCsv = (orders: any[]): string => {
+  const headers = [
+    "S.No.",
+    "Order Reference",
+    "Order Date",
+    "Customer Name",
+    "Customer Email",
+    "Customer Phone",
+    "Order Type",
+    "Order Status",
+    "Payment Status",
+    "Payment Gateway",
+    "Transaction ID",
+    "Subtotal",
+    "Total GST",
+    "Shipping Charge",
+    "Total Payable",
+    "Amount Paid",
+    "Shipping Address",
+    "Courier Company",
+    "Courier Tracking Number",
+    "Courier Delivery Date",
+    "Item Reference",
+    "Product Name",
+    "SKU",
+    "Quantity",
+    "Unit Price",
+    "Item Total",
+    "Item Delivery Status",
+    "Item Tracking Number",
+  ];
+
+  const rows: string[] = [headers.map(escapeCsvValue).join(",")];
+  let counter = 0;
+
+  orders.forEach((order) => {
+    const items =
+      Array.isArray(order.items) && order.items.length ? order.items : [null];
+
+    items.forEach((item: any) => {
+      counter += 1;
+      const row = [
+        counter,
+        order.order_reference || order.id || "",
+        // Prefer the raw order date field (set by the item-row converter),
+        // then fall back to `.date` / `.order_date`.
+        formatCsvDate(order.orderDateRaw || order.order_date || order.date) ||
+          "",
+        order.user?.name || order.customer || "",
+        order.user?.email || order.userEmail || "",
+        order.user?.phone || order.userPhone || "",
+        order.order_type === "retail" ? "Customer" : order.order_type || "",
+        formatCsvStatus(order.order_status || order.orderStatus) || "",
+        formatCsvStatus(order.payment_status || order.paymentStatus) || "",
+        order.payment_gateway || order.paymentGateway || "",
+        order.gateway_transaction_id || order.gatewayTransactionId || "",
+        Number(order.subtotal || 0).toFixed(2),
+        Number(order.total_gst || order.totalGst || 0).toFixed(2),
+        Number(order.shipping_charge || order.shippingCharge || 0).toFixed(2),
+        Number(order.total_payable || order.totalPayable || 0).toFixed(2),
+        Number(order.amount_paid || order.amountPaid || 0).toFixed(2),
+        order.shipping_address?.full_address || order.shippingAddress || "",
+        order.courier_company || order.courierCompany || "",
+        order.courier_tracking_number || order.courierTrackingNumber || "",
+        formatCsvDate(
+          order.courier_delivery_date || order.courierDeliveryDate,
+        ) || "",
+        item?.item_reference_id || item?.itemReferenceId || "",
+        item?.product_name || item?.productName || "",
+        item?.product_code || item?.sku || "",
+        item?.quantity ?? "",
+        item?.unit_price != null
+          ? Number(item.unit_price).toFixed(2)
+          : item?.unitPrice != null
+            ? Number(item.unitPrice).toFixed(2)
+            : "",
+        item?.line_total != null
+          ? Number(item.line_total).toFixed(2)
+          : item?.lineTotal != null
+            ? Number(item.lineTotal).toFixed(2)
+            : "",
+        formatCsvStatus(item?.delivery_status || item?.status) || "",
+        item?.courier_tracking_number || item?.courierTrackingNumber || "",
+      ];
+      rows.push(row.map(escapeCsvValue).join(","));
+    });
+  });
+
+  return rows.join("\r\n");
+};
+
+export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
+  if (!orders?.length) {
+    toast.error("No orders available to export.");
+    return;
+  }
+
+  try {
+    // Count actual item rows that will be written (not just order records).
+    const itemRowCount = orders.reduce((total, order) => {
+      const count =
+        Array.isArray(order.items) && order.items.length
+          ? order.items.length
+          : 1;
+      return total + count;
+    }, 0);
+
+    const content = `\uFEFF${generateOrdersCsv(orders)}`;
+    const url = URL.createObjectURL(
+      new Blob([content], { type: "text/csv;charset=utf-8;" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filenamePrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(
+      `CSV downloaded — ${itemRowCount} item row(s) from ${orders.length} order(s)`,
+    );
+  } catch (error) {
+    console.error("CSV download error:", error);
+    toast.error("Failed to download CSV. Please try again.");
+  }
+};
+
+// =====================================================
+// GST INVOICE PDF — ONLY THESE API FIELDS
+// =====================================================
+//
+// Product line fields displayed:
+//   line_price_excl_gst
+//   line_price_incl_gst
+//   line_gst_amount
+//   igst_amount
+//   line_total_excl_gst
+//   line_total_gst_amount
+//   line_total_incl_gst
+//
+// Shipping (per-line) fields displayed:
+//   shipping_excl_gst
+//   shipping_incl_gst
+//   shipping_gst_amount
+//
+// No MRP, no discount, no CGST/SGST split — unless API explicitly returns them.
+// No reconciliation "Note" row.
+
+type InvoicePayload = {
+  invoice?: Record<string, any>;
+  order?: Record<string, any>;
+  invoice_type?: string;
+};
+
+type AnyObject = Record<string, any>;
+type RGB = [number, number, number];
+
+const ORDER_HISTORY_URL =
+  "https://www.markupdesigns.net/indiekonnect-admin/orders";
+
+const DISPLAY_SELLER_NAME = "INDIEKONNECT ENTERPRISE PRIVATE LIMITED";
+
+const isPresent = (value: any): boolean =>
+  value !== undefined && value !== null && String(value).trim() !== "";
+
+const firstPresent = (...values: any[]): any => values.find(isPresent) ?? null;
+
+const asText = (value: any, fallback = "-"): string =>
+  isPresent(value) ? String(value).trim() : fallback;
+
+const asNumber = (value: any, fallback = 0): number => {
+  if (!isPresent(value)) return fallback;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const hasNumber = (value: any): boolean =>
+  isPresent(value) && Number.isFinite(Number(value));
+
+const formatMoney = (value: any): string =>
+  asNumber(value).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const prettyStatus = (value: any) =>
+  asText(value)
+    .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
-// =====================================================
-// LOGO HELPERS
-// =====================================================
-const loadImageAsBase64 = (url: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("Canvas unavailable"));
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
-      } catch (error) {
-        reject(error);
-      }
-    };
-    img.onerror = () => reject(new Error(`Unable to load logo: ${url}`));
-    img.src = url;
-  });
-};
-const loadLogo = async (): Promise<string | null> => {
-  for (const path of LOGO_PATHS) {
-    try {
-      if (path) return await loadImageAsBase64(path);
-    } catch {
-      continue;
-    }
-  }
-  return null;
-};
-// =====================================================
-// API NORMALIZATION
-// =====================================================
-const normalizeInvoiceResponse = (response: any) => {
-  const root = response || {};
-  const payload = [root?.data?.data, root?.data, root].find(
-    (candidate) => candidate?.invoice,
-  );
-  if (!payload) {
-    throw new Error("Invoice information not found.");
-  }
-  const invoice = payload.invoice || {};
-  const order = payload.order || {};
-  const rawItems = firstValue(
-    invoice.invoice_items,
-    invoice.line_items,
-    invoice.items,
-    order.order_items,
-    order.items,
-    order.order_lines,
-  );
-  const items = normalizeItems(rawItems);
-  const invoiceType = firstValue(
-    root.invoice_type,
-    root.data?.invoice_type,
-    payload.invoice_type,
-    invoice.invoice_type,
-    order.order_items && !Array.isArray(order.order_items)
-      ? "single_item"
-      : undefined,
-    "complete",
-  );
-  return {
-    invoice,
-    order,
-    items,
-    invoiceType,
-  };
-};
-const normalizeItems = (value: any): InvoiceRecord[] => {
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value.filter((item) => item && typeof item === "object");
-  }
-  if (typeof value === "string") {
-    try {
-      return normalizeItems(JSON.parse(value));
-    } catch {
-      return [];
-    }
-  }
-  if (typeof value === "object") return [value];
-  return [];
-};
-// =====================================================
-// ADDRESS HELPERS
-// =====================================================
-const formatAddress = (address: any): string => {
-  if (!address) return "-";
-  if (typeof address === "string") return address;
+
+const addressToText = (value: any): string => {
+  if (!isPresent(value)) return "";
+  if (typeof value === "string") return asText(value);
+  if (typeof value !== "object") return asText(value);
   const parts = [
-    address.address_line_1,
-    address.address_line_2,
-    address.landmark,
-    address.post_office,
-    address.city,
-    address.district,
-    address.state,
-    address.pincode,
-    address.country,
-  ]
-    .filter(isPresent)
-    .map((part) => String(part).trim());
-  return [...new Set(parts)].join(", ") || safeText(address.full_address);
+    value.address_line_1 ?? value.address_line1,
+    value.address_line_2 ?? value.address_line2,
+    value.landmark,
+    value.city,
+    value.post_office,
+    value.district,
+    value.state,
+    firstPresent(value.pincode, value.pin_code, value.postal_code),
+    value.country,
+  ].filter(isPresent);
+  return parts.length ? parts.join(", ") : asText(value.full_address);
 };
-// =====================================================
-// AMOUNT IN WORDS - INDIAN FORMAT
-// =====================================================
-const SMALL = [
+
+const smallWords = [
   "",
   "One",
   "Two",
@@ -191,7 +282,7 @@ const SMALL = [
   "Eighteen",
   "Nineteen",
 ];
-const TENS = [
+const tensWords = [
   "",
   "",
   "Twenty",
@@ -203,943 +294,891 @@ const TENS = [
   "Eighty",
   "Ninety",
 ];
-const numberToWords = (number: number): string => {
-  const n = Math.floor(Math.abs(number));
-  if (n === 0) return "Zero";
-  if (n < 20) return SMALL[n];
-  if (n < 100) {
-    return [TENS[Math.floor(n / 10)], n % 10 ? SMALL[n % 10] : ""]
-      .filter(Boolean)
-      .join(" ");
+
+const hundredsToWords = (amount: number): string => {
+  let n = Math.floor(amount);
+  const out: string[] = [];
+  if (n >= 100) {
+    out.push(`${smallWords[Math.floor(n / 100)]} Hundred`);
+    n %= 100;
   }
-  const units: [number, string][] = [
+  if (n >= 20) {
+    out.push(tensWords[Math.floor(n / 10)]);
+    if (n % 10) out.push(smallWords[n % 10]);
+  } else if (n > 0) {
+    out.push(smallWords[n]);
+  }
+  return out.join(" ");
+};
+
+const integerToIndianWords = (amount: number): string => {
+  let n = Math.floor(Math.abs(amount));
+  if (!n) return "Zero";
+  const pieces: string[] = [];
+  for (const [unit, title] of [
+    [1000000000, "Arab"],
     [10000000, "Crore"],
     [100000, "Lakh"],
     [1000, "Thousand"],
-    [100, "Hundred"],
-  ];
-  for (const [value, label] of units) {
-    if (n >= value) {
-      return [
-        numberToWords(Math.floor(n / value)),
-        label,
-        n % value ? numberToWords(n % value) : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
+  ] as const) {
+    if (n >= unit) {
+      pieces.push(`${hundredsToWords(Math.floor(n / unit))} ${title}`);
+      n %= unit;
     }
   }
-  return "";
-};
-const amountInWords = (value: any): string => {
-  const amount = toNumber(value);
-  if (amount === null) return "Not available";
-  const totalPaise = Math.round(Math.abs(amount) * 100);
-  const rupees = Math.floor(totalPaise / 100);
-  const paise = totalPaise % 100;
-  return [
-    amount < 0 ? "Minus" : "",
-    "Rupees",
-    numberToWords(rupees),
-    paise ? `and ${numberToWords(paise)} Paise` : "",
-    "Only",
-  ]
-    .filter(Boolean)
-    .join(" ");
-};
-// =====================================================
-// ITEM TOTALS
-// =====================================================
-const sumField = (items: InvoiceRecord[], field: string): number | null => {
-  if (!items.length) return null;
-  const values = items.map((item) => toNumber(item[field]));
-  if (values.some((value) => value === null)) {
-    return null;
-  }
-  return values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
-};
-// =====================================================
-// VALIDATION — preserve invoice scope and never fabricate tax
-// =====================================================
-const closeMoney = (a: number, b: number) => Math.abs(a - b) <= 0.02;
-const n = toNumber;
-const money = formatMoney;
-const rate = (value: any) =>
-  isPresent(value) ? `${String(value).replace(/%$/, "")}%` : "-";
-const sumNumbers = (...values: (number | null)[]): number | null =>
-  values.some((value) => value === null)
-    ? null
-    : values.reduce<number>((a, b) => a + (b ?? 0), 0);
-const validHttpUrl = (value: any): string => {
-  if (typeof value !== "string") return "";
-  try {
-    const url = new URL(value.trim());
-    return ["https:", "http:"].includes(url.protocol) ? value.trim() : "";
-  } catch {
-    return "";
-  }
-};
-const reverseChargeText = (value: any): string => {
-  if (!isPresent(value)) return "Not provided";
-  const normalized = String(value).toLowerCase().trim();
-  if (["true", "1", "yes"].includes(normalized)) return "Yes";
-  if (["false", "0", "no"].includes(normalized)) return "No";
-  return "Not provided";
+  if (n) pieces.push(hundredsToWords(n));
+  return pieces.join(" ");
 };
 
-// Exported separately so the backend response can be checked before generating a PDF.
-export const getInvoiceValidation = (response: any) => {
-  const { invoice, order, items, invoiceType } =
-    normalizeInvoiceResponse(response);
-  const isSingleItem = String(invoiceType).toLowerCase() === "single_item";
-  const sum = (field: string) => sumField(items, field);
-  const totals = {
-    qty: sum("quantity"),
-    productBase: sum("line_price_excl_gst"),
-    productGST: sum("line_gst_amount"),
-    productGross: sum("line_price_incl_gst"),
-    shippingBase: sum("shipping_excl_gst"),
-    shippingGST: sum("shipping_gst_amount"),
-    shippingGross: sum("shipping_incl_gst"),
-    service: sum("product_service_charge"),
-    cgst: sum("cgst_amount"),
-    sgst: sum("sgst_amount"),
-    utgst: sum("utgst_amount"),
-    igst: sum("igst_amount"),
-    fullBase: sum("line_total_excl_gst"),
-    fullGST: sum("line_total_gst_amount"),
-    fullGross: sum("line_total_incl_gst"),
-  };
-  const issues: string[] = [];
-  const check = (label: string, a: number | null, b: number | null) => {
-    if (a === null || b === null) issues.push(`${label}: missing amount.`);
-    else if (!closeMoney(a, b))
-      issues.push(`${label}: INR ${money(a)} vs INR ${money(b)}.`);
-  };
-  const seller = invoice.seller || invoice.seller_details || {};
-  const buyer = invoice.buyer || invoice.buyer_details || {};
-  if (!items.length) issues.push("No product details provided.");
-  if (isSingleItem && items.length !== 1)
-    issues.push("Single-item invoice must contain exactly one product line.");
-  if (!isPresent(firstValue(invoice.invoice_number, invoice.number)))
-    issues.push("Invoice number is missing.");
-  if (!isPresent(firstValue(invoice.issued_at, invoice.created_at)))
-    issues.push("Invoice date is missing.");
-  if (
-    !isPresent(seller.name) ||
-    !isPresent(seller.gstin) ||
-    formatAddress(seller.address) === "-"
-  )
-    issues.push("Seller information is incomplete.");
-  if (
-    !isPresent(
-      firstValue(
-        invoice.place_of_supply,
-        invoice.delivery_state,
-        buyer.delivery_address?.state,
-        order.delivery_address?.state,
-      ),
-    )
-  )
-    issues.push("Place of supply is missing.");
-  if (
-    reverseChargeText(
-      firstValue(invoice.reverse_charge, invoice.is_reverse_charge),
-    ) === "Not provided"
-  )
-    issues.push("Reverse charge flag is missing or unrecognized.");
-  items.forEach((item, i) => {
-    const prefix = `Item ${i + 1}`;
-    if (!isPresent(item.hsn_code))
-      issues.push(`${prefix}: HSN/SAC is missing.`);
-    if (
-      !isPresent(firstValue(item.product_name, item.name)) ||
-      !isPresent(item.uom) ||
-      (n(item.quantity) ?? 0) <= 0 ||
-      n(item.gst_rate_percent) === null
-    )
-      issues.push(
-        `${prefix}: description, UOM, quantity or GST rate missing/invalid.`,
+const amountInWords = (value: number): string => {
+  const paise = Math.round(Math.abs(value) * 100);
+  const whole = Math.floor(paise / 100);
+  const remainder = paise % 100;
+  return (
+    `${value < 0 ? "Minus " : ""}Rupees ${integerToIndianWords(whole)}` +
+    `${remainder ? ` and ${integerToIndianWords(remainder)} Paise` : ""} Only`
+  );
+};
+
+// =====================================================
+// LINE NORMALIZATION — READS ONLY THE REQUESTED FIELDS
+// =====================================================
+
+type InvoiceLine = {
+  source: AnyObject;
+  qty: number;
+  linePriceInclGst: number;
+  linePriceExclGst: number;
+  lineGstAmount: number;
+  shippingInclGst: number;
+  shippingExclGst: number;
+  shippingGstAmount: number;
+  lineTotalInclGst: number;
+  lineTotalExclGst: number;
+  lineTotalGstAmount: number;
+  igstAmount: number;
+};
+
+const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => ({
+  source: item,
+  qty: asNumber(item.quantity, 1),
+  linePriceInclGst: asNumber(item.line_price_incl_gst),
+  linePriceExclGst: asNumber(item.line_price_excl_gst),
+  lineGstAmount: asNumber(item.line_gst_amount),
+  shippingInclGst: asNumber(item.shipping_incl_gst),
+  shippingExclGst: asNumber(item.shipping_excl_gst),
+  shippingGstAmount: asNumber(item.shipping_gst_amount),
+  lineTotalInclGst: asNumber(item.line_total_incl_gst),
+  lineTotalExclGst: asNumber(item.line_total_excl_gst),
+  lineTotalGstAmount: asNumber(item.line_total_gst_amount),
+  igstAmount: asNumber(item.igst_amount),
+});
+
+// =====================================================
+// MAIN INVOICE PDF BUILDER
+// =====================================================
+
+export const openInvoicePdfInNewTab = async (
+  payload: InvoicePayload,
+  _orderItemId: number | null = null,
+  targetWindow?: Window | null,
+): Promise<void> => {
+  const popup =
+    targetWindow === undefined ? window.open("", "_blank") : targetWindow;
+
+  try {
+    const invoice: AnyObject = payload?.invoice ?? {};
+    const order: AnyObject = payload?.order ?? {};
+    const seller: AnyObject = invoice.seller ?? {};
+    const buyer: AnyObject = invoice.buyer ?? {};
+
+    // order_items may be an ARRAY (full_order) or an OBJECT (single_item).
+    const orderItems: AnyObject[] = (() => {
+      const raw = (order as any).order_items ?? (order as any).items;
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === "object") return [raw];
+      return [];
+    })();
+
+    if (!orderItems.length) {
+      throw new Error(
+        "Invoice item data is empty. Check the invoice API response.",
       );
-    check(
-      `${prefix} product total`,
-      sumNumbers(n(item.line_price_excl_gst), n(item.line_gst_amount)),
-      n(item.line_price_incl_gst),
-    );
-    check(
-      `${prefix} shipping total`,
-      sumNumbers(n(item.shipping_excl_gst), n(item.shipping_gst_amount)),
-      n(item.shipping_incl_gst),
-    );
-    check(
-      `${prefix} line total`,
-      sumNumbers(n(item.line_total_excl_gst), n(item.line_total_gst_amount)),
-      n(item.line_total_incl_gst),
-    );
-    const localTax = n(firstValue(item.utgst_amount, item.sgst_amount));
-    check(
-      `${prefix} product tax components`,
-      sumNumbers(n(item.cgst_amount), localTax, n(item.igst_amount)),
-      n(item.line_gst_amount),
-    );
-  });
-  // The current endpoint does not specify whether total_taxable includes freight.
-  // Accept either scope for that field, but insist on matching gross and GST totals.
-  const invoiceTaxable = n(invoice.total_taxable);
-  if (
-    invoiceTaxable === null ||
-    ![totals.productBase, totals.fullBase].some(
-      (v) => v !== null && closeMoney(v, invoiceTaxable),
-    )
-  ) {
-    issues.push(
-      "Invoice taxable amount does not match product or combined line taxable amount.",
-    );
-  }
-  const payable = n(invoice.total_payable); // Never use full-order payable as a single-item fallback.
-  const invoiceGST = n(invoice.total_tax);
-  check("Invoice vs line GST", invoiceGST, totals.fullGST);
-  const invoiceLocalTax = n(
-    firstValue(invoice.total_utgst, invoice.total_sgst),
-  );
-  check(
-    "Invoice GST component total",
-    sumNumbers(n(invoice.total_cgst), invoiceLocalTax, n(invoice.total_igst)),
-    invoiceGST,
-  );
-  check(
-    "Invoice vs line shipping (inclusive)",
-    n(invoice.shipping_charge),
-    totals.shippingGross,
-  );
-  const coin = n(invoice.coin_redeemed);
-  const coupon = n(invoice.coupon_discount);
-  if (coin === null || coupon === null)
-    issues.push("Invoice discount/redemption amounts are not provided.");
-  const hasAdjustments =
-    (coin ?? 0) !== 0 || (coupon ?? 0) !== 0 || (totals.service ?? 0) !== 0;
-  if (hasAdjustments) {
-    // Do not assume whether coin/coupon/service amounts have already been applied
-    // to line totals or whether they affect the taxable base.
-    issues.push(
-      "Discount/redemption/service-charge allocation requires backend verification.",
-    );
-  } else {
-    check("Invoice vs line payable", payable, totals.fullGross);
-    check(
-      "Product plus shipping vs line gross",
-      sumNumbers(totals.productGross, totals.shippingGross),
-      totals.fullGross,
-    );
-    check(
-      "Product plus shipping GST vs line GST",
-      sumNumbers(totals.productGST, totals.shippingGST),
-      totals.fullGST,
-    );
-    check(
-      "Product plus shipping taxable vs line taxable",
-      sumNumbers(totals.productBase, totals.shippingBase),
-      totals.fullBase,
-    );
-  }
-  return {
-    invoice,
-    order,
-    items,
-    invoiceType,
-    isSingleItem,
-    totals,
-    payable,
-    issues,
-    hasMismatch: issues.length > 0,
-  };
-};
+    }
 
-// =====================================================
-// MAIN PDF — original bordered layout, dynamic QR and tables
-// =====================================================
-export const generateInvoicePDF = async (response: any): Promise<void> => {
-  const previewWindow = window.open("", "_blank");
-  try {
-    const {
-      invoice,
-      order,
-      items,
-      isSingleItem,
-      totals,
-      payable,
-      issues,
-      hasMismatch,
-    } = getInvoiceValidation(response);
-    const seller = invoice.seller || invoice.seller_details || {};
-    const buyer = invoice.buyer || invoice.buyer_details || {};
-    const bill =
-      buyer.billing_address ||
-      invoice.billing_address ||
-      order.billing_address ||
-      {};
-    const ship =
-      buyer.delivery_address ||
-      invoice.delivery_address ||
-      order.delivery_address ||
-      order.shipping_address ||
-      {};
-    const sellerName = safeText(seller.name, "IndieKonnect");
-    const invoiceNo = safeText(
-      firstValue(invoice.invoice_number, invoice.number),
+    const lines = orderItems.map(normalizeInvoiceLine);
+
+    const invoiceNumber = asText(
+      firstPresent(
+        invoice.invoice_number,
+        invoice.number,
+        order.order_reference,
+        order.id,
+      ),
     );
-    const orderRef = safeText(firstValue(order.order_reference, order.id));
-    const buyerName = firstValue(buyer.name, order.user?.name);
-    const supply = firstValue(
-      invoice.place_of_supply,
+    const orderReference = asText(
+      firstPresent(order.order_reference, order.id),
+    );
+
+    const sellerAddress = addressToText(
+      firstPresent(seller.address, seller.full_address),
+    );
+    const state = firstPresent(
       invoice.delivery_state,
-      ship.state,
+      invoice.place_of_supply,
+      buyer.delivery_address?.state,
+      buyer.billing_address?.state,
+      order.delivery_address?.state,
+      order.billing_address?.state,
     );
-    const title = hasMismatch ? "Invoice Preview" : "Tax Invoice";
-    if (hasMismatch)
-      console.warn("Invoice requires verification", { invoiceNo, issues });
+
+    const payable = asNumber(
+      firstPresent(invoice.total_payable, order.total_payable),
+    );
+
+    // Totals
+    const totalQty = lines.reduce((s, r) => s + r.qty, 0);
+    const totalTaxable = lines.reduce((s, r) => s + r.linePriceExclGst, 0);
+    const totalPriceIncl = lines.reduce((s, r) => s + r.linePriceInclGst, 0);
+    const totalLineGst = lines.reduce((s, r) => s + r.lineGstAmount, 0);
+    const totalIgst = lines.reduce((s, r) => s + r.igstAmount, 0);
+    const totalExcl = lines.reduce((s, r) => s + r.lineTotalExclGst, 0);
+    const totalLineGstAmt = lines.reduce((s, r) => s + r.lineTotalGstAmount, 0);
+    const totalIncl = lines.reduce((s, r) => s + r.lineTotalInclGst, 0);
+
+    console.info("GENERATING INVOICE PDF (real API fields only)", {
+      invoiceNumber,
+      orderId: order.id,
+      productCount: lines.length,
+      invoicePayable: payable,
+    });
+
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "pt",
       format: "a4",
       compress: true,
     });
+
     doc.setProperties({
-      title: `${title} ${invoiceNo}`,
-      subject: `Order ${orderRef}`,
-      author: "IndieKonnect",
-      creator: "IndieKonnect Distributor Panel",
+      title: `Indiekonnect Tax Invoice ${invoiceNumber}`,
+      subject: `Order ${orderReference}`,
+      author: "Indiekonnect",
+      creator: "Indiekonnect Admin Panel",
     });
+
     const PW = doc.internal.pageSize.getWidth();
     const PH = doc.internal.pageSize.getHeight();
-    const M = 32,
-      R = PW - M,
-      W = PW - 2 * M,
-      DIV = M + W * 0.69;
-    const LW = DIV - M,
-      RW = R - DIV;
+    const M = 34;
+    const R = PW - M;
+    const W = PW - M * 2;
+    const DIVIDER = M + W * 0.69;
+    const RIGHT_W = R - DIVIDER;
+    const LEFT_W = DIVIDER - M;
+
+    const INK: RGB = [35, 35, 35];
+    const GRAY: RGB = [87, 87, 87];
+    const LINE: RGB = [67, 67, 67];
+    const LIGHT: RGB = [239, 239, 239];
     let y = M;
-    const txt = (
+
+    const setFont = (size: number, bold = false, muted = false) => {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(size);
+      doc.setTextColor(...(muted ? GRAY : INK));
+    };
+    const text = (
       value: any,
       x: number,
-      top: number,
-      size = 8,
+      baseline: number,
+      size = 7.3,
       bold = false,
       options: any = {},
       muted = false,
     ) => {
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      doc.setFontSize(size);
-      doc.setTextColor(...(muted ? GRAY : INK));
-      doc.text(safeText(value), x, top, options);
+      setFont(size, bold, muted);
+      doc.text(asText(value), x, baseline, options);
     };
     const wrap = (
       value: any,
       width: number,
-      size = 8,
+      size = 7.3,
       bold = false,
     ): string[] => {
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      doc.setFontSize(size);
-      return doc.splitTextToSize(safeText(value), width) as string[];
+      setFont(size, bold);
+      return doc.splitTextToSize(
+        asText(value),
+        Math.max(12, width),
+      ) as string[];
     };
-    const rect = (x: number, top: number, w: number, h: number) => {
-      doc.setDrawColor(...BORDER);
-      doc.setLineWidth(0.5);
-      doc.rect(x, top, w, h);
-    };
-    const rule = (x: number, top: number, x2: number, y2: number) => {
-      doc.setDrawColor(...BORDER);
-      doc.setLineWidth(0.5);
-      doc.line(x, top, x2, y2);
-    };
-    const fill = (x: number, top: number, w: number, h: number) => {
-      doc.setFillColor(...LIGHT);
-      doc.rect(x, top, w, h, "F");
-    };
-    const room = (h: number) => {
-      if (y + h > PH - 45) {
-        doc.addPage();
-        y = M;
-      }
-    };
-    const heading = (label: string) => {
-      room(55);
-      fill(M, y, W, 20);
-      rect(M, y, W, 20);
-      txt(label, M + 8, y + 13, 8.5, true);
-      y += 20;
-    };
-    const table = (
-      head: string[],
-      body: any[][],
-      widths: number[],
-      aligns: ("left" | "center" | "right")[],
-      size = 7.5,
+    const borderRect = (
+      x: number,
+      top: number,
+      width: number,
+      height: number,
     ) => {
-      const total = widths.reduce((a, b) => a + b, 0);
-      const columnStyles: Record<number, any> = {};
-      widths.forEach((w, i) => {
-        columnStyles[i] = {
-          cellWidth: (W * w) / total,
-          halign: aligns[i] || "left",
-        };
-      });
-      autoTable(doc, {
-        startY: y,
-        margin: { top: M, bottom: 45, left: M, right: M },
-        theme: "grid",
-        head: [head],
-        body,
-        styles: {
-          font: "helvetica",
-          fontSize: size,
-          textColor: INK,
-          lineColor: BORDER,
-          lineWidth: 0.45,
-          cellPadding: 4,
-          overflow: "linebreak",
-          valign: "middle",
-          fillColor: [255, 255, 255],
-        },
-        headStyles: {
-          fillColor: LIGHT,
-          textColor: INK,
-          fontStyle: "bold",
-          halign: "center",
-          fontSize: size,
-          lineColor: BORDER,
-          lineWidth: 0.45,
-        },
-        columnStyles,
-        rowPageBreak: "avoid",
-        showHead: "everyPage",
-      });
-      y = (doc as any).lastAutoTable.finalY;
+      doc.setDrawColor(...LINE);
+      doc.setLineWidth(0.52);
+      doc.rect(x, top, width, height, "S");
     };
-    const note = (message: string, bold = false) => {
-      const lines = wrap(message, W - 18, 8, bold),
-        h = lines.length * 10 + 12;
-      room(h);
-      rect(M, y, W, h);
-      lines.forEach((line, i) => txt(line, M + 9, y + 12 + i * 10, 8, bold));
-      y += h;
+    const rule = (x1: number, top: number, x2: number, bottom: number) => {
+      doc.setDrawColor(...LINE);
+      doc.setLineWidth(0.52);
+      doc.line(x1, top, x2, bottom);
     };
-    type Entry = { label: string; value: any };
-    const entry = (label: string, value: any): Entry => ({ label, value });
-    // Dynamic-height key/value columns, keeping separate billing and delivery addresses.
-    const panels = (
-      columns: { title: string; width: number; entries: Entry[] }[],
-    ) => {
-      const prepared = columns.map((c) => ({
-        ...c,
-        rows: c.entries.map((e) => ({
-          label: e.label,
-          lines: wrap(e.value, c.width - 18, 8),
-        })),
-      }));
-      const height = Math.max(
-        ...prepared.map(
-          (c) =>
-            29 +
-            c.rows.reduce(
-              (a, row) => a + (row.label ? 10 : 0) + row.lines.length * 10 + 4,
-              0,
-            ),
-        ),
-      );
-      room(height);
-      let x = M;
-      prepared.forEach((c) => {
-        fill(x, y, c.width, 19);
-        rect(x, y, c.width, height);
-        rule(x, y + 19, x + c.width, y + 19);
-        txt(c.title, x + 8, y + 13, 8.5, true);
-        let cursor = y + 31;
-        c.rows.forEach((row) => {
-          if (row.label) {
-            txt(row.label, x + 8, cursor, 7, true);
-            cursor += 10;
-          }
-          row.lines.forEach((line) => {
-            txt(line, x + 8, cursor, 8);
-            cursor += 10;
-          });
-          cursor += 4;
-        });
-        x += c.width;
-      });
-      y += height;
+    const nextPage = () => {
+      doc.addPage();
+      y = M;
     };
-    // 1. Original logo and invoice title
-    const headerH = 62;
-    rect(M, y, W, headerH);
-    rule(DIV, y, DIV, y + headerH);
-    const logo = await loadLogo();
-    let logoW = 0;
-    if (logo) {
-      const props = doc.getImageProperties(logo),
-        scale = Math.min(142 / props.width, 48 / props.height);
-      logoW = props.width * scale;
-      const h = props.height * scale;
-      doc.addImage(logo, "PNG", M + 10, y + (headerH - h) / 2, logoW, h);
-    }
-    txt("INDIEKONNECT", M + (logoW ? logoW + 20 : 10), y + 35, 15, true);
-    txt(title, DIV + RW / 2, y + 25, 14, true, { align: "center" });
-    txt(
-      hasMismatch ? "PENDING VERIFICATION" : "ORIGINAL FOR RECIPIENT",
-      DIV + RW / 2,
-      y + 40,
-      7,
-      false,
-      { align: "center" },
-      true,
-    );
-    txt(
-      isSingleItem ? "SINGLE ITEM" : "ORDER INVOICE",
-      DIV + RW / 2,
-      y + 51,
-      7,
-      false,
-      { align: "center" },
-      true,
-    );
-    y += headerH;
-    // 2. Seller and QR (the API URL is used unchanged)
-    const sellerFields = [
-      entry("GSTIN", seller.gstin),
-      entry("PAN", seller.pan),
-      entry("CIN", seller.cin),
-      entry("State", seller.state),
-      entry("Contact", seller.phone),
-      entry("Email", seller.email),
-      entry("FSSAI Licence", seller.fssai_license_number),
-    ].filter((e) => isPresent(e.value));
-    const sellerLines = wrap(sellerName, LW - 20, 10, true);
-    const addrLines = wrap(formatAddress(seller.address), LW - 20, 8);
-    const fieldLines = sellerFields.flatMap((e) =>
-      wrap(`${e.label}: ${e.value}`, LW - 20, 8),
-    );
-    const sellerH = Math.max(
-      119,
-      35 +
-        sellerLines.length * 12 +
-        addrLines.length * 10 +
-        fieldLines.length * 11,
-    );
-    room(sellerH);
-    rect(M, y, W, sellerH);
-    rule(DIV, y, DIV, y + sellerH);
-    txt("Sold By / Seller", M + 9, y + 15, 8, true);
-    let cursor = y + 29;
-    sellerLines.forEach((line) => {
-      txt(line, M + 9, cursor, 10, true);
-      cursor += 12;
-    });
-    addrLines.forEach((line) => {
-      txt(line, M + 9, cursor, 8);
-      cursor += 10;
-    });
-    cursor += 4;
-    fieldLines.forEach((line) => {
-      txt(line, M + 9, cursor, 8);
-      cursor += 11;
-    });
-    const productUrl =
-      isSingleItem || items.length === 1
-        ? validHttpUrl(items[0]?.product_url)
-        : validHttpUrl(firstValue(invoice.order_url, order.order_url));
-    if (productUrl) {
+    const room = (height: number) => {
+      if (y + height > PH - 43) nextPage();
+    };
+
+    // 1. HEADER
+    const headerH = 70;
+    borderRect(M, y, W, headerH);
+    rule(DIVIDER, y, DIVIDER, y + headerH);
+
+    const logo =
+      typeof INVOICE_LOGO_DATA_URL === "string"
+        ? INVOICE_LOGO_DATA_URL.trim()
+        : "";
+    let logoDrawn = false;
+    let logoDrawWidth = 0;
+    if (logo.startsWith("data:image/png;base64,")) {
       try {
-        const qr = await QRCode.toDataURL(productUrl, {
-          width: 400,
-          margin: 4,
-          errorCorrectionLevel: "M",
-        });
-        const qrSize = 76,
-          qrX = DIV + (RW - qrSize) / 2;
-        doc.addImage(qr, "PNG", qrX, y + 2, qrSize, qrSize);
-        doc.link(qrX, y + 2, qrSize, qrSize, { url: productUrl });
-        txt(
-          /order-history|order_history/i.test(productUrl) || items.length > 1
-            ? "Scan to View Order"
-            : "Scan to View Product",
-          DIV + RW / 2,
-          y + 86,
-          7,
-          false,
-          { align: "center" },
+        const realW = asNumber(INVOICE_LOGO_WIDTH, 829);
+        const realH = asNumber(INVOICE_LOGO_HEIGHT, 1436);
+        const scale = Math.min(61 / realH, 118 / realW);
+        logoDrawWidth = realW * scale;
+        doc.addImage(
+          logo,
+          "PNG",
+          M + 7,
+          y + (headerH - realH * scale) / 2,
+          logoDrawWidth,
+          realH * scale,
         );
+        logoDrawn = true;
       } catch (err) {
-        console.warn("QR unavailable", err);
-        txt("QR unavailable", DIV + RW / 2, y + 45, 8, false, {
-          align: "center",
-        });
+        console.warn("Unable to render bundled Indiekonnect logo:", err);
       }
-    } else
-      txt("Link unavailable", DIV + RW / 2, y + 45, 8, false, {
-        align: "center",
-      });
-    txt(`Invoice: ${invoiceNo}`, DIV + RW / 2, y + 104, 8, true, {
-      align: "center",
-      maxWidth: RW - 12,
-    });
-    y += sellerH;
-    // 3. Order details and addresses
-    const orderEntries = [
-      entry("Invoice No.", invoiceNo),
-      entry(
-        "Invoice Date",
-        formatDate(firstValue(invoice.issued_at, invoice.created_at)),
-      ),
-      entry("Order Reference", orderRef),
-      entry("Order Date", formatDate(order.created_at)),
-      entry("Place of Supply", supply),
-      entry("Order Type", prettyStatus(order.order_type)),
-    ];
-    if (isSingleItem)
-      orderEntries.push(entry("Order Item ID", items[0]?.order_line_id));
-    const billEntries = [
-      entry("Customer", buyerName),
-      entry(
-        "Billing Recipient",
-        firstValue(bill.recipient_name, bill.name, buyerName),
-      ),
-      entry("Address", formatAddress(bill)),
-      entry("Phone", firstValue(bill.contact_number, bill.phone)),
-      entry("GSTIN", buyer.gstin || "Not provided"),
-    ];
-    const shipEntries = [
-      entry("Recipient", firstValue(ship.recipient_name, ship.name, buyerName)),
-      entry("Address", formatAddress(ship)),
-      entry("Phone", firstValue(ship.contact_number, ship.phone)),
-      entry("State", ship.state),
-    ];
-    if (isPresent(order.courier_tracking_number))
-      shipEntries.push(entry("Tracking / AWB", order.courier_tracking_number));
-    if (isPresent(order.courier_company))
-      shipEntries.push(entry("Courier", order.courier_company));
-    panels([
-      { title: "Order Information", width: W * 0.32, entries: orderEntries },
-      { title: "Bill To", width: W * 0.34, entries: billEntries },
-      { title: "Ship To", width: W * 0.34, entries: shipEntries },
-    ]);
-    // 4. Product table: inclusive and exclusive unit prices, quantity, SKU and HSN
-    y += 7;
-    heading("Product Details (INR)");
-    table(
-      [
-        "No.",
-        "Item Description / SKU",
-        "HSN / SAC",
-        "Qty / UOM",
-        "Unit Price Excl. GST",
-        "Unit Price Incl. GST",
-        "Taxable Amount",
-        "GST Rate",
-        "Amount Incl. GST",
-      ],
-      items.length
-        ? items.map((item, i) => [
-            i + 1,
-            [
-              safeText(firstValue(item.product_name, item.name)),
-              isPresent(item.product_code) ? `SKU: ${item.product_code}` : "",
-              isPresent(item.product_service_charge) &&
-              n(item.product_service_charge) !== 0
-                ? `Service: ${money(item.product_service_charge)}`
-                : "",
-            ]
-              .filter(Boolean)
-              .join("\n"),
-            safeText(item.hsn_code, "Not provided"),
-            `${safeText(item.quantity)} ${safeText(item.uom, "")}`.trim(),
-            money(item.price_excl_gst),
-            money(item.price_incl_gst),
-            money(item.line_price_excl_gst),
-            rate(item.gst_rate_percent),
-            money(item.line_price_incl_gst),
-          ])
-        : [["-", "No item data supplied", "-", "-", "-", "-", "-", "-", "-"]],
-      [21, 105, 48, 36, 65, 65, 65, 35, 65],
-      [
-        "center",
-        "left",
-        "center",
-        "center",
-        "right",
-        "right",
-        "right",
-        "center",
-        "right",
-      ],
-      7,
-    );
-    // 5. Product GST components. Shipping tax has its own section, not double counted.
-    y += 7;
-    heading("Product GST Breakdown (INR)");
-    const showUT = items.some((item) => isPresent(item.utgst_amount));
-    const localLabel = showUT
-      ? "UTGST"
-      : String(order.gst_breakdown?.sgst_label || "SGST").toUpperCase() ===
-          "UTGST"
-        ? "UTGST"
-        : "SGST";
-    table(
-      [
-        "Item / SKU",
-        "Taxable Amount",
-        "GST / Unit",
-        "CGST",
-        localLabel,
-        "IGST",
-        "Product GST",
-      ],
-      items.map((item) => [
-        safeText(firstValue(item.product_code, item.product_name)),
-        money(item.line_price_excl_gst),
-        money(item.gst_amount_per_unit),
-        money(item.cgst_amount),
-        money(firstValue(item.utgst_amount, item.sgst_amount)),
-        money(item.igst_amount),
-        money(item.line_gst_amount),
-      ]),
-      [95, 75, 67, 60, 60, 60, 75],
-      ["left", "right", "right", "right", "right", "right", "right"],
-    );
-    // 6. Shipping/delivery charges (amounts are already inclusive where stated)
-    y += 7;
-    heading("Shipping / Delivery Charges (INR)");
-    table(
-      [
-        "Item / SKU",
-        "Shipping / Unit Excl.",
-        "Shipping / Unit Incl.",
-        "Taxable Shipping",
-        "Shipping GST",
-        "Shipping Incl. GST",
-      ],
-      items.map((item) => [
-        safeText(firstValue(item.product_code, item.product_name)),
-        money(item.shipping_per_unit_excl_gst),
-        money(item.shipping_per_unit_incl_gst),
-        money(item.shipping_excl_gst),
-        money(item.shipping_gst_amount),
-        money(item.shipping_incl_gst),
-      ]),
-      [95, 85, 85, 85, 70, 85],
-      ["left", "right", "right", "right", "right", "right"],
-    );
-    // 7. Invoice-scope line summary; no full-order values are mixed into the math.
-    y += 7;
-    heading(
-      isSingleItem
-        ? "Selected Item Summary (INR)"
-        : "Invoice Line Summary (INR)",
-    );
-    const lineSummary: [string, any][] = [
-      ["Product taxable value", totals.productBase],
-      ["Product GST", totals.productGST],
-      ["Product total (incl. GST)", totals.productGross],
-      ["Shipping taxable value", totals.shippingBase],
-      ["Shipping GST", totals.shippingGST],
-      ["Shipping total (incl. GST)", totals.shippingGross],
-      ["Combined taxable amount", totals.fullBase],
-      ["Combined GST amount", totals.fullGST],
-    ];
-    if (totals.service !== null && totals.service !== 0)
-      lineSummary.push([
-        "Service charge (as reported; not added again)",
-        totals.service,
-      ]);
-    lineSummary.push([
-      "Line total (product + shipping; as reported)",
-      totals.fullGross,
-    ]);
-    table(
-      ["Particulars", "Amount (INR)"],
-      lineSummary.map(([label, value]) => [label, money(value)]),
-      [340, 160],
-      ["left", "right"],
-      8,
-    );
-    // 8. Backend invoice totals and discounts (separate when inconsistent).
-    y += 7;
-    heading(
-      hasMismatch
-        ? "Reported Invoice Totals - Unverified (INR)"
-        : "Invoice Totals (INR)",
-    );
-    const invoiceRows: [string, any][] = [
-      ["Subtotal before redemption", invoice.subtotal_before_redemption],
-      ["Coin redemption (as reported)", invoice.coin_redeemed],
-      ["Coupon discount (as reported)", invoice.coupon_discount],
-      ["Subtotal after discount", invoice.subtotal_after_discount],
-      ["Total taxable amount", invoice.total_taxable],
-      ["CGST", invoice.total_cgst],
-      [
-        isPresent(invoice.total_utgst) ? "UTGST" : localLabel,
-        firstValue(invoice.total_utgst, invoice.total_sgst),
-      ],
-      ["IGST", invoice.total_igst],
-      ["Total GST", invoice.total_tax],
-      ["Shipping charge (as reported)", invoice.shipping_charge],
-      ["Invoice total (as reported)", invoice.total],
-    ];
-    if (isPresent(invoice.coupon_code))
-      invoiceRows.splice(3, 0, [`Coupon code: ${invoice.coupon_code}`, null]);
-    invoiceRows.push([
-      hasMismatch ? "REPORTED PAYABLE - NOT VERIFIED" : "GRAND TOTAL PAYABLE",
-      payable,
-    ]);
-    table(
-      ["Particulars", "Amount (INR)"],
-      invoiceRows.map(([label, value]) => [label, money(value)]),
-      [340, 160],
-      ["left", "right"],
-      8,
-    );
-    note(
-      `${hasMismatch ? "Selected line total in words (not verified payable)" : "Amount in words"}: ${amountInWords(hasMismatch ? totals.fullGross : payable)}`,
-      true,
-    );
-    // 9. Payment: full-order amount is context only; do not suggest that it was paid for this item.
-    y += 7;
-    const paymentEntries = [
-      entry("Payment Gateway", prettyStatus(order.payment_gateway)),
-      entry("Transaction Reference (Order)", order.gateway_transaction_id),
-      entry(
-        isSingleItem
-          ? "Full Order Amount Paid (reference only)"
-          : "Order Amount Paid",
-        n(order.amount_paid) === null
-          ? "Not provided"
-          : `INR ${money(order.amount_paid)}`,
-      ),
-    ];
-    if (isSingleItem)
-      paymentEntries.push(
-        entry(
-          "Item Amount Paid",
-          isPresent(invoice.amount_paid)
-            ? `INR ${money(invoice.amount_paid)}`
-            : "Not separately provided",
-        ),
-      );
-    const fulfilmentEntries = [
-      entry("Order Status", prettyStatus(order.status)),
-      entry("Delivery Status", prettyStatus(order.delivery_status)),
-      entry("Return Status", prettyStatus(order.return_status)),
-    ];
-    if (isPresent(order.refund_status))
-      fulfilmentEntries.push(
-        entry("Refund Status", prettyStatus(order.refund_status)),
-      );
-    if (isPresent(order.delivered_at))
-      fulfilmentEntries.push(
-        entry("Delivered On", formatDate(order.delivered_at)),
-      );
-    panels([
-      { title: "Payment Information", width: W / 2, entries: paymentEntries },
-      {
-        title: "Order Status (Order-level)",
-        width: W / 2,
-        entries: fulfilmentEntries,
-      },
-    ]);
-    // 10. Required declarations, and clearly visible reconciliation warnings.
-    note(
-      `Whether tax is payable on reverse charge: ${reverseChargeText(firstValue(invoice.reverse_charge, invoice.is_reverse_charge))}`,
-    );
-    if (hasMismatch) {
-      y += 7;
-      heading("Verification Required - NOT A FINAL TAX INVOICE");
-      note(
-        "Invoice and item amounts or required fields are inconsistent/incomplete. Do not use for tax issuance or payment collection.",
+    }
+
+    if (!logoDrawn) {
+      text("INDIEKONNECT", M + 10, y + 38, 17, true);
+    } else {
+      text(
+        "INDIEKONNECT",
+        M + Math.max(68, logoDrawWidth + 17),
+        y + 38,
+        15.5,
         true,
       );
-      issues.forEach((issue) => note(issue));
     }
-    // 11. Authorised signatory (never insert signature on a mismatched preview).
-    y += 7;
-    room(70);
-    rect(M, y, W, 70);
-    rule(DIV, y, DIV, y + 70);
-    txt(`For ${sellerName}`, M + 9, y + 17, 9, true);
-    txt(`GSTIN: ${safeText(seller.gstin)}`, M + 9, y + 32, 8);
-    txt("Computer-generated document.", M + 9, y + 48, 7.5, false, {}, true);
-    const signature = firstValue(
+    text("Tax Invoice", DIVIDER + RIGHT_W / 2, y + 42, 15.5, true, {
+      align: "center",
+    });
+    y += headerH;
+
+    // 2. SELLER / QR
+    const sellerNameLines = wrap(DISPLAY_SELLER_NAME, LEFT_W - 15, 8.4, true);
+    const sellerAddrLines = sellerAddress
+      ? wrap(sellerAddress, LEFT_W - 16, 7.2)
+      : [];
+    const sellerPairs: Array<[string, any]> = (
+      [
+        ["GSTIN", firstPresent(seller.gstin, seller.gst_number)],
+        [
+          "FSSAI Licence No.",
+          firstPresent(seller.fssai_license_number, seller.fssai),
+        ],
+        ["CIN", seller.cin],
+        ["PAN", seller.pan],
+      ] as Array<[string, any]>
+    ).filter(([, v]) => isPresent(v));
+
+    const sellerNeeded =
+      36 +
+      sellerNameLines.length * 10 +
+      sellerAddrLines.length * 9 +
+      sellerPairs.length * 11 +
+      9;
+    const sellerH = Math.max(110, sellerNeeded);
+
+    borderRect(M, y, W, sellerH);
+    rule(DIVIDER, y, DIVIDER, y + sellerH);
+    text("Sold By / Seller", M + 6, y + 12, 7.5, true, {}, true);
+
+    let sellerAt = y + 25;
+    sellerNameLines.forEach((line) => {
+      text(line, M + 6, sellerAt, 8.4, true);
+      sellerAt += 10;
+    });
+    sellerAddrLines.forEach((line) => {
+      text(line, M + 6, sellerAt, 7.2);
+      sellerAt += 9;
+    });
+    sellerPairs.forEach(([label, value]) => {
+      text(label, M + 6, sellerAt, 7.2, true);
+      text(`: ${asText(value)}`, M + 119, sellerAt, 7.2);
+      sellerAt += 11;
+    });
+
+    const qrDataUrl = await QRCode.toDataURL(ORDER_HISTORY_URL, {
+      width: 280,
+      margin: 1,
+      errorCorrectionLevel: "M",
+    });
+    const QR_SIZE = Math.min(70, sellerH - 37);
+    const qrX = DIVIDER + (RIGHT_W - QR_SIZE) / 2;
+    const qrY = y + 5;
+    doc.addImage(qrDataUrl, "PNG", qrX, qrY, QR_SIZE, QR_SIZE);
+    doc.link(qrX, qrY, QR_SIZE, QR_SIZE, { url: ORDER_HISTORY_URL });
+    text(
+      "Scan for Order History",
+      DIVIDER + RIGHT_W / 2,
+      qrY + QR_SIZE + 9,
+      6.0,
+      false,
+      { align: "center" },
+      true,
+    );
+
+    text("Invoice Number:", DIVIDER + 6, y + sellerH - 12, 6.7, true);
+    text(invoiceNumber, DIVIDER + 76, y + sellerH - 12, 6.7, false, {
+      maxWidth: RIGHT_W - 81,
+    });
+    y += sellerH;
+
+    // 3. ORDER / BILL TO / SHIP TO
+    const billAddress = addressToText(
+      firstPresent(
+        order.billing_address,
+        buyer.billing_address,
+        buyer.address,
+        order.delivery_address,
+        buyer.delivery_address,
+        order.shipping_address,
+      ),
+    );
+    const shipAddress = addressToText(
+      firstPresent(
+        order.delivery_address,
+        buyer.delivery_address,
+        order.shipping_address,
+        buyer.billing_address,
+        order.billing_address,
+      ),
+    );
+    const billToName = asText(
+      firstPresent(
+        order.billing_address?.recipient_name,
+        buyer.billing_address?.recipient_name,
+        order.billing_address?.name,
+        order.billing_address?.full_name,
+        buyer.name,
+        order.user?.name,
+        order.customer,
+      ),
+    );
+    const shipToName = asText(
+      firstPresent(
+        buyer.delivery_address?.recipient_name,
+        order.delivery_address?.recipient_name,
+        order.delivery_address?.name,
+        buyer.name,
+        order.user?.name,
+        order.customer,
+      ),
+    );
+    const billPhone = firstPresent(
+      buyer.billing_address?.contact_number,
+      order.billing_address?.phone,
+      order.billing_address?.mobile,
+      buyer.phone,
+      order.user?.phone,
+    );
+    const shipPhone = firstPresent(
+      buyer.delivery_address?.contact_number,
+      order.delivery_address?.phone,
+      order.delivery_address?.mobile,
+      buyer.phone,
+      order.user?.phone,
+    );
+    const billEmail = firstPresent(
+      buyer.billing_address?.email,
+      order.billing_address?.email,
+      order.user?.email,
+    );
+    const shipEmail = firstPresent(
+      buyer.delivery_address?.email,
+      order.delivery_address?.email,
+    );
+
+    const shortDate = (value: any): string => {
+      if (!isPresent(value)) return "-";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return asText(value);
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      })
+        .format(parsed)
+        .replace(/\//g, "-");
+    };
+
+    const colOrderW = W * 0.28;
+    const colBillW = W * 0.36;
+    const colShipW = W - colOrderW - colBillW;
+    const xOrder = M;
+    const xBill = M + colOrderW;
+    const xShip = xBill + colBillW;
+    const innerGap = 8;
+    const orderTextW = colOrderW - innerGap * 2;
+    const bodyLineH = 9.6;
+
+    const orderIdLines = wrap(orderReference, orderTextW, 8.1, true);
+    const orderMeta: Array<[string, any]> = [
+      [
+        "Order Date",
+        shortDate(firstPresent(order.created_at, order.order_date)),
+      ],
+      [
+        "Invoice Date",
+        shortDate(
+          firstPresent(invoice.issued_at, invoice.created_at, order.created_at),
+        ),
+      ],
+      ["Place of Supply", state],
+      [
+        "Order Status",
+        prettyStatus(firstPresent(order.status, order.order_status)),
+      ],
+      ["Order Type", prettyStatus(order.order_type)],
+    ].filter(([, v]) => isPresent(v)) as Array<[string, any]>;
+
+    const orderMetaValueWidth = colOrderW - 77;
+    const measuredMeta = orderMeta.map(([label, value]) => ({
+      label,
+      values: wrap(value, orderMetaValueWidth, 7.0),
+    }));
+    const orderBlockH =
+      15 +
+      13 +
+      orderIdLines.length * 10 +
+      7 +
+      measuredMeta.reduce(
+        (sum, entry) => sum + Math.max(13, entry.values.length * 9.3 + 2),
+        0,
+      ) +
+      9;
+
+    type AddressColumn = {
+      title: string;
+      x: number;
+      width: number;
+      person: string[];
+      address: string[];
+      phone: string[];
+      email: string[];
+      height: number;
+    };
+    const makeAddressColumn = (
+      title: string,
+      x: number,
+      width: number,
+      name: string,
+      address: string,
+      phone: any,
+      email: any,
+    ): AddressColumn => {
+      const textW = width - innerGap * 2;
+      const person = wrap(name, textW, 8.2, true);
+      const locationLines = address ? wrap(address, textW, 7.4) : [];
+      const phoneLines = isPresent(phone)
+        ? wrap(`Phone: ${phone}`, textW, 7.1)
+        : [];
+      const emailLines = isPresent(email)
+        ? wrap(`Email: ${email}`, textW, 7.1)
+        : [];
+      const height =
+        15 +
+        14 +
+        person.length * 10.2 +
+        4 +
+        locationLines.length * bodyLineH +
+        5 +
+        phoneLines.length * bodyLineH +
+        (emailLines.length ? 3 + emailLines.length * bodyLineH : 0) +
+        10;
+      return {
+        title,
+        x,
+        width,
+        person,
+        address: locationLines,
+        phone: phoneLines,
+        email: emailLines,
+        height,
+      };
+    };
+
+    const billCol = makeAddressColumn(
+      "Bill To",
+      xBill,
+      colBillW,
+      billToName,
+      billAddress,
+      billPhone,
+      billEmail,
+    );
+    const shipCol = makeAddressColumn(
+      "Ship To",
+      xShip,
+      colShipW,
+      shipToName,
+      shipAddress,
+      shipPhone,
+      shipEmail,
+    );
+
+    const infoBlockH = Math.max(
+      100,
+      orderBlockH,
+      billCol.height,
+      shipCol.height,
+    );
+    room(infoBlockH);
+    borderRect(M, y, W, infoBlockH);
+    rule(xBill, y, xBill, y + infoBlockH);
+    rule(xShip, y, xShip, y + infoBlockH);
+
+    let orderY = y + 14;
+    text("Order ID:", xOrder + innerGap, orderY, 8.0, true);
+    orderY += 13;
+    orderIdLines.forEach((line) => {
+      text(line, xOrder + innerGap, orderY, 8.1, true);
+      orderY += 10;
+    });
+    orderY += 7;
+    measuredMeta.forEach((entry) => {
+      text(`${entry.label}:`, xOrder + innerGap, orderY, 7.0, true);
+      entry.values.forEach((line, index) => {
+        text(line, xOrder + 75, orderY + index * 9.3, 7.0);
+      });
+      orderY += Math.max(13, entry.values.length * 9.3 + 2);
+    });
+
+    const drawAddressColumn = (column: AddressColumn) => {
+      let cursor = y + 14;
+      const x = column.x + innerGap;
+      text(column.title, x, cursor, 9.0, true);
+      cursor += 15;
+      column.person.forEach((line) => {
+        text(line, x, cursor, 8.2, true);
+        cursor += 10.2;
+      });
+      cursor += 4;
+      column.address.forEach((line) => {
+        text(line, x, cursor, 7.4);
+        cursor += bodyLineH;
+      });
+      cursor += 5;
+      column.phone.forEach((line) => {
+        text(line, x, cursor, 7.1);
+        cursor += bodyLineH;
+      });
+      if (column.email.length) cursor += 3;
+      column.email.forEach((line) => {
+        text(line, x, cursor, 7.1);
+        cursor += bodyLineH;
+      });
+    };
+    drawAddressColumn(billCol);
+    drawAddressColumn(shipCol);
+    y += infoBlockH;
+
+    // 4. PRODUCT TABLE — ONLY THE REQUESTED FIELDS
+    const widths = [22, 56, 150, 28, 52, 52, 48, 48, 60, 52, 60];
+    const totalWidthRatio = W / widths.reduce((sum, n) => sum + n, 0);
+    const columnStyles: Record<number, any> = {};
+    widths.forEach((width, index) => {
+      columnStyles[index] = {
+        cellWidth: width * totalWidthRatio,
+        halign:
+          index === 1 || index === 2
+            ? "left"
+            : index === 0
+              ? "center"
+              : "right",
+      };
+    });
+
+    const body: string[][] = [];
+    lines.forEach((row, index) => {
+      const src = row.source;
+      body.push([
+        String(index + 1),
+        asText(firstPresent(src.hsn_code, src.product_code)),
+        asText(firstPresent(src.product_name, src.name)),
+        asText(row.qty),
+        formatMoney(row.linePriceExclGst), // Taxable (excl.)
+        formatMoney(row.linePriceInclGst), // Price (incl.)
+        formatMoney(row.lineGstAmount), // GST amount
+        formatMoney(row.igstAmount), // IGST amount
+        formatMoney(row.lineTotalExclGst), // Line total (excl.)
+        formatMoney(row.lineTotalGstAmount), // Line total GST
+        formatMoney(row.lineTotalInclGst), // Line total (incl.)
+      ]);
+
+      if (row.shippingInclGst > 0 || row.shippingExclGst > 0) {
+        body.push([
+          "-",
+          "-",
+          "Delivery / shipping charges",
+          "-",
+          formatMoney(row.shippingExclGst),
+          formatMoney(row.shippingInclGst),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingExclGst),
+          formatMoney(row.shippingGstAmount),
+          formatMoney(row.shippingInclGst),
+        ]);
+      }
+    });
+
+    autoTable(doc, {
+      startY: y,
+      margin: { left: M, right: M, top: 49, bottom: 45 },
+      theme: "grid",
+      head: [
+        [
+          "Sr.\nNo.",
+          "HSN /\nSKU",
+          "Item Description",
+          "Qty.",
+          "Taxable\n(excl. GST)",
+          "Price\n(incl. GST)",
+          "GST\nAmount",
+          "IGST\nAmount",
+          "Total\n(excl. GST)",
+          "Total\nGST",
+          "Total\n(incl. GST)",
+        ],
+      ],
+      body,
+      foot: [
+        [
+          {
+            content: "Total",
+            colSpan: 3,
+            styles: { halign: "center", fontStyle: "bold" },
+          },
+          asText(totalQty),
+          formatMoney(totalTaxable),
+          formatMoney(totalPriceIncl),
+          formatMoney(totalLineGst),
+          formatMoney(totalIgst),
+          formatMoney(totalExcl),
+          formatMoney(totalLineGstAmt),
+          formatMoney(totalIncl),
+        ],
+      ],
+      showFoot: "lastPage",
+      styles: {
+        font: "helvetica",
+        fontSize: 6.5,
+        textColor: INK,
+        lineColor: LINE,
+        lineWidth: 0.5,
+        cellPadding: { top: 4.2, bottom: 4.2, left: 1.5, right: 1.5 },
+        minCellHeight: 16,
+        overflow: "linebreak",
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: LIGHT,
+        textColor: INK,
+        fontStyle: "bold",
+        fontSize: 6.1,
+        minCellHeight: 25,
+      },
+      footStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
+      columnStyles,
+    });
+
+    y =
+      (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
+        ?.finalY ?? y;
+
+    // 5. AMOUNT IN WORDS
+    const wordsLines = wrap(
+      `Amount in Words: ${amountInWords(payable)}`,
+      W - 13,
+      7.0,
+      true,
+    );
+    const wordsH = Math.max(23, 8 + wordsLines.length * 9.5);
+    room(wordsH);
+    borderRect(M, y, W, wordsH);
+    wordsLines.forEach((wordLine, index) =>
+      text(wordLine, M + 6, y + 13 + index * 9.5, 7.0, true),
+    );
+    y += wordsH;
+
+    // 6. SELLER / AUTHORISED SIGNATORY BOX
+    const signatureH = 65;
+    room(signatureH);
+    borderRect(M, y, W, signatureH);
+    rule(DIVIDER, y, DIVIDER, y + signatureH);
+    text(DISPLAY_SELLER_NAME, M + 6, y + 13, 8.1, true);
+    if (isPresent(seller.gstin))
+      text(`GSTIN: ${seller.gstin}`, M + 6, y + 28, 7);
+    if (isPresent(seller.pan)) text(`PAN: ${seller.pan}`, M + 6, y + 40, 7);
+    if (isPresent(seller.cin)) text(`CIN: ${seller.cin}`, M + 6, y + 52, 7);
+
+    const signature = firstPresent(
       invoice.signature_data_url,
       seller.signature_data_url,
     );
     if (
-      !hasMismatch &&
       typeof signature === "string" &&
       /^data:image\/(png|jpeg|jpg);base64,/i.test(signature)
     ) {
       try {
-        const p = doc.getImageProperties(signature);
-        const scale = Math.min((RW - 20) / p.width, 38 / p.height);
-        const sw = p.width * scale,
-          sh = p.height * scale;
         doc.addImage(
           signature,
-          /^data:image\/png/i.test(signature) ? "PNG" : "JPEG",
-          DIV + (RW - sw) / 2,
-          y + 6,
-          sw,
-          sh,
+          /image\/png/i.test(signature) ? "PNG" : "JPEG",
+          DIVIDER + 30,
+          y + 4,
+          RIGHT_W - 58,
+          36,
         );
-      } catch (err) {
-        console.warn("Signature unavailable", err);
+      } catch (error) {
+        console.warn("Invoice signature could not be drawn:", error);
       }
     }
-    txt(
-      hasMismatch ? "Pending Verification" : "Authorised Signatory",
-      DIV + RW / 2,
-      y + 57,
-      8,
-      true,
+    text(
+      "Authorised Signatory",
+      DIVIDER + RIGHT_W / 2,
+      y + signatureH - 9,
+      7.2,
+      false,
       { align: "center" },
     );
-    // 12. Page footer and open/download PDF.
-    const count = doc.getNumberOfPages();
-    for (let page = 1; page <= count; page++) {
-      doc.setPage(page);
-      rule(M, PH - 32, R, PH - 32);
-      txt(
-        `IndieKonnect | ${title} | ${invoiceNo}`,
-        M,
-        PH - 19,
-        7,
-        false,
-        {},
+    y += signatureH;
+
+    // 7. REVERSE CHARGE
+    const reverse = firstPresent(
+      invoice.reverse_charge,
+      invoice.is_reverse_charge,
+    );
+    if (reverse !== null) {
+      room(21);
+      borderRect(M, y, W, 21);
+      const reverseText = [true, 1, "1", "yes", "true"].includes(reverse)
+        ? "Yes"
+        : "No";
+      text(
+        `Whether tax is payable on reverse charge: ${reverseText}`,
+        M + 6,
+        y + 13,
+        7.4,
         true,
       );
-      txt(
-        `Page ${page} of ${count}`,
-        R,
-        PH - 19,
+      y += 21;
+    }
+
+    // 8. ANNEXURE — ONLY REQUESTED SHIPPING FIELDS
+    const charges = lines
+      .filter((line) => line.shippingInclGst > 0 || line.shippingExclGst > 0)
+      .map((line) => ({
+        name: `Delivery / shipping: ${asText(firstPresent(line.source.product_name, line.source.name))}`,
+        chargeExcl: line.shippingExclGst,
+        chargeIncl: line.shippingInclGst,
+        gst: line.shippingGstAmount,
+        igst: line.shippingGstAmount,
+      }));
+
+    if (charges.length) {
+      room(40);
+      text("Annexure — Delivery / Shipping Charges", M, y + 10, 8, true);
+      y += 13;
+      autoTable(doc, {
+        startY: y,
+        margin: { left: M, right: M, top: 49, bottom: 45 },
+        theme: "grid",
+        head: [
+          [
+            "S.No.",
+            "Nature of charge",
+            "Charge\n(excl. GST)",
+            "Charge\n(incl. GST)",
+            "GST Amount",
+            "IGST Amount",
+          ],
+        ],
+        body: charges.map((c, i) => [
+          String(i + 1),
+          asText(c.name),
+          formatMoney(c.chargeExcl),
+          formatMoney(c.chargeIncl),
+          formatMoney(c.gst),
+          formatMoney(c.igst),
+        ]),
+        styles: {
+          font: "helvetica",
+          fontSize: 6.5,
+          cellPadding: 3,
+          lineColor: LINE,
+          lineWidth: 0.5,
+          textColor: INK,
+          overflow: "linebreak",
+        },
+        headStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
+      });
+      y =
+        ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
+          ?.finalY ?? y) + 8;
+    }
+
+    // Consistent printed footer on every page.
+    const pageCount = doc.getNumberOfPages();
+    for (let index = 1; index <= pageCount; index++) {
+      doc.setPage(index);
+      rule(M, PH - 31, R, PH - 31);
+      text(
+        `Indiekonnect | ${invoiceNumber} | Page ${index} of ${pageCount}`,
+        PW / 2,
+        PH - 18,
         7,
         false,
-        { align: "right" },
+        { align: "center" },
         true,
       );
     }
-    const filename = `${invoiceNo.replace(/[^a-zA-Z0-9_-]/g, "_") || "invoice"}${hasMismatch ? "-preview" : ""}.pdf`;
-    if (previewWindow && !previewWindow.closed) {
-      const url = URL.createObjectURL(doc.output("blob"));
-      try {
-        previewWindow.location.replace(url);
-        window.setTimeout(() => URL.revokeObjectURL(url), 300000);
-      } catch {
-        URL.revokeObjectURL(url);
-        doc.save(filename);
-      }
-    } else doc.save(filename);
+
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    if (popup && !popup.closed) {
+      popup.location.replace(pdfUrl);
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 5 * 60 * 1000);
+    } else {
+      doc.save(`${invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`);
+      URL.revokeObjectURL(pdfUrl);
+      toast.success("Invoice PDF downloaded; popup was blocked.");
+    }
   } catch (error) {
-    if (previewWindow && !previewWindow.closed) previewWindow.close();
-    console.error("Invoice PDF generation failed", error);
-    throw error;
+    console.error("Indiekonnect invoice PDF error:", error);
+    if (popup && !popup.closed) popup.close();
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : "Could not generate invoice PDF.",
+    );
   }
 };
