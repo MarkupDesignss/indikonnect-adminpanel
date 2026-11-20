@@ -19,7 +19,6 @@ import {
   FiFileText,
   FiChevronLeft,
   FiChevronRight,
-  FiEye,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -52,7 +51,7 @@ const EXPORT_PERMISSION_KEYS = [
 ];
 
 // =====================================================
-// TYPES — added tds_section, tds_rate_percent, gst_in, pan_number, pan_verified
+// TYPES
 // =====================================================
 interface CommissionWeekOption {
   week_no: number;
@@ -155,8 +154,7 @@ const buildWeekOptions = (calendar: any): CommissionWeekOption[] => {
 };
 
 // =====================================================
-// CSV EXPORT — now includes TDS Section, TDS Rate, GSTIN,
-// PAN Number, PAN Verified
+// CSV EXPORT — TDS Section removed, TDS Rate & TDS Amount kept
 // =====================================================
 const exportToCsv = (rows: CommissionRow[], filename: string) => {
   if (!rows.length) {
@@ -171,7 +169,6 @@ const exportToCsv = (rows: CommissionRow[], filename: string) => {
     "Week",
     "Year",
     "Gross Commission",
-    "TDS Section",
     "TDS Rate (%)",
     "TDS Amount",
     "Net Commission",
@@ -198,7 +195,6 @@ const exportToCsv = (rows: CommissionRow[], filename: string) => {
         r.week,
         r.year,
         r.gross_commission,
-        r.tds_section ?? "",
         r.tds_rate_percent ?? "",
         r.tds_amount,
         r.net_commission,
@@ -206,7 +202,7 @@ const exportToCsv = (rows: CommissionRow[], filename: string) => {
         r.pan_number ?? "",
         r.pan_verified === true ? "Yes" : r.pan_verified === false ? "No" : "",
         r.bank_holder_name,
-        r.bank_account_number,
+        r.bank_account_number, // full account number — no masking
         r.bank_ifsc,
       ]
         .map(escape)
@@ -838,7 +834,7 @@ const CommissionView: React.FC = () => {
           </div>
         </div>
 
-        {/* TABLE CONTENT */}
+        {/* TABLE CONTENT — Actions column removed */}
         <div className="relative overflow-x-auto">
           {loading ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center">
@@ -875,7 +871,6 @@ const CommissionView: React.FC = () => {
                   <th className="px-3 py-4 font-semibold text-right">
                     Gross (₹)
                   </th>
-                  <th className="px-3 py-4 font-semibold">TDS Section</th>
                   <th className="px-3 py-4 font-semibold text-right">
                     TDS Rate
                   </th>
@@ -893,9 +888,6 @@ const CommissionView: React.FC = () => {
                   <th className="px-3 py-4 font-semibold">Bank Holder</th>
                   <th className="px-3 py-4 font-semibold">Account</th>
                   <th className="px-3 py-4 font-semibold">IFSC</th>
-                  <th className="px-3 py-4 font-semibold text-center w-16">
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E9EFF7]">
@@ -923,15 +915,6 @@ const CommissionView: React.FC = () => {
                     </td>
                     <td className="px-3 py-4 text-right font-medium tabular-nums text-[#111827]">
                       {formatNumber(row.gross_commission)}
-                    </td>
-                    <td className="px-3 py-4">
-                      {row.tds_section ? (
-                        <span className="inline-flex rounded bg-[#FFF7E6] px-2 py-0.5 text-[10px] font-bold text-[#C2410C]">
-                          {row.tds_section}
-                        </span>
-                      ) : (
-                        <span className="text-[#9CA3AF]">—</span>
-                      )}
                     </td>
                     <td className="px-3 py-4 text-right tabular-nums text-[#111827]">
                       {row.tds_rate_percent != null
@@ -968,16 +951,11 @@ const CommissionView: React.FC = () => {
                     <td className="px-3 py-4 text-[#111827]">
                       {row.bank_holder_name}
                     </td>
-                    <td className="px-3 py-4 font-mono text-[#6B7280]">
-                      •••• {String(row.bank_account_number).slice(-4)}
+                    <td className="px-3 py-4 font-mono text-[#111827]">
+                      {row.bank_account_number}
                     </td>
                     <td className="px-3 py-4 font-mono text-[#6B7280]">
                       {row.bank_ifsc}
-                    </td>
-                    <td className="px-3 py-4 text-center">
-                      <button className="inline-flex h-7 w-7 items-center justify-center rounded border border-[#DCE6F2] text-[#4F8FF7] hover:bg-[#EAF3FF]">
-                        <FiEye size={14} />
-                      </button>
                     </td>
                   </tr>
                 ))}

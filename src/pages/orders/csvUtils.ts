@@ -64,29 +64,45 @@ export const formatCsvStatus = (status?: string) =>
 //
 // The order-list API returns:
 //   order["Bill Id"], order["Order Date"], order["Customer Name"],
-//   order["Products"] = [{ name, slug, product_code }, ...]
+//   order["Customer Email"], order["Payment Gateway"],
+//   order["Products"] = [{
+//     name, slug, product_code,
+//     quantity, unit_price, line_total, subtotal_per_unit
+//   }, ...]
+//   order["Line Couriers"] = [{ courier_company, courier_tracking_number }, ...]
 //
 // `generateOrdersCsv` expects `order.items[].product_name`, etc.
 // This mapper converts each API order into that shape — one item per
-// product — so PRODUCT NAME / SKU / ITEM REFERENCE appear in the CSV.
+// product — so ALL product + courier fields appear in the CSV.
 //
 export const mapApiOrdersForCsv = (apiOrders: any[]): any[] => {
   return (apiOrders || []).map((o) => {
     const products: any[] = Array.isArray(o?.Products) ? o.Products : [];
+    const lineCouriers: any[] = Array.isArray(o?.["Line Couriers"])
+      ? o["Line Couriers"]
+      : [];
 
     const items = products.length
-      ? products.map((p) => ({
-          product_name: p?.name || "",
-          product_code: p?.product_code || "",
-          sku: p?.product_code || "",
-          item_reference_id: p?.slug || "",
-          // API does not expose per-product qty/price — leave blank.
-          quantity: undefined,
-          unit_price: undefined,
-          line_total: undefined,
-          delivery_status: o?.["Delivery Status"] || o?.["Order Status"] || "",
-          courier_tracking_number: "",
-        }))
+      ? products.map((p, idx) => {
+          // Couriers and products are aligned by index on the API side.
+          const courier = lineCouriers[idx] || {};
+          return {
+            product_name: p?.name || "",
+            product_code: p?.product_code || "",
+            sku: p?.product_code || "",
+            item_reference_id: p?.slug || "",
+            // ✅ per-product qty / price / line total now flow through
+            quantity: p?.quantity ?? "",
+            unit_price: p?.unit_price ?? "",
+            line_total: p?.line_total ?? "",
+            subtotal_per_unit: p?.subtotal_per_unit ?? "",
+            // ✅ per-product delivery + courier
+            delivery_status:
+              o?.["Delivery Status"] || o?.["Order Status"] || "",
+            courier_company: courier?.courier_company || "",
+            courier_tracking_number: courier?.courier_tracking_number || "",
+          };
+        })
       : [null]; // fallback: one row carrying only order-level data
 
     return {
@@ -94,12 +110,12 @@ export const mapApiOrdersForCsv = (apiOrders: any[]): any[] => {
       order_date: parseApiDate(o?.["Order Date"]),
       orderDateRaw: parseApiDate(o?.["Order Date"]),
       customer: o?.["Customer Name"] || "",
-      userEmail: "",
+      userEmail: o?.["Customer Email"] || "",
       userPhone: o?.["Customer Mobile"] || "",
       order_type: "retail",
       order_status: o?.["Order Status"] || "",
       payment_status: o?.["Is Refunded"] === "TRUE" ? "refunded" : "",
-      payment_gateway: "",
+      payment_gateway: o?.["Payment Gateway"] || "",
       gateway_transaction_id: "",
       subtotal: o?.["Total List Price"] ?? o?.["Gross Total"] ?? 0,
       total_gst: o?.["Total Tax"] ?? 0,
@@ -107,8 +123,9 @@ export const mapApiOrdersForCsv = (apiOrders: any[]): any[] => {
       total_payable: o?.["Order Amount"] ?? 0,
       amount_paid: o?.["Net Order Amount"] ?? 0,
       shipping_address: o?.["Customer Shipping State"] || "",
-      courier_company: "",
-      courier_tracking_number: "",
+      // order-level courier fields (used only if per-item values are blank)
+      courier_company: o?.["Courier Company"] || "",
+      courier_tracking_number: o?.["Courier Tracking Number"] || "",
       courier_delivery_date: parseApiDate(o?.["Delivered At"]),
       items,
     };
@@ -124,12 +141,13 @@ export const mapApiOrdersForCsv = (apiOrders: any[]): any[] => {
  *
  * In either case, the resulting CSV will contain ONE ROW PER ITEM.
  *
- * Column order: Product Name is now the FIRST data column (right after S.No.).
+ * Column order: Product Name is the FIRST data column (right after S.No.).
+ * Added: Subtotal Per Unit, so all product-level values from the API appear.
  */
 export const generateOrdersCsv = (orders: any[]): string => {
   const headers = [
     "S.No.",
-    "Product Name", // ✅ moved to position 2
+    "Product Name",
     "Order Reference",
     "Order Date",
     "Customer Name",
@@ -153,6 +171,7 @@ export const generateOrdersCsv = (orders: any[]): string => {
     "SKU",
     "Quantity",
     "Unit Price",
+    "Subtotal Per Unit",
     "Item Total",
     "Item Delivery Status",
     "Item Tracking Number",
@@ -169,7 +188,7 @@ export const generateOrdersCsv = (orders: any[]): string => {
       counter += 1;
       const row = [
         counter,
-        item?.product_name || item?.productName || "", // ✅ moved to position 2
+        item?.product_name || item?.productName || "",
         order.order_reference || order.id || "",
         formatCsvDate(order.orderDateRaw || order.order_date || order.date) ||
           "",
@@ -187,8 +206,15 @@ export const generateOrdersCsv = (orders: any[]): string => {
         Number(order.total_payable || order.totalPayable || 0).toFixed(2),
         Number(order.amount_paid || order.amountPaid || 0).toFixed(2),
         order.shipping_address?.full_address || order.shippingAddress || "",
-        order.courier_company || order.courierCompany || "",
-        order.courier_tracking_number || order.courierTrackingNumber || "",
+        // Prefer per-item courier values, fall back to order-level
+        item?.courier_company ||
+          order.courier_company ||
+          order.courierCompany ||
+          "",
+        item?.courier_tracking_number ||
+          order.courier_tracking_number ||
+          order.courierTrackingNumber ||
+          "",
         formatCsvDate(
           order.courier_delivery_date || order.courierDeliveryDate,
         ) || "",
@@ -200,6 +226,9 @@ export const generateOrdersCsv = (orders: any[]): string => {
           : item?.unitPrice != null
             ? Number(item.unitPrice).toFixed(2)
             : "",
+        item?.subtotal_per_unit != null
+          ? Number(item.subtotal_per_unit).toFixed(2)
+          : "",
         item?.line_total != null
           ? Number(item.line_total).toFixed(2)
           : item?.lineTotal != null
