@@ -77,12 +77,7 @@ const itemVariants = {
 // =====================================================
 
 type ReturnFilterTab =
-  | "All"
-  | "pending"
-  | "approved"
-  | "rejected"
-  | "received"
-  | "completed";
+  "All" | "pending" | "approved" | "rejected" | "received" | "completed";
 
 interface ActionLoading {
   type: "approve" | "reject" | "received" | "complete" | null;
@@ -283,14 +278,16 @@ const getRequestAccountType = (record: any): string | null => {
   );
 };
 
-const getCustomerName = (user?: {
-  name?: string | null;
-  full_name?: string | null;
-  fullName?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
-  email?: string | null;
-} | null) => {
+const getCustomerName = (
+  user?: {
+    name?: string | null;
+    full_name?: string | null;
+    fullName?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+  } | null,
+) => {
   const fullName =
     user?.full_name?.trim() ||
     user?.fullName?.trim() ||
@@ -385,9 +382,7 @@ function getRefundedAmount(record: any): number | null {
     }
 
     const amount =
-      typeof candidate === "number"
-        ? candidate
-        : parseFloat(String(candidate));
+      typeof candidate === "number" ? candidate : parseFloat(String(candidate));
 
     if (Number.isFinite(amount) && amount > 0) {
       return amount;
@@ -422,9 +417,7 @@ function getReturnAmount(record: any): number | null {
     }
 
     const amount =
-      typeof candidate === "number"
-        ? candidate
-        : parseFloat(String(candidate));
+      typeof candidate === "number" ? candidate : parseFloat(String(candidate));
 
     if (Number.isFinite(amount) && amount > 0) {
       return amount;
@@ -448,7 +441,6 @@ function isRefundProcessed(record: any): boolean {
 
   return getRefundedAmount(record) !== null;
 }
-
 
 interface TimelineEvent {
   key: string;
@@ -477,127 +469,127 @@ const buildTimelineEvents = (
     color: string;
     icon: React.ReactNode;
   }> = [
-      {
-        key: "created_at",
-        label: "Order Created",
-        description: `Order was placed by the ${accountLabel}.`,
-        date: timeline.created_at ?? null,
-        color: "bg-[#2D6FE8]",
-        icon: <FiPackage size={14} />,
-      },
-      {
-        key: "dispatched_at",
-        label: "Dispatched",
-        description: "Order was handed over to courier.",
-        date: timeline.dispatched_at ?? null,
-        color: "bg-[#4F8FF7]",
-        icon: <FiTruck size={14} />,
-      },
-      {
-        key: "shipped_at",
-        label: "Shipped",
-        description: "Package is in transit.",
-        date: timeline.shipped_at ?? null,
-        color: "bg-[#4F8FF7]",
-        icon: <FiSend size={14} />,
-      },
-      {
-        key: "delivered_at",
-        label: "Delivered",
-        description: `Package delivered to the ${accountLabel}.`,
-        date: timeline.delivered_at ?? null,
-        color: "bg-[#1E40AF]",
-        icon: <FiCheckCircle size={14} />,
-      },
-      {
-        key: "cancellation_requested_at",
-        label: "Cancellation Requested",
-        description: `${accountTitle} requested order cancellation.`,
-        date: timeline.cancellation_requested_at ?? null,
-        color: "bg-[#FACC15]",
-        icon: <FiClock size={14} />,
-      },
-      {
-        key: "cancelled_at",
-        label: "Cancelled",
-        description: "Order was cancelled.",
-        date: timeline.cancelled_at ?? null,
-        color: "bg-[#C23B32]",
-        icon: <FiXCircle size={14} />,
-      },
-      {
-        key: "cancellation_rejected_at",
-        label: "Cancellation Rejected",
-        description: "Cancellation request was rejected.",
-        date: timeline.cancellation_rejected_at ?? null,
-        color: "bg-[#C23B32]",
-        icon: <FiXCircle size={14} />,
-      },
-      {
-        key: "return_requested_at",
-        label: "Return Requested",
-        description: `${accountTitle} requested a return.`,
-        date: timeline.return_requested_at ?? null,
-        color: "bg-[#FACC15]",
-        icon: <FiRotateCcw size={14} />,
-      },
-      {
-        key: "return_approved_at",
-        label: "Return Approved",
-        description: "Return request was approved.",
-        date: timeline.return_approved_at ?? null,
-        color: "bg-[#2D6FE8]",
-        icon: <FiCheckCircle size={14} />,
-      },
-      {
-        key: "return_rejected_at",
-        label: "Return Rejected",
-        description: "Return request was rejected.",
-        date: timeline.return_rejected_at ?? null,
-        color: "bg-[#C23B32]",
-        icon: <FiXCircle size={14} />,
-      },
-      {
-        key: "return_completed_at",
-        label: "Return Completed",
-        description: "Return process was completed.",
-        date: timeline.return_completed_at ?? null,
-        color: "bg-[#1E40AF]",
-        icon: <FiCheckCircle size={14} />,
-      },
-      {
-        key: "buyback_requested_at",
-        label: "Buyback Requested",
-        description: `${accountTitle} requested buyback.`,
-        date: timeline.buyback_requested_at ?? null,
-        color: "bg-[#FACC15]",
-        icon: <FiRotateCw size={14} />,
-      },
-      {
-        key: "buyback_approved_at",
-        label: "Buyback Approved",
-        description: "Buyback request was approved.",
-        date: timeline.buyback_approved_at ?? null,
-        color: "bg-[#2D6FE8]",
-        icon: <FiCheckCircle size={14} />,
-      },
-      {
-        key: "buyback_rejected_at",
-        label: "Buyback Rejected",
-        description: "Buyback request was rejected.",
-        date: timeline.buyback_rejected_at ?? null,
-        color: "bg-[#C23B32]",
-        icon: <FiXCircle size={14} />,
-      },
-      {
-        key: "buyback_refunded_at",
-        label: "Buyback Refunded",
-        description: "Buyback refund was processed.",
-        date: timeline.buyback_refunded_at ?? null,
-        color: "bg-[#1E40AF]",
-        icon: <FiDollarSign size={14} />,
-      },
-    ];
+    {
+      key: "created_at",
+      label: "Order Created",
+      description: `Order was placed by the ${accountLabel}.`,
+      date: timeline.created_at ?? null,
+      color: "bg-[#2D6FE8]",
+      icon: <FiPackage size={14} />,
+    },
+    {
+      key: "dispatched_at",
+      label: "Dispatched",
+      description: "Order was handed over to courier.",
+      date: timeline.dispatched_at ?? null,
+      color: "bg-[#4F8FF7]",
+      icon: <FiTruck size={14} />,
+    },
+    {
+      key: "shipped_at",
+      label: "Shipped",
+      description: "Package is in transit.",
+      date: timeline.shipped_at ?? null,
+      color: "bg-[#4F8FF7]",
+      icon: <FiSend size={14} />,
+    },
+    {
+      key: "delivered_at",
+      label: "Delivered",
+      description: `Package delivered to the ${accountLabel}.`,
+      date: timeline.delivered_at ?? null,
+      color: "bg-[#1E40AF]",
+      icon: <FiCheckCircle size={14} />,
+    },
+    {
+      key: "cancellation_requested_at",
+      label: "Cancellation Requested",
+      description: `${accountTitle} requested order cancellation.`,
+      date: timeline.cancellation_requested_at ?? null,
+      color: "bg-[#FACC15]",
+      icon: <FiClock size={14} />,
+    },
+    {
+      key: "cancelled_at",
+      label: "Cancelled",
+      description: "Order was cancelled.",
+      date: timeline.cancelled_at ?? null,
+      color: "bg-[#C23B32]",
+      icon: <FiXCircle size={14} />,
+    },
+    {
+      key: "cancellation_rejected_at",
+      label: "Cancellation Rejected",
+      description: "Cancellation request was rejected.",
+      date: timeline.cancellation_rejected_at ?? null,
+      color: "bg-[#C23B32]",
+      icon: <FiXCircle size={14} />,
+    },
+    {
+      key: "return_requested_at",
+      label: "Return Requested",
+      description: `${accountTitle} requested a return.`,
+      date: timeline.return_requested_at ?? null,
+      color: "bg-[#FACC15]",
+      icon: <FiRotateCcw size={14} />,
+    },
+    {
+      key: "return_approved_at",
+      label: "Return Approved",
+      description: "Return request was approved.",
+      date: timeline.return_approved_at ?? null,
+      color: "bg-[#2D6FE8]",
+      icon: <FiCheckCircle size={14} />,
+    },
+    {
+      key: "return_rejected_at",
+      label: "Return Rejected",
+      description: "Return request was rejected.",
+      date: timeline.return_rejected_at ?? null,
+      color: "bg-[#C23B32]",
+      icon: <FiXCircle size={14} />,
+    },
+    {
+      key: "return_completed_at",
+      label: "Return Completed",
+      description: "Return process was completed.",
+      date: timeline.return_completed_at ?? null,
+      color: "bg-[#1E40AF]",
+      icon: <FiCheckCircle size={14} />,
+    },
+    {
+      key: "buyback_requested_at",
+      label: "Buyback Requested",
+      description: `${accountTitle} requested buyback.`,
+      date: timeline.buyback_requested_at ?? null,
+      color: "bg-[#FACC15]",
+      icon: <FiRotateCw size={14} />,
+    },
+    {
+      key: "buyback_approved_at",
+      label: "Buyback Approved",
+      description: "Buyback request was approved.",
+      date: timeline.buyback_approved_at ?? null,
+      color: "bg-[#2D6FE8]",
+      icon: <FiCheckCircle size={14} />,
+    },
+    {
+      key: "buyback_rejected_at",
+      label: "Buyback Rejected",
+      description: "Buyback request was rejected.",
+      date: timeline.buyback_rejected_at ?? null,
+      color: "bg-[#C23B32]",
+      icon: <FiXCircle size={14} />,
+    },
+    {
+      key: "buyback_refunded_at",
+      label: "Buyback Refunded",
+      description: "Buyback refund was processed.",
+      date: timeline.buyback_refunded_at ?? null,
+      color: "bg-[#1E40AF]",
+      icon: <FiDollarSign size={14} />,
+    },
+  ];
 
   return rawEvents
     .filter((event) => Boolean(event.date))
@@ -710,11 +702,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -792,8 +780,7 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
 
           <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5">
             <p className="text-[11px] leading-4 text-[#4B5563]">
-              ⚠️ After receiving the item, you can choose refund or
-              replacement.
+              ⚠️ After receiving the item, you can choose refund or replacement.
             </p>
           </div>
         </div>
@@ -856,11 +843,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#2D6FE8] to-[#C23B32]" />
 
@@ -933,10 +916,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
             onClick={() => onConfirm(adminNotes.trim())}
             className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#A8322B] disabled:opacity-50"
           >
-            {loading && (
-              <FiRefreshCw size={14} className="animate-spin" />
-            )}
-
+            {loading && <FiRefreshCw size={14} className="animate-spin" />}
             Reject Return
           </button>
         </div>
@@ -979,11 +959,7 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -1087,7 +1063,6 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
   );
 };
 
-
 // =====================================================
 // MOVE TO INVENTORY CONFIRMATION POPUP
 // ✅ UPDATED: Warehouse ID field REMOVED.
@@ -1116,11 +1091,7 @@ const MoveToInventoryPopup: React.FC<MoveToInventoryPopupProps> = ({
   if (!open) return null;
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -1134,8 +1105,7 @@ const MoveToInventoryPopup: React.FC<MoveToInventoryPopupProps> = ({
           </h2>
 
           <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
-            Are you sure you want to move the returned products into
-            inventory?
+            Are you sure you want to move the returned products into inventory?
           </p>
 
           <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
@@ -1168,8 +1138,8 @@ const MoveToInventoryPopup: React.FC<MoveToInventoryPopupProps> = ({
               />
 
               <p className="text-[11px] leading-4 text-[#4B5563]">
-                The returned products will be added back to inventory and
-                the stock will be updated. This action cannot be undone.
+                The returned products will be added back to inventory and the
+                stock will be updated. This action cannot be undone.
               </p>
             </div>
           </div>
@@ -1234,8 +1204,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
   onClose,
   onConfirm,
 }) => {
-  const [resolution, setResolution] =
-    useState<ResolutionType>("replacement");
+  const [resolution, setResolution] = useState<ResolutionType>("replacement");
 
   const [refundAmount, setRefundAmount] = useState<string>("");
 
@@ -1246,9 +1215,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
       setResolution("replacement");
 
       setRefundAmount(
-        suggestedAmount
-          ? String(Number(suggestedAmount).toFixed(2))
-          : "",
+        suggestedAmount ? String(Number(suggestedAmount).toFixed(2)) : "",
       );
 
       setAdminNotes("");
@@ -1264,11 +1231,7 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
     (!Number.isNaN(parsedAmount) && parsedAmount > 0);
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={!loading}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
       <div className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -1338,10 +1301,11 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 type="button"
                 onClick={() => setResolution("replacement")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "replacement"
-                  ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
-                  : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
-                  } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
+                  resolution === "replacement"
+                    ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
+                    : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
+                } disabled:opacity-50`}
               >
                 {resolution === "replacement" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#2D6FE8] text-white">
@@ -1350,20 +1314,22 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "replacement"
-                    ? "bg-[#2D6FE8] text-white"
-                    : "bg-white text-[#2D6FE8]"
-                    }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                    resolution === "replacement"
+                      ? "bg-[#2D6FE8] text-white"
+                      : "bg-white text-[#2D6FE8]"
+                  }`}
                 >
                   <FiRefreshCw size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${resolution === "replacement"
-                      ? "text-[#2D6FE8]"
-                      : "text-[#111827]"
-                      }`}
+                    className={`text-xs font-bold ${
+                      resolution === "replacement"
+                        ? "text-[#2D6FE8]"
+                        : "text-[#111827]"
+                    }`}
                   >
                     Replacement
                   </p>
@@ -1378,10 +1344,11 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 type="button"
                 onClick={() => setResolution("refund")}
                 disabled={loading}
-                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${resolution === "refund"
-                  ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
-                  : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
-                  } disabled:opacity-50`}
+                className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 transition-all ${
+                  resolution === "refund"
+                    ? "border-[#2D6FE8] bg-[#EAF3FF] shadow-md shadow-[#2D6FE8]/10"
+                    : "border-[#DCE6F2] bg-[#F4F8FD] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF]/50"
+                } disabled:opacity-50`}
               >
                 {resolution === "refund" && (
                   <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#2D6FE8] text-white">
@@ -1390,20 +1357,22 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
                 )}
 
                 <div
-                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${resolution === "refund"
-                    ? "bg-[#2D6FE8] text-white"
-                    : "bg-white text-[#2D6FE8]"
-                    }`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                    resolution === "refund"
+                      ? "bg-[#2D6FE8] text-white"
+                      : "bg-white text-[#2D6FE8]"
+                  }`}
                 >
                   <FaRupeeSign size={16} />
                 </div>
 
                 <div className="text-center">
                   <p
-                    className={`text-xs font-bold ${resolution === "refund"
-                      ? "text-[#2D6FE8]"
-                      : "text-[#111827]"
-                      }`}
+                    className={`text-xs font-bold ${
+                      resolution === "refund"
+                        ? "text-[#2D6FE8]"
+                        : "text-[#111827]"
+                    }`}
                   >
                     Refund
                   </p>
@@ -1525,9 +1494,7 @@ interface ReplacementConfirmPopupProps {
   onConfirm: () => void;
 }
 
-const ReplacementConfirmPopup: React.FC<
-  ReplacementConfirmPopupProps
-> = ({
+const ReplacementConfirmPopup: React.FC<ReplacementConfirmPopupProps> = ({
   open,
   loading,
   orderReference,
@@ -1536,88 +1503,84 @@ const ReplacementConfirmPopup: React.FC<
   onClose,
   onConfirm,
 }) => {
-    if (!open) return null;
+  if (!open) return null;
 
-    return (
-      <GlobalModal
-        isOpen={open}
-        onClose={onClose}
-        closeOnOverlayClick={!loading}
-      >
-        <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
-          <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
+  return (
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={!loading}>
+      <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
+        <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
-          <div className="flex flex-col items-center px-5 py-6 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-              <FiRefreshCw size={26} />
+        <div className="flex flex-col items-center px-5 py-6 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+            <FiRefreshCw size={26} />
+          </div>
+
+          <h2 className="mt-4 text-base font-bold text-[#111827]">
+            Confirm Replacement
+          </h2>
+
+          <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
+            You are about to complete this return with a{" "}
+            <span className="font-bold text-[#2D6FE8]">replacement</span> for:
+          </p>
+
+          <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
+            <div className="flex justify-between gap-3">
+              <span className="text-[11px] text-[#6B7280]">Item Reference</span>
+
+              <span className="text-right text-xs font-bold text-[#111827]">
+                {orderReference}
+              </span>
             </div>
 
-            <h2 className="mt-4 text-base font-bold text-[#111827]">
-              Confirm Replacement
-            </h2>
+            <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
+              <span className="text-[11px] text-[#6B7280]">
+                {customerLabel}
+              </span>
 
-            <p className="mt-1.5 text-xs leading-5 text-[#4B5563]">
-              You are about to complete this return with a{" "}
-              <span className="font-bold text-[#2D6FE8]">replacement</span> for:
-            </p>
-
-            <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
-              <div className="flex justify-between gap-3">
-                <span className="text-[11px] text-[#6B7280]">
-                  Item Reference
-                </span>
-
-                <span className="text-right text-xs font-bold text-[#111827]">
-                  {orderReference}
-                </span>
-              </div>
-
-              <div className="mt-2 flex justify-between gap-3 border-t border-[#DCE6F2] pt-2">
-                <span className="text-[11px] text-[#6B7280]">{customerLabel}</span>
-
-                <span className="text-right text-xs font-semibold text-[#111827]">
-                  {customerName}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
-              <p className="text-[11px] leading-4 text-[#4B5563]">
-                ⚠️ The replacement product will be shipped to the{" "}
-                {customerLabel.toLowerCase()}. This action cannot be undone.
-              </p>
+              <span className="text-right text-xs font-semibold text-[#111827]">
+                {customerName}
+              </span>
             </div>
           </div>
 
-          <div className="flex justify-center gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onConfirm}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? (
-                <FiRefreshCw size={14} className="animate-spin" />
-              ) : (
-                <FiCheck size={14} />
-              )}
-
-              {loading ? "Processing..." : "OK, Confirm"}
-            </button>
+          <div className="mt-3 w-full rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-2.5 text-left">
+            <p className="text-[11px] leading-4 text-[#4B5563]">
+              ⚠️ The replacement product will be shipped to the{" "}
+              {customerLabel.toLowerCase()}. This action cannot be undone.
+            </p>
           </div>
         </div>
-      </GlobalModal>
-    );
-  };
+
+        <div className="flex justify-center gap-2 border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={onConfirm}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-6 py-2 text-sm font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? (
+              <FiRefreshCw size={14} className="animate-spin" />
+            ) : (
+              <FiCheck size={14} />
+            )}
+
+            {loading ? "Processing..." : "OK, Confirm"}
+          </button>
+        </div>
+      </div>
+    </GlobalModal>
+  );
+};
 
 // =====================================================
 // TIMELINE STEPPER
@@ -1646,10 +1609,7 @@ const TimelineStepper: React.FC<TimelineStepperProps> = ({
         const isLast = index === events.length - 1;
 
         return (
-          <div
-            key={event.key}
-            className="relative flex gap-4 pb-6 last:pb-0"
-          >
+          <div key={event.key} className="relative flex gap-4 pb-6 last:pb-0">
             <div className="relative flex flex-col items-center">
               <div
                 className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-sm ${event.color}`}
@@ -1749,11 +1709,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   if (loading) {
     return (
-      <GlobalModal
-        isOpen={open}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -1777,11 +1733,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   if (!detail) {
     return (
-      <GlobalModal
-        isOpen={open}
-        onClose={onClose}
-        closeOnOverlayClick={false}
-      >
+      <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
         <div className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
           <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -1812,9 +1764,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const refundDetails = detail.refund_details;
 
   const refundMethod =
-    refundDetails?.method ||
-    detail.refund_info?.refund_method ||
-    "—";
+    refundDetails?.method || detail.refund_info?.refund_method || "—";
 
   const formattedRefundMethod = formatMethodLabel(refundMethod);
 
@@ -1826,8 +1776,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     detail.resolution === "replacement" ||
     detail.refund_info?.resolution === "replacement";
 
-  const orderLinesTimeline: any[] =
-    (detail as any).order_lines_timeline || [];
+  const orderLinesTimeline: any[] = (detail as any).order_lines_timeline || [];
 
   // ✅ Get account type for dynamic text
   const detailUser = getRequestUser(detail);
@@ -1853,11 +1802,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     !isMovedToInventory(rawDetail);
 
   return (
-    <GlobalModal
-      isOpen={open}
-      onClose={onClose}
-      closeOnOverlayClick={false}
-    >
+    <GlobalModal isOpen={open} onClose={onClose} closeOnOverlayClick={false}>
       <div className="w-full max-h-[90vh]  max-w-6xl overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white font-poppins shadow-2xl">
         <div className="h-1 w-full bg-gradient-to-r from-[#4F8FF7] via-[#2D6FE8] to-[#1E40AF]" />
 
@@ -2000,10 +1945,10 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Replacement"
                         : formatCurrency(
-                          actualRefundedAmount ??
-                          detail.refund_info?.amount ??
-                          detail.refund_details?.total,
-                        )}
+                            actualRefundedAmount ??
+                              detail.refund_info?.amount ??
+                              detail.refund_details?.total,
+                          )}
                     </p>
                   </div>
 
@@ -2016,7 +1961,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       {isReplacement
                         ? "Product Replacement"
                         : detail.refund_info?.refund_method ||
-                        "Original Payment"}
+                          "Original Payment"}
                     </p>
                   </div>
 
@@ -2028,8 +1973,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     <p className="mt-1 text-sm font-bold text-[#111827]">
                       {formatDate(
                         detail.refund_info?.completed_at ||
-                        detail.refunded_at ||
-                        detail.updated_at,
+                          detail.refunded_at ||
+                          detail.updated_at,
                       )}
                     </p>
                   </div>
@@ -2063,9 +2008,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 </div>
 
                 <div className="flex items-start justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="shrink-0 text-xs text-[#6B7280]">
-                    Email
-                  </span>
+                  <span className="shrink-0 text-xs text-[#6B7280]">Email</span>
 
                   <div className="min-w-0 text-right">
                     <p className="truncate text-sm font-semibold text-[#111827]">
@@ -2107,9 +2050,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
               <div className="space-y-3">
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
-                    Item Reference
-                  </span>
+                  <span className="text-xs text-[#6B7280]">Item Reference</span>
 
                   <span className="text-right text-sm font-bold text-[#2D6FE8]">
                     {getItemReferenceId(detail)}
@@ -2117,9 +2058,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 </div>
 
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
-                    Order Status
-                  </span>
+                  <span className="text-xs text-[#6B7280]">Order Status</span>
 
                   <span className="text-sm font-semibold capitalize text-[#111827]">
                     {getStatusLabel(detail.order?.status || "")}
@@ -2128,9 +2067,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                 {/* Return Method Row */}
                 <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">
-                    Return Method
-                  </span>
+                  <span className="text-xs text-[#6B7280]">Return Method</span>
 
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
                     <FiTruck size={10} />
@@ -2141,9 +2078,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 {/* Courier Row */}
                 {courier && (
                   <div className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                    <span className="text-xs text-[#6B7280]">
-                      Courier
-                    </span>
+                    <span className="text-xs text-[#6B7280]">Courier</span>
 
                     <span className="text-sm font-semibold text-[#111827]">
                       {courier}
@@ -2473,22 +2408,20 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </span>
                     </div>
 
-                    {refundBreakdown?.deductions?.map(
-                      (deduction, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3"
-                        >
-                          <span className="text-xs font-semibold text-[#C23B32]">
-                            - {deduction.label}
-                          </span>
+                    {refundBreakdown?.deductions?.map((deduction, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-4 border-b border-[#DCE6F2] py-3"
+                      >
+                        <span className="text-xs font-semibold text-[#C23B32]">
+                          - {deduction.label}
+                        </span>
 
-                          <span className="text-xs font-bold text-[#C23B32]">
-                            -{formatCurrency(deduction.amount)}
-                          </span>
-                        </div>
-                      ),
-                    )}
+                        <span className="text-xs font-bold text-[#C23B32]">
+                          -{formatCurrency(deduction.amount)}
+                        </span>
+                      </div>
+                    ))}
 
                     <div className="flex items-center justify-between gap-4 py-3">
                       <div>
@@ -2549,9 +2482,7 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <div className="mt-5 overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white">
                   <button
                     type="button"
-                    onClick={() =>
-                      setRefundBreakdownOpen((prev) => !prev)
-                    }
+                    onClick={() => setRefundBreakdownOpen((prev) => !prev)}
                     className="flex w-full items-center justify-between gap-3 bg-[#F4F8FD] px-4 py-3 transition hover:bg-[#EAF3FF] sm:px-5 sm:py-3"
                   >
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -2572,14 +2503,13 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                     <div className="flex shrink-0 items-center gap-2.5">
                       <span className="text-sm font-bold text-[#2D6FE8]">
-                        {formatCurrency(
-                          returnAmount ?? refundDetails?.total,
-                        )}
+                        {formatCurrency(returnAmount ?? refundDetails?.total)}
                       </span>
 
                       <span
-                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${refundBreakdownOpen ? "rotate-180" : ""
-                          }`}
+                        className={`flex h-7 w-7 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#2D6FE8] transition-transform duration-200 ${
+                          refundBreakdownOpen ? "rotate-180" : ""
+                        }`}
                       >
                         <FiChevronDown size={15} />
                       </span>
@@ -2790,7 +2720,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   ) : (
                     <FiCheck size={14} />
                   )}
-
                   Approve Return
                 </button>
               )}
@@ -2807,7 +2736,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   ) : (
                     <FiX size={14} />
                   )}
-
                   Reject Return
                 </button>
               )}
@@ -2824,7 +2752,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   ) : (
                     <FiTruck size={14} />
                   )}
-
                   Mark as Received
                 </button>
               )}
@@ -2841,7 +2768,6 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   ) : (
                     <FiCheckCircle size={14} />
                   )}
-
                   Complete Return
                 </button>
               )}
@@ -2909,13 +2835,10 @@ const ReturnRefund: React.FC = () => {
     [isSuperAdmin, hasPermission],
   );
 
-  // Move to inventory permission.
-  // Falls back to the "completed" permission so existing roles keep working.
+  // Move to Inventory is controlled only by the dedicated permission:
+  // permissions_grouped.move_inventory includes the "move" action.
   const canMoveToInventory = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("return_refund.move_to_inventory") ||
-      hasPermission("return_refund.completed"),
+    () => isSuperAdmin || hasPermission("move_inventory.move"),
     [isSuperAdmin, hasPermission],
   );
 
@@ -2924,18 +2847,17 @@ const ReturnRefund: React.FC = () => {
   // ✅ warehouseId state REMOVED
   // ===================================================
 
-  const [inventoryMoveModalOpen, setInventoryMoveModalOpen] =
-    useState(false);
+  const [inventoryMoveModalOpen, setInventoryMoveModalOpen] = useState(false);
 
   const [inventoryTarget, setInventoryTarget] =
     useState<InventoryMoveTarget | null>(null);
 
-  const [inventoryMoveLoading, setInventoryMoveLoading] =
-    useState(false);
+  const [inventoryMoveLoading, setInventoryMoveLoading] = useState(false);
 
   // Prevent duplicate actions during the current page session.
-  const [inventoryMovedOrders, setInventoryMovedOrders] =
-    useState<Set<string>>(new Set());
+  const [inventoryMovedOrders, setInventoryMovedOrders] = useState<Set<string>>(
+    new Set(),
+  );
 
   // ===================================================
   // LOGO STATE (same pattern as Orders.tsx)
@@ -2950,8 +2872,7 @@ const ReturnRefund: React.FC = () => {
 
   const [requests, setRequests] = useState<ReturnListItem[]>([]);
 
-  const [activeFilter, setActiveFilter] =
-    useState<ReturnFilterTab>("All");
+  const [activeFilter, setActiveFilter] = useState<ReturnFilterTab>("All");
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -2964,8 +2885,9 @@ const ReturnRefund: React.FC = () => {
 
   const [detailLoading, setDetailLoading] = useState(false);
 
-  const [selectedDetail, setSelectedDetail] =
-    useState<SingleReturnResponse["data"] | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<
+    SingleReturnResponse["data"] | null
+  >(null);
 
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
@@ -2977,8 +2899,7 @@ const ReturnRefund: React.FC = () => {
 
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
 
-  const [replacementConfirmOpen, setReplacementConfirmOpen] =
-    useState(false);
+  const [replacementConfirmOpen, setReplacementConfirmOpen] = useState(false);
 
   const [pendingReplacementData, setPendingReplacementData] = useState<{
     adminNotes: string;
@@ -3074,9 +2995,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         const list = response.data.data?.data || [];
 
-        const returnRequests = list.filter(
-          (item) => item.type === "return",
-        );
+        const returnRequests = list.filter((item) => item.type === "return");
 
         setRequests(returnRequests);
       } else {
@@ -3086,8 +3005,7 @@ const ReturnRefund: React.FC = () => {
       console.error("Get return requests error:", error);
 
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to fetch return requests.",
+        error?.response?.data?.message || "Unable to fetch return requests.",
       );
     } finally {
       setLoading(false);
@@ -3232,8 +3150,7 @@ const ReturnRefund: React.FC = () => {
       console.error("Return detail error:", error);
 
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to fetch return details.",
+        error?.response?.data?.message || "Unable to fetch return details.",
       );
       return null;
     } finally {
@@ -3258,6 +3175,11 @@ const ReturnRefund: React.FC = () => {
   // ===================================================
 
   const handleOpenMoveToInventory = (record: any) => {
+    if (!canMoveToInventory) {
+      toast.error("You do not have permission to move items to inventory.");
+      return;
+    }
+
     if (record?.status !== "completed") {
       toast.error("Only completed returns can be moved to inventory.");
       return;
@@ -3271,7 +3193,10 @@ const ReturnRefund: React.FC = () => {
       return;
     }
 
-    if (isMovedToInventory(record) || inventoryMovedOrders.has(orderReference)) {
+    if (
+      isMovedToInventory(record) ||
+      inventoryMovedOrders.has(orderReference)
+    ) {
       toast.error("This order has already been moved to inventory.");
       return;
     }
@@ -3294,6 +3219,11 @@ const ReturnRefund: React.FC = () => {
   // ===================================================
 
   const handleConfirmMoveToInventory = async () => {
+    if (!canMoveToInventory) {
+      toast.error("You do not have permission to move items to inventory.");
+      return;
+    }
+
     if (!inventoryTarget) return;
 
     const { orderReference, id } = inventoryTarget;
@@ -3301,14 +3231,13 @@ const ReturnRefund: React.FC = () => {
     try {
       setInventoryMoveLoading(true);
 
-      const response = await returnApi.receiveProductAtWarehouse(
-        orderReference,
-      );
+      const response =
+        await returnApi.receiveProductAtWarehouse(orderReference);
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
-          "Returned products moved to inventory successfully.",
+            "Returned products moved to inventory successfully.",
         );
 
         // Hide the button for this order during this page session.
@@ -3338,7 +3267,7 @@ const ReturnRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-        "Unable to move products to inventory.",
+          "Unable to move products to inventory.",
       );
     } finally {
       setInventoryMoveLoading(false);
@@ -3379,9 +3308,7 @@ const ReturnRefund: React.FC = () => {
       });
 
       if (response.data.success) {
-        toast.success(
-          response.data.message || "Return approved successfully.",
-        );
+        toast.success(response.data.message || "Return approved successfully.");
 
         await fetchReturnRequests();
         closeAllModals();
@@ -3429,15 +3356,10 @@ const ReturnRefund: React.FC = () => {
     try {
       setActionLoading({ type: "reject", id });
 
-      const response = await returnApi.reject(
-        id,
-        adminNotes || undefined,
-      );
+      const response = await returnApi.reject(id, adminNotes || undefined);
 
       if (response.data.success) {
-        toast.success(
-          response.data.message || "Return rejected successfully.",
-        );
+        toast.success(response.data.message || "Return rejected successfully.");
 
         await fetchReturnRequests();
         closeAllModals();
@@ -3447,9 +3369,7 @@ const ReturnRefund: React.FC = () => {
     } catch (error: any) {
       console.error("Reject return error:", error);
 
-      toast.error(
-        error?.response?.data?.message || "Unable to reject return.",
-      );
+      toast.error(error?.response?.data?.message || "Unable to reject return.");
     } finally {
       setActionLoading({ type: null, id: null });
     }
@@ -3497,8 +3417,7 @@ const ReturnRefund: React.FC = () => {
 
       if (response.data.success) {
         toast.success(
-          response.data.message ||
-          "Return marked as received successfully.",
+          response.data.message || "Return marked as received successfully.",
         );
 
         await fetchReturnRequests();
@@ -3511,16 +3430,14 @@ const ReturnRefund: React.FC = () => {
         }, 100);
       } else {
         toast.error(
-          response.data.message ||
-          "Unable to mark return as received.",
+          response.data.message || "Unable to mark return as received.",
         );
       }
     } catch (error: any) {
       console.error("Mark received error:", error);
 
       toast.error(
-        error?.response?.data?.message ||
-        "Unable to mark return as received.",
+        error?.response?.data?.message || "Unable to mark return as received.",
       );
     } finally {
       setReceivedLoading(false);
@@ -3614,7 +3531,7 @@ const ReturnRefund: React.FC = () => {
       if (response.data.success) {
         toast.success(
           response.data.message ||
-          `Return completed with ${resolution} successfully.`,
+            `Return completed with ${resolution} successfully.`,
         );
 
         await fetchReturnRequests();
@@ -3641,11 +3558,7 @@ const ReturnRefund: React.FC = () => {
   const handleConfirmReplacement = async () => {
     if (!pendingReplacementData) return;
 
-    await performComplete(
-      "replacement",
-      0,
-      pendingReplacementData.adminNotes,
-    );
+    await performComplete("replacement", 0, pendingReplacementData.adminNotes);
 
     setPendingReplacementData(null);
   };
@@ -3716,9 +3629,7 @@ const ReturnRefund: React.FC = () => {
             <FiAlertCircle size={26} />
           </div>
 
-          <h2 className="text-lg font-bold text-[#111827]">
-            Access Denied
-          </h2>
+          <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
 
           <p className="mt-2 text-sm text-[#6B7280]">
             You don't have permission to access this section.
@@ -3766,7 +3677,6 @@ const ReturnRefund: React.FC = () => {
               replacements on receipt.
             </p>
           </div>
-
         </div>
 
         {/* STATS */}
@@ -3822,7 +3732,6 @@ const ReturnRefund: React.FC = () => {
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white "
         >
-
           <div className="border-b border-[#DCE6F2] p-4 sm:p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative w-full xl:max-w-[540px]">
@@ -3863,10 +3772,11 @@ const ReturnRefund: React.FC = () => {
                     key={filter.key}
                     type="button"
                     onClick={() => handleFilterChange(filter.key)}
-                    className={`rounded-xl px-3.5 py-3 text-xs font-bold transition-all ${activeFilter === filter.key
-                      ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
-                      : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                      }`}
+                    className={`rounded-xl px-3.5 py-3 text-xs font-bold transition-all ${
+                      activeFilter === filter.key
+                        ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                        : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                    }`}
                   >
                     {filter.label}
                   </button>
@@ -3877,21 +3787,40 @@ const ReturnRefund: React.FC = () => {
 
           {/* DESKTOP TABLE */}
 
-
           <div className="hidden w-full overflow-hidden rounded-xl lg:block">
             <table className="w-full table-fixed border-collapse text-[11px]">
               <thead>
                 <tr className="bg-[#4F8FF7]">
-                  <th className="w-[5%] px-2 py-3 text-left text-[12px] font-semibold text-white">S.No.</th>
-                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Order Reference</th>
-                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">Buyer</th>
-                  <th className="w-[5%] px-1 py-3 text-center text-[12px] font-semibold text-white">Quantity</th>
-                  <th className="w-[9%] px-2 py-3 text-right text-[12px] font-semibold text-white">Return Amount</th>
-                  <th className="w-[9%] px-2 py-3 text-left text-[12px] font-semibold text-white">Return Method</th>
-                  <th className="w-[11%] px-2 py-3 text-left text-[12px] font-semibold text-white">Tracking Details</th>
-                  <th className="w-[8%] px-2 py-3 text-left text-[12px] font-semibold text-white">Reason</th>
-                  <th className="w-[9%] px-1 py-3 text-center text-[12px] font-semibold text-white">Status</th>
-                  <th className="w-[20%] px-2 py-3 text-center text-[12px] font-semibold text-white">Actions</th>
+                  <th className="w-[5%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    S.No.
+                  </th>
+                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    Order Reference
+                  </th>
+                  <th className="w-[12%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    Buyer
+                  </th>
+                  <th className="w-[5%] px-1 py-3 text-center text-[12px] font-semibold text-white">
+                    Quantity
+                  </th>
+                  <th className="w-[9%] px-2 py-3 text-right text-[12px] font-semibold text-white">
+                    Return Amount
+                  </th>
+                  <th className="w-[9%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    Return Method
+                  </th>
+                  <th className="w-[11%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    Tracking Details
+                  </th>
+                  <th className="w-[8%] px-2 py-3 text-left text-[12px] font-semibold text-white">
+                    Reason
+                  </th>
+                  <th className="w-[9%] px-1 py-3 text-center text-[12px] font-semibold text-white">
+                    Status
+                  </th>
+                  <th className="w-[20%] px-2 py-3 text-center text-[12px] font-semibold text-white">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -3939,11 +3868,9 @@ const ReturnRefund: React.FC = () => {
                   </tr>
                 ) : (
                   paginatedRequests.map((request, index) => {
-                    const canApprove =
-                      request.can_approve && canApproveReturn;
+                    const canApprove = request.can_approve && canApproveReturn;
 
-                    const canReject =
-                      request.can_reject && canRejectReturn;
+                    const canReject = request.can_reject && canRejectReturn;
 
                     const approveLoading =
                       actionLoading.type === "approve" &&
@@ -3998,7 +3925,9 @@ const ReturnRefund: React.FC = () => {
                               )}`}
                             >
                               <FiBriefcase size={10} />
-                              {getAccountTypeLabel(getRequestAccountType(request))}
+                              {getAccountTypeLabel(
+                                getRequestAccountType(request),
+                              )}
                             </span>
                           </td>
 
@@ -4047,7 +3976,9 @@ const ReturnRefund: React.FC = () => {
                                       size={11}
                                       className="mt-0.5 shrink-0 text-[#4F8FF7]"
                                     />
-                                    <span className="break-all">{rowCourier}</span>
+                                    <span className="break-all">
+                                      {rowCourier}
+                                    </span>
                                   </span>
                                 )}
 
@@ -4057,7 +3988,9 @@ const ReturnRefund: React.FC = () => {
                                       size={11}
                                       className="shrink-0 text-[#4F8FF7]"
                                     />
-                                    <span className="truncate">{rowTrackingId}</span>
+                                    <span className="truncate">
+                                      {rowTrackingId}
+                                    </span>
                                   </span>
                                 )}
                               </div>
@@ -4070,10 +4003,16 @@ const ReturnRefund: React.FC = () => {
 
                           <td className="px-2 py-3">
                             <p
-                              title={request.reason || request.cancellation_reason || ""}
+                              title={
+                                request.reason ||
+                                request.cancellation_reason ||
+                                ""
+                              }
                               className="max-w-full break-words text-[10px] text-[#4B5563]"
                             >
-                              {request.reason || request.cancellation_reason || "No reason provided"}
+                              {request.reason ||
+                                request.cancellation_reason ||
+                                "No reason provided"}
                             </p>
                           </td>
 
@@ -4141,7 +4080,9 @@ const ReturnRefund: React.FC = () => {
                                 <button
                                   type="button"
                                   // Directly open Mark Received Popup
-                                  onClick={() => handleOpenReceivedFromTable(request.id)}
+                                  onClick={() =>
+                                    handleOpenReceivedFromTable(request.id)
+                                  }
                                   className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
                                 >
                                   <FiTruck size={11} />
@@ -4152,7 +4093,9 @@ const ReturnRefund: React.FC = () => {
                               {showComplete && (
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenCompleteFromTable(request.id)}
+                                  onClick={() =>
+                                    handleOpenCompleteFromTable(request.id)
+                                  }
                                   className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#2D6FE8] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
                                 >
                                   <FiCheckCircle size={11} />
@@ -4164,7 +4107,9 @@ const ReturnRefund: React.FC = () => {
                               {showMoveToInventory && (
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenMoveToInventory(request)}
+                                  onClick={() =>
+                                    handleOpenMoveToInventory(request)
+                                  }
                                   className="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-[#1E40AF] px-2 text-[10px] font-semibold leading-4 text-white transition hover:bg-[#2D6FE8] focus:outline-none focus:ring-2 focus:ring-[#2D6FE8]/20"
                                 >
                                   <FiPackage size={11} />
@@ -4182,7 +4127,6 @@ const ReturnRefund: React.FC = () => {
             </table>
           </div>
 
-
           {/* MOBILE */}
 
           <div className="block lg:hidden">
@@ -4199,8 +4143,7 @@ const ReturnRefund: React.FC = () => {
                   request.status === "received" && canCompleteReturn;
 
                 // ✅ show Move to Inventory only when completed + is_inventory_back === 0
-                const showMoveToInventory =
-                  shouldShowMoveToInventory(request);
+                const showMoveToInventory = shouldShowMoveToInventory(request);
 
                 // ✅ Refunded / Return amount
                 const rowRefunded = getRefundedAmount(request);
@@ -4285,20 +4228,14 @@ const ReturnRefund: React.FC = () => {
 
                       {rowCourier && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
-                          <FiPackage
-                            size={10}
-                            className="text-[#4F8FF7]"
-                          />
+                          <FiPackage size={10} className="text-[#4F8FF7]" />
                           {rowCourier}
                         </span>
                       )}
 
                       {rowTrackingId && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-[#DCE6F2] bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#111827]">
-                          <FiHash
-                            size={10}
-                            className="text-[#4F8FF7]"
-                          />
+                          <FiHash size={10} className="text-[#4F8FF7]" />
                           {rowTrackingId}
                         </span>
                       )}
@@ -4337,10 +4274,7 @@ const ReturnRefund: React.FC = () => {
                             className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white disabled:opacity-50"
                           >
                             {approveLoading ? (
-                              <FiRefreshCw
-                                size={15}
-                                className="animate-spin"
-                              />
+                              <FiRefreshCw size={15} className="animate-spin" />
                             ) : (
                               <FiCheck size={15} />
                             )}
@@ -4364,7 +4298,9 @@ const ReturnRefund: React.FC = () => {
                         <button
                           type="button"
                           // Directly open Mark Received Popup
-                          onClick={() => handleOpenReceivedFromTable(request.id)}
+                          onClick={() =>
+                            handleOpenReceivedFromTable(request.id)
+                          }
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiTruck size={14} />
@@ -4377,7 +4313,9 @@ const ReturnRefund: React.FC = () => {
                       <div className="mt-3">
                         <button
                           type="button"
-                          onClick={() => handleOpenCompleteFromTable(request.id)}
+                          onClick={() =>
+                            handleOpenCompleteFromTable(request.id)
+                          }
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#1E40AF]"
                         >
                           <FiCheckCircle size={14} />
@@ -4456,13 +4394,9 @@ const ReturnRefund: React.FC = () => {
               <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                 <p className="text-xs text-[#6B7280]">
                   Showing{" "}
-                  <span className="font-bold text-[#111827]">
-                    {startEntry}
-                  </span>{" "}
+                  <span className="font-bold text-[#111827]">{startEntry}</span>{" "}
                   to{" "}
-                  <span className="font-bold text-[#111827]">
-                    {endEntry}
-                  </span>{" "}
+                  <span className="font-bold text-[#111827]">{endEntry}</span>{" "}
                   of{" "}
                   <span className="font-bold text-[#111827]">
                     {filteredRequests.length}
@@ -4485,10 +4419,11 @@ const ReturnRefund: React.FC = () => {
                       key={page}
                       type="button"
                       onClick={() => handlePageChange(page)}
-                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${currentPage === page
-                        ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
-                        : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
-                        }`}
+                      className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition ${
+                        currentPage === page
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-md shadow-[#2D6FE8]/15"
+                          : "text-[#4B5563] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                      }`}
                     >
                       {page}
                     </button>
@@ -4539,9 +4474,7 @@ const ReturnRefund: React.FC = () => {
         <ApprovePopup
           open={approveModalOpen}
           loading={actionLoading.type === "approve"}
-          orderReference={
-            getItemReferenceId(selectedDetail)
-          }
+          orderReference={getItemReferenceId(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4568,9 +4501,7 @@ const ReturnRefund: React.FC = () => {
       {canMarkReceived && (
         <MarkReceivedPopup
           open={receivedModalOpen}
-          orderReference={
-            getItemReferenceId(selectedDetail)
-          }
+          orderReference={getItemReferenceId(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4587,9 +4518,7 @@ const ReturnRefund: React.FC = () => {
         <CompletePopup
           open={completeModalOpen}
           loading={completeLoading}
-          orderReference={
-            getItemReferenceId(selectedDetail)
-          }
+          orderReference={getItemReferenceId(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4606,9 +4535,7 @@ const ReturnRefund: React.FC = () => {
         <ReplacementConfirmPopup
           open={replacementConfirmOpen}
           loading={completeLoading}
-          orderReference={
-            getItemReferenceId(selectedDetail)
-          }
+          orderReference={getItemReferenceId(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),

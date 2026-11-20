@@ -275,7 +275,7 @@ export const orderApi = {
     order_reference: string;
     dispatch_all?: boolean;
     items?: { order_line_id: number }[];
-    courier_tracking_number: string;
+    courier_tracking_id: string;
     courier_company: string;
     delivery_notes?: string;
     courier_delivery_date?: string;

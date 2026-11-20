@@ -328,7 +328,7 @@ export interface OrderItem {
   categoryName?: string;
   brandName?: string;
   is_cancel_return_allowed?: boolean;
-  courier_tracking_number?: string;
+  courier_tracking_id?: string;
   courierTrackingNumber?: string;
   indiaPost?: IndiaPostOrderSummary | null;
   invoice?: { id: number; invoice_number: string } | null;
@@ -380,23 +380,23 @@ function verifiedItemIndiaPost(
     return null;
   return info;
 }
-
 function itemTrackingNumber(parent: any, item: any): string | undefined {
   const info = verifiedItemIndiaPost(parent, item);
+
   if (info) return info.awb;
-  // Existing manual/other-courier tracking remains item-specific.
+
   const manual =
-    item?.courier_tracking_number ??
-    item?.shipping_details?.courier_tracking_number;
-  const company = String(item?.shipping_details?.courier_company ?? "");
-  if (/india\s*post|speed\s*post|department\s+of\s+posts/i.test(company))
-    return undefined;
+    item?.courier_tracking_id ??
+    item?.shipping_details?.courier_tracking_id;
+
   if (
     typeof manual !== "string" ||
     !manual.trim() ||
     /^[A-Z]{2}\d{9}IN$/i.test(manual.trim())
-  )
+  ) {
     return undefined;
+  }
+
   return manual.trim();
 }
 
@@ -573,8 +573,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               if (!old) return item;
               return {
                 ...item,
-                courier_tracking_number:
-                  item.courier_tracking_number ??
+                courier_tracking_id:
+                  item.courier_tracking_id ??
                   (item.indiapost
                     ? undefined
                     : itemTrackingNumber(initial, {
@@ -966,7 +966,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
     gstAmount: item.gst_amount,
     is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
     indiaPost: verifiedItemIndiaPost(orderDetails, item),
-    courier_tracking_number: itemTrackingNumber(orderDetails, item),
+    courier_tracking_id: itemTrackingNumber(orderDetails, item),
     courierTrackingNumber: itemTrackingNumber(orderDetails, item),
     invoiceNumber: item.invoice?.invoice_number || undefined,
     invoice_number: item.invoice?.invoice_number || undefined,
@@ -1052,8 +1052,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("items")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "items"
-                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 }`}
             >
               <FiPackage className="mr-1.5 inline" size={13} />
@@ -1063,8 +1063,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("details")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "details"
-                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 }`}
             >
               <FiUser className="mr-1.5 inline" size={13} />
@@ -1076,8 +1076,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("tracking")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "tracking"
-                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 }`}
             >
               <FiTruck className="mr-1.5 inline" size={13} />
@@ -1087,8 +1087,8 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
               type="button"
               onClick={() => setActiveTab("payment")}
               className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${activeTab === "payment"
-                  ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                  : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
+                ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                : "bg-[#F4F8FD] text-[#111827] hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"
                 }`}
             >
               <FiCreditCard className="mr-1.5 inline" size={13} />
@@ -1218,12 +1218,13 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                                 {item.total}
                               </td>
                               <td className="px-3 py-3">
-                                {item.courier_tracking_number ? (
+                                {item.courier_tracking_id ? (
                                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
                                     <FiTruck size={11} />
-                                    {item.courier_tracking_number}
+                                    {item.courier_tracking_id}
                                   </span>
                                 ) : (
+
                                   <span className="text-xs text-[#6B7280]">
                                     —
                                   </span>
@@ -1662,7 +1663,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                           Courier Company
                         </span>
                         <span className="text-sm font-semibold text-[#111827]">
-                          {trackingInfo.courier_company || "N/A"}
+                          {trackingInfo.courier_tracking_id || "N/A"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between rounded-xl border border-[#2D6FE8]/10 bg-white p-3">
@@ -1670,7 +1671,7 @@ const ViewOrderPopup: React.FC<ViewOrderPopupProps> = ({
                           Tracking Number
                         </span>
                         <span className="text-sm font-semibold text-[#111827]">
-                          {trackingInfo.courier_tracking_number || "N/A"}
+                          {trackingInfo.courier_tracking_id || "N/A"}
                         </span>
                       </div>
                       {trackingInfo.courier_delivery_date && (
@@ -2017,7 +2018,7 @@ const DispatchPopup: React.FC<DispatchPopupProps> = ({
     try {
       const dispatchData: any = {
         order_reference: order.id,
-        courier_tracking_number: trackingNumber.trim(),
+        courier_tracking_id: trackingNumber.trim(),
         courier_company: finalCourierName,
         delivery_notes: notes || undefined,
         courier_delivery_date: expectedDelivery || undefined,
@@ -3069,7 +3070,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         brandId: item.brand_id,
         is_cancel_return_allowed: Boolean(item.is_cancel_return_allowed),
         indiaPost: verifiedItemIndiaPost(apiOrder, item),
-        courier_tracking_number: itemTrackingNumber(apiOrder, item),
+        courier_tracking_id: itemTrackingNumber(apiOrder, item),
         courierTrackingNumber: itemTrackingNumber(apiOrder, item),
         invoiceNumber: item.invoice?.invoice_number || undefined,
         invoice_number: item.invoice?.invoice_number || undefined,
@@ -3104,11 +3105,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       userPhone: apiOrder.user?.phone || "N/A",
       shippingAddress: apiOrder.shipping_address?.full_address || "N/A",
       shippingAddressFull: apiOrder.shipping_address?.full_address || "N/A",
-      trackingNumber: apiOrder.courier_tracking_number || "N/A",
+      trackingNumber: apiOrder.courier_tracking_id || "N/A",
       paymentGateway: apiOrder.payment_gateway || undefined,
       gatewayTransactionId: apiOrder.gateway_transaction_id || undefined,
       courierCompany: apiOrder.courier_company || undefined,
-      courierTrackingNumber: apiOrder.courier_tracking_number || undefined,
+      courierTrackingNumber: apiOrder.courier_tracking_id || undefined,
       indiaPost: null,
       courierDeliveryDate: apiOrder.courier_delivery_date || undefined,
       shippingDetails: apiOrder.shipping_details || undefined,
@@ -3198,7 +3199,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           return (
             (item.productName || "").toLowerCase().includes(searchText) ||
             (item.sku || "").toLowerCase().includes(searchText) ||
-            String(item.courier_tracking_number || "")
+            String(item.courier_tracking_id || "")
               .toLowerCase()
               .includes(searchText) ||
             String(item.invoiceNumber || "")
@@ -4197,8 +4198,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 type="button"
                 onClick={clearFilters}
                 className={`h-11 rounded-xl px-3 text-xs font-semibold transition-all ${hasActiveFilters
-                    ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
-                    : "text-[#9CA3AF] hover:text-[#2D6FE8]"
+                  ? "bg-[#EAF3FF] text-[#2D6FE8] hover:bg-[#DBEAFE]"
+                  : "text-[#9CA3AF] hover:text-[#2D6FE8]"
                   }`}
               >
                 <FiFilter size={14} className="mr-1.5 inline" />
@@ -4388,8 +4389,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                       {/* ORDER HEADER ROW */}
                       <tr
                         className={`${selectedOrderId === group.id
-                            ? "bg-[#DBEAFE]"
-                            : "bg-[#EAF3FF]"
+                          ? "bg-[#DBEAFE]"
+                          : "bg-[#EAF3FF]"
                           }`}
                       >
                         <td colSpan={8} className="px-3 py-3">
@@ -4562,11 +4563,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               {item.total}
                             </td>
                             <td className="px-3 py-3">
-                              {item.courier_tracking_number ? (
+                              {item.courier_tracking_id ? (
                                 <div className="space-y-1">
                                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
                                     <FiTruck size={11} />
-                                    {item.courier_tracking_number}
+                                    {item.courier_tracking_id}
                                   </span>
                                   {item.indiaPost && (
                                     <>
@@ -4710,8 +4711,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             onClick={() => handleToggleOrderCancelReturn(group)}
                             disabled={isTogglingOrder}
                             className={`flex-1 rounded-lg px-3 py-2 text-[11px] font-bold transition disabled:opacity-60 ${cancelState === "allowed"
-                                ? "bg-white text-[#2D6FE8]"
-                                : "bg-[#F4F8FD] text-[#6B7280]"
+                              ? "bg-white text-[#2D6FE8]"
+                              : "bg-[#F4F8FD] text-[#6B7280]"
                               }`}
                           >
                             {isTogglingOrder
@@ -4811,7 +4812,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               </span>
                             </div>
 
-                            {item.indiaPost && item.courier_tracking_number && (
+                            {item.indiaPost && item.courier_tracking_id && (
                               <div className="mt-2 rounded-xl border border-[#2D6FE8]/15 bg-[#EAF3FF] p-2.5 text-[11px]">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <span className="font-bold text-[#2D6FE8]">
@@ -4829,9 +4830,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             )}
 
                             {!item.indiaPost &&
-                              item.courier_tracking_number && (
+                              item.courier_tracking_id && (
                                 <div className="mt-2 text-[11px] font-medium text-[#2D6FE8]">
-                                  Tracking No.: {item.courier_tracking_number}
+                                  Tracking No.: {item.courier_tracking_id}
                                 </div>
                               )}
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -4966,8 +4967,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         type="button"
                         onClick={() => changePage(page)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === page
-                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
-                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white shadow-[0_6px_14px_-6px_rgba(45,111,232,0.5)]"
+                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
                           }`}
                       >
                         {page}
@@ -4981,8 +4982,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         type="button"
                         onClick={() => changePage(totalPages)}
                         className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-xs font-bold transition-all ${currentPage === totalPages
-                            ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
-                            : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                          ? "bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] text-white"
+                          : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
                           }`}
                       >
                         {totalPages}

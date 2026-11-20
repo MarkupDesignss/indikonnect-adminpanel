@@ -29,6 +29,9 @@ import salesReportApi, {
 import { usePermissions } from "../permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
+// ✅ NEW: product-wise CSV export (one row per product)
+import { mapApiOrdersForCsv, downloadOrdersCsv } from "../orders/csvUtils";
+
 /* ================= THEME ================= */
 const THEME = {
   primary: "#2D6FE8",
@@ -49,6 +52,7 @@ const THEME = {
 };
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
+
 /* ================= HELPERS ================= */
 const money = (value: number | null | undefined) => {
   return new Intl.NumberFormat("en-IN", {
@@ -68,7 +72,6 @@ const safeValue = (value: unknown) => {
 };
 const formatDate = (value: string | null) => {
   if (!value) return "—";
-  // API format: 17-11-2026 14:57
   const match = value.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
   if (match) {
     const [, day, month, year, hour, minute] = match;
@@ -92,10 +95,7 @@ const formatDate = (value: string | null) => {
 const getStatusStyle = (status: string) => {
   const value = (status || "").toLowerCase();
   if (value === "delivered" || value === "completed" || value === "success") {
-    return {
-      bg: THEME.greenSoft,
-      color: THEME.green,
-    };
+    return { bg: THEME.greenSoft, color: THEME.green };
   }
   if (
     value === "cancelled" ||
@@ -103,10 +103,7 @@ const getStatusStyle = (status: string) => {
     value === "failed" ||
     value === "refunded"
   ) {
-    return {
-      bg: THEME.redSoft,
-      color: THEME.red,
-    };
+    return { bg: THEME.redSoft, color: THEME.red };
   }
   if (
     value === "shipped" ||
@@ -116,43 +113,21 @@ const getStatusStyle = (status: string) => {
     value === "partial_shipped" ||
     value === "partial_refunded"
   ) {
-    return {
-      bg: THEME.purpleSoft,
-      color: THEME.purple,
-    };
+    return { bg: THEME.purpleSoft, color: THEME.purple };
   }
   if (value === "dispatched" || value === "confirmed" || value === "pending") {
-    return {
-      bg: THEME.orangeSoft,
-      color: THEME.orange,
-    };
+    return { bg: THEME.orangeSoft, color: THEME.orange };
   }
-  return {
-    bg: "#F3F4F6",
-    color: "#4B5563",
-  };
+  return { bg: "#F3F4F6", color: "#4B5563" };
 };
-const escapeCsv = (value: unknown) => {
-  let text = value === null || value === undefined ? "" : String(value);
-  // Prevent spreadsheet formula execution without modifying numeric values.
-  if (
-    typeof value === "string" &&
-    /^[\s]*[=+@-]|^[\t\r\n]/.test(text) &&
-    !/^-?\d+(?:\.\d+)?$/.test(text)
-  )
-    text = "'" + text;
-  return `"${text.replace(/"/g, '""')}"`;
-};
+
 /* ================= BADGE ================= */
 const StatusBadge = ({ status }: { status: string }) => {
   const style = getStatusStyle(status);
   return (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold capitalize"
-      style={{
-        background: style.bg,
-        color: style.color,
-      }}
+      style={{ background: style.bg, color: style.color }}
     >
       <span
         className="h-1.5 w-1.5 rounded-full"
@@ -162,6 +137,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     </span>
   );
 };
+
 /* ================= COMPACT SUMMARY CARD ================= */
 const CompactSummaryCard = ({
   title,
@@ -198,6 +174,7 @@ const CompactSummaryCard = ({
     </div>
   </div>
 );
+
 /* ================= DETAIL ITEM ================= */
 const DetailItem = ({
   label,
@@ -215,6 +192,7 @@ const DetailItem = ({
     </div>
   </div>
 );
+
 /* ================= MOBILE CARD ================= */
 const MobileSalesCard = ({ item }: { item: SalesReportItem }) => {
   return (
@@ -359,6 +337,7 @@ const MobileSalesCard = ({ item }: { item: SalesReportItem }) => {
     </div>
   );
 };
+
 /* ================= FILTER CONFIGURATION ================= */
 const DATE_FIELDS = [
   "Order Date",
@@ -432,8 +411,6 @@ const numeric = (value: unknown) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 };
-// API contains timezone-less DD-MM-YYYY HH:mm values. Compare as business wall-clock
-// dates, not as browser local timestamps; no timezone conversion of API values.
 const parseReportDate = (value: unknown) => {
   const match = String(value ?? "")
     .trim()
@@ -560,17 +537,15 @@ const SORT_OPTIONS = [
 
 /* ================= MAIN PAGE ================= */
 const SalesReportproducts = () => {
-  /* ---------- PERMISSIONS ---------- */
   const {
     hasPermission,
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
-  // Can user view this report?
   const canViewReport = isSuperAdmin || hasPermission("sales_report.view");
-  // Can user export CSV?
   const canExport =
     canViewReport && (isSuperAdmin || hasPermission("sales_report.download"));
+
   /* ---------- LOGO ---------- */
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
@@ -597,9 +572,7 @@ const SalesReportproducts = () => {
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
+        if (!cancelled) setLogoLoading(false);
       }
     };
     void fetchLogo();
@@ -607,6 +580,7 @@ const SalesReportproducts = () => {
       cancelled = true;
     };
   }, []);
+
   /* ---------- DATA ---------- */
   const [reports, setReports] = useState<SalesReportItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -618,6 +592,7 @@ const SalesReportproducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(100);
   const requestId = useRef(0);
+
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -634,8 +609,8 @@ const SalesReportproducts = () => {
     setFilters((prev) => ({ ...prev, preset: "custom", [key]: value }));
     setCurrentPage(1);
   };
+
   /* ================= FETCH ALL API PAGES ================= */
-  // Uses only the existing, demonstrated page/per_page API parameters.
   const fetchReports = useCallback(
     async (showLoader = true) => {
       if (!canViewReport || permissionsLoading) return;
@@ -710,6 +685,7 @@ const SalesReportproducts = () => {
     },
     [canViewReport, permissionsLoading],
   );
+
   useEffect(() => {
     if (permissionsLoading || !canViewReport) {
       setReports([]);
@@ -721,6 +697,7 @@ const SalesReportproducts = () => {
       requestId.current += 1;
     };
   }, [permissionsLoading, canViewReport, fetchReports]);
+
   /* ================= FILTER DATA ================= */
   const options = useMemo(() => {
     const distinct = (field: string) =>
@@ -733,10 +710,12 @@ const SalesReportproducts = () => {
       ).sort();
     return { order: distinct("Order Status") };
   }, [reports]);
+
   const invalidRange =
     filters.fromDate && filters.toDate && filters.fromDate > filters.toDate
       ? "From date cannot be after to date."
       : "";
+
   const filteredReports = useMemo(() => {
     if (invalidRange) return [];
     const query = normalize(filters.search);
@@ -773,6 +752,7 @@ const SalesReportproducts = () => {
       return filters.sort === "oldest" ? x - y : y - x;
     });
   }, [reports, filters, invalidRange]);
+
   const totalRecords = filteredReports.length;
   const lastPage = Math.max(1, Math.ceil(totalRecords / perPage));
   const activePage = Math.min(currentPage, lastPage);
@@ -781,10 +761,12 @@ const SalesReportproducts = () => {
       filteredReports.slice((activePage - 1) * perPage, activePage * perPage),
     [filteredReports, activePage, perPage],
   );
+
   const clearFilters = () => {
     setFilters(initialFilters());
     setCurrentPage(1);
   };
+
   /* ================= SUMMARY ================= */
   const summary = useMemo(() => {
     return filteredReports.reduce(
@@ -807,7 +789,10 @@ const SalesReportproducts = () => {
       },
     );
   }, [filteredReports]);
-  /* ================= CSV EXPORT ================= */
+
+  /* ================= CSV EXPORT (PRODUCT-WISE) ================= */
+  // ✅ REPLACED: product-wise CSV, one row per product, with Product Name
+  // / SKU / Item Reference populated from the API's Products[] array.
   const exportCSV = () => {
     if (!canExport) {
       toast.error("You don't have permission to export this report.");
@@ -817,35 +802,20 @@ const SalesReportproducts = () => {
       toast.error("No sales records available to export");
       return;
     }
-    const headers = CSV_FIELDS;
-    const rows = filteredReports.map((item) =>
-      headers.map((header) => escapeCsv(readField(item, header))),
-    );
-    const csvContent = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\r\n");
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sales-report-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Sales report exported successfully");
+    const mapped = mapApiOrdersForCsv(filteredReports);
+    downloadOrdersCsv(mapped, "sales-report");
   };
+
   /* ================= PAGINATION ================= */
   const startRecord = totalRecords === 0 ? 0 : (activePage - 1) * perPage + 1;
   const endRecord = Math.min(activePage * perPage, totalRecords);
+
   /* ================= LOADING ================= */
   const pageLoading = permissionsLoading || logoLoading;
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
+
   /* ================= ACCESS DENIED ================= */
   if (!canViewReport) {
     return (
@@ -862,6 +832,7 @@ const SalesReportproducts = () => {
       </div>
     );
   }
+
   /* ================= UI ================= */
   return (
     <div
@@ -911,6 +882,7 @@ const SalesReportproducts = () => {
           )}
         </div>
       </div>
+
       {/* COMPACT SUMMARY CARDS — 6 in one row */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <CompactSummaryCard
@@ -967,6 +939,7 @@ const SalesReportproducts = () => {
           isMoney
         />
       </div>
+
       {/* SEARCH AND FILTERS */}
       <div className="space-y-4 rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -991,6 +964,7 @@ const SalesReportproducts = () => {
             </button>
           </div>
         </div>
+
         {/* PRIMARY FILTERS */}
         <Field label="Search sales records">
           <div className="relative">
@@ -1083,6 +1057,7 @@ const SalesReportproducts = () => {
             </div>
           </div>
         </div>
+
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
@@ -1150,7 +1125,6 @@ const SalesReportproducts = () => {
                     const key = `${item["Bill Id"]}-${index}`;
                     return (
                       <tr key={key} className="transition hover:bg-[#F8FBFF]">
-                        {/* BILL */}
                         <td className="px-4 py-4 align-top">
                           <p className="text-xs font-bold text-gray-900">
                             {item["Bill Id"]}
@@ -1162,7 +1136,6 @@ const SalesReportproducts = () => {
                             User: {item["User Name"] || "—"}
                           </p>
                         </td>
-                        {/* CUSTOMER */}
                         <td className="max-w-[180px] px-4 py-4 align-top">
                           <p className="truncate text-xs font-semibold text-gray-800">
                             {item["Customer Name"]}
@@ -1174,7 +1147,6 @@ const SalesReportproducts = () => {
                             {item["Customer Shipping State"] || "—"}
                           </p>
                         </td>
-                        {/* ORDER AMOUNT */}
                         <td className="px-4 py-4 align-top">
                           <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
                             {money(item["Order Amount"])}
@@ -1183,7 +1155,6 @@ const SalesReportproducts = () => {
                             Gross: {money(item["Gross Total"])}
                           </p>
                         </td>
-                        {/* NET */}
                         <td className="px-4 py-4 align-top">
                           <p className="whitespace-nowrap text-xs font-bold text-[#15803D]">
                             {money(item["Net Order Amount"])}
@@ -1194,7 +1165,6 @@ const SalesReportproducts = () => {
                             </p>
                           )}
                         </td>
-                        {/* TAX */}
                         <td className="px-4 py-4 align-top">
                           <p className="whitespace-nowrap text-xs font-semibold text-gray-800">
                             {money(item["Total Tax"])}
@@ -1206,7 +1176,6 @@ const SalesReportproducts = () => {
                             IGST: {money(item.IGST)}
                           </p>
                         </td>
-                        {/* ITEMS */}
                         <td className="px-4 py-4 align-top">
                           <p className="text-xs font-semibold text-gray-800">
                             {item["Total Items"]}
@@ -1215,7 +1184,6 @@ const SalesReportproducts = () => {
                             CV: {numberFormat(item.CV)}
                           </p>
                         </td>
-                        {/* ORDER STATUS */}
                         <td className="px-4 py-4 align-top">
                           <StatusBadge status={item["Order Status"]} />
                         </td>
@@ -1225,6 +1193,7 @@ const SalesReportproducts = () => {
                 </tbody>
               </table>
             </div>
+
             {/* MOBILE CARDS */}
             <div className="space-y-3 p-3 lg:hidden">
               {paginatedReports.map((item, index) => (
@@ -1234,6 +1203,7 @@ const SalesReportproducts = () => {
                 />
               ))}
             </div>
+
             {/* PAGINATION */}
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">

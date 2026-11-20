@@ -25,6 +25,21 @@ export const escapeCsvValue = (value: any): string => {
   return /[,"\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 };
 
+/**
+ * The order-list API returns dates as "DD-MM-YYYY HH:mm".
+ * Native `new Date("20-11-2026 15:32")` is invalid in most browsers,
+ * so convert to an ISO-ish string before formatting.
+ */
+export const parseApiDate = (value?: string | null): string => {
+  if (!value) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  const m = raw.match(/^(\d{2})-(\d{2})-(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+  if (!m) return raw;
+  const [, dd, mm, yyyy, hh = "00", min = "00"] = m;
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+};
+
 export const formatCsvDate = (value?: string | null) => {
   if (!value) return "";
   const date = new Date(value);
@@ -43,6 +58,63 @@ export const formatCsvStatus = (status?: string) =>
     ? status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
     : "";
 
+// =====================================================
+// API -> CSV SHAPE MAPPER
+// =====================================================
+//
+// The order-list API returns:
+//   order["Bill Id"], order["Order Date"], order["Customer Name"],
+//   order["Products"] = [{ name, slug, product_code }, ...]
+//
+// `generateOrdersCsv` expects `order.items[].product_name`, etc.
+// This mapper converts each API order into that shape — one item per
+// product — so PRODUCT NAME / SKU / ITEM REFERENCE appear in the CSV.
+//
+export const mapApiOrdersForCsv = (apiOrders: any[]): any[] => {
+  return (apiOrders || []).map((o) => {
+    const products: any[] = Array.isArray(o?.Products) ? o.Products : [];
+
+    const items = products.length
+      ? products.map((p) => ({
+          product_name: p?.name || "",
+          product_code: p?.product_code || "",
+          sku: p?.product_code || "",
+          item_reference_id: p?.slug || "",
+          // API does not expose per-product qty/price — leave blank.
+          quantity: undefined,
+          unit_price: undefined,
+          line_total: undefined,
+          delivery_status: o?.["Delivery Status"] || o?.["Order Status"] || "",
+          courier_tracking_number: "",
+        }))
+      : [null]; // fallback: one row carrying only order-level data
+
+    return {
+      order_reference: o?.["Bill Id"] || "",
+      order_date: parseApiDate(o?.["Order Date"]),
+      orderDateRaw: parseApiDate(o?.["Order Date"]),
+      customer: o?.["Customer Name"] || "",
+      userEmail: "",
+      userPhone: o?.["Customer Mobile"] || "",
+      order_type: "retail",
+      order_status: o?.["Order Status"] || "",
+      payment_status: o?.["Is Refunded"] === "TRUE" ? "refunded" : "",
+      payment_gateway: "",
+      gateway_transaction_id: "",
+      subtotal: o?.["Total List Price"] ?? o?.["Gross Total"] ?? 0,
+      total_gst: o?.["Total Tax"] ?? 0,
+      shipping_charge: o?.["Shipping Charge"] ?? 0,
+      total_payable: o?.["Order Amount"] ?? 0,
+      amount_paid: o?.["Net Order Amount"] ?? 0,
+      shipping_address: o?.["Customer Shipping State"] || "",
+      courier_company: "",
+      courier_tracking_number: "",
+      courier_delivery_date: parseApiDate(o?.["Delivered At"]),
+      items,
+    };
+  });
+};
+
 /**
  * Item-based CSV generator.
  *
@@ -51,10 +123,13 @@ export const formatCsvStatus = (status?: string) =>
  *   - a single-row order whose `.items` contains only the filtered item(s).
  *
  * In either case, the resulting CSV will contain ONE ROW PER ITEM.
+ *
+ * Column order: Product Name is now the FIRST data column (right after S.No.).
  */
 export const generateOrdersCsv = (orders: any[]): string => {
   const headers = [
     "S.No.",
+    "Product Name", // ✅ moved to position 2
     "Order Reference",
     "Order Date",
     "Customer Name",
@@ -75,7 +150,6 @@ export const generateOrdersCsv = (orders: any[]): string => {
     "Courier Tracking Number",
     "Courier Delivery Date",
     "Item Reference",
-    "Product Name",
     "SKU",
     "Quantity",
     "Unit Price",
@@ -95,9 +169,8 @@ export const generateOrdersCsv = (orders: any[]): string => {
       counter += 1;
       const row = [
         counter,
+        item?.product_name || item?.productName || "", // ✅ moved to position 2
         order.order_reference || order.id || "",
-        // Prefer the raw order date field (set by the item-row converter),
-        // then fall back to `.date` / `.order_date`.
         formatCsvDate(order.orderDateRaw || order.order_date || order.date) ||
           "",
         order.user?.name || order.customer || "",
@@ -120,7 +193,6 @@ export const generateOrdersCsv = (orders: any[]): string => {
           order.courier_delivery_date || order.courierDeliveryDate,
         ) || "",
         item?.item_reference_id || item?.itemReferenceId || "",
-        item?.product_name || item?.productName || "",
         item?.product_code || item?.sku || "",
         item?.quantity ?? "",
         item?.unit_price != null
@@ -150,7 +222,6 @@ export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
   }
 
   try {
-    // Count actual item rows that will be written (not just order records).
     const itemRowCount = orders.reduce((total, order) => {
       const count =
         Array.isArray(order.items) && order.items.length
@@ -227,9 +298,6 @@ const asNumber = (value: any, fallback = 0): number => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 };
-
-const hasNumber = (value: any): boolean =>
-  isPresent(value) && Number.isFinite(Number(value));
 
 const formatMoney = (value: any): string =>
   asNumber(value).toLocaleString("en-IN", {
@@ -341,7 +409,7 @@ const amountInWords = (value: number): string => {
 };
 
 // =====================================================
-// LINE NORMALIZATION — READS ONLY THE REQUESTED FIELDS
+// LINE NORMALIZATION
 // =====================================================
 
 type InvoiceLine = {
@@ -392,7 +460,6 @@ export const openInvoicePdfInNewTab = async (
     const seller: AnyObject = invoice.seller ?? {};
     const buyer: AnyObject = invoice.buyer ?? {};
 
-    // order_items may be an ARRAY (full_order) or an OBJECT (single_item).
     const orderItems: AnyObject[] = (() => {
       const raw = (order as any).order_items ?? (order as any).items;
       if (Array.isArray(raw)) return raw;
@@ -436,7 +503,6 @@ export const openInvoicePdfInNewTab = async (
       firstPresent(invoice.total_payable, order.total_payable),
     );
 
-    // Totals
     const totalQty = lines.reduce((s, r) => s + r.qty, 0);
     const totalTaxable = lines.reduce((s, r) => s + r.linePriceExclGst, 0);
     const totalPriceIncl = lines.reduce((s, r) => s + r.linePriceInclGst, 0);
@@ -901,7 +967,7 @@ export const openInvoicePdfInNewTab = async (
     drawAddressColumn(shipCol);
     y += infoBlockH;
 
-    // 4. PRODUCT TABLE — ONLY THE REQUESTED FIELDS
+    // 4. PRODUCT TABLE
     const widths = [22, 56, 150, 28, 52, 52, 48, 48, 60, 52, 60];
     const totalWidthRatio = W / widths.reduce((sum, n) => sum + n, 0);
     const columnStyles: Record<number, any> = {};
@@ -925,13 +991,13 @@ export const openInvoicePdfInNewTab = async (
         asText(firstPresent(src.hsn_code, src.product_code)),
         asText(firstPresent(src.product_name, src.name)),
         asText(row.qty),
-        formatMoney(row.linePriceExclGst), // Taxable (excl.)
-        formatMoney(row.linePriceInclGst), // Price (incl.)
-        formatMoney(row.lineGstAmount), // GST amount
-        formatMoney(row.igstAmount), // IGST amount
-        formatMoney(row.lineTotalExclGst), // Line total (excl.)
-        formatMoney(row.lineTotalGstAmount), // Line total GST
-        formatMoney(row.lineTotalInclGst), // Line total (incl.)
+        formatMoney(row.linePriceExclGst),
+        formatMoney(row.linePriceInclGst),
+        formatMoney(row.lineGstAmount),
+        formatMoney(row.igstAmount),
+        formatMoney(row.lineTotalExclGst),
+        formatMoney(row.lineTotalGstAmount),
+        formatMoney(row.lineTotalInclGst),
       ]);
 
       if (row.shippingInclGst > 0 || row.shippingExclGst > 0) {
@@ -1093,7 +1159,7 @@ export const openInvoicePdfInNewTab = async (
       y += 21;
     }
 
-    // 8. ANNEXURE — ONLY REQUESTED SHIPPING FIELDS
+    // 8. ANNEXURE
     const charges = lines
       .filter((line) => line.shippingInclGst > 0 || line.shippingExclGst > 0)
       .map((line) => ({
@@ -1146,7 +1212,6 @@ export const openInvoicePdfInNewTab = async (
           ?.finalY ?? y) + 8;
     }
 
-    // Consistent printed footer on every page.
     const pageCount = doc.getNumberOfPages();
     for (let index = 1; index <= pageCount; index++) {
       doc.setPage(index);
