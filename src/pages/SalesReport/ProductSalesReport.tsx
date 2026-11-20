@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Search,
   RefreshCw,
@@ -12,185 +17,258 @@ import {
   CalendarDays,
   ChevronRight,
   ChevronLeft,
-  X,
+  ChevronDown,
   FileText,
   Loader2,
   Filter,
   ShieldAlert,
+  X,
   Layers3,
-  ChartNoAxesCombined,
 } from "lucide-react";
-
 import { toast } from "react-hot-toast";
-
-import productSalesReportApi, {
-  ProductSalesReportData,
-  CategorySalesRow,
-  ProductSalesRow,
-} from "../../api/endpoints/report/productSalesReport";
-
+import { orderApi } from "../../api/endpoints/orders";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
-/* ================= THEME ================= */
-
-const THEME = {
-  primary: "#2D6FE8",
-  primaryDark: "#1E40AF",
-  primarySoft: "#EAF3FF",
-  background: "#F4F8FD",
-  border: "#DCE6F2",
-  green: "#15803D",
-  greenSoft: "#DCFCE7",
-  orange: "#C2410C",
-  orangeSoft: "#FFEDD5",
-  purple: "#6D28D9",
-  purpleSoft: "#EDE9FE",
-};
-
+/* ================= TYPES ================= */
+type Money = number | string | null;
+interface ReportItem {
+  line_id: number | string;
+  item_reference_id?: string;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  brand_name?: string;
+  category_name?: string;
+  quantity: Money;
+  unit_price: Money;
+  gst_amount?: Money;
+  delivery_charges?: Money;
+  line_total: Money;
+  delivery_status?: string;
+  return_status?: string;
+  primary_image?: string | null;
+  images?: { image_url?: string; is_primary?: boolean }[];
+  invoice?: { invoice_number?: string } | null;
+}
+interface ReportOrder {
+  id: number | string;
+  order_reference: string;
+  order_date: string;
+  order_status?: string;
+  payment_status?: string;
+  order_type?: string;
+  total_payable: Money;
+  user?: { name?: string; ba_id?: string } | null;
+  items: ReportItem[];
+}
+type WeekRange = { from: string; to: string };
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
-
-/* ================= HELPERS ================= */
-
-const numberFormat = (value: number | null | undefined) =>
-  Number(value || 0).toLocaleString("en-IN");
-
-const currencyFormat = (value: number | null | undefined) =>
-  `₹${numberFormat(value)}`;
-
-const escapeCsv = (value: unknown) => {
-  let text = value === null || value === undefined ? "" : String(value);
-  // Avoid Excel interpreting user-controlled text as a formula.
-  if (typeof value === "string" && /^[\s]*[=+\-@]/.test(text))
-    text = "'" + text;
-  return `"${text.replace(/"/g, '""')}"`;
+const TIME_ZONE = "Asia/Kolkata";
+const DAY = 86400000;
+const PAGE_SIZE = 10;
+const integer = new Intl.NumberFormat("en-IN");
+const inr = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 };
+const money = (v: Money | undefined) =>
+  v == null || v === "" ? "—" : inr.format(num(v));
+const label = (v?: string) =>
+  v ? v.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—";
+const orderKey = (o: ReportOrder) => String(o.id);
+const dateFormat = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
-const getCurrentISOWeek = (date = new Date()) => {
-  const current = new Date(
-    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
-  );
-
-  const day = current.getUTCDay() || 7;
-
-  current.setUTCDate(current.getUTCDate() + 4 - day);
-
-  const yearStart = new Date(Date.UTC(current.getUTCFullYear(), 0, 1));
-
+/* ISO weeks, Monday through Sunday. UTC here is used as a calendar-day coordinate. */
+function indiaDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+function dateKeyValid(key: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return false;
+  const d = new Date(`${key}T00:00:00Z`);
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === key;
+}
+function orderDay(value: string): string | null {
+  if (typeof value !== "string" || !value) return null;
+  const s = value.trim();
+  // Laravel timestamps without an offset are assumed to be India business time.
+  const local =
+    /^(\d{4}-\d{2}-\d{2})(?:[ T](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?)?$/.exec(
+      s,
+    );
+  if (local) return dateKeyValid(local[1]) ? local[1] : null;
+  // Only explicitly zoned timestamps are interpreted as instants.
+  if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(s) || !dateKeyValid(s.slice(0, 10)))
+    return null;
+  const d = new Date(s.replace(" ", "T"));
+  return Number.isFinite(d.getTime()) ? indiaDateKey(d) : null;
+}
+function weekOne(year: number) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  return jan4.getTime() - ((jan4.getUTCDay() + 6) % 7) * DAY;
+}
+function isoWeek(day: string): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  const monday = date.getTime() - ((date.getUTCDay() + 6) % 7) * DAY;
+  const year = new Date(monday + 3 * DAY).getUTCFullYear();
+  return `${year}-W${String(Math.floor((monday - weekOne(year)) / (7 * DAY)) + 1).padStart(2, "0")}`;
+}
+function weekStart(key: string): number | null {
+  const m = /^(\d{4})-W(\d{2})$/.exec(key);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const week = Number(m[2]);
+  const start = weekOne(year) + (week - 1) * 7 * DAY;
+  return week >= 1 && start < weekOne(year + 1) ? start : null;
+}
+function toDay(t: number) {
+  return new Date(t).toISOString().slice(0, 10);
+}
+function bounds(range: WeekRange) {
+  const from = weekStart(range.from);
+  const to = weekStart(range.to);
+  if (from == null || to == null || from > to) return null;
   return {
-    year: current.getUTCFullYear(),
-    week: Math.ceil(
-      ((current.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
-    ),
+    from: toDay(from),
+    until: toDay(to + 7 * DAY),
+    end: toDay(to + 6 * DAY),
+    text: `${dateFormat.format(from)} – ${dateFormat.format(to + 6 * DAY)}`,
   };
-};
+}
+function weekOptions(firstYear: number, current: string) {
+  const result: { value: string; label: string }[] = [];
+  for (let year = Number(current.slice(0, 4)); year >= firstYear; year--) {
+    const count = (weekOne(year + 1) - weekOne(year)) / (7 * DAY);
+    for (let week = count; week >= 1; week--) {
+      const value = `${year}-W${String(week).padStart(2, "0")}`;
+      if (value > current) continue;
+      result.push({
+        value,
+        label: `Week ${String(week).padStart(2, "0")}, ${year}`,
+      });
+    }
+  }
+  return result;
+}
 
-const getWeekLabel = (week: number) => `Week ${String(week).padStart(2, "0")}`;
-
-const getYearOptions = () => {
-  const currentYear = Math.max(
-    new Date().getFullYear(),
-    getCurrentISOWeek().year,
+function escapeCsv(value: unknown) {
+  let s = value == null ? "" : String(value);
+  if (typeof value === "string" && /^[\s]*[=+\-@]|^[\t\r\n]/.test(s))
+    s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+function downloadCsv(rows: unknown[][], filename: string) {
+  const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+  const url = URL.createObjectURL(
+    new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" }),
   );
-  return Array.from({ length: 6 }, (_, index) => currentYear - index);
-};
-
-const getWeeklyValue = (
-  weekly: Record<string, number> | undefined,
-  week: number,
-) => Number(weekly?.[String(week)] || 0);
-
-/* ================= SUMMARY CARD ================= */
-
-type SummaryCardProps = {
-  title: string;
-  value: string | number;
-  subtitle: string;
-  icon: React.ElementType;
-  color: string;
-  bg: string;
-};
-
-const SummaryCard = ({
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function Status({ value }: { value?: string }) {
+  const status = (value || "").toLowerCase();
+  const color = ["paid", "delivered", "completed"].includes(status)
+    ? "bg-green-50 text-green-700"
+    : ["cancelled", "canceled", "failed", "refunded"].includes(status)
+      ? "bg-red-50 text-red-700"
+      : ["pending", "processing", "undelivered"].includes(status)
+        ? "bg-amber-50 text-amber-700"
+        : "bg-[#EAF3FF] text-[#2D6FE8]";
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${color}`}
+    >
+      {label(value)}
+    </span>
+  );
+}
+function ProductImage({ item }: { item: ReportItem }) {
+  const src =
+    item.primary_image ||
+    item.images?.find((i) => i.is_primary)?.image_url ||
+    item.images?.[0]?.image_url;
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  return (
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] text-slate-400">
+      {src && !failed ? (
+        <img
+          src={src}
+          alt={item.product_name}
+          loading="lazy"
+          onError={() => setFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <Package size={19} />
+      )}
+    </div>
+  );
+}
+function SummaryCard({
   title,
   value,
-  subtitle,
+  detail,
   icon: Icon,
-  color,
-  bg,
-}: SummaryCardProps) => (
-  <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-    <div
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-      style={{ background: bg, color }}
-    >
-      <Icon size={17} />
-    </div>
-
-    <div className="min-w-0 flex-1">
-      <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
-        {title}
-      </p>
-
-      <h3 className="mt-0.5 break-words text-sm font-bold tracking-tight text-gray-900 sm:text-base">
-        {value}
-      </h3>
-
-      <p className="mt-0.5 truncate text-[9px] text-gray-400">{subtitle}</p>
-    </div>
-  </div>
-);
-
-/* ================= SECTION TAB ================= */
-
-type ReportTab = "category" | "products" | "orders";
-type ReportView = "weekly" | "comparison";
-
-type SectionTabProps = {
-  active: boolean;
-  label: string;
-  count: number;
+  tone,
+}: {
+  title: string;
+  value: string;
+  detail: string;
   icon: React.ElementType;
-  onClick: () => void;
-};
+  tone: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone}`}
+      >
+        <Icon size={20} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-slate-500">{title}</p>
+        <p className="mt-1 break-words text-lg font-bold text-slate-900">
+          {value}
+        </p>
+        <p className="mt-0.5 text-[10px] text-slate-500">{detail}</p>
+      </div>
+    </div>
+  );
+}
+const buttonClass =
+  "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-3.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+const primaryClass =
+  "inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50";
+const inputClass =
+  "h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100";
 
-const SectionTab = ({
-  active,
-  label,
-  count,
-  icon: Icon,
-  onClick,
-}: SectionTabProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-semibold transition ${
-      active
-        ? "bg-[#2D6FE8] text-white shadow-sm"
-        : "border border-[#DCE6F2] bg-white text-gray-600 hover:bg-[#F4F8FD]"
-    }`}
-  >
-    <Icon size={15} />
-
-    {label}
-
-    <span
-      className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-        active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
-      }`}
-    >
-      {count}
-    </span>
-  </button>
-);
-
-/* ================= MAIN COMPONENT ================= */
-
+/* ================= REPORT ================= */
 const ProductSalesReport = () => {
-  /* ================= PERMISSIONS ================= */
-
   const {
     hasPermission,
     hasAnyPermission,
@@ -198,1094 +276,768 @@ const ProductSalesReport = () => {
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
+  const canViewReport =
+    isSuperAdmin ||
+    hasPermission("sales.view") ||
+    hasAnyPermission([
+      "sales.view",
+      "sales_product_report.view",
+      "product_sales_report.view",
+      "sales_report.view",
+      "sales_report.products.view",
+      "reports.sales.view",
+      "reports.view",
+    ]) ||
+    [
+      "sales_product_report",
+      "product_sales_report",
+      "sales_report",
+      "reports",
+    ].some((module) => hasModuleAccess(module));
+  const canExport =
+    isSuperAdmin ||
+    hasAnyPermission([
+      "sales_product_report.download",
+      "sales_product_report.export",
+      "product_sales_report.download",
+      "sales_report.download",
+      "sales_report.export",
+    ]) ||
+    hasModuleAccess("sales_product_report.download") ||
+    hasModuleAccess("sales_report.download");
 
-  const canViewReport = useMemo(() => {
-    if (isSuperAdmin) return true;
-
-    return (
-      hasPermission("sales.view") ||
-      hasAnyPermission([
-        "sales.view",
-        "sales_product_report.view",
-        "product_sales_report.view",
-        "sales_report.view",
-        "sales_report.products.view",
-        "reports.sales.view",
-        "reports.view",
-      ]) ||
-      hasModuleAccess("sales_product_report") ||
-      hasModuleAccess("product_sales_report") ||
-      hasModuleAccess("sales_report") ||
-      hasModuleAccess("reports")
-    );
-  }, [isSuperAdmin, hasPermission, hasAnyPermission, hasModuleAccess]);
-
-  /* ================= EXPORT PERMISSION ================= */
-
-  const canExport = useMemo(() => {
-    if (isSuperAdmin) return true;
-
-    return (
-      hasAnyPermission([
-        "sales_product_report.download",
-        "sales_product_report.export",
-        "product_sales_report.download",
-        "sales_report.download",
-        "sales_report.export",
-      ]) ||
-      hasModuleAccess("sales_product_report.download") ||
-      hasModuleAccess("sales_report.download")
-    );
-  }, [isSuperAdmin, hasAnyPermission, hasModuleAccess]);
-
-  /* ================= LOGO ================= */
-
-  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
-
-  const [logoLoading, setLogoLoading] = useState(true);
+  const currentWeek = isoWeek(indiaDateKey(new Date()));
+  const [draft, setDraft] = useState<WeekRange>(() => ({
+    from: currentWeek,
+    to: currentWeek,
+  }));
+  const [applied, setApplied] = useState<WeekRange>(() => ({
+    from: currentWeek,
+    to: currentWeek,
+  }));
+  const [orders, setOrders] = useState<ReportOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_URL);
+  const requestId = useRef(0);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const fetchLogo = async () => {
-      try {
-        const response: any = await logoApi.getLogo();
-
-        const possibleLogos: unknown[] = [
-          response?.data?.data?.logo,
-          response?.data?.logo,
-          response?.data?.data?.data?.logo,
-          response?.data?.data?.logo_url,
-          response?.data?.logo_url,
-          response?.logo,
-        ];
-
-        const resolvedLogo = possibleLogos.find(
-          (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
-        );
-
-        if (!cancelled && resolvedLogo) {
-          setLogoUrl(resolvedLogo.trim());
+    let active = true;
+    if (!permissionsLoading && canViewReport)
+      void (async () => {
+        try {
+          const r: any = await logoApi.getLogo();
+          const candidates: unknown[] = [
+            r?.data?.data?.logo,
+            r?.data?.logo,
+            r?.data?.data?.logo_url,
+            r?.data?.logo_url,
+          ];
+          const src = candidates.find(
+            (x): x is string =>
+              typeof x === "string" && /^https?:\/\//i.test(x),
+          );
+          if (active && src) setLogoUrl(src);
+        } catch {
+          /* fallback logo */
         }
-      } catch (error) {
-        console.error("Logo API error:", error);
-      } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
-      }
-    };
-
-    void fetchLogo();
-
+      })();
     return () => {
-      cancelled = true;
+      active = false;
     };
+  }, [permissionsLoading, canViewReport]);
+
+  const fetchOrders = useCallback(async () => {
+    const id = ++requestId.current;
+    setLoading(true);
+    setError(null);
+    setOrders([]);
+    try {
+      const response = await orderApi.getOrders();
+      const payload: any = response.data;
+      if (payload?.success !== true || !Array.isArray(payload.data))
+        throw new Error(
+          payload?.message ||
+            "Invalid orders response. Expected an array of orders.",
+        );
+      // Existing API contract is an unpaginated array. Never silently report just one server page.
+      const meta = payload.meta ?? payload.pagination ?? payload;
+      if (
+        num(meta.last_page) > 1 ||
+        meta.next_page_url ||
+        payload.links?.next ||
+        (meta.total != null && num(meta.total) > payload.data.length)
+      ) {
+        throw new Error(
+          "Orders API returned a partial page. Load every server page before generating this report.",
+        );
+      }
+      const map = new Map<string, ReportOrder>();
+      for (const record of payload.data) {
+        const order = record?.order ?? record;
+        if (!order || order.id == null || !Array.isArray(order.items))
+          throw new Error(
+            "An order is missing its ID or items. Cannot generate a complete report.",
+          );
+        if (!orderDay(order.order_date))
+          throw new Error(
+            "An order has an invalid order date. Please check the API response.",
+          );
+        const group = map.get(String(order.id));
+        const items = new Map<string, ReportItem>();
+        for (const item of [...(group?.items ?? []), ...order.items]) {
+          if (!item || item.line_id == null)
+            throw new Error("An order item is missing its line ID.");
+          items.set(String(item.line_id), item);
+        }
+        map.set(String(order.id), { ...order, items: [...items.values()] });
+      }
+      if (id !== requestId.current) return;
+      setOrders([...map.values()]);
+      setPage(1);
+      setCollapsed(new Set());
+    } catch (e: any) {
+      if (id !== requestId.current) return;
+      const message =
+        e?.response?.data?.message || e?.message || "Failed to load orders.";
+      setError(message);
+      setOrders([]);
+      toast.error(message);
+    } finally {
+      if (id === requestId.current) setLoading(false);
+    }
   }, []);
 
-  /* ================= FILTER STATE ================= */
-
-  const currentISO = useMemo(() => getCurrentISOWeek(), []);
-
-  const [selectedYear, setSelectedYear] = useState(currentISO.year);
-  const [selectedWeek, setSelectedWeek] = useState(currentISO.week);
-
-  const [appliedYear, setAppliedYear] = useState(currentISO.year);
-  const [appliedWeek, setAppliedWeek] = useState(currentISO.week);
-
-  const [reportView, setReportView] = useState<ReportView>("weekly");
-  const [search, setSearch] = useState("");
-
-  // Product Sales is the default selected tab.
-  const [activeTab, setActiveTab] = useState<ReportTab>("products");
-
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const perPage = 10;
-
-  /* ================= DATA STATE ================= */
-
-  const [report, setReport] = useState<ProductSalesReportData | null>(null);
-
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  /* ================= FETCH REPORT ================= */
-
-  const fetchReport = useCallback(
-    async (year: number, week: number, showLoader = true) => {
-      try {
-        if (showLoader) {
-          setLoading(true);
-        } else {
-          setRefreshing(true);
-        }
-
-        const response = await productSalesReportApi.getAll({
-          year,
-          week,
-        });
-
-        if (response.status && response.data) {
-          if (
-            Number(response.data.year) !== year ||
-            Number(response.data.anchor_week) !== week ||
-            !response.data.weeks?.includes(week)
-          ) {
-            setReport(null);
-            toast.error("The API did not return the requested year and week.");
-            return;
-          }
-          setReport(response.data);
-          setAppliedYear(year);
-          setAppliedWeek(week);
-        } else {
-          setReport(null);
-
-          toast.error(
-            response.message || "Unable to fetch product sales report",
-          );
-        }
-      } catch (error: any) {
-        setReport(null);
-        console.error("Product sales report error:", error);
-
-        toast.error(
-          error?.response?.data?.message ||
-            "Failed to fetch product sales report",
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [],
-  );
-
   useEffect(() => {
-    if (permissionsLoading) return;
-
-    if (!canViewReport) {
-      setLoading(false);
+    if (permissionsLoading || !canViewReport) {
+      ++requestId.current;
+      setOrders([]);
       return;
     }
-
-    void fetchReport(currentISO.year, currentISO.week, true);
-  }, [permissionsLoading, canViewReport, currentISO, fetchReport]);
-
-  /* ================= WEEK DATA ================= */
-
-  const activeWeek = report?.anchor_week ?? appliedWeek;
-  const isComparison = reportView === "comparison";
-  const weeks = useMemo(
-    () => (report ? (isComparison ? report.weeks : [activeWeek]) : []),
-    [report, isComparison, activeWeek],
-  );
-  const periodLabel = isComparison
-    ? "Comparison period"
-    : getWeekLabel(activeWeek);
-  const pendingFilters =
-    selectedYear !== appliedYear || selectedWeek !== appliedWeek;
-
-  const categoryRows = report?.category_summary?.rows || [];
-
-  const productRows = report?.product_sales?.rows || [];
-
-  const orderRows = report?.order_counts?.rows || [];
-
-  /* ================= SEARCH & FILTER ================= */
-
-  const filteredCategoryRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return categoryRows.filter((item) =>
-      String(item.category || "")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [categoryRows, search]);
-
-  const filteredProductRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return productRows.filter((item) =>
-      String(item.product_name || "")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [productRows, search]);
-
-  const filteredOrderRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return orderRows.filter((item) =>
-      String(item.product_name || "")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [orderRows, search]);
-
-  const activeRows = useMemo(() => {
-    if (activeTab === "products") return filteredProductRows;
-
-    if (activeTab === "category") return filteredCategoryRows;
-
-    return filteredOrderRows;
-  }, [activeTab, filteredCategoryRows, filteredProductRows, filteredOrderRows]);
-
-  /* ================= SUMMARY ================= */
-
-  const summary = useMemo(() => {
-    const periodTotal = (weekly: Record<string, number> | undefined) =>
-      weeks.reduce((sum, week) => sum + getWeeklyValue(weekly, week), 0);
-
-    const salesTotal = periodTotal(report?.product_sales?.weekly_totals);
-    const orderTotal = periodTotal(report?.order_counts?.weekly_totals);
-    const categoryTotal = periodTotal(report?.category_summary?.weekly_totals);
-
-    const soldProducts = productRows.filter(
-      (item) => periodTotal(item.weekly) > 0,
-    ).length;
-
-    return {
-      salesTotal,
-      orderTotal,
-      categoryTotal,
-      soldProducts,
-      totalProducts: productRows.length,
-      totalCategories: categoryRows.length,
+    void fetchOrders();
+    return () => {
+      ++requestId.current;
     };
-  }, [report, productRows, categoryRows, weeks]);
+  }, [permissionsLoading, canViewReport, fetchOrders]);
 
-  const rowTotal = (row: CategorySalesRow | ProductSalesRow) =>
-    weeks.reduce((sum, week) => sum + getWeeklyValue(row.weekly, week), 0);
+  const options = useMemo(() => {
+    const years = orders.map((o) =>
+      Number(isoWeek(orderDay(o.order_date)!).slice(0, 4)),
+    );
+    const year = Number(currentWeek.slice(0, 4));
+    return weekOptions(
+      years.reduce((min, y) => Math.min(min, y), year - 5),
+      currentWeek,
+    );
+  }, [orders, currentWeek]);
+  const activeBounds = useMemo(() => bounds(applied), [applied]);
+  const draftBounds = useMemo(() => bounds(draft), [draft]);
+  const pending = draft.from !== applied.from || draft.to !== applied.to;
 
-  const weeklyTotals = useMemo(() => {
-    const result: Record<string, number> = {};
-    for (const week of weeks) {
-      result[String(week)] = activeRows.reduce(
-        (sum, row) => sum + getWeeklyValue(row.weekly, week),
-        0,
-      );
-    }
-    return result;
-  }, [activeRows, weeks]);
-
-  const overallTotal = weeks.reduce(
-    (sum, week) => sum + getWeeklyValue(weeklyTotals, week),
-    0,
+  const periodOrders = useMemo(() => {
+    if (!activeBounds) return [];
+    return orders
+      .filter((o) => {
+        const day = orderDay(o.order_date);
+        return (
+          day != null && day >= activeBounds.from && day < activeBounds.until
+        );
+      })
+      .sort((a, b) => {
+        const daySort = (orderDay(b.order_date) || "").localeCompare(
+          orderDay(a.order_date) || "",
+        );
+        return (
+          daySort || String(b.order_date).localeCompare(String(a.order_date))
+        );
+      });
+  }, [orders, activeBounds]);
+  const filteredOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return periodOrders;
+    // Match an order OR any of its items, but keep the whole order intact.
+    return periodOrders.filter((o) =>
+      [
+        o.id,
+        o.order_reference,
+        o.user?.name,
+        o.user?.ba_id,
+        ...o.items.flatMap((i) => [
+          i.product_name,
+          i.product_code,
+          i.brand_name,
+          i.category_name,
+          i.item_reference_id,
+          i.invoice?.invoice_number,
+        ]),
+      ].some((v) =>
+        String(v ?? "")
+          .toLowerCase()
+          .includes(q),
+      ),
+    );
+  }, [periodOrders, search]);
+  const summary = useMemo(() => {
+    const items = filteredOrders.flatMap((o) => o.items);
+    return {
+      orders: filteredOrders.length,
+      lines: items.length,
+      quantity: items.reduce((s, i) => s + num(i.quantity), 0),
+      value: filteredOrders.reduce((s, o) => s + num(o.total_payable), 0),
+    };
+  }, [filteredOrders]);
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visibleOrders = filteredOrders.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
   );
 
-  /* ================= PAGINATION ================= */
-
-  const totalPages = Math.max(1, Math.ceil(activeRows.length / perPage));
-
-  const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * perPage;
-
-    return activeRows.slice(start, start + perPage);
-  }, [activeRows, currentPage, perPage]);
-
-  const startRecord =
-    activeRows.length === 0 ? 0 : (currentPage - 1) * perPage + 1;
-
-  const endRecord = Math.min(currentPage * perPage, activeRows.length);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, activeTab, reportView, appliedYear, appliedWeek]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+  function applyFilters() {
+    if (!draftBounds || draft.to > currentWeek) {
+      toast.error("Select a valid From Week and To Week range.");
+      return;
     }
-  }, [currentPage, totalPages]);
-
-  /* ================= APPLY FILTER ================= */
-
-  const applyFilters = () => {
+    setApplied({ ...draft });
+    setPage(1);
+    setCollapsed(new Set());
+  }
+  function resetFilters() {
+    const range = { from: currentWeek, to: currentWeek };
+    setDraft(range);
+    setApplied(range);
     setSearch("");
-    setCurrentPage(1);
-
-    void fetchReport(selectedYear, selectedWeek, true);
-  };
-
-  const clearFilters = () => {
-    setSelectedYear(currentISO.year);
-    setSelectedWeek(currentISO.week);
-    setReportView("weekly");
-    setSearch("");
-    setCurrentPage(1);
-
-    void fetchReport(currentISO.year, currentISO.week, true);
-  };
-
-  /* ================= CSV EXPORT ================= */
-
-  const exportCSV = () => {
-    if (!canExport) {
-      toast.error("You don't have permission to export this report.");
-      return;
-    }
-
-    if (loading || refreshing || pendingFilters) {
-      toast.error("Apply the filters and wait for the report to load.");
-      return;
-    }
-
-    if (!activeRows.length || !report) {
-      toast.error("No records available to export");
-      return;
-    }
-
-    const metric = activeTab === "orders" ? "Order Count" : "Sales (INR)";
-    const headers = [
-      activeTab === "category" ? "Category" : "Product Name",
-      ...weeks.map((week) => `${getWeekLabel(week)} - ${metric}`),
-      ...(isComparison ? [`Period Total - ${metric}`] : []),
-    ];
-    const rows: unknown[][] = activeRows.map((item) => [
-      "category" in item ? item.category : item.product_name,
-      ...weeks.map((week) => getWeeklyValue(item.weekly, week)),
-      ...(isComparison ? [rowTotal(item)] : []),
-    ]);
-    rows.push([
-      "Total",
-      ...weeks.map((week) => getWeeklyValue(weeklyTotals, week)),
-      ...(isComparison ? [overallTotal] : []),
-    ]);
-
-    const csvContent = [headers, ...rows]
-      .map((row) => row.map(escapeCsv).join(","))
-      .join("\r\n");
-
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
+    setPage(1);
+    setCollapsed(new Set());
+  }
+  function toggleOrder(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-
-    link.href = url;
-
-    link.download = `product-${activeTab}-${appliedYear}-${isComparison ? "comparison-ending-" : ""}week-${String(appliedWeek).padStart(2, "0")}.csv`;
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
-
-    toast.success("Report exported successfully");
-  };
-
-  /* ================= LOADING ================= */
-
-  const pageLoading = permissionsLoading || logoLoading;
-
-  if (pageLoading) {
-    return <PermissionLoadingState logoUrl={logoUrl} />;
+  }
+  function exportCSV() {
+    if (
+      !canViewReport ||
+      !canExport ||
+      loading ||
+      pending ||
+      error ||
+      !filteredOrders.length
+    )
+      return;
+    const rows: unknown[][] = [
+      [
+        "Order ID",
+        "Order Reference",
+        "Order Date",
+        "Customer",
+        "BA ID",
+        "Order Status",
+        "Payment Status",
+        "Item Reference",
+        "Product",
+        "SKU",
+        "Brand",
+        "Category",
+        "Invoice",
+        "Quantity",
+        "Unit Price (INR)",
+        "GST Amount (INR)",
+        "Delivery Charge (INR)",
+        "Item Total (INR)",
+        "Item Status",
+        "Return Status",
+        "Order Value (INR; once per order)",
+      ],
+    ];
+    filteredOrders.forEach((o) => {
+      const base = [
+        o.id,
+        o.order_reference,
+        o.order_date,
+        o.user?.name,
+        o.user?.ba_id,
+        o.order_status,
+        o.payment_status,
+      ];
+      if (!o.items.length) {
+        rows.push([...base, ...Array(13).fill(""), o.total_payable]);
+        return;
+      }
+      o.items.forEach((i, idx) =>
+        rows.push([
+          ...base,
+          i.item_reference_id,
+          i.product_name,
+          i.product_code,
+          i.brand_name,
+          i.category_name,
+          i.invoice?.invoice_number,
+          i.quantity,
+          i.unit_price,
+          i.gst_amount,
+          i.delivery_charges,
+          i.line_total,
+          i.delivery_status,
+          i.return_status,
+          idx === 0 ? o.total_payable : "",
+        ]),
+      );
+    });
+    downloadCsv(rows, `product-sales-${applied.from}-to-${applied.to}.csv`);
+    toast.success("Report downloaded successfully");
   }
 
-  /* ================= ACCESS DENIED ================= */
-
-  if (!canViewReport) {
+  if (permissionsLoading) return <PermissionLoadingState logoUrl={logoUrl} />;
+  if (!canViewReport)
     return (
-      <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
-        <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF5FF] text-[#C23B32]">
-            <ShieldAlert size={26} />
-          </div>
-
-          <h2 className="text-lg font-bold text-gray-900">Access Denied</h2>
-
-          <p className="mt-2 text-sm text-gray-500">
+      <div className="flex min-h-[60vh] items-center justify-center bg-[#F4F8FD] p-5">
+        <div className="rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center">
+          <ShieldAlert className="mx-auto mb-3 text-red-600" size={32} />
+          <h2 className="font-bold text-slate-900">Access Denied</h2>
+          <p className="mt-2 text-sm text-slate-500">
             You don't have permission to view the Product Sales Report.
           </p>
         </div>
       </div>
     );
-  }
-
-  /* ================= UI ================= */
 
   return (
-    <div
-      className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6"
-      style={{ background: THEME.background }}
-    >
-      {/* HEADER */}
-
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="min-h-screen space-y-5 bg-[#F4F8FD] p-3 sm:p-5 lg:p-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#2D6FE8]">
-            <span>Sales</span>
-            <ChevronRight size={13} />
-            <span>Sales Report</span>
-            <ChevronRight size={13} />
-            <span>Product Sales</span>
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2D6FE8]">
+            Sales <ChevronRight size={13} /> Sales Report{" "}
+            <ChevronRight size={13} /> Product Sales
           </div>
-
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             Product Sales Report
           </h1>
-
-          <p className="mt-1 text-sm text-gray-500">
-            Analyze category-wise and product-wise weekly sales performance.
+          <p className="mt-1 text-sm text-slate-500">
+            View orders and their purchased products within a selected week
+            range.
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => void fetchReport(appliedYear, appliedWeek, false)}
-            disabled={refreshing || loading}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+            className={buttonClass}
+            disabled={loading}
+            onClick={() => void fetchOrders()}
           >
-            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />{" "}
             Refresh
           </button>
-
           {canExport && (
             <button
               type="button"
+              className={primaryClass}
+              disabled={loading || !!error || pending || !filteredOrders.length}
               onClick={exportCSV}
-              disabled={
-                !activeRows.length ||
-                !report ||
-                loading ||
-                refreshing ||
-                pendingFilters
-              }
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download size={16} />
-              {isComparison ? "Download Comparison" : "Download Week CSV"}
+              <Download size={16} /> Download CSV
             </button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* WEEK FILTER */}
-
-      <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
+      <section className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
-          <Filter size={17} className="text-[#2D6FE8]" />
-
-          <h2 className="text-sm font-bold text-gray-800">Report Filters</h2>
+          <CalendarDays size={18} className="text-[#2D6FE8]" />
+          <h2 className="text-sm font-semibold text-slate-900">
+            Select Week Range
+          </h2>
         </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
-          <div>
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              Select Year
-            </label>
-
-            <div className="relative">
-              <CalendarDays
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-
-              <select
-                value={selectedYear}
-                disabled={loading || refreshing}
-                onChange={(event) =>
-                  setSelectedYear(Number(event.target.value))
-                }
-                className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-              >
-                {getYearOptions().map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-              Select Week
-            </label>
-
-            <div className="relative">
-              <CalendarDays
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-
-              <select
-                value={selectedWeek}
-                disabled={loading || refreshing}
-                onChange={(event) =>
-                  setSelectedWeek(Number(event.target.value))
-                }
-                className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-              >
-                {Array.from({ length: 53 }, (_, index) => index + 1).map(
-                  (week) => (
-                    <option key={week} value={week}>
-                      {getWeekLabel(week)}
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="report-view"
-              className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-gray-500"
-            >
-              Report View
-            </label>
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+          <label className="min-w-0 text-xs font-medium text-slate-600">
+            From Week
             <select
-              id="report-view"
-              value={reportView}
-              onChange={(event) =>
-                setReportView(event.target.value as ReportView)
+              className={`${inputClass} mt-1.5`}
+              value={draft.from}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, from: e.target.value }))
               }
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             >
-              <option value="weekly">Selected Week</option>
-              <option value="comparison">5 Weeks Comparison</option>
+              {options.map((w) => (
+                <option key={w.value} value={w.value}>
+                  {w.label}
+                </option>
+              ))}
             </select>
-          </div>
-          <div className="flex items-end gap-2">
+          </label>
+          <label className="min-w-0 text-xs font-medium text-slate-600">
+            To Week
+            <select
+              className={`${inputClass} mt-1.5`}
+              value={draft.to}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, to: e.target.value }))
+              }
+            >
+              {options.map((w) => (
+                <option
+                  key={w.value}
+                  value={w.value}
+                  disabled={w.value < draft.from}
+                >
+                  {w.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={applyFilters}
-              disabled={loading || refreshing}
-              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-5 text-sm font-semibold text-white transition hover:bg-[#1E40AF] disabled:opacity-60"
+              disabled={!draftBounds || loading}
+              className={primaryClass}
             >
-              <Filter size={15} />
-              Apply
+              <Filter size={15} /> Apply Filter
             </button>
-
             <button
               type="button"
-              onClick={clearFilters}
-              disabled={loading || refreshing}
-              title="Reset filters"
-              className="flex h-10 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white px-3 text-gray-600 transition hover:bg-gray-50 hover:text-red-500 disabled:opacity-50"
+              onClick={resetFilters}
+              className={buttonClass}
             >
-              <X size={16} />
+              <X size={15} /> Reset
             </button>
           </div>
         </div>
-
-        {pendingFilters && (
-          <p className="mt-3 text-xs font-medium text-amber-700">
-            Click Apply to load the selected year and week before downloading.
-          </p>
-        )}
-        {report && !loading && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-            <span className="rounded-md bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-semibold text-[#1E40AF]">
-              Year: {report.year}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs">
+          <span className="text-slate-500">
+            Selected dates:{" "}
+            <strong className="text-slate-800">
+              {draftBounds?.text || "From Week must not be after To Week"}
+            </strong>
+          </span>
+          {pending && (
+            <span className="font-medium text-amber-700">
+              Apply filters to update the report.
             </span>
-
-            <span className="rounded-md bg-[#EDE9FE] px-2.5 py-1 text-[10px] font-semibold text-[#6D28D9]">
-              {isComparison ? "Anchor Week" : "Selected Week"}:{" "}
-              {report.anchor_week}
-            </span>
-
-            <span className="text-[10px] text-gray-400">
-              {isComparison
-                ? `Showing ${weeks.length} weekly periods`
-                : "Showing selected week only"}
-            </span>
-            <span className="text-[10px] text-gray-500">
-              Sales cycle: Friday 9:30 PM IST to next Friday 9:29:59 PM IST
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* SUMMARY CARDS */}
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
-        <SummaryCard
-          title="Total Sales"
-          value={loading || !report ? "—" : currencyFormat(summary.salesTotal)}
-          subtitle={`${periodLabel} · Product sales`}
-          icon={IndianRupee}
-          color={THEME.primary}
-          bg={THEME.primarySoft}
-        />
-
-        <SummaryCard
-          title="Total Orders"
-          value={loading || !report ? "—" : numberFormat(summary.orderTotal)}
-          subtitle={`${periodLabel} · Product order count`}
-          icon={ShoppingBag}
-          color={THEME.green}
-          bg={THEME.greenSoft}
-        />
-
-        <SummaryCard
-          title="Category Sales"
-          value={
-            loading || !report ? "—" : currencyFormat(summary.categoryTotal)
-          }
-          subtitle={`${periodLabel} · Category sales`}
-          icon={Layers3}
-          color={THEME.purple}
-          bg={THEME.purpleSoft}
-        />
-
-        <SummaryCard
-          title="Products Sold"
-          value={loading || !report ? "—" : summary.soldProducts}
-          subtitle={`${periodLabel} · Products with sales`}
-          icon={Package}
-          color={THEME.orange}
-          bg={THEME.orangeSoft}
-        />
-
-        <SummaryCard
-          title="Total Products"
-          value={loading || !report ? "—" : summary.totalProducts}
-          subtitle="Products in report"
-          icon={FileText}
-          color={THEME.primary}
-          bg={THEME.primarySoft}
-        />
-
-        <SummaryCard
-          title="Categories"
-          value={loading || !report ? "—" : summary.totalCategories}
-          subtitle="Available categories"
-          icon={ChartNoAxesCombined}
-          color={THEME.green}
-          bg={THEME.greenSoft}
-        />
-      </div>
-
-      {/* REPORT TABLE */}
-
-      <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
-        <div className="flex flex-col justify-between gap-3 border-b border-[#DCE6F2] p-4 lg:flex-row lg:items-center">
-          <div>
-            <h2 className="text-base font-bold text-gray-900">
-              Sales Breakdown
-            </h2>
-
-            <p className="mt-1 text-xs text-gray-500">
-              {periodLabel} · {appliedYear} ·{" "}
-              {isComparison ? "Weekly comparison" : "Single-week performance"}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-64">
-              <Search
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search category or product..."
-                className="h-9 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-xs text-gray-700 outline-none transition placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="flex h-9 items-center justify-center gap-1 rounded-lg border border-[#DCE6F2] px-3 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-              >
-                <X size={13} />
-                Clear
-              </button>
-            )}
-          </div>
+          )}
         </div>
+      </section>
 
-        {/* TABS - PRODUCT SALES FIRST */}
-
-        <div className="flex gap-2 overflow-x-auto border-b border-[#DCE6F2] bg-[#FBFDFF] px-4 py-3">
-          <SectionTab
-            active={activeTab === "products"}
-            label="Product Sales"
-            count={productRows.length}
-            icon={Package}
-            onClick={() => setActiveTab("products")}
-          />
-
-          <SectionTab
-            active={activeTab === "category"}
-            label="Category Summary"
-            count={categoryRows.length}
-            icon={Layers3}
-            onClick={() => setActiveTab("category")}
-          />
-
-          <SectionTab
-            active={activeTab === "orders"}
-            label="Order Counts"
-            count={orderRows.length}
-            icon={ShoppingBag}
-            onClick={() => setActiveTab("orders")}
-          />
+      {loading ? (
+        <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-[#DCE6F2] bg-white text-sm text-slate-500">
+          <Loader2 className="animate-spin text-[#2D6FE8]" size={30} /> Loading
+          orders…
         </div>
-
-        {loading ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center">
-            <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
-
-            <p className="mt-3 text-sm font-medium text-gray-500">
-              Loading product sales report...
-            </p>
+      ) : error ? (
+        <div
+          role="alert"
+          className="rounded-xl border border-red-100 bg-white p-8 text-center"
+        >
+          <ShieldAlert size={28} className="mx-auto mb-3 text-red-600" />
+          <h3 className="font-semibold text-slate-900">
+            Unable to load report
+          </h3>
+          <p className="my-3 text-sm text-slate-500">{error}</p>
+          <button
+            type="button"
+            className={buttonClass}
+            onClick={() => void fetchOrders()}
+          >
+            Try again
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <SummaryCard
+              title="Total Orders"
+              value={integer.format(summary.orders)}
+              detail="Unique matching orders"
+              icon={ShoppingBag}
+              tone="bg-blue-50 text-[#2D6FE8]"
+            />
+            <SummaryCard
+              title="Total Order Items"
+              value={integer.format(summary.lines)}
+              detail="Order product lines"
+              icon={Layers3}
+              tone="bg-violet-50 text-violet-700"
+            />
+            <SummaryCard
+              title="Total Quantity"
+              value={integer.format(summary.quantity)}
+              detail="Units ordered"
+              icon={Package}
+              tone="bg-amber-50 text-amber-700"
+            />
+            <SummaryCard
+              title="Total Order Value"
+              value={inr.format(summary.value)}
+              detail="Before refunds; all payment statuses"
+              icon={IndianRupee}
+              tone="bg-green-50 text-green-700"
+            />
           </div>
-        ) : !report ? (
-          <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-              <FileText size={25} />
-            </div>
-
-            <h3 className="mt-4 text-base font-bold text-gray-800">
-              No Report Data Found
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Unable to find report data for the selected period.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => void fetchReport(selectedYear, selectedWeek, true)}
-              className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
-            >
-              Try Again
-            </button>
-          </div>
-        ) : activeRows.length === 0 ? (
-          <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-              <Search size={25} />
-            </div>
-
-            <h3 className="mt-4 text-base font-bold text-gray-800">
-              No Records Found
-            </h3>
-
-            <p className="mt-1 text-sm text-gray-500">
-              No records match your search.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setSearch("")}
-              className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
-            >
-              Clear Search
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* DESKTOP TABLE */}
-
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-max border-collapse text-left">
-                <thead>
-                  <tr className="bg-[#F7FAFE]">
-                    <th className="sticky left-0 z-10 min-w-[260px] border-b border-[#DCE6F2] bg-[#F7FAFE] px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-gray-500">
-                      {activeTab === "category" ? "Category" : "Product"}
-                    </th>
-
-                    {weeks.map((week) => (
-                      <th
-                        key={week}
-                        className={`whitespace-nowrap border-b border-[#DCE6F2] px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide ${
-                          week === activeWeek
-                            ? "bg-[#EAF3FF] text-[#1E40AF]"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {getWeekLabel(week)} ·{" "}
-                        {activeTab === "orders" ? "Orders" : "Sales"}
-                      </th>
-                    ))}
-
-                    {isComparison && (
-                      <th className="whitespace-nowrap border-b border-[#DCE6F2] bg-[#EAF3FF] px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-[#1E40AF]">
-                        Period Total
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {paginatedRows.map(
-                    (row: CategorySalesRow | ProductSalesRow) => (
-                      <tr
-                        key={
-                          "category_id" in row
-                            ? row.category_id
-                            : row.product_id
-                        }
-                        className="transition hover:bg-[#F8FBFF]"
-                      >
-                        <td className="sticky left-0 z-[1] border-b border-[#EDF1F7] bg-white px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                              {activeTab === "category" ? (
-                                <Layers3 size={15} />
-                              ) : (
-                                <Package size={15} />
-                              )}
-                            </div>
-
-                            <div className="min-w-0">
-                              <p className="max-w-[260px] truncate text-xs font-semibold text-gray-800">
-                                {"category" in row
-                                  ? row.category
-                                  : row.product_name}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {weeks.map((week: number) => {
-                          const value = getWeeklyValue(row.weekly, week);
-
-                          return (
-                            <td
-                              key={week}
-                              className={`whitespace-nowrap border-b border-[#EDF1F7] px-4 py-3.5 text-right text-xs ${
-                                value > 0
-                                  ? "font-semibold text-gray-800"
-                                  : "text-gray-300"
-                              } ${week === activeWeek ? "bg-[#F5F9FF]" : ""}`}
-                            >
-                              {activeTab === "orders"
-                                ? numberFormat(value)
-                                : currencyFormat(value)}
-                            </td>
-                          );
-                        })}
-
-                        {isComparison && (
-                          <td className="whitespace-nowrap border-b border-[#EDF1F7] bg-[#FBFDFF] px-4 py-3.5 text-right text-xs font-bold text-[#1E40AF]">
-                            {activeTab === "orders"
-                              ? numberFormat(rowTotal(row))
-                              : currencyFormat(rowTotal(row))}
-                          </td>
-                        )}
-                      </tr>
-                    ),
-                  )}
-                </tbody>
-
-                <tfoot>
-                  <tr className="bg-[#F7FAFE]">
-                    {/* Product ID removed, so only one fixed column remains. */}
-                    <td className="sticky left-0 z-[1] border-t border-[#DCE6F2] bg-[#F7FAFE] px-4 py-3.5 text-xs font-bold uppercase text-gray-800">
-                      {search.trim() ? "Filtered Total" : "Weekly Total"}
-                    </td>
-
-                    {weeks.map((week) => {
-                      const value = getWeeklyValue(weeklyTotals, week);
-
-                      return (
-                        <td
-                          key={week}
-                          className="whitespace-nowrap border-t border-[#DCE6F2] px-4 py-3.5 text-right text-xs font-bold text-gray-800"
-                        >
-                          {activeTab === "orders"
-                            ? numberFormat(value)
-                            : currencyFormat(value)}
-                        </td>
-                      );
-                    })}
-
-                    {isComparison && (
-                      <td className="whitespace-nowrap border-t border-[#DCE6F2] bg-[#EAF3FF] px-4 py-3.5 text-right text-xs font-extrabold text-[#1E40AF]">
-                        {activeTab === "orders"
-                          ? numberFormat(overallTotal)
-                          : currencyFormat(overallTotal)}
-                      </td>
-                    )}
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 p-3 lg:hidden">
-              {paginatedRows.map((row: CategorySalesRow | ProductSalesRow) => (
-                <div
-                  key={"category_id" in row ? row.category_id : row.product_id}
-                  className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
-                >
-                  <div className="flex items-center gap-3 border-b border-gray-100 p-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
-                      {activeTab === "category" ? (
-                        <Layers3 size={17} />
-                      ) : (
-                        <Package size={17} />
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-gray-800">
-                        {"category" in row ? row.category : row.product_name}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-[9px] font-semibold uppercase text-gray-400">
-                        {isComparison
-                          ? "Period Total"
-                          : getWeekLabel(activeWeek)}
-                      </p>
-
-                      <p className="mt-0.5 text-sm font-bold text-[#1E40AF]">
-                        {activeTab === "orders"
-                          ? numberFormat(rowTotal(row))
-                          : currencyFormat(rowTotal(row))}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isComparison && (
-                    <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-                      {weeks.map((week: number) => {
-                        const value = getWeeklyValue(row.weekly, week);
-
-                        return (
-                          <div
-                            key={week}
-                            className={`rounded-lg border p-2.5 ${
-                              week === activeWeek
-                                ? "border-[#BFDBFE] bg-[#EFF6FF]"
-                                : "border-gray-100 bg-[#F9FAFB]"
-                            }`}
-                          >
-                            <p
-                              className={`text-[9px] font-semibold uppercase ${
-                                week === activeWeek
-                                  ? "text-[#1E40AF]"
-                                  : "text-gray-400"
-                              }`}
-                            >
-                              {getWeekLabel(week)}
-                            </p>
-
-                            <p className="mt-1 break-words text-xs font-bold text-gray-800">
-                              {activeTab === "orders"
-                                ? numberFormat(value)
-                                : currencyFormat(value)}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              <div className="flex items-center justify-between rounded-xl border border-[#BFDBFE] bg-[#EFF6FF] p-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase text-[#1E40AF]">
-                    {search.trim()
-                      ? "Filtered Total"
-                      : isComparison
-                        ? "Period Total"
-                        : "Weekly Total"}
-                  </p>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    {activeTab === "orders"
-                      ? "Total product orders"
-                      : "Total product sales"}
-                  </p>
-                </div>
-
-                <p className="text-base font-extrabold text-[#1E40AF]">
-                  {activeTab === "orders"
-                    ? numberFormat(overallTotal)
-                    : currencyFormat(overallTotal)}
+          <section className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#DCE6F2] p-4">
+              <div>
+                <h2 className="font-semibold text-slate-900">
+                  Orders & Products
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  {activeBounds?.text} · {filteredOrders.length} orders
                 </p>
               </div>
+              <div className="relative w-full sm:w-80">
+                <Search
+                  size={16}
+                  className="absolute left-3 top-3 text-slate-400"
+                />
+                <input
+                  aria-label="Search orders and products"
+                  className={`${inputClass} pl-9 pr-9`}
+                  placeholder="Search order, product, SKU…"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    className="absolute right-3 top-3 text-slate-400"
+                    onClick={() => {
+                      setSearch("");
+                      setPage(1);
+                    }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
             </div>
-
-            {/* PAGINATION */}
-
-            <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
-              <p className="text-xs text-gray-500">
+            {!visibleOrders.length ? (
+              <div className="flex min-h-[260px] flex-col items-center justify-center p-6 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
+                  <FileText size={23} />
+                </div>
+                <h3 className="font-semibold text-slate-900">
+                  No orders found
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {search
+                    ? "Try a different search term."
+                    : "No orders were placed in the selected week range."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4 bg-[#F8FAFD] p-3 sm:p-4">
+                {visibleOrders.map((order) => {
+                  const id = orderKey(order);
+                  const isOpen = !collapsed.has(id);
+                  const units = order.items.reduce(
+                    (s, i) => s + num(i.quantity),
+                    0,
+                  );
+                  return (
+                    <article
+                      key={id}
+                      className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
+                    >
+                      <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        onClick={() => toggleOrder(id)}
+                        className="flex w-full flex-wrap items-center gap-3 bg-white p-3.5 text-left hover:bg-[#F8FAFD]"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#EAF3FF] text-[#2D6FE8]">
+                          <ShoppingBag size={18} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block break-all text-sm font-bold text-[#2D6FE8]">
+                            {order.order_reference || `#${order.id}`}
+                          </span>
+                          <span className="mt-1 block text-xs text-slate-500">
+                            {orderDay(order.order_date)} ·{" "}
+                            {order.user?.name || "—"} · {order.items.length}{" "}
+                            items / {units} units
+                          </span>
+                        </span>
+                        <Status value={order.order_status} />
+                        <span className="min-w-[100px] text-right">
+                          <span className="block text-[10px] text-slate-500">
+                            Order value
+                          </span>
+                          <span className="block text-sm font-bold text-slate-900">
+                            {money(order.total_payable)}
+                          </span>
+                        </span>
+                        <ChevronDown
+                          size={17}
+                          className={`shrink-0 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                      {isOpen && (
+                        <div className="overflow-x-auto border-t border-[#DCE6F2]">
+                          <table className="w-full min-w-[950px] text-left text-xs">
+                            <thead className="bg-[#F4F8FD] text-[11px] uppercase tracking-wide text-slate-500">
+                              <tr>
+                                {[
+                                  "Product",
+                                  "Brand / Category",
+                                  "Qty",
+                                  "Unit Price",
+                                  "GST",
+                                  "Delivery",
+                                  "Item Total",
+                                  "Item Status",
+                                ].map((h, idx) => (
+                                  <th
+                                    key={h}
+                                    scope="col"
+                                    className={`whitespace-nowrap px-3 py-3 font-semibold ${idx >= 2 && idx <= 6 ? "text-right" : ""}`}
+                                  >
+                                    {h}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {order.items.length ? (
+                                order.items.map((item) => (
+                                  <tr
+                                    key={String(item.line_id)}
+                                    className="hover:bg-slate-50/70"
+                                  >
+                                    <td className="px-3 py-3">
+                                      <div className="flex items-center gap-2.5">
+                                        <ProductImage item={item} />
+                                        <div className="min-w-[140px] max-w-[250px]">
+                                          <p className="font-semibold text-slate-900">
+                                            {item.product_name || "—"}
+                                          </p>
+                                          <p className="mt-1 text-[11px] text-slate-500">
+                                            SKU: {item.product_code || "—"}
+                                          </p>
+                                          {item.invoice?.invoice_number && (
+                                            <p className="mt-0.5 text-[10px] text-slate-500">
+                                              {item.invoice.invoice_number}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <p className="font-medium text-slate-800">
+                                        {item.brand_name || "—"}
+                                      </p>
+                                      <p className="mt-1 text-[11px] text-slate-500">
+                                        {item.category_name || "—"}
+                                      </p>
+                                    </td>
+                                    <td className="px-3 py-3 text-right tabular-nums">
+                                      {item.quantity ?? "—"}
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
+                                      {money(item.unit_price)}
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
+                                      {money(item.gst_amount)}
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums">
+                                      {money(item.delivery_charges)}
+                                    </td>
+                                    <td className="whitespace-nowrap px-3 py-3 text-right font-semibold tabular-nums text-slate-900">
+                                      {money(item.line_total)}
+                                    </td>
+                                    <td className="px-3 py-3">
+                                      <Status value={item.delivery_status} />
+                                      {item.return_status &&
+                                        item.return_status !== "none" && (
+                                          <p className="mt-1 text-[10px] text-amber-700">
+                                            Return: {label(item.return_status)}
+                                          </p>
+                                        )}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td
+                                    colSpan={8}
+                                    className="p-5 text-center text-slate-500"
+                                  >
+                                    No items returned for this order.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                          <div className="flex flex-wrap justify-between gap-2 border-t border-[#DCE6F2] bg-[#FAFCFF] px-4 py-2.5 text-xs text-slate-500">
+                            <span>
+                              Payment: <Status value={order.payment_status} />
+                            </span>
+                            <span>
+                              Items total:{" "}
+                              <strong className="text-slate-900">
+                                {inr.format(
+                                  order.items.reduce(
+                                    (s, i) => s + num(i.line_total),
+                                    0,
+                                  ),
+                                )}
+                              </strong>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#DCE6F2] p-4 text-xs text-slate-500">
+              <span>
                 Showing{" "}
-                <span className="font-semibold text-gray-800">
-                  {startRecord}–{endRecord}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-gray-800">
-                  {activeRows.length}
-                </span>{" "}
-                records
-              </p>
-
+                {filteredOrders.length ? (safePage - 1) * PAGE_SIZE + 1 : 0}–
+                {Math.min(safePage * PAGE_SIZE, filteredOrders.length)} of{" "}
+                {filteredOrders.length} orders
+              </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.max(1, page - 1))
-                  }
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage(safePage - 1)}
+                  className={buttonClass}
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={15} />
                 </button>
-
-                <span className="min-w-[85px] text-center text-xs font-semibold text-gray-700">
-                  Page {currentPage} of {totalPages}
+                <span>
+                  Page {safePage} of {totalPages}
                 </span>
-
                 <button
                   type="button"
-                  disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
-                  }
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 transition hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage(safePage + 1)}
+                  className={buttonClass}
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             </div>
-          </>
-        )}
-      </div>
-
-      {/* REPORT FOOTER */}
-
-      {report && !loading && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-          <p className="text-[10px] text-gray-400">
-            Product Sales Report · {report.year} ·{" "}
-            {isComparison ? "Comparison ending " : ""}
-            {getWeekLabel(report.anchor_week)}
+          </section>
+          <p className="px-1 text-[11px] text-slate-500">
+            Order date in IST · All order statuses included · Order value is the
+            API total_payable, counted once per order, not net revenue.
           </p>
-
-          <p className="text-[10px] font-medium text-gray-500">
-            Data provided by Finance Sales API
-          </p>
-        </div>
+        </>
       )}
     </div>
   );
 };
-
 export default ProductSalesReport;
