@@ -1,10 +1,11 @@
+
 import apiClient from '../client';
 
-export type OrderStatus = 
-  | 'pending' 
-  | 'confirmed' 
-  | 'shipped' 
-  | 'delivered' 
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'shipped'
+  | 'delivered'
   | 'cancelled'
   | 'return_initiated'
   | 'return_pending'
@@ -14,17 +15,23 @@ export type OrderStatus =
 
 export type PaymentStatus = 'paid' | 'unpaid' | 'refunded' | 'failed';
 
-export type DeliveryStatus = 
-  | 'pending' 
-  | 'confirmed' 
-  | 'shipped' 
-  | 'delivered' 
-  | 'cancelled' 
+export type DeliveryStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
   | 'returned'
   | 'return_approved'
   | 'return_initiated';
 
-export type ReturnStatus = 'none' | 'returned' | 'approved' | 'rejected' | 'pending' | 'initiated';
+export type ReturnStatus =
+  | 'none'
+  | 'returned'
+  | 'approved'
+  | 'rejected'
+  | 'pending'
+  | 'initiated';
 
 export type OrderType = 'retail' | 'distributor' | 'wholesale';
 
@@ -37,14 +44,12 @@ export interface OrderUser {
   is_distributor: boolean;
 }
 
-// Image Interface
 export interface OrderImage {
   id: number;
   image_url: string;
   is_primary: boolean;
 }
 
-// Order Item Timeline
 export interface OrderItemTimeline {
   shipped_at: string | null;
   delivered_at: string | null;
@@ -54,7 +59,6 @@ export interface OrderItemTimeline {
   return_completed_at: string | null;
 }
 
-// Order Item
 export interface OrderItem {
   line_id: number;
   product_id: number;
@@ -75,11 +79,9 @@ export interface OrderItem {
   images: OrderImage[];
   primary_image: string | null;
   is_reviewed?: boolean;
-  /** NEW: whether cancel/return is allowed for this order line */
   is_cancel_return_allowed?: boolean;
 }
 
-// Order Payment
 export interface OrderPayment {
   payment_gateway: string;
   gateway_transaction_id: string | null;
@@ -87,7 +89,6 @@ export interface OrderPayment {
   payment_status: PaymentStatus;
 }
 
-// Tax Breakdown Item
 export interface TaxBreakdownItem {
   product_id: number;
   product_name: string;
@@ -101,7 +102,6 @@ export interface TaxBreakdownItem {
   line_total_after_tax: number;
 }
 
-// Tax By Category
 export interface TaxByCategory {
   tax_rate: string;
   total_taxable_amount: number;
@@ -109,7 +109,6 @@ export interface TaxByCategory {
   items: string[];
 }
 
-// Order Summary
 export interface OrderSummary {
   subtotal: number;
   total_gst: number;
@@ -121,7 +120,6 @@ export interface OrderSummary {
   total_payable: number;
 }
 
-// Order Tax Breakdown
 export interface OrderTaxBreakdown {
   items: TaxBreakdownItem[];
   summary: {
@@ -137,7 +135,6 @@ export interface OrderTaxBreakdown {
   tax_by_category: Record<string, TaxByCategory>;
 }
 
-// Shipping Method
 export interface ShippingMethod {
   id: number;
   name: string;
@@ -146,7 +143,6 @@ export interface ShippingMethod {
   estimated_days: number;
 }
 
-// Address
 export interface OrderAddress {
   id: number;
   full_name: string | null;
@@ -160,7 +156,6 @@ export interface OrderAddress {
   full_address: string;
 }
 
-// Order Return
 export interface OrderReturn {
   id: number;
   order_id: number;
@@ -172,7 +167,6 @@ export interface OrderReturn {
   updated_at: string;
 }
 
-// Order (List/Dashboard)
 export interface OrderList {
   order_id: number;
   order_reference: string;
@@ -209,11 +203,9 @@ export interface OrderList {
   coin_redeemed_amount: number;
   total_payable: number;
   user: OrderUser;
-  /** NEW: whether cancel/return is allowed for this order line */
   is_cancel_return_allowed?: boolean;
 }
 
-// Order Details Response
 export interface OrderDetailsResponse {
   success: boolean;
   message: string;
@@ -237,19 +229,16 @@ export interface OrderDetailsResponse {
   };
 }
 
-// Orders List Response
 export interface OrdersListResponse {
   success: boolean;
   data: OrderList[];
 }
 
-// Order Statuses Response
 export interface OrderStatusesResponse {
   success: boolean;
   data: OrderStatus[];
 }
 
-// NEW: Toggle Cancel/Return Response
 export interface ToggleCancelReturnResponse {
   success: boolean;
   message: string;
@@ -260,17 +249,34 @@ export interface ToggleCancelReturnResponse {
 }
 
 export const orderApi = {
+  // =====================================================
+  // GET ALL ORDERS WITH SEARCH
+  // GET /admin/all-orders?search=
+  // =====================================================
+  getOrders: (search?: string) =>
+    apiClient.get<OrdersListResponse>('/admin/all-orders', {
+      params: {
+        ...(search?.trim() ? { search: search.trim() } : {}),
+      },
+    }),
 
-  getOrders: () =>
-    apiClient.get<OrdersListResponse>('/admin/all-orders'),
-
-
+  // =====================================================
+  // GET ORDER DETAILS
+  // =====================================================
   getOrderDetails: (orderId: number) =>
-    apiClient.get<OrderDetailsResponse>(`/admin/get-order-details/${orderId}`),
+    apiClient.get<OrderDetailsResponse>(
+      `/admin/get-order-details/${orderId}`
+    ),
 
+  // =====================================================
+  // GET ORDER STATUSES
+  // =====================================================
   getOrderStatuses: () =>
     apiClient.get<OrderStatusesResponse>('/admin/orders/statuses'),
 
+  // =====================================================
+  // DISPATCH ORDER
+  // =====================================================
   dispatchOrder: (data: {
     order_reference: string;
     dispatch_all?: boolean;
@@ -286,7 +292,7 @@ export const orderApi = {
     ),
 
   // =====================================================
-  // SHIP ORDER (Mark items as shipped - after dispatch)
+  // SHIP ORDER
   // =====================================================
   shipOrder: (data: {
     order_reference: string;
@@ -298,7 +304,7 @@ export const orderApi = {
     ),
 
   // =====================================================
-  // DELIVER ORDER (Mark items as delivered - after ship)
+  // DELIVER ORDER
   // =====================================================
   deliverOrder: (data: {
     order_reference: string;
@@ -309,36 +315,37 @@ export const orderApi = {
       data
     ),
 
-// =====================================================
-// DOWNLOAD CSV
-// GET /api/csv-data
-// =====================================================
-downloadCsv: () =>
-  apiClient.get<Blob>("/csv-data", {
-    responseType: "blob",
-  }),
+  // =====================================================
+  // DOWNLOAD CSV
+  // GET /csv-data
+  // =====================================================
+  downloadCsv: () =>
+    apiClient.get<Blob>('/csv-data', {
+      responseType: 'blob',
+    }),
 
-    // =====================================================
-// MARK ORDER LINE AS UNDELIVERED
-// POST /api/order-lines/:id/undelivered
-// =====================================================
-markUndelivered: (orderLineId: number) =>
-  apiClient.post<{ success: boolean; message: string; data?: any }>(
-    `/order-lines/${orderLineId}/undelivered`
-  ),
+  // =====================================================
+  // MARK ORDER LINE AS UNDELIVERED
+  // POST /order-lines/:id/undelivered
+  // =====================================================
+  markUndelivered: (orderLineId: number) =>
+    apiClient.post<{ success: boolean; message: string; data?: any }>(
+      `/order-lines/${orderLineId}/undelivered`
+    ),
 
-
+  // =====================================================
+  // TOGGLE CANCEL / RETURN PERMISSION
+  // =====================================================
   toggleCancelReturnByReference: (
     orderReference: string,
     isCancelReturnAllowed: boolean
   ) =>
     apiClient.post<{ success: boolean; message: string; data?: any }>(
-      `/order-lines/${encodeURIComponent(orderReference)}/cancel-return`, 
+      `/order-lines/${encodeURIComponent(orderReference)}/cancel-return`,
       {
         is_cancel_return_allowed: isCancelReturnAllowed,
       }
     ),
-
 };
 
 export default orderApi;

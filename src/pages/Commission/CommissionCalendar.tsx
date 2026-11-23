@@ -220,7 +220,6 @@ const exportToCsv = (
     "Bank Holder Name",
     "Bank Account Number",
     "Bank IFSC",
-    "Breakdown",
   ];
 
   const escapeCsv = (value: unknown) => {

@@ -53,12 +53,6 @@ const PER_PAGE = 100;
 
 /* ================= API ITEM TYPES ================= */
 
-/**
- * The finance API returns one row per order line. Invoice-level fields are
- * repeated for every line, while product and courier fields live on the line.
- * Keep these additions local so this component also works with the existing
- * FinanceReportItem type and older API responses.
- */
 type LineCourier = {
   courier_company?: string | null;
   courier_tracking_number?: string | null;
@@ -127,11 +121,13 @@ const formatDate = (value: string | null | undefined) => {
 
   // API date format: DD-MM-YYYY or DD-MM-YYYY HH:mm.
   const match = value.match(/^(\d{2})-(\d{2})-(\d{4})(.*)$/);
+
   if (match) {
     return `${match[1]}-${match[2]}-${match[3]}${match[4] || ""}`;
   }
 
   const parsed = new Date(value.replace(" ", "T"));
+
   return Number.isNaN(parsed.getTime())
     ? value
     : parsed.toLocaleString("en-IN", {
@@ -154,11 +150,17 @@ const escapeCsv = (value: unknown) => {
 /** Product details are read from the order-line fields returned by the API. */
 const getProductName = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  if (row.product_name?.trim()) return row.product_name.trim();
+
+  if (row.product_name?.trim()) {
+    return row.product_name.trim();
+  }
 
   if (Array.isArray(row.products) && row.products.length > 0) {
     return row.products
-      .map((product) => product.name?.trim() || product.product_code?.trim() || "Product")
+      .map(
+        (product) =>
+          product.name?.trim() || product.product_code?.trim() || "Product",
+      )
       .join(" | ");
   }
 
@@ -167,10 +169,14 @@ const getProductName = (item: FinanceReportItem) => {
 
 const getProductCode = (item: FinanceReportItem) => {
   const row = asLineItem(item);
+
   if (row.product_code) return row.product_code;
 
   if (Array.isArray(row.products) && row.products.length > 0) {
-    return row.products.map((product) => product.product_code || "").filter(Boolean).join(" | ");
+    return row.products
+      .map((product) => product.product_code || "")
+      .filter(Boolean)
+      .join(" | ");
   }
 
   return "";
@@ -178,6 +184,7 @@ const getProductCode = (item: FinanceReportItem) => {
 
 const getHsnCode = (item: FinanceReportItem) => {
   const row = asLineItem(item);
+
   if (row.hsn_code) return row.hsn_code;
 
   if (Array.isArray(row.products) && row.products.length > 0) {
@@ -189,12 +196,20 @@ const getHsnCode = (item: FinanceReportItem) => {
 
 const getQuantity = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  if (row.quantity !== null && row.quantity !== undefined && row.quantity !== "") {
+
+  if (
+    row.quantity !== null &&
+    row.quantity !== undefined &&
+    row.quantity !== ""
+  ) {
     return numberValue(row.quantity);
   }
 
   if (Array.isArray(row.products) && row.products.length > 0) {
-    return row.products.reduce((sum, product) => sum + numberValue(product.quantity), 0);
+    return row.products.reduce(
+      (sum, product) => sum + numberValue(product.quantity),
+      0,
+    );
   }
 
   // Older aggregated responses may not contain a line quantity.
@@ -203,6 +218,7 @@ const getQuantity = (item: FinanceReportItem) => {
 
 const getCouriers = (item: FinanceReportItem): LineCourier[] => {
   const row = asLineItem(item);
+
   if (Array.isArray(row.line_couriers) && row.line_couriers.length > 0) {
     return row.line_couriers;
   }
@@ -221,7 +237,10 @@ const getCouriers = (item: FinanceReportItem): LineCourier[] => {
 
 const getLineSubtotal = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  return numberValue(row.line_total_without_gst ?? row.unit_price_without_gst);
+
+  return numberValue(
+    row.line_total_without_gst ?? row.unit_price_without_gst,
+  );
 };
 
 const getLineGst = (item: FinanceReportItem) =>
@@ -234,7 +253,75 @@ const getLineShippingGst = (item: FinanceReportItem) =>
   numberValue(asLineItem(item).line_shipping_gst);
 
 const getLineGross = (item: FinanceReportItem) =>
-  getLineSubtotal(item) + getLineGst(item) + getLineShipping(item) + getLineShippingGst(item);
+  getLineSubtotal(item) +
+  getLineGst(item) +
+  getLineShipping(item) +
+  getLineShippingGst(item);
+
+/* ================= GST TAX BREAKDOWN ================= */
+
+/**
+ * Reads CGST, SGST and IGST from the API tax_breakdown object.
+ * Total is calculated from these three tax values.
+ */
+const getTaxBreakdown = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  const tax = row.tax_breakdown;
+
+  const cgst = numberValue(tax?.cgst);
+  const sgst = numberValue(tax?.sgst);
+  const igst = numberValue(tax?.igst);
+
+  return {
+    cgst,
+    sgst,
+    igst,
+    total: cgst + sgst + igst,
+  };
+};
+
+/**
+ * Displays CGST, SGST, IGST and their combined total.
+ */
+function TaxBreakdownDetails({
+  item,
+}: {
+  item: FinanceReportItem;
+}) {
+  const tax = getTaxBreakdown(item);
+
+  return (
+    <div className="min-w-0 space-y-1.5">
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] text-gray-500">CGST</span>
+        <span className="break-words text-right text-[9px] font-semibold text-gray-700">
+          {money(tax.cgst)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] text-gray-500">SGST</span>
+        <span className="break-words text-right text-[9px] font-semibold text-gray-700">
+          {money(tax.sgst)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-1">
+        <span className="text-[9px] text-gray-500">IGST</span>
+        <span className="break-words text-right text-[9px] font-semibold text-gray-700">
+          {money(tax.igst)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between gap-1 border-t border-[#E8EEF6] pt-1.5">
+        <span className="text-[9px] font-bold text-gray-700">Total Tax</span>
+        <span className="break-words text-right text-[9px] font-bold text-[#1E40AF]">
+          {money(tax.total)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Invoice totals repeat on every product line. Use one representative row per
@@ -245,12 +332,15 @@ const getUniqueInvoiceRows = (items: FinanceReportItem[]) => {
 
   items.forEach((item, index) => {
     const row = asLineItem(item);
+
     const key =
       row.order_reference ||
       item.invoice_number ||
       `missing-invoice-${index}`;
 
-    if (!unique.has(String(key))) unique.set(String(key), item);
+    if (!unique.has(String(key))) {
+      unique.set(String(key), item);
+    }
   });
 
   return Array.from(unique.values());
@@ -258,6 +348,7 @@ const getUniqueInvoiceRows = (items: FinanceReportItem[]) => {
 
 const isRefunded = (item: FinanceReportItem) => {
   const row = asLineItem(item);
+
   return (
     String(row.is_refunded).toLowerCase() === "true" ||
     String(row.is_refunded).toLowerCase() === "yes" ||
@@ -270,32 +361,58 @@ const isRefunded = (item: FinanceReportItem) => {
 const statusStyle = (status: string | null | undefined) => {
   const value = (status || "").toLowerCase();
 
-  if (value.includes("deliver") || value === "completed" || value === "paid") {
-    return { bg: THEME.greenSoft, color: THEME.green };
+  if (
+    value.includes("deliver") ||
+    value === "completed" ||
+    value === "paid"
+  ) {
+    return {
+      bg: THEME.greenSoft,
+      color: THEME.green,
+    };
   }
 
   if (value.includes("ship") || value.includes("partial")) {
-    return { bg: THEME.purpleSoft, color: THEME.purple };
+    return {
+      bg: THEME.purpleSoft,
+      color: THEME.purple,
+    };
   }
 
   if (value.includes("refund") || value.includes("cancel")) {
-    return { bg: THEME.redSoft, color: THEME.red };
+    return {
+      bg: THEME.redSoft,
+      color: THEME.red,
+    };
   }
 
   if (value.includes("dispatch") || value.includes("confirm")) {
-    return { bg: THEME.primarySoft, color: THEME.primaryDark };
+    return {
+      bg: THEME.primarySoft,
+      color: THEME.primaryDark,
+    };
   }
 
-  return { bg: THEME.orangeSoft, color: THEME.orange };
+  return {
+    bg: THEME.orangeSoft,
+    color: THEME.orange,
+  };
 };
 
-function StatusBadge({ status }: { status: string | null | undefined }) {
+function StatusBadge({
+  status,
+}: {
+  status: string | null | undefined;
+}) {
   const style = statusStyle(status);
 
   return (
     <span
       className="inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
-      style={{ background: style.bg, color: style.color }}
+      style={{
+        background: style.bg,
+        color: style.color,
+      }}
     >
       {valueOrDash(status)}
     </span>
@@ -323,7 +440,10 @@ function SummaryCard({
     <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: bg, color }}
+        style={{
+          background: bg,
+          color,
+        }}
       >
         <Icon size={17} />
       </div>
@@ -332,10 +452,14 @@ function SummaryCard({
         <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
           {title}
         </p>
+
         <h3 className="mt-0.5 truncate text-sm font-bold text-gray-900 sm:text-base">
           {value}
         </h3>
-        <p className="mt-0.5 truncate text-[9px] text-gray-400">{subtitle}</p>
+
+        <p className="mt-0.5 truncate text-[9px] text-gray-400">
+          {subtitle}
+        </p>
       </div>
     </div>
   );
@@ -343,21 +467,37 @@ function SummaryCard({
 
 /* ================= COURIER DETAILS ================= */
 
-function CourierDetails({ item }: { item: FinanceReportItem }) {
+function CourierDetails({
+  item,
+}: {
+  item: FinanceReportItem;
+}) {
   const couriers = getCouriers(item);
 
   if (couriers.length === 0) {
-    return <span className="text-[10px] text-gray-400">Not assigned</span>;
+    return (
+      <span className="text-[10px] text-gray-400">
+        Not assigned
+      </span>
+    );
   }
 
   return (
     <div className="min-w-0 max-w-full space-y-2">
       {couriers.map((courier, index) => (
-        <div key={`${courier.courier_company || "courier"}-${courier.courier_tracking_number || index}-${index}`}>
+        <div
+          key={`${courier.courier_company || "courier"}-${courier.courier_tracking_number || index}-${index}`}
+        >
           <p className="flex items-center gap-1 text-[11px] font-semibold text-gray-800">
-            <Truck size={12} className="shrink-0 text-[#2D6FE8]" />
-            <span>{valueOrDash(courier.courier_company)}</span>
+            <Truck
+              size={12}
+              className="shrink-0 text-[#2D6FE8]"
+            />
+            <span>
+              {valueOrDash(courier.courier_company)}
+            </span>
           </p>
+
           <p className="mt-0.5 break-all pl-[17px] text-[10px] text-gray-500">
             {courier.courier_tracking_number
               ? `Tracking: ${courier.courier_tracking_number}`
@@ -371,7 +511,11 @@ function CourierDetails({ item }: { item: FinanceReportItem }) {
 
 /* ================= PRODUCT DETAILS ================= */
 
-function ProductDetails({ item }: { item: FinanceReportItem }) {
+function ProductDetails({
+  item,
+}: {
+  item: FinanceReportItem;
+}) {
   const row = asLineItem(item);
 
   return (
@@ -379,10 +523,12 @@ function ProductDetails({ item }: { item: FinanceReportItem }) {
       <p className="line-clamp-2 text-xs font-semibold text-gray-800">
         {valueOrDash(getProductName(item))}
       </p>
+
       <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500">
         <span>Code: {valueOrDash(getProductCode(item))}</span>
         <span>HSN: {valueOrDash(getHsnCode(item))}</span>
       </div>
+
       {row.item_reference_id && (
         <p className="mt-1 break-all text-[9px] text-gray-400">
           Item Ref: {row.item_reference_id}
@@ -406,6 +552,7 @@ const FinanceReport = () => {
 
   const canViewReport = useMemo(() => {
     if (isSuperAdmin) return true;
+
     return (
       hasModuleAccess("finance_sales_report") ||
       hasPermission("finance_sales_report.view")
@@ -414,12 +561,16 @@ const FinanceReport = () => {
 
   const canExport = useMemo(() => {
     if (isSuperAdmin) return true;
+
     return hasPermission("finance_sales_report.download");
   }, [isSuperAdmin, hasPermission]);
 
   /* ================= LOGO ================= */
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL,
+  );
+
   const [logoLoading, setLogoLoading] = useState(true);
 
   useEffect(() => {
@@ -428,6 +579,7 @@ const FinanceReport = () => {
     const loadLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
+
         const candidates = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -439,18 +591,24 @@ const FinanceReport = () => {
 
         const found = candidates.find(
           (value) =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
         );
 
-        if (!cancelled && found) setLogoUrl(found.trim());
+        if (!cancelled && found) {
+          setLogoUrl(found.trim());
+        }
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) setLogoLoading(false);
+        if (!cancelled) {
+          setLogoLoading(false);
+        }
       }
     };
 
     void loadLogo();
+
     return () => {
       cancelled = true;
     };
@@ -476,8 +634,11 @@ const FinanceReport = () => {
   const fetchReports = useCallback(
     async (showLoader = true, page = currentPage) => {
       try {
-        if (showLoader) setLoading(true);
-        else setRefreshing(true);
+        if (showLoader) {
+          setLoading(true);
+        } else {
+          setRefreshing(true);
+        }
 
         const response = await financeReportApi.getAll({
           page,
@@ -487,17 +648,27 @@ const FinanceReport = () => {
         });
 
         if (response.success) {
-          setReports(Array.isArray(response.data) ? response.data : []);
-          setTotalRecords(response.meta?.total ?? response.data?.length ?? 0);
+          setReports(
+            Array.isArray(response.data) ? response.data : [],
+          );
+
+          setTotalRecords(
+            response.meta?.total ?? response.data?.length ?? 0,
+          );
+
           setLastPage(response.meta?.last_page ?? 1);
         } else {
           setReports([]);
-          toast.error(response.message || "Unable to fetch finance report");
+          toast.error(
+            response.message || "Unable to fetch finance report",
+          );
         }
       } catch (error: any) {
         console.error("Finance report error:", error);
+
         toast.error(
-          error?.response?.data?.message || "Failed to fetch finance report",
+          error?.response?.data?.message ||
+            "Failed to fetch finance report",
         );
       } finally {
         setLoading(false);
@@ -509,12 +680,18 @@ const FinanceReport = () => {
 
   useEffect(() => {
     if (permissionsLoading) return;
+
     if (!canViewReport) {
       setLoading(false);
       return;
     }
+
     void fetchReports(true);
-  }, [permissionsLoading, canViewReport, fetchReports]);
+  }, [
+    permissionsLoading,
+    canViewReport,
+    fetchReports,
+  ]);
 
   /* ================= SEARCH & FILTER ================= */
 
@@ -564,9 +741,18 @@ const FinanceReport = () => {
         accountFilter === "all" ||
         (item.account_type || "").toLowerCase() === accountFilter;
 
-      return matchesSearch && matchesStatus && matchesAccount;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesAccount
+      );
     });
-  }, [reports, search, statusFilter, accountFilter]);
+  }, [
+    reports,
+    search,
+    statusFilter,
+    accountFilter,
+  ]);
 
   /* ================= SUMMARY ================= */
 
@@ -575,17 +761,26 @@ const FinanceReport = () => {
 
     return {
       sales: uniqueInvoices.reduce(
-        (sum, item) => sum + numberValue(item.net_order_amount),
+        (sum, item) =>
+          sum + numberValue(item.net_order_amount),
         0,
       ),
+
       gst: uniqueInvoices.reduce(
-        (sum, item) => sum + numberValue(item.total_gst),
+        (sum, item) =>
+          sum + numberValue(item.total_gst),
         0,
       ),
+
       invoices: totalRecords,
-      // Each API row is an order line, so sum line quantities rather than the
-      // repeated invoice-level total_items field.
-      items: reports.reduce((sum, item) => sum + getQuantity(item), 0),
+
+      // Each API row is an order line, so sum line quantities rather than
+      // the repeated invoice-level total_items field.
+      items: reports.reduce(
+        (sum, item) => sum + getQuantity(item),
+        0,
+      ),
+
       refunded: uniqueInvoices.filter(isRefunded).length,
     };
   }, [reports, totalRecords]);
@@ -614,21 +809,34 @@ const FinanceReport = () => {
 
     try {
       setLoading(true);
+
       const response = await financeReportApi.getAll({
         page: 1,
         per_page: PER_PAGE,
       });
 
       if (response.success) {
-        setReports(Array.isArray(response.data) ? response.data : []);
-        setTotalRecords(response.meta?.total ?? response.data?.length ?? 0);
+        setReports(
+          Array.isArray(response.data) ? response.data : [],
+        );
+
+        setTotalRecords(
+          response.meta?.total ?? response.data?.length ?? 0,
+        );
+
         setLastPage(response.meta?.last_page ?? 1);
       } else {
         setReports([]);
-        toast.error(response.message || "Unable to clear report filters");
+
+        toast.error(
+          response.message || "Unable to clear report filters",
+        );
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || "Failed to clear filters");
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to clear filters",
+      );
     } finally {
       setLoading(false);
     }
@@ -638,7 +846,9 @@ const FinanceReport = () => {
 
   const exportCSV = () => {
     if (!canExport) {
-      toast.error("You don't have permission to export this report.");
+      toast.error(
+        "You don't have permission to export this report.",
+      );
       return;
     }
 
@@ -647,9 +857,8 @@ const FinanceReport = () => {
       return;
     }
 
-    // CSV columns intentionally mirror the information visible in the report:
-    // invoice/date, customer, product, quantity/pricing, courier, amount/GST,
-    // payment and order status. Delivery-only and hidden API fields are omitted.
+    // CSV includes the tax breakdown fields:
+    // CGST, SGST, IGST and Total Tax Breakdown.
     const headers = [
       "Invoice Number",
       "Invoice Date",
@@ -664,11 +873,15 @@ const FinanceReport = () => {
       "Item Reference",
       "Quantity",
       "Unit Price Without GST",
-      "Line Total Without GST",
+      "Product Total Without GST",
       "Courier Company",
       "Tracking Number",
       "Item Total",
-      "Line GST",
+      "Product GST",
+      "CGST",
+      "SGST",
+      "IGST",
+      "Total Tax Breakdown",
       "Shipping",
       "Invoice Total",
       "Payment Gateway",
@@ -680,6 +893,7 @@ const FinanceReport = () => {
     const rows = filteredReports.map((item) => {
       const row = asLineItem(item);
       const couriers = getCouriers(item);
+      const tax = getTaxBreakdown(item);
 
       const values: unknown[] = [
         item.invoice_number,
@@ -696,12 +910,24 @@ const FinanceReport = () => {
         getQuantity(item),
         row.unit_price_without_gst,
         row.line_total_without_gst,
-        couriers.map((courier) => courier.courier_company || "").join(" | "),
         couriers
-          .map((courier) => courier.courier_tracking_number || "")
+          .map((courier) => courier.courier_company || "")
+          .join(" | "),
+        couriers
+          .map(
+            (courier) =>
+              courier.courier_tracking_number || "",
+          )
           .join(" | "),
         getLineGross(item),
         getLineGst(item),
+
+        // GST breakdown
+        tax.cgst,
+        tax.sgst,
+        tax.igst,
+        tax.total,
+
         getLineShipping(item) + getLineShippingGst(item),
         item.net_order_amount,
         item.payment_gateway,
@@ -713,28 +939,46 @@ const FinanceReport = () => {
       return values.map(escapeCsv).join(",");
     });
 
-    const csv = [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
+    const csv = [
+      headers.map(escapeCsv).join(","),
+      ...rows,
+    ].join("\r\n");
+
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
     });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.href = url;
-    link.download = `finance-report-item-wise-${formatDateInput(new Date())}.csv`;
+    link.download = `finance-report-item-wise-${formatDateInput(
+      new Date(),
+    )}.csv`;
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
     URL.revokeObjectURL(url);
 
-    toast.success("Item-wise finance report exported successfully");
+    toast.success(
+      "Item-wise finance report exported successfully",
+    );
   };
 
   /* ================= PAGINATION ================= */
 
   const startRecord =
-    totalRecords === 0 ? 0 : (currentPage - 1) * PER_PAGE + 1;
-  const endRecord = Math.min(currentPage * PER_PAGE, totalRecords);
+    totalRecords === 0
+      ? 0
+      : (currentPage - 1) * PER_PAGE + 1;
+
+  const endRecord = Math.min(
+    currentPage * PER_PAGE,
+    totalRecords,
+  );
+
   const pageLoading = permissionsLoading || logoLoading;
 
   /* ================= LOADING ================= */
@@ -749,8 +993,15 @@ const FinanceReport = () => {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
-          <ShieldAlert size={28} className="mx-auto mb-4 text-[#C23B32]" />
-          <h2 className="text-lg font-bold text-gray-900">Access Denied</h2>
+          <ShieldAlert
+            size={28}
+            className="mx-auto mb-4 text-[#C23B32]"
+          />
+
+          <h2 className="text-lg font-bold text-gray-900">
+            Access Denied
+          </h2>
+
           <p className="mt-2 text-sm text-gray-500">
             You don't have permission to view the Finance Sales Report.
           </p>
@@ -764,7 +1015,9 @@ const FinanceReport = () => {
   return (
     <div
       className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6"
-      style={{ background: THEME.background }}
+      style={{
+        background: THEME.background,
+      }}
     >
       {/* ================= HEADER ================= */}
 
@@ -775,11 +1028,14 @@ const FinanceReport = () => {
             <ChevronRight size={13} />
             <span>Finance Sales Report</span>
           </div>
+
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
             Finance Sales Report
           </h1>
+
           <p className="mt-1 text-sm text-gray-500">
-            Review invoice details with product-wise pricing, HSN and courier tracking.
+            Review invoice details with product-wise pricing, HSN,
+            GST breakdown and courier tracking.
           </p>
         </div>
 
@@ -790,7 +1046,10 @@ const FinanceReport = () => {
             disabled={refreshing || loading}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
-            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw
+              size={15}
+              className={refreshing ? "animate-spin" : ""}
+            />
             Refresh
           </button>
 
@@ -819,6 +1078,7 @@ const FinanceReport = () => {
           color="#2D6FE8"
           bg="#EAF3FF"
         />
+
         <SummaryCard
           title="Net Order Amount"
           value={money(summary.sales)}
@@ -827,6 +1087,7 @@ const FinanceReport = () => {
           color="#15803D"
           bg="#DCFCE7"
         />
+
         <SummaryCard
           title="Total GST"
           value={money(summary.gst)}
@@ -835,6 +1096,7 @@ const FinanceReport = () => {
           color="#6D28D9"
           bg="#EDE9FE"
         />
+
         <SummaryCard
           title="Total Items"
           value={summary.items.toLocaleString("en-IN")}
@@ -843,6 +1105,7 @@ const FinanceReport = () => {
           color="#C2410C"
           bg="#FFEDD5"
         />
+
         <SummaryCard
           title="Refunded Orders"
           value={summary.refunded.toLocaleString("en-IN")}
@@ -857,8 +1120,14 @@ const FinanceReport = () => {
 
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
-          <Filter size={17} className="text-[#2D6FE8]" />
-          <h2 className="text-sm font-bold text-gray-800">Search & Filters</h2>
+          <Filter
+            size={17}
+            className="text-[#2D6FE8]"
+          />
+
+          <h2 className="text-sm font-bold text-gray-800">
+            Search & Filters
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_auto]">
@@ -867,6 +1136,7 @@ const FinanceReport = () => {
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
+
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -877,7 +1147,9 @@ const FinanceReport = () => {
 
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) =>
+              setStatusFilter(event.target.value)
+            }
             className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
           >
             <option value="all">All Statuses</option>
@@ -889,7 +1161,9 @@ const FinanceReport = () => {
 
           <select
             value={accountFilter}
-            onChange={(event) => setAccountFilter(event.target.value)}
+            onChange={(event) =>
+              setAccountFilter(event.target.value)
+            }
             className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
           >
             <option value="all">All Account Types</option>
@@ -902,10 +1176,13 @@ const FinanceReport = () => {
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
+
             <input
               type="date"
               value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
+              onChange={(event) =>
+                setFromDate(event.target.value)
+              }
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             />
           </div>
@@ -915,10 +1192,13 @@ const FinanceReport = () => {
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
+
             <input
               type="date"
               value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
+              onChange={(event) =>
+                setToDate(event.target.value)
+              }
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             />
           </div>
@@ -933,6 +1213,7 @@ const FinanceReport = () => {
               <Filter size={15} />
               Apply
             </button>
+
             <button
               type="button"
               onClick={() => void clearFilters()}
@@ -950,11 +1231,16 @@ const FinanceReport = () => {
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Finance Reports</h2>
+            <h2 className="text-base font-bold text-gray-900">
+              Finance Reports
+            </h2>
+
             <p className="mt-1 text-xs text-gray-500">
-              Each row represents one product/order line, including its courier details
+              Each row represents one product/order line, including
+              its courier details and GST tax breakdown
             </p>
           </div>
+
           <span className="w-fit rounded-full bg-[#EAF3FF] px-3 py-1.5 text-xs font-semibold text-[#1E40AF]">
             {filteredReports.length} Item Rows
           </span>
@@ -962,7 +1248,11 @@ const FinanceReport = () => {
 
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
-            <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
+            <Loader2
+              size={32}
+              className="animate-spin text-[#2D6FE8]"
+            />
+
             <p className="mt-3 text-sm font-medium text-gray-500">
               Loading finance report...
             </p>
@@ -972,12 +1262,15 @@ const FinanceReport = () => {
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FileText size={25} />
             </div>
+
             <h3 className="mt-4 text-base font-bold text-gray-800">
               No Finance Records Found
             </h3>
+
             <p className="mt-1 max-w-sm text-sm text-gray-500">
               No records match your search or selected filters.
             </p>
+
             <button
               type="button"
               onClick={() => void clearFilters()}
@@ -993,15 +1286,17 @@ const FinanceReport = () => {
             <div className="hidden w-full overflow-hidden xl:block">
               <table className="w-full table-fixed border-collapse text-left">
                 <colgroup>
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "16%" }} />
                   <col style={{ width: "10%" }} />
                   <col style={{ width: "13%" }} />
-                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "15%" }} />
+                  <col style={{ width: "9%" }} />
                   <col style={{ width: "12%" }} />
-                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "9%" }} />
                 </colgroup>
+
                 <thead>
                   <tr className="bg-[#F7FAFE]">
                     {[
@@ -1011,6 +1306,7 @@ const FinanceReport = () => {
                       "Qty / Unit Price",
                       "Courier / Tracking",
                       "Item Amount / GST",
+                      "GST Breakdown",
                       "Payment",
                       "Order",
                     ].map((heading) => (
@@ -1027,18 +1323,23 @@ const FinanceReport = () => {
                 <tbody>
                   {filteredReports.map((item, index) => {
                     const row = asLineItem(item);
+
                     return (
                       <tr
                         key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
                         className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]"
                       >
+                        {/* INVOICE / DATE */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-[11px] font-bold text-gray-900">
                             {valueOrDash(item.invoice_number)}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-500">
                             {formatDate(item.invoice_date)}
                           </p>
+
                           {row.order_reference && (
                             <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
                               {row.order_reference}
@@ -1046,67 +1347,101 @@ const FinanceReport = () => {
                           )}
                         </td>
 
+                        {/* CUSTOMER */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-[10px] font-semibold text-gray-800">
                             {valueOrDash(item.customer_name)}
                           </p>
+
                           <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
                             Mobile: {valueOrDash(item.customer_mobile)}
                           </p>
+
                           <p className="mt-1 break-all text-[9px] text-gray-500">
                             {valueOrDash(item.customer_email)}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] capitalize text-gray-400">
                             {valueOrDash(item.account_type)}
                           </p>
                         </td>
 
+                        {/* PRODUCT / HSN */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <ProductDetails item={item} />
                         </td>
+
+                        {/* QTY / UNIT PRICE */}
 
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-[10px] font-bold text-gray-900">
                             {getQuantity(item)} Qty
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-600">
                             Unit: {money(row.unit_price_without_gst)}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-500">
                             Line: {money(row.line_total_without_gst)}
                           </p>
                         </td>
 
+                        {/* COURIER / TRACKING */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <CourierDetails item={item} />
                         </td>
+
+                        {/* ITEM AMOUNT / GST */}
 
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-[10px] font-bold text-gray-900">
                             {money(getLineGross(item))}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-500">
                             Line GST: {money(getLineGst(item))}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-400">
-                            Shipping: {money(getLineShipping(item) + getLineShippingGst(item))}
+                            Shipping:{" "}
+                            {money(
+                              getLineShipping(item) +
+                                getLineShippingGst(item),
+                            )}
                           </p>
+
                           <p className="mt-1 break-words text-[9px] text-gray-400">
                             Invoice: {money(item.net_order_amount)}
                           </p>
                         </td>
 
+                        {/* GST BREAKDOWN */}
+
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <TaxBreakdownDetails item={item} />
+                        </td>
+
+                        {/* PAYMENT */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-[10px] font-semibold text-gray-800">
                             {valueOrDash(item.payment_gateway)}
                           </p>
+
                           <p className="mt-1 break-all text-[9px] text-gray-500">
                             {valueOrDash(item.gateway_transaction_id)}
                           </p>
                         </td>
 
+                        {/* ORDER */}
+
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <StatusBadge status={item.order_status} />
+
                           <p className="mt-1 break-words text-[9px] text-gray-400">
                             {formatDate(item.order_date)}
                           </p>
@@ -1123,6 +1458,8 @@ const FinanceReport = () => {
             <div className="space-y-3 p-3 xl:hidden">
               {filteredReports.map((item, index) => {
                 const row = asLineItem(item);
+                const tax = getTaxBreakdown(item);
+
                 return (
                   <div
                     key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
@@ -1130,59 +1467,78 @@ const FinanceReport = () => {
                   >
                     <div className="p-4">
                       {/* INVOICE HEADER */}
+
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
                             Invoice Number
                           </p>
+
                           <p className="mt-1 break-all text-sm font-bold text-gray-900">
                             {valueOrDash(item.invoice_number)}
                           </p>
+
                           <p className="mt-1 text-xs text-gray-500">
                             {formatDate(item.invoice_date)}
                           </p>
+
                           {row.order_reference && (
                             <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
                               {row.order_reference}
                             </p>
                           )}
                         </div>
+
                         <StatusBadge status={item.order_status} />
                       </div>
 
                       {/* CUSTOMER DETAILS */}
+
                       <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
                         <p className="text-sm font-semibold text-gray-800">
                           {valueOrDash(item.customer_name)}
                         </p>
+
                         <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
                           Mobile: {valueOrDash(item.customer_mobile)}
                         </p>
+
                         <p className="mt-1 break-all text-xs text-gray-500">
                           {valueOrDash(item.customer_email)}
                         </p>
+
                         <p className="mt-1 text-xs capitalize text-gray-500">
                           {valueOrDash(item.account_type)}
                         </p>
                       </div>
 
                       {/* ITEM PRODUCT DETAILS */}
+
                       <div className="mt-3 rounded-lg border border-[#E8EEF6] p-3">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Product Item
                           </p>
+
                           <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-[10px] font-semibold text-[#1E40AF]">
                             Qty: {getQuantity(item)}
                           </span>
                         </div>
+
                         <p className="mt-1 break-words text-sm font-semibold text-gray-800">
                           {valueOrDash(getProductName(item))}
                         </p>
+
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-500">
-                          <span>Code: {valueOrDash(getProductCode(item))}</span>
-                          <span>HSN: {valueOrDash(getHsnCode(item))}</span>
+                          <span>
+                            Code: {valueOrDash(getProductCode(item))}
+                          </span>
+
+                          <span>
+                            HSN: {valueOrDash(getHsnCode(item))}
+                          </span>
                         </div>
+
                         {row.item_reference_id && (
                           <p className="mt-1 break-all text-[9px] text-gray-400">
                             Item Ref: {row.item_reference_id}
@@ -1191,66 +1547,138 @@ const FinanceReport = () => {
                       </div>
 
                       {/* ITEM AMOUNTS */}
+
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div className="min-w-0">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Item Total
                           </p>
+
                           <p className="mt-1 break-words text-xs font-bold text-gray-800">
                             {money(getLineGross(item))}
                           </p>
                         </div>
+
                         <div className="min-w-0">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Unit Price
                           </p>
+
                           <p className="mt-1 break-words text-xs font-semibold text-gray-700">
                             {money(row.unit_price_without_gst)}
                           </p>
                         </div>
+
                         <div className="min-w-0">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Line GST
                           </p>
+
                           <p className="mt-1 break-words text-xs font-semibold text-gray-700">
                             {money(getLineGst(item))}
                           </p>
                         </div>
+
                         <div className="min-w-0">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Payment Gateway
                           </p>
+
                           <p className="mt-1 break-words text-xs font-semibold text-gray-700">
                             {valueOrDash(item.payment_gateway)}
                           </p>
                         </div>
                       </div>
 
+                      {/* GST TAX BREAKDOWN */}
+
+                      <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F7FAFE] p-3">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-600">
+                            GST Tax Breakdown
+                          </p>
+
+                          <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[9px] font-semibold text-[#1E40AF]">
+                            Tax Details
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="rounded-lg border border-[#E8EEF6] bg-white p-2.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                              CGST
+                            </p>
+
+                            <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                              {money(tax.cgst)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-[#E8EEF6] bg-white p-2.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                              SGST
+                            </p>
+
+                            <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                              {money(tax.sgst)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-[#E8EEF6] bg-white p-2.5">
+                            <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                              IGST
+                            </p>
+
+                            <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                              {money(tax.igst)}
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-[#BFDBFE] bg-[#EAF3FF] p-2.5">
+                            <p className="text-[9px] font-bold uppercase tracking-wide text-[#1E40AF]">
+                              Total Tax
+                            </p>
+
+                            <p className="mt-1 break-words text-xs font-bold text-[#1E40AF]">
+                              {money(tax.total)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       {/* ITEM COURIER DETAILS */}
+
                       <div className="mt-3 border-t border-[#E8EEF6] pt-3">
                         <p className="mb-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                          <Truck size={12} /> Courier & Tracking
+                          <Truck size={12} />
+                          Courier & Tracking
                         </p>
+
                         <CourierDetails item={item} />
                       </div>
 
                       {/* ORDER DETAILS */}
+
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EEF6] pt-3">
                         <div className="min-w-0">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Order Status
                           </p>
+
                           <div className="mt-1">
                             <StatusBadge status={item.order_status} />
                           </div>
+
                           <p className="mt-1 break-words text-[10px] text-gray-500">
                             {formatDate(item.order_date)}
                           </p>
                         </div>
+
                         <div className="text-right">
                           <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
                             Invoice Total
                           </p>
+
                           <p className="mt-1 break-words text-xs font-bold text-gray-800">
                             {money(item.net_order_amount)}
                           </p>
@@ -1271,7 +1699,10 @@ const FinanceReport = () => {
                   {startRecord}–{endRecord}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-gray-800">{totalRecords}</span>
+                <span className="font-semibold text-gray-800">
+                  {totalRecords}
+                </span>
+
                 <span className="ml-1 text-gray-400">
                   ({filteredReports.length} product rows on this page)
                 </span>
@@ -1281,7 +1712,11 @@ const FinanceReport = () => {
                 <button
                   type="button"
                   disabled={currentPage <= 1 || loading}
-                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.max(1, page - 1),
+                    )
+                  }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
@@ -1295,7 +1730,11 @@ const FinanceReport = () => {
                 <button
                   type="button"
                   disabled={currentPage >= lastPage || loading}
-                  onClick={() => setCurrentPage((page) => Math.min(lastPage, page + 1))}
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.min(lastPage, page + 1),
+                    )
+                  }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"
                 >

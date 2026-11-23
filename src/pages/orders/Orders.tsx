@@ -61,6 +61,15 @@ const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indiekonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 /* =====================================================
+   SEARCH SETTINGS (API search + debounce)
+   ===================================================== */
+
+/** API search tabhi chalegi jab kam se kam itne characters type ho gaye ho */
+const MIN_SEARCH_CHARS = 2;
+/** Typing rukne ke itne ms baad API call hogi */
+const SEARCH_DEBOUNCE_MS = 500;
+
+/* =====================================================
    DATE RANGE HELPERS
    ===================================================== */
 
@@ -3007,7 +3016,19 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     [isSuperAdmin, hasPermission],
   );
 
+  /** Input box ki raw value (har keystroke par update hoti hai) */
   const [search, setSearch] = useState("");
+  /**
+   * Debounced + validated search term (min 2 chars).
+   * Yahi value API ko jaati hai. "" matlab koi search nahi (sab orders).
+   */
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  /** fetchOrders hamesha latest debounced term padhe, isliye ref */
+  const debouncedSearchRef = useRef("");
+  debouncedSearchRef.current = debouncedSearch;
+  /** Purane (stale) API response ko ignore karne ke liye */
+  const orderRequestIdRef = useRef(0);
+
   const [statusFilter, setStatusFilter] = useState("Status: All");
   const [categoryFilter, setCategoryFilter] = useState("Category: All");
   const [brandFilter, setBrandFilter] = useState("Brand: All");
@@ -3115,13 +3136,38 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const itemsPerPage = 20; // orders per page
 
+  // Statuses / categories / brands sirf ek baar (mount par)
   useEffect(() => {
-    fetchOrders();
     fetchStatuses();
     fetchCategories();
     fetchBrands();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // DEBOUNCE: raw `search` -> `debouncedSearch`
+  //  - 0 ya 1 character  => search band (turant sab orders wapas)
+  //  - 2+ characters     => typing rukne ke SEARCH_DEBOUNCE_MS baad API search
+  useEffect(() => {
+    const trimmed = search.trim();
+
+    if (trimmed.length < MIN_SEARCH_CHARS) {
+      setDebouncedSearch("");
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(trimmed);
+      setCurrentPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  // Orders API: mount par (debouncedSearch = "") aur jab bhi debouncedSearch badle
+  useEffect(() => {
+    fetchOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -3202,21 +3248,36 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }
   };
 
+  /**
+   * Orders API se laata hai. Current debounced search term (agar hai) API ko
+   * `?search=` ke roop me jaata hai. Dispatch / ship / deliver ke baad bhi
+   * yahi call hota hai, isliye search results bhi refresh ho jaate hain.
+   */
   const fetchOrders = async () => {
+    const requestId = ++orderRequestIdRef.current;
+    const searchTerm = debouncedSearchRef.current;
+
     setLoading(true);
     setError(null);
     try {
-      const response = await orderApi.getOrders();
+      const response = await orderApi.getOrders(searchTerm || undefined);
+
+      // naya request aa gaya ho to ye purana response ignore karo
+      if (requestId !== orderRequestIdRef.current) return;
+
       const data = response.data.data || [];
       const extractedOrders = data
         .map((item: any) => item?.order ?? item)
         .filter((o: any) => o && typeof o === "object");
       setOrders(extractedOrders);
     } catch (err) {
+      if (requestId !== orderRequestIdRef.current) return;
       setError("An error occurred while fetching orders");
       console.error(err);
     } finally {
-      setLoading(false);
+      if (requestId === orderRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -3370,7 +3431,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   /** Orders (with ONLY matching items nested) after all filters */
   const filteredGroups = useMemo<OrderGroup[]>(() => {
-    const searchText = search.toLowerCase().trim();
+    // Search ab API (server) se hoti hai — `orders` already search-filtered aate hain.
+    // Isliye yahan client-side text search nahi lagate (warna server ke matches
+    // wo fields ke liye hide ho sakte hain jo yahan check nahi hote).
+    const searchText = "";
     const searchDigits = normalizePhone(searchText);
     const filterStatusValue = getFilterStatusValue(statusFilter);
     const categoryValue =
@@ -3453,7 +3517,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     return result;
   }, [
     allOrderGroups,
-    search,
     statusFilter,
     categoryFilter,
     brandFilter,
@@ -3550,7 +3613,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       )?.label;
       if (label) parts.push(label);
     }
-    if (search.trim()) parts.push("Search");
+    if (debouncedSearch.trim()) parts.push("Search");
     return parts.length > 0 ? parts.join(" • ") : "All Orders";
   }, [
     orderTypeFilter,
@@ -3558,7 +3621,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     categoryFilter,
     brandFilter,
     dateRangeFilter,
-    search,
+    debouncedSearch,
     categories,
     brands,
   ]);
@@ -3592,6 +3655,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const clearFilters = () => {
     setSearch("");
+    setDebouncedSearch("");
     setStatusFilter("Status: All");
     setCategoryFilter("Category: All");
     setBrandFilter("Brand: All");
@@ -4304,7 +4368,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           <p className="mt-4 text-sm font-bold text-[#C23B32]">{error}</p>
           <button
             type="button"
-            onClick={fetchOrders}
+            onClick={() => fetchOrders()}
             className="mt-5 rounded-xl bg-gradient-to-br from-[#4F8FF7] to-[#2D6FE8] px-6 py-2.5 text-sm font-bold text-white shadow-[0_8px_18px_-8px_rgba(45,111,232,0.5)] transition hover:-translate-y-0.5"
           >
             Retry
@@ -4332,18 +4396,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search by Order ID, Item Reference, Mobile, Invoice, Tracking No., Product, SKU..."
+                placeholder="Search by Order ID, Item Reference, Mobile, Invoice, Tracking No., Product, SKU... (min 2 characters)"
                 className="h-11 w-full rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-10 pr-9 text-xs text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
               />
               {search && (
                 <button
                   type="button"
-                  onClick={() => setSearch("")}
+                  onClick={() => {
+                    setSearch("");
+                    setDebouncedSearch("");
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] transition hover:text-[#2D6FE8]"
                 >
                   <FiX size={14} />
                 </button>
               )}
+              {search.trim().length > 0 &&
+                search.trim().length < MIN_SEARCH_CHARS && (
+                  <p className="pointer-events-none absolute left-1 top-full mt-0.5 text-[10px] font-medium text-[#A16207]">
+                    Type at least {MIN_SEARCH_CHARS} characters to search
+                  </p>
+                )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
