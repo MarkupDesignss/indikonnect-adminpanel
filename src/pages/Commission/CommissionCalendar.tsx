@@ -21,6 +21,7 @@ import {
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import * as XLSX from "xlsx";
 
 import commissionApi, {
   type CommissionCalendarResponse,
@@ -30,16 +31,8 @@ import logoApi from "../../api/endpoints/logoApi";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
-// =====================================================
-// DEFAULT LOGO
-// =====================================================
-
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
-
-// =====================================================
-// PERMISSION KEYS
-// =====================================================
 
 const VIEW_PERMISSION_KEYS = [
   "finance.commission-export",
@@ -53,10 +46,6 @@ const EXPORT_PERMISSION_KEYS = [
   "finance.commission_export",
   "finance.commissionExport",
 ];
-
-// =====================================================
-// TYPES
-// =====================================================
 
 interface CommissionWeekOption {
   week_no: number;
@@ -72,11 +61,10 @@ interface AppliedCommissionFilters {
   toDate: string;
 }
 
-type CommissionResponse = CommissionCalendarResponse;
-
-// =====================================================
-// ANIMATION VARIANTS
-// =====================================================
+type CommissionResponse = CommissionCalendarResponse & {
+  purchase_not?: CommissionExportRow[] | null;
+  periods?: Array<{ label?: string | null }>;
+};
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -99,10 +87,6 @@ const itemVariants = {
   },
 };
 
-// =====================================================
-// HELPERS
-// =====================================================
-
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
 
@@ -117,9 +101,7 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const formatNumber = (
-  value: number | string | null | undefined,
-) =>
+const formatNumber = (value: number | string | null | undefined) =>
   Number(value || 0).toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   });
@@ -179,6 +161,7 @@ const rowMatchesSearch = (
     row.email,
     row.bank_ifsc,
     row.bank_holder_name,
+    row.bank_account_number,
     row.gst_in,
     row.pan_number,
     String(row.week ?? ""),
@@ -192,107 +175,184 @@ const rowMatchesSearch = (
 };
 
 // =====================================================
-// CSV EXPORT
+// EXCEL EXPORT
+// Creates one XLSX workbook with two worksheets:
+//
+// 1. Selected Commission Period
+// 2. Purchase Not Made
+//
+// GSTIN, PAN Number and PAN Verified included in both.
 // =====================================================
 
-const exportToCsv = (
+const EXCEL_HEADERS = [
+  "BA ID",
+  "Distributor Name",
+  "Email",
+  "Week",
+  "Year",
+  "Gross Commission (INR)",
+  "TDS Amount",
+  "Net Commission",
+  "GSTIN",
+  "PAN Number",
+  "PAN Verified",
+  "Name at Bank",
+  "Bank Account Number",
+  "Bank IFSC Code",
+];
+
+const buildExcelSheet = (
   rows: CommissionExportRow[],
-  filename: string,
+  selectedYear: number,
+  selectedWeek: number | null,
 ) => {
-  if (!rows.length) {
-    toast.error("No data available to export.");
-    return;
-  }
+  const body = rows.map((row) => {
+    const firstPeriodLabel =
+      row.breakdown?.find((item) => item.label)?.label ?? "";
 
-  const headers = [
-    "BA ID",
-    "Distributor Name",
-    "Email",
-    "Period",
-    "Year",
-    "Gross Commission",
-    "TDS Rate (%)",
-    "TDS Amount",
-    "Net Commission",
-    "GSTIN",
-    "PAN Number",
-    "PAN Verified",
-    "Bank Holder Name",
-    "Bank Account Number",
-    "Bank IFSC",
-  ];
+    const parsedPeriod = firstPeriodLabel.match(
+      /W(\d{1,2})-(\d{4})/i,
+    );
 
-  const escapeCsv = (value: unknown) => {
-    const text =
-      value === null || value === undefined ? "" : String(value);
+    const weekValue =
+      row.week ??
+      (parsedPeriod
+        ? Number(parsedPeriod[1])
+        : selectedWeek ?? "");
 
-    const safe = /^[=+@\- \t\r]/.test(text)
-      ? `'${text}`
-      : text;
-
-    return `"${safe.replace(/"/g, '""')}"`;
-  };
-
-  const csvRows = rows.map((row) => {
-    const breakdown = (row.breakdown ?? [])
-      .map(
-        (item) =>
-          `${item.label}: ${item.start} - ${item.end}; Gross ${item.gross_commission}; TDS ${item.tds_amount}; Net ${item.net_commission}`,
-      )
-      .join(" | ");
+    const yearValue =
+      row.year ??
+      (parsedPeriod ? Number(parsedPeriod[2]) : selectedYear);
 
     return [
-      row.ba_id,
-      row.distributor_name,
-      row.email,
-      getRowPeriodLabel(row),
-      row.year ?? "",
-      row.gross_commission,
-      row.tds_rate_percent ?? "",
-      row.tds_amount,
-      row.net_commission,
-      row.gst_in ?? "",
-      row.pan_number ?? "",
+      String(row.ba_id ?? ""),
+      String(row.distributor_name ?? ""),
+      String(row.email ?? ""),
+      weekValue,
+      yearValue,
+      row.gross_commission ?? "",
+      row.tds_amount ?? "",
+      row.net_commission ?? "",
+
+      // GSTIN
+      String(row.gst_in ?? ""),
+
+      // PAN Number
+      String(row.pan_number ?? ""),
+
+      // PAN Verification Status
       row.pan_verified === true
         ? "Yes"
         : row.pan_verified === false
           ? "No"
           : "",
-      row.bank_holder_name,
-      row.bank_account_number,
-      row.bank_ifsc,
-      breakdown,
-    ]
-      .map(escapeCsv)
-      .join(",");
+
+      // Bank Details
+      String(row.bank_holder_name ?? ""),
+      String(row.bank_account_number ?? ""),
+      String(row.bank_ifsc ?? ""),
+    ];
   });
 
-  const csv = `\uFEFF${[
-    headers.map(escapeCsv).join(","),
-    ...csvRows,
-  ].join("\r\n")}`;
+  const worksheet = XLSX.utils.aoa_to_sheet([
+    EXCEL_HEADERS,
+    ...body,
+  ]);
 
-  const blob = new Blob([csv], {
-    type: "text/csv;charset=utf-8;",
+  worksheet["!cols"] = [
+    { wch: 19 }, // BA ID
+    { wch: 29 }, // Distributor Name
+    { wch: 34 }, // Email
+    { wch: 10 }, // Week
+    { wch: 10 }, // Year
+    { wch: 24 }, // Gross Commission
+    { wch: 19 }, // TDS Amount
+    { wch: 20 }, // Net Commission
+    { wch: 24 }, // GSTIN
+    { wch: 19 }, // PAN Number
+    { wch: 16 }, // PAN Verified
+    { wch: 29 }, // Name at Bank
+    { wch: 25 }, // Bank Account Number
+    { wch: 20 }, // Bank IFSC Code
+  ];
+
+  // Keep GSTIN, PAN, Account Number and IFSC as text.
+  // This prevents Excel from changing their values.
+  for (let rowIndex = 1; rowIndex <= body.length; rowIndex += 1) {
+    [8, 9, 12, 13].forEach((columnIndex) => {
+      const address = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: columnIndex,
+      });
+
+      const cell = worksheet[address];
+
+      if (cell) {
+        cell.t = "s";
+        cell.v = String(cell.v ?? "");
+        cell.z = "@";
+      }
+    });
+  }
+
+  return worksheet;
+};
+
+const exportToExcel = (
+  commissionRows: CommissionExportRow[],
+  purchaseNotRows: CommissionExportRow[],
+  filename: string,
+  selectedYear: number,
+  selectedWeek: number | null,
+  commissionSheetName: string,
+) => {
+  if (!commissionRows.length && !purchaseNotRows.length) {
+    toast.error("No data available to export.");
+    return;
+  }
+
+  const workbook = XLSX.utils.book_new();
+
+  const commissionSheet = buildExcelSheet(
+    commissionRows,
+    selectedYear,
+    selectedWeek,
+  );
+
+  const purchaseNotSheet = buildExcelSheet(
+    purchaseNotRows,
+    selectedYear,
+    selectedWeek,
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    commissionSheet,
+    commissionSheetName.slice(0, 31),
+  );
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    purchaseNotSheet,
+    "Purchase Not Made",
+  );
+
+  workbook.Props = {
+    Title: "Commission Report",
+    Subject: "Commission and Purchase Not Made Report",
+    Author: "IndieKonnect",
+  };
+
+  XLSX.writeFile(workbook, filename, {
+    bookType: "xlsx",
+    compression: true,
   });
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = filename;
-
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-
-  toast.success("CSV downloaded successfully.");
+  toast.success("Excel report downloaded successfully.");
 };
 
 // =====================================================
-// ACCESS DENIED STATE
+// ACCESS DENIED
 // =====================================================
 
 const AccessDeniedState: React.FC = () => (
@@ -314,7 +374,7 @@ const AccessDeniedState: React.FC = () => (
 );
 
 // =====================================================
-// CUSTOM WEEK DROPDOWN
+// WEEK DROPDOWN
 // =====================================================
 
 const WeekDropdown: React.FC<{
@@ -479,7 +539,10 @@ const WeekDropdown: React.FC<{
                     </span>
 
                     {value === option.week_no && (
-                      <FiCheck size={14} className="shrink-0" />
+                      <FiCheck
+                        size={14}
+                        className="shrink-0"
+                      />
                     )}
                   </button>
                 ))
@@ -493,15 +556,11 @@ const WeekDropdown: React.FC<{
 };
 
 // =====================================================
-// MAIN COMPONENT
+// COMMISSION VIEW
 // =====================================================
 
 const CommissionView: React.FC = () => {
   const currentYear = new Date().getFullYear();
-
-  // ===================================================
-  // PERMISSIONS
-  // ===================================================
 
   const {
     hasPermission,
@@ -511,8 +570,7 @@ const CommissionView: React.FC = () => {
   } = usePermissions();
 
   const hasAnyPermission = useCallback(
-    (keys: string[]) =>
-      keys.some((key) => hasPermission(key)),
+    (keys: string[]) => keys.some((key) => hasPermission(key)),
     [hasPermission],
   );
 
@@ -542,36 +600,22 @@ const CommissionView: React.FC = () => {
     ],
   );
 
-  // ===================================================
-  // LOGO STATE
-  // ===================================================
-
   const [logoUrl, setLogoUrl] = useState<string | null>(
     DEFAULT_LOGO_URL,
   );
 
   const [logoLoading, setLogoLoading] = useState(true);
 
-  // ===================================================
-  // FILTER STATES
-  // ===================================================
-
-  const [selectedYear, setSelectedYear] =
-    useState(currentYear);
-
-  const [selectedWeek, setSelectedWeek] =
-    useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(
+    null,
+  );
 
   const [draftFromDate, setDraftFromDate] = useState("");
   const [draftToDate, setDraftToDate] = useState("");
 
-  // Last applied filters.
   const [appliedFilters, setAppliedFilters] =
     useState<AppliedCommissionFilters | null>(null);
-
-  // ===================================================
-  // WEEK OPTIONS
-  // ===================================================
 
   const [weekOptions, setWeekOptions] = useState<
     CommissionWeekOption[]
@@ -582,26 +626,19 @@ const CommissionView: React.FC = () => {
 
   const weekRequestIdRef = useRef(0);
 
-  // ===================================================
-  // COMMISSION DATA
-  // ===================================================
-
   const [search, setSearch] = useState("");
 
-  const [data, setData] =
-    useState<CommissionResponse | null>(null);
+  const [data, setData] = useState<CommissionResponse | null>(
+    null,
+  );
 
-  // No commission GET request on initial page load.
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
   const [errorMessage, setErrorMessage] = useState("");
 
   const requestIdRef = useRef(0);
 
-  // ===================================================
-  // LOGO FETCH
-  // ===================================================
+  // LOGO API
 
   useEffect(() => {
     let cancelled = false;
@@ -644,9 +681,7 @@ const CommissionView: React.FC = () => {
     };
   }, []);
 
-  // ===================================================
-  // FETCH ALL WEEK OPTIONS
-  // ===================================================
+  // FETCH WEEK OPTIONS
 
   const fetchWeekOptions = useCallback(async () => {
     if (!canViewCommission) return;
@@ -655,18 +690,6 @@ const CommissionView: React.FC = () => {
 
     try {
       setWeekOptionsLoading(true);
-
-      /*
-       * IMPORTANT:
-       *
-       * On page load and year change:
-       * Send week = 0.
-       *
-       * API returns calendar containing all weeks.
-       *
-       * This request is only for dropdown options.
-       * Commission table data is NOT loaded here.
-       */
 
       const response = await commissionApi.getCalendar(
         0,
@@ -697,10 +720,6 @@ const CommissionView: React.FC = () => {
     }
   }, [selectedYear, canViewCommission]);
 
-  // ===================================================
-  // LOAD WEEK OPTIONS ON PAGE LOAD / YEAR CHANGE
-  // ===================================================
-
   useEffect(() => {
     if (permissionsLoading) return;
 
@@ -717,9 +736,7 @@ const CommissionView: React.FC = () => {
     fetchWeekOptions,
   ]);
 
-  // ===================================================
   // FETCH COMMISSION DATA
-  // ===================================================
 
   const fetchCommission = useCallback(
     async (
@@ -729,19 +746,6 @@ const CommissionView: React.FC = () => {
       if (!canViewCommission) return;
 
       const requestId = ++requestIdRef.current;
-
-      /*
-       * API WEEK LOGIC:
-       *
-       * 1. If From Date or To Date exists:
-       *    week = null (omit week query parameter).
-       *
-       * 2. If a specific week is selected:
-       *    Send that week number.
-       *
-       * 3. If All Weeks is selected:
-       *    Send week = 0.
-       */
 
       const hasDateFilter = Boolean(
         filters.fromDate || filters.toDate,
@@ -771,10 +775,8 @@ const CommissionView: React.FC = () => {
         if (requestId !== requestIdRef.current) return;
 
         if (response.data?.success) {
-          setData(response.data);
+          setData(response.data as CommissionResponse);
 
-          // Update week options from the latest calendar
-          // only when the returned calendar is available.
           if (response.data?.calendar) {
             setWeekOptions(
               buildWeekOptions(response.data.calendar),
@@ -810,34 +812,26 @@ const CommissionView: React.FC = () => {
     [canViewCommission],
   );
 
-  // ===================================================
-  // FILTER DERIVED STATES
-  // ===================================================
+  // FILTER STATES
 
   const hasAppliedFilters = appliedFilters !== null;
 
   const hasPendingChanges = Boolean(
     appliedFilters &&
-    (
-      selectedYear !== appliedFilters.year ||
-      selectedWeek !== appliedFilters.week ||
-      draftFromDate !== appliedFilters.fromDate ||
-      draftToDate !== appliedFilters.toDate
-    )
+      (selectedYear !== appliedFilters.year ||
+        selectedWeek !== appliedFilters.week ||
+        draftFromDate !== appliedFilters.fromDate ||
+        draftToDate !== appliedFilters.toDate),
   );
 
   const canReset = Boolean(
     hasAppliedFilters ||
-    selectedYear !== currentYear ||
-    selectedWeek !== null ||
-    draftFromDate ||
-    draftToDate ||
-    search,
+      selectedYear !== currentYear ||
+      selectedWeek !== null ||
+      draftFromDate ||
+      draftToDate ||
+      search,
   );
-
-  // ===================================================
-  // YEAR CHANGE
-  // ===================================================
 
   const handleYearChange = (value: string) => {
     const nextYear = Number(value);
@@ -850,29 +844,15 @@ const CommissionView: React.FC = () => {
     }
 
     setSelectedYear(nextYear);
-
     setSelectedWeek(null);
-
     setDraftFromDate("");
     setDraftToDate("");
-
     setWeekOptions([]);
-
-    // Only the week-options API will run for this year.
-    // Commission records will wait for Apply Filter.
   };
-
-  // ===================================================
-  // WEEK CHANGE
-  // ===================================================
 
   const handleWeekChange = (value: number | null) => {
     setSelectedWeek(value);
   };
-
-  // ===================================================
-  // DATE CHANGE
-  // ===================================================
 
   const handleFromDateChange = (value: string) => {
     if (
@@ -904,10 +884,6 @@ const CommissionView: React.FC = () => {
     setDraftToDate(value);
   };
 
-  // ===================================================
-  // APPLY FILTER
-  // ===================================================
-
   const handleApplyFilter = () => {
     if (!canViewCommission) {
       toast.error(
@@ -931,52 +907,29 @@ const CommissionView: React.FC = () => {
 
     const filters: AppliedCommissionFilters = {
       year: selectedYear,
-
-      // Keep the selected week in UI state.
-      // fetchCommission omits it whenever dates exist.
       week: selectedWeek,
-
       fromDate: draftFromDate,
       toDate: draftToDate,
     };
 
     setAppliedFilters(filters);
-
-    // Commission GET API is called only here.
     void fetchCommission(filters);
   };
 
-  // ===================================================
-  // RESET FILTER
-  // ===================================================
-
   const handleReset = () => {
-    // Invalidate any previous pending commission request.
     requestIdRef.current += 1;
 
     setSelectedYear(currentYear);
     setSelectedWeek(null);
-
     setDraftFromDate("");
     setDraftToDate("");
-
     setAppliedFilters(null);
-
     setSearch("");
     setData(null);
     setErrorMessage("");
-
     setLoading(false);
     setRefreshing(false);
-
-    // No commission API call on Reset.
-    // If the year changed, the week-options effect
-    // will refresh the calendar with week=0.
   };
-
-  // ===================================================
-  // REFRESH
-  // ===================================================
 
   const handleRefresh = () => {
     if (!canViewCommission) {
@@ -993,17 +946,18 @@ const CommissionView: React.FC = () => {
 
     if (loading || refreshing) return;
 
-    // Refresh uses the last applied filters.
-    // Date filters will continue to omit week.
     void fetchCommission(appliedFilters, true);
   };
 
-  // ===================================================
-  // CSV EXPORT
-  // ===================================================
+  // API DATA
 
   const rows = useMemo(
     () => data?.data || [],
+    [data],
+  );
+
+  const purchaseNotRows = useMemo(
+    () => data?.purchase_not || [],
     [data],
   );
 
@@ -1015,7 +969,17 @@ const CommissionView: React.FC = () => {
     );
   }, [rows, search]);
 
-  const handleDownloadCsv = () => {
+  const filteredPurchaseNotRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return purchaseNotRows.filter((row) =>
+      rowMatchesSearch(row, query),
+    );
+  }, [purchaseNotRows, search]);
+
+  // DOWNLOAD EXCEL
+
+  const handleDownloadExcel = () => {
     if (!canExportCommission) {
       toast.error(
         "You do not have permission to export commission data.",
@@ -1028,34 +992,44 @@ const CommissionView: React.FC = () => {
       return;
     }
 
-    if (!filteredRows.length) {
+    if (
+      !filteredRows.length &&
+      !filteredPurchaseNotRows.length
+    ) {
       toast.error("No data available to export.");
       return;
     }
 
     const filters = appliedFilters;
 
-    const datePart =
-      filters.fromDate || filters.toDate
-        ? `${filters.fromDate || "start"}-to-${filters.toDate || "end"}`
-        : "all-dates";
+    let filename: string;
+    let commissionSheetName: string;
 
-    const weekPart =
-      filters.fromDate || filters.toDate
-        ? "date-range"
-        : filters.week == null
-          ? "all-weeks"
-          : `week-${filters.week}`;
+    if (filters.fromDate || filters.toDate) {
+      filename = `commission-date-range-${filters.year}-${filters.fromDate || "start"}-to-${filters.toDate || "end"}.xlsx`;
 
-    exportToCsv(
+      commissionSheetName = `Date Range-${filters.year}`;
+    } else if (filters.week !== null) {
+      filename = `W${filters.week}-${filters.year}.xlsx`;
+
+      commissionSheetName = `W${filters.week}-${filters.year}`;
+    } else {
+      filename = `Year-${filters.year}.xlsx`;
+
+      commissionSheetName = `Year-${filters.year}`;
+    }
+
+    exportToExcel(
       filteredRows,
-      `commission-${weekPart}-${filters.year}-${datePart}.csv`,
+      filteredPurchaseNotRows,
+      filename,
+      filters.year,
+      filters.week,
+      commissionSheetName,
     );
   };
 
-  // ===================================================
   // DISPLAY PERIOD
-  // ===================================================
 
   const displayPeriod = useMemo(() => {
     if (!appliedFilters) return "Not Applied";
@@ -1080,10 +1054,6 @@ const CommissionView: React.FC = () => {
       : `Week ${appliedFilters.week}`;
   }, [appliedFilters]);
 
-  // ===================================================
-  // YEAR OPTIONS
-  // ===================================================
-
   const yearOptions = useMemo(
     () =>
       Array.from(
@@ -1093,16 +1063,9 @@ const CommissionView: React.FC = () => {
     [currentYear],
   );
 
-  // ===================================================
-  // PAGE LOADING
-  // ===================================================
+  // PAGE STATES
 
-  const pageLoading =
-    permissionsLoading || logoLoading;
-
-  // ===================================================
-  // RENDER GUARDS
-  // ===================================================
+  const pageLoading = permissionsLoading || logoLoading;
 
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
@@ -1112,9 +1075,9 @@ const CommissionView: React.FC = () => {
     return <AccessDeniedState />;
   }
 
-  // ===================================================
-  // MAIN UI
-  // ===================================================
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <motion.div
@@ -1146,7 +1109,7 @@ const CommissionView: React.FC = () => {
 
           <p className="mt-0.5 text-sm text-[#111827]">
             Filter by week, year or custom date range, then
-            export the results to CSV.
+            export both reports to an Excel workbook.
           </p>
         </div>
 
@@ -1164,7 +1127,9 @@ const CommissionView: React.FC = () => {
             <FiRefreshCw
               size={14}
               className={`text-[#2D6FE8] ${
-                loading || refreshing ? "animate-spin" : ""
+                loading || refreshing
+                  ? "animate-spin"
+                  : ""
               }`}
             />
             Refresh
@@ -1173,18 +1138,22 @@ const CommissionView: React.FC = () => {
           {canExportCommission && (
             <button
               type="button"
-              onClick={handleDownloadCsv}
-              disabled={loading || !filteredRows.length}
+              onClick={handleDownloadExcel}
+              disabled={
+                loading ||
+                (!filteredRows.length &&
+                  !filteredPurchaseNotRows.length)
+              }
               className="flex h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#2D6FE8] px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiDownload size={14} />
-              Export CSV
+              Export Excel
             </button>
           )}
         </div>
       </motion.div>
 
-      {/* WEEK RANGE / SUMMARY BANNER */}
+      {/* SELECTED PERIOD SUMMARY */}
 
       {!loading && data?.week_range && appliedFilters && (
         <motion.div
@@ -1260,14 +1229,12 @@ const CommissionView: React.FC = () => {
         </motion.div>
       )}
 
-      {/* MAIN CONTENT AREA */}
+      {/* FILTER SECTION */}
 
       <motion.div
         variants={itemVariants}
         className="flex flex-col overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm"
       >
-        {/* SEARCH + FILTERS */}
-
         <div className="border-b border-[#DCE6F2] bg-white p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_88px_132px_132px_132px_108px_88px] lg:items-end lg:gap-2">
             {/* SEARCH */}
@@ -1423,6 +1390,7 @@ const CommissionView: React.FC = () => {
               ) : (
                 <FiCheck size={13} />
               )}
+
               Apply Filter
             </button>
 
@@ -1439,8 +1407,6 @@ const CommissionView: React.FC = () => {
             </button>
           </div>
 
-          {/* FILTER NOTICE */}
-
           {hasAppliedFilters && hasPendingChanges && (
             <p className="mt-3 text-[10px] font-medium text-[#B7791F]">
               You have changed filters. Click Apply Filter to
@@ -1450,8 +1416,8 @@ const CommissionView: React.FC = () => {
 
           {!hasAppliedFilters && (
             <p className="mt-3 text-[10px] text-[#6B7280]">
-              Select your filters and click Apply Filter to load
-              commission data.
+              Select your filters and click Apply Filter to
+              load commission data.
             </p>
           )}
         </div>
@@ -1459,7 +1425,8 @@ const CommissionView: React.FC = () => {
         {/* APPLIED DATE RANGE */}
 
         {appliedFilters &&
-          (appliedFilters.fromDate || appliedFilters.toDate) && (
+          (appliedFilters.fromDate ||
+            appliedFilters.toDate) && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-2.5">
               <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Applied date range
@@ -1491,7 +1458,7 @@ const CommissionView: React.FC = () => {
             </div>
           )}
 
-        {/* TABLE CONTENT */}
+        {/* COMMISSION TABLE */}
 
         <div className="relative overflow-x-auto">
           {loading ? (
@@ -1544,7 +1511,9 @@ const CommissionView: React.FC = () => {
               >
                 <FiRefreshCw
                   size={13}
-                  className={refreshing ? "animate-spin" : ""}
+                  className={
+                    refreshing ? "animate-spin" : ""
+                  }
                 />
                 Try Again
               </button>
@@ -1589,12 +1558,16 @@ const CommissionView: React.FC = () => {
                     Net (₹)
                   </th>
 
+                  {/* GSTIN COLUMN */}
+
                   <th className="px-3 py-4 font-semibold">
                     GSTIN
                   </th>
 
+                  {/* PAN COLUMN */}
+
                   <th className="px-3 py-4 font-semibold">
-                    PAN
+                    PAN Number
                   </th>
 
                   <th className="px-3 py-4 text-center font-semibold">
@@ -1627,16 +1600,16 @@ const CommissionView: React.FC = () => {
 
                     <td className="px-3 py-4">
                       <span className="inline-flex rounded bg-[#EAF3FF] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
-                        {row.ba_id}
+                        {row.ba_id || "—"}
                       </span>
                     </td>
 
                     <td className="px-3 py-4 font-medium text-[#111827]">
-                      {row.distributor_name}
+                      {row.distributor_name || "—"}
                     </td>
 
                     <td className="px-3 py-4 text-[#6B7280]">
-                      {row.email}
+                      {row.email || "—"}
                     </td>
 
                     <td className="px-3 py-4 text-center">
@@ -1663,7 +1636,9 @@ const CommissionView: React.FC = () => {
                       {formatNumber(row.net_commission)}
                     </td>
 
-                    <td className="px-3 py-4 font-mono text-[11px] text-[#111827]">
+                    {/* GSTIN VALUE */}
+
+                    <td className="px-3 py-4 font-mono text-[11px] font-medium text-[#111827]">
                       {row.gst_in || (
                         <span className="text-[#9CA3AF]">
                           —
@@ -1671,13 +1646,17 @@ const CommissionView: React.FC = () => {
                       )}
                     </td>
 
-                    <td className="px-3 py-4 font-mono text-[11px] text-[#111827]">
+                    {/* PAN NUMBER VALUE */}
+
+                    <td className="px-3 py-4 font-mono text-[11px] font-medium text-[#111827]">
                       {row.pan_number || (
                         <span className="text-[#9CA3AF]">
                           —
                         </span>
                       )}
                     </td>
+
+                    {/* PAN VERIFIED VALUE */}
 
                     <td className="px-3 py-4 text-center">
                       {row.pan_verified === true ? (
@@ -1697,15 +1676,15 @@ const CommissionView: React.FC = () => {
                     </td>
 
                     <td className="px-3 py-4 text-[#111827]">
-                      {row.bank_holder_name}
+                      {row.bank_holder_name || "—"}
                     </td>
 
                     <td className="px-3 py-4 font-mono text-[#111827]">
-                      {row.bank_account_number}
+                      {row.bank_account_number || "—"}
                     </td>
 
                     <td className="px-3 py-4 font-mono text-[#6B7280]">
-                      {row.bank_ifsc}
+                      {row.bank_ifsc || "—"}
                     </td>
                   </tr>
                 ))}
@@ -1731,31 +1710,33 @@ const CommissionView: React.FC = () => {
 
         {/* FOOTER */}
 
-        {!loading && !errorMessage && hasAppliedFilters && (
-          <div className="flex flex-col items-center justify-between gap-4 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:flex-row">
-            <p className="text-xs text-[#6B7280]">
-              Showing{" "}
-              <span className="font-bold text-[#111827]">
-                {filteredRows.length ? 1 : 0}
-              </span>{" "}
-              to{" "}
-              <span className="font-bold text-[#111827]">
-                {filteredRows.length}
-              </span>{" "}
-              of{" "}
-              <span className="font-bold text-[#111827]">
-                {filteredRows.length}
-              </span>{" "}
-              entries
-            </p>
+        {!loading &&
+          !errorMessage &&
+          hasAppliedFilters && (
+            <div className="flex flex-col items-center justify-between gap-4 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:flex-row">
+              <p className="text-xs text-[#6B7280]">
+                Showing{" "}
+                <span className="font-bold text-[#111827]">
+                  {filteredRows.length ? 1 : 0}
+                </span>{" "}
+                to{" "}
+                <span className="font-bold text-[#111827]">
+                  {filteredRows.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-bold text-[#111827]">
+                  {filteredRows.length}
+                </span>{" "}
+                entries
+              </p>
 
-            <span className="text-xs text-[#6B7280]">
-              {filteredRows.length.toLocaleString("en-IN")}{" "}
-              matching record
-              {filteredRows.length === 1 ? "" : "s"}
-            </span>
-          </div>
-        )}
+              <span className="text-xs text-[#6B7280]">
+                {filteredRows.length.toLocaleString("en-IN")}{" "}
+                matching record
+                {filteredRows.length === 1 ? "" : "s"}
+              </span>
+            </div>
+          )}
       </motion.div>
     </motion.div>
   );
