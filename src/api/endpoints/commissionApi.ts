@@ -1,7 +1,7 @@
 import apiClient from "../client";
 
 // =====================================================
-// TYPES
+// COMMISSION CALENDAR TYPES
 // =====================================================
 
 export interface CommissionCalendarWeek {
@@ -32,10 +32,71 @@ export interface CommissionCalendar {
   months: CommissionCalendarMonth[];
 }
 
+export interface CommissionPeriod {
+  type: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+export interface CommissionBreakdownRow extends CommissionPeriod {
+  gross_commission: number;
+  tds_amount: number;
+  net_commission: number;
+}
+
+export interface CommissionExportRow {
+  ba_id: string;
+  distributor_name: string;
+  email: string;
+  week?: number;
+  year?: number;
+  period_type?: string;
+  breakdown?: CommissionBreakdownRow[];
+  gross_commission: number;
+  tds_section?: string;
+  tds_rate_percent?: number;
+  tds_amount: number;
+  net_commission: number;
+  gst_in?: string;
+  pan_verified?: boolean;
+  bank_holder_name: string;
+  bank_ifsc: string;
+  pan_number?: string;
+  bank_account_number: string;
+}
+
 export interface CommissionCalendarResponse {
   success: boolean;
   message?: string;
-  calendar: CommissionCalendar;
+  currency?: {
+    base: string;
+    display: string;
+    exchange_rate: number;
+  };
+  calendar?: CommissionCalendar;
+  period_type?: string;
+  filters?: {
+    week?: number;
+    year?: number;
+    from_date?: string;
+    to_date?: string;
+  };
+  periods?: CommissionPeriod[];
+  week_range?: {
+    start: string;
+    end: string;
+  };
+  summary?: {
+    total_distributors: number;
+    total_eligible: number;
+    failed_count: number;
+    total_gross?: number;
+    total_tds?: number;
+    total_net?: number;
+  };
+  data?: CommissionExportRow[];
+  failed?: unknown[];
 }
 
 // =====================================================
@@ -44,20 +105,33 @@ export interface CommissionCalendarResponse {
 
 const commissionApi = {
   /**
-   * Fetch the Ignite sales / commission calendar.
+   * Fetch the Ignite sales / commission calendar and export data.
    *
-   * Example:
+   * Calendar example:
    * GET /admin/finance/commission-export?week=0&year=2026
+   *
+   * Date-range example:
+   * GET /admin/finance/commission-export?week=0&year=2026&from_date=2026-10-01&to_date=2026-10-15
+   *
+   * When week and date range are both supplied, the API can return
+   * the combined period response supported by the backend.
    */
-  getCalendar: (week = 0, year = new Date().getFullYear()) =>
+  getCalendar: (
+    week = 0,
+    year = new Date().getFullYear(),
+    fromDate?: string,
+    toDate?: string,
+  ) =>
     apiClient.get<CommissionCalendarResponse>(
       "/admin/finance/commission-export",
       {
         params: {
           week,
           year,
+          ...(fromDate ? { from_date: fromDate } : {}),
+          ...(toDate ? { to_date: toDate } : {}),
         },
-      }
+      },
     ),
 };
 

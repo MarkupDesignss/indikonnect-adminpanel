@@ -504,7 +504,7 @@ const ReturnsReportPage = () => {
       const matchesSearch =
         !query ||
         [
-          item["Refund Bill Id"],
+       
           item["Original Bill Id"],
           (item as any)["Distributor ID"],
           (item as any)["Distributor Id"],
@@ -586,7 +586,7 @@ const ReturnsReportPage = () => {
     }
 
     const headers = [
-      "Refund Bill Id",
+    
       "Original Bill Id",
       "Distributor ID",
       "Refund Amount",
@@ -966,7 +966,7 @@ const ReturnsReportPage = () => {
                 <thead>
                   <tr className="bg-[#F7FAFE]">
                     {[
-                      "Bill / Refund",
+                      "Order Reference",
                       "Customer",
                       "Refund Amount",
                       "QTY",

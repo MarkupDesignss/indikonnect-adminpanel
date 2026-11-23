@@ -1,3 +1,4 @@
+
 import React, {
   useCallback,
   useEffect,
@@ -13,17 +14,18 @@ import {
   FiLayers,
   FiDownload,
   FiChevronDown,
-  FiClock,
   FiTrendingUp,
   FiCheck,
   FiFileText,
-  FiChevronLeft,
-  FiChevronRight,
+  FiX,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 
-import commissionApi from "../../api/endpoints/commissionApi";
+import commissionApi, {
+  type CommissionCalendarResponse,
+  type CommissionExportRow,
+} from "../../api/endpoints/commissionApi";
 import logoApi from "../../api/endpoints/logoApi";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
@@ -31,12 +33,14 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 // =====================================================
 // DEFAULT LOGO
 // =====================================================
+
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
 // =====================================================
 // PERMISSION KEYS
 // =====================================================
+
 const VIEW_PERMISSION_KEYS = [
   "finance.commission-export",
   "finance.commission_export",
@@ -53,6 +57,7 @@ const EXPORT_PERMISSION_KEYS = [
 // =====================================================
 // TYPES
 // =====================================================
+
 interface CommissionWeekOption {
   week_no: number;
   start_date: string;
@@ -60,53 +65,18 @@ interface CommissionWeekOption {
   label: string;
 }
 
-interface CommissionRow {
-  ba_id: string;
-  distributor_name: string;
-  email: string;
-  week: number;
-  year: number;
-  gross_commission: number;
-  tds_section?: string;
-  tds_rate_percent?: number;
-  tds_amount: number;
-  net_commission: number;
-  gst_in?: string;
-  pan_verified?: boolean;
-  bank_holder_name: string;
-  bank_ifsc: string;
-  pan_number?: string;
-  bank_account_number: string;
-}
-
-interface CommissionResponse {
-  success: boolean;
-  message: string;
-  currency?: {
-    base: string;
-    display: string;
-    exchange_rate: number;
-  };
-  filters?: { week: number; year: number };
-  week_range?: { start: string; end: string };
-  summary?: {
-    total_distributors: number;
-    total_eligible: number;
-    failed_count: number;
-    total_gross?: number;
-    total_tds?: number;
-    total_net?: number;
-  };
-  data?: CommissionRow[];
-  failed?: any[];
-}
+type CommissionResponse = CommissionCalendarResponse;
 
 // =====================================================
 // ANIMATION VARIANTS
 // =====================================================
+
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.045 } },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.045 },
+  },
 };
 
 const itemVariants = {
@@ -114,17 +84,25 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100, damping: 15 },
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
   },
 };
 
 // =====================================================
 // HELPERS
 // =====================================================
+
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
+
   const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -132,17 +110,25 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const formatNumber = (value: number) =>
-  Number(value || 0).toLocaleString("en-IN");
+const formatNumber = (
+  value: number | string | null | undefined,
+) =>
+  Number(value || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  });
 
 const buildWeekOptions = (calendar: any): CommissionWeekOption[] => {
   if (!calendar?.months?.length) return [];
+
   const map = new Map<number, CommissionWeekOption>();
+
   calendar.months.forEach((month: any) => {
     month.weeks?.forEach((week: any) => {
-      if (!map.has(week.week_no)) {
-        map.set(week.week_no, {
-          week_no: week.week_no,
+      const weekNo = Number(week.week_no);
+
+      if (!map.has(weekNo)) {
+        map.set(weekNo, {
+          week_no: weekNo,
           start_date: week.start_date,
           end_date: week.end_date,
           label: `Week ${week.week_no}`,
@@ -150,13 +136,60 @@ const buildWeekOptions = (calendar: any): CommissionWeekOption[] => {
       }
     });
   });
-  return Array.from(map.values()).sort((a, b) => a.week_no - b.week_no);
+
+  return Array.from(map.values()).sort(
+    (a, b) => a.week_no - b.week_no,
+  );
+};
+
+const getRowPeriodLabel = (row: CommissionExportRow) => {
+  if (row.week != null) return `W${row.week}`;
+
+  const labels =
+    row.breakdown?.map((item) => item.label).filter(Boolean) ?? [];
+
+  return labels.length ? labels.join(" + ") : "—";
+};
+
+const rowMatchesSearch = (
+  row: CommissionExportRow,
+  query: string,
+) => {
+  if (!query) return true;
+
+  const breakdownText = (row.breakdown ?? [])
+    .map(
+      (item) =>
+        `${item.label} ${item.start} ${item.end} ${item.type}`,
+    )
+    .join(" ");
+
+  return [
+    row.ba_id,
+    row.distributor_name,
+    row.email,
+    row.bank_ifsc,
+    row.bank_holder_name,
+    row.gst_in,
+    row.pan_number,
+    String(row.week ?? ""),
+    String(row.year ?? ""),
+    breakdownText,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
 };
 
 // =====================================================
-// CSV EXPORT — TDS Section removed, TDS Rate & TDS Amount kept
+// CSV EXPORT
 // =====================================================
-const exportToCsv = (rows: CommissionRow[], filename: string) => {
+
+const exportToCsv = (
+  rows: CommissionExportRow[],
+  filename: string,
+) => {
   if (!rows.length) {
     toast.error("No data available to export.");
     return;
@@ -166,7 +199,7 @@ const exportToCsv = (rows: CommissionRow[], filename: string) => {
     "BA ID",
     "Distributor Name",
     "Email",
-    "Week",
+    "Period",
     "Year",
     "Gross Commission",
     "TDS Rate (%)",
@@ -178,60 +211,93 @@ const exportToCsv = (rows: CommissionRow[], filename: string) => {
     "Bank Holder Name",
     "Bank Account Number",
     "Bank IFSC",
+    "Breakdown",
   ];
 
-  const escape = (val: any) => {
-    const str = val === null || val === undefined ? "" : String(val);
-    return `"${str.replace(/"/g, '""')}"`;
+  const escapeCsv = (value: unknown) => {
+    const text =
+      value === null || value === undefined ? "" : String(value);
+
+    const safe = /^[=+@\- \t\r]/.test(text)
+      ? `'${text}`
+      : text;
+
+    return `"${safe.replace(/"/g, '""')}"`;
   };
 
-  const csv = [
-    headers.map(escape).join(","),
-    ...rows.map((r) =>
-      [
-        r.ba_id,
-        r.distributor_name,
-        r.email,
-        r.week,
-        r.year,
-        r.gross_commission,
-        r.tds_rate_percent ?? "",
-        r.tds_amount,
-        r.net_commission,
-        r.gst_in ?? "",
-        r.pan_number ?? "",
-        r.pan_verified === true ? "Yes" : r.pan_verified === false ? "No" : "",
-        r.bank_holder_name,
-        r.bank_account_number, // full account number — no masking
-        r.bank_ifsc,
-      ]
-        .map(escape)
-        .join(","),
-    ),
-  ].join("\n");
+  const csvRows = rows.map((row) => {
+    const breakdown = (row.breakdown ?? [])
+      .map(
+        (item) =>
+          `${item.label}: ${item.start} - ${item.end}; Gross ${item.gross_commission}; TDS ${item.tds_amount}; Net ${item.net_commission}`,
+      )
+      .join(" | ");
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    return [
+      row.ba_id,
+      row.distributor_name,
+      row.email,
+      getRowPeriodLabel(row),
+      row.year ?? "",
+      row.gross_commission,
+      row.tds_rate_percent ?? "",
+      row.tds_amount,
+      row.net_commission,
+      row.gst_in ?? "",
+      row.pan_number ?? "",
+      row.pan_verified === true
+        ? "Yes"
+        : row.pan_verified === false
+          ? "No"
+          : "",
+      row.bank_holder_name,
+      row.bank_account_number,
+      row.bank_ifsc,
+      breakdown,
+    ]
+      .map(escapeCsv)
+      .join(",");
+  });
+
+  const csv = `\uFEFF${[
+    headers.map(escapeCsv).join(","),
+    ...csvRows,
+  ].join("\r\n")}`;
+
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;",
+  });
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+
   link.href = url;
   link.download = filename;
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+
   toast.success("CSV downloaded successfully.");
 };
 
 // =====================================================
 // ACCESS DENIED STATE
 // =====================================================
+
 const AccessDeniedState: React.FC = () => (
   <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-6 font-poppins">
     <div className="w-full max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-sm">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FEF2F2] text-[#C23B32]">
         <FiFileText size={24} />
       </div>
-      <h2 className="mt-5 text-lg font-bold text-[#111827]">Access Denied</h2>
+
+      <h2 className="mt-5 text-lg font-bold text-[#111827]">
+        Access Denied
+      </h2>
+
       <p className="mt-2 text-sm leading-6 text-[#6B7280]">
         You do not have permission to view commission data.
       </p>
@@ -242,14 +308,21 @@ const AccessDeniedState: React.FC = () => (
 // =====================================================
 // CUSTOM WEEK DROPDOWN
 // =====================================================
+
 const WeekDropdown: React.FC<{
   options: CommissionWeekOption[];
-  value: number;
-  onChange: (val: number) => void;
+  value: number | null;
+  onChange: (val: number | null) => void;
   disabled?: boolean;
-}> = ({ options, value, onChange, disabled = false }) => {
+}> = ({
+  options,
+  value,
+  onChange,
+  disabled = false,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -261,44 +334,63 @@ const WeekDropdown: React.FC<{
         setIsOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside,
+      );
   }, []);
 
   const filteredOptions = useMemo(() => {
     if (!search) return options;
-    const q = search.toLowerCase();
+
+    const query = search.toLowerCase();
+
     return options.filter(
-      (o) =>
-        o.week_no.toString().includes(q) ||
-        formatDate(o.start_date).toLowerCase().includes(q) ||
-        formatDate(o.end_date).toLowerCase().includes(q),
+      (option) =>
+        option.week_no.toString().includes(query) ||
+        formatDate(option.start_date)
+          .toLowerCase()
+          .includes(query) ||
+        formatDate(option.end_date)
+          .toLowerCase()
+          .includes(query),
     );
   }, [options, search]);
 
-  const selectedOption = options.find((o) => o.week_no === value);
+  const selectedOption = options.find(
+    (option) => option.week_no === value,
+  );
 
   return (
-    <div className="relative w-full sm:w-[190px]" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-full items-center justify-between rounded-xl border border-[#D6E2F0] bg-white px-3 text-xs font-bold text-[#111827] outline-none transition hover:border-[#2D6FE8]/40 focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => setIsOpen((previous) => !previous)}
+        className="flex h-9 w-full items-center justify-between rounded-lg border border-[#D6E2F0] bg-white px-2.5 text-[11px] font-bold text-[#111827] outline-none transition hover:border-[#2D6FE8]/40 focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <div className="flex items-center gap-1.5 truncate">
-          <FiLayers size={13} className="shrink-0 text-[#6B7280]" />
+        <span className="flex items-center gap-1.5 truncate">
+          <FiLayers
+            size={13}
+            className="shrink-0 text-[#6B7280]"
+          />
+
           <span className="truncate">
-            {value === 0
-              ? "All Weeks"
-              : selectedOption
-                ? `${selectedOption.label}`
-                : "Week"}
+            {value == null
+              ? "Select Week"
+              : selectedOption?.label ?? `Week ${value}`}
           </span>
-        </div>
+        </span>
+
         <FiChevronDown
           size={14}
-          className={`shrink-0 text-[#6B7280] transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`shrink-0 text-[#6B7280] transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
         />
       </button>
 
@@ -317,61 +409,68 @@ const WeekDropdown: React.FC<{
                   size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]"
                 />
+
                 <input
                   type="text"
                   placeholder="Search week or date..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
                   className="h-8 w-full rounded-lg bg-[#F4F8FD] pl-8 pr-3 text-xs text-[#111827] outline-none focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(event) => event.stopPropagation()}
                 />
               </div>
             </div>
+
             <div className="max-h-[260px] overflow-y-auto p-1 custom-scrollbar">
               <button
                 type="button"
                 onClick={() => {
-                  onChange(0);
+                  onChange(null);
                   setIsOpen(false);
                   setSearch("");
                 }}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition ${
-                  value === 0
+                  value == null
                     ? "bg-[#EAF3FF] font-bold text-[#2D6FE8]"
                     : "text-[#111827] hover:bg-[#F4F8FD]"
                 }`}
               >
                 All Weeks
-                {value === 0 && <FiCheck size={14} />}
+                {value == null && <FiCheck size={14} />}
               </button>
+
               {filteredOptions.length === 0 ? (
                 <p className="px-3 py-4 text-center text-xs text-[#6B7280]">
                   No weeks found.
                 </p>
               ) : (
-                filteredOptions.map((opt) => (
+                filteredOptions.map((option) => (
                   <button
-                    key={opt.week_no}
+                    key={option.week_no}
                     type="button"
                     onClick={() => {
-                      onChange(opt.week_no);
+                      onChange(option.week_no);
                       setIsOpen(false);
                       setSearch("");
                     }}
                     className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition ${
-                      value === opt.week_no
+                      value === option.week_no
                         ? "bg-[#EAF3FF] font-bold text-[#2D6FE8]"
                         : "text-[#111827] hover:bg-[#F4F8FD]"
                     }`}
                   >
-                    <div className="flex flex-col">
-                      <span>{opt.label}</span>
+                    <span className="flex flex-col">
+                      <span>{option.label}</span>
+
                       <span className="text-[10px] font-normal text-[#6B7280]">
-                        {formatDate(opt.start_date)} –{" "}
-                        {formatDate(opt.end_date)}
+                        {formatDate(option.start_date)} –{" "}
+                        {formatDate(option.end_date)}
                       </span>
-                    </div>
-                    {value === opt.week_no && (
+                    </span>
+
+                    {value === option.week_no && (
                       <FiCheck size={14} className="shrink-0" />
                     )}
                   </button>
@@ -388,12 +487,14 @@ const WeekDropdown: React.FC<{
 // =====================================================
 // MAIN COMPONENT
 // =====================================================
+
 const CommissionView: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
   // ===================================================
   // PERMISSIONS
   // ===================================================
+
   const {
     hasPermission,
     hasModuleAccess,
@@ -402,7 +503,8 @@ const CommissionView: React.FC = () => {
   } = usePermissions();
 
   const hasAnyPermission = useCallback(
-    (keys: string[]) => keys.some((key) => hasPermission(key)),
+    (keys: string[]) =>
+      keys.some((key) => hasPermission(key)),
     [hasPermission],
   );
 
@@ -412,7 +514,11 @@ const CommissionView: React.FC = () => {
       hasModuleAccess("finance") ||
       hasModuleAccess("Finance") ||
       hasAnyPermission(VIEW_PERMISSION_KEYS),
-    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
+    [
+      isSuperAdmin,
+      hasModuleAccess,
+      hasAnyPermission,
+    ],
   );
 
   const canExportCommission = useMemo(
@@ -421,25 +527,51 @@ const CommissionView: React.FC = () => {
       hasModuleAccess("finance") ||
       hasModuleAccess("Finance") ||
       hasAnyPermission(EXPORT_PERMISSION_KEYS),
-    [isSuperAdmin, hasModuleAccess, hasAnyPermission],
+    [
+      isSuperAdmin,
+      hasModuleAccess,
+      hasAnyPermission,
+    ],
   );
 
   // ===================================================
   // LOGO STATE
   // ===================================================
-  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL,
+  );
+
   const [logoLoading, setLogoLoading] = useState(true);
 
   // ===================================================
   // STATE
   // ===================================================
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedWeek, setSelectedWeek] = useState<number>(0);
-  const [weekOptions, setWeekOptions] = useState<CommissionWeekOption[]>([]);
+
+  const [selectedYear, setSelectedYear] =
+    useState(currentYear);
+
+  const [selectedWeek, setSelectedWeek] =
+    useState<number | null>(null);
+
+  const [draftFromDate, setDraftFromDate] = useState("");
+  const [draftToDate, setDraftToDate] = useState("");
+
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const [weekOptions, setWeekOptions] = useState<
+    CommissionWeekOption[]
+  >([]);
+
   const [search, setSearch] = useState("");
-  const [data, setData] = useState<CommissionResponse | null>(null);
+
+  const [data, setData] =
+    useState<CommissionResponse | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState("");
 
   const requestIdRef = useRef(0);
@@ -447,6 +579,7 @@ const CommissionView: React.FC = () => {
   // ===================================================
   // LOGO FETCH
   // ===================================================
+
   useEffect(() => {
     let cancelled = false;
 
@@ -465,7 +598,8 @@ const CommissionView: React.FC = () => {
 
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim()),
         );
 
         if (!cancelled && resolvedLogo) {
@@ -490,16 +624,29 @@ const CommissionView: React.FC = () => {
   // ===================================================
   // FETCH WEEK OPTIONS
   // ===================================================
+
   const fetchWeekOptions = useCallback(async () => {
     if (!canViewCommission) return;
+
     try {
-      const response = await commissionApi.getCalendar(0, selectedYear);
-      if (response.data?.success && response.data?.calendar) {
-        setWeekOptions(buildWeekOptions(response.data.calendar));
+      // null means All Weeks.
+      // The API helper must omit the week parameter for null.
+      const response = await commissionApi.getCalendar(
+        null,
+        selectedYear,
+      );
+
+      if (
+        response.data?.success &&
+        response.data?.calendar
+      ) {
+        setWeekOptions(
+          buildWeekOptions(response.data.calendar),
+        );
       } else {
         setWeekOptions([]);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Week options API error:", error);
       setWeekOptions([]);
     }
@@ -508,18 +655,36 @@ const CommissionView: React.FC = () => {
   // ===================================================
   // FETCH COMMISSION DATA
   // ===================================================
+
   const fetchCommission = useCallback(
     async (isRefresh = false) => {
       if (!canViewCommission) return;
+
       const requestId = ++requestIdRef.current;
+
       try {
         setErrorMessage("");
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
+
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * selectedWeek = null means All Weeks.
+         * The API helper must conditionally omit the week key.
+         *
+         * selectedWeek = 40 means week=40 will be sent.
+         */
 
         const response = await commissionApi.getCalendar(
           selectedWeek,
           selectedYear,
+          fromDate || undefined,
+          toDate || undefined,
         );
 
         if (requestId !== requestIdRef.current) return;
@@ -528,17 +693,22 @@ const CommissionView: React.FC = () => {
           setData(response.data);
         } else {
           const message =
-            response.data?.message || "Unable to fetch commission data.";
+            response.data?.message ||
+            "Unable to fetch commission data.";
+
           setErrorMessage(message);
           toast.error(message);
         }
       } catch (error: any) {
         if (requestId !== requestIdRef.current) return;
+
         console.error("Commission API error:", error);
+
         const message =
           error?.response?.data?.message ||
           error?.message ||
           "Unable to fetch commission data.";
+
         setErrorMessage(message);
         toast.error(message);
       } finally {
@@ -548,100 +718,223 @@ const CommissionView: React.FC = () => {
         }
       }
     },
-    [selectedWeek, selectedYear, canViewCommission],
+    [
+      selectedWeek,
+      selectedYear,
+      fromDate,
+      toDate,
+      canViewCommission,
+    ],
   );
 
   // ===================================================
   // EFFECTS
   // ===================================================
-  useEffect(() => {
-    if (permissionsLoading) return;
-    if (canViewCommission) {
-      void fetchWeekOptions();
-    }
-  }, [selectedYear, permissionsLoading, canViewCommission, fetchWeekOptions]);
 
   useEffect(() => {
     if (permissionsLoading) return;
+
+    if (canViewCommission) {
+      void fetchWeekOptions();
+    }
+  }, [
+    selectedYear,
+    permissionsLoading,
+    canViewCommission,
+    fetchWeekOptions,
+  ]);
+
+  useEffect(() => {
+    if (permissionsLoading) return;
+
     if (canViewCommission) {
       void fetchCommission();
     } else {
       setLoading(false);
     }
+
     return () => {
       requestIdRef.current += 1;
     };
-  }, [fetchCommission, permissionsLoading, canViewCommission]);
+  }, [
+    fetchCommission,
+    permissionsLoading,
+    canViewCommission,
+  ]);
 
   // ===================================================
   // COMBINED INITIAL LOADING
   // ===================================================
-  const pageLoading = permissionsLoading || logoLoading;
 
-  const rows = useMemo(() => data?.data || [], [data]);
+  const pageLoading =
+    permissionsLoading || logoLoading;
+
+  const rows = useMemo(
+    () => data?.data || [],
+    [data],
+  );
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return rows;
+
     return rows.filter((row) =>
-      [
-        row.ba_id,
-        row.distributor_name,
-        row.email,
-        row.bank_ifsc,
-        row.bank_holder_name,
-        row.gst_in,
-        row.pan_number,
-        String(row.week),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
+      rowMatchesSearch(row, query),
     );
   }, [rows, search]);
 
   const yearOptions = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => currentYear - 3 + i),
+    () =>
+      Array.from(
+        { length: 7 },
+        (_, index) => currentYear - 3 + index,
+      ),
     [currentYear],
   );
 
+  // ===================================================
+  // FILTER HANDLERS
+  // ===================================================
+
   const handleYearChange = (value: string) => {
     const nextYear = Number(value);
-    if (Number.isInteger(nextYear) && nextYear !== selectedYear) {
+
+    if (
+      Number.isInteger(nextYear) &&
+      nextYear !== selectedYear
+    ) {
       setSelectedYear(nextYear);
-      setSelectedWeek(0);
+
+      setSelectedWeek(null);
+
+      setDraftFromDate("");
+      setDraftToDate("");
+
+      setFromDate("");
+      setToDate("");
+
       setSearch("");
       setData(null);
       setWeekOptions([]);
     }
   };
 
-  const handleWeekChange = (value: number) => {
+  const handleWeekChange = (value: number | null) => {
     setSelectedWeek(value);
+    setData(null);
+  };
+
+  const handleFromDateChange = (value: string) => {
+    if (
+      value &&
+      draftToDate &&
+      value > draftToDate
+    ) {
+      toast.error(
+        "From date cannot be later than To date.",
+      );
+      return;
+    }
+
+    setDraftFromDate(value);
+  };
+
+  const handleToDateChange = (value: string) => {
+    if (
+      value &&
+      draftFromDate &&
+      value < draftFromDate
+    ) {
+      toast.error(
+        "To date cannot be earlier than From date.",
+      );
+      return;
+    }
+
+    setDraftToDate(value);
+  };
+
+  const handleApplyDateFilter = () => {
+    if (
+      draftFromDate &&
+      draftToDate &&
+      draftFromDate > draftToDate
+    ) {
+      toast.error(
+        "From date cannot be later than To date.",
+      );
+      return;
+    }
+
+    const unchanged =
+      draftFromDate === fromDate &&
+      draftToDate === toDate;
+
+    if (unchanged) {
+      void fetchCommission(true);
+      return;
+    }
+
+    setFromDate(draftFromDate);
+    setToDate(draftToDate);
     setData(null);
   };
 
   const handleRefresh = () => {
     if (!canViewCommission) {
-      toast.error("You do not have permission to view commission data.");
+      toast.error(
+        "You do not have permission to view commission data.",
+      );
       return;
     }
+
     void fetchCommission(true);
   };
 
   const handleDownloadCsv = () => {
     if (!canExportCommission) {
-      toast.error("You do not have permission to export commission data.");
+      toast.error(
+        "You do not have permission to export commission data.",
+      );
       return;
     }
-    const weekPart = selectedWeek === 0 ? "all-weeks" : `week-${selectedWeek}`;
-    exportToCsv(filteredRows, `commission-${weekPart}-${selectedYear}.csv`);
+
+    if (!filteredRows.length) {
+      toast.error("No data available to export.");
+      return;
+    }
+
+    const datePart =
+      fromDate || toDate
+        ? `${fromDate || "start"}-to-${toDate || "end"}`
+        : "all-dates";
+
+    const weekPart =
+      selectedWeek == null
+        ? "all-weeks"
+        : `week-${selectedWeek}`;
+
+    exportToCsv(
+      filteredRows,
+      `commission-${weekPart}-${selectedYear}-${datePart}.csv`,
+    );
   };
+
+  const displayPeriod = useMemo(() => {
+    if (fromDate || toDate) {
+      return `${
+        fromDate ? formatDate(fromDate) : "Start"
+      } – ${toDate ? formatDate(toDate) : "Present"}`;
+    }
+
+    return selectedWeek == null
+      ? "All Weeks"
+      : `Week ${selectedWeek}`;
+  }, [fromDate, toDate, selectedWeek]);
 
   // ===================================================
   // RENDER GUARDS
   // ===================================================
+
   if (pageLoading) {
     return <PermissionLoadingState logoUrl={logoUrl} />;
   }
@@ -650,14 +943,19 @@ const CommissionView: React.FC = () => {
     return <AccessDeniedState />;
   }
 
+  // ===================================================
+  // MAIN UI
+  // ===================================================
+
   return (
     <motion.div
-      className="min-h-screen p-4 font-poppins sm:p-6 "
+      className="min-h-screen p-4 font-poppins sm:p-6"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
     >
-      {/* HEADER — title left, refresh right */}
+      {/* HEADER */}
+
       <motion.div
         variants={itemVariants}
         className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
@@ -667,6 +965,7 @@ const CommissionView: React.FC = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
             <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
             <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+
             <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#2D6FE8]">
               Finance Management
             </span>
@@ -675,43 +974,64 @@ const CommissionView: React.FC = () => {
           <h1 className="text-[20px] font-medium tracking-tight text-[#111827] sm:text-[22px]">
             Commission Data
           </h1>
+
           <p className="mt-0.5 text-sm text-[#111827]">
-            Filter by week and year, then export the results to CSV.
+            Filter by week, year or custom date range, then
+            export the results to CSV.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={loading || refreshing}
-          className="flex h-10 items-center justify-center gap-1.5 self-start rounded-xl border border-[#D6E2F0] bg-white px-4 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
-        >
-          <FiRefreshCw
-            size={14}
-            className={`text-[#2D6FE8] ${loading || refreshing ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </button>
+        <div className="flex shrink-0 flex-nowrap items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={loading || refreshing}
+            className="flex h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#D6E2F0] bg-white px-3.5 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FiRefreshCw
+              size={14}
+              className={`text-[#2D6FE8] ${
+                loading || refreshing ? "animate-spin" : ""
+              }`}
+            />
+            Refresh
+          </button>
+
+          {canExportCommission && (
+            <button
+              type="button"
+              onClick={handleDownloadCsv}
+              disabled={loading || !filteredRows.length}
+              className="flex h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-[#2D6FE8] px-3.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiDownload size={14} />
+              Export CSV
+            </button>
+          )}
+        </div>
       </motion.div>
 
       {/* WEEK RANGE / SUMMARY BANNER */}
+
       {!loading && data?.week_range && (
         <motion.div
           variants={itemVariants}
-          className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-[#2D6FE8]/25 bg-white p-4 sm:flex-row sm:items-center sm:p-5 shadow-sm"
+          className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-[#2D6FE8]/25 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FiTrendingUp size={20} />
             </div>
+
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2D6FE8]">
                 Selected Period
               </p>
+
               <h2 className="mt-0.5 text-base font-bold text-[#111827]">
-                {selectedWeek === 0 ? "All Weeks" : `Week ${selectedWeek}`} •{" "}
-                {selectedYear}
+                {displayPeriod} • {selectedYear}
               </h2>
+
               <p className="mt-0.5 text-xs text-[#6B7280]">
                 {formatDate(data.week_range.start)} –{" "}
                 {formatDate(data.week_range.end)}
@@ -725,32 +1045,41 @@ const CommissionView: React.FC = () => {
                 <span className="text-[10px] uppercase tracking-wide text-[#6B7280]">
                   Distributors
                 </span>
+
                 <span className="font-bold text-[#111827]">
-                  {formatNumber(data.summary.total_distributors)}
+                  {formatNumber(
+                    data.summary.total_distributors,
+                  )}
                 </span>
               </div>
+
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wide text-[#6B7280]">
                   Gross
                 </span>
-                <span className="font-bold text-[#111827] tabular-nums">
-                  ₹{formatNumber(Number(data.summary.total_gross ?? 0))}
+
+                <span className="font-bold tabular-nums text-[#111827]">
+                  ₹{formatNumber(data.summary.total_gross)}
                 </span>
               </div>
+
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wide text-[#6B7280]">
                   TDS
                 </span>
-                <span className="font-bold text-[#C23B32] tabular-nums">
-                  ₹{formatNumber(Number(data.summary.total_tds ?? 0))}
+
+                <span className="font-bold tabular-nums text-[#C23B32]">
+                  ₹{formatNumber(data.summary.total_tds)}
                 </span>
               </div>
+
               <div className="flex flex-col">
                 <span className="text-[10px] uppercase tracking-wide text-[#6B7280]">
                   Net
                 </span>
-                <span className="font-bold text-[#168653] tabular-nums">
-                  ₹{formatNumber(Number(data.summary.total_net ?? 0))}
+
+                <span className="font-bold tabular-nums text-[#168653]">
+                  ₹{formatNumber(data.summary.total_net)}
                 </span>
               </div>
             </div>
@@ -759,88 +1088,205 @@ const CommissionView: React.FC = () => {
       )}
 
       {/* MAIN CONTENT AREA */}
+
       <motion.div
         variants={itemVariants}
-        className="flex flex-col rounded-2xl border border-[#DCE6F2] bg-white shadow-sm overflow-hidden"
+        className="flex flex-col overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white shadow-sm"
       >
-        {/* SEARCH + YEAR + WEEK + EXPORT */}
-        <div className="flex flex-col gap-3 border-b border-[#DCE6F2] p-4 lg:flex-row lg:items-center lg:justify-between bg-white">
-          <div className="relative w-full lg:max-w-[380px]">
-            <FiSearch
-              size={17}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7280]"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search BA ID, name, email, IFSC, GSTIN, PAN..."
-              className="h-10 w-full rounded-xl border border-[#D6E2F0] bg-[#F8FBFF] pl-10 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#6B7280] hover:text-[#111827]"
-                aria-label="Clear search"
-              >
-                Clear
-              </button>
-            )}
-          </div>
+        {/* SEARCH + FILTERS */}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative w-[110px]">
-              <FiCalendar
-                size={14}
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]"
+        <div className="border-b border-[#DCE6F2] bg-white p-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_88px_132px_132px_132px_108px] lg:items-end lg:gap-2">
+            {/* SEARCH */}
+
+            <div className="relative w-full min-w-0">
+              <span className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                Search
+              </span>
+
+              <FiSearch
+                size={15}
+                className="absolute left-3 top-[30px] -translate-y-1/2 text-[#6B7280]"
               />
-              <select
-                value={selectedYear}
-                onChange={(event) => handleYearChange(event.target.value)}
-                className="h-10 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-white pl-8 pr-7 text-xs font-bold text-[#111827] outline-none transition hover:border-[#2D6FE8]/40 focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15"
-                aria-label="Select year"
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-              <FiChevronDown
-                size={13}
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]"
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="BA ID, name, email..."
+                className="h-9 w-full rounded-lg border border-[#D6E2F0] bg-[#F8FBFF] pl-9 pr-9 text-[11px] text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-[30px] -translate-y-1/2 text-[#6B7280] hover:text-[#111827]"
+                  aria-label="Clear search"
+                >
+                  <FiX size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* YEAR */}
+
+            <div className="w-full min-w-0">
+              <label className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                Year
+              </label>
+
+              <div className="relative">
+                <FiCalendar
+                  size={13}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6B7280]"
+                />
+
+                <select
+                  value={selectedYear}
+                  onChange={(event) =>
+                    handleYearChange(event.target.value)
+                  }
+                  className="h-9 w-full appearance-none rounded-lg border border-[#D6E2F0] bg-white pl-7 pr-5 text-[11px] font-bold text-[#111827] outline-none transition hover:border-[#2D6FE8]/40 focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15"
+                  aria-label="Select year"
+                >
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+
+                <FiChevronDown
+                  size={12}
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#6B7280]"
+                />
+              </div>
+            </div>
+
+            {/* WEEK */}
+
+            <div className="w-full min-w-0">
+              <label className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                Week
+              </label>
+
+              <WeekDropdown
+                options={weekOptions}
+                value={selectedWeek}
+                onChange={handleWeekChange}
+                disabled={!canViewCommission}
               />
             </div>
 
-            <WeekDropdown
-              options={weekOptions}
-              value={selectedWeek}
-              onChange={handleWeekChange}
-              disabled={!canViewCommission}
-            />
+            {/* FROM DATE */}
 
-            {canExportCommission && (
-              <button
-                type="button"
-                onClick={handleDownloadCsv}
-                disabled={loading || !filteredRows.length}
-                className="flex h-10 items-center justify-center gap-1.5 rounded-xl bg-[#2D6FE8] px-3.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/20 transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            <div className="w-full min-w-0">
+              <label
+                htmlFor="commission-from-date"
+                className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#6B7280]"
               >
-                <FiDownload size={14} />
-                Export CSV
-              </button>
-            )}
+                From Date
+              </label>
+
+              <input
+                id="commission-from-date"
+                type="date"
+                value={draftFromDate}
+                max={draftToDate || undefined}
+                onChange={(event) =>
+                  handleFromDateChange(event.target.value)
+                }
+                className="h-9 w-full rounded-lg border border-[#D6E2F0] bg-white px-2 text-[10px] font-semibold text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15"
+              />
+            </div>
+
+            {/* TO DATE */}
+
+            <div className="w-full min-w-0">
+              <label
+                htmlFor="commission-to-date"
+                className="mb-1 block text-[9px] font-bold uppercase tracking-wide text-[#6B7280]"
+              >
+                To Date
+              </label>
+
+              <input
+                id="commission-to-date"
+                type="date"
+                value={draftToDate}
+                min={draftFromDate || undefined}
+                onChange={(event) =>
+                  handleToDateChange(event.target.value)
+                }
+                className="h-9 w-full rounded-lg border border-[#D6E2F0] bg-white px-2 text-[10px] font-semibold text-[#111827] outline-none transition focus:border-[#2D6FE8] focus:ring-2 focus:ring-[#2D6FE8]/15"
+              />
+            </div>
+
+            {/* APPLY FILTER */}
+
+            <button
+              type="button"
+              onClick={handleApplyDateFilter}
+              disabled={
+                loading ||
+                (!draftFromDate &&
+                  !draftToDate &&
+                  !fromDate &&
+                  !toDate)
+              }
+              className="flex h-9 w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2D6FE8] px-2 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiCheck size={13} />
+              Apply Filter
+            </button>
           </div>
         </div>
 
-        {/* TABLE CONTENT — Actions column removed */}
+        {/* APPLIED DATE RANGE */}
+
+        {(fromDate || toDate) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-2.5">
+            <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+              Applied date range
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 text-[10px]">
+              <span className="font-bold text-[#6B7280]">
+                From Date:
+              </span>
+
+              <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
+                {fromDate ? formatDate(fromDate) : "Not set"}
+              </span>
+            </span>
+
+            <span className="inline-flex items-center gap-1.5 text-[10px]">
+              <span className="font-bold text-[#6B7280]">
+                To Date:
+              </span>
+
+              <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
+                {toDate ? formatDate(toDate) : "Not set"}
+              </span>
+            </span>
+          </div>
+        )}
+
+        {/* TABLE CONTENT */}
+
         <div className="relative overflow-x-auto">
           {loading ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
-                <FiRefreshCw size={24} className="animate-spin" />
+                <FiRefreshCw
+                  size={24}
+                  className="animate-spin"
+                />
               </div>
+
               <p className="mt-4 text-sm font-bold text-[#111827]">
                 Loading commission data...
               </p>
@@ -850,110 +1296,170 @@ const CommissionView: React.FC = () => {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCEEEE] text-[#C23B32]">
                 <FiAlertCircle size={25} />
               </div>
+
               <h2 className="mt-4 text-sm font-bold text-[#111827]">
                 Unable to load commission data
               </h2>
+
               <p className="mt-1 max-w-lg text-xs text-[#6B7280]">
                 {errorMessage}
               </p>
             </div>
           ) : filteredRows.length > 0 ? (
-            <table className="min-w-full text-left text-xs whitespace-nowrap">
+            <table className="min-w-full whitespace-nowrap text-left text-xs">
               <thead className="bg-[#4F8FF7] text-[11px] tracking-wide text-white">
                 <tr>
-                  <th className="px-3 py-4 font-semibold text-center w-12">
+                  <th className="w-12 px-3 py-4 text-center font-semibold">
                     S.No
                   </th>
-                  <th className="px-3 py-4 font-semibold">BA ID</th>
-                  <th className="px-3 py-4 font-semibold">Distributor</th>
-                  <th className="px-3 py-4 font-semibold">Email</th>
-                  <th className="px-3 py-4 font-semibold text-center">Week</th>
-                  <th className="px-3 py-4 font-semibold text-right">
+
+                  <th className="px-3 py-4 font-semibold">
+                    BA ID
+                  </th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    Distributor
+                  </th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    Email
+                  </th>
+
+                  <th className="px-3 py-4 text-center font-semibold">
+                    Period
+                  </th>
+
+                  <th className="px-3 py-4 text-right font-semibold">
                     Gross (₹)
                   </th>
-                  <th className="px-3 py-4 font-semibold text-right">
+
+                  <th className="px-3 py-4 text-right font-semibold">
                     TDS Rate
                   </th>
-                  <th className="px-3 py-4 font-semibold text-right">
+
+                  <th className="px-3 py-4 text-right font-semibold">
                     TDS (₹)
                   </th>
-                  <th className="px-3 py-4 font-semibold text-right">
+
+                  <th className="px-3 py-4 text-right font-semibold">
                     Net (₹)
                   </th>
-                  <th className="px-3 py-4 font-semibold">GSTIN</th>
-                  <th className="px-3 py-4 font-semibold">PAN</th>
-                  <th className="px-3 py-4 font-semibold text-center">
+
+                  <th className="px-3 py-4 font-semibold">
+                    GSTIN
+                  </th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    PAN
+                  </th>
+
+                  <th className="px-3 py-4 text-center font-semibold">
                     PAN Verified
                   </th>
-                  <th className="px-3 py-4 font-semibold">Bank Holder</th>
-                  <th className="px-3 py-4 font-semibold">Account</th>
-                  <th className="px-3 py-4 font-semibold">IFSC</th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    Bank Holder
+                  </th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    Account
+                  </th>
+
+                  <th className="px-3 py-4 font-semibold">
+                    IFSC
+                  </th>
                 </tr>
               </thead>
+
               <tbody className="divide-y divide-[#E9EFF7]">
                 {filteredRows.map((row, index) => (
                   <tr
-                    key={`${row.ba_id}-${row.week}-${index}`}
+                    key={`${row.ba_id}-${row.week ?? getRowPeriodLabel(row)}-${index}`}
                     className="transition hover:bg-[#F8FBFF]"
                   >
                     <td className="px-3 py-4 text-center font-bold text-[#6B7280]">
                       {index + 1}
                     </td>
+
                     <td className="px-3 py-4">
                       <span className="inline-flex rounded bg-[#EAF3FF] px-2 py-1 text-[11px] font-bold text-[#2D6FE8]">
                         {row.ba_id}
                       </span>
                     </td>
+
                     <td className="px-3 py-4 font-medium text-[#111827]">
                       {row.distributor_name}
                     </td>
-                    <td className="px-3 py-4 text-[#6B7280]">{row.email}</td>
+
+                    <td className="px-3 py-4 text-[#6B7280]">
+                      {row.email}
+                    </td>
+
                     <td className="px-3 py-4 text-center">
-                      <span className="inline-flex items-center justify-center rounded-full bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                        W{row.week}
+                      <span className="inline-flex max-w-[180px] items-center justify-center rounded-full bg-[#F4F8FD] px-2.5 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                        {getRowPeriodLabel(row)}
                       </span>
                     </td>
+
                     <td className="px-3 py-4 text-right font-medium tabular-nums text-[#111827]">
                       {formatNumber(row.gross_commission)}
                     </td>
+
                     <td className="px-3 py-4 text-right tabular-nums text-[#111827]">
                       {row.tds_rate_percent != null
                         ? `${row.tds_rate_percent}%`
                         : "—"}
                     </td>
+
                     <td className="px-3 py-4 text-right font-medium tabular-nums text-[#C23B32]">
                       {formatNumber(row.tds_amount)}
                     </td>
+
                     <td className="px-3 py-4 text-right font-bold tabular-nums text-[#168653]">
                       {formatNumber(row.net_commission)}
                     </td>
+
                     <td className="px-3 py-4 font-mono text-[11px] text-[#111827]">
-                      {row.gst_in || <span className="text-[#9CA3AF]">—</span>}
-                    </td>
-                    <td className="px-3 py-4 font-mono text-[11px] text-[#111827]">
-                      {row.pan_number || (
-                        <span className="text-[#9CA3AF]">—</span>
+                      {row.gst_in || (
+                        <span className="text-[#9CA3AF]">
+                          —
+                        </span>
                       )}
                     </td>
+
+                    <td className="px-3 py-4 font-mono text-[11px] text-[#111827]">
+                      {row.pan_number || (
+                        <span className="text-[#9CA3AF]">
+                          —
+                        </span>
+                      )}
+                    </td>
+
                     <td className="px-3 py-4 text-center">
                       {row.pan_verified === true ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#15803D]">
-                          <FiCheck size={10} /> Yes
+                          <FiCheck size={10} />
+                          Yes
                         </span>
                       ) : row.pan_verified === false ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#FEE2E2] px-2 py-0.5 text-[10px] font-bold text-[#C23B32]">
                           No
                         </span>
                       ) : (
-                        <span className="text-[#9CA3AF]">—</span>
+                        <span className="text-[#9CA3AF]">
+                          —
+                        </span>
                       )}
                     </td>
+
                     <td className="px-3 py-4 text-[#111827]">
                       {row.bank_holder_name}
                     </td>
+
                     <td className="px-3 py-4 font-mono text-[#111827]">
                       {row.bank_account_number}
                     </td>
+
                     <td className="px-3 py-4 font-mono text-[#6B7280]">
                       {row.bank_ifsc}
                     </td>
@@ -966,23 +1472,27 @@ const CommissionView: React.FC = () => {
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F8FD] text-[#6B7280]">
                 <FiSearch size={24} />
               </div>
+
               <p className="mt-4 text-sm font-bold text-[#111827]">
                 No commission records found
               </p>
+
               <p className="mt-1 text-xs text-[#6B7280]">
-                Try another week, year, or search term.
+                Try another week, year, date range, or search
+                term.
               </p>
             </div>
           )}
         </div>
 
         {/* FOOTER */}
+
         {!loading && !errorMessage && (
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-[#DCE6F2] bg-white px-5 py-4 gap-4">
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:flex-row">
             <p className="text-xs text-[#6B7280]">
               Showing{" "}
               <span className="font-bold text-[#111827]">
-                {filteredRows.length === 0 ? 0 : 1}
+                {filteredRows.length ? 1 : 0}
               </span>{" "}
               to{" "}
               <span className="font-bold text-[#111827]">
@@ -994,23 +1504,12 @@ const CommissionView: React.FC = () => {
               </span>{" "}
               entries
             </p>
-            <div className="flex items-center gap-1.5">
-              <button
-                className="flex h-7 w-7 items-center justify-center rounded border border-[#DCE6F2] text-[#6B7280] hover:bg-[#F4F8FD] disabled:opacity-50"
-                disabled
-              >
-                <FiChevronLeft size={14} />
-              </button>
-              <button className="flex h-7 w-7 items-center justify-center rounded bg-[#4F8FF7] text-xs font-bold text-white">
-                1
-              </button>
-              <button
-                className="flex h-7 w-7 items-center justify-center rounded border border-[#DCE6F2] text-[#6B7280] hover:bg-[#F4F8FD] disabled:opacity-50"
-                disabled
-              >
-                <FiChevronRight size={14} />
-              </button>
-            </div>
+
+            <span className="text-xs text-[#6B7280]">
+              {filteredRows.length.toLocaleString("en-IN")}{" "}
+              matching record
+              {filteredRows.length === 1 ? "" : "s"}
+            </span>
           </div>
         )}
       </motion.div>

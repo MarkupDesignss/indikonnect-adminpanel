@@ -499,6 +499,239 @@ const ModalError: React.FC<ModalErrorProps> = ({
 );
 
 // =====================================================
+// CUSTOM SELECT (portal based – always on top of the UI)
+// =====================================================
+
+interface CustomSelectOption {
+  value: string;
+  label: string;
+}
+
+interface CustomSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: CustomSelectOption[];
+  placeholder?: string;
+  icon?: React.ReactNode;
+  /** wrapper classes, e.g. "w-[140px]" or "w-full" */
+  className?: string;
+  /** "sm" = desktop filter bar (text-xs), "md" = mobile filters (text-sm) */
+  size?: "sm" | "md";
+}
+
+const CustomSelect: React.FC<CustomSelectProps> = ({
+  value,
+  onChange,
+  options,
+  placeholder = "Select",
+  icon,
+  className = "",
+  size = "sm",
+}) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+    placement: "above" | "below";
+  } | null>(null);
+
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  const selected = options.find((o) => o.value === value);
+
+  const computePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const pad = 12;
+    const gap = 6;
+    const desiredHeight = Math.min(
+      280,
+      (panelRef.current?.scrollHeight || options.length * 36 + 8) + 2,
+    );
+
+    const spaceBelow = window.innerHeight - rect.bottom - pad;
+    const spaceAbove = rect.top - pad;
+    const placement: "above" | "below" =
+      spaceBelow >= Math.min(desiredHeight, 160) || spaceBelow >= spaceAbove
+        ? "below"
+        : "above";
+
+    const maxHeight = Math.max(
+      120,
+      Math.min(
+        desiredHeight,
+        (placement === "below" ? spaceBelow : spaceAbove) - gap,
+      ),
+    );
+
+    const width = Math.max(rect.width, 180);
+    const left = Math.max(
+      pad,
+      Math.min(rect.left, window.innerWidth - width - pad),
+    );
+    const top =
+      placement === "below"
+        ? rect.bottom + gap
+        : Math.max(pad, rect.top - maxHeight - gap);
+
+    setPos({ top, left, width, maxHeight, placement });
+  }, [options.length]);
+
+  const toggle = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    computePosition();
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+
+    computePosition();
+
+    const onScrollOrResize = (e: Event) => {
+      // scrolling inside the dropdown list itself should not move/close it
+      if (
+        panelRef.current &&
+        e.target instanceof Node &&
+        panelRef.current.contains(e.target)
+      ) {
+        return;
+      }
+      const trigger = triggerRef.current;
+      if (!trigger?.isConnected) {
+        setOpen(false);
+        return;
+      }
+      computePosition();
+    };
+
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (
+        target &&
+        (triggerRef.current?.contains(target) ||
+          panelRef.current?.contains(target))
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, computePosition]);
+
+  const triggerSize =
+    size === "md"
+      ? "px-4 pr-10 text-sm"
+      : `${icon ? "pl-8" : "pl-3"} pr-8 text-xs`;
+
+  return (
+    <div className={`relative ${className}`}>
+      {icon && (
+        <span className="pointer-events-none absolute left-3 top-1/2 z-[1] -translate-y-1/2 text-[#2D6FE8]">
+          {icon}
+        </span>
+      )}
+
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={toggle}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`flex h-11 w-full cursor-pointer items-center rounded-xl border bg-[#F4F8FD] text-left text-[#111827] outline-none transition-all ${triggerSize} ${
+          open
+            ? "border-[#2D6FE8] bg-white ring-2 ring-[#2D6FE8]/15"
+            : "border-[#D6E2F0] hover:border-[#2D6FE8]/40"
+        }`}
+      >
+        <span className="block truncate">{selected?.label ?? placeholder}</span>
+      </button>
+
+      <FiChevronDown
+        size={size === "md" ? 16 : 14}
+        className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-[#9CA3AF] transition-transform duration-200 ${
+          size === "md" ? "right-3" : "right-2.5"
+        } ${open ? "rotate-180 text-[#2D6FE8]" : ""}`}
+      />
+
+      {open &&
+        pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={panelRef}
+            role="listbox"
+            style={{
+              position: "fixed",
+              top: pos.top,
+              left: pos.left,
+              width: pos.width,
+              maxHeight: pos.maxHeight,
+              zIndex: 2147483000, // above sticky headers, modals, menus
+              transformOrigin:
+                pos.placement === "above" ? "bottom left" : "top left",
+            }}
+            className="custom-select-portal overflow-y-auto rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-[0_18px_40px_-12px_rgba(30,58,138,0.35)]"
+          >
+            {options.map((opt) => {
+              const isActive = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    onChange(opt.value);
+                    setOpen(false);
+                    triggerRef.current?.focus();
+                  }}
+                  className={`flex w-full items-center justify-between gap-2 px-3.5 py-2 text-left transition ${
+                    size === "md" ? "text-sm" : "text-xs"
+                  } ${
+                    isActive
+                      ? "bg-[#EAF3FF] font-semibold text-[#2D6FE8]"
+                      : "text-[#111827] hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
+                  }`}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {isActive && <FiCheck size={13} className="shrink-0" />}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+};
+// =====================================================
 // VIEW ORDER POPUP
 // =====================================================
 
@@ -3375,6 +3608,36 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     orderTypeFilter !== "Order Type: All" ||
     dateRangeFilter !== "all";
 
+  /* ---------- dropdown option lists (CustomSelect) ---------- */
+
+  const statusOptions: CustomSelectOption[] = [
+    { value: "Status: All", label: "Status: All" },
+    ...availableStatuses.map((s) => ({ value: s, label: formatStatus(s) })),
+  ];
+
+  const orderTypeOptions: CustomSelectOption[] = [
+    { value: "Order Type: All", label: "Order Type: All" },
+    { value: "Order Type: retail", label: "Customer" },
+    { value: "Order Type: distributor", label: "Distributor" },
+  ];
+
+  const categoryOptions: CustomSelectOption[] = [
+    { value: "Category: All", label: "Category: All" },
+    ...categories.map((c) => ({
+      value: `Category: ${c.id}`,
+      label: c.title,
+    })),
+  ];
+
+  const brandOptions: CustomSelectOption[] = [
+    { value: "Brand: All", label: "Brand: All" },
+    ...brands.map((b) => ({ value: `Brand: ${b.id}`, label: b.title })),
+  ];
+
+  const dateRangeOptions: CustomSelectOption[] = DATE_RANGE_OPTIONS.map(
+    (o) => ({ value: o.value, label: o.label }),
+  );
+
   const handleViewOrder = (orderId: string) => {
     const apiOrder = orders.find((o) => o.order_reference === orderId);
     if (apiOrder) {
@@ -3911,7 +4174,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             transformOrigin:
               menuPosition.placement === "above" ? "bottom right" : "top right",
           }}
-          className="orders-action-menu-portal fixed z-[99999] max-h-[calc(100vh-24px)] w-48 overflow-y-auto rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-xl"
+          className="orders-action-menu-portal fixed z-[2147483000] max-h-[calc(100vh-24px)] w-48 overflow-y-auto rounded-xl border border-[#DCE6F2] bg-white py-1 shadow-xl"
         >
           {content}
         </motion.div>
@@ -4055,7 +4318,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     <>
       <div className="space-y-5">
         {/* FILTER BAR */}
-        <div className="relative overflow-hidden rounded-2xl border border-[#DCE6F2] bg-white p-4 shadow-sm sm:p-5">
+        <div className="relative rounded-2xl border border-[#DCE6F2] bg-white p-4 shadow-sm sm:p-5">
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative min-w-0 flex-1 lg:flex-[2]">
               <FiSearch
@@ -4084,115 +4347,56 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-[140px]">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-3 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                >
-                  <option>Status: All</option>
-                  {availableStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {formatStatus(status)}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={14}
-                />
-              </div>
+              <CustomSelect
+                className="w-[140px]"
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={statusOptions}
+              />
 
-              <div className="relative w-[140px]">
-                <select
-                  value={orderTypeFilter}
-                  onChange={(e) => {
-                    setOrderTypeFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-3 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                >
-                  <option>Order Type: All</option>
-                  <option value="Order Type: retail">Customer</option>
-                  <option value="Order Type: distributor">Distributor</option>
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={14}
-                />
-              </div>
+              <CustomSelect
+                className="w-[140px]"
+                value={orderTypeFilter}
+                onChange={(v) => {
+                  setOrderTypeFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={orderTypeOptions}
+              />
 
-              <div className="relative w-[140px]">
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-3 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                >
-                  <option>Category: All</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={`Category: ${c.id}`}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={14}
-                />
-              </div>
+              <CustomSelect
+                className="w-[140px]"
+                value={categoryFilter}
+                onChange={(v) => {
+                  setCategoryFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={categoryOptions}
+              />
 
-              <div className="relative w-[140px]">
-                <select
-                  value={brandFilter}
-                  onChange={(e) => {
-                    setBrandFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-3 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                >
-                  <option>Brand: All</option>
-                  {brands.map((b) => (
-                    <option key={b.id} value={`Brand: ${b.id}`}>
-                      {b.title}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={14}
-                />
-              </div>
+              <CustomSelect
+                className="w-[140px]"
+                value={brandFilter}
+                onChange={(v) => {
+                  setBrandFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={brandOptions}
+              />
 
-              <div className="relative w-[150px]">
-                <FiCalendar
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]"
-                  size={13}
-                />
-                <select
-                  value={dateRangeFilter}
-                  onChange={(e) => {
-                    setDateRangeFilter(e.target.value as DateRangeKey);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full cursor-pointer appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] pl-8 pr-8 text-xs text-[#111827] outline-none transition-all focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15"
-                >
-                  {DATE_RANGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={14}
-                />
-              </div>
+              <CustomSelect
+                className="w-[150px]"
+                icon={<FiCalendar size={13} />}
+                value={dateRangeFilter}
+                onChange={(v) => {
+                  setDateRangeFilter(v as DateRangeKey);
+                  setCurrentPage(1);
+                }}
+                options={dateRangeOptions}
+              />
 
               <button
                 type="button"
@@ -4224,107 +4428,56 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
           {showMobileFilters && (
             <div className="relative z-10 mt-4 space-y-3 border-t border-[#2D6FE8]/10 pt-4 lg:hidden">
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    setStatusFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
-                >
-                  <option>Status: All</option>
-                  {availableStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {formatStatus(status)}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={16}
-                />
-              </div>
-              <div className="relative">
-                <select
-                  value={orderTypeFilter}
-                  onChange={(e) => {
-                    setOrderTypeFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
-                >
-                  <option>Order Type: All</option>
-                  <option value="Order Type: retail">Customer</option>
-                  <option value="Order Type: distributor">Distributor</option>
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={16}
-                />
-              </div>
-              <div className="relative">
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
-                >
-                  <option>Category: All</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={`Category: ${c.id}`}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={16}
-                />
-              </div>
-              <div className="relative">
-                <select
-                  value={brandFilter}
-                  onChange={(e) => {
-                    setBrandFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
-                >
-                  <option>Brand: All</option>
-                  {brands.map((b) => (
-                    <option key={b.id} value={`Brand: ${b.id}`}>
-                      {b.title}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={16}
-                />
-              </div>
-              <div className="relative">
-                <select
-                  value={dateRangeFilter}
-                  onChange={(e) => {
-                    setDateRangeFilter(e.target.value as DateRangeKey);
-                    setCurrentPage(1);
-                  }}
-                  className="h-11 w-full appearance-none rounded-xl border border-[#D6E2F0] bg-[#F4F8FD] px-4 pr-10 text-sm text-[#111827] outline-none focus:border-[#2D6FE8]"
-                >
-                  {DATE_RANGE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-                <FiChevronDown
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]"
-                  size={16}
-                />
-              </div>
+              <CustomSelect
+                className="w-full"
+                size="md"
+                value={statusFilter}
+                onChange={(v) => {
+                  setStatusFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={statusOptions}
+              />
+              <CustomSelect
+                className="w-full"
+                size="md"
+                value={orderTypeFilter}
+                onChange={(v) => {
+                  setOrderTypeFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={orderTypeOptions}
+              />
+              <CustomSelect
+                className="w-full"
+                size="md"
+                value={categoryFilter}
+                onChange={(v) => {
+                  setCategoryFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={categoryOptions}
+              />
+              <CustomSelect
+                className="w-full"
+                size="md"
+                value={brandFilter}
+                onChange={(v) => {
+                  setBrandFilter(v);
+                  setCurrentPage(1);
+                }}
+                options={brandOptions}
+              />
+              <CustomSelect
+                className="w-full"
+                size="md"
+                value={dateRangeFilter}
+                onChange={(v) => {
+                  setDateRangeFilter(v as DateRangeKey);
+                  setCurrentPage(1);
+                }}
+                options={dateRangeOptions}
+              />
               <button
                 type="button"
                 onClick={clearFilters}

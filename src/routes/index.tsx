@@ -68,6 +68,7 @@ import SalesReportproducts from "@/pages/Report/SalesReportproducts";
 import ReturnsArticleReport from "@/pages/Report/ReturnsArticleReport";
 import ProductSalesReport from "@/pages/SalesReport/ProductSalesReport";
 import CategorySalesReport from "@/pages/SalesReport/CategorySalesReport";
+import FinanceReport from "@/pages/Report/FinanceReport";
 
 
 const ScrollLayout = () => (
@@ -225,7 +226,7 @@ export const adminRouter = createBrowserRouter(
               path: "Fiance/CommissionCalendar",
               element: <CommissionCalendar />,
             },
-
+            { path: "Fiance/FinanceReport", element: <FinanceReport /> },
             // ============================================================
             // SALES
             // ============================================================

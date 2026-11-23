@@ -199,6 +199,9 @@ export interface Product {
 
   specification: string;
 
+  /** HSN code returned by product GET APIs */
+  hsn_code?: string | null;
+
   marketed_by?: string | null;
 
   manufacturer?: string | null;
@@ -395,6 +398,9 @@ export interface ProductPayload {
   description: string;
 
   specification: string;
+
+  /** HSN code sent in product create and update requests */
+  hsn_code?: string | null;
 
   /** ✅ NEW: Product type — single or combo */
 
@@ -680,6 +686,10 @@ export function buildProductFormData(
   fd.append("description", payload.description);
 
   fd.append("specification", payload.specification);
+
+  // HSN code (included in both create and update FormData when provided)
+  // An empty string is retained so an existing HSN code can be cleared.
+  if (payload.hsn_code != null) fd.append("hsn_code", payload.hsn_code);
 
   // ✅ Product type
 
@@ -1019,8 +1029,6 @@ export const productApi = {
   // ============================
 
   // BEST SELLER
-
-  // POST /best-seller/products/{productId}
 
   // ============================
 

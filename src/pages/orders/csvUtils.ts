@@ -297,6 +297,9 @@ export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
 //   shipping_incl_gst
 //   shipping_gst_amount
 //
+// Service charge (per-line) field displayed (only when present):
+//   product_service_charge
+//
 // No MRP, no discount, no CGST/SGST split — unless API explicitly returns them.
 // No reconciliation "Note" row.
 
@@ -454,6 +457,7 @@ type InvoiceLine = {
   lineTotalExclGst: number;
   lineTotalGstAmount: number;
   igstAmount: number;
+  serviceCharge: number; // product_service_charge
 };
 
 const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => ({
@@ -469,6 +473,7 @@ const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => ({
   lineTotalExclGst: asNumber(item.line_total_excl_gst),
   lineTotalGstAmount: asNumber(item.line_total_gst_amount),
   igstAmount: asNumber(item.igst_amount),
+  serviceCharge: asNumber(item.product_service_charge),
 });
 
 // =====================================================
@@ -540,6 +545,7 @@ export const openInvoicePdfInNewTab = async (
     const totalExcl = lines.reduce((s, r) => s + r.lineTotalExclGst, 0);
     const totalLineGstAmt = lines.reduce((s, r) => s + r.lineTotalGstAmount, 0);
     const totalIncl = lines.reduce((s, r) => s + r.lineTotalInclGst, 0);
+    const totalServiceCharge = lines.reduce((s, r) => s + r.serviceCharge, 0);
 
     console.info("GENERATING INVOICE PDF (real API fields only)", {
       invoiceNumber,
@@ -1042,6 +1048,24 @@ export const openInvoicePdfInNewTab = async (
           formatMoney(row.shippingExclGst),
           formatMoney(row.shippingGstAmount),
           formatMoney(row.shippingInclGst),
+        ]);
+      }
+
+      // Service Charge is shown ONLY in the final "Total (incl. GST)" column.
+      // All other amount columns remain blank/dash, matching the invoice layout.
+      if (row.serviceCharge > 0) {
+        body.push([
+          "-",
+          "-",
+          "Service Charge",
+          "-",
+          "-", // Taxable (excl. GST)
+          "-", // Price (incl. GST)
+          "-", // GST Amount
+          "-", // IGST Amount
+          "-", // Total (excl. GST)
+          "-", // Total GST
+          formatMoney(row.serviceCharge), // Total (incl. GST) only
         ]);
       }
     });

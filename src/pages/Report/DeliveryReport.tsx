@@ -595,7 +595,7 @@ const DeliveryReport = () => {
     }
 
     const headers = [
-      "Bill Id",
+    
       "Invoice Number",
       "Item Name",
       "SKU",

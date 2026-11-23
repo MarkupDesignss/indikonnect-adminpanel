@@ -199,6 +199,17 @@ export const menuItems: MenuItem[] = [
             module: "payout",
           },
           {
+            path: "/Fiance/FinanceReport",
+            label: "Finance Sales Report",
+            icon: "receipt_long",
+            module: "finance_sales_report",
+            permission: "finance_sales_report.view",
+            anyOf: [
+              "finance_sales_report.view",
+              "finance_sales_report.download",
+            ],
+          },
+          {
             path: "/Fiance/CommissionCalendar",
             label: "Commission History",
             icon: "calendar_month",

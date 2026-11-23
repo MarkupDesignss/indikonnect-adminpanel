@@ -533,7 +533,7 @@ const ProductSalesReport = () => {
       return;
     const rows: unknown[][] = [
       [
-        "Order ID",
+      
         "Order Reference",
         "Order Date",
         "Customer",
