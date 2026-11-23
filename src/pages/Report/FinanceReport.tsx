@@ -17,6 +17,7 @@ import {
   Wallet,
   Package,
   CreditCard,
+  Truck,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -48,30 +49,89 @@ const THEME = {
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 
+const PER_PAGE = 100;
+
+/* ================= API ITEM TYPES ================= */
+
+/**
+ * The finance API returns one row per order line. Invoice-level fields are
+ * repeated for every line, while product and courier fields live on the line.
+ * Keep these additions local so this component also works with the existing
+ * FinanceReportItem type and older API responses.
+ */
+type LineCourier = {
+  courier_company?: string | null;
+  courier_tracking_number?: string | null;
+};
+
+type FinanceReportLineItem = FinanceReportItem & {
+  order_reference?: string | null;
+  delivery_state?: string | null;
+  product_name?: string | null;
+  product_code?: string | null;
+  product_slug?: string | null;
+  hsn_code?: string | null;
+  item_reference_id?: string | null;
+  order_line_id?: string | number | null;
+  quantity?: number | string | null;
+  unit_price_without_gst?: number | string | null;
+  line_total_without_gst?: number | string | null;
+  line_tax_rate?: number | string | null;
+  line_gst_amount?: number | string | null;
+  line_shipping_charge_without_gst?: number | string | null;
+  line_shipping_gst?: number | string | null;
+  line_couriers?: LineCourier[] | null;
+  confirmed_at?: string | null;
+  dispatched_at?: string | null;
+  shipping_date?: string | null;
+  delivered_at?: string | null;
+  courier_company?: string | null;
+  courier_tracking_number?: string | null;
+  is_refunded?: string | boolean | number | null;
+  refund_status?: string | null;
+  refunded_items?: number | string | null;
+  products?: Array<{
+    name?: string | null;
+    product_code?: string | null;
+    hsn_code?: string | null;
+    quantity?: number | string | null;
+  }>;
+  tax_breakdown?: {
+    cgst?: number | string | null;
+    sgst?: number | string | null;
+    igst?: number | string | null;
+  } | null;
+};
+
+const asLineItem = (item: FinanceReportItem): FinanceReportLineItem =>
+  item as FinanceReportLineItem;
+
 /* ================= HELPERS ================= */
 
-const money = (value: number | null | undefined) =>
+const money = (value: number | string | null | undefined) =>
   `₹${Number(value || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
 const valueOrDash = (value: unknown) =>
-  value === null || value === undefined || value === ""
-    ? "—"
-    : String(value);
+  value === null || value === undefined || value === "" ? "—" : String(value);
+
+const numberValue = (value: number | string | null | undefined) => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const formatDate = (value: string | null | undefined) => {
   if (!value) return "—";
 
+  // API date format: DD-MM-YYYY or DD-MM-YYYY HH:mm.
   const match = value.match(/^(\d{2})-(\d{2})-(\d{4})(.*)$/);
-
   if (match) {
     return `${match[1]}-${match[2]}-${match[3]}${match[4] || ""}`;
   }
 
   const parsed = new Date(value.replace(" ", "T"));
-
   return Number.isNaN(parsed.getTime())
     ? value
     : parsed.toLocaleString("en-IN", {
@@ -91,97 +151,151 @@ const escapeCsv = (value: unknown) => {
   return `"${text.replace(/"/g, '""')}"`;
 };
 
-/* ================= PRODUCT / HSN HELPERS ================= */
+/** Product details are read from the order-line fields returned by the API. */
+const getProductName = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  if (row.product_name?.trim()) return row.product_name.trim();
 
-const getProductNames = (item: FinanceReportItem) => {
-  if (Array.isArray(item.products) && item.products.length > 0) {
-    return item.products
-      .map(
-        (product) =>
-          product.name?.trim() ||
-          product.product_code?.trim() ||
-          "Product",
-      )
+  if (Array.isArray(row.products) && row.products.length > 0) {
+    return row.products
+      .map((product) => product.name?.trim() || product.product_code?.trim() || "Product")
       .join(" | ");
   }
 
-  return item.product_names || "";
+  return row.product_names || "";
 };
 
-const getProductHsnCodes = (item: FinanceReportItem) => {
-  if (!Array.isArray(item.products) || item.products.length === 0) {
-    return "";
+const getProductCode = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  if (row.product_code) return row.product_code;
+
+  if (Array.isArray(row.products) && row.products.length > 0) {
+    return row.products.map((product) => product.product_code || "").filter(Boolean).join(" | ");
   }
 
-  return item.products
-    .map((product) => product.hsn_code?.trim() || "N/A")
-    .join(" | ");
+  return "";
 };
 
-/* ================= ORDER REFERENCE HELPER ================= */
+const getHsnCode = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  if (row.hsn_code) return row.hsn_code;
 
-const getOrderReference = (item: FinanceReportItem) =>
-  (item as FinanceReportItem & {
-    order_reference?: string | null;
-  }).order_reference || "";
+  if (Array.isArray(row.products) && row.products.length > 0) {
+    return row.products.map((product) => product.hsn_code || "N/A").join(" | ");
+  }
+
+  return "";
+};
+
+const getQuantity = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  if (row.quantity !== null && row.quantity !== undefined && row.quantity !== "") {
+    return numberValue(row.quantity);
+  }
+
+  if (Array.isArray(row.products) && row.products.length > 0) {
+    return row.products.reduce((sum, product) => sum + numberValue(product.quantity), 0);
+  }
+
+  // Older aggregated responses may not contain a line quantity.
+  return 0;
+};
+
+const getCouriers = (item: FinanceReportItem): LineCourier[] => {
+  const row = asLineItem(item);
+  if (Array.isArray(row.line_couriers) && row.line_couriers.length > 0) {
+    return row.line_couriers;
+  }
+
+  if (row.courier_company || row.courier_tracking_number) {
+    return [
+      {
+        courier_company: row.courier_company,
+        courier_tracking_number: row.courier_tracking_number,
+      },
+    ];
+  }
+
+  return [];
+};
+
+const getLineSubtotal = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  return numberValue(row.line_total_without_gst ?? row.unit_price_without_gst);
+};
+
+const getLineGst = (item: FinanceReportItem) =>
+  numberValue(asLineItem(item).line_gst_amount);
+
+const getLineShipping = (item: FinanceReportItem) =>
+  numberValue(asLineItem(item).line_shipping_charge_without_gst);
+
+const getLineShippingGst = (item: FinanceReportItem) =>
+  numberValue(asLineItem(item).line_shipping_gst);
+
+const getLineGross = (item: FinanceReportItem) =>
+  getLineSubtotal(item) + getLineGst(item) + getLineShipping(item) + getLineShippingGst(item);
+
+/**
+ * Invoice totals repeat on every product line. Use one representative row per
+ * invoice for invoice-level sales/GST/refund summaries to avoid double counts.
+ */
+const getUniqueInvoiceRows = (items: FinanceReportItem[]) => {
+  const unique = new Map<string, FinanceReportItem>();
+
+  items.forEach((item, index) => {
+    const row = asLineItem(item);
+    const key =
+      row.order_reference ||
+      item.invoice_number ||
+      `missing-invoice-${index}`;
+
+    if (!unique.has(String(key))) unique.set(String(key), item);
+  });
+
+  return Array.from(unique.values());
+};
+
+const isRefunded = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  return (
+    String(row.is_refunded).toLowerCase() === "true" ||
+    String(row.is_refunded).toLowerCase() === "yes" ||
+    Number(row.refunded_items || 0) > 0
+  );
+};
 
 /* ================= STATUS ================= */
 
 const statusStyle = (status: string | null | undefined) => {
   const value = (status || "").toLowerCase();
 
-  if (
-    value.includes("deliver") ||
-    value === "completed" ||
-    value === "paid"
-  ) {
-    return {
-      bg: THEME.greenSoft,
-      color: THEME.green,
-    };
+  if (value.includes("deliver") || value === "completed" || value === "paid") {
+    return { bg: THEME.greenSoft, color: THEME.green };
   }
 
   if (value.includes("ship") || value.includes("partial")) {
-    return {
-      bg: THEME.purpleSoft,
-      color: THEME.purple,
-    };
+    return { bg: THEME.purpleSoft, color: THEME.purple };
   }
 
   if (value.includes("refund") || value.includes("cancel")) {
-    return {
-      bg: THEME.redSoft,
-      color: THEME.red,
-    };
+    return { bg: THEME.redSoft, color: THEME.red };
   }
 
   if (value.includes("dispatch") || value.includes("confirm")) {
-    return {
-      bg: THEME.primarySoft,
-      color: THEME.primaryDark,
-    };
+    return { bg: THEME.primarySoft, color: THEME.primaryDark };
   }
 
-  return {
-    bg: THEME.orangeSoft,
-    color: THEME.orange,
-  };
+  return { bg: THEME.orangeSoft, color: THEME.orange };
 };
 
-function StatusBadge({
-  status,
-}: {
-  status: string | null | undefined;
-}) {
+function StatusBadge({ status }: { status: string | null | undefined }) {
   const style = statusStyle(status);
 
   return (
     <span
       className="inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
-      style={{
-        background: style.bg,
-        color: style.color,
-      }}
+      style={{ background: style.bg, color: style.color }}
     >
       {valueOrDash(status)}
     </span>
@@ -218,15 +332,62 @@ function SummaryCard({
         <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
           {title}
         </p>
-
         <h3 className="mt-0.5 truncate text-sm font-bold text-gray-900 sm:text-base">
           {value}
         </h3>
-
-        <p className="mt-0.5 truncate text-[9px] text-gray-400">
-          {subtitle}
-        </p>
+        <p className="mt-0.5 truncate text-[9px] text-gray-400">{subtitle}</p>
       </div>
+    </div>
+  );
+}
+
+/* ================= COURIER DETAILS ================= */
+
+function CourierDetails({ item }: { item: FinanceReportItem }) {
+  const couriers = getCouriers(item);
+
+  if (couriers.length === 0) {
+    return <span className="text-[10px] text-gray-400">Not assigned</span>;
+  }
+
+  return (
+    <div className="min-w-0 max-w-full space-y-2">
+      {couriers.map((courier, index) => (
+        <div key={`${courier.courier_company || "courier"}-${courier.courier_tracking_number || index}-${index}`}>
+          <p className="flex items-center gap-1 text-[11px] font-semibold text-gray-800">
+            <Truck size={12} className="shrink-0 text-[#2D6FE8]" />
+            <span>{valueOrDash(courier.courier_company)}</span>
+          </p>
+          <p className="mt-0.5 break-all pl-[17px] text-[10px] text-gray-500">
+            {courier.courier_tracking_number
+              ? `Tracking: ${courier.courier_tracking_number}`
+              : "Tracking: —"}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ================= PRODUCT DETAILS ================= */
+
+function ProductDetails({ item }: { item: FinanceReportItem }) {
+  const row = asLineItem(item);
+
+  return (
+    <div className="min-w-0 w-full max-w-full">
+      <p className="line-clamp-2 text-xs font-semibold text-gray-800">
+        {valueOrDash(getProductName(item))}
+      </p>
+      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500">
+        <span>Code: {valueOrDash(getProductCode(item))}</span>
+        <span>HSN: {valueOrDash(getHsnCode(item))}</span>
+      </div>
+      {row.item_reference_id && (
+        <p className="mt-1 break-all text-[9px] text-gray-400">
+          Item Ref: {row.item_reference_id}
+        </p>
+      )}
     </div>
   );
 }
@@ -245,7 +406,6 @@ const FinanceReport = () => {
 
   const canViewReport = useMemo(() => {
     if (isSuperAdmin) return true;
-
     return (
       hasModuleAccess("finance_sales_report") ||
       hasPermission("finance_sales_report.view")
@@ -254,16 +414,12 @@ const FinanceReport = () => {
 
   const canExport = useMemo(() => {
     if (isSuperAdmin) return true;
-
     return hasPermission("finance_sales_report.download");
   }, [isSuperAdmin, hasPermission]);
 
   /* ================= LOGO ================= */
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    DEFAULT_LOGO_URL,
-  );
-
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
 
   useEffect(() => {
@@ -272,7 +428,6 @@ const FinanceReport = () => {
     const loadLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
-
         const candidates = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -284,24 +439,18 @@ const FinanceReport = () => {
 
         const found = candidates.find(
           (value) =>
-            typeof value === "string" &&
-            /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
 
-        if (!cancelled && found) {
-          setLogoUrl(found.trim());
-        }
+        if (!cancelled && found) setLogoUrl(found.trim());
       } catch (error) {
         console.error("Logo API error:", error);
       } finally {
-        if (!cancelled) {
-          setLogoLoading(false);
-        }
+        if (!cancelled) setLogoLoading(false);
       }
     };
 
     void loadLogo();
-
     return () => {
       cancelled = true;
     };
@@ -316,14 +465,9 @@ const FinanceReport = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
-
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
-
-  const perPage = 100;
-
   const [totalRecords, setTotalRecords] = useState(0);
   const [lastPage, setLastPage] = useState(1);
 
@@ -332,42 +476,28 @@ const FinanceReport = () => {
   const fetchReports = useCallback(
     async (showLoader = true, page = currentPage) => {
       try {
-        if (showLoader) {
-          setLoading(true);
-        } else {
-          setRefreshing(true);
-        }
+        if (showLoader) setLoading(true);
+        else setRefreshing(true);
 
         const response = await financeReportApi.getAll({
           page,
-          per_page: perPage,
+          per_page: PER_PAGE,
           from_date: fromDate || undefined,
           to_date: toDate || undefined,
         });
 
         if (response.success) {
-          setReports(
-            Array.isArray(response.data) ? response.data : [],
-          );
-
-          setTotalRecords(
-            response.meta?.total ?? response.data?.length ?? 0,
-          );
-
+          setReports(Array.isArray(response.data) ? response.data : []);
+          setTotalRecords(response.meta?.total ?? response.data?.length ?? 0);
           setLastPage(response.meta?.last_page ?? 1);
         } else {
           setReports([]);
-
-          toast.error(
-            response.message || "Unable to fetch finance report",
-          );
+          toast.error(response.message || "Unable to fetch finance report");
         }
       } catch (error: any) {
         console.error("Finance report error:", error);
-
         toast.error(
-          error?.response?.data?.message ||
-            "Failed to fetch finance report",
+          error?.response?.data?.message || "Failed to fetch finance report",
         );
       } finally {
         setLoading(false);
@@ -379,12 +509,10 @@ const FinanceReport = () => {
 
   useEffect(() => {
     if (permissionsLoading) return;
-
     if (!canViewReport) {
       setLoading(false);
       return;
     }
-
     void fetchReports(true);
   }, [permissionsLoading, canViewReport, fetchReports]);
 
@@ -394,20 +522,32 @@ const FinanceReport = () => {
     const query = search.trim().toLowerCase();
 
     return reports.filter((item) => {
+      const row = asLineItem(item);
+      const couriers = getCouriers(item);
+
       const searchable = [
         item.invoice_number,
+        row.order_reference,
         item.customer_name,
         item.customer_mobile,
         item.customer_email,
         item.customer_gstin,
         item.user_name,
         item.product_names,
+        row.product_name,
+        row.product_code,
+        row.product_slug,
+        row.hsn_code,
+        row.item_reference_id,
+        row.order_line_id,
         item.order_status,
-        item.delivery_status,
+        item.order_date,
         item.payment_gateway,
         item.gateway_transaction_id,
-        item.courier_company,
-        item.courier_tracking_number,
+        ...couriers.flatMap((courier) => [
+          courier.courier_company,
+          courier.courier_tracking_number,
+        ]),
       ];
 
       const matchesSearch =
@@ -418,56 +558,37 @@ const FinanceReport = () => {
 
       const matchesStatus =
         statusFilter === "all" ||
-        [item.order_status, item.delivery_status].some(
-          (status) =>
-            (status || "").toLowerCase() === statusFilter,
-        );
+        (item.order_status || "").toLowerCase() === statusFilter;
 
       const matchesAccount =
         accountFilter === "all" ||
         (item.account_type || "").toLowerCase() === accountFilter;
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesAccount
-      );
+      return matchesSearch && matchesStatus && matchesAccount;
     });
   }, [reports, search, statusFilter, accountFilter]);
 
   /* ================= SUMMARY ================= */
 
-  const summary = useMemo(
-    () => ({
-      sales: reports.reduce(
-        (sum, item) =>
-          sum + Number(item.net_order_amount || 0),
+  const summary = useMemo(() => {
+    const uniqueInvoices = getUniqueInvoiceRows(reports);
+
+    return {
+      sales: uniqueInvoices.reduce(
+        (sum, item) => sum + numberValue(item.net_order_amount),
         0,
       ),
-
-      gst: reports.reduce(
-        (sum, item) =>
-          sum + Number(item.total_gst || 0),
+      gst: uniqueInvoices.reduce(
+        (sum, item) => sum + numberValue(item.total_gst),
         0,
       ),
-
       invoices: totalRecords,
-
-      items: reports.reduce(
-        (sum, item) =>
-          sum + Number(item.total_items || 0),
-        0,
-      ),
-
-      refunded: reports.filter(
-        (item) =>
-          String(item.is_refunded).toLowerCase() === "true" ||
-          String(item.is_refunded).toLowerCase() === "yes" ||
-          Number(item.refunded_items || 0) > 0,
-      ).length,
-    }),
-    [reports, totalRecords],
-  );
+      // Each API row is an order line, so sum line quantities rather than the
+      // repeated invoice-level total_items field.
+      items: reports.reduce((sum, item) => sum + getQuantity(item), 0),
+      refunded: uniqueInvoices.filter(isRefunded).length,
+    };
+  }, [reports, totalRecords]);
 
   /* ================= APPLY FILTERS ================= */
 
@@ -493,46 +614,31 @@ const FinanceReport = () => {
 
     try {
       setLoading(true);
-
       const response = await financeReportApi.getAll({
         page: 1,
-        per_page: perPage,
+        per_page: PER_PAGE,
       });
 
       if (response.success) {
-        setReports(
-          Array.isArray(response.data) ? response.data : [],
-        );
-
-        setTotalRecords(
-          response.meta?.total ?? response.data?.length ?? 0,
-        );
-
+        setReports(Array.isArray(response.data) ? response.data : []);
+        setTotalRecords(response.meta?.total ?? response.data?.length ?? 0);
         setLastPage(response.meta?.last_page ?? 1);
       } else {
         setReports([]);
-
-        toast.error(
-          response.message || "Unable to clear report filters",
-        );
+        toast.error(response.message || "Unable to clear report filters");
       }
     } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ||
-          "Failed to clear filters",
-      );
+      toast.error(error?.response?.data?.message || "Failed to clear filters");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= CSV / EXCEL EXPORT ================= */
+  /* ================= ITEM-BASED CSV EXPORT ================= */
 
   const exportCSV = () => {
     if (!canExport) {
-      toast.error(
-        "You don't have permission to export this report.",
-      );
+      toast.error("You don't have permission to export this report.");
       return;
     }
 
@@ -541,127 +647,94 @@ const FinanceReport = () => {
       return;
     }
 
+    // CSV columns intentionally mirror the information visible in the report:
+    // invoice/date, customer, product, quantity/pricing, courier, amount/GST,
+    // payment and order status. Delivery-only and hidden API fields are omitted.
     const headers = [
       "Invoice Number",
-      "Order Reference", 
       "Invoice Date",
+      "Order Reference",
       "Customer Name",
       "Customer Mobile",
+      "Customer Email",
       "Account Type",
-      "Email",
-      "GSTIN",
-      "Billing State",
-      "Product Names",
-      "HSN Codes",
-      "Product Subtotal",
-      "Shipping (Without GST)",
-      "Subtotal",
-      "Product GST",
-      "Shipping GST",
-      "Total GST",
-      "CGST",
-      "SGST",
-      "IGST",
-      "Order Amount",
-      "Discount Amount",
-      "Net Order Amount",
-      "Order Status",
-      "Delivery Status",
-      "Total Items",
-      "CV",
-      "Distributor/User ID",
-      "Order Date",
+      "Product Name",
+      "Product Code",
+      "HSN Code",
+      "Item Reference",
+      "Quantity",
+      "Unit Price Without GST",
+      "Line Total Without GST",
+      "Courier Company",
+      "Tracking Number",
+      "Item Total",
+      "Line GST",
+      "Shipping",
+      "Invoice Total",
       "Payment Gateway",
       "Gateway Transaction ID",
-      "Courier",
-      "Tracking Number",
+      "Order Status",
+      "Order Date",
     ];
 
     const rows = filteredReports.map((item) => {
+      const row = asLineItem(item);
+      const couriers = getCouriers(item);
+
       const values: unknown[] = [
         item.invoice_number,
-        getOrderReference(item), // Added Order Reference value
         item.invoice_date,
+        row.order_reference,
         item.customer_name,
         item.customer_mobile,
-        item.account_type,
         item.customer_email,
-        item.customer_gstin,
-        item.billing_state,
-        item.delivery_state,
-        getProductNames(item),
-        getProductHsnCodes(item),
-        item.product_subtotal,
-        item.shipping_charge_without_gst,
-        item.subtotal,
-        item.product_gst,
-        item.shipping_gst,
-        item.total_gst,
-        item.tax_breakdown?.cgst,
-        item.tax_breakdown?.sgst,
-        item.tax_breakdown?.igst,
-        item.order_amount,
-        item.discount_amount,
+        item.account_type,
+        getProductName(item),
+        getProductCode(item),
+        getHsnCode(item),
+        row.item_reference_id,
+        getQuantity(item),
+        row.unit_price_without_gst,
+        row.line_total_without_gst,
+        couriers.map((courier) => courier.courier_company || "").join(" | "),
+        couriers
+          .map((courier) => courier.courier_tracking_number || "")
+          .join(" | "),
+        getLineGross(item),
+        getLineGst(item),
+        getLineShipping(item) + getLineShippingGst(item),
         item.net_order_amount,
-        item.order_status,
-        item.delivery_status,
-        item.total_items,
-        item.cv,
-        item.user_name,
-        item.order_date,
         item.payment_gateway,
         item.gateway_transaction_id,
-
-        // Courier and tracking are not removed from Excel.
-        item.courier_company,
-        item.courier_tracking_number,
-
-        item.is_refunded,
-        item.refund_status,
-        item.refunded_items,
+        item.order_status,
+        item.order_date,
       ];
 
-      return values.map(escapeCsv);
+      return values.map(escapeCsv).join(",");
     });
 
-    const csv = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\r\n");
-
+    const csv = [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
     });
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-
     link.href = url;
-    link.download = `finance-report-${formatDateInput(
-      new Date(),
-    )}.csv`;
-
+    link.download = `finance-report-item-wise-${formatDateInput(new Date())}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
     URL.revokeObjectURL(url);
 
-    toast.success("Finance report exported successfully");
+    toast.success("Item-wise finance report exported successfully");
   };
 
   /* ================= PAGINATION ================= */
 
   const startRecord =
-    totalRecords === 0
-      ? 0
-      : (currentPage - 1) * perPage + 1;
-
-  const endRecord = Math.min(
-    currentPage * perPage,
-    totalRecords,
-  );
-
+    totalRecords === 0 ? 0 : (currentPage - 1) * PER_PAGE + 1;
+  const endRecord = Math.min(currentPage * PER_PAGE, totalRecords);
   const pageLoading = permissionsLoading || logoLoading;
 
   /* ================= LOADING ================= */
@@ -676,18 +749,10 @@ const FinanceReport = () => {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
-          <ShieldAlert
-            size={28}
-            className="mx-auto mb-4 text-[#C23B32]"
-          />
-
-          <h2 className="text-lg font-bold text-gray-900">
-            Access Denied
-          </h2>
-
+          <ShieldAlert size={28} className="mx-auto mb-4 text-[#C23B32]" />
+          <h2 className="text-lg font-bold text-gray-900">Access Denied</h2>
           <p className="mt-2 text-sm text-gray-500">
-            You don't have permission to view the Finance Sales
-            Report.
+            You don't have permission to view the Finance Sales Report.
           </p>
         </div>
       </div>
@@ -710,14 +775,11 @@ const FinanceReport = () => {
             <ChevronRight size={13} />
             <span>Finance Sales Report</span>
           </div>
-
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
             Finance Sales Report
           </h1>
-
           <p className="mt-1 text-sm text-gray-500">
-            Review invoices, customer details, GST, payments and
-            shipment information.
+            Review invoice details with product-wise pricing, HSN and courier tracking.
           </p>
         </div>
 
@@ -728,10 +790,7 @@ const FinanceReport = () => {
             disabled={refreshing || loading}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
-            <RefreshCw
-              size={15}
-              className={refreshing ? "animate-spin" : ""}
-            />
+            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
             Refresh
           </button>
 
@@ -755,43 +814,39 @@ const FinanceReport = () => {
         <SummaryCard
           title="Total Invoices"
           value={summary.invoices.toLocaleString("en-IN")}
-          subtitle="All finance records"
+          subtitle="Unique invoice records"
           icon={Receipt}
           color="#2D6FE8"
           bg="#EAF3FF"
         />
-
         <SummaryCard
           title="Net Order Amount"
           value={money(summary.sales)}
-          subtitle="Current page total"
+          subtitle="Current page · invoices counted once"
           icon={Wallet}
           color="#15803D"
           bg="#DCFCE7"
         />
-
         <SummaryCard
           title="Total GST"
           value={money(summary.gst)}
-          subtitle="Current page GST"
+          subtitle="Current page · invoices counted once"
           icon={CreditCard}
           color="#6D28D9"
           bg="#EDE9FE"
         />
-
         <SummaryCard
           title="Total Items"
           value={summary.items.toLocaleString("en-IN")}
-          subtitle="Current page quantity"
+          subtitle="Sum of product-line quantities"
           icon={Package}
           color="#C2410C"
           bg="#FFEDD5"
         />
-
         <SummaryCard
           title="Refunded Orders"
           value={summary.refunded.toLocaleString("en-IN")}
-          subtitle="Refunded records"
+          subtitle="Unique refunded invoices"
           icon={RefreshCw}
           color="#C23B32"
           bg="#FEE2E2"
@@ -803,30 +858,22 @@ const FinanceReport = () => {
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <Filter size={17} className="text-[#2D6FE8]" />
-
-          <h2 className="text-sm font-bold text-gray-800">
-            Search & Filters
-          </h2>
+          <h2 className="text-sm font-bold text-gray-800">Search & Filters</h2>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_auto]">
-          {/* SEARCH */}
-
           <div className="relative">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search invoice, customer, mobile, product, transaction..."
+              placeholder="Search invoice, order, product, HSN, courier, tracking..."
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
             />
           </div>
-
-          {/* STATUS */}
 
           <select
             value={statusFilter}
@@ -834,15 +881,11 @@ const FinanceReport = () => {
             className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
           >
             <option value="all">All Statuses</option>
-            <option value="confirmed">Confirmed</option>
             <option value="dispatched">Dispatched</option>
             <option value="shipped">Shipped</option>
             <option value="partial_shipped">Partial Shipped</option>
             <option value="delivered">Delivered</option>
-            <option value="refunded">Refunded</option>
           </select>
-
-          {/* ACCOUNT TYPE */}
 
           <select
             value={accountFilter}
@@ -854,14 +897,11 @@ const FinanceReport = () => {
             <option value="distributor">Distributor</option>
           </select>
 
-          {/* FROM DATE */}
-
           <div className="relative">
             <CalendarDays
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               type="date"
               value={fromDate}
@@ -870,14 +910,11 @@ const FinanceReport = () => {
             />
           </div>
 
-          {/* TO DATE */}
-
           <div className="relative">
             <CalendarDays
               size={15}
               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             />
-
             <input
               type="date"
               value={toDate}
@@ -885,8 +922,6 @@ const FinanceReport = () => {
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
             />
           </div>
-
-          {/* ACTIONS */}
 
           <div className="flex gap-2">
             <button
@@ -898,7 +933,6 @@ const FinanceReport = () => {
               <Filter size={15} />
               Apply
             </button>
-
             <button
               type="button"
               onClick={() => void clearFilters()}
@@ -916,49 +950,34 @@ const FinanceReport = () => {
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-base font-bold text-gray-900">
-              Finance Records
-            </h2>
-
+            <h2 className="text-base font-bold text-gray-900">Finance Reports</h2>
             <p className="mt-1 text-xs text-gray-500">
-              Invoice, customer, product, tax and payment information
+              Each row represents one product/order line, including its courier details
             </p>
           </div>
-
           <span className="w-fit rounded-full bg-[#EAF3FF] px-3 py-1.5 text-xs font-semibold text-[#1E40AF]">
-            {filteredReports.length} Records
+            {filteredReports.length} Item Rows
           </span>
         </div>
 
-        {/* ================= LOADING ================= */}
-
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
-            <Loader2
-              size={32}
-              className="animate-spin text-[#2D6FE8]"
-            />
-
+            <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
             <p className="mt-3 text-sm font-medium text-gray-500">
               Loading finance report...
             </p>
           </div>
         ) : filteredReports.length === 0 ? (
-          /* ================= EMPTY STATE ================= */
-
           <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
               <FileText size={25} />
             </div>
-
             <h3 className="mt-4 text-base font-bold text-gray-800">
               No Finance Records Found
             </h3>
-
             <p className="mt-1 max-w-sm text-sm text-gray-500">
               No records match your search or selected filters.
             </p>
-
             <button
               type="button"
               onClick={() => void clearFilters()}
@@ -969,23 +988,35 @@ const FinanceReport = () => {
           </div>
         ) : (
           <>
-            {/* ================= DESKTOP TABLE ================= */}
+            {/* ================= DESKTOP ITEM TABLE ================= */}
 
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full border-collapse text-left">
+            <div className="hidden w-full overflow-hidden xl:block">
+              <table className="w-full table-fixed border-collapse text-left">
+                <colgroup>
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "10%" }} />
+                </colgroup>
                 <thead>
                   <tr className="bg-[#F7FAFE]">
                     {[
                       "Invoice / Date",
                       "Customer",
-                      "Products",
-                      "Amount / GST",
+                      "Product / HSN",
+                      "Qty / Unit Price",
+                      "Courier / Tracking",
+                      "Item Amount / GST",
                       "Payment",
-                      "Order / Delivery",
+                      "Order",
                     ].map((heading) => (
                       <th
                         key={heading}
-                        className="whitespace-nowrap border-b border-[#DCE6F2] px-4 py-3 text-[10px] font-bold uppercase tracking-wide text-gray-500"
+                        className="whitespace-normal break-words border-b border-[#DCE6F2] px-2.5 py-3 text-[9px] font-bold uppercase tracking-wide text-gray-500"
                       >
                         {heading}
                       </th>
@@ -994,247 +1025,263 @@ const FinanceReport = () => {
                 </thead>
 
                 <tbody>
-                  {filteredReports.map((item, index) => (
-                    <tr
-                      key={`${item.invoice_number || "invoice"}-${index}`}
-                      className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]"
-                    >
-                      {/* INVOICE / DATE */}
+                  {filteredReports.map((item, index) => {
+                    const row = asLineItem(item);
+                    return (
+                      <tr
+                        key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
+                        className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]"
+                      >
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-[11px] font-bold text-gray-900">
+                            {valueOrDash(item.invoice_number)}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-500">
+                            {formatDate(item.invoice_date)}
+                          </p>
+                          {row.order_reference && (
+                            <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
+                              {row.order_reference}
+                            </p>
+                          )}
+                        </td>
 
-                      <td className="px-4 py-4 align-top">
-                        <p className="text-xs font-bold text-gray-900">
-                          {valueOrDash(item.invoice_number)}
-                        </p>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-[10px] font-semibold text-gray-800">
+                            {valueOrDash(item.customer_name)}
+                          </p>
+                          <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
+                            Mobile: {valueOrDash(item.customer_mobile)}
+                          </p>
+                          <p className="mt-1 break-all text-[9px] text-gray-500">
+                            {valueOrDash(item.customer_email)}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] capitalize text-gray-400">
+                            {valueOrDash(item.account_type)}
+                          </p>
+                        </td>
 
-                        <p className="mt-1 whitespace-nowrap text-[10px] text-gray-500">
-                          {formatDate(item.invoice_date)}
-                        </p>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <ProductDetails item={item} />
+                        </td>
 
-                        {/* Order ID line removed */}
-                      </td>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-[10px] font-bold text-gray-900">
+                            {getQuantity(item)} Qty
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-600">
+                            Unit: {money(row.unit_price_without_gst)}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-500">
+                            Line: {money(row.line_total_without_gst)}
+                          </p>
+                        </td>
 
-                      {/* CUSTOMER */}
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <CourierDetails item={item} />
+                        </td>
 
-                      <td className="max-w-[190px] px-4 py-4 align-top">
-                        <p className="truncate text-xs font-semibold text-gray-800">
-                          {valueOrDash(item.customer_name)}
-                        </p>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-[10px] font-bold text-gray-900">
+                            {money(getLineGross(item))}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-500">
+                            Line GST: {money(getLineGst(item))}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-400">
+                            Shipping: {money(getLineShipping(item) + getLineShippingGst(item))}
+                          </p>
+                          <p className="mt-1 break-words text-[9px] text-gray-400">
+                            Invoice: {money(item.net_order_amount)}
+                          </p>
+                        </td>
 
-                        <p className="mt-1 break-all text-[10px] font-medium text-[#2D6FE8]">
-                          Mobile: {valueOrDash(item.customer_mobile)}
-                        </p>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-[10px] font-semibold text-gray-800">
+                            {valueOrDash(item.payment_gateway)}
+                          </p>
+                          <p className="mt-1 break-all text-[9px] text-gray-500">
+                            {valueOrDash(item.gateway_transaction_id)}
+                          </p>
+                        </td>
 
-                        <p className="mt-1 max-w-[180px] truncate text-[10px] text-gray-500">
-                          {valueOrDash(item.customer_email)}
-                        </p>
-
-                        <p className="mt-1 text-[10px] capitalize text-gray-400">
-                          {valueOrDash(item.account_type)}
-                        </p>
-                      </td>
-
-                      {/* PRODUCTS */}
-
-                      <td className="max-w-[220px] px-4 py-4 align-top">
-                        <p className="line-clamp-2 text-xs font-semibold text-gray-800">
-                          {valueOrDash(item.product_names)}
-                        </p>
-
-                        <p className="mt-1 text-[10px] text-gray-500">
-                          {item.total_items || 0} items
-                        </p>
-                      </td>
-
-                      {/* PRICE / GST / DISCOUNT */}
-
-                      <td className="px-4 py-4 align-top">
-                        <p className="whitespace-nowrap text-xs font-bold text-gray-900">
-                          {money(item.net_order_amount)}
-                        </p>
-
-                        <p className="mt-1 whitespace-nowrap text-[10px] text-gray-500">
-                          GST: {money(item.total_gst)}
-                        </p>
-
-                        <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
-                          Discount: {money(item.discount_amount)}
-                        </p>
-                      </td>
-
-                      {/* PAYMENT */}
-
-                      <td className="px-4 py-4 align-top">
-                        <p className="text-xs font-semibold text-gray-800">
-                          {valueOrDash(item.payment_gateway)}
-                        </p>
-
-                        <p className="mt-1 max-w-[150px] break-all text-[10px] text-gray-500">
-                          {valueOrDash(item.gateway_transaction_id)}
-                        </p>
-                      </td>
-
-                      {/* ORDER / DELIVERY */}
-
-                      <td className="px-4 py-4 align-top">
-                        <StatusBadge status={item.order_status} />
-
-                        <div className="mt-1">
-                          <StatusBadge status={item.delivery_status} />
-                        </div>
-
-                        <p className="mt-1 whitespace-nowrap text-[10px] text-gray-400">
-                          {formatDate(item.order_date)}
-                        </p>
-
-                        {/* Courier and tracking are not displayed in the UI */}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <StatusBadge status={item.order_status} />
+                          <p className="mt-1 break-words text-[9px] text-gray-400">
+                            {formatDate(item.order_date)}
+                          </p>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* ================= MOBILE CARDS ================= */}
+            {/* ================= MOBILE ITEM CARDS ================= */}
 
-            <div className="space-y-3 p-3 lg:hidden">
-              {filteredReports.map((item, index) => (
-                <div
-                  key={`${item.invoice_number || "invoice"}-${index}`}
-                  className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
-                >
-                  <div className="p-4">
-                    {/* INVOICE HEADER */}
-
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                          Invoice Number
-                        </p>
-
-                        <p className="mt-1 break-all text-sm font-bold text-gray-900">
-                          {valueOrDash(item.invoice_number)}
-                        </p>
-
-                        <p className="mt-1 text-xs text-gray-500">
-                          {formatDate(item.invoice_date)}
-                        </p>
-
-                        {/* Order ID line removed */}
+            <div className="space-y-3 p-3 xl:hidden">
+              {filteredReports.map((item, index) => {
+                const row = asLineItem(item);
+                return (
+                  <div
+                    key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
+                    className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
+                  >
+                    <div className="p-4">
+                      {/* INVOICE HEADER */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                            Invoice Number
+                          </p>
+                          <p className="mt-1 break-all text-sm font-bold text-gray-900">
+                            {valueOrDash(item.invoice_number)}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {formatDate(item.invoice_date)}
+                          </p>
+                          {row.order_reference && (
+                            <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">
+                              {row.order_reference}
+                            </p>
+                          )}
+                        </div>
+                        <StatusBadge status={item.order_status} />
                       </div>
 
-                      <StatusBadge status={item.order_status} />
-                    </div>
-
-                    {/* CUSTOMER DETAILS */}
-
-                    <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
-                      <p className="text-sm font-semibold text-gray-800">
-                        {valueOrDash(item.customer_name)}
-                      </p>
-
-                      <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
-                        Mobile: {valueOrDash(item.customer_mobile)}
-                      </p>
-
-                      <p className="mt-1 break-all text-xs text-gray-500">
-                        {valueOrDash(item.customer_email)}
-                      </p>
-
-                      <p className="mt-1 text-xs capitalize text-gray-500">
-                        {valueOrDash(item.account_type)}
-                      </p>
-                    </div>
-
-                    {/* AMOUNT AND PAYMENT */}
-
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                          Net Order Amount
+                      {/* CUSTOMER DETAILS */}
+                      <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
+                        <p className="text-sm font-semibold text-gray-800">
+                          {valueOrDash(item.customer_name)}
                         </p>
-
-                        <p className="mt-1 break-words text-xs font-semibold text-gray-700">
-                          {money(item.net_order_amount)}
+                        <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
+                          Mobile: {valueOrDash(item.customer_mobile)}
+                        </p>
+                        <p className="mt-1 break-all text-xs text-gray-500">
+                          {valueOrDash(item.customer_email)}
+                        </p>
+                        <p className="mt-1 text-xs capitalize text-gray-500">
+                          {valueOrDash(item.account_type)}
                         </p>
                       </div>
 
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                          Total GST
+                      {/* ITEM PRODUCT DETAILS */}
+                      <div className="mt-3 rounded-lg border border-[#E8EEF6] p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Product Item
+                          </p>
+                          <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-[10px] font-semibold text-[#1E40AF]">
+                            Qty: {getQuantity(item)}
+                          </span>
+                        </div>
+                        <p className="mt-1 break-words text-sm font-semibold text-gray-800">
+                          {valueOrDash(getProductName(item))}
                         </p>
-
-                        <p className="mt-1 break-words text-xs font-semibold text-gray-700">
-                          {money(item.total_gst)}
-                        </p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-500">
+                          <span>Code: {valueOrDash(getProductCode(item))}</span>
+                          <span>HSN: {valueOrDash(getHsnCode(item))}</span>
+                        </div>
+                        {row.item_reference_id && (
+                          <p className="mt-1 break-all text-[9px] text-gray-400">
+                            Item Ref: {row.item_reference_id}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                          Payment Gateway
-                        </p>
-
-                        <p className="mt-1 break-words text-xs font-semibold text-gray-700">
-                          {valueOrDash(item.payment_gateway)}
-                        </p>
+                      {/* ITEM AMOUNTS */}
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Item Total
+                          </p>
+                          <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                            {money(getLineGross(item))}
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Unit Price
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">
+                            {money(row.unit_price_without_gst)}
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Line GST
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">
+                            {money(getLineGst(item))}
+                          </p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Payment Gateway
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">
+                            {valueOrDash(item.payment_gateway)}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="min-w-0">
-                        <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                          Delivery Status
+                      {/* ITEM COURIER DETAILS */}
+                      <div className="mt-3 border-t border-[#E8EEF6] pt-3">
+                        <p className="mb-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                          <Truck size={12} /> Courier & Tracking
                         </p>
+                        <CourierDetails item={item} />
+                      </div>
 
-                        <div className="mt-1">
-                          <StatusBadge status={item.delivery_status} />
+                      {/* ORDER DETAILS */}
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EEF6] pt-3">
+                        <div className="min-w-0">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Order Status
+                          </p>
+                          <div className="mt-1">
+                            <StatusBadge status={item.order_status} />
+                          </div>
+                          <p className="mt-1 break-words text-[10px] text-gray-500">
+                            {formatDate(item.order_date)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+                            Invoice Total
+                          </p>
+                          <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                            {money(item.net_order_amount)}
+                          </p>
                         </div>
                       </div>
                     </div>
-
-                    {/* PRODUCTS */}
-
-                    <div className="mt-3 border-t border-[#E8EEF6] pt-3">
-                      <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">
-                        Products
-                      </p>
-
-                      <p className="mt-1 break-words text-xs text-gray-600">
-                        {valueOrDash(item.product_names)}
-                      </p>
-
-                      <p className="mt-1 text-[10px] text-gray-400">
-                        {item.total_items || 0} items
-                      </p>
-                    </div>
-
-                    {/* Courier and tracking are not displayed in mobile UI */}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* ================= PAGINATION ================= */}
 
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">
-                Showing{" "}
+                Showing invoices{" "}
                 <span className="font-semibold text-gray-800">
                   {startRecord}–{endRecord}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-gray-800">
-                  {totalRecords}
-                </span>{" "}
-                records
+                <span className="font-semibold text-gray-800">{totalRecords}</span>
+                <span className="ml-1 text-gray-400">
+                  ({filteredReports.length} product rows on this page)
+                </span>
               </p>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={currentPage <= 1 || loading}
-                  onClick={() =>
-                    setCurrentPage((page) =>
-                      Math.max(1, page - 1),
-                    )
-                  }
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
@@ -1248,11 +1295,7 @@ const FinanceReport = () => {
                 <button
                   type="button"
                   disabled={currentPage >= lastPage || loading}
-                  onClick={() =>
-                    setCurrentPage((page) =>
-                      Math.min(lastPage, page + 1),
-                    )
-                  }
+                  onClick={() => setCurrentPage((page) => Math.min(lastPage, page + 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"
                 >

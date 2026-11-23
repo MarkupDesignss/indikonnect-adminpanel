@@ -65,6 +65,13 @@ interface CommissionWeekOption {
   label: string;
 }
 
+interface AppliedCommissionFilters {
+  year: number;
+  week: number | null;
+  fromDate: string;
+  toDate: string;
+}
+
 type CommissionResponse = CommissionCalendarResponse;
 
 // =====================================================
@@ -126,12 +133,14 @@ const buildWeekOptions = (calendar: any): CommissionWeekOption[] => {
     month.weeks?.forEach((week: any) => {
       const weekNo = Number(week.week_no);
 
+      if (!Number.isFinite(weekNo)) return;
+
       if (!map.has(weekNo)) {
         map.set(weekNo, {
           week_no: weekNo,
           start_date: week.start_date,
           end_date: week.end_date,
-          label: `Week ${week.week_no}`,
+          label: `Week ${weekNo}`,
         });
       }
     });
@@ -381,7 +390,7 @@ const WeekDropdown: React.FC<{
 
           <span className="truncate">
             {value == null
-              ? "Select Week"
+              ? "All Weeks"
               : selectedOption?.label ?? `Week ${value}`}
           </span>
         </span>
@@ -545,7 +554,7 @@ const CommissionView: React.FC = () => {
   const [logoLoading, setLogoLoading] = useState(true);
 
   // ===================================================
-  // STATE
+  // FILTER STATES
   // ===================================================
 
   const [selectedYear, setSelectedYear] =
@@ -557,19 +566,34 @@ const CommissionView: React.FC = () => {
   const [draftFromDate, setDraftFromDate] = useState("");
   const [draftToDate, setDraftToDate] = useState("");
 
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  // Last applied filters.
+  const [appliedFilters, setAppliedFilters] =
+    useState<AppliedCommissionFilters | null>(null);
+
+  // ===================================================
+  // WEEK OPTIONS
+  // ===================================================
 
   const [weekOptions, setWeekOptions] = useState<
     CommissionWeekOption[]
   >([]);
+
+  const [weekOptionsLoading, setWeekOptionsLoading] =
+    useState(false);
+
+  const weekRequestIdRef = useRef(0);
+
+  // ===================================================
+  // COMMISSION DATA
+  // ===================================================
 
   const [search, setSearch] = useState("");
 
   const [data, setData] =
     useState<CommissionResponse | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  // No commission GET request on initial page load.
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
@@ -622,19 +646,35 @@ const CommissionView: React.FC = () => {
   }, []);
 
   // ===================================================
-  // FETCH WEEK OPTIONS
+  // FETCH ALL WEEK OPTIONS
   // ===================================================
 
   const fetchWeekOptions = useCallback(async () => {
     if (!canViewCommission) return;
 
+    const requestId = ++weekRequestIdRef.current;
+
     try {
-      // null means All Weeks.
-      // The API helper must omit the week parameter for null.
+      setWeekOptionsLoading(true);
+
+      /*
+       * IMPORTANT:
+       *
+       * On page load and year change:
+       * Send week = 0.
+       *
+       * API returns calendar containing all weeks.
+       *
+       * This request is only for dropdown options.
+       * Commission table data is NOT loaded here.
+       */
+
       const response = await commissionApi.getCalendar(
-        null,
+        0,
         selectedYear,
       );
+
+      if (requestId !== weekRequestIdRef.current) return;
 
       if (
         response.data?.success &&
@@ -647,20 +687,70 @@ const CommissionView: React.FC = () => {
         setWeekOptions([]);
       }
     } catch (error) {
+      if (requestId !== weekRequestIdRef.current) return;
+
       console.error("Week options API error:", error);
       setWeekOptions([]);
+    } finally {
+      if (requestId === weekRequestIdRef.current) {
+        setWeekOptionsLoading(false);
+      }
     }
   }, [selectedYear, canViewCommission]);
+
+  // ===================================================
+  // LOAD WEEK OPTIONS ON PAGE LOAD / YEAR CHANGE
+  // ===================================================
+
+  useEffect(() => {
+    if (permissionsLoading) return;
+
+    if (canViewCommission) {
+      void fetchWeekOptions();
+    }
+
+    return () => {
+      weekRequestIdRef.current += 1;
+    };
+  }, [
+    permissionsLoading,
+    canViewCommission,
+    fetchWeekOptions,
+  ]);
 
   // ===================================================
   // FETCH COMMISSION DATA
   // ===================================================
 
   const fetchCommission = useCallback(
-    async (isRefresh = false) => {
+    async (
+      filters: AppliedCommissionFilters,
+      isRefresh = false,
+    ) => {
       if (!canViewCommission) return;
 
       const requestId = ++requestIdRef.current;
+
+      /*
+       * API WEEK LOGIC:
+       *
+       * 1. If From Date or To Date exists:
+       *    week = null (omit week query parameter).
+       *
+       * 2. If a specific week is selected:
+       *    Send that week number.
+       *
+       * 3. If All Weeks is selected:
+       *    Send week = 0.
+       */
+
+      const hasDateFilter = Boolean(
+        filters.fromDate || filters.toDate,
+      );
+
+      const apiWeek: number | null = hasDateFilter
+        ? null
+        : filters.week ?? 0;
 
       try {
         setErrorMessage("");
@@ -669,28 +759,28 @@ const CommissionView: React.FC = () => {
           setRefreshing(true);
         } else {
           setLoading(true);
+          setData(null);
         }
 
-        /*
-         * IMPORTANT:
-         *
-         * selectedWeek = null means All Weeks.
-         * The API helper must conditionally omit the week key.
-         *
-         * selectedWeek = 40 means week=40 will be sent.
-         */
-
         const response = await commissionApi.getCalendar(
-          selectedWeek,
-          selectedYear,
-          fromDate || undefined,
-          toDate || undefined,
+          apiWeek,
+          filters.year,
+          filters.fromDate || undefined,
+          filters.toDate || undefined,
         );
 
         if (requestId !== requestIdRef.current) return;
 
         if (response.data?.success) {
           setData(response.data);
+
+          // Update week options from the latest calendar
+          // only when the returned calendar is available.
+          if (response.data?.calendar) {
+            setWeekOptions(
+              buildWeekOptions(response.data.calendar),
+            );
+          }
         } else {
           const message =
             response.data?.message ||
@@ -718,110 +808,72 @@ const CommissionView: React.FC = () => {
         }
       }
     },
-    [
-      selectedWeek,
-      selectedYear,
-      fromDate,
-      toDate,
-      canViewCommission,
-    ],
+    [canViewCommission],
   );
 
   // ===================================================
-  // EFFECTS
+  // FILTER DERIVED STATES
   // ===================================================
 
-  useEffect(() => {
-    if (permissionsLoading) return;
+  const hasAppliedFilters = appliedFilters !== null;
 
-    if (canViewCommission) {
-      void fetchWeekOptions();
-    }
-  }, [
-    selectedYear,
-    permissionsLoading,
-    canViewCommission,
-    fetchWeekOptions,
-  ]);
-
-  useEffect(() => {
-    if (permissionsLoading) return;
-
-    if (canViewCommission) {
-      void fetchCommission();
-    } else {
-      setLoading(false);
-    }
-
-    return () => {
-      requestIdRef.current += 1;
-    };
-  }, [
-    fetchCommission,
-    permissionsLoading,
-    canViewCommission,
-  ]);
-
-  // ===================================================
-  // COMBINED INITIAL LOADING
-  // ===================================================
-
-  const pageLoading =
-    permissionsLoading || logoLoading;
-
-  const rows = useMemo(
-    () => data?.data || [],
-    [data],
+  const hasPendingChanges = Boolean(
+    appliedFilters &&
+    (
+      selectedYear !== appliedFilters.year ||
+      selectedWeek !== appliedFilters.week ||
+      draftFromDate !== appliedFilters.fromDate ||
+      draftToDate !== appliedFilters.toDate
+    )
   );
 
-  const filteredRows = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return rows.filter((row) =>
-      rowMatchesSearch(row, query),
-    );
-  }, [rows, search]);
-
-  const yearOptions = useMemo(
-    () =>
-      Array.from(
-        { length: 7 },
-        (_, index) => currentYear - 3 + index,
-      ),
-    [currentYear],
+  const canReset = Boolean(
+    hasAppliedFilters ||
+    selectedYear !== currentYear ||
+    selectedWeek !== null ||
+    draftFromDate ||
+    draftToDate ||
+    search,
   );
 
   // ===================================================
-  // FILTER HANDLERS
+  // YEAR CHANGE
   // ===================================================
 
   const handleYearChange = (value: string) => {
     const nextYear = Number(value);
 
     if (
-      Number.isInteger(nextYear) &&
-      nextYear !== selectedYear
+      !Number.isInteger(nextYear) ||
+      nextYear === selectedYear
     ) {
-      setSelectedYear(nextYear);
-
-      setSelectedWeek(null);
-
-      setDraftFromDate("");
-      setDraftToDate("");
-
-      setFromDate("");
-      setToDate("");
-
-      setSearch("");
-      setData(null);
-      setWeekOptions([]);
+      return;
     }
+
+    setSelectedYear(nextYear);
+
+    setSelectedWeek(null);
+
+    setDraftFromDate("");
+    setDraftToDate("");
+
+    setWeekOptions([]);
+
+    // Only the week-options API will run for this year.
+    // Commission records will wait for Apply Filter.
   };
+
+  // ===================================================
+  // WEEK CHANGE
+  // ===================================================
 
   const handleWeekChange = (value: number | null) => {
     setSelectedWeek(value);
-    setData(null);
   };
+
+  // ===================================================
+  // DATE CHANGE
+  // ===================================================
 
   const handleFromDateChange = (value: string) => {
     if (
@@ -853,7 +905,20 @@ const CommissionView: React.FC = () => {
     setDraftToDate(value);
   };
 
-  const handleApplyDateFilter = () => {
+  // ===================================================
+  // APPLY FILTER
+  // ===================================================
+
+  const handleApplyFilter = () => {
+    if (!canViewCommission) {
+      toast.error(
+        "You do not have permission to view commission data.",
+      );
+      return;
+    }
+
+    if (loading || refreshing) return;
+
     if (
       draftFromDate &&
       draftToDate &&
@@ -865,19 +930,54 @@ const CommissionView: React.FC = () => {
       return;
     }
 
-    const unchanged =
-      draftFromDate === fromDate &&
-      draftToDate === toDate;
+    const filters: AppliedCommissionFilters = {
+      year: selectedYear,
 
-    if (unchanged) {
-      void fetchCommission(true);
-      return;
-    }
+      // Keep the selected week in UI state.
+      // fetchCommission omits it whenever dates exist.
+      week: selectedWeek,
 
-    setFromDate(draftFromDate);
-    setToDate(draftToDate);
-    setData(null);
+      fromDate: draftFromDate,
+      toDate: draftToDate,
+    };
+
+    setAppliedFilters(filters);
+
+    // Commission GET API is called only here.
+    void fetchCommission(filters);
   };
+
+  // ===================================================
+  // RESET FILTER
+  // ===================================================
+
+  const handleReset = () => {
+    // Invalidate any previous pending commission request.
+    requestIdRef.current += 1;
+
+    setSelectedYear(currentYear);
+    setSelectedWeek(null);
+
+    setDraftFromDate("");
+    setDraftToDate("");
+
+    setAppliedFilters(null);
+
+    setSearch("");
+    setData(null);
+    setErrorMessage("");
+
+    setLoading(false);
+    setRefreshing(false);
+
+    // No commission API call on Reset.
+    // If the year changed, the week-options effect
+    // will refresh the calendar with week=0.
+  };
+
+  // ===================================================
+  // REFRESH
+  // ===================================================
 
   const handleRefresh = () => {
     if (!canViewCommission) {
@@ -887,8 +987,34 @@ const CommissionView: React.FC = () => {
       return;
     }
 
-    void fetchCommission(true);
+    if (!appliedFilters) {
+      toast.error("Please apply filters first.");
+      return;
+    }
+
+    if (loading || refreshing) return;
+
+    // Refresh uses the last applied filters.
+    // Date filters will continue to omit week.
+    void fetchCommission(appliedFilters, true);
   };
+
+  // ===================================================
+  // CSV EXPORT
+  // ===================================================
+
+  const rows = useMemo(
+    () => data?.data || [],
+    [data],
+  );
+
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return rows.filter((row) =>
+      rowMatchesSearch(row, query),
+    );
+  }, [rows, search]);
 
   const handleDownloadCsv = () => {
     if (!canExportCommission) {
@@ -898,38 +1024,82 @@ const CommissionView: React.FC = () => {
       return;
     }
 
+    if (!appliedFilters) {
+      toast.error("Please apply filters first.");
+      return;
+    }
+
     if (!filteredRows.length) {
       toast.error("No data available to export.");
       return;
     }
 
+    const filters = appliedFilters;
+
     const datePart =
-      fromDate || toDate
-        ? `${fromDate || "start"}-to-${toDate || "end"}`
+      filters.fromDate || filters.toDate
+        ? `${filters.fromDate || "start"}-to-${filters.toDate || "end"}`
         : "all-dates";
 
     const weekPart =
-      selectedWeek == null
-        ? "all-weeks"
-        : `week-${selectedWeek}`;
+      filters.fromDate || filters.toDate
+        ? "date-range"
+        : filters.week == null
+          ? "all-weeks"
+          : `week-${filters.week}`;
 
     exportToCsv(
       filteredRows,
-      `commission-${weekPart}-${selectedYear}-${datePart}.csv`,
+      `commission-${weekPart}-${filters.year}-${datePart}.csv`,
     );
   };
 
+  // ===================================================
+  // DISPLAY PERIOD
+  // ===================================================
+
   const displayPeriod = useMemo(() => {
-    if (fromDate || toDate) {
+    if (!appliedFilters) return "Not Applied";
+
+    if (
+      appliedFilters.fromDate ||
+      appliedFilters.toDate
+    ) {
       return `${
-        fromDate ? formatDate(fromDate) : "Start"
-      } – ${toDate ? formatDate(toDate) : "Present"}`;
+        appliedFilters.fromDate
+          ? formatDate(appliedFilters.fromDate)
+          : "Start"
+      } – ${
+        appliedFilters.toDate
+          ? formatDate(appliedFilters.toDate)
+          : "Present"
+      }`;
     }
 
-    return selectedWeek == null
+    return appliedFilters.week == null
       ? "All Weeks"
-      : `Week ${selectedWeek}`;
-  }, [fromDate, toDate, selectedWeek]);
+      : `Week ${appliedFilters.week}`;
+  }, [appliedFilters]);
+
+  // ===================================================
+  // YEAR OPTIONS
+  // ===================================================
+
+  const yearOptions = useMemo(
+    () =>
+      Array.from(
+        { length: 7 },
+        (_, index) => currentYear - 3 + index,
+      ),
+    [currentYear],
+  );
+
+  // ===================================================
+  // PAGE LOADING
+  // ===================================================
+
+  const pageLoading =
+    permissionsLoading || logoLoading;
 
   // ===================================================
   // RENDER GUARDS
@@ -985,7 +1155,11 @@ const CommissionView: React.FC = () => {
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={loading || refreshing}
+            disabled={
+              loading ||
+              refreshing ||
+              !hasAppliedFilters
+            }
             className="flex h-10 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-[#D6E2F0] bg-white px-3.5 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/35 hover:bg-[#F4F8FD] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <FiRefreshCw
@@ -1013,7 +1187,7 @@ const CommissionView: React.FC = () => {
 
       {/* WEEK RANGE / SUMMARY BANNER */}
 
-      {!loading && data?.week_range && (
+      {!loading && data?.week_range && appliedFilters && (
         <motion.div
           variants={itemVariants}
           className="mb-6 flex flex-col justify-between gap-3 rounded-2xl border border-[#2D6FE8]/25 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:p-5"
@@ -1029,7 +1203,7 @@ const CommissionView: React.FC = () => {
               </p>
 
               <h2 className="mt-0.5 text-base font-bold text-[#111827]">
-                {displayPeriod} • {selectedYear}
+                {displayPeriod} • {appliedFilters.year}
               </h2>
 
               <p className="mt-0.5 text-xs text-[#6B7280]">
@@ -1096,7 +1270,7 @@ const CommissionView: React.FC = () => {
         {/* SEARCH + FILTERS */}
 
         <div className="border-b border-[#DCE6F2] bg-white p-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_88px_132px_132px_132px_108px] lg:items-end lg:gap-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_88px_132px_132px_132px_108px_88px] lg:items-end lg:gap-2">
             {/* SEARCH */}
 
             <div className="relative w-full min-w-0">
@@ -1177,8 +1351,17 @@ const CommissionView: React.FC = () => {
                 options={weekOptions}
                 value={selectedWeek}
                 onChange={handleWeekChange}
-                disabled={!canViewCommission}
+                disabled={
+                  weekOptionsLoading ||
+                  !weekOptions.length
+                }
               />
+
+              {weekOptionsLoading && (
+                <p className="mt-1 text-[9px] text-[#6B7280]">
+                  Loading weeks...
+                </p>
+              )}
             </div>
 
             {/* FROM DATE */}
@@ -1229,51 +1412,85 @@ const CommissionView: React.FC = () => {
 
             <button
               type="button"
-              onClick={handleApplyDateFilter}
-              disabled={
-                loading ||
-                (!draftFromDate &&
-                  !draftToDate &&
-                  !fromDate &&
-                  !toDate)
-              }
+              onClick={handleApplyFilter}
+              disabled={loading || refreshing}
               className="flex h-9 w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#2D6FE8] px-2 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <FiCheck size={13} />
+              {loading ? (
+                <FiRefreshCw
+                  size={13}
+                  className="animate-spin"
+                />
+              ) : (
+                <FiCheck size={13} />
+              )}
               Apply Filter
             </button>
+
+            {/* RESET */}
+
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={!canReset}
+              className="flex h-9 w-full min-w-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[#D6E2F0] bg-white px-2 text-[11px] font-bold text-[#374151] shadow-sm transition hover:border-[#C23B32]/30 hover:bg-[#FEF2F2] hover:text-[#C23B32] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FiX size={13} />
+              Reset
+            </button>
           </div>
+
+          {/* FILTER NOTICE */}
+
+          {hasAppliedFilters && hasPendingChanges && (
+            <p className="mt-3 text-[10px] font-medium text-[#B7791F]">
+              You have changed filters. Click Apply Filter to
+              update commission data.
+            </p>
+          )}
+
+          {!hasAppliedFilters && (
+            <p className="mt-3 text-[10px] text-[#6B7280]">
+              Select your filters and click Apply Filter to load
+              commission data.
+            </p>
+          )}
         </div>
 
         {/* APPLIED DATE RANGE */}
 
-        {(fromDate || toDate) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-2.5">
-            <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-              Applied date range
-            </span>
-
-            <span className="inline-flex items-center gap-1.5 text-[10px]">
-              <span className="font-bold text-[#6B7280]">
-                From Date:
+        {appliedFilters &&
+          (appliedFilters.fromDate || appliedFilters.toDate) && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#DCE6F2] bg-[#F8FBFF] px-4 py-2.5">
+              <span className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
+                Applied date range
               </span>
 
-              <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
-                {fromDate ? formatDate(fromDate) : "Not set"}
-              </span>
-            </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px]">
+                <span className="font-bold text-[#6B7280]">
+                  From Date:
+                </span>
 
-            <span className="inline-flex items-center gap-1.5 text-[10px]">
-              <span className="font-bold text-[#6B7280]">
-                To Date:
+                <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
+                  {appliedFilters.fromDate
+                    ? formatDate(appliedFilters.fromDate)
+                    : "Not set"}
+                </span>
               </span>
 
-              <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
-                {toDate ? formatDate(toDate) : "Not set"}
+              <span className="inline-flex items-center gap-1.5 text-[10px]">
+                <span className="font-bold text-[#6B7280]">
+                  To Date:
+                </span>
+
+                <span className="rounded-md border border-[#2D6FE8]/20 bg-[#EAF3FF] px-2 py-1 font-bold text-[#2D6FE8]">
+                  {appliedFilters.toDate
+                    ? formatDate(appliedFilters.toDate)
+                    : "Not set"}
+                </span>
               </span>
-            </span>
-          </div>
-        )}
+            </div>
+          )}
 
         {/* TABLE CONTENT */}
 
@@ -1291,6 +1508,21 @@ const CommissionView: React.FC = () => {
                 Loading commission data...
               </p>
             </div>
+          ) : !hasAppliedFilters ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center px-5 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+                <FiLayers size={24} />
+              </div>
+
+              <p className="mt-4 text-sm font-bold text-[#111827]">
+                Commission data not loaded
+              </p>
+
+              <p className="mt-1 max-w-md text-xs leading-5 text-[#6B7280]">
+                Select Year, Week or Date Range above and click
+                Apply Filter to view commission records.
+              </p>
+            </div>
           ) : errorMessage && !data ? (
             <div className="flex min-h-[280px] flex-col items-center justify-center px-5 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCEEEE] text-[#C23B32]">
@@ -1304,6 +1536,19 @@ const CommissionView: React.FC = () => {
               <p className="mt-1 max-w-lg text-xs text-[#6B7280]">
                 {errorMessage}
               </p>
+
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="mt-4 flex h-9 items-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-xs font-bold text-white transition hover:bg-[#1E40AF] disabled:opacity-50"
+              >
+                <FiRefreshCw
+                  size={13}
+                  className={refreshing ? "animate-spin" : ""}
+                />
+                Try Again
+              </button>
             </div>
           ) : filteredRows.length > 0 ? (
             <table className="min-w-full whitespace-nowrap text-left text-xs">
@@ -1487,7 +1732,7 @@ const CommissionView: React.FC = () => {
 
         {/* FOOTER */}
 
-        {!loading && !errorMessage && (
+        {!loading && !errorMessage && hasAppliedFilters && (
           <div className="flex flex-col items-center justify-between gap-4 border-t border-[#DCE6F2] bg-white px-5 py-4 sm:flex-row">
             <p className="text-xs text-[#6B7280]">
               Showing{" "}
