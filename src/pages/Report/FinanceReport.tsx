@@ -147,8 +147,8 @@ const HINDI: Record<string, string> = {
   "+ Add condition": "+ शर्त जोड़ें",
   "Apply filters": "फ़िल्टर लागू करें",
   "Search:": "खोज:",
-  "Frontend-calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.":
-    "राशि की गणना फ्रंटएंड पर होती है। अलग डिलीवरी GST दर न मिलने पर उत्पाद की दर ली जाती है। प्रति इकाई कीमत छूट के बाद की मानी गई है; सेवा शुल्क पर अलग GST नहीं जोड़ा गया है।",
+  "Calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.":
+    "राशि की गणना पर होती है। अलग डिलीवरी GST दर न मिलने पर उत्पाद की दर ली जाती है। प्रति इकाई कीमत छूट के बाद की मानी गई है; सेवा शुल्क पर अलग GST नहीं जोड़ा गया है।",
   "Sales overview": "बिक्री का सारांश",
   "All matching records across pages · INR": "सभी पेज के मिलते रिकॉर्ड · रुपये",
   "Updating totals": "कुल राशि अपडेट हो रही है",
@@ -248,11 +248,11 @@ const HINDI: Record<string, string> = {
     "चुनी गई अवधि के सभी मिलते रिकॉर्ड। GST, भुगतान और कूरियर का पूरा विवरण बिक्री विवरण टैब में है।",
   "GRAND TOTAL": "कुल योग",
   "GRAND TOTAL  ": "  VISIBLE ROWS|कुल योग | दिख रहे रिकॉर्ड",
-  "INR • Frontend calculated": "रुपये • फ्रंटएंड गणना",
+  "INR •  calculated": "रुपये • गणना",
   "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.":
     "गणना नोट: प्रति इकाई कीमत छूट के बाद की मानी गई है। अलग डिलीवरी GST दर न मिलने पर उत्पाद की दर ली गई है। सेवा शुल्क पर अलग GST नहीं माना गया है।",
-  "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.":
-    "राशि की गणना फ्रंटएंड पर है। कुल योग इस टैब में दिख रहे रिकॉर्ड का है। उत्पाद श्रेणियाँ API से ली गई हैं; अनुपलब्ध मान खाली हैं।",
+  "The report uses  calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.":
+    "राशि की गणना है। कुल योग इस टैब में दिख रहे रिकॉर्ड का है। उत्पाद श्रेणियाँ API से ली गई हैं; अनुपलब्ध मान खाली हैं।",
   "Unable to load all report pages. Please retry.":
     "सभी रिपोर्ट पेज लोड नहीं हो सके। फिर कोशिश करें।",
   "From date cannot be greater than To date":
@@ -2287,7 +2287,7 @@ const FinanceReportContent = ({
         overviewBanner(
           overviewLast + 4,
           t(
-            "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+            "The report uses calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
           ),
           "FFFFFFFF",
           "FF456580",
@@ -2491,7 +2491,7 @@ const FinanceReportContent = ({
             indent: 1,
           };
           const detail = sheet.getCell(r, 6);
-          detail.value = t("INR • Frontend calculated");
+          detail.value = t("INR • calculated");
           detail.alignment = {
             horizontal: "left",
             vertical: "middle",
@@ -2721,7 +2721,7 @@ const FinanceReportContent = ({
       {/* EXECUTIVE FINANCIAL SUMMARY */}
       <p className="text-xs text-slate-500">
         {t(
-          "Frontend-calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.",
+          "Calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.",
         )}{" "}
       </p>
       <section className="space-y-3" aria-label={t("Financial summary")}>
