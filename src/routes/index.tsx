@@ -69,6 +69,8 @@ import ReturnsArticleReport from "@/pages/Report/ReturnsArticleReport";
 import ProductSalesReport from "@/pages/SalesReport/ProductSalesReport";
 import CategorySalesReport from "@/pages/SalesReport/CategorySalesReport";
 import FinanceReport from "@/pages/Report/FinanceReport";
+import HsnReport from "@/pages/Warehouse/HsnReport";
+import StatewiseReport from "@/pages/Warehouse/StatewiseReport";
 
 
 const ScrollLayout = () => (
@@ -237,6 +239,8 @@ export const adminRouter = createBrowserRouter(
             // SETTINGS
             // ============================================================
             { path: "SettingsManagement", element: <SettingsManagement /> },
+            { path: "/finance/hsn-report", element: <HsnReport /> },
+            { path: "/finance/statewise-report", element: <StatewiseReport /> },
           ],
         },
       ],

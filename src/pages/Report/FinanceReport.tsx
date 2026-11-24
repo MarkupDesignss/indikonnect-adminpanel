@@ -2136,11 +2136,7 @@ const FinanceReport = () => {
         </div>
       </div>
       {/* EXECUTIVE FINANCIAL SUMMARY */}
-      <p className="text-xs text-slate-500">
-        Calculated amounts. Shipping GST uses the product rate when no
-        separate rate is supplied. Unit price is treated as net of discounts;
-        service charges are added without separate GST.
-      </p>
+     
       <section className="space-y-3" aria-label="Financial summary">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
