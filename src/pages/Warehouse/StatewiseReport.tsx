@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Search,
@@ -15,8 +10,6 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  X,
-  Filter,
   Loader2,
   ShieldAlert,
   Receipt,
@@ -66,11 +59,6 @@ const PER_PAGE = 100;
 
 /* ================= TYPES ================= */
 
-type RegistrationFilter =
-  | "all"
-  | "registered"
-  | "unregistered";
-
 type StatewiseSummary = {
   records: number;
   states: number;
@@ -88,9 +76,7 @@ type StatewiseSummary = {
 
 /* ================= HELPERS ================= */
 
-const numberValue = (
-  value: number | string | null | undefined,
-): number => {
+const numberValue = (value: number | string | null | undefined): number => {
   const parsed = Number(value ?? 0);
 
   return Number.isFinite(parsed) ? parsed : 0;
@@ -99,29 +85,22 @@ const numberValue = (
 const roundMoney = (value: number) =>
   Math.round((value + Number.EPSILON) * 100) / 100;
 
-const money = (
-  value: number | string | null | undefined,
-) =>
+const money = (value: number | string | null | undefined) =>
   `₹${numberValue(value).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
-const formatNumber = (
-  value: number | string | null | undefined,
-) =>
+const formatNumber = (value: number | string | null | undefined) =>
   numberValue(value).toLocaleString("en-IN", {
     maximumFractionDigits: 2,
   });
 
-const formatPercentage = (
-  value: number | string | null | undefined,
-) => `${formatNumber(value)}%`;
+const formatPercentage = (value: number | string | null | undefined) =>
+  `${formatNumber(value)}%`;
 
 const valueOrDash = (value: unknown) =>
-  value === null || value === undefined || value === ""
-    ? "—"
-    : String(value);
+  value === null || value === undefined || value === "" ? "—" : String(value);
 
 const trimmedValue = (value: unknown) =>
   typeof value === "string"
@@ -154,60 +133,35 @@ const formatDateInput = (date: Date) =>
 
 const getTotalTax = (item: StatewiseReportItem) =>
   roundMoney(
-    numberValue(item.cgst) +
-      numberValue(item.sgst) +
-      numberValue(item.igst),
+    numberValue(item.cgst) + numberValue(item.sgst) + numberValue(item.igst),
   );
 
 /* ================= SUMMARY CALCULATION ================= */
 
-const summarizeStatewise = (
-  items: StatewiseReportItem[],
-): StatewiseSummary => {
-  const sum = (
-    selector: (item: StatewiseReportItem) => number,
-  ) =>
-    roundMoney(
-      items.reduce(
-        (total, item) => total + selector(item),
-        0,
-      ),
-    );
+const summarizeStatewise = (items: StatewiseReportItem[]): StatewiseSummary => {
+  const sum = (selector: (item: StatewiseReportItem) => number) =>
+    roundMoney(items.reduce((total, item) => total + selector(item), 0));
 
   return {
     records: items.length,
 
     states: new Set(
-      items
-        .map((item) => trimmedValue(item.customer_state))
-        .filter(Boolean),
+      items.map((item) => trimmedValue(item.customer_state)).filter(Boolean),
     ).size,
 
     productHeads: new Set(
-      items
-        .map((item) => trimmedValue(item.product_head))
-        .filter(Boolean),
+      items.map((item) => trimmedValue(item.product_head)).filter(Boolean),
     ).size,
 
-    quantity: sum((item) =>
-      numberValue(item.total_quantity),
-    ),
+    quantity: sum((item) => numberValue(item.total_quantity)),
 
-    listPrice: sum((item) =>
-      numberValue(item.sum_list_price),
-    ),
+    listPrice: sum((item) => numberValue(item.sum_list_price)),
 
-    taxableValue: sum((item) =>
-      numberValue(item.taxable_value),
-    ),
+    taxableValue: sum((item) => numberValue(item.taxable_value)),
 
-    shippingBase: sum((item) =>
-      numberValue(item.shipping_without_gst),
-    ),
+    shippingBase: sum((item) => numberValue(item.shipping_without_gst)),
 
-    shippingTotal: sum((item) =>
-      numberValue(item.sum_shipping_charges),
-    ),
+    shippingTotal: sum((item) => numberValue(item.sum_shipping_charges)),
 
     cgst: sum((item) => numberValue(item.cgst)),
 
@@ -273,20 +227,7 @@ const STATEWISE_HEADERS = [
   "Total Tax",
 ];
 
-const STATEWISE_WIDTHS = [
-  24,
-  17,
-  30,
-  17,
-  21,
-  21,
-  25,
-  23,
-  18,
-  18,
-  18,
-  20,
-];
+const STATEWISE_WIDTHS = [24, 17, 30, 17, 21, 21, 25, 23, 18, 18, 18, 20];
 
 const STATEWISE_MONEY_HEADERS = [
   "Sum List Price",
@@ -313,9 +254,7 @@ const STATEWISE_TOTAL_HEADERS = [
 
 type ExportRow = (string | number)[];
 
-const buildStatewiseExportRows = (
-  items: StatewiseReportItem[],
-): ExportRow[] =>
+const buildStatewiseExportRows = (items: StatewiseReportItem[]): ExportRow[] =>
   items.map((item) => [
     item.customer_state || "",
 
@@ -342,9 +281,7 @@ const buildStatewiseExportRows = (
     getTotalTax(item),
   ]);
 
-const buildGrandTotalExportRow = (
-  summary: StatewiseSummary,
-): ExportRow => [
+const buildGrandTotalExportRow = (summary: StatewiseSummary): ExportRow => [
   "GRAND TOTAL",
   "",
   "",
@@ -363,20 +300,14 @@ const csvCell = (value: unknown): string => {
   let text = value == null ? "" : String(value);
 
   // Prevent spreadsheet formula execution for text fields.
-  if (
-    typeof value === "string" &&
-    /^\s*[=+@-]/.test(text)
-  ) {
+  if (typeof value === "string" && /^\s*[=+@-]/.test(text)) {
     text = `'${text}`;
   }
 
   return `"${text.replace(/"/g, '""')}"`;
 };
 
-const downloadBlob = (
-  blob: Blob,
-  filename: string,
-) => {
+const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
@@ -413,9 +344,7 @@ function SummaryCard({
   return (
     <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-slate-600">
-          {title}
-        </p>
+        <p className="text-xs font-semibold text-slate-600">{title}</p>
 
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -432,18 +361,12 @@ function SummaryCard({
         {value}
       </h3>
 
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">
-        {subtitle}
-      </p>
+      <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
     </div>
   );
 }
 
-function StatusBadge({
-  status,
-}: {
-  status: string;
-}) {
+function StatusBadge({ status }: { status: string }) {
   return (
     <span className="inline-flex items-center rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[10px] font-semibold capitalize text-[#1E40AF]">
       {status.replace(/_/g, " ")}
@@ -451,11 +374,7 @@ function StatusBadge({
   );
 }
 
-function TaxBreakdownDetails({
-  item,
-}: {
-  item: StatewiseReportItem;
-}) {
+function TaxBreakdownDetails({ item }: { item: StatewiseReportItem }) {
   const values = [
     ["CGST", item.cgst],
     ["SGST", item.sgst],
@@ -465,13 +384,8 @@ function TaxBreakdownDetails({
   return (
     <div className="min-w-0 space-y-1.5">
       {values.map(([label, amount]) => (
-        <div
-          key={label}
-          className="flex items-center justify-between gap-2"
-        >
-          <span className="text-xs text-gray-500">
-            {label}
-          </span>
+        <div key={label} className="flex items-center justify-between gap-2">
+          <span className="text-xs text-gray-500">{label}</span>
 
           <span className="break-words text-right text-xs font-semibold text-gray-700">
             {money(amount)}
@@ -480,9 +394,7 @@ function TaxBreakdownDetails({
       ))}
 
       <div className="flex items-center justify-between gap-2 border-t border-[#E8EEF6] pt-1.5">
-        <span className="text-xs font-bold text-gray-700">
-          Total Tax
-        </span>
+        <span className="text-xs font-bold text-gray-700">Total Tax</span>
 
         <span className="break-words text-right text-xs font-bold text-[#1E40AF]">
           {money(getTotalTax(item))}
@@ -500,23 +412,17 @@ const StatewiseReport = () => {
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
-  
   const canViewReport = useMemo(() => {
     if (isSuperAdmin) return true;
-  
     return hasPermission("statewise-report.view");
   }, [isSuperAdmin, hasPermission]);
-  
   const canExport = useMemo(() => {
     if (isSuperAdmin) return true;
-  
     return hasPermission("statewise-report.export");
   }, [isSuperAdmin, hasPermission]);
   /* ================= LOGO ================= */
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(
-    DEFAULT_LOGO_URL,
-  );
+  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
 
   const [logoLoading, setLogoLoading] = useState(true);
 
@@ -538,8 +444,7 @@ const StatewiseReport = () => {
 
         const found = candidates.find(
           (value) =>
-            typeof value === "string" &&
-            /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
 
         if (!cancelled && found) {
@@ -580,75 +485,48 @@ const StatewiseReport = () => {
 
   const [search, setSearch] = useState("");
 
-  // Draft filters. Applied only when the Apply button is clicked.
-  const [registrationType, setRegistrationType] =
-    useState<RegistrationFilter>("all");
-
-  const [fromDate, setFromDate] = useState("");
-
-  const [toDate, setToDate] = useState("");
-
-  const [appliedFilters, setAppliedFilters] = useState({
-    fromDate: "",
-    toDate: "",
-    registrationType: "all" as RegistrationFilter,
-  });
-
   const [currentPage, setCurrentPage] = useState(1);
 
   /* ================= FETCH REPORT ================= */
 
-  const fetchReports = useCallback(
-    async (showLoader = true) => {
-      try {
-        if (showLoader) {
-          setLoading(true);
-        } else {
-          setRefreshing(true);
-        }
-
-        const response = await statewiseReportApi.getAll({
-          from_date: appliedFilters.fromDate || undefined,
-          to_date: appliedFilters.toDate || undefined,
-          registration_type: appliedFilters.registrationType,
-        });
-
-        if (response.success) {
-          const data = Array.isArray(response.data)
-            ? response.data
-            : [];
-
-          setReports(data);
-
-          setGrandTotal(response.grand_total ?? null);
-
-          setMeta(response.meta ?? null);
-
-          setCurrentPage(1);
-        } else {
-          setReports([]);
-          setGrandTotal(null);
-          setMeta(null);
-
-          toast.error(
-            response.message ||
-              "Unable to fetch Statewise Report",
-          );
-        }
-      } catch (error: any) {
-        console.error("Statewise report error:", error);
-
-        toast.error(
-          error?.response?.data?.message ||
-            "Failed to fetch Statewise Report",
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+  const fetchReports = useCallback(async (showLoader = true) => {
+    try {
+      if (showLoader) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
       }
-    },
-    [appliedFilters],
-  );
+
+      const response = await statewiseReportApi.getAll({});
+
+      if (response.success) {
+        const data = Array.isArray(response.data) ? response.data : [];
+
+        setReports(data);
+
+        setGrandTotal(response.grand_total ?? null);
+
+        setMeta(response.meta ?? null);
+
+        setCurrentPage(1);
+      } else {
+        setReports([]);
+        setGrandTotal(null);
+        setMeta(null);
+
+        toast.error(response.message || "Unable to fetch Statewise Report");
+      }
+    } catch (error: any) {
+      console.error("Statewise report error:", error);
+
+      toast.error(
+        error?.response?.data?.message || "Failed to fetch Statewise Report",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (permissionsLoading) return;
@@ -659,11 +537,7 @@ const StatewiseReport = () => {
     }
 
     void fetchReports(true);
-  }, [
-    permissionsLoading,
-    canViewReport,
-    fetchReports,
-  ]);
+  }, [permissionsLoading, canViewReport, fetchReports]);
 
   /* ================= SEARCH & FILTER ================= */
 
@@ -696,10 +570,7 @@ const StatewiseReport = () => {
 
   const totalRecords = filteredReports.length;
 
-  const lastPage = Math.max(
-    1,
-    Math.ceil(totalRecords / PER_PAGE),
-  );
+  const lastPage = Math.max(1, Math.ceil(totalRecords / PER_PAGE));
 
   const displayPage = Math.min(currentPage, lastPage);
 
@@ -712,15 +583,9 @@ const StatewiseReport = () => {
     [filteredReports, displayPage],
   );
 
-  const startRecord =
-    totalRecords === 0
-      ? 0
-      : (displayPage - 1) * PER_PAGE + 1;
+  const startRecord = totalRecords === 0 ? 0 : (displayPage - 1) * PER_PAGE + 1;
 
-  const endRecord = Math.min(
-    displayPage * PER_PAGE,
-    totalRecords,
-  );
+  const endRecord = Math.min(displayPage * PER_PAGE, totalRecords);
 
   /* ================= SUMMARY ================= */
 
@@ -745,41 +610,11 @@ const StatewiseReport = () => {
     [pageReports],
   );
 
-  /* ================= APPLY / CLEAR FILTERS ================= */
+  /* ================= CLEAR SEARCH ================= */
 
-  const applyFilters = () => {
-    if (fromDate && toDate && fromDate > toDate) {
-      toast.error(
-        "From date cannot be greater than To date",
-      );
-      return;
-    }
-
-    setCurrentPage(1);
-
-    setAppliedFilters({
-      fromDate,
-      toDate,
-      registrationType,
-    });
-  };
-
-  const clearFilters = () => {
+  const clearSearch = () => {
     setSearch("");
-
-    setRegistrationType("all");
-
-    setFromDate("");
-
-    setToDate("");
-
     setCurrentPage(1);
-
-    setAppliedFilters({
-      fromDate: "",
-      toDate: "",
-      registrationType: "all",
-    });
   };
 
   /* ================= EXPORT DATA ================= */
@@ -795,9 +630,7 @@ const StatewiseReport = () => {
 
   const exportExcel = async () => {
     if (!canExport) {
-      toast.error(
-        "You don't have permission to export this report.",
-      );
+      toast.error("You don't have permission to export this report.");
       return;
     }
 
@@ -807,9 +640,7 @@ const StatewiseReport = () => {
 
     try {
       if (!exportItems.length) {
-        toast.error(
-          "No Statewise records available to export",
-        );
+        toast.error("No Statewise records available to export");
         return;
       }
 
@@ -837,13 +668,11 @@ const StatewiseReport = () => {
         },
       });
 
-      sheet.columns = STATEWISE_HEADERS.map(
-        (heading, index) => ({
-          header: heading,
-          key: `column_${index}`,
-          width: STATEWISE_WIDTHS[index] || 18,
-        }),
-      );
+      sheet.columns = STATEWISE_HEADERS.map((heading, index) => ({
+        header: heading,
+        key: `column_${index}`,
+        width: STATEWISE_WIDTHS[index] || 18,
+      }));
 
       const fill = (argb: string): ExcelJS.Fill => ({
         type: "pattern",
@@ -903,10 +732,7 @@ const StatewiseReport = () => {
 
       const period = sheet.getCell(2, 1);
 
-      period.value =
-        `Period: ${appliedFilters.fromDate || "Any start date"} to ${
-          appliedFilters.toDate || "Any end date"
-        }  |  Supplier State: ${meta?.supplier_state || "—"}`;
+      period.value = `Period: ${formatDate(meta?.from)} to ${formatDate(meta?.to)}  |  Supplier State: ${meta?.supplier_state || "—"}`;
 
       period.fill = fill("FFF0F7FF");
 
@@ -923,25 +749,23 @@ const StatewiseReport = () => {
 
       sheet.getRow(2).height = 26;
 
-      /* REGISTRATION / STATUS INFO */
+      /* STATUS INFO */
 
       sheet.mergeCells(3, 1, 3, STATEWISE_HEADERS.length);
 
-      const registration = sheet.getCell(3, 1);
+      const statusInfo = sheet.getCell(3, 1);
 
-      registration.value =
-        `Registration Type: ${appliedFilters.registrationType}  |  ` +
-        `Included statuses: ${(meta?.statuses || []).join(", ")}`;
+      statusInfo.value = `Included statuses: ${(meta?.statuses || []).join(", ")}`;
 
-      registration.fill = fill("FFFFFFFF");
+      statusInfo.fill = fill("FFFFFFFF");
 
-      registration.font = {
+      statusInfo.font = {
         name: "Calibri",
         size: 10,
         color: { argb: "FF456580" },
       };
 
-      registration.alignment = {
+      statusInfo.alignment = {
         vertical: "middle",
         indent: 1,
         wrapText: true,
@@ -1008,75 +832,45 @@ const StatewiseReport = () => {
 
         row.height = 29;
 
-        STATEWISE_HEADERS.forEach(
-          (heading, columnIndex) => {
-            const cell = row.getCell(columnIndex + 1);
+        STATEWISE_HEADERS.forEach((heading, columnIndex) => {
+          const cell = row.getCell(columnIndex + 1);
 
-            cell.font = {
-              name: "Calibri",
-              size: 11,
-              color: { argb: "FF253C52" },
-            };
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            color: { argb: "FF253C52" },
+          };
 
-            cell.fill = fill(
-              index % 2 === 0
-                ? "FFFFFFFF"
-                : "FFF2F6FA",
-            );
+          cell.fill = fill(index % 2 === 0 ? "FFFFFFFF" : "FFF2F6FA");
 
-            cell.alignment = {
-              vertical: "middle",
-              horizontal:
-                columnIndex === 1 ||
-                columnIndex >= 3
-                  ? "right"
-                  : "left",
-              wrapText: true,
-              indent: 1,
-            };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal:
+              columnIndex === 1 || columnIndex >= 3 ? "right" : "left",
+            wrapText: true,
+            indent: 1,
+          };
 
-            cell.border = gridBorder;
+          cell.border = gridBorder;
 
-            if (columnIndex === 1) {
-              cell.numFmt = '0.##"%"';
-            } else if (
-              heading === "Total Quantity"
-            ) {
-              cell.numFmt = "#,##0.##";
-            } else if (
-              STATEWISE_MONEY_HEADERS.includes(heading)
-            ) {
-              cell.numFmt =
-                "#,##0.00;[Red](#,##0.00);0.00";
-            }
-          },
-        );
+          if (columnIndex === 1) {
+            cell.numFmt = '0.##"%"';
+          } else if (heading === "Total Quantity") {
+            cell.numFmt = "#,##0.##";
+          } else if (STATEWISE_MONEY_HEADERS.includes(heading)) {
+            cell.numFmt = "#,##0.00;[Red](#,##0.00);0.00";
+          }
+        });
       });
-
-      const lastDataRow = rows.length + 5;
-
-      sheet.autoFilter = {
-        from: {
-          row: 5,
-          column: 1,
-        },
-        to: {
-          row: lastDataRow,
-          column: STATEWISE_HEADERS.length,
-        },
-      };
 
       /* GRAND TOTAL */
 
-      const footer = sheet.addRow(
-        buildGrandTotalExportRow(exportSummary),
-      );
+      const footer = sheet.addRow(buildGrandTotalExportRow(exportSummary));
 
       footer.height = 38;
 
       footer.eachCell((cell, columnNumber) => {
-        const heading =
-          STATEWISE_HEADERS[columnNumber - 1];
+        const heading = STATEWISE_HEADERS[columnNumber - 1];
 
         cell.fill = fill("FFDCEEFF");
 
@@ -1089,10 +883,7 @@ const StatewiseReport = () => {
 
         cell.alignment = {
           horizontal:
-            columnNumber === 2 ||
-            columnNumber >= 4
-              ? "right"
-              : "left",
+            columnNumber === 2 || columnNumber >= 4 ? "right" : "left",
           vertical: "middle",
           indent: 1,
         };
@@ -1110,40 +901,27 @@ const StatewiseReport = () => {
 
         if (heading === "Tax Percentage") {
           cell.numFmt = '0.##"%"';
-        } else if (
-          heading === "Total Quantity"
-        ) {
+        } else if (heading === "Total Quantity") {
           cell.numFmt = "#,##0.##";
-        } else if (
-          STATEWISE_MONEY_HEADERS.includes(heading)
-        ) {
-          cell.numFmt =
-            "#,##0.00;[Red](#,##0.00);0.00";
+        } else if (STATEWISE_MONEY_HEADERS.includes(heading)) {
+          cell.numFmt = "#,##0.00;[Red](#,##0.00);0.00";
         }
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
 
-      const blob = new Blob(
-        [new Uint8Array(buffer)],
-        {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        },
-      );
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
 
       downloadBlob(
         blob,
         `statewise-report-${formatDateInput(new Date())}.xlsx`,
       );
 
-      toast.success(
-        "Statewise Report exported successfully",
-      );
+      toast.success("Statewise Report exported successfully");
     } catch (error) {
-      console.error(
-        "Statewise Excel export error:",
-        error,
-      );
+      console.error("Statewise Excel export error:", error);
 
       toast.error(
         error instanceof Error
@@ -1159,9 +937,7 @@ const StatewiseReport = () => {
 
   const exportCsv = async () => {
     if (!canExport) {
-      toast.error(
-        "You don't have permission to export this report.",
-      );
+      toast.error("You don't have permission to export this report.");
       return;
     }
 
@@ -1171,30 +947,18 @@ const StatewiseReport = () => {
 
     try {
       if (!exportItems.length) {
-        toast.error(
-          "No Statewise records available to export",
-        );
+        toast.error("No Statewise records available to export");
         return;
       }
 
       const rows = buildStatewiseExportRows(exportItems);
 
-      const totalRow =
-        buildGrandTotalExportRow(exportSummary);
+      const totalRow = buildGrandTotalExportRow(exportSummary);
 
       const csv = [
         ["INDIEKONNECT STATEWISE REPORT"],
-        [
-          `Period: ${appliedFilters.fromDate || "Any start date"} to ${
-            appliedFilters.toDate || "Any end date"
-          }`,
-        ],
-        [
-          `Supplier State: ${meta?.supplier_state || "—"}`,
-        ],
-        [
-          `Registration Type: ${appliedFilters.registrationType}`,
-        ],
+        [`Period: ${formatDate(meta?.from)} to ${formatDate(meta?.to)}`],
+        [`Supplier State: ${meta?.supplier_state || "—"}`],
         [],
         STATEWISE_HEADERS,
         ...rows,
@@ -1207,19 +971,11 @@ const StatewiseReport = () => {
         type: "text/csv;charset=utf-8;",
       });
 
-      downloadBlob(
-        blob,
-        `statewise-report-${formatDateInput(new Date())}.csv`,
-      );
+      downloadBlob(blob, `statewise-report-${formatDateInput(new Date())}.csv`);
 
-      toast.success(
-        "Statewise Report CSV exported successfully",
-      );
+      toast.success("Statewise Report CSV exported successfully");
     } catch (error) {
-      console.error(
-        "Statewise CSV export error:",
-        error,
-      );
+      console.error("Statewise CSV export error:", error);
 
       toast.error(
         error instanceof Error
@@ -1233,31 +989,22 @@ const StatewiseReport = () => {
 
   /* ================= LOADING / PERMISSION ================= */
 
-  const pageLoading =
-    permissionsLoading || logoLoading;
+  const pageLoading = permissionsLoading || logoLoading;
 
   if (pageLoading) {
-    return (
-      <PermissionLoadingState logoUrl={logoUrl} />
-    );
+    return <PermissionLoadingState logoUrl={logoUrl} />;
   }
 
   if (!canViewReport) {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
-          <ShieldAlert
-            size={28}
-            className="mx-auto mb-4 text-[#C23B32]"
-          />
+          <ShieldAlert size={28} className="mx-auto mb-4 text-[#C23B32]" />
 
-          <h2 className="text-lg font-bold text-gray-900">
-            Access Denied
-          </h2>
+          <h2 className="text-lg font-bold text-gray-900">Access Denied</h2>
 
           <p className="mt-2 text-sm text-gray-500">
-            You don't have permission to view the Statewise
-            Report.
+            You don't have permission to view the Statewise Report.
           </p>
         </div>
       </div>
@@ -1288,8 +1035,8 @@ const StatewiseReport = () => {
           </h1>
 
           <p className="mt-1 text-sm text-gray-500">
-            State-wise product sales, taxable values, shipping
-            charges and GST breakdown.
+            State-wise product sales, taxable values, shipping charges and GST
+            breakdown.
           </p>
         </div>
 
@@ -1300,11 +1047,7 @@ const StatewiseReport = () => {
             disabled={refreshing || loading}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
-            <RefreshCw
-              size={15}
-              className={refreshing ? "animate-spin" : ""}
-            />
-
+            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
             Refresh
           </button>
 
@@ -1312,26 +1055,16 @@ const StatewiseReport = () => {
             <button
               type="button"
               onClick={() => void exportCsv()}
-              disabled={
-                exporting ||
-                exportingCsv ||
-                loading ||
-                refreshing
-              }
+              disabled={exporting || exportingCsv || loading || refreshing}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {exportingCsv ? (
-                <Loader2
-                  size={16}
-                  className="animate-spin"
-                />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
                 <FileText size={16} />
               )}
 
-              {exportingCsv
-                ? "Exporting CSV..."
-                : "Export CSV"}
+              {exportingCsv ? "Exporting CSV..." : "Export CSV"}
             </button>
           )}
 
@@ -1339,26 +1072,16 @@ const StatewiseReport = () => {
             <button
               type="button"
               onClick={() => void exportExcel()}
-              disabled={
-                exporting ||
-                exportingCsv ||
-                loading ||
-                refreshing
-              }
+              disabled={exporting || exportingCsv || loading || refreshing}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {exporting ? (
-                <Loader2
-                  size={16}
-                  className="animate-spin"
-                />
+                <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Download size={16} />
               )}
 
-              {exporting
-                ? "Exporting..."
-                : "Export Excel"}
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
           )}
         </div>
@@ -1369,10 +1092,7 @@ const StatewiseReport = () => {
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <div className="flex items-center gap-2">
-            <MapPin
-              size={15}
-              className="text-[#2D6FE8]"
-            />
+            <MapPin size={15} className="text-[#2D6FE8]" />
 
             <span className="text-xs font-semibold text-slate-600">
               Supplier State:
@@ -1384,24 +1104,9 @@ const StatewiseReport = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-600">
-              Registration:
-            </span>
+            <CalendarDays size={14} className="text-slate-400" />
 
-            <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold capitalize text-purple-700">
-              {valueOrDash(meta?.registration_type)}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <CalendarDays
-              size={14}
-              className="text-slate-400"
-            />
-
-            <span className="text-xs text-slate-600">
-              API Period:
-            </span>
+            <span className="text-xs text-slate-600">API Period:</span>
 
             <span className="text-xs font-semibold text-slate-700">
               {formatDate(meta?.from)} – {formatDate(meta?.to)}
@@ -1417,15 +1122,10 @@ const StatewiseReport = () => {
           <div className="flex flex-wrap gap-1.5">
             {meta?.statuses?.length ? (
               meta.statuses.map((status) => (
-                <StatusBadge
-                  key={status}
-                  status={status}
-                />
+                <StatusBadge key={status} status={status} />
               ))
             ) : (
-              <span className="text-xs text-slate-400">
-                —
-              </span>
+              <span className="text-xs text-slate-400">—</span>
             )}
           </div>
         </div>
@@ -1433,10 +1133,7 @@ const StatewiseReport = () => {
 
       {/* FINANCIAL SUMMARY */}
 
-      <section
-        className="space-y-3"
-        aria-label="Statewise financial summary"
-      >
+      <section className="space-y-3" aria-label="Statewise financial summary">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-bold text-slate-900">
@@ -1469,9 +1166,7 @@ const StatewiseReport = () => {
               {money(summary.taxableValue)}
             </p>
 
-            <p className="mt-1 text-xs text-[#315B86]">
-              Total taxable amount
-            </p>
+            <p className="mt-1 text-xs text-[#315B86]">Total taxable amount</p>
           </div>
 
           <SummaryCard
@@ -1512,30 +1207,16 @@ const StatewiseReport = () => {
 
             <div className="mt-3 space-y-2.5 text-xs">
               {[
-                [
-                  "Sum List Price",
-                  summary.listPrice,
-                ],
-                [
-                  "Taxable Value",
-                  summary.taxableValue,
-                ],
-                [
-                  "Shipping Without GST",
-                  summary.shippingBase,
-                ],
-                [
-                  "Sum Shipping Charges",
-                  summary.shippingTotal,
-                ],
+                ["Sum List Price", summary.listPrice],
+                ["Taxable Value", summary.taxableValue],
+                ["Shipping Without GST", summary.shippingBase],
+                ["Sum Shipping Charges", summary.shippingTotal],
               ].map(([label, value]) => (
                 <div
                   key={String(label)}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="text-slate-500">
-                    {label}
-                  </span>
+                  <span className="text-slate-500">{label}</span>
 
                   <span className="font-semibold text-slate-800 tabular-nums">
                     {money(value as number)}
@@ -1546,9 +1227,7 @@ const StatewiseReport = () => {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">
-              GST Breakdown
-            </h3>
+            <h3 className="text-sm font-bold text-slate-900">GST Breakdown</h3>
 
             <div className="mt-3 space-y-2.5 text-xs">
               {[
@@ -1561,9 +1240,7 @@ const StatewiseReport = () => {
                   key={String(label)}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="text-slate-500">
-                    {label}
-                  </span>
+                  <span className="text-slate-500">{label}</span>
 
                   <span className="font-semibold text-slate-800 tabular-nums">
                     {money(value as number)}
@@ -1579,10 +1256,7 @@ const StatewiseReport = () => {
                 Report Activity
               </h3>
 
-              <Package
-                size={17}
-                className="text-slate-400"
-              />
+              <Package size={17} className="text-slate-400" />
             </div>
 
             <div className="mt-3 divide-y divide-slate-100">
@@ -1595,9 +1269,7 @@ const StatewiseReport = () => {
                   key={String(label)}
                   className="flex items-center justify-between gap-3 py-2 first:pt-0"
                 >
-                  <span className="text-xs text-slate-500">
-                    {label}
-                  </span>
+                  <span className="text-xs text-slate-500">{label}</span>
 
                   <span className="text-sm font-bold text-slate-900 tabular-nums">
                     {formatNumber(value as number)}
@@ -1609,122 +1281,29 @@ const StatewiseReport = () => {
         </div>
 
         <p className="text-xs text-slate-500">
-          All financial values are taken from the Statewise
-          Report API. Total GST is calculated as CGST + SGST +
-          IGST. The API grand_total is used when no search is
-          applied.
+          All financial values are taken from the Statewise Report API. Total
+          GST is calculated as CGST + SGST + IGST. The API grand_total is used
+          when no search is applied.
         </p>
       </section>
 
-      {/* SEARCH & FILTERS */}
-
-      <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <Filter
-            size={17}
-            className="text-[#2D6FE8]"
+      {/* SEARCH */}
+      <div className="rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm">
+        <div className="relative max-w-md">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           />
-
-          <h2 className="text-sm font-bold text-gray-800">
-            Search & Filters
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_auto]">
-          {/* SEARCH */}
-
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-
-            <input
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Search state, product head, tax percentage..."
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-
-          {/* REGISTRATION TYPE */}
-
-          <select
-            aria-label="Registration type"
-            value={registrationType}
-            onChange={(event) =>
-              setRegistrationType(
-                event.target.value as RegistrationFilter,
-              )
-            }
-            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-          >
-            <option value="all">All Registration Types</option>
-            <option value="registered">Registered</option>
-            <option value="unregistered">Unregistered</option>
-          </select>
-
-          {/* FROM DATE */}
-
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) =>
-                setFromDate(event.target.value)
-              }
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-            />
-          </div>
-
-          {/* TO DATE */}
-
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) =>
-                setToDate(event.target.value)
-              }
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-            />
-          </div>
-
-          {/* ACTIONS */}
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={applyFilters}
-              disabled={loading || refreshing}
-              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:opacity-60"
-            >
-              <Filter size={15} />
-              Apply
-            </button>
-
-            <button
-              type="button"
-              onClick={clearFilters}
-              title="Clear filters"
-              className="flex h-10 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-500"
-            >
-              <X size={15} />
-            </button>
-          </div>
+          <input
+            aria-label="Search Statewise Report"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Search state, product head, tax percentage..."
+            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
+          />
         </div>
       </div>
 
@@ -1738,8 +1317,7 @@ const StatewiseReport = () => {
             </h2>
 
             <p className="mt-1 text-xs text-gray-500">
-              State, product category and GST percentage-wise
-              sales details.
+              State, product category and GST percentage-wise sales details.
             </p>
           </div>
 
@@ -1750,10 +1328,7 @@ const StatewiseReport = () => {
 
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
-            <Loader2
-              size={32}
-              className="animate-spin text-[#2D6FE8]"
-            />
+            <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
 
             <p className="mt-3 text-sm font-medium text-gray-500">
               Loading Statewise Report...
@@ -1770,16 +1345,20 @@ const StatewiseReport = () => {
             </h3>
 
             <p className="mt-1 max-w-sm text-sm text-gray-500">
-              No records match your search or selected filters.
+              {search.trim()
+                ? "No records match your search."
+                : "No Statewise records available."}
             </p>
 
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
-            >
-              Clear Filters
-            </button>
+            {search.trim() && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
+              >
+                Clear Search
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -1918,8 +1497,7 @@ const StatewiseReport = () => {
                         </p>
 
                         <p className="mt-1 break-words text-xs font-medium text-gray-500">
-                          Product Head:{" "}
-                          {valueOrDash(item.product_head)}
+                          Product Head: {valueOrDash(item.product_head)}
                         </p>
                       </div>
 
@@ -1932,9 +1510,7 @@ const StatewiseReport = () => {
 
                     <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-[#F7FAFE] p-3">
                       <div>
-                        <p className="text-xs text-gray-400">
-                          Total Quantity
-                        </p>
+                        <p className="text-xs text-gray-400">Total Quantity</p>
 
                         <p className="mt-1 text-sm font-bold text-gray-800">
                           {formatNumber(item.total_quantity)}
@@ -1942,9 +1518,7 @@ const StatewiseReport = () => {
                       </div>
 
                       <div>
-                        <p className="text-xs text-gray-400">
-                          Sum List Price
-                        </p>
+                        <p className="text-xs text-gray-400">Sum List Price</p>
 
                         <p className="mt-1 break-words text-sm font-bold text-gray-800">
                           {money(item.sum_list_price)}
@@ -2015,35 +1589,15 @@ const StatewiseReport = () => {
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
                 {[
-                  [
-                    "Quantity",
-                    formatNumber(pageSummary.quantity),
-                  ],
-                  [
-                    "List Price",
-                    money(pageSummary.listPrice),
-                  ],
-                  [
-                    "Taxable Value",
-                    money(pageSummary.taxableValue),
-                  ],
-                  [
-                    "Shipping",
-                    money(pageSummary.shippingTotal),
-                  ],
-                  [
-                    "Total GST",
-                    money(pageSummary.totalTax),
-                  ],
-                  [
-                    "IGST",
-                    money(pageSummary.igst),
-                  ],
+                  ["Quantity", formatNumber(pageSummary.quantity)],
+                  ["List Price", money(pageSummary.listPrice)],
+                  ["Taxable Value", money(pageSummary.taxableValue)],
+                  ["Shipping", money(pageSummary.shippingTotal)],
+                  ["Total GST", money(pageSummary.totalTax)],
+                  ["IGST", money(pageSummary.igst)],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <p className="text-xs text-slate-500">
-                      {label}
-                    </p>
+                    <p className="text-xs text-slate-500">{label}</p>
 
                     <p
                       className={`mt-1 break-words text-sm font-bold tabular-nums ${
@@ -2071,7 +1625,6 @@ const StatewiseReport = () => {
                 <span className="font-semibold text-gray-800">
                   {totalRecords}
                 </span>
-
                 <span className="ml-1 text-gray-400">
                   ({pageReports.length} rows on this page)
                 </span>
@@ -2080,14 +1633,8 @@ const StatewiseReport = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={
-                    displayPage <= 1 || loading
-                  }
-                  onClick={() =>
-                    setCurrentPage(
-                      Math.max(1, displayPage - 1),
-                    )
-                  }
+                  disabled={displayPage <= 1 || loading}
+                  onClick={() => setCurrentPage(Math.max(1, displayPage - 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
@@ -2100,13 +1647,9 @@ const StatewiseReport = () => {
 
                 <button
                   type="button"
-                  disabled={
-                    displayPage >= lastPage || loading
-                  }
+                  disabled={displayPage >= lastPage || loading}
                   onClick={() =>
-                    setCurrentPage(
-                      Math.min(lastPage, displayPage + 1),
-                    )
+                    setCurrentPage(Math.min(lastPage, displayPage + 1))
                   }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"

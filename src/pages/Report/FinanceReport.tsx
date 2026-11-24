@@ -61,20 +61,6 @@ const HINDI: Record<string, string> = {
   "Tax Percentage": "टैक्स दर (%)",
   "HSN Code": "HSN कोड",
   "Customer Name": "ग्राहक का नाम",
-  "Distributor Name": "वितरक का नाम",
-  "Distributor Email": "वितरक का ईमेल",
-  "Distributor Mobile": "वितरक का मोबाइल",
-  "Distributor GSTIN": "वितरक GSTIN",
-  "Distributor State": "वितरक का राज्य",
-  "Distributor / GSTIN": "वितरक / GSTIN",
-  "Account Holder Name": "खाताधारक का नाम",
-  "Account Holder Email": "खाताधारक का ईमेल",
-  "Account Holder Mobile": "खाताधारक का मोबाइल",
-  "Account Holder GSTIN": "खाताधारक GSTIN",
-  "Account Holder State": "खाताधारक का राज्य",
-  "Account Holder / GSTIN": "खाताधारक / GSTIN",
-  "Account holder, invoice, product, GSTIN, courier…":
-    "खाताधारक, बिल, उत्पाद, GSTIN, कूरियर…",
   "Customer GSTIN": "ग्राहक GSTIN",
   "Customer State": "ग्राहक का राज्य",
   "Shipping Charges": "डिलीवरी शुल्क",
@@ -343,35 +329,6 @@ const translate = (language: ReportLanguage, label: string) =>
       ? HINDI[label]
       : label
     : label;
-// Keep the existing API field names and filter keys stable. Only display labels change.
-type AccountLabelRole = "Customer" | "Distributor" | "Account Holder";
-const getAccountLabelRole = (accountType: unknown): AccountLabelRole => {
-  const type = String(accountType ?? "")
-    .trim()
-    .toLowerCase();
-  if (type === "distributor") return "Distributor";
-  if (type === "customer") return "Customer";
-  return "Account Holder";
-};
-const getReportAccountLabelRole = (
-  items: FinanceReportItem[],
-): AccountLabelRole => {
-  if (!items.length) return "Account Holder";
-  const role = getAccountLabelRole(items[0].account_type);
-  return items.every((item) => getAccountLabelRole(item.account_type) === role)
-    ? role
-    : "Account Holder";
-};
-const ACCOUNT_LABEL_FIELDS = new Set([
-  "Customer Name",
-  "Customer Email",
-  "Customer Mobile",
-  "Customer GSTIN",
-  "Customer State",
-  "Customer / GSTIN",
-]);
-const accountFieldLabel = (field: string, role: AccountLabelRole) =>
-  ACCOUNT_LABEL_FIELDS.has(field) ? field.replace(/^Customer/, role) : field;
 const localizeValue = (
   language: ReportLanguage,
   field: string,
@@ -625,7 +582,11 @@ const getCouriers = (item: FinanceReportItem): LineCourier[] => {
 };
 const getPlaceOfSupply = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  return trimmedValue(row.delivery_state) || trimmedValue(row.billing_state);
+  return (
+    trimmedValue(row.place_of_supply) ||
+    trimmedValue(row.delivery_state) ||
+    trimmedValue(row.billing_state)
+  );
 };
 const getGstinNumber = (item: FinanceReportItem) => {
   const gstin = trimmedValue(asLineItem(item).customer_gstin);
@@ -1000,6 +961,7 @@ const URP_HEADERS = [
   "Invoice Number",
   "Invoice date",
   "Customer Name",
+  "Customer Email",
   "Place Of Supply (POS)",
   "Rate",
   "Taxable Value",
@@ -1053,10 +1015,9 @@ const stateKey = (s: string) =>
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]/g, "");
 const formatPos = (item: FinanceReportItem) => {
-  const row = asLineItem(item);
-  const raw = trimmedValue(row.place_of_supply) || getPlaceOfSupply(item);
+  const raw = getPlaceOfSupply(item);
   const code = raw.match(/^(\d{2})(?:\s*[-–:]\s*.*)?$/)?.[1];
-  if (code && GST_STATES[code]) return `${code}-${GST_STATES[code]}`;
+  if (code && GST_STATES[code]) return GST_STATES[code];
   const aliases: Record<string, string> = {
     newdelhi: "07",
     orissa: "21",
@@ -1069,7 +1030,7 @@ const formatPos = (item: FinanceReportItem) => {
   const matched =
     aliases[key] ||
     Object.keys(GST_STATES).find((k) => stateKey(GST_STATES[k]) === key);
-  return matched ? `${matched}-${GST_STATES[matched]}` : raw;
+  return matched ? GST_STATES[matched] : raw;
 };
 
 type CompactSalesCell = string | number | Date | null;
@@ -1086,6 +1047,7 @@ const buildCompactSalesRows = (
       trimmedValue(item.invoice_number),
       parseExcelDate(item.invoice_date, true),
       trimmedValue(item.customer_name),
+      trimmedValue(item.customer_email),
       formatPos(item),
     ];
     const suffix: CompactSalesCell[] = detailed
@@ -1183,7 +1145,7 @@ const addCompactSalesSheet = (
       fitToHeight: 0,
     },
   });
-  const widths = [22, 15, 24, 25, 9, 17, 14, 14, 14, 18, 20, 28, 22];
+  const widths = [22, 15, 24, 34, 25, 9, 17, 14, 14, 14, 18, 20, 28, 22];
   sheet.columns = headers.map((_, i) => ({
     width: Math.min(
       34,
@@ -1242,20 +1204,32 @@ const addCompactSalesSheet = (
         ),
       ),
     );
-    headers.forEach((_, i) => {
+    headers.forEach((heading, i) => {
       const cell = line.getCell(i + 1);
-      const numberCol = i >= 4 && i <= 9;
+      const numberCol = [
+        "Rate",
+        "Taxable Value",
+        "CGST",
+        "SGST",
+        "IGST",
+        "Invoice Value",
+      ].includes(heading);
+      const isInvoiceValue = heading === "Invoice Value";
       cell.font = {
         name: "Calibri",
         size: 11,
-        bold: i === 9,
+        bold: isInvoiceValue,
         color: { argb: "FF173B63" },
       };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
         fgColor: {
-          argb: i === 9 ? "FFDCEEFF" : index % 2 ? "FFF3F7FC" : "FFFFFFFF",
+          argb: isInvoiceValue
+            ? "FFDCEEFF"
+            : index % 2
+              ? "FFF3F7FC"
+              : "FFFFFFFF",
         },
       };
       cell.alignment = {
@@ -1265,7 +1239,13 @@ const addCompactSalesSheet = (
       };
       cell.border = { top: edge, bottom: edge, left: edge, right: edge };
       cell.numFmt =
-        i === 1 ? "dd-mmm-yy" : i === 4 ? "0.##" : numberCol ? "#,##0.00" : "@";
+        heading === "Invoice date"
+          ? "dd-mmm-yy"
+          : heading === "Rate"
+            ? "0.##"
+            : numberCol
+              ? "#,##0.00"
+              : "@";
     });
   });
   sheet.autoFilter = {
@@ -1333,7 +1313,7 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
       getHsnCode(item), // HSN Code
       item.customer_name || "", // Customer Name
       row.customer_gstin || "", // Customer GSTIN
-      getPlaceOfSupply(item), // Customer State
+      formatPos(item), // Customer State
       shipping, // Shipping Charges
       optionalNumber(row.unit_price_without_gst), // Unit Price Without GST
       getLineSubtotal(item), // Product Subtotal Without GST
@@ -1413,11 +1393,9 @@ const buildSeparatedSalesCsv = (
   // All ZIP also includes the complete Sales Data CSV, one row per item.
   // Keep the separate GST CSVs and the selected-filter downloads unchanged.
   if (!filter && selected.length) {
-    const role = getReportAccountLabelRole(selected);
-    const headers = [
-      "GST Type",
-      ...SALES_HEADERS.map((h) => accountFieldLabel(h, role)),
-    ].map((h) => translate(language, h));
+    const headers = ["GST Type", ...SALES_HEADERS].map((h) =>
+      translate(language, h),
+    );
     const rows = buildSalesRows(selected).map((row, index) => [
       translate(
         language,
@@ -1441,8 +1419,8 @@ const buildSeparatedSalesCsv = (
     );
     if (!groupItems.length) continue;
     // Match the corresponding Excel GST worksheet columns exactly.
-    // The dedicated URP export has 10 columns; the All workbook's
-    // Unregistered worksheet and Registered worksheet have 13.
+    // The dedicated URP export has 11 columns; the All workbook's
+    // Unregistered worksheet and Registered worksheet have 14.
     const detailed = filter !== "URP";
     const name =
       group === "URP"
@@ -1703,9 +1681,7 @@ function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
 /* ================= MAIN COMPONENT ================= */
 function AccountDetails({ item }: { item: FinanceReportItem }) {
   const { t, localValue } = useReportLanguage();
-  const role = getAccountLabelRole(item.account_type);
-  const label = (field: string) => t(accountFieldLabel(field, role));
-  const accountType = localValue("Account Type", item.account_type);
+  const label = (field: string) => t(field);
   const fields = [
     [label("Customer Name"), valueOrDash(item.customer_name)],
     [label("Customer Email"), valueOrDash(item.customer_email)],
@@ -1714,16 +1690,11 @@ function AccountDetails({ item }: { item: FinanceReportItem }) {
     [label("Customer GSTIN"), getGstinNumber(item)],
     [
       label("Customer State"),
-      localValue("Customer State", getPlaceOfSupply(item)) || "—",
+      localValue("Customer State", formatPos(item)) || "—",
     ],
   ];
   return (
     <div className="min-w-0 space-y-2 text-xs">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 font-semibold text-[#1E40AF]">
-          {accountType || t("Unknown")}
-        </span>
-      </div>
       {fields.map(([field, value], index) => (
         <div key={index} className="min-w-0">
           <p className="text-[10px] font-medium text-slate-500">{field}</p>
@@ -1865,14 +1836,8 @@ const FinanceReportContent = ({
     () => filterByGstRegistration(overviewRows ?? [], gstFilter),
     [overviewRows, gstFilter],
   );
-  // A shared column must not describe customer rows as distributors (or vice versa).
-  // A single-type filtered dataset uses its specific label; mixed datasets use neutral labels.
-  const reportAccountRole = useMemo(
-    () => getReportAccountLabelRole(matchedReports),
-    [matchedReports],
-  );
-  const fieldLabel = (field: string) =>
-    t(accountFieldLabel(field, reportAccountRole));
+  // Customer-facing labels remain the same for every account type.
+  const fieldLabel = (field: string) => t(field);
   const totalRecords = matchedReports.length;
   const lastPage = Math.max(1, Math.ceil(totalRecords / PER_PAGE));
   const safePage = Math.min(currentPage, lastPage);
