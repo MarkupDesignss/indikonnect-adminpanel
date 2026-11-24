@@ -21,7 +21,7 @@ import {
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx"
 
 import commissionApi, {
   type CommissionCalendarResponse,

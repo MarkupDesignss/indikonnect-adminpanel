@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Search,
@@ -20,16 +19,14 @@ import {
   Truck,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-
+import ExcelJS from "exceljs";
 import financeReportApi, {
   FinanceReportItem,
 } from "../../api/endpoints/report/financeReport";
 import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
-
 /* ================= THEME ================= */
-
 const THEME = {
   primary: "#2D6FE8",
   primaryDark: "#1E40AF",
@@ -45,20 +42,27 @@ const THEME = {
   red: "#C23B32",
   redSoft: "#FEE2E2",
 };
-
 const DEFAULT_LOGO_URL =
   "https://www.markupdesigns.net/indikonnect/storage/logos/MmVFOudCiVU3Y8C0sf2gEEXna5jSKroCDj8xYMo0.png";
 const PER_PAGE = 100;
-const HSN_MISSING_LABEL = "HSN not provided";
-
 /* ================= API ITEM TYPES ================= */
-
 type LineCourier = {
   courier_company?: string | null;
   courier_tracking_number?: string | null;
 };
-
 type FinanceReportLineItem = FinanceReportItem & {
+  mrp?: number | string | null;
+  line_list_price?: number | string | null;
+  list_price?: number | string | null;
+  article_status?: string | null;
+  line_discount_amount?: number | string | null;
+  line_cv?: number | string | null;
+  cv?: number | string | null;
+  line_tax_breakdown?: {
+    cgst?: number | string | null;
+    sgst?: number | string | null;
+    igst?: number | string | null;
+  } | null;
   order_reference?: string | null;
   billing_state?: string | null;
   delivery_state?: string | null;
@@ -79,16 +83,19 @@ type FinanceReportLineItem = FinanceReportItem & {
   line_couriers?: LineCourier[] | null;
   confirmed_at?: string | null;
   dispatched_at?: string | null;
-  shipping_date?: string | null;
   delivered_at?: string | null;
   courier_company?: string | null;
   courier_tracking_number?: string | null;
   is_refunded?: string | boolean | number | null;
-  refund_status?: string | null;
   refunded_items?: number | string | null;
   product_subtotal?: number | string | null;
   shipping_charge_without_gst?: number | string | null;
   subtotal?: number | string | null;
+  product_total_shipping_charge_without_gst?: number | string | null;
+  service_charge_per_unit?: number | string | null;
+  total_service_charge?: number | string | null;
+  total_item_amount?: number | string | null;
+  total_items?: number | string | null;
   product_gst?: number | string | null;
   shipping_gst?: number | string | null;
   total_gst?: number | string | null;
@@ -107,36 +114,31 @@ type FinanceReportLineItem = FinanceReportItem & {
     igst?: number | string | null;
   } | null;
 };
-
 const asLineItem = (item: FinanceReportItem): FinanceReportLineItem =>
   item as FinanceReportLineItem;
-
 /* ================= HELPERS ================= */
-
 const money = (value: number | string | null | undefined) =>
   `₹${Number(value || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
-
 const numberValue = (value: number | string | null | undefined) => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 };
-
 const valueOrDash = (value: unknown) =>
   value === null || value === undefined || value === "" ? "—" : String(value);
-
 const trimmedValue = (value: unknown) =>
-  typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim();
-
+  typeof value === "string"
+    ? value.trim()
+    : value == null
+      ? ""
+      : String(value).trim();
 const formatDate = (value: string | null | undefined) => {
   if (!value) return "—";
-
   // API date formats: DD-MM-YYYY and DD-MM-YYYY HH:mm.
   const match = value.match(/^(\d{2})-(\d{2})-(\d{4})(.*)$/);
   if (match) return `${match[1]}-${match[2]}-${match[3]}${match[4] || ""}`;
-
   const parsed = new Date(value.replace(" ", "T"));
   return Number.isNaN(parsed.getTime())
     ? value
@@ -148,87 +150,68 @@ const formatDate = (value: string | null | undefined) => {
         minute: "2-digit",
       });
 };
-
 const formatDateInput = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-const escapeCsv = (value: unknown) => {
-  const text = value === null || value === undefined ? "" : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-};
-
 const getProductName = (item: FinanceReportItem) => {
   const row = asLineItem(item);
   if (row.product_name?.trim()) return row.product_name.trim();
-
   if (Array.isArray(row.products) && row.products.length > 0) {
     return row.products
-      .map((product) => product.name?.trim() || product.product_code?.trim() || "Product")
+      .map(
+        (product) =>
+          product.name?.trim() || product.product_code?.trim() || "Product",
+      )
       .join(" | ");
   }
-
   return item.product_names || "";
 };
-
 const getProductCode = (item: FinanceReportItem) => {
   const row = asLineItem(item);
   if (row.product_code?.trim()) return row.product_code.trim();
-
   if (Array.isArray(row.products) && row.products.length > 0) {
     return row.products
       .map((product) => product.product_code?.trim() || "")
       .filter(Boolean)
       .join(" | ");
   }
-
   return "";
 };
-
-/**
- * Never use product_code as a fallback for HSN. HSN is a numeric 4, 6 or 8
- * digit classification code. In the supplied response, The Signature Desk
- * has hsn_code="XHB4" (same as product_code), which is not a valid HSN format;
- * suppress it instead of exporting the product code as a verified HSN.
- * The actual HSN must be corrected in the product master/API response.
- */
+// HSN is a numeric classification code, not the SKU.
 const isValidHsn = (value: string) => /^\d{4}(?:\d{2}){0,2}$/.test(value);
-
 const getHsnCode = (item: FinanceReportItem) => {
   const row = asLineItem(item);
   const directHsn = trimmedValue(row.hsn_code);
-
   if (directHsn && isValidHsn(directHsn)) return directHsn;
-
   if (Array.isArray(row.products) && row.products.length > 0) {
     const validHsnCodes = row.products
       .map((product) => trimmedValue(product.hsn_code))
       .filter((hsn) => Boolean(hsn) && isValidHsn(hsn));
-
     return validHsnCodes.join(" | ");
   }
-
   return "";
 };
-
 const getQuantity = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  if (row.quantity !== null && row.quantity !== undefined && row.quantity !== "") {
+  if (
+    row.quantity !== null &&
+    row.quantity !== undefined &&
+    row.quantity !== ""
+  ) {
     return numberValue(row.quantity);
   }
-
   if (Array.isArray(row.products) && row.products.length > 0) {
-    return row.products.reduce((sum, product) => sum + numberValue(product.quantity), 0);
+    return row.products.reduce(
+      (sum, product) => sum + numberValue(product.quantity),
+      0,
+    );
   }
-
   return 0;
 };
-
 const getCouriers = (item: FinanceReportItem): LineCourier[] => {
   const row = asLineItem(item);
   if (Array.isArray(row.line_couriers) && row.line_couriers.length > 0) {
     return row.line_couriers;
   }
-
   if (row.courier_company || row.courier_tracking_number) {
     return [
       {
@@ -237,102 +220,70 @@ const getCouriers = (item: FinanceReportItem): LineCourier[] => {
       },
     ];
   }
-
   return [];
 };
-
 const getPlaceOfSupply = (item: FinanceReportItem) => {
   const row = asLineItem(item);
   return trimmedValue(row.delivery_state) || trimmedValue(row.billing_state);
 };
-
 const getGstinNumber = (item: FinanceReportItem) => {
   const gstin = trimmedValue(asLineItem(item).customer_gstin);
   return gstin || "URP";
 };
-
 const getGstPercentage = (item: FinanceReportItem) => {
   const rate = asLineItem(item).line_tax_rate;
   if (rate === null || rate === undefined || rate === "") return "";
   return `${numberValue(rate)}%`;
 };
-
 const getLineSubtotal = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  return numberValue(row.line_total_without_gst ?? row.unit_price_without_gst);
+  return numberValue(
+    row.product_subtotal ??
+      row.line_total_without_gst ??
+      numberValue(row.unit_price_without_gst) * getQuantity(item),
+  );
 };
-
-const getLineGst = (item: FinanceReportItem) =>
-  numberValue(asLineItem(item).line_gst_amount);
-
-const getLineShipping = (item: FinanceReportItem) =>
-  numberValue(asLineItem(item).line_shipping_charge_without_gst);
-
-const getLineShippingGst = (item: FinanceReportItem) =>
-  numberValue(asLineItem(item).line_shipping_gst);
-
-/**
- * Item Total = product line value before GST + product GST + shipping before
- * GST + shipping GST. It is a line-level amount, not the invoice total.
- */
-const getLineGross = (item: FinanceReportItem) =>
-  getLineSubtotal(item) + getLineGst(item) + getLineShipping(item) + getLineShippingGst(item);
-
-/**
- * CGST / SGST / IGST are taken from the API's invoice-level tax_breakdown.
- * The frontend does not recalculate the tax type from state names because the
- * supplier's GST registration state is not present in this response. The API
- * must determine intra-state vs inter-state supply using the supplier GSTIN
- * and place-of-supply data.
- */
-const getTaxBreakdown = (item: FinanceReportItem) => {
+const getLineGst = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  const tax = row.tax_breakdown;
-  const cgst = numberValue(tax?.cgst);
-  const sgst = numberValue(tax?.sgst);
-  const igst = numberValue(tax?.igst);
-  const splitTotal = cgst + sgst + igst;
-  const apiTotal =
-    row.total_gst === null || row.total_gst === undefined || row.total_gst === ""
-      ? splitTotal
-      : numberValue(row.total_gst);
-
-  return {
-    cgst,
-    sgst,
-    igst,
-    total: apiTotal,
-    difference: Number((apiTotal - splitTotal).toFixed(2)),
-  };
+  return numberValue(row.product_gst ?? row.line_gst_amount);
 };
-
-const getInvoiceKey = (item: FinanceReportItem, index: number) => {
+const getLineShipping = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  return String(row.order_reference || item.invoice_number || `missing-invoice-${index}`);
+  return numberValue(
+    row.shipping_charge_without_gst ?? row.line_shipping_charge_without_gst,
+  );
 };
-
-/** Invoice-level values repeat on every line. Keep one representative row. */
-const getUniqueInvoiceRows = (items: FinanceReportItem[]) => {
-  const unique = new Map<string, FinanceReportItem>();
-  items.forEach((item, index) => {
-    const key = getInvoiceKey(item, index);
-    if (!unique.has(key)) unique.set(key, item);
-  });
-  return Array.from(unique.values());
+const getLineShippingGst = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  return numberValue(row.shipping_gst ?? row.line_shipping_gst);
 };
-
-const isRefunded = (item: FinanceReportItem) => {
+const getLineCombinedSubtotal = (item: FinanceReportItem) =>
+  optionalNumber(asLineItem(item).product_total_shipping_charge_without_gst) ??
+  roundMoney(getLineSubtotal(item) + getLineShipping(item));
+const getLineGross = (item: FinanceReportItem) => {
   const row = asLineItem(item);
   return (
-    String(row.is_refunded).toLowerCase() === "true" ||
-    String(row.is_refunded).toLowerCase() === "yes" ||
-    Number(row.refunded_items || 0) > 0
+    optionalNumber(row.total_item_amount) ??
+    roundMoney(
+      getLineCombinedSubtotal(item) +
+        getSalesLineTax(item).total +
+        numberValue(row.total_service_charge),
+    )
+  );
+};
+const getInvoiceKey = (item: FinanceReportItem, index: number) => {
+  const row = asLineItem(item);
+  return String(
+    row.order_reference || item.invoice_number || `missing-invoice-${index}`,
   );
 };
 
 const statusStyle = (status: string | null | undefined) => {
   const value = (status || "").toLowerCase();
-  if (value.includes("deliver") || value === "completed" || value === "paid") {
+  if (value.startsWith("partial")) {
+    return { bg: THEME.orangeSoft, color: THEME.orange };
+  }
+  if (value === "delivered" || value === "completed" || value === "paid") {
     return { bg: THEME.greenSoft, color: THEME.green };
   }
   if (value.includes("ship") || value.includes("partial")) {
@@ -346,9 +297,344 @@ const statusStyle = (status: string | null | undefined) => {
   }
   return { bg: THEME.orangeSoft, color: THEME.orange };
 };
+/* ================= SALES DATA EXCEL MAPPING ================= */
+const SALES_HEADERS = [
+  "Order Reference",
+  "Item Reference ID",
+  "Invoice Number",
+  "Invoice Date",
+  "Order Date",
+  "Product Name",
+  "Product Head",
+  "SKU",
+  "Quantity",
+  "Price",
+  "Total Discount",
+  "CV",
+  "Total Tax",
+  "CGST",
+  "SGST",
+  "IGST",
+  "Tax Percentage",
+  "HSN Code",
+  "Customer Name",
+  "Customer GSTIN",
+  "Customer State",
+  "Shipping Charges",
+  "Unit Price Without GST",
+  "Product Subtotal Without GST",
+  "Product GST",
+  "Shipping Charges Without GST",
+  "Sub Total",
+  "Shipping GST",
+  "Service Charge Per Unit",
+  "Total Service Charge",
+  "Total",
+  "Order Status",
+  "Confirmed At",
+  "Dispatched At",
+  "Delivered At",
+  "Account Type",
+  "User Name",
+  "Customer Mobile",
+  "Customer Email",
+  "Billing State",
+  "Payment Gateway",
+  "Gateway Transaction ID",
+  "Courier Company",
+  "Courier Tracking Number",
+];
+const SALES_WIDTHS = [
+  24.0, // Order Reference
+  24.0, // Item Reference ID
+  16.85546875, // Invoice Number
+  15.85546875, // Invoice Date
+  10.7109375, // Order Date
+  34.5703125, // Product Name
+  34.5703125, // Product Head
+  8.0, // SKU
+  8.7109375, // Quantity
+  7.0, // Price
+  13.7109375, // Total Discount
+  5.0, // CV
+  9.0, // Total Tax
+  8.0, // CGST
+  8.0, // SGST
+  9.0, // IGST
+  14.5703125, // Tax Percentage
+  9.7109375, // HSN Code
+  33.42578125, // Customer Name
+  15.42578125, // Customer GSTIN
+  24.5703125, // Customer State
+  16.28515625, // Shipping Charges
+  25.0, // Unit Price Without GST
+  30.0, // Product Subtotal Without GST
+  16.0, // Product GST
+  30.0, // Shipping Charges Without GST
+  10.0, // Sub Total
+  16.0, // Shipping GST
+  24.0, // Service Charge Per Unit
+  22.0, // Total Service Charge
+  9.0, // Total
+  23.0, // Order Status
+  23.0, // Confirmed At
+  23.0, // Dispatched At
+  23.0, // Delivered At
+  18.0, // Account Type
+  24.0, // User Name
+  22.0, // Customer Mobile
+  34.0, // Customer Email
+  24.0, // Billing State
+  22.0, // Payment Gateway
+  30.0, // Gateway Transaction ID
+  32.0, // Courier Company
+  32.0, // Courier Tracking Number
+];
+// Additive columns only; do not sum rates, per-unit prices or repeated order fields.
+const SALES_TOTAL_HEADERS = [
+  "Price",
+  "Total Tax",
+  "CGST",
+  "SGST",
+  "IGST",
+  "Sub Total",
+  "Total",
+  "Product Subtotal Without GST",
+  "Product GST",
+  "Shipping Charges Without GST",
+  "Shipping GST",
+  "Total Service Charge",
+  "Shipping Charges",
+  "Total Discount",
+  "CV",
+  "Quantity",
+];
+const roundMoney = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100;
+const optionalNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseExcelDate = (
+  value: unknown,
+  dateOnly = false,
+): Date | string | null => {
+  const raw = trimmedValue(value);
+  if (!raw) return null;
+  const match = raw.match(
+    /^(\d{2})-(\d{2})-(\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
+  );
+  if (match)
+    return new Date(
+      Date.UTC(
+        Number(match[3]),
+        Number(match[2]) - 1,
+        Number(match[1]),
+        dateOnly ? 0 : Number(match[4] || 0),
+        dateOnly ? 0 : Number(match[5] || 0),
+        dateOnly ? 0 : Number(match[6] || 0),
+      ),
+    );
+  const iso = raw.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/,
+  );
+  if (iso)
+    return new Date(
+      Date.UTC(
+        Number(iso[1]),
+        Number(iso[2]) - 1,
+        Number(iso[3]),
+        dateOnly ? 0 : Number(iso[4] || 0),
+        dateOnly ? 0 : Number(iso[5] || 0),
+        dateOnly ? 0 : Number(iso[6] || 0),
+      ),
+    );
+  return raw;
+};
+// The new API supplies the tax breakdown for each product line.
+// Preserve the supplied split exactly, including any one-paise rounding difference.
+const getSalesLineTax = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  const tax = row.line_tax_breakdown ?? row.tax_breakdown;
+  return {
+    total:
+      optionalNumber(row.total_gst) ??
+      roundMoney(getLineGst(item) + getLineShippingGst(item)),
+    cgst: optionalNumber(tax?.cgst),
+    sgst: optionalNumber(tax?.sgst),
+    igst: optionalNumber(tax?.igst),
+  };
+};
+// Use the product category from the API; never infer it from the product name.
+const getProductCategory = (item: FinanceReportItem): string => {
+  const row = item as unknown as Record<string, unknown>;
+  const categoryText = (value: unknown): string => {
+    if (typeof value === "string") return value.trim();
+    if (value && typeof value === "object") {
+      const category = value as Record<string, unknown>;
+      return (
+        [category.name, category.category_name, category.title]
+          .find(
+            (name): name is string =>
+              typeof name === "string" && name.trim().length > 0,
+          )
+          ?.trim() || ""
+      );
+    }
+    return "";
+  };
+  const product =
+    row.product && typeof row.product === "object"
+      ? (row.product as Record<string, unknown>)
+      : {};
+  return (
+    [
+      row.product_category_name,
+      row.category_name,
+      row.product_category,
+      row.category,
+      product.category_name,
+      product.category,
+    ]
+      .map(categoryText)
+      .find(Boolean) || ""
+  );
+};
+const buildSalesRows = (items: FinanceReportItem[]) => {
+  const seenOrders = new Set<string>();
+  const ordersWithLineCv = new Set(
+    items.flatMap((item, index) =>
+      optionalNumber(asLineItem(item).line_cv) === null
+        ? []
+        : [getInvoiceKey(item, index)],
+    ),
+  );
+  const ordersWithLineDiscount = new Set(
+    items.flatMap((item, index) =>
+      optionalNumber(asLineItem(item).line_discount_amount) === null
+        ? []
+        : [getInvoiceKey(item, index)],
+    ),
+  );
+  return items.map((item, index) => {
+    const row = asLineItem(item);
+    const orderKey = getInvoiceKey(item, index);
+    const firstOrderRow = !seenOrders.has(orderKey);
+    seenOrders.add(orderKey);
+    const tax = getSalesLineTax(item);
+    const subtotal = getLineCombinedSubtotal(item);
+    const total = getLineGross(item);
+    const couriers = getCouriers(item);
+    const shipping = roundMoney(
+      getLineShipping(item) + getLineShippingGst(item),
+    );
+    const discount =
+      optionalNumber(row.line_discount_amount) ??
+      (firstOrderRow && !ordersWithLineDiscount.has(orderKey)
+        ? optionalNumber(row.discount_amount)
+        : optionalNumber(row.discount_amount) === 0
+          ? 0
+          : null);
+    return [
+      row.order_reference || "", // Order Reference
+      row.item_reference_id || "", // Item Reference ID
+      item.invoice_number || "", // Invoice Number
+      parseExcelDate(item.invoice_date, true), // Invoice Date
+      parseExcelDate(item.order_date), // Order Date
+      getProductName(item), // Product Name
+      getProductCategory(item), // Product Head
+      getProductCode(item), // SKU
+      getQuantity(item), // Quantity
+      total, // Price
+      discount, // Total Discount
+      optionalNumber(row.line_cv) ??
+        (firstOrderRow && !ordersWithLineCv.has(orderKey)
+          ? optionalNumber(row.cv)
+          : null), // CV
+      tax.total, // Total Tax
+      tax.cgst, // CGST
+      tax.sgst, // SGST
+      tax.igst, // IGST
+      optionalNumber(row.line_tax_rate), // Tax Percentage
+      getHsnCode(item), // HSN Code
+      item.customer_name || "", // Customer Name
+      row.customer_gstin || "", // Customer GSTIN
+      getPlaceOfSupply(item), // Customer State
+      shipping, // Shipping Charges
+      optionalNumber(row.unit_price_without_gst), // Unit Price Without GST
+      optionalNumber(row.product_subtotal ?? row.line_total_without_gst), // Product Subtotal Without GST
+      optionalNumber(row.product_gst ?? row.line_gst_amount), // Product GST
+      optionalNumber(
+        row.shipping_charge_without_gst ?? row.line_shipping_charge_without_gst,
+      ), // Shipping Charges Without GST
+      subtotal, // Sub Total
+      optionalNumber(row.shipping_gst ?? row.line_shipping_gst), // Shipping GST
+      optionalNumber(row.service_charge_per_unit), // Service Charge Per Unit
+      optionalNumber(row.total_service_charge), // Total Service Charge
+      total, // Total
+      item.order_status || "", // Order Status
+      parseExcelDate(row.confirmed_at), // Confirmed At
+      parseExcelDate(row.dispatched_at), // Dispatched At
+      parseExcelDate(row.delivered_at), // Delivered At
+      item.account_type || "", // Account Type
+      item.user_name || "", // User Name
+      trimmedValue(item.customer_mobile), // Customer Mobile
+      item.customer_email || "", // Customer Email
+      row.billing_state || "", // Billing State
+      item.payment_gateway || "", // Payment Gateway
+      item.gateway_transaction_id || "", // Gateway Transaction ID
+      couriers.map((courier) => courier.courier_company || "").join(" | "), // Courier Company
+      couriers
+        .map((courier) => courier.courier_tracking_number || "")
+        .join(" | "), // Courier Tracking Number
+    ];
+  });
+};
+
+// Calculate all additive fields from the same mapping used by Excel.
+const summarizeSales = (items: FinanceReportItem[]) => {
+  const rows = buildSalesRows(items);
+  const sum = (heading: string): number | null => {
+    const index = SALES_HEADERS.indexOf(heading);
+    const values = rows
+      .map((row) => row[index])
+      .filter((value): value is number => typeof value === "number");
+    return values.length
+      ? roundMoney(values.reduce((total, value) => total + value, 0))
+      : rows.length
+        ? null
+        : 0;
+  };
+  return {
+    orders: new Set(items.map((item, index) => getInvoiceKey(item, index)))
+      .size,
+    rows: rows.length,
+    quantity: sum("Quantity"),
+    sales: sum("Total"),
+    subtotal: sum("Sub Total"),
+    gst: sum("Total Tax"),
+    cgst: sum("CGST"),
+    sgst: sum("SGST"),
+    igst: sum("IGST"),
+    productSubtotal: sum("Product Subtotal Without GST"),
+    productGst: sum("Product GST"),
+    shipping: sum("Shipping Charges"),
+    shippingBase: sum("Shipping Charges Without GST"),
+    shippingGst: sum("Shipping GST"),
+    service: sum("Total Service Charge"),
+    discount: sum("Total Discount"),
+    cv: sum("CV"),
+  };
+};
+
+const displayMoney = (amount: number | null | undefined) =>
+  amount == null ? "—" : money(amount);
+const displayNumber = (amount: number | null | undefined) =>
+  amount == null ? "—" : amount.toLocaleString("en-IN");
 
 /* ================= SMALL COMPONENTS ================= */
-
 function StatusBadge({ status }: { status: string | null | undefined }) {
   const style = statusStyle(status);
   return (
@@ -356,11 +642,10 @@ function StatusBadge({ status }: { status: string | null | undefined }) {
       className="inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
       style={{ background: style.bg, color: style.color }}
     >
-      {valueOrDash(status)}
+      {valueOrDash(status).replace(/_/g, " ")}
     </span>
   );
 }
-
 function SummaryCard({
   title,
   value,
@@ -377,39 +662,39 @@ function SummaryCard({
   bg: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border border-[#DCE6F2] bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: bg, color }}
-      >
-        <Icon size={17} />
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-slate-600">{title}</p>
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          style={{ background: bg, color }}
+        >
+          <Icon size={18} />
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-gray-500">
-          {title}
-        </p>
-        <h3 className="mt-0.5 truncate text-sm font-bold text-gray-900 sm:text-base">
-          {value}
-        </h3>
-        <p className="mt-0.5 truncate text-[9px] text-gray-400">{subtitle}</p>
-      </div>
+      <h3 className="mt-2 break-words text-xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-2xl">
+        {value}
+      </h3>
+      <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
     </div>
   );
 }
 
 function CourierDetails({ item }: { item: FinanceReportItem }) {
   const couriers = getCouriers(item);
-  if (!couriers.length) return <span className="text-[10px] text-gray-400">Not assigned</span>;
-
+  if (!couriers.length)
+    return <span className="text-xs text-gray-400">Not assigned</span>;
   return (
     <div className="min-w-0 max-w-full space-y-2">
       {couriers.map((courier, index) => (
-        <div key={`${courier.courier_company || "courier"}-${courier.courier_tracking_number || index}-${index}`}>
-          <p className="flex items-center gap-1 text-[11px] font-semibold text-gray-800">
+        <div
+          key={`${courier.courier_company || "courier"}-${courier.courier_tracking_number || index}-${index}`}
+        >
+          <p className="flex items-center gap-1 text-xs font-semibold text-gray-800">
             <Truck size={12} className="shrink-0 text-[#2D6FE8]" />
             <span>{valueOrDash(courier.courier_company)}</span>
           </p>
-          <p className="mt-0.5 break-all pl-[17px] text-[10px] text-gray-500">
+          <p className="mt-0.5 break-all pl-[17px] text-xs text-gray-500">
             Tracking: {valueOrDash(courier.courier_tracking_number)}
           </p>
         </div>
@@ -417,30 +702,29 @@ function CourierDetails({ item }: { item: FinanceReportItem }) {
     </div>
   );
 }
-
 function ProductDetails({ item }: { item: FinanceReportItem }) {
   const row = asLineItem(item);
-  const hsn = getHsnCode(item);
-
   return (
     <div className="min-w-0 w-full max-w-full">
       <p className="line-clamp-2 text-xs font-semibold text-gray-800">
         {valueOrDash(getProductName(item))}
       </p>
-      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-gray-500">
-        <span>Code: {valueOrDash(getProductCode(item))}</span>
-       
+      <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-gray-500">
+        <span>SKU: {valueOrDash(getProductCode(item))}</span>
+        <span>Category: {valueOrDash(getProductCategory(item))}</span>
+        <span>HSN: {valueOrDash(getHsnCode(item))}</span>
         <span>GST: {getGstPercentage(item) || "—"}</span>
       </div>
       {row.item_reference_id && (
-        <p className="mt-1 break-all text-[9px] text-gray-400">Item Ref: {row.item_reference_id}</p>
+        <p className="mt-1 break-all text-xs text-gray-400">
+          Item Ref: {row.item_reference_id}
+        </p>
       )}
     </div>
   );
 }
-
 function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
-  const tax = getTaxBreakdown(item);
+  const tax = getSalesLineTax(item);
   return (
     <div className="min-w-0 space-y-1.5">
       {[
@@ -448,26 +732,26 @@ function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
         ["SGST", tax.sgst],
         ["IGST", tax.igst],
       ].map(([label, amount]) => (
-        <div key={String(label)} className="flex items-center justify-between gap-1">
-          <span className="text-[9px] text-gray-500">{label}</span>
-          <span className="break-words text-right text-[9px] font-semibold text-gray-700">
-            {money(Number(amount))}
+        <div
+          key={String(label)}
+          className="flex items-center justify-between gap-1"
+        >
+          <span className="text-xs text-gray-500">{label}</span>
+          <span className="break-words text-right text-xs font-semibold text-gray-700">
+            {amount === null ? "—" : money(Number(amount))}
           </span>
         </div>
       ))}
       <div className="flex items-center justify-between gap-1 border-t border-[#E8EEF6] pt-1.5">
-        <span className="text-[9px] font-bold text-gray-700">Total Tax</span>
-        <span className="break-words text-right text-[9px] font-bold text-[#1E40AF]">
+        <span className="text-xs font-bold text-gray-700">Total Tax</span>
+        <span className="break-words text-right text-xs font-bold text-[#1E40AF]">
           {money(tax.total)}
         </span>
       </div>
-     
     </div>
   );
 }
-
 /* ================= MAIN COMPONENT ================= */
-
 const FinanceReport = () => {
   const {
     hasPermission,
@@ -475,7 +759,6 @@ const FinanceReport = () => {
     isSuperAdmin,
     loading: permissionsLoading,
   } = usePermissions();
-
   const canViewReport = useMemo(() => {
     if (isSuperAdmin) return true;
     return (
@@ -483,20 +766,15 @@ const FinanceReport = () => {
       hasPermission("finance_sales_report.view")
     );
   }, [isSuperAdmin, hasModuleAccess, hasPermission]);
-
   const canExport = useMemo(() => {
     if (isSuperAdmin) return true;
     return hasPermission("finance_sales_report.download");
   }, [isSuperAdmin, hasPermission]);
-
   /* ================= LOGO ================= */
-
   const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
   const [logoLoading, setLogoLoading] = useState(true);
-
   useEffect(() => {
     let cancelled = false;
-
     const loadLogo = async () => {
       try {
         const response: any = await logoApi.getLogo();
@@ -509,7 +787,8 @@ const FinanceReport = () => {
           response?.logo,
         ];
         const found = candidates.find(
-          (value) => typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+          (value) =>
+            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
         );
         if (!cancelled && found) setLogoUrl(found.trim());
       } catch (error) {
@@ -518,43 +797,46 @@ const FinanceReport = () => {
         if (!cancelled) setLogoLoading(false);
       }
     };
-
     void loadLogo();
     return () => {
       cancelled = true;
     };
   }, []);
-
   /* ================= REPORT STATE ================= */
-
   const [reports, setReports] = useState<FinanceReportItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [appliedDates, setAppliedDates] = useState({ fromDate: "", toDate: "" });
+  const [appliedDates, setAppliedDates] = useState({
+    fromDate: "",
+    toDate: "",
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [lastPage, setLastPage] = useState(1);
-
+  const [overviewRows, setOverviewRows] = useState<FinanceReportItem[] | null>(
+    null,
+  );
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState(false);
+  const [overviewRevision, setOverviewRevision] = useState(0);
   /* ================= FETCH REPORT ================= */
-
   const fetchReports = useCallback(
     async (showLoader = true, page = currentPage) => {
       try {
         if (showLoader) setLoading(true);
         else setRefreshing(true);
-
         const response = await financeReportApi.getAll({
           page,
           per_page: PER_PAGE,
           from_date: appliedDates.fromDate || undefined,
           to_date: appliedDates.toDate || undefined,
         });
-
         if (response.success) {
           const data = Array.isArray(response.data) ? response.data : [];
           setReports(data);
@@ -568,7 +850,9 @@ const FinanceReport = () => {
         }
       } catch (error: any) {
         console.error("Finance report error:", error);
-        toast.error(error?.response?.data?.message || "Failed to fetch finance report");
+        toast.error(
+          error?.response?.data?.message || "Failed to fetch finance report",
+        );
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -576,7 +860,6 @@ const FinanceReport = () => {
     },
     [currentPage, appliedDates],
   );
-
   useEffect(() => {
     if (permissionsLoading) return;
     if (!canViewReport) {
@@ -585,65 +868,121 @@ const FinanceReport = () => {
     }
     void fetchReports(true);
   }, [permissionsLoading, canViewReport, fetchReports]);
+  const fetchAllReportRows = useCallback(async () => {
+    const allItems: FinanceReportItem[] = [];
+    let page = 1;
+    let pages = 1;
+    do {
+      const response = await financeReportApi.getAll({
+        page,
+        per_page: PER_PAGE,
+        from_date: appliedDates.fromDate || undefined,
+        to_date: appliedDates.toDate || undefined,
+      });
+      if (!response.success)
+        throw new Error(response.message || "Unable to load finance totals");
+      allItems.push(...(Array.isArray(response.data) ? response.data : []));
+      pages = Math.max(1, Number(response.meta?.last_page) || 1);
+      page += 1;
+    } while (page <= pages);
+    return allItems;
+  }, [appliedDates]);
+
+  useEffect(() => {
+    if (permissionsLoading || !canViewReport) return;
+    let active = true;
+    setOverviewRows(null);
+    setOverviewLoading(true);
+    setOverviewError(false);
+    fetchAllReportRows()
+      .then((items) => {
+        if (active) setOverviewRows(items);
+      })
+      .catch((error) => {
+        console.error("Finance totals error:", error);
+        if (active) setOverviewError(true);
+      })
+      .finally(() => {
+        if (active) setOverviewLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [permissionsLoading, canViewReport, fetchAllReportRows, overviewRevision]);
 
   /* ================= SEARCH & FILTER ================= */
-
-  const filteredReports = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    return reports.filter((item) => {
-      const row = asLineItem(item);
-      const couriers = getCouriers(item);
-      const searchable = [
-        item.invoice_number,
-        row.order_reference,
-        item.customer_name,
-        item.customer_mobile,
-        item.customer_email,
-        row.customer_gstin,
-        row.billing_state,
-        row.delivery_state,
-        item.user_name,
-        item.product_names,
-        row.product_name,
-        row.product_code,
-        row.product_slug,
-        row.hsn_code,
-        row.item_reference_id,
-        row.order_line_id,
-        item.order_status,
-        item.order_date,
-        item.payment_gateway,
-        item.gateway_transaction_id,
-        ...couriers.flatMap((courier) => [courier.courier_company, courier.courier_tracking_number]),
-      ];
-
-      const matchesSearch =
-        !query || searchable.some((value) => String(value ?? "").toLowerCase().includes(query));
-      const matchesStatus =
-        statusFilter === "all" || (item.order_status || "").toLowerCase() === statusFilter;
-      const matchesAccount =
-        accountFilter === "all" || (item.account_type || "").toLowerCase() === accountFilter;
-
-      return matchesSearch && matchesStatus && matchesAccount;
-    });
-  }, [reports, search, statusFilter, accountFilter]);
-
+  const filterReports = useCallback(
+    (source: FinanceReportItem[]) => {
+      const query = search.trim().toLowerCase();
+      return source.filter((item) => {
+        const row = asLineItem(item);
+        const couriers = getCouriers(item);
+        const searchable = [
+          item.invoice_number,
+          row.order_reference,
+          item.customer_name,
+          item.customer_mobile,
+          item.customer_email,
+          row.customer_gstin,
+          row.billing_state,
+          row.delivery_state,
+          item.user_name,
+          item.product_names,
+          row.product_name,
+          row.product_code,
+          row.product_slug,
+          getProductCategory(item),
+          row.hsn_code,
+          row.item_reference_id,
+          row.order_line_id,
+          item.order_status,
+          item.order_date,
+          item.payment_gateway,
+          item.gateway_transaction_id,
+          ...couriers.flatMap((courier) => [
+            courier.courier_company,
+            courier.courier_tracking_number,
+          ]),
+        ];
+        const matchesSearch =
+          !query ||
+          searchable.some((value) =>
+            String(value ?? "")
+              .toLowerCase()
+              .includes(query),
+          );
+        const matchesStatus =
+          statusFilter === "all" ||
+          (item.order_status || "").toLowerCase() === statusFilter;
+        const matchesAccount =
+          accountFilter === "all" ||
+          (item.account_type || "").toLowerCase() === accountFilter;
+        return matchesSearch && matchesStatus && matchesAccount;
+      });
+    },
+    [search, statusFilter, accountFilter],
+  );
+  const filteredReports = useMemo(
+    () => filterReports(reports),
+    [reports, filterReports],
+  );
   /* ================= SUMMARY ================= */
-
-  const summary = useMemo(() => {
-    const uniqueInvoices = getUniqueInvoiceRows(reports);
-    return {
-      sales: uniqueInvoices.reduce((sum, item) => sum + numberValue(asLineItem(item).net_order_amount), 0),
-      gst: uniqueInvoices.reduce((sum, item) => sum + numberValue(asLineItem(item).total_gst), 0),
-      invoices: totalRecords,
-      items: reports.reduce((sum, item) => sum + getQuantity(item), 0),
-      refunded: uniqueInvoices.filter(isRefunded).length,
-    };
-  }, [reports, totalRecords]);
-
+  const summary = useMemo(
+    () =>
+      overviewRows === null
+        ? null
+        : summarizeSales(filterReports(overviewRows)),
+    [overviewRows, filterReports],
+  );
+  const pageSummary = useMemo(
+    () => summarizeSales(filteredReports),
+    [filteredReports],
+  );
+  const summaryMoney = (value: number | null | undefined) =>
+    overviewLoading ? "…" : displayMoney(value);
+  const summaryNumber = (value: number | null | undefined) =>
+    overviewLoading ? "…" : displayNumber(value);
   /* ================= APPLY / CLEAR FILTERS ================= */
-
   const applyFilters = () => {
     if (fromDate && toDate && fromDate > toDate) {
       toast.error("From date cannot be greater than To date");
@@ -652,7 +991,6 @@ const FinanceReport = () => {
     setCurrentPage(1);
     setAppliedDates({ fromDate, toDate });
   };
-
   const clearFilters = () => {
     setSearch("");
     setStatusFilter("all");
@@ -662,147 +1000,266 @@ const FinanceReport = () => {
     setCurrentPage(1);
     setAppliedDates({ fromDate: "", toDate: "" });
   };
-
-  /* ================= CSV EXPORT ================= */
-
-  const exportCSV = () => {
+  /* ================= EXCEL EXPORT ================= */
+  const exportExcel = async () => {
     if (!canExport) {
       toast.error("You don't have permission to export this report.");
       return;
     }
-    if (!filteredReports.length) {
-      toast.error("No finance records available to export");
-      return;
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const allItems = await fetchAllReportRows();
+      const rows = buildSalesRows(filterReports(allItems));
+      if (!rows.length) {
+        toast.error("No finance records available to export");
+        return;
+      }
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "IndieKonnect";
+      workbook.calcProperties.fullCalcOnLoad = true;
+      const sheet = workbook.addWorksheet("Sales Data", {
+        views: [
+          { state: "frozen", xSplit: 3, ySplit: 1, showGridLines: false },
+        ],
+        properties: { defaultRowHeight: 23 },
+      });
+      const currencyFormat = "#,##0.00;[Red](#,##0.00);0.00";
+      const textHeaders = new Set([
+        "Order Reference",
+        "Item Reference ID",
+        "Invoice Number",
+        "SKU",
+        "HSN Code",
+        "User Name",
+        "Customer Mobile",
+        "Gateway Transaction ID",
+        "Courier Company",
+        "Courier Tracking Number",
+      ]);
+      const moneyHeaders = new Set([
+        "Price",
+        "Total Discount",
+        "Total Tax",
+        "CGST",
+        "SGST",
+        "IGST",
+        "Sub Total",
+        "Total",
+        "Shipping Charges",
+        "Unit Price Without GST",
+        "Product Subtotal Without GST",
+        "Product GST",
+        "Shipping Charges Without GST",
+        "Shipping GST",
+        "Service Charge Per Unit",
+        "Total Service Charge",
+      ]);
+      const dateTimeHeaders = new Set([
+        "Order Date",
+        "Confirmed At",
+        "Dispatched At",
+        "Delivered At",
+      ]);
+      const groupColor = (heading: string) => {
+        if (["Sub Total", "Total"].includes(heading)) return "FFBBDCFB";
+        if (heading === "Price") return "FF13795B";
+        if (
+          [
+            "Total Tax",
+            "CGST",
+            "SGST",
+            "IGST",
+            "Tax Percentage",
+            "Product GST",
+            "Shipping GST",
+          ].includes(heading)
+        )
+          return "FF365A83";
+        if (moneyHeaders.has(heading) || ["CV", "Quantity"].includes(heading))
+          return "FF24466A";
+        return "FF17324D";
+      };
+      sheet.columns = SALES_WIDTHS.map((width, i) => ({
+        width: Math.max(
+          width,
+          moneyHeaders.has(SALES_HEADERS[i])
+            ? 18
+            : SALES_HEADERS[i] === "Quantity"
+              ? 12
+              : SALES_HEADERS[i] === "CV"
+                ? 12
+                : 13,
+        ),
+      }));
+      // Row 1 headers, row 2 onward sales data, final row grand total.
+      const header = sheet.addRow(SALES_HEADERS);
+      header.height = 34;
+      for (let c = 1; c <= SALES_HEADERS.length; c++) {
+        const cell = header.getCell(c);
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: groupColor(SALES_HEADERS[c - 1]) },
+        };
+        cell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: {
+            argb: ["Sub Total", "Total"].includes(SALES_HEADERS[c - 1])
+              ? "FF173B63"
+              : "FFFFFFFF",
+          },
+        };
+        cell.alignment = {
+          horizontal: "left",
+          vertical: "middle",
+          wrapText: true,
+          indent: 1,
+        };
+        cell.border = {
+          bottom: { style: "medium", color: { argb: "FF9FB5CA" } },
+        };
+      }
+      rows.forEach((values, index) => {
+        const excelRow = sheet.addRow(values);
+        excelRow.height = 26;
+        for (let c = 1; c <= SALES_HEADERS.length; c++) {
+          const heading = SALES_HEADERS[c - 1];
+          const cell = excelRow.getCell(c);
+          const numeric =
+            moneyHeaders.has(heading) ||
+            ["Quantity", "CV", "Tax Percentage"].includes(heading);
+          const keyTotal = ["Sub Total", "Total"].includes(heading);
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            color: { argb: keyTotal ? "FF173B63" : "FF253C52" },
+            bold: keyTotal,
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+              argb: keyTotal
+                ? heading === "Total"
+                  ? "FFDCEEFF"
+                  : "FFF0F7FF"
+                : index % 2 === 0
+                  ? "FFFFFFFF"
+                  : "FFF2F6FA",
+            },
+          };
+          cell.alignment = {
+            vertical: "middle",
+            horizontal: numeric ? "right" : "left",
+            indent: 1,
+          };
+          cell.border = {
+            bottom: { style: "hair", color: { argb: "FFD9E4EE" } },
+          };
+          if (textHeaders.has(heading)) cell.numFmt = "@";
+          if (moneyHeaders.has(heading)) cell.numFmt = currencyFormat;
+          if (heading === "Quantity" || heading === "CV")
+            cell.numFmt = "#,##0.##";
+          if (heading === "Tax Percentage") cell.numFmt = '0.##"%"';
+          if (heading === "Invoice Date") cell.numFmt = "dd-mm-yyyy";
+          if (dateTimeHeaders.has(heading)) cell.numFmt = "dd-mm-yyyy hh:mm";
+        }
+      });
+      const lastRow = rows.length + 1;
+      const footer = sheet.addRow([]);
+      footer.height = 32;
+      sheet.autoFilter = {
+        from: { row: 1, column: 1 },
+        to: { row: lastRow, column: SALES_HEADERS.length },
+      };
+      // Label cells are outside the numeric columns. Merge only A:C so frozen panes remain intact.
+      [footer.number].forEach((r) => {
+        for (let c = 1; c <= SALES_HEADERS.length; c++) {
+          const cell = sheet.getRow(r).getCell(c);
+          const heading = SALES_HEADERS[c - 1];
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: heading === "Total" ? "FFBBDCFB" : "FFDCEEFF" },
+          };
+          cell.font = {
+            name: "Calibri",
+            size: 12,
+            bold: true,
+            color: { argb: "FF173B63" },
+          };
+          cell.alignment = {
+            horizontal: "right",
+            vertical: "middle",
+            indent: 1,
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FF9FB5CA" } },
+            bottom: { style: "thin", color: { argb: "FF9FB5CA" } },
+          };
+        }
+        sheet.mergeCells(r, 1, r, 3);
+        const title = sheet.getCell(r, 1);
+        title.value = "GRAND TOTAL  |  VISIBLE ROWS";
+        title.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
+        const detail = sheet.getCell(r, 6);
+        detail.value = "INR • Filter-aware totals";
+        detail.alignment = {
+          horizontal: "left",
+          vertical: "middle",
+          indent: 1,
+        };
+      });
+      SALES_TOTAL_HEADERS.forEach((heading) => {
+        const col = SALES_HEADERS.indexOf(heading);
+        if (col < 0) return;
+        const column = sheet.getColumn(col + 1).letter;
+        const values = rows
+          .map((row) => row[col])
+          .filter((value): value is number => typeof value === "number");
+        if (!values.length) return;
+        const sum = roundMoney(values.reduce((acc, value) => acc + value, 0));
+        [footer.number].forEach((r) => {
+          const cell = sheet.getRow(r).getCell(col + 1);
+          cell.value = {
+            formula: `SUBTOTAL(109,${column}2:${column}${lastRow})`,
+            result: sum,
+          };
+          cell.numFmt = moneyHeaders.has(heading) ? currencyFormat : "#,##0.##";
+        });
+      });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const bytes = new Uint8Array(buffer);
+      const blob = new Blob([bytes], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `sales-data-${formatDateInput(new Date())}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Sales Data exported successfully");
+    } catch (error) {
+      console.error("Sales Data export error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export Sales Data",
+      );
+    } finally {
+      setExporting(false);
     }
-
-    // API invoice-level fields are repeated for each product line. Export those
-    // invoice-level values only once per order to prevent inflated GST/sales totals.
-    const invoiceMeta = new Map<string, { invoiceNumber: string; invoiceDate: string }>();
-    filteredReports.forEach((item, index) => {
-      const key = getInvoiceKey(item, index);
-      const current = invoiceMeta.get(key) || { invoiceNumber: "", invoiceDate: "" };
-      if (!current.invoiceNumber && item.invoice_number) current.invoiceNumber = String(item.invoice_number);
-      if (!current.invoiceDate && item.invoice_date) current.invoiceDate = String(item.invoice_date);
-      invoiceMeta.set(key, current);
-    });
-
-    const seenInvoiceKeys = new Set<string>();
-    const headers = [
-      "Invoice Number",
-      "Invoice Date",
-      "Order Reference",
-      "Customer Name",
-      "Customer Mobile",
-      "Customer Email",
-      "Account Type",
-      "GSTIN Number",
-      "State (Place of Supply)",
-      "Product Name",
-      "Product Code",
-      "HSN Code",
-      "GST Percentage",
-      "Item Reference",
-      "Quantity",
-      "Unit Price Without GST",
-      "Product Total Without GST",
-      "Product GST",
-      "Shipping Charges Without GST",
-      "Shipping GST",
-      "Item Total (Product + GST + Shipping + Shipping GST)",
-      "Invoice Product Subtotal",
-      "Invoice Shipping Charges Without GST",
-      "Invoice Product GST",
-      "Invoice Shipping GST",
-      "Invoice Total GST",
-      "CGST",
-      "SGST",
-      "IGST",
-      "Discount Amount",
-      "Invoice Value (Net)",
-      "Payment Gateway",
-      "Gateway Transaction ID",
-      "Order Status",
-      "Order Date",
-      "Courier Company",
-      "Tracking Number",
-    ];
-
-    const rows = filteredReports.map((item, index) => {
-      const row = asLineItem(item);
-      const key = getInvoiceKey(item, index);
-      const firstInvoiceRow = !seenInvoiceKeys.has(key);
-      seenInvoiceKeys.add(key);
-      const tax = getTaxBreakdown(item);
-      const couriers = getCouriers(item);
-      const meta = invoiceMeta.get(key);
-      const invoiceOnly = (value: unknown) => (firstInvoiceRow ? value : "");
-
-      const values: unknown[] = [
-        meta?.invoiceNumber || item.invoice_number,
-        meta?.invoiceDate || item.invoice_date,
-        row.order_reference,
-        item.customer_name,
-        item.customer_mobile,
-        item.customer_email,
-        item.account_type,
-        getGstinNumber(item),
-        getPlaceOfSupply(item),
-        getProductName(item),
-        getProductCode(item),
-        // Blank when the API repeats the product code in its HSN field.
-        getHsnCode(item),
-        getGstPercentage(item),
-        row.item_reference_id,
-        getQuantity(item),
-        row.unit_price_without_gst,
-        row.line_total_without_gst,
-        getLineGst(item),
-        getLineShipping(item),
-        getLineShippingGst(item),
-        getLineGross(item),
-        invoiceOnly(row.product_subtotal),
-        invoiceOnly(row.shipping_charge_without_gst),
-        invoiceOnly(row.product_gst),
-        invoiceOnly(row.shipping_gst),
-        invoiceOnly(row.total_gst),
-        invoiceOnly(tax.cgst),
-        invoiceOnly(tax.sgst),
-        invoiceOnly(tax.igst),
-        invoiceOnly(row.discount_amount),
-        invoiceOnly(row.net_order_amount),
-        item.payment_gateway,
-        item.gateway_transaction_id,
-        item.order_status,
-        item.order_date,
-        couriers.map((courier) => courier.courier_company || "").join(" | "),
-        couriers.map((courier) => courier.courier_tracking_number || "").join(" | "),
-      ];
-
-      return values.map(escapeCsv).join(",");
-    });
-
-    const csv = [headers.map(escapeCsv).join(","), ...rows].join("\r\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `finance-report-gst-compliance-${formatDateInput(new Date())}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-    toast.success("GST compliance finance report exported successfully");
   };
 
   /* ================= PAGINATION ================= */
-
   const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * PER_PAGE + 1;
   const endRecord = Math.min(currentPage * PER_PAGE, totalRecords);
   const pageLoading = permissionsLoading || logoLoading;
-
   if (pageLoading) return <PermissionLoadingState logoUrl={logoUrl} />;
-
   if (!canViewReport) {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
@@ -816,9 +1273,11 @@ const FinanceReport = () => {
       </div>
     );
   }
-
   return (
-    <div className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6" style={{ background: THEME.background }}>
+    <div
+      className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6"
+      style={{ background: THEME.background }}
+    >
       {/* HEADER */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
@@ -827,7 +1286,9 @@ const FinanceReport = () => {
             <ChevronRight size={13} />
             <span>Finance Sales Report</span>
           </div>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">Finance Sales Report</h1>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
+            Finance Sales Report
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
             Product-wise sales, GST, place of supply, HSN and courier details.
           </p>
@@ -835,7 +1296,10 @@ const FinanceReport = () => {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => void fetchReports(false, currentPage)}
+            onClick={() => {
+              void fetchReports(false, currentPage);
+              setOverviewRevision((value) => value + 1);
+            }}
             disabled={refreshing || loading}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
@@ -845,26 +1309,165 @@ const FinanceReport = () => {
           {canExport && (
             <button
               type="button"
-              onClick={exportCSV}
-              disabled={!filteredReports.length}
+              onClick={() => void exportExcel()}
+              disabled={exporting || loading || refreshing}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Download size={16} />
-              Export CSV
+              {exporting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              {exporting ? "Exporting..." : "Export Excel"}
             </button>
           )}
         </div>
       </div>
-
-      {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-        <SummaryCard title="Total Invoices" value={summary.invoices.toLocaleString("en-IN")} subtitle="Unique invoice records" icon={Receipt} color="#2D6FE8" bg="#EAF3FF" />
-        <SummaryCard title="Net Order Amount" value={money(summary.sales)} subtitle="Loaded invoices counted once" icon={Wallet} color="#15803D" bg="#DCFCE7" />
-        <SummaryCard title="Total GST" value={money(summary.gst)} subtitle="Loaded invoices counted once" icon={CreditCard} color="#6D28D9" bg="#EDE9FE" />
-        <SummaryCard title="Total Items" value={summary.items.toLocaleString("en-IN")} subtitle="Sum of product-line quantities" icon={Package} color="#C2410C" bg="#FFEDD5" />
-        <SummaryCard title="Refunded Orders" value={summary.refunded.toLocaleString("en-IN")} subtitle="Unique refunded invoices" icon={RefreshCw} color="#C23B32" bg="#FEE2E2" />
-      </div>
-
+      {/* EXECUTIVE FINANCIAL SUMMARY */}
+      <section className="space-y-3" aria-label="Financial summary">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              Sales overview
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-500">
+              All matching records across pages · INR
+            </p>
+          </div>
+          {overviewLoading ? (
+            <span className="flex items-center gap-2 text-xs text-slate-500">
+              <Loader2 size={14} className="animate-spin" /> Updating totals
+            </span>
+          ) : overviewError ? (
+            <button
+              type="button"
+              onClick={() => setOverviewRevision((value) => value + 1)}
+              className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
+            >
+              Totals unavailable · Retry
+            </button>
+          ) : (
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
+              {summaryNumber(summary?.rows)} product lines
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="min-w-0 rounded-xl border border-[#BBDCFB] bg-[#EAF3FF] p-4 text-[#173B63] shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-[#315B86]">
+                Total Sales
+              </p>
+              <div className="rounded-lg bg-[#D5E9FF] p-2">
+                <Wallet size={18} />
+              </div>
+            </div>
+            <p className="mt-2 break-words text-2xl font-bold tracking-tight tabular-nums">
+              {summaryMoney(summary?.sales)}
+            </p>
+            <p className="mt-1 text-xs text-[#315B86]">
+              Total item amount · incl. GST
+            </p>
+          </div>
+          <SummaryCard
+            title="Sub Total"
+            value={summaryMoney(summary?.subtotal)}
+            subtitle="Products + shipping, excl. GST"
+            icon={Receipt}
+            color="#2D6FE8"
+            bg="#EAF3FF"
+          />
+          <SummaryCard
+            title="Total GST"
+            value={summaryMoney(summary?.gst)}
+            subtitle="Product GST + shipping GST"
+            icon={CreditCard}
+            color="#6D28D9"
+            bg="#EDE9FE"
+          />
+          <SummaryCard
+            title="Shipping Charges"
+            value={summaryMoney(summary?.shipping)}
+            subtitle="Including shipping GST"
+            icon={Truck}
+            color="#15803D"
+            bg="#DCFCE7"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-900">
+              Sales breakdown
+            </h3>
+            <div className="mt-3 space-y-2.5 text-xs">
+              {[
+                ["Product subtotal", summary?.productSubtotal],
+                ["Shipping excl. GST", summary?.shippingBase],
+                ["Sub Total (excl. GST)", summary?.subtotal],
+                ["Service charges", summary?.service],
+                ["Discount", summary?.discount],
+              ].map(([label, value]) => (
+                <div
+                  key={String(label)}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="text-slate-500">{label}</span>
+                  <span className="font-semibold text-slate-800 tabular-nums">
+                    {summaryMoney(value as number | null | undefined)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-900">GST breakdown</h3>
+            <div className="mt-3 space-y-2.5 text-xs">
+              {[
+                ["CGST", summary?.cgst],
+                ["SGST", summary?.sgst],
+                ["IGST", summary?.igst],
+                ["Product GST", summary?.productGst],
+                ["Shipping GST", summary?.shippingGst],
+              ].map(([label, value]) => (
+                <div
+                  key={String(label)}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="text-slate-500">{label}</span>
+                  <span className="font-semibold text-slate-800 tabular-nums">
+                    {summaryMoney(value as number | null | undefined)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900">
+                Order activity
+              </h3>
+              <Package size={17} className="text-slate-400" />
+            </div>
+            <div className="mt-3 divide-y divide-slate-100">
+              {[
+                ["Unique orders", summary?.orders],
+                ["Product quantity", summary?.quantity],
+                ["Total CV", summary?.cv],
+              ].map(([label, value]) => (
+                <div
+                  key={String(label)}
+                  className="flex items-center justify-between gap-3 py-2 first:pt-0"
+                >
+                  <span className="text-xs text-slate-500">{label}</span>
+                  <span className="text-sm font-bold text-slate-900 tabular-nums">
+                    {summaryNumber(value as number | null | undefined)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
       {/* FILTERS */}
       <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
@@ -873,7 +1476,10 @@ const FinanceReport = () => {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_auto]">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -881,7 +1487,11 @@ const FinanceReport = () => {
               className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
             />
           </div>
-          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]">
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
+          >
             <option value="all">All Statuses</option>
             <option value="dispatched">Dispatched</option>
             <option value="shipped">Shipped</option>
@@ -889,61 +1499,106 @@ const FinanceReport = () => {
             <option value="delivered">Delivered</option>
             <option value="partial_delivered">Partial Delivered</option>
           </select>
-          <select value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)} className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]">
+          <select
+            value={accountFilter}
+            onChange={(event) => setAccountFilter(event.target.value)}
+            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
+          >
             <option value="all">All Account Types</option>
             <option value="customer">Customer</option>
             <option value="distributor">Distributor</option>
           </select>
           <div className="relative">
-            <CalendarDays size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]" />
+            <CalendarDays
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(event) => setFromDate(event.target.value)}
+              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
+            />
           </div>
           <div className="relative">
-            <CalendarDays size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]" />
+            <CalendarDays
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+            <input
+              type="date"
+              value={toDate}
+              onChange={(event) => setToDate(event.target.value)}
+              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
+            />
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={applyFilters} disabled={loading} className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:opacity-60">
+            <button
+              type="button"
+              onClick={applyFilters}
+              disabled={loading}
+              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:opacity-60"
+            >
               <Filter size={15} /> Apply
             </button>
-            <button type="button" onClick={clearFilters} title="Clear filters" className="flex h-10 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-500">
+            <button
+              type="button"
+              onClick={clearFilters}
+              title="Clear filters"
+              className="flex h-10 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-500"
+            >
               <X size={15} />
             </button>
           </div>
         </div>
       </div>
-
       {/* FINANCE RECORDS */}
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
           <div>
-            <h2 className="text-base font-bold text-gray-900">Finance Reports</h2>
+            <h2 className="text-base font-bold text-gray-900">
+              Finance Reports
+            </h2>
             <p className="mt-1 text-xs text-gray-500">
-              Each row is a product/order line. Invoice-level totals and GST split are exported once per order.
+              Product-wise sales and GST details. Export includes all matching
+              records.
             </p>
           </div>
           <span className="w-fit rounded-full bg-[#EAF3FF] px-3 py-1.5 text-xs font-semibold text-[#1E40AF]">
             {filteredReports.length} Item Rows
           </span>
         </div>
-
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
-            <p className="mt-3 text-sm font-medium text-gray-500">Loading finance report...</p>
+            <p className="mt-3 text-sm font-medium text-gray-500">
+              Loading finance report...
+            </p>
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]"><FileText size={25} /></div>
-            <h3 className="mt-4 text-base font-bold text-gray-800">No Finance Records Found</h3>
-            <p className="mt-1 max-w-sm text-sm text-gray-500">No records match your search or selected filters.</p>
-            <button type="button" onClick={clearFilters} className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]">Clear Filters</button>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
+              <FileText size={25} />
+            </div>
+            <h3 className="mt-4 text-base font-bold text-gray-800">
+              No Finance Records Found
+            </h3>
+            <p className="mt-1 max-w-sm text-sm text-gray-500">
+              No records match your search or selected filters.
+            </p>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
+            >
+              Clear Filters
+            </button>
           </div>
         ) : (
           <>
             {/* DESKTOP TABLE */}
-            <div className="hidden w-full overflow-hidden xl:block">
-              <table className="w-full table-fixed border-collapse text-left">
+            <div className="hidden w-full overflow-x-auto xl:block">
+              <table className="w-full min-w-[1420px] table-fixed border-collapse text-left">
                 <colgroup>
                   <col style={{ width: "10%" }} />
                   <col style={{ width: "14%" }} />
@@ -957,8 +1612,23 @@ const FinanceReport = () => {
                 </colgroup>
                 <thead>
                   <tr className="bg-[#F7FAFE]">
-                    {["Invoice / Date", "Customer / GSTIN", "Product / GST %", "Qty / Unit Price", "Shipping", "Item Total / GST", "GST Breakdown", "Payment", "Order"].map((heading) => (
-                      <th key={heading} className="whitespace-normal break-words border-b border-[#DCE6F2] px-2.5 py-3 text-[9px] font-bold uppercase tracking-wide text-gray-500">{heading}</th>
+                    {[
+                      "Invoice / Date",
+                      "Customer / GSTIN",
+                      "Product / GST %",
+                      "Qty / Unit Price",
+                      "Shipping",
+                      "Item Total / GST",
+                      "GST Breakdown",
+                      "Payment",
+                      "Order",
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="whitespace-normal break-words border-b border-[#DCE6F2] px-2.5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500"
+                      >
+                        {heading}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -966,46 +1636,99 @@ const FinanceReport = () => {
                   {filteredReports.map((item, index) => {
                     const row = asLineItem(item);
                     return (
-                      <tr key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`} className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]">
+                      <tr
+                        key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
+                        className="border-b border-gray-100 transition last:border-0 hover:bg-[#F8FBFF]"
+                      >
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-[11px] font-bold text-gray-900">{valueOrDash(item.invoice_number)}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-500">{formatDate(item.invoice_date)}</p>
-                          {row.order_reference && <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">{row.order_reference}</p>}
+                          <p className="break-words text-xs font-bold text-gray-900">
+                            {valueOrDash(item.invoice_number)}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-500">
+                            {formatDate(item.invoice_date)}
+                          </p>
+                          {row.order_reference && (
+                            <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
+                              {row.order_reference}
+                            </p>
+                          )}
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-[10px] font-semibold text-gray-800">{valueOrDash(item.customer_name)}</p>
-                          <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">Mobile: {valueOrDash(item.customer_mobile)}</p>
-                          <p className="mt-1 break-all text-[9px] text-gray-500">{valueOrDash(item.customer_email)}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-600">GSTIN: {getGstinNumber(item)}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-600">State: {valueOrDash(getPlaceOfSupply(item))}</p>
-                          <p className="mt-1 break-words text-[9px] capitalize text-gray-400">{valueOrDash(item.account_type)}</p>
+                          <p className="break-words text-xs font-semibold text-gray-800">
+                            {valueOrDash(item.customer_name)}
+                          </p>
+                          <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
+                            Mobile: {valueOrDash(item.customer_mobile)}
+                          </p>
+                          <p className="mt-1 break-all text-xs text-gray-500">
+                            {valueOrDash(item.customer_email)}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-600">
+                            GSTIN: {getGstinNumber(item)}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-600">
+                            State: {valueOrDash(getPlaceOfSupply(item))}
+                          </p>
+                          <p className="mt-1 break-words text-xs capitalize text-gray-400">
+                            {valueOrDash(item.account_type)}
+                          </p>
                         </td>
-                        <td className="min-w-0 px-2.5 py-3 align-top"><ProductDetails item={item} /></td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-[10px] font-bold text-gray-900">{getQuantity(item)} Qty</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-600">Unit: {money(row.unit_price_without_gst)}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-500">Line: {money(row.line_total_without_gst)}</p>
+                          <ProductDetails item={item} />
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="text-[9px] text-gray-500">Without GST</p>
-                          <p className="mt-0.5 break-words text-[10px] font-semibold text-gray-800">{money(getLineShipping(item))}</p>
-                          <p className="mt-1 text-[9px] text-gray-500">Shipping GST</p>
-                          <p className="mt-0.5 break-words text-[10px] font-semibold text-gray-800">{money(getLineShippingGst(item))}</p>
-                          <div className="mt-2"><CourierDetails item={item} /></div>
+                          <p className="break-words text-xs font-bold text-gray-900">
+                            {getQuantity(item)} Qty
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-600">
+                            Unit: {money(row.unit_price_without_gst)}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-500">
+                            Line: {money(row.line_total_without_gst)}
+                          </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-[10px] font-bold text-gray-900">{money(getLineGross(item))}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-500">Product GST: {money(getLineGst(item))}</p>
-                          <p className="mt-1 break-words text-[9px] text-gray-400">Invoice: {money(row.net_order_amount)}</p>
+                          <p className="text-xs text-gray-500">Without GST</p>
+                          <p className="mt-0.5 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineShipping(item))}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Shipping GST
+                          </p>
+                          <p className="mt-0.5 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineShippingGst(item))}
+                          </p>
+                          <div className="mt-2">
+                            <CourierDetails item={item} />
+                          </div>
                         </td>
-                        <td className="min-w-0 px-2.5 py-3 align-top"><TaxBreakdownDetails item={item} /></td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-[10px] font-semibold text-gray-800">{valueOrDash(item.payment_gateway)}</p>
-                          <p className="mt-1 break-all text-[9px] text-gray-500">{valueOrDash(item.gateway_transaction_id)}</p>
+                          <p className="break-words text-xs font-bold text-gray-900">
+                            {money(getLineGross(item))}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-500">
+                            Product GST: {money(getLineGst(item))}
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-400">
+                            Service charge: {money(row.total_service_charge)}
+                          </p>
+                        </td>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <TaxBreakdownDetails item={item} />
+                        </td>
+                        <td className="min-w-0 px-2.5 py-3 align-top">
+                          <p className="break-words text-xs font-semibold text-gray-800">
+                            {valueOrDash(item.payment_gateway)}
+                          </p>
+                          <p className="mt-1 break-all text-xs text-gray-500">
+                            {valueOrDash(item.gateway_transaction_id)}
+                          </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <StatusBadge status={item.order_status} />
-                          <p className="mt-1 break-words text-[9px] text-gray-400">{formatDate(item.order_date)}</p>
+                          <p className="mt-1 break-words text-xs text-gray-400">
+                            {formatDate(item.order_date)}
+                          </p>
                         </td>
                       </tr>
                     );
@@ -1013,111 +1736,200 @@ const FinanceReport = () => {
                 </tbody>
               </table>
             </div>
-
             {/* MOBILE / TABLET CARDS */}
             <div className="space-y-3 p-3 xl:hidden">
               {filteredReports.map((item, index) => {
                 const row = asLineItem(item);
-                const tax = getTaxBreakdown(item);
-                const hsn = getHsnCode(item);
+                const tax = getSalesLineTax(item);
                 return (
-                  <div key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`} className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
+                  <div
+                    key={`${item.invoice_number || "invoice"}-${row.order_line_id ?? row.item_reference_id ?? index}-${index}`}
+                    className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white"
+                  >
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Invoice Number</p>
-                          <p className="mt-1 break-all text-sm font-bold text-gray-900">{valueOrDash(item.invoice_number)}</p>
-                          <p className="mt-1 text-xs text-gray-500">{formatDate(item.invoice_date)}</p>
-                          {row.order_reference && <p className="mt-1 break-all text-[9px] font-medium text-[#2D6FE8]">{row.order_reference}</p>}
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Invoice Number
+                          </p>
+                          <p className="mt-1 break-all text-sm font-bold text-gray-900">
+                            {valueOrDash(item.invoice_number)}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500">
+                            {formatDate(item.invoice_date)}
+                          </p>
+                          {row.order_reference && (
+                            <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
+                              {row.order_reference}
+                            </p>
+                          )}
                         </div>
                         <StatusBadge status={item.order_status} />
                       </div>
-
                       <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
-                        <p className="text-sm font-semibold text-gray-800">{valueOrDash(item.customer_name)}</p>
-                        <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">Mobile: {valueOrDash(item.customer_mobile)}</p>
-                        <p className="mt-1 break-all text-xs text-gray-500">{valueOrDash(item.customer_email)}</p>
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
-                          <p className="break-all text-gray-600">GSTIN: <span className="font-semibold">{getGstinNumber(item)}</span></p>
-                          <p className="break-words text-gray-600">State: <span className="font-semibold">{valueOrDash(getPlaceOfSupply(item))}</span></p>
-                          <p className="capitalize text-gray-500">{valueOrDash(item.account_type)}</p>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {valueOrDash(item.customer_name)}
+                        </p>
+                        <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
+                          Mobile: {valueOrDash(item.customer_mobile)}
+                        </p>
+                        <p className="mt-1 break-all text-xs text-gray-500">
+                          {valueOrDash(item.customer_email)}
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                          <p className="break-all text-gray-600">
+                            GSTIN:{" "}
+                            <span className="font-semibold">
+                              {getGstinNumber(item)}
+                            </span>
+                          </p>
+                          <p className="break-words text-gray-600">
+                            State:{" "}
+                            <span className="font-semibold">
+                              {valueOrDash(getPlaceOfSupply(item))}
+                            </span>
+                          </p>
+                          <p className="capitalize text-gray-500">
+                            {valueOrDash(item.account_type)}
+                          </p>
                         </div>
                       </div>
-
                       <div className="mt-3 rounded-lg border border-[#E8EEF6] p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Product Item</p>
-                          <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-[10px] font-semibold text-[#1E40AF]">Qty: {getQuantity(item)}</span>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Product Item
+                          </p>
+                          <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-xs font-semibold text-[#1E40AF]">
+                            Qty: {getQuantity(item)}
+                          </span>
                         </div>
-                        <p className="mt-1 break-words text-sm font-semibold text-gray-800">{valueOrDash(getProductName(item))}</p>
-                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-gray-500">
+                        <p className="mt-1 break-words text-sm font-semibold text-gray-800">
+                          {valueOrDash(getProductName(item))}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
                           <span>Code: {valueOrDash(getProductCode(item))}</span>
-                          
+                          <span>
+                            Category: {valueOrDash(getProductCategory(item))}
+                          </span>
+                          <span>HSN: {valueOrDash(getHsnCode(item))}</span>
                           <span>GST: {getGstPercentage(item) || "—"}</span>
                         </div>
-                        {row.item_reference_id && <p className="mt-1 break-all text-[9px] text-gray-400">Item Ref: {row.item_reference_id}</p>}
+                        {row.item_reference_id && (
+                          <p className="mt-1 break-all text-xs text-gray-400">
+                            Item Ref: {row.item_reference_id}
+                          </p>
+                        )}
                       </div>
-
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Product Total (excl. GST)</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">{money(getLineSubtotal(item))}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Product Total (excl. GST)
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineSubtotal(item))}
+                          </p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Product GST</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">{money(getLineGst(item))}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Product GST
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineGst(item))}
+                          </p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Shipping (excl. GST)</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">{money(getLineShipping(item))}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Shipping (excl. GST)
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineShipping(item))}
+                          </p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Shipping GST</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">{money(getLineShippingGst(item))}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Shipping GST
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-800">
+                            {money(getLineShippingGst(item))}
+                          </p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Unit Price (excl. GST)</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">{money(row.unit_price_without_gst)}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Unit Price (excl. GST)
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">
+                            {money(row.unit_price_without_gst)}
+                          </p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Payment Gateway</p>
-                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">{valueOrDash(item.payment_gateway)}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Payment Gateway
+                          </p>
+                          <p className="mt-1 break-words text-xs font-semibold text-gray-700">
+                            {valueOrDash(item.payment_gateway)}
+                          </p>
                         </div>
                       </div>
-
                       <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F7FAFE] p-3">
                         <div className="mb-3 flex items-center justify-between gap-2">
-                          <p className="text-[10px] font-bold uppercase tracking-wide text-gray-600">GST Tax Breakdown</p>
-                          <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-[9px] font-semibold text-[#1E40AF]">Invoice-level</span>
+                          <p className="text-xs font-bold uppercase tracking-wide text-gray-600">
+                            GST Tax Breakdown
+                          </p>
+                          <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF]">
+                            Product-line GST
+                          </span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                          {[["CGST", tax.cgst], ["SGST", tax.sgst], ["IGST", tax.igst], ["Total Tax", tax.total]].map(([label, amount]) => (
-                            <div key={String(label)} className="rounded-lg border border-[#E8EEF6] bg-white p-2.5">
-                              <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-                              <p className="mt-1 break-words text-xs font-bold text-gray-800">{money(Number(amount))}</p>
+                          {[
+                            ["CGST", tax.cgst],
+                            ["SGST", tax.sgst],
+                            ["IGST", tax.igst],
+                            ["Total Tax", tax.total],
+                          ].map(([label, amount]) => (
+                            <div
+                              key={String(label)}
+                              className="rounded-lg border border-[#E8EEF6] bg-white p-2.5"
+                            >
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                                {label}
+                              </p>
+                              <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                                {amount === null ? "—" : money(Number(amount))}
+                              </p>
                             </div>
                           ))}
                         </div>
-                      
                       </div>
-
                       <div className="mt-3 border-t border-[#E8EEF6] pt-3">
-                        <p className="mb-2 flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-gray-400"><Truck size={12} /> Courier & Tracking</p>
+                        <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          <Truck size={12} /> Courier & Tracking
+                        </p>
                         <CourierDetails item={item} />
                       </div>
-
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EEF6] pt-3">
                         <div className="min-w-0">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Order Date</p>
-                          <p className="mt-1 break-words text-[10px] text-gray-500">{formatDate(item.order_date)}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Order Date
+                          </p>
+                          <p className="mt-1 break-words text-xs text-gray-500">
+                            {formatDate(item.order_date)}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Item Total</p>
-                          <p className="mt-1 break-words text-xs font-bold text-gray-800">{money(getLineGross(item))}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Item Total
+                          </p>
+                          <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                            {money(getLineGross(item))}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[9px] font-semibold uppercase tracking-wide text-gray-400">Invoice Value</p>
-                          <p className="mt-1 break-words text-xs font-bold text-gray-800">{money(row.net_order_amount)}</p>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            Service Charge
+                          </p>
+                          <p className="mt-1 break-words text-xs font-bold text-gray-800">
+                            {money(row.total_service_charge)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1125,17 +1937,83 @@ const FinanceReport = () => {
                 );
               })}
             </div>
-
+            {/* CURRENT PAGE TOTALS */}
+            <div className="border-t border-slate-200 bg-[#F1F6FB] px-4 py-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Current page totals
+                </h3>
+                <span className="text-xs text-slate-500">
+                  {filteredReports.length} visible product lines
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
+                {[
+                  ["Quantity", displayNumber(pageSummary.quantity)],
+                  [
+                    "Product subtotal",
+                    displayMoney(pageSummary.productSubtotal),
+                  ],
+                  [
+                    "Shipping excl. GST",
+                    displayMoney(pageSummary.shippingBase),
+                  ],
+                  ["Sub Total", displayMoney(pageSummary.subtotal)],
+                  ["Total GST", displayMoney(pageSummary.gst)],
+                  ["Total Sales", displayMoney(pageSummary.sales)],
+                ].map(([label, value]) => (
+                  <div key={label} className="min-w-0">
+                    <p className="text-xs text-slate-500">{label}</p>
+                    <p
+                      className={`mt-1 break-words text-sm font-bold tabular-nums ${label === "Total Sales" ? "text-[#1E40AF]" : "text-slate-900"}`}
+                    >
+                      {value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
             {/* PAGINATION */}
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">
-                Showing invoices <span className="font-semibold text-gray-800">{startRecord}–{endRecord}</span> of <span className="font-semibold text-gray-800">{totalRecords}</span>
-                <span className="ml-1 text-gray-400">({filteredReports.length} product rows on this page)</span>
+                Showing orders{" "}
+                <span className="font-semibold text-gray-800">
+                  {startRecord}–{endRecord}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-800">
+                  {totalRecords}
+                </span>
+                <span className="ml-1 text-gray-400">
+                  ({filteredReports.length} product rows on this page)
+                </span>
               </p>
               <div className="flex items-center gap-2">
-                <button type="button" disabled={currentPage <= 1 || loading} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Previous page"><ChevronLeft size={16} /></button>
-                <span className="min-w-[85px] text-center text-xs font-semibold text-gray-700">Page {currentPage} of {lastPage}</span>
-                <button type="button" disabled={currentPage >= lastPage || loading} onClick={() => setCurrentPage((page) => Math.min(lastPage, page + 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40" aria-label="Next page"><ChevronRight size={16} /></button>
+                <button
+                  type="button"
+                  disabled={currentPage <= 1 || loading}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(1, page - 1))
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="min-w-[85px] text-center text-xs font-semibold text-gray-700">
+                  Page {currentPage} of {lastPage}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= lastPage || loading}
+                  onClick={() =>
+                    setCurrentPage((page) => Math.min(lastPage, page + 1))
+                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
           </>
@@ -1144,5 +2022,4 @@ const FinanceReport = () => {
     </div>
   );
 };
-
 export default FinanceReport;
