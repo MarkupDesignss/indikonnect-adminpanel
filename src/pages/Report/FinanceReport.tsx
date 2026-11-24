@@ -236,7 +236,7 @@ const getPlaceOfSupply = (item: FinanceReportItem) => {
 };
 const getGstinNumber = (item: FinanceReportItem) => {
   const gstin = trimmedValue(asLineItem(item).customer_gstin);
-  return gstin || "URP";
+  return gstin || "—";
 };
 const getGstPercentage = (item: FinanceReportItem) => {
   const rate = asLineItem(item).line_tax_rate;
@@ -652,6 +652,325 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
   });
 };
 
+/* ================= URP / B2C INVOICE REPORT ================= */
+const URP_HEADERS = [
+  "Invoice Number",
+  "Invoice date",
+  "Customer Name",
+  "Place Of Supply (POS)",
+  "Rate",
+  "Taxable Value",
+  "CGST",
+  "SGST",
+  "IGST",
+  "Invoice Value",
+];
+const isUrp = (item: FinanceReportItem) =>
+  trimmedValue(asLineItem(item).customer_gstin).toUpperCase() === "URP";
+
+const GST_STATES: Record<string, string> = {
+  "01": "Jammu and Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "26": "Dadra and Nagar Haveli and Daman and Diu",
+  "27": "Maharashtra",
+  "29": "Karnataka",
+  "30": "Goa",
+  "31": "Lakshadweep",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "34": "Puducherry",
+  "35": "Andaman and Nicobar Islands",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+  "38": "Ladakh",
+  "97": "Other Territory",
+};
+const stateKey = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "");
+const formatPos = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  const raw = trimmedValue(row.place_of_supply) || getPlaceOfSupply(item);
+  const code = raw.match(/^(\d{2})(?:\s*[-–:]\s*.*)?$/)?.[1];
+  if (code && GST_STATES[code]) return `${code}-${GST_STATES[code]}`;
+  const aliases: Record<string, string> = {
+    newdelhi: "07",
+    orissa: "21",
+    pondicherry: "34",
+    uttaranchal: "05",
+    damananddiu: "26",
+    dadraandnagarhaveli: "26",
+  };
+  const key = stateKey(raw);
+  const matched =
+    aliases[key] ||
+    Object.keys(GST_STATES).find((k) => stateKey(GST_STATES[k]) === key);
+  return matched ? `${matched}-${GST_STATES[matched]}` : raw;
+};
+type UrpRow = [
+  string,
+  Date | string | null,
+  string,
+  string,
+  number,
+  number,
+  number | null,
+  number | null,
+  number | null,
+  number,
+];
+const buildUrpRows = (items: FinanceReportItem[]): UrpRow[] => {
+  const groups = new Map<string, UrpRow>();
+  items.forEach((item, index) => {
+    if (!isUrp(item)) return;
+    const row = asLineItem(item);
+    const invoice = trimmedValue(item.invoice_number);
+    const date = parseExcelDate(item.invoice_date, true);
+    const customer = trimmedValue(item.customer_name);
+    const pos = formatPos(item);
+    const rate = numberValue(row.line_tax_rate);
+    const shippingRate = getShippingTaxRate(item);
+    const product = getLineSubtotal(item);
+    const shipping = getLineShipping(item);
+    const service = getLineServiceCharge(item);
+    const tax = getSalesLineTax(item);
+    const add = (
+      r: number,
+      base: number,
+      cgst: number | null,
+      sgst: number | null,
+      igst: number | null,
+      value: number,
+    ) => {
+      const key = JSON.stringify([
+        invoice || `missing-${index}`,
+        date,
+        customer,
+        pos,
+        r,
+      ]);
+      const previous = groups.get(key);
+      const next: UrpRow = [
+        invoice,
+        date,
+        customer,
+        pos,
+        r,
+        base,
+        cgst,
+        sgst,
+        igst,
+        value,
+      ];
+      if (previous) {
+        previous[5] = roundMoney(previous[5] + base);
+        ([6, 7, 8] as const).forEach((i) => {
+          const a = previous[i],
+            b = next[i];
+          previous[i] = a === null || b === null ? null : roundMoney(a + b);
+        });
+        previous[9] = roundMoney(previous[9] + value);
+      } else groups.set(key, next);
+    };
+    if (shipping === 0 || shippingRate === rate) {
+      add(
+        rate,
+        getLineCombinedSubtotal(item),
+        tax.cgst,
+        tax.sgst,
+        tax.igst,
+        getLineGross(item),
+      );
+    } else {
+      // A separate shipping rate must occupy its own rate row. Preserve line rounding.
+      const productTax = getLineGst(item);
+      const regime = getTaxRegime(item);
+      const central =
+        regime === "intra"
+          ? Math.ceil(Math.round(productTax * 100) / 2) / 100
+          : regime === "inter" || productTax === 0
+            ? 0
+            : null;
+      const state =
+        regime === "intra" && central !== null
+          ? roundMoney(productTax - central)
+          : central === null
+            ? null
+            : 0;
+      const integrated =
+        regime === "inter" ? productTax : central === null ? null : 0;
+      const rest = (total: number | null, part: number | null) =>
+        total === null || part === null ? null : roundMoney(total - part);
+      add(
+        rate,
+        product,
+        central,
+        state,
+        integrated,
+        roundMoney(product + productTax + service),
+      );
+      add(
+        shippingRate,
+        shipping,
+        rest(tax.cgst, central),
+        rest(tax.sgst, state),
+        rest(tax.igst, integrated),
+        roundMoney(shipping + getLineShippingGst(item)),
+      );
+    }
+  });
+  return Array.from(groups.values());
+};
+const urpCellText = (value: UrpRow[number], col: number) => {
+  if (value == null || value === "") return "—";
+  if (value instanceof Date)
+    return value
+      .toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+        timeZone: "UTC",
+      })
+      .replace(/ /g, "-");
+  if (typeof value === "number")
+    return value.toLocaleString(
+      "en-IN",
+      col === 4
+        ? { maximumFractionDigits: 2 }
+        : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    );
+  return value;
+};
+const salesCsvCell = (value: unknown): string => {
+  let text =
+    value == null
+      ? ""
+      : value instanceof Date
+        ? Number.isNaN(value.getTime())
+          ? ""
+          : value
+              .toISOString()
+              .slice(0, 19)
+              .replace("T00:00:00", "")
+              .replace("T", " ")
+        : String(value);
+  // Escape formula-like text, but leave actual numeric values numeric.
+  if (typeof value === "string" && /^\s*[=+@-]/.test(text)) text = "'" + text;
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const addUrpWorksheet = (
+  workbook: ExcelJS.Workbook,
+  items: FinanceReportItem[],
+) => {
+  const sheet = workbook.addWorksheet("URP Sales", {
+    views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
+  });
+  const rows = buildUrpRows(items);
+  const minimum = [22, 17, 27, 32, 10, 19, 16, 16, 16, 20];
+  sheet.columns = URP_HEADERS.map((heading, i) => ({
+    width: Math.min(
+      60,
+      rows.reduce(
+        (max, row) => Math.max(max, urpCellText(row[i], i).length + 4),
+        Math.max(minimum[i], heading.length + 4),
+      ),
+    ),
+  }));
+  const header = sheet.addRow(URP_HEADERS);
+  header.height = 30;
+  header.eachCell((cell) => {
+    cell.font = {
+      name: "Calibri",
+      size: 11,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF173B63" },
+    };
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+  });
+  rows.forEach((values, index) => {
+    const row = sheet.addRow(values);
+    row.height = Math.max(
+      24,
+      ...values.map(
+        (v, i) =>
+          14 *
+            Math.ceil(
+              urpCellText(v, i).length /
+                Math.max(8, (sheet.getColumn(i + 1).width || 20) - 4),
+            ) +
+          8,
+      ),
+    );
+    URP_HEADERS.forEach((_, i) => {
+      const cell = row.getCell(i + 1);
+      cell.font = {
+        name: "Calibri",
+        size: 11,
+        bold: i === 9,
+        color: { argb: "FF173B63" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: i === 9 ? "FFDCEEFF" : index % 2 ? "FFF3F7FC" : "FFFFFFFF",
+        },
+      };
+      const edge: Partial<ExcelJS.Border> = {
+        style: "thin",
+        color: { argb: "FFD3DFEB" },
+      };
+      cell.border = { top: edge, bottom: edge, left: edge, right: edge };
+      cell.alignment = {
+        horizontal: i >= 4 ? "right" : "left",
+        vertical: "top",
+        wrapText: true,
+        indent: 1,
+      };
+      cell.numFmt =
+        i === 1 ? "dd-mmm-yy" : i === 4 ? "0.##" : i >= 5 ? "#,##0.00" : "@";
+    });
+  });
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: rows.length + 1, column: URP_HEADERS.length },
+  };
+};
+
 // Calculate all additive fields from the same mapping used by Excel.
 const summarizeSales = (items: FinanceReportItem[]) => {
   const rows = buildSalesRows(items);
@@ -871,9 +1190,14 @@ const FinanceReport = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [accountFilter, setAccountFilter] = useState("all");
+  const [gstFilter, setGstFilter] = useState<"all" | "urp" | "registered">(
+    "all",
+  );
+  const urpMode = gstFilter === "urp";
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [appliedDates, setAppliedDates] = useState({
@@ -930,7 +1254,7 @@ const FinanceReport = () => {
       setLoading(false);
       return;
     }
-    void fetchReports(true);
+    void fetchReports(true, Math.min(currentPage, lastPage));
   }, [permissionsLoading, canViewReport, fetchReports]);
   const fetchAllReportRows = useCallback(async () => {
     const allItems: FinanceReportItem[] = [];
@@ -1021,15 +1345,39 @@ const FinanceReport = () => {
         const matchesAccount =
           accountFilter === "all" ||
           (item.account_type || "").toLowerCase() === accountFilter;
-        return matchesSearch && matchesStatus && matchesAccount;
+        const gstin = trimmedValue(row.customer_gstin);
+        const matchesGst =
+          gstFilter === "all" ||
+          (gstFilter === "urp" ? isUrp(item) : !!gstin && !isUrp(item));
+        return matchesSearch && matchesStatus && matchesAccount && matchesGst;
       });
     },
-    [search, statusFilter, accountFilter],
+    [search, statusFilter, accountFilter, gstFilter],
   );
+  const allFilteredReports = useMemo(
+    () => (overviewRows === null ? null : filterReports(overviewRows)),
+    [overviewRows, filterReports],
+  );
+  const displayTotal =
+    allFilteredReports === null ? totalRecords : allFilteredReports.length;
+  const displayLastPage =
+    allFilteredReports === null
+      ? lastPage
+      : Math.max(1, Math.ceil(displayTotal / PER_PAGE));
+  const displayPage = Math.min(currentPage, displayLastPage);
   const filteredReports = useMemo(
-    () => filterReports(reports),
-    [reports, filterReports],
+    () =>
+      allFilteredReports === null
+        ? filterReports(reports)
+        : allFilteredReports.slice(
+            (displayPage - 1) * PER_PAGE,
+            displayPage * PER_PAGE,
+          ),
+    [allFilteredReports, displayPage, reports, filterReports],
   );
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterReports]);
   /* ================= SUMMARY ================= */
   const summary = useMemo(() => {
     if (overviewRows === null) return null;
@@ -1059,6 +1407,7 @@ const FinanceReport = () => {
     setSearch("");
     setStatusFilter("all");
     setAccountFilter("all");
+    setGstFilter("all");
     setFromDate("");
     setToDate("");
     setCurrentPage(1);
@@ -1070,7 +1419,7 @@ const FinanceReport = () => {
       toast.error("You don't have permission to export this report.");
       return;
     }
-    if (exporting) return;
+    if (exporting || exportingCsv) return;
     setExporting(true);
     try {
       const allItems = await fetchAllReportRows();
@@ -1088,478 +1437,268 @@ const FinanceReport = () => {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "IndieKonnect";
       workbook.calcProperties.fullCalcOnLoad = true;
-      // The first worksheet is a compact, client-facing explanation of the same
-      // frontend-calculated data. The 44-column audit worksheet stays intact.
-      const overview = workbook.addWorksheet("Sales Overview", {
-        views: [
-          { state: "frozen", xSplit: 3, ySplit: 5, showGridLines: false },
-        ],
-        properties: { defaultRowHeight: 25 },
-      });
-      // Keep every value inside its own cell, including long customer details.
-      const cellText = (value: unknown): string => {
-        if (value == null) return "";
-        if (value instanceof Date) return "00-00-0000 00:00";
-        if (typeof value === "number")
-          return value.toLocaleString("en-IN", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
-        return String(value);
-      };
-      const fitWidth = (
-        minimum: number,
-        values: unknown[],
-        numeric = false,
-      ) => {
-        const longest = values.reduce<number>(
-          (max, value) =>
-            Math.max(
-              max,
-              ...cellText(value)
-                .split("\n")
-                .map((part) => part.length),
-            ),
-          0,
-        );
-        // Numeric columns grow to accommodate large totals; text wraps at a sensible width.
-        return Math.min(
-          numeric ? 48 : 42,
-          Math.max(minimum, Math.ceil(longest * 1.12) + 5),
-        );
-      };
-      const fittedRowHeight = (
-        values: unknown[],
-        widths: number[],
-        minimum = 34,
-      ) => {
-        const lines = values.reduce<number>((max, value, i) => {
-          const capacity = Math.max(4, Math.floor((widths[i] - 5) / 1.12));
-          const count = cellText(value)
-            .split("\n")
-            .reduce(
-              (sum, part) =>
-                sum + Math.max(1, Math.ceil(part.length / capacity)),
-              0,
-            );
-          return Math.max(max, count);
-        }, 1);
-        return Math.min(409, Math.max(minimum, 14 * lines + 12));
-      };
-      const cellGrid = (color = "FFD3DFEB"): Partial<ExcelJS.Borders> => ({
-        top: { style: "thin", color: { argb: color } },
-        bottom: { style: "thin", color: { argb: color } },
-        left: { style: "thin", color: { argb: color } },
-        right: { style: "thin", color: { argb: color } },
-      });
-      const overviewColumns = [
-        { source: "Invoice Number", label: "Invoice No.", width: 18 },
-        { source: "Customer Name", label: "Customer Name", width: 25 },
-        { source: "Customer Email", label: "Customer Email", width: 31 },
-        { source: "User Name", label: "User Name", width: 22 },
-        { source: "Product Name", label: "Product Name", width: 33 },
-        { source: "Product Head", label: "Product Category", width: 23 },
-        { source: "Quantity", label: "Qty", width: 9 },
-        {
-          source: "Product Subtotal Without GST",
-          label: "Product Amount\n(before tax)",
-          width: 19,
-        },
-        {
-          source: "Shipping Charges Without GST",
-          label: "Shipping\n(before tax)",
-          width: 17,
-        },
-        { source: "Sub Total", label: "Subtotal\n(before tax)", width: 19 },
-        { source: "Total Tax", label: "GST\n(total tax)", width: 17 },
-        {
-          source: "Total Service Charge",
-          label: "Service\nCharges",
-          width: 16,
-        },
-        { source: "Total", label: "Final Amount\n(incl. tax)", width: 21 },
-      ];
-      const overviewTextCount = overviewColumns.findIndex(
-        (col) => col.source === "Quantity",
-      );
-      const isOverviewTotal = (i: number) =>
-        overviewColumns[i].source === "Total";
-      const isOverviewSubtotal = (i: number) =>
-        overviewColumns[i].source === "Sub Total";
-      const isOverviewQuantity = (i: number) =>
-        overviewColumns[i].source === "Quantity";
-      const simpleRows = rows.map((row) =>
-        overviewColumns.map(({ source }) => row[SALES_HEADERS.indexOf(source)]),
-      );
-      const overviewWidths = overviewColumns.map((col, i) => {
-        const values = simpleRows.map((row) => row[i]);
-        const total =
-          i >= overviewTextCount
-            ? values.reduce<number>(
-                (sum, value) => sum + (typeof value === "number" ? value : 0),
-                0,
-              )
-            : null;
-        return fitWidth(
-          Math.max(col.width, i >= overviewTextCount ? 17 : 19),
-          [col.label, ...values, total],
-          i >= overviewTextCount,
-        );
-      });
-      overview.columns = overviewWidths.map((width) => ({ width }));
-      const fill = (argb: string): ExcelJS.Fill => ({
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb },
-      });
-      const overviewBanner = (
-        row: number,
-        value: string,
-        bg: string,
-        fg: string,
-        size: number,
-        bold = false,
-      ) => {
-        overview.mergeCells(row, 1, row, overviewColumns.length);
-        const cell = overview.getCell(row, 1);
-        cell.value = value;
-        cell.fill = fill(bg);
-        cell.font = { name: "Calibri", size, bold, color: { argb: fg } };
-        cell.alignment = {
-          vertical: "middle",
-          horizontal: "left",
-          indent: 1,
-          wrapText: true,
-        };
-      };
-      overviewBanner(
-        1,
-        "INDIEKONNECT  /  SALES OVERVIEW",
-        "FF173B63",
-        "FFFFFFFF",
-        20,
-        true,
-      );
-      overview.getRow(1).height = 42;
-      const period = `${appliedDates.fromDate || "Any start date"} to ${appliedDates.toDate || "Any end date"}`;
-      overviewBanner(
-        2,
-        `${period}  |  ${rows.length} product lines  |  All amounts in INR (₹)`,
-        "FFF0F7FF",
-        "FF456580",
-        11,
-      );
-      overview.getRow(2).height = 25;
-      overviewBanner(
-        3,
-        "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount",
-        "FFFFFFFF",
-        "FF173B63",
-        12,
-        true,
-      );
-      overview.getRow(3).height = 30;
-      overviewBanner(
-        4,
-        "Use the column filters to find a product or invoice. Full GST, payment and courier details are in Sales Data.",
-        "FFFFFFFF",
-        "FF456580",
-        11,
-      );
-      overview.getRow(4).height = 25;
-      const simpleHeader = overview.addRow(
-        overviewColumns.map((col) => col.label),
-      );
-      simpleHeader.height = fittedRowHeight(
-        overviewColumns.map((col) => col.label),
-        overviewWidths,
-        42,
-      );
-      overviewColumns.forEach((_, i) => {
-        const cell = simpleHeader.getCell(i + 1);
-        const key = isOverviewSubtotal(i) || isOverviewTotal(i);
-        cell.fill = fill(key ? "FFBBDCFB" : "FF24466A");
-        cell.font = {
-          name: "Calibri",
-          size: 11,
-          bold: true,
-          color: { argb: key ? "FF173B63" : "FFFFFFFF" },
-        };
-        cell.alignment = {
-          horizontal: "center",
-          vertical: "middle",
-          wrapText: true,
-        };
-        cell.border = cellGrid("FF9FB5CA");
-      });
-      simpleRows.forEach((values, index) => {
-        const line = overview.addRow(values);
-        line.height = fittedRowHeight(values, overviewWidths);
-        overviewColumns.forEach((_, i) => {
-          const cell = line.getCell(i + 1);
-          const key = isOverviewSubtotal(i) || isOverviewTotal(i);
-          cell.fill = fill(
-            isOverviewTotal(i)
-              ? "FFDCEEFF"
-              : isOverviewSubtotal(i)
-                ? "FFF0F7FF"
-                : index % 2
-                  ? "FFF5F8FC"
-                  : "FFFFFFFF",
-          );
-          cell.font = {
-            name: "Calibri",
-            size: 11,
-            bold: isOverviewTotal(i),
-            color: { argb: key ? "FF173B63" : "FF253C52" },
-          };
-          cell.alignment = {
-            horizontal: i < overviewTextCount ? "left" : "right",
-            vertical: "middle",
-            indent: 1,
-            wrapText: true,
-          };
-          cell.border = cellGrid();
-          cell.numFmt =
-            i < overviewTextCount
-              ? "@"
-              : isOverviewQuantity(i)
-                ? "#,##0"
-                : "#,##0.00";
+      if (urpMode) {
+        addUrpWorksheet(workbook, exportItems);
+      } else {
+        // The first worksheet is a compact, client-facing explanation of the same
+        // frontend-calculated data. The 44-column audit worksheet stays intact.
+        const overview = workbook.addWorksheet("Sales Overview", {
+          views: [
+            { state: "frozen", xSplit: 3, ySplit: 5, showGridLines: false },
+          ],
+          properties: { defaultRowHeight: 25 },
         });
-      });
-      const overviewLast = simpleRows.length + 5;
-      overview.autoFilter = {
-        from: { row: 5, column: 1 },
-        to: { row: overviewLast, column: overviewColumns.length },
-      };
-      const simpleTotal = overview.addRow([]);
-      simpleTotal.height = 40;
-      overview.mergeCells(
-        simpleTotal.number,
-        1,
-        simpleTotal.number,
-        overviewTextCount,
-      );
-      simpleTotal.getCell(1).value = "GRAND TOTAL";
-      overviewColumns.forEach((_, i) => {
-        const cell = simpleTotal.getCell(i + 1);
-        cell.fill = fill(isOverviewTotal(i) ? "FFBBDCFB" : "FFDCEEFF");
-        cell.font = {
-          name: "Calibri",
-          size: 12,
-          bold: true,
-          color: { argb: "FF173B63" },
+        // Keep every value inside its own cell, including long customer details.
+        const cellText = (value: unknown): string => {
+          if (value == null) return "";
+          if (value instanceof Date) return "00-00-0000 00:00";
+          if (typeof value === "number")
+            return value.toLocaleString("en-IN", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            });
+          return String(value);
         };
-        cell.alignment = {
-          horizontal: i < overviewTextCount ? "left" : "right",
-          vertical: "middle",
-          indent: 1,
-          wrapText: true,
-        };
-        cell.border = cellGrid("FF9FB5CA");
-        if (i >= overviewTextCount) {
-          const letter = overview.getColumn(i + 1).letter;
-          const sum = roundMoney(
-            simpleRows.reduce(
-              (acc, row) =>
-                acc + (typeof row[i] === "number" ? Number(row[i]) : 0),
-              0,
-            ),
+        const fitWidth = (
+          minimum: number,
+          values: unknown[],
+          numeric = false,
+        ) => {
+          const longest = values.reduce<number>(
+            (max, value) =>
+              Math.max(
+                max,
+                ...cellText(value)
+                  .split("\n")
+                  .map((part) => part.length),
+              ),
+            0,
           );
-          cell.value = {
-            formula: `SUBTOTAL(109,${letter}6:${letter}${overviewLast})`,
-            result: sum,
-          };
-          cell.numFmt = isOverviewQuantity(i) ? "#,##0" : "#,##0.00";
-        }
-      });
-      overviewBanner(
-        overviewLast + 3,
-        "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.",
-        "FFF0F7FF",
-        "FF456580",
-        10,
-      );
-      overview.getRow(overviewLast + 3).height = 31;
-      overviewBanner(
-        overviewLast + 4,
-        "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
-        "FFFFFFFF",
-        "FF456580",
-        10,
-      );
-      overview.getRow(overviewLast + 4).height = 28;
-      const sheet = workbook.addWorksheet("Sales Data", {
-        views: [
-          { state: "frozen", xSplit: 3, ySplit: 1, showGridLines: false },
-        ],
-        properties: { defaultRowHeight: 23 },
-      });
-      const currencyFormat = "#,##0.00;[Red](#,##0.00);0.00";
-      const textHeaders = new Set([
-        "Order Reference",
-        "Item Reference ID",
-        "Invoice Number",
-        "SKU",
-        "HSN Code",
-        "User Name",
-        "Customer Mobile",
-        "Gateway Transaction ID",
-        "Courier Company",
-        "Courier Tracking Number",
-      ]);
-      const moneyHeaders = new Set([
-        "Price",
-        "Total Discount",
-        "Total Tax",
-        "CGST",
-        "SGST",
-        "IGST",
-        "Sub Total",
-        "Total",
-        "Shipping Charges",
-        "Unit Price Without GST",
-        "Product Subtotal Without GST",
-        "Product GST",
-        "Shipping Charges Without GST",
-        "Shipping GST",
-        "Service Charge Per Unit",
-        "Total Service Charge",
-      ]);
-      const dateTimeHeaders = new Set([
-        "Order Date",
-        "Confirmed At",
-        "Dispatched At",
-        "Delivered At",
-      ]);
-      const groupColor = (heading: string) => {
-        if (["Sub Total", "Total"].includes(heading)) return "FFBBDCFB";
-        if (heading === "Price") return "FF13795B";
-        if (
-          [
-            "Total Tax",
-            "CGST",
-            "SGST",
-            "IGST",
-            "Tax Percentage",
-            "Product GST",
-            "Shipping GST",
-          ].includes(heading)
-        )
-          return "FF365A83";
-        if (moneyHeaders.has(heading) || ["CV", "Quantity"].includes(heading))
-          return "FF24466A";
-        return "FF17324D";
-      };
-      const salesWidths = SALES_WIDTHS.map((width, i) => {
-        const heading = SALES_HEADERS[i];
-        const numeric =
-          moneyHeaders.has(heading) ||
-          ["Quantity", "CV", "Tax Percentage"].includes(heading);
-        const values = rows.map((row) => row[i]);
-        const total = SALES_TOTAL_HEADERS.includes(heading)
-          ? values.reduce<number>(
-              (sum, value) => sum + (typeof value === "number" ? value : 0),
-              0,
-            )
-          : null;
-        return fitWidth(
-          Math.max(width, moneyHeaders.has(heading) ? 20 : numeric ? 14 : 18),
-          [heading, ...values, total],
-          numeric,
+          // Numeric columns grow to accommodate large totals; text wraps at a sensible width.
+          return Math.min(
+            numeric ? 48 : 42,
+            Math.max(minimum, Math.ceil(longest * 1.12) + 5),
+          );
+        };
+        const fittedRowHeight = (
+          values: unknown[],
+          widths: number[],
+          minimum = 34,
+        ) => {
+          const lines = values.reduce<number>((max, value, i) => {
+            const capacity = Math.max(4, Math.floor((widths[i] - 5) / 1.12));
+            const count = cellText(value)
+              .split("\n")
+              .reduce(
+                (sum, part) =>
+                  sum + Math.max(1, Math.ceil(part.length / capacity)),
+                0,
+              );
+            return Math.max(max, count);
+          }, 1);
+          return Math.min(409, Math.max(minimum, 14 * lines + 12));
+        };
+        const cellGrid = (color = "FFD3DFEB"): Partial<ExcelJS.Borders> => ({
+          top: { style: "thin", color: { argb: color } },
+          bottom: { style: "thin", color: { argb: color } },
+          left: { style: "thin", color: { argb: color } },
+          right: { style: "thin", color: { argb: color } },
+        });
+        const overviewColumns = [
+          { source: "Invoice Number", label: "Invoice No.", width: 18 },
+          { source: "Customer Name", label: "Customer Name", width: 25 },
+          { source: "Customer Email", label: "Customer Email", width: 31 },
+          { source: "User Name", label: "User Name", width: 22 },
+          { source: "Product Name", label: "Product Name", width: 33 },
+          { source: "Product Head", label: "Product Category", width: 23 },
+          { source: "Quantity", label: "Qty", width: 9 },
+          {
+            source: "Product Subtotal Without GST",
+            label: "Product Amount\n(before tax)",
+            width: 19,
+          },
+          {
+            source: "Shipping Charges Without GST",
+            label: "Shipping\n(before tax)",
+            width: 17,
+          },
+          { source: "Sub Total", label: "Subtotal\n(before tax)", width: 19 },
+          { source: "Total Tax", label: "GST\n(total tax)", width: 17 },
+          {
+            source: "Total Service Charge",
+            label: "Service\nCharges",
+            width: 16,
+          },
+          { source: "Total", label: "Final Amount\n(incl. tax)", width: 21 },
+        ];
+        const overviewTextCount = overviewColumns.findIndex(
+          (col) => col.source === "Quantity",
         );
-      });
-      sheet.columns = salesWidths.map((width) => ({ width }));
-      // Row 1 headers, row 2 onward sales data, final row grand total.
-      const header = sheet.addRow(SALES_HEADERS);
-      header.height = fittedRowHeight(SALES_HEADERS, salesWidths, 42);
-      for (let c = 1; c <= SALES_HEADERS.length; c++) {
-        const cell = header.getCell(c);
-        cell.fill = {
+        const isOverviewTotal = (i: number) =>
+          overviewColumns[i].source === "Total";
+        const isOverviewSubtotal = (i: number) =>
+          overviewColumns[i].source === "Sub Total";
+        const isOverviewQuantity = (i: number) =>
+          overviewColumns[i].source === "Quantity";
+        const simpleRows = rows.map((row) =>
+          overviewColumns.map(
+            ({ source }) => row[SALES_HEADERS.indexOf(source)],
+          ),
+        );
+        const overviewWidths = overviewColumns.map((col, i) => {
+          const values = simpleRows.map((row) => row[i]);
+          const total =
+            i >= overviewTextCount
+              ? values.reduce<number>(
+                  (sum, value) => sum + (typeof value === "number" ? value : 0),
+                  0,
+                )
+              : null;
+          return fitWidth(
+            Math.max(col.width, i >= overviewTextCount ? 17 : 19),
+            [col.label, ...values, total],
+            i >= overviewTextCount,
+          );
+        });
+        overview.columns = overviewWidths.map((width) => ({ width }));
+        const fill = (argb: string): ExcelJS.Fill => ({
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: groupColor(SALES_HEADERS[c - 1]) },
-        };
-        cell.font = {
-          name: "Calibri",
-          size: 11,
-          bold: true,
-          color: {
-            argb: ["Sub Total", "Total"].includes(SALES_HEADERS[c - 1])
-              ? "FF173B63"
-              : "FFFFFFFF",
-          },
-        };
-        cell.alignment = {
-          horizontal: "center",
-          vertical: "middle",
-          wrapText: true,
-        };
-        cell.border = cellGrid("FF9FB5CA");
-      }
-      rows.forEach((values, index) => {
-        const excelRow = sheet.addRow(values);
-        excelRow.height = fittedRowHeight(values, salesWidths);
-        for (let c = 1; c <= SALES_HEADERS.length; c++) {
-          const heading = SALES_HEADERS[c - 1];
-          const cell = excelRow.getCell(c);
-          const numeric =
-            moneyHeaders.has(heading) ||
-            ["Quantity", "CV", "Tax Percentage"].includes(heading);
-          const keyTotal = ["Sub Total", "Total"].includes(heading);
-          cell.font = {
-            name: "Calibri",
-            size: 11,
-            color: { argb: keyTotal ? "FF173B63" : "FF253C52" },
-            bold: keyTotal,
-          };
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: {
-              argb: keyTotal
-                ? heading === "Total"
-                  ? "FFDCEEFF"
-                  : "FFF0F7FF"
-                : index % 2 === 0
-                  ? "FFFFFFFF"
-                  : "FFF2F6FA",
-            },
-          };
+          fgColor: { argb },
+        });
+        const overviewBanner = (
+          row: number,
+          value: string,
+          bg: string,
+          fg: string,
+          size: number,
+          bold = false,
+        ) => {
+          overview.mergeCells(row, 1, row, overviewColumns.length);
+          const cell = overview.getCell(row, 1);
+          cell.value = value;
+          cell.fill = fill(bg);
+          cell.font = { name: "Calibri", size, bold, color: { argb: fg } };
           cell.alignment = {
             vertical: "middle",
-            horizontal: numeric ? "right" : "left",
+            horizontal: "left",
             indent: 1,
             wrapText: true,
           };
-          cell.border = cellGrid();
-          if (textHeaders.has(heading)) cell.numFmt = "@";
-          if (moneyHeaders.has(heading)) cell.numFmt = currencyFormat;
-          if (heading === "Quantity" || heading === "CV")
-            cell.numFmt = "#,##0.##";
-          if (heading === "Tax Percentage") cell.numFmt = '0.##"%"';
-          if (heading === "Invoice Date") cell.numFmt = "dd-mm-yyyy";
-          if (dateTimeHeaders.has(heading)) cell.numFmt = "dd-mm-yyyy hh:mm";
-        }
-      });
-      const lastRow = rows.length + 1;
-      const footer = sheet.addRow([]);
-      footer.height = 40;
-      sheet.autoFilter = {
-        from: { row: 1, column: 1 },
-        to: { row: lastRow, column: SALES_HEADERS.length },
-      };
-      // Label cells are outside the numeric columns. Merge only A:C so frozen panes remain intact.
-      [footer.number].forEach((r) => {
-        for (let c = 1; c <= SALES_HEADERS.length; c++) {
-          const cell = sheet.getRow(r).getCell(c);
-          const heading = SALES_HEADERS[c - 1];
-          cell.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: heading === "Total" ? "FFBBDCFB" : "FFDCEEFF" },
+        };
+        overviewBanner(
+          1,
+          "INDIEKONNECT  /  SALES OVERVIEW",
+          "FF173B63",
+          "FFFFFFFF",
+          20,
+          true,
+        );
+        overview.getRow(1).height = 42;
+        const period = `${appliedDates.fromDate || "Any start date"} to ${appliedDates.toDate || "Any end date"}`;
+        overviewBanner(
+          2,
+          `${period}  |  ${rows.length} product lines  |  All amounts in INR (₹)`,
+          "FFF0F7FF",
+          "FF456580",
+          11,
+        );
+        overview.getRow(2).height = 25;
+        overviewBanner(
+          3,
+          "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount",
+          "FFFFFFFF",
+          "FF173B63",
+          12,
+          true,
+        );
+        overview.getRow(3).height = 30;
+        overviewBanner(
+          4,
+          "Use the column filters to find a product or invoice. Full GST, payment and courier details are in Sales Data.",
+          "FFFFFFFF",
+          "FF456580",
+          11,
+        );
+        overview.getRow(4).height = 25;
+        const simpleHeader = overview.addRow(
+          overviewColumns.map((col) => col.label),
+        );
+        simpleHeader.height = fittedRowHeight(
+          overviewColumns.map((col) => col.label),
+          overviewWidths,
+          42,
+        );
+        overviewColumns.forEach((_, i) => {
+          const cell = simpleHeader.getCell(i + 1);
+          const key = isOverviewSubtotal(i) || isOverviewTotal(i);
+          cell.fill = fill(key ? "FFBBDCFB" : "FF24466A");
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: true,
+            color: { argb: key ? "FF173B63" : "FFFFFFFF" },
           };
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
+          cell.border = cellGrid("FF9FB5CA");
+        });
+        simpleRows.forEach((values, index) => {
+          const line = overview.addRow(values);
+          line.height = fittedRowHeight(values, overviewWidths);
+          overviewColumns.forEach((_, i) => {
+            const cell = line.getCell(i + 1);
+            const key = isOverviewSubtotal(i) || isOverviewTotal(i);
+            cell.fill = fill(
+              isOverviewTotal(i)
+                ? "FFDCEEFF"
+                : isOverviewSubtotal(i)
+                  ? "FFF0F7FF"
+                  : index % 2
+                    ? "FFF5F8FC"
+                    : "FFFFFFFF",
+            );
+            cell.font = {
+              name: "Calibri",
+              size: 11,
+              bold: isOverviewTotal(i),
+              color: { argb: key ? "FF173B63" : "FF253C52" },
+            };
+            cell.alignment = {
+              horizontal: i < overviewTextCount ? "left" : "right",
+              vertical: "middle",
+              indent: 1,
+              wrapText: true,
+            };
+            cell.border = cellGrid();
+            cell.numFmt =
+              i < overviewTextCount
+                ? "@"
+                : isOverviewQuantity(i)
+                  ? "#,##0"
+                  : "#,##0.00";
+          });
+        });
+        const overviewLast = simpleRows.length + 5;
+        overview.autoFilter = {
+          from: { row: 5, column: 1 },
+          to: { row: overviewLast, column: overviewColumns.length },
+        };
+        const simpleTotal = overview.addRow([]);
+        simpleTotal.height = 40;
+        overview.mergeCells(
+          simpleTotal.number,
+          1,
+          simpleTotal.number,
+          overviewTextCount,
+        );
+        simpleTotal.getCell(1).value = "GRAND TOTAL";
+        overviewColumns.forEach((_, i) => {
+          const cell = simpleTotal.getCell(i + 1);
+          cell.fill = fill(isOverviewTotal(i) ? "FFBBDCFB" : "FFDCEEFF");
           cell.font = {
             name: "Calibri",
             size: 12,
@@ -1567,49 +1706,271 @@ const FinanceReport = () => {
             color: { argb: "FF173B63" },
           };
           cell.alignment = {
-            horizontal: "right",
+            horizontal: i < overviewTextCount ? "left" : "right",
             vertical: "middle",
             indent: 1,
             wrapText: true,
           };
           cell.border = cellGrid("FF9FB5CA");
-        }
-        sheet.mergeCells(r, 1, r, 3);
-        const title = sheet.getCell(r, 1);
-        title.value = "GRAND TOTAL  |  VISIBLE ROWS";
-        title.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
-        const detail = sheet.getCell(r, 6);
-        detail.value = "INR •calculated";
-        detail.alignment = {
-          horizontal: "left",
-          vertical: "middle",
-          indent: 1,
-          wrapText: true,
-        };
-      });
-      SALES_TOTAL_HEADERS.forEach((heading) => {
-        const col = SALES_HEADERS.indexOf(heading);
-        if (col < 0) return;
-        const column = sheet.getColumn(col + 1).letter;
-        const values = rows
-          .map((row) => row[col])
-          .filter((value): value is number => typeof value === "number");
-        if (!values.length) return;
-        if (
-          ["CGST", "SGST", "IGST"].includes(heading) &&
-          values.length !== rows.length
-        )
-          return;
-        const sum = roundMoney(values.reduce((acc, value) => acc + value, 0));
-        [footer.number].forEach((r) => {
-          const cell = sheet.getRow(r).getCell(col + 1);
-          cell.value = {
-            formula: `SUBTOTAL(109,${column}2:${column}${lastRow})`,
-            result: sum,
-          };
-          cell.numFmt = moneyHeaders.has(heading) ? currencyFormat : "#,##0.##";
+          if (i >= overviewTextCount) {
+            const letter = overview.getColumn(i + 1).letter;
+            const sum = roundMoney(
+              simpleRows.reduce(
+                (acc, row) =>
+                  acc + (typeof row[i] === "number" ? Number(row[i]) : 0),
+                0,
+              ),
+            );
+            cell.value = {
+              formula: `SUBTOTAL(109,${letter}6:${letter}${overviewLast})`,
+              result: sum,
+            };
+            cell.numFmt = isOverviewQuantity(i) ? "#,##0" : "#,##0.00";
+          }
         });
-      });
+        overviewBanner(
+          overviewLast + 3,
+          "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.",
+          "FFF0F7FF",
+          "FF456580",
+          10,
+        );
+        overview.getRow(overviewLast + 3).height = 31;
+        overviewBanner(
+          overviewLast + 4,
+          "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+          "FFFFFFFF",
+          "FF456580",
+          10,
+        );
+        overview.getRow(overviewLast + 4).height = 28;
+        const sheet = workbook.addWorksheet("Sales Data", {
+          views: [
+            { state: "frozen", xSplit: 3, ySplit: 1, showGridLines: false },
+          ],
+          properties: { defaultRowHeight: 23 },
+        });
+        const currencyFormat = "#,##0.00;[Red](#,##0.00);0.00";
+        const textHeaders = new Set([
+          "Order Reference",
+          "Item Reference ID",
+          "Invoice Number",
+          "SKU",
+          "HSN Code",
+          "User Name",
+          "Customer Mobile",
+          "Gateway Transaction ID",
+          "Courier Company",
+          "Courier Tracking Number",
+        ]);
+        const moneyHeaders = new Set([
+          "Price",
+          "Total Discount",
+          "Total Tax",
+          "CGST",
+          "SGST",
+          "IGST",
+          "Sub Total",
+          "Total",
+          "Shipping Charges",
+          "Unit Price Without GST",
+          "Product Subtotal Without GST",
+          "Product GST",
+          "Shipping Charges Without GST",
+          "Shipping GST",
+          "Service Charge Per Unit",
+          "Total Service Charge",
+        ]);
+        const dateTimeHeaders = new Set([
+          "Order Date",
+          "Confirmed At",
+          "Dispatched At",
+          "Delivered At",
+        ]);
+        const groupColor = (heading: string) => {
+          if (["Sub Total", "Total"].includes(heading)) return "FFBBDCFB";
+          if (heading === "Price") return "FF13795B";
+          if (
+            [
+              "Total Tax",
+              "CGST",
+              "SGST",
+              "IGST",
+              "Tax Percentage",
+              "Product GST",
+              "Shipping GST",
+            ].includes(heading)
+          )
+            return "FF365A83";
+          if (moneyHeaders.has(heading) || ["CV", "Quantity"].includes(heading))
+            return "FF24466A";
+          return "FF17324D";
+        };
+        const salesWidths = SALES_WIDTHS.map((width, i) => {
+          const heading = SALES_HEADERS[i];
+          const numeric =
+            moneyHeaders.has(heading) ||
+            ["Quantity", "CV", "Tax Percentage"].includes(heading);
+          const values = rows.map((row) => row[i]);
+          const total = SALES_TOTAL_HEADERS.includes(heading)
+            ? values.reduce<number>(
+                (sum, value) => sum + (typeof value === "number" ? value : 0),
+                0,
+              )
+            : null;
+          return fitWidth(
+            Math.max(width, moneyHeaders.has(heading) ? 20 : numeric ? 14 : 18),
+            [heading, ...values, total],
+            numeric,
+          );
+        });
+        sheet.columns = salesWidths.map((width) => ({ width }));
+        // Row 1 headers, row 2 onward sales data, final row grand total.
+        const header = sheet.addRow(SALES_HEADERS);
+        header.height = fittedRowHeight(SALES_HEADERS, salesWidths, 42);
+        for (let c = 1; c <= SALES_HEADERS.length; c++) {
+          const cell = header.getCell(c);
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: groupColor(SALES_HEADERS[c - 1]) },
+          };
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: true,
+            color: {
+              argb: ["Sub Total", "Total"].includes(SALES_HEADERS[c - 1])
+                ? "FF173B63"
+                : "FFFFFFFF",
+            },
+          };
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
+          cell.border = cellGrid("FF9FB5CA");
+        }
+        rows.forEach((values, index) => {
+          const excelRow = sheet.addRow(values);
+          excelRow.height = fittedRowHeight(values, salesWidths);
+          for (let c = 1; c <= SALES_HEADERS.length; c++) {
+            const heading = SALES_HEADERS[c - 1];
+            const cell = excelRow.getCell(c);
+            const numeric =
+              moneyHeaders.has(heading) ||
+              ["Quantity", "CV", "Tax Percentage"].includes(heading);
+            const keyTotal = ["Sub Total", "Total"].includes(heading);
+            cell.font = {
+              name: "Calibri",
+              size: 11,
+              color: { argb: keyTotal ? "FF173B63" : "FF253C52" },
+              bold: keyTotal,
+            };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: {
+                argb: keyTotal
+                  ? heading === "Total"
+                    ? "FFDCEEFF"
+                    : "FFF0F7FF"
+                  : index % 2 === 0
+                    ? "FFFFFFFF"
+                    : "FFF2F6FA",
+              },
+            };
+            cell.alignment = {
+              vertical: "middle",
+              horizontal: numeric ? "right" : "left",
+              indent: 1,
+              wrapText: true,
+            };
+            cell.border = cellGrid();
+            if (textHeaders.has(heading)) cell.numFmt = "@";
+            if (moneyHeaders.has(heading)) cell.numFmt = currencyFormat;
+            if (heading === "Quantity" || heading === "CV")
+              cell.numFmt = "#,##0.##";
+            if (heading === "Tax Percentage") cell.numFmt = '0.##"%"';
+            if (heading === "Invoice Date") cell.numFmt = "dd-mm-yyyy";
+            if (dateTimeHeaders.has(heading)) cell.numFmt = "dd-mm-yyyy hh:mm";
+          }
+        });
+        const lastRow = rows.length + 1;
+        const footer = sheet.addRow([]);
+        footer.height = 40;
+        sheet.autoFilter = {
+          from: { row: 1, column: 1 },
+          to: { row: lastRow, column: SALES_HEADERS.length },
+        };
+        // Label cells are outside the numeric columns. Merge only A:C so frozen panes remain intact.
+        [footer.number].forEach((r) => {
+          for (let c = 1; c <= SALES_HEADERS.length; c++) {
+            const cell = sheet.getRow(r).getCell(c);
+            const heading = SALES_HEADERS[c - 1];
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: heading === "Total" ? "FFBBDCFB" : "FFDCEEFF" },
+            };
+            cell.font = {
+              name: "Calibri",
+              size: 12,
+              bold: true,
+              color: { argb: "FF173B63" },
+            };
+            cell.alignment = {
+              horizontal: "right",
+              vertical: "middle",
+              indent: 1,
+              wrapText: true,
+            };
+            cell.border = cellGrid("FF9FB5CA");
+          }
+          sheet.mergeCells(r, 1, r, 3);
+          const title = sheet.getCell(r, 1);
+          title.value = "GRAND TOTAL  |  VISIBLE ROWS";
+          title.alignment = {
+            horizontal: "left",
+            vertical: "middle",
+            indent: 1,
+          };
+          const detail = sheet.getCell(r, 6);
+          detail.value = "INR •calculated";
+          detail.alignment = {
+            horizontal: "left",
+            vertical: "middle",
+            indent: 1,
+            wrapText: true,
+          };
+        });
+        SALES_TOTAL_HEADERS.forEach((heading) => {
+          const col = SALES_HEADERS.indexOf(heading);
+          if (col < 0) return;
+          const column = sheet.getColumn(col + 1).letter;
+          const values = rows
+            .map((row) => row[col])
+            .filter((value): value is number => typeof value === "number");
+          if (!values.length) return;
+          if (
+            ["CGST", "SGST", "IGST"].includes(heading) &&
+            values.length !== rows.length
+          )
+            return;
+          const sum = roundMoney(values.reduce((acc, value) => acc + value, 0));
+          [footer.number].forEach((r) => {
+            const cell = sheet.getRow(r).getCell(col + 1);
+            cell.value = {
+              formula: `SUBTOTAL(109,${column}2:${column}${lastRow})`,
+              result: sum,
+            };
+            cell.numFmt = moneyHeaders.has(heading)
+              ? currencyFormat
+              : "#,##0.##";
+          });
+        });
+      }
       const buffer = await workbook.xlsx.writeBuffer();
       const bytes = new Uint8Array(buffer);
       const blob = new Blob([bytes], {
@@ -1618,7 +1979,7 @@ const FinanceReport = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `sales-data-${formatDateInput(new Date())}.xlsx`;
+      link.download = `${urpMode ? "urp-sales" : "sales-data"}-${formatDateInput(new Date())}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1634,9 +1995,65 @@ const FinanceReport = () => {
     }
   };
 
+  /* ================= CSV EXPORT ================= */
+  const exportCsv = async () => {
+    if (!canExport) {
+      toast.error("You don't have permission to export this report.");
+      return;
+    }
+    if (exporting || exportingCsv) return;
+    setExportingCsv(true);
+    try {
+      const exportItems = filterReports(await fetchAllReportRows());
+      if (!exportItems.length) {
+        toast.error("No finance records available to export");
+        return;
+      }
+      if (exportItems.some(hasMissingCalculationInputs)) {
+        throw new Error(
+          "Cannot calculate sales: quantity, taxable unit price, GST rate or shipping base is missing.",
+        );
+      }
+      // The compact format is exclusive to downloads with the URP filter.
+      const headers = urpMode ? URP_HEADERS : SALES_HEADERS;
+      const rows = urpMode
+        ? buildUrpRows(exportItems)
+        : buildSalesRows(exportItems);
+      const csvRows = rows.map((row) =>
+        row.map((value, i) =>
+          urpMode && i === 1 && value instanceof Date
+            ? urpCellText(value, i)
+            : value,
+        ),
+      );
+      const csv = [headers, ...csvRows]
+        .map((row) => row.map(salesCsvCell).join(","))
+        .join("\r\n");
+      const blob = new Blob(["\uFEFF", csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${urpMode ? "urp-sales" : "sales-data"}-${formatDateInput(new Date())}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success("Sales Data exported successfully");
+    } catch (error) {
+      console.error("Sales Data CSV export error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to export Sales Data",
+      );
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
   /* ================= PAGINATION ================= */
-  const startRecord = totalRecords === 0 ? 0 : (currentPage - 1) * PER_PAGE + 1;
-  const endRecord = Math.min(currentPage * PER_PAGE, totalRecords);
+  const startRecord = displayTotal === 0 ? 0 : (displayPage - 1) * PER_PAGE + 1;
+  const endRecord = Math.min(displayPage * PER_PAGE, displayTotal);
   const pageLoading = permissionsLoading || logoLoading;
   if (pageLoading) return <PermissionLoadingState logoUrl={logoUrl} />;
   if (!canViewReport) {
@@ -1677,7 +2094,7 @@ const FinanceReport = () => {
           <button
             type="button"
             onClick={() => {
-              void fetchReports(false, currentPage);
+              void fetchReports(false, Math.min(currentPage, lastPage));
               setOverviewRevision((value) => value + 1);
             }}
             disabled={refreshing || loading}
@@ -1689,8 +2106,23 @@ const FinanceReport = () => {
           {canExport && (
             <button
               type="button"
+              onClick={() => void exportCsv()}
+              disabled={exporting || exportingCsv || loading || refreshing}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {exportingCsv ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <FileText size={16} />
+              )}
+              {exportingCsv ? "Exporting CSV..." : "Export CSV"}
+            </button>
+          )}
+          {canExport && (
+            <button
+              type="button"
               onClick={() => void exportExcel()}
-              disabled={exporting || loading || refreshing}
+              disabled={exporting || exportingCsv || loading || refreshing}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {exporting ? (
@@ -1859,7 +2291,7 @@ const FinanceReport = () => {
           <Filter size={17} className="text-[#2D6FE8]" />
           <h2 className="text-sm font-bold text-gray-800">Search & Filters</h2>
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_auto]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_1fr_auto]">
           <div className="relative">
             <Search
               size={16}
@@ -1892,6 +2324,19 @@ const FinanceReport = () => {
             <option value="all">All Account Types</option>
             <option value="customer">Customer</option>
             <option value="distributor">Distributor</option>
+          </select>
+          <select
+            aria-label="GST registration"
+            value={gstFilter}
+            onChange={(event) => {
+              setGstFilter(event.target.value as "all" | "urp" | "registered");
+              setCurrentPage(1);
+            }}
+            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
+          >
+            <option value="all">All GST Types</option>
+            <option value="urp">URP</option>
+            <option value="registered">Registered</option>
           </select>
           <div className="relative">
             <CalendarDays
@@ -2366,13 +2811,13 @@ const FinanceReport = () => {
             {/* PAGINATION */}
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">
-                Showing orders{" "}
+                Showing product rows{" "}
                 <span className="font-semibold text-gray-800">
                   {startRecord}–{endRecord}
                 </span>{" "}
                 of{" "}
                 <span className="font-semibold text-gray-800">
-                  {totalRecords}
+                  {displayTotal}
                 </span>
                 <span className="ml-1 text-gray-400">
                   ({filteredReports.length} product rows on this page)
@@ -2381,23 +2826,21 @@ const FinanceReport = () => {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={currentPage <= 1 || loading}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.max(1, page - 1))
-                  }
+                  disabled={displayPage <= 1 || loading}
+                  onClick={() => setCurrentPage(Math.max(1, displayPage - 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <span className="min-w-[85px] text-center text-xs font-semibold text-gray-700">
-                  Page {currentPage} of {lastPage}
+                  Page {displayPage} of {displayLastPage}
                 </span>
                 <button
                   type="button"
-                  disabled={currentPage >= lastPage || loading}
+                  disabled={displayPage >= displayLastPage || loading}
                   onClick={() =>
-                    setCurrentPage((page) => Math.min(lastPage, page + 1))
+                    setCurrentPage(Math.min(displayLastPage, displayPage + 1))
                   }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next page"
