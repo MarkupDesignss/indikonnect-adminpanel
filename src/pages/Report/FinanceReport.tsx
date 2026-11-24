@@ -77,6 +77,14 @@ type FinanceReportLineItem = FinanceReportItem & {
   unit_price_without_gst?: number | string | null;
   line_total_without_gst?: number | string | null;
   line_tax_rate?: number | string | null;
+  shipping_tax_rate?: number | string | null;
+  line_shipping_tax_rate?: number | string | null;
+  shipping_gst_rate?: number | string | null;
+  tax_type?: string | null;
+  gst_type?: string | null;
+  supplier_state?: string | null;
+  seller_state?: string | null;
+  place_of_supply?: string | null;
   line_gst_amount?: number | string | null;
   line_shipping_charge_without_gst?: number | string | null;
   line_shipping_gst?: number | string | null;
@@ -235,42 +243,63 @@ const getGstPercentage = (item: FinanceReportItem) => {
   if (rate === null || rate === undefined || rate === "") return "";
   return `${numberValue(rate)}%`;
 };
+/* All calculated financial fields use primitive inputs, not API totals.
+ * Assumptions for the current API contract:
+ * - unit_price_without_gst is the net taxable unit price (discount already reflected).
+ * - line_shipping_charge_without_gst is the shipping base for the entire line.
+ * - shipping uses the product GST rate unless a separate shipping rate is supplied.
+ * - service charge per unit is added as supplied; no separate service GST is assumed.
+ */
+const hasMissingCalculationInputs = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  return [
+    row.quantity,
+    row.unit_price_without_gst,
+    row.line_tax_rate,
+    row.line_shipping_charge_without_gst ?? row.shipping_charge_without_gst,
+  ].some((value) => optionalNumber(value) === null);
+};
 const getLineSubtotal = (item: FinanceReportItem) => {
   const row = asLineItem(item);
-  return numberValue(
-    row.product_subtotal ??
-      row.line_total_without_gst ??
-      numberValue(row.unit_price_without_gst) * getQuantity(item),
+  return roundMoney(
+    numberValue(row.unit_price_without_gst) * getQuantity(item),
   );
 };
-const getLineGst = (item: FinanceReportItem) => {
-  const row = asLineItem(item);
-  return numberValue(row.product_gst ?? row.line_gst_amount);
-};
+const getLineGst = (item: FinanceReportItem) =>
+  roundMoney(
+    (getLineSubtotal(item) * numberValue(asLineItem(item).line_tax_rate)) / 100,
+  );
 const getLineShipping = (item: FinanceReportItem) => {
   const row = asLineItem(item);
+  return roundMoney(
+    numberValue(
+      row.line_shipping_charge_without_gst ?? row.shipping_charge_without_gst,
+    ),
+  );
+};
+const getShippingTaxRate = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
   return numberValue(
-    row.shipping_charge_without_gst ?? row.line_shipping_charge_without_gst,
+    row.line_shipping_tax_rate ??
+      row.shipping_tax_rate ??
+      row.shipping_gst_rate ??
+      row.line_tax_rate,
   );
 };
-const getLineShippingGst = (item: FinanceReportItem) => {
-  const row = asLineItem(item);
-  return numberValue(row.shipping_gst ?? row.line_shipping_gst);
-};
+const getLineShippingGst = (item: FinanceReportItem) =>
+  roundMoney((getLineShipping(item) * getShippingTaxRate(item)) / 100);
+const getLineServiceCharge = (item: FinanceReportItem) =>
+  roundMoney(
+    numberValue(asLineItem(item).service_charge_per_unit) * getQuantity(item),
+  );
 const getLineCombinedSubtotal = (item: FinanceReportItem) =>
-  optionalNumber(asLineItem(item).product_total_shipping_charge_without_gst) ??
   roundMoney(getLineSubtotal(item) + getLineShipping(item));
-const getLineGross = (item: FinanceReportItem) => {
-  const row = asLineItem(item);
-  return (
-    optionalNumber(row.total_item_amount) ??
-    roundMoney(
-      getLineCombinedSubtotal(item) +
-        getSalesLineTax(item).total +
-        numberValue(row.total_service_charge),
-    )
+const getLineGross = (item: FinanceReportItem) =>
+  roundMoney(
+    getLineCombinedSubtotal(item) +
+      getSalesLineTax(item).total +
+      getLineServiceCharge(item),
   );
-};
 const getInvoiceKey = (item: FinanceReportItem, index: number) => {
   const row = asLineItem(item);
   return String(
@@ -453,19 +482,48 @@ const parseExcelDate = (
     );
   return raw;
 };
-// The new API supplies the tax breakdown for each product line.
-// Preserve the supplied split exactly, including any one-paise rounding difference.
-const getSalesLineTax = (item: FinanceReportItem) => {
+// Determine the tax regime without using backend tax amounts in arithmetic.
+const getTaxRegime = (item: FinanceReportItem): "intra" | "inter" | null => {
   const row = asLineItem(item);
-  const tax = row.line_tax_breakdown ?? row.tax_breakdown;
-  return {
-    total:
-      optionalNumber(row.total_gst) ??
-      roundMoney(getLineGst(item) + getLineShippingGst(item)),
-    cgst: optionalNumber(tax?.cgst),
-    sgst: optionalNumber(tax?.sgst),
-    igst: optionalNumber(tax?.igst),
-  };
+  const type = trimmedValue(row.tax_type ?? row.gst_type)
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (["igst", "inter", "interstate"].includes(type)) return "inter";
+  if (["cgstsgst", "sgstcgst", "intra", "intrastate"].includes(type))
+    return "intra";
+  const supplier = trimmedValue(
+    row.supplier_state ?? row.seller_state,
+  ).toLowerCase();
+  const supply = trimmedValue(
+    row.place_of_supply ?? row.delivery_state ?? row.billing_state,
+  ).toLowerCase();
+  if (supplier && supply) return supplier === supply ? "intra" : "inter";
+  // Legacy response has no tax type. Use only the nonzero pattern as a regime hint.
+  const hint = row.line_tax_breakdown ?? row.tax_breakdown;
+  const central = numberValue(hint?.cgst) > 0;
+  const state = numberValue(hint?.sgst) > 0;
+  const integrated = numberValue(hint?.igst) > 0;
+  if (integrated && !central && !state) return "inter";
+  if (!integrated && central && state) return "intra";
+  return null;
+};
+const getSalesLineTax = (item: FinanceReportItem) => {
+  const total = roundMoney(getLineGst(item) + getLineShippingGst(item));
+  if (total === 0) return { total, cgst: 0, sgst: 0, igst: 0 };
+  const regime = getTaxRegime(item);
+  if (regime === "inter") return { total, cgst: 0, sgst: 0, igst: total };
+  if (regime === "intra") {
+    const paise = Math.round(total * 100);
+    const central = Math.ceil(paise / 2);
+    return {
+      total,
+      cgst: central / 100,
+      sgst: (paise - central) / 100,
+      igst: 0,
+    };
+  }
+  // Missing or ambiguous regime: do not invent a tax classification.
+  return { total, cgst: null, sgst: null, igst: null };
 };
 // Use the product category from the API; never infer it from the product name.
 const getProductCategory = (item: FinanceReportItem): string => {
@@ -492,10 +550,13 @@ const getProductCategory = (item: FinanceReportItem): string => {
   return (
     [
       row.product_category_name,
+      row.product_head,
+      row.product_head_name,
       row.category_name,
       row.product_category,
       row.category,
       product.category_name,
+      product.product_head,
       product.category,
     ]
       .map(categoryText)
@@ -564,15 +625,13 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
       getPlaceOfSupply(item), // Customer State
       shipping, // Shipping Charges
       optionalNumber(row.unit_price_without_gst), // Unit Price Without GST
-      optionalNumber(row.product_subtotal ?? row.line_total_without_gst), // Product Subtotal Without GST
-      optionalNumber(row.product_gst ?? row.line_gst_amount), // Product GST
-      optionalNumber(
-        row.shipping_charge_without_gst ?? row.line_shipping_charge_without_gst,
-      ), // Shipping Charges Without GST
+      getLineSubtotal(item), // Product Subtotal Without GST
+      getLineGst(item), // Product GST
+      getLineShipping(item), // Shipping Charges Without GST
       subtotal, // Sub Total
-      optionalNumber(row.shipping_gst ?? row.line_shipping_gst), // Shipping GST
+      getLineShippingGst(item), // Shipping GST
       optionalNumber(row.service_charge_per_unit), // Service Charge Per Unit
-      optionalNumber(row.total_service_charge), // Total Service Charge
+      getLineServiceCharge(item), // Total Service Charge
       total, // Total
       item.order_status || "", // Order Status
       parseExcelDate(row.confirmed_at), // Confirmed At
@@ -601,6 +660,11 @@ const summarizeSales = (items: FinanceReportItem[]) => {
     const values = rows
       .map((row) => row[index])
       .filter((value): value is number => typeof value === "number");
+    if (
+      ["CGST", "SGST", "IGST"].includes(heading) &&
+      values.length !== rows.length
+    )
+      return null;
     return values.length
       ? roundMoney(values.reduce((total, value) => total + value, 0))
       : rows.length
@@ -967,13 +1031,13 @@ const FinanceReport = () => {
     [reports, filterReports],
   );
   /* ================= SUMMARY ================= */
-  const summary = useMemo(
-    () =>
-      overviewRows === null
-        ? null
-        : summarizeSales(filterReports(overviewRows)),
-    [overviewRows, filterReports],
-  );
+  const summary = useMemo(() => {
+    if (overviewRows === null) return null;
+    const matched = filterReports(overviewRows);
+    return matched.some(hasMissingCalculationInputs)
+      ? null
+      : summarizeSales(matched);
+  }, [overviewRows, filterReports]);
   const pageSummary = useMemo(
     () => summarizeSales(filteredReports),
     [filteredReports],
@@ -1010,7 +1074,13 @@ const FinanceReport = () => {
     setExporting(true);
     try {
       const allItems = await fetchAllReportRows();
-      const rows = buildSalesRows(filterReports(allItems));
+      const exportItems = filterReports(allItems);
+      if (exportItems.some(hasMissingCalculationInputs)) {
+        throw new Error(
+          "Cannot calculate sales: quantity, taxable unit price, GST rate or shipping base is missing.",
+        );
+      }
+      const rows = buildSalesRows(exportItems);
       if (!rows.length) {
         toast.error("No finance records available to export");
         return;
@@ -1018,6 +1088,308 @@ const FinanceReport = () => {
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "IndieKonnect";
       workbook.calcProperties.fullCalcOnLoad = true;
+      // The first worksheet is a compact, client-facing explanation of the same
+      // frontend-calculated data. The 44-column audit worksheet stays intact.
+      const overview = workbook.addWorksheet("Sales Overview", {
+        views: [
+          { state: "frozen", xSplit: 3, ySplit: 5, showGridLines: false },
+        ],
+        properties: { defaultRowHeight: 25 },
+      });
+      // Keep every value inside its own cell, including long customer details.
+      const cellText = (value: unknown): string => {
+        if (value == null) return "";
+        if (value instanceof Date) return "00-00-0000 00:00";
+        if (typeof value === "number")
+          return value.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        return String(value);
+      };
+      const fitWidth = (
+        minimum: number,
+        values: unknown[],
+        numeric = false,
+      ) => {
+        const longest = values.reduce<number>(
+          (max, value) =>
+            Math.max(
+              max,
+              ...cellText(value)
+                .split("\n")
+                .map((part) => part.length),
+            ),
+          0,
+        );
+        // Numeric columns grow to accommodate large totals; text wraps at a sensible width.
+        return Math.min(
+          numeric ? 48 : 42,
+          Math.max(minimum, Math.ceil(longest * 1.12) + 5),
+        );
+      };
+      const fittedRowHeight = (
+        values: unknown[],
+        widths: number[],
+        minimum = 34,
+      ) => {
+        const lines = values.reduce<number>((max, value, i) => {
+          const capacity = Math.max(4, Math.floor((widths[i] - 5) / 1.12));
+          const count = cellText(value)
+            .split("\n")
+            .reduce(
+              (sum, part) =>
+                sum + Math.max(1, Math.ceil(part.length / capacity)),
+              0,
+            );
+          return Math.max(max, count);
+        }, 1);
+        return Math.min(409, Math.max(minimum, 14 * lines + 12));
+      };
+      const cellGrid = (color = "FFD3DFEB"): Partial<ExcelJS.Borders> => ({
+        top: { style: "thin", color: { argb: color } },
+        bottom: { style: "thin", color: { argb: color } },
+        left: { style: "thin", color: { argb: color } },
+        right: { style: "thin", color: { argb: color } },
+      });
+      const overviewColumns = [
+        { source: "Invoice Number", label: "Invoice No.", width: 18 },
+        { source: "Customer Name", label: "Customer Name", width: 25 },
+        { source: "Customer Email", label: "Customer Email", width: 31 },
+        { source: "User Name", label: "User Name", width: 22 },
+        { source: "Product Name", label: "Product Name", width: 33 },
+        { source: "Product Head", label: "Product Category", width: 23 },
+        { source: "Quantity", label: "Qty", width: 9 },
+        {
+          source: "Product Subtotal Without GST",
+          label: "Product Amount\n(before tax)",
+          width: 19,
+        },
+        {
+          source: "Shipping Charges Without GST",
+          label: "Shipping\n(before tax)",
+          width: 17,
+        },
+        { source: "Sub Total", label: "Subtotal\n(before tax)", width: 19 },
+        { source: "Total Tax", label: "GST\n(total tax)", width: 17 },
+        {
+          source: "Total Service Charge",
+          label: "Service\nCharges",
+          width: 16,
+        },
+        { source: "Total", label: "Final Amount\n(incl. tax)", width: 21 },
+      ];
+      const overviewTextCount = overviewColumns.findIndex(
+        (col) => col.source === "Quantity",
+      );
+      const isOverviewTotal = (i: number) =>
+        overviewColumns[i].source === "Total";
+      const isOverviewSubtotal = (i: number) =>
+        overviewColumns[i].source === "Sub Total";
+      const isOverviewQuantity = (i: number) =>
+        overviewColumns[i].source === "Quantity";
+      const simpleRows = rows.map((row) =>
+        overviewColumns.map(({ source }) => row[SALES_HEADERS.indexOf(source)]),
+      );
+      const overviewWidths = overviewColumns.map((col, i) => {
+        const values = simpleRows.map((row) => row[i]);
+        const total =
+          i >= overviewTextCount
+            ? values.reduce<number>(
+                (sum, value) => sum + (typeof value === "number" ? value : 0),
+                0,
+              )
+            : null;
+        return fitWidth(
+          Math.max(col.width, i >= overviewTextCount ? 17 : 19),
+          [col.label, ...values, total],
+          i >= overviewTextCount,
+        );
+      });
+      overview.columns = overviewWidths.map((width) => ({ width }));
+      const fill = (argb: string): ExcelJS.Fill => ({
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb },
+      });
+      const overviewBanner = (
+        row: number,
+        value: string,
+        bg: string,
+        fg: string,
+        size: number,
+        bold = false,
+      ) => {
+        overview.mergeCells(row, 1, row, overviewColumns.length);
+        const cell = overview.getCell(row, 1);
+        cell.value = value;
+        cell.fill = fill(bg);
+        cell.font = { name: "Calibri", size, bold, color: { argb: fg } };
+        cell.alignment = {
+          vertical: "middle",
+          horizontal: "left",
+          indent: 1,
+          wrapText: true,
+        };
+      };
+      overviewBanner(
+        1,
+        "INDIEKONNECT  /  SALES OVERVIEW",
+        "FF173B63",
+        "FFFFFFFF",
+        20,
+        true,
+      );
+      overview.getRow(1).height = 42;
+      const period = `${appliedDates.fromDate || "Any start date"} to ${appliedDates.toDate || "Any end date"}`;
+      overviewBanner(
+        2,
+        `${period}  |  ${rows.length} product lines  |  All amounts in INR (₹)`,
+        "FFF0F7FF",
+        "FF456580",
+        11,
+      );
+      overview.getRow(2).height = 25;
+      overviewBanner(
+        3,
+        "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount",
+        "FFFFFFFF",
+        "FF173B63",
+        12,
+        true,
+      );
+      overview.getRow(3).height = 30;
+      overviewBanner(
+        4,
+        "Use the column filters to find a product or invoice. Full GST, payment and courier details are in Sales Data.",
+        "FFFFFFFF",
+        "FF456580",
+        11,
+      );
+      overview.getRow(4).height = 25;
+      const simpleHeader = overview.addRow(
+        overviewColumns.map((col) => col.label),
+      );
+      simpleHeader.height = fittedRowHeight(
+        overviewColumns.map((col) => col.label),
+        overviewWidths,
+        42,
+      );
+      overviewColumns.forEach((_, i) => {
+        const cell = simpleHeader.getCell(i + 1);
+        const key = isOverviewSubtotal(i) || isOverviewTotal(i);
+        cell.fill = fill(key ? "FFBBDCFB" : "FF24466A");
+        cell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: { argb: key ? "FF173B63" : "FFFFFFFF" },
+        };
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          wrapText: true,
+        };
+        cell.border = cellGrid("FF9FB5CA");
+      });
+      simpleRows.forEach((values, index) => {
+        const line = overview.addRow(values);
+        line.height = fittedRowHeight(values, overviewWidths);
+        overviewColumns.forEach((_, i) => {
+          const cell = line.getCell(i + 1);
+          const key = isOverviewSubtotal(i) || isOverviewTotal(i);
+          cell.fill = fill(
+            isOverviewTotal(i)
+              ? "FFDCEEFF"
+              : isOverviewSubtotal(i)
+                ? "FFF0F7FF"
+                : index % 2
+                  ? "FFF5F8FC"
+                  : "FFFFFFFF",
+          );
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: isOverviewTotal(i),
+            color: { argb: key ? "FF173B63" : "FF253C52" },
+          };
+          cell.alignment = {
+            horizontal: i < overviewTextCount ? "left" : "right",
+            vertical: "middle",
+            indent: 1,
+            wrapText: true,
+          };
+          cell.border = cellGrid();
+          cell.numFmt =
+            i < overviewTextCount
+              ? "@"
+              : isOverviewQuantity(i)
+                ? "#,##0"
+                : "#,##0.00";
+        });
+      });
+      const overviewLast = simpleRows.length + 5;
+      overview.autoFilter = {
+        from: { row: 5, column: 1 },
+        to: { row: overviewLast, column: overviewColumns.length },
+      };
+      const simpleTotal = overview.addRow([]);
+      simpleTotal.height = 40;
+      overview.mergeCells(
+        simpleTotal.number,
+        1,
+        simpleTotal.number,
+        overviewTextCount,
+      );
+      simpleTotal.getCell(1).value = "GRAND TOTAL";
+      overviewColumns.forEach((_, i) => {
+        const cell = simpleTotal.getCell(i + 1);
+        cell.fill = fill(isOverviewTotal(i) ? "FFBBDCFB" : "FFDCEEFF");
+        cell.font = {
+          name: "Calibri",
+          size: 12,
+          bold: true,
+          color: { argb: "FF173B63" },
+        };
+        cell.alignment = {
+          horizontal: i < overviewTextCount ? "left" : "right",
+          vertical: "middle",
+          indent: 1,
+          wrapText: true,
+        };
+        cell.border = cellGrid("FF9FB5CA");
+        if (i >= overviewTextCount) {
+          const letter = overview.getColumn(i + 1).letter;
+          const sum = roundMoney(
+            simpleRows.reduce(
+              (acc, row) =>
+                acc + (typeof row[i] === "number" ? Number(row[i]) : 0),
+              0,
+            ),
+          );
+          cell.value = {
+            formula: `SUBTOTAL(109,${letter}6:${letter}${overviewLast})`,
+            result: sum,
+          };
+          cell.numFmt = isOverviewQuantity(i) ? "#,##0" : "#,##0.00";
+        }
+      });
+      overviewBanner(
+        overviewLast + 3,
+        "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.",
+        "FFF0F7FF",
+        "FF456580",
+        10,
+      );
+      overview.getRow(overviewLast + 3).height = 31;
+      overviewBanner(
+        overviewLast + 4,
+        "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+        "FFFFFFFF",
+        "FF456580",
+        10,
+      );
+      overview.getRow(overviewLast + 4).height = 28;
       const sheet = workbook.addWorksheet("Sales Data", {
         views: [
           { state: "frozen", xSplit: 3, ySplit: 1, showGridLines: false },
@@ -1080,21 +1452,28 @@ const FinanceReport = () => {
           return "FF24466A";
         return "FF17324D";
       };
-      sheet.columns = SALES_WIDTHS.map((width, i) => ({
-        width: Math.max(
-          width,
-          moneyHeaders.has(SALES_HEADERS[i])
-            ? 18
-            : SALES_HEADERS[i] === "Quantity"
-              ? 12
-              : SALES_HEADERS[i] === "CV"
-                ? 12
-                : 13,
-        ),
-      }));
+      const salesWidths = SALES_WIDTHS.map((width, i) => {
+        const heading = SALES_HEADERS[i];
+        const numeric =
+          moneyHeaders.has(heading) ||
+          ["Quantity", "CV", "Tax Percentage"].includes(heading);
+        const values = rows.map((row) => row[i]);
+        const total = SALES_TOTAL_HEADERS.includes(heading)
+          ? values.reduce<number>(
+              (sum, value) => sum + (typeof value === "number" ? value : 0),
+              0,
+            )
+          : null;
+        return fitWidth(
+          Math.max(width, moneyHeaders.has(heading) ? 20 : numeric ? 14 : 18),
+          [heading, ...values, total],
+          numeric,
+        );
+      });
+      sheet.columns = salesWidths.map((width) => ({ width }));
       // Row 1 headers, row 2 onward sales data, final row grand total.
       const header = sheet.addRow(SALES_HEADERS);
-      header.height = 34;
+      header.height = fittedRowHeight(SALES_HEADERS, salesWidths, 42);
       for (let c = 1; c <= SALES_HEADERS.length; c++) {
         const cell = header.getCell(c);
         cell.fill = {
@@ -1113,18 +1492,15 @@ const FinanceReport = () => {
           },
         };
         cell.alignment = {
-          horizontal: "left",
+          horizontal: "center",
           vertical: "middle",
           wrapText: true,
-          indent: 1,
         };
-        cell.border = {
-          bottom: { style: "medium", color: { argb: "FF9FB5CA" } },
-        };
+        cell.border = cellGrid("FF9FB5CA");
       }
       rows.forEach((values, index) => {
         const excelRow = sheet.addRow(values);
-        excelRow.height = 26;
+        excelRow.height = fittedRowHeight(values, salesWidths);
         for (let c = 1; c <= SALES_HEADERS.length; c++) {
           const heading = SALES_HEADERS[c - 1];
           const cell = excelRow.getCell(c);
@@ -1155,10 +1531,9 @@ const FinanceReport = () => {
             vertical: "middle",
             horizontal: numeric ? "right" : "left",
             indent: 1,
+            wrapText: true,
           };
-          cell.border = {
-            bottom: { style: "hair", color: { argb: "FFD9E4EE" } },
-          };
+          cell.border = cellGrid();
           if (textHeaders.has(heading)) cell.numFmt = "@";
           if (moneyHeaders.has(heading)) cell.numFmt = currencyFormat;
           if (heading === "Quantity" || heading === "CV")
@@ -1170,7 +1545,7 @@ const FinanceReport = () => {
       });
       const lastRow = rows.length + 1;
       const footer = sheet.addRow([]);
-      footer.height = 32;
+      footer.height = 40;
       sheet.autoFilter = {
         from: { row: 1, column: 1 },
         to: { row: lastRow, column: SALES_HEADERS.length },
@@ -1195,22 +1570,21 @@ const FinanceReport = () => {
             horizontal: "right",
             vertical: "middle",
             indent: 1,
+            wrapText: true,
           };
-          cell.border = {
-            top: { style: "thin", color: { argb: "FF9FB5CA" } },
-            bottom: { style: "thin", color: { argb: "FF9FB5CA" } },
-          };
+          cell.border = cellGrid("FF9FB5CA");
         }
         sheet.mergeCells(r, 1, r, 3);
         const title = sheet.getCell(r, 1);
         title.value = "GRAND TOTAL  |  VISIBLE ROWS";
         title.alignment = { horizontal: "left", vertical: "middle", indent: 1 };
         const detail = sheet.getCell(r, 6);
-        detail.value = "INR • Filter-aware totals";
+        detail.value = "INR •calculated";
         detail.alignment = {
           horizontal: "left",
           vertical: "middle",
           indent: 1,
+          wrapText: true,
         };
       });
       SALES_TOTAL_HEADERS.forEach((heading) => {
@@ -1221,6 +1595,11 @@ const FinanceReport = () => {
           .map((row) => row[col])
           .filter((value): value is number => typeof value === "number");
         if (!values.length) return;
+        if (
+          ["CGST", "SGST", "IGST"].includes(heading) &&
+          values.length !== rows.length
+        )
+          return;
         const sum = roundMoney(values.reduce((acc, value) => acc + value, 0));
         [footer.number].forEach((r) => {
           const cell = sheet.getRow(r).getCell(col + 1);
@@ -1290,7 +1669,8 @@ const FinanceReport = () => {
             Finance Sales Report
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Product-wise sales, GST, place of supply, HSN and courier details.
+            Product-wise sales and GST calculated from unit prices, quantities
+            and tax rates.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1324,6 +1704,11 @@ const FinanceReport = () => {
         </div>
       </div>
       {/* EXECUTIVE FINANCIAL SUMMARY */}
+      <p className="text-xs text-slate-500">
+        Frontend-calculated amounts. Shipping GST uses the product rate when no
+        separate rate is supplied. Unit price is treated as net of discounts;
+        service charges are added without separate GST.
+      </p>
       <section className="space-y-3" aria-label="Financial summary">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -1575,6 +1960,11 @@ const FinanceReport = () => {
               Loading finance report...
             </p>
           </div>
+        ) : filteredReports.some(hasMissingCalculationInputs) ? (
+          <div className="p-8 text-center text-sm text-amber-800" role="alert">
+            Sales calculation unavailable: one or more records are missing
+            quantity, taxable unit price, GST rate or shipping base.
+          </div>
         ) : filteredReports.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
@@ -1684,7 +2074,7 @@ const FinanceReport = () => {
                             Unit: {money(row.unit_price_without_gst)}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-500">
-                            Line: {money(row.line_total_without_gst)}
+                            Line: {money(getLineSubtotal(item))}
                           </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
@@ -1710,7 +2100,7 @@ const FinanceReport = () => {
                             Product GST: {money(getLineGst(item))}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-400">
-                            Service charge: {money(row.total_service_charge)}
+                            Service charge: {money(getLineServiceCharge(item))}
                           </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
@@ -1928,7 +2318,7 @@ const FinanceReport = () => {
                             Service Charge
                           </p>
                           <p className="mt-1 break-words text-xs font-bold text-gray-800">
-                            {money(row.total_service_charge)}
+                            {money(getLineServiceCharge(item))}
                           </p>
                         </div>
                       </div>
