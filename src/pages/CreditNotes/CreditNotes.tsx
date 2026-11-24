@@ -47,6 +47,7 @@ const HINDI: Record<string, string> = {
   "item shipping gst": "डिलीवरी GST",
   "item service charge": "उत्पाद सेवा शुल्क",
   "hsn code": "HSN कोड",
+  "product hsn": "उत्पाद HSN कोड",
   "product slug": "उत्पाद स्लग",
   "product line total": "उत्पाद राशि",
   "item product taxable value": "उत्पाद की कर योग्य राशि",
@@ -691,6 +692,7 @@ const matchesCreditNoteFilters = (
       ? note.items.flatMap((item: any) => [
           item.product_name,
           item.product_code,
+          item.hsn_code,
         ])
       : []),
     String(note?.id ?? ""),
@@ -771,6 +773,7 @@ const CREDIT_EXPORT_HEADERS = [
   "Original Invoice Number",
   "Original Invoice Date",
   "Customer Name",
+  "State",
   "GSTIN NO",
   "Place Of Supply (POS)",
   "Rate",
@@ -782,6 +785,7 @@ const CREDIT_EXPORT_HEADERS = [
   "Invoice Value",
   "Product Name",
   "Product Code",
+  "Product HSN",
   "Order Line ID",
 ];
 const GST_STATES: Record<string, string> = {
@@ -879,6 +883,7 @@ const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] =>
       String(note.original_invoice_number ?? ""),
       creditExcelDate(note.invoice_date ?? note.original_invoice_date),
       String(note.buyer_name ?? ""),
+      String(note.buyer_state ?? "").trim(),
       String(note.buyer_gstin ?? ""),
       creditPos(note),
       numeric(item.gst_rate),
@@ -890,6 +895,7 @@ const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] =>
       itemInvoiceValue(note),
       String(item.product_name ?? ""),
       String(item.product_code ?? ""),
+      String(item.hsn_code ?? "").trim(),
       String(note.order_line_id ?? item.order_line_id ?? ""),
     ];
   });
@@ -1904,6 +1910,10 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                             {t("Code:")}
                             {item.product_code || "—"}
                           </p>
+                          <p className="mt-0.5 font-mono text-[9px] text-[#6B7280]">
+                            {t("Product HSN")}:{" "}
+                            {String((item as any).hsn_code ?? "—")}
+                          </p>
                         </td>
                         <td className="px-4 py-3 text-center text-xs font-semibold text-[#6B7280]">
                           {item.quantity}
@@ -2291,7 +2301,6 @@ const CreditNotes: React.FC = () => {
         "Buyer Type",
         "Buyer Email",
         "Buyer Address",
-        "Buyer State",
         "GST Registration",
         "Reason",
         "Order Type",
@@ -2307,7 +2316,6 @@ const CreditNotes: React.FC = () => {
         "Issued At",
         "Product ID",
         "Product Slug",
-        "HSN Code",
         "Quantity",
         "Unit Price",
         "Product Line Total",
@@ -2342,7 +2350,6 @@ const CreditNotes: React.FC = () => {
           enumValue(n.buyer_type),
           text(n.buyer_email),
           text(n.buyer_address),
-          enumValue(n.buyer_state),
           t(gstRegistration(n.buyer_gstin)),
           enumValue(n.reason),
           enumValue(n.order_type ?? o.order_type),
@@ -2358,7 +2365,6 @@ const CreditNotes: React.FC = () => {
           n.issued_at ? formatDateTime(n.issued_at) : "",
           text(i.product_id),
           text(i.product_slug),
-          text(i.hsn_code),
           numeric(i.quantity),
           numeric(i.unit_price),
           numeric(i.product_line_total),
@@ -2972,7 +2978,7 @@ const CreditNotes: React.FC = () => {
           headers: ["S.No", "Product", "Qty", "Taxable", "GST %", "Total"],
           rows: items.map((item, i) => [
             String(i + 1),
-            `${item.product_name || "Product"}\nCode: ${pdfVal(item.product_code)}`,
+            `${item.product_name || "Product"}\nCode: ${pdfVal(item.product_code)}\nHSN: ${pdfVal((item as any).hsn_code)}`,
             String(item.quantity),
             formatAmountPdf(item.taxable_value),
             `${item.gst_rate}%`,
@@ -3606,6 +3612,9 @@ const CreditNotes: React.FC = () => {
                                 <p className="max-w-[190px] truncate text-xs font-semibold text-[#111827]">
                                   {note.buyer_name}
                                 </p>
+                                <p className="mt-1 text-[10px] text-slate-500">
+                                  {t("State")}: {t(note.buyer_state || "—")}
+                                </p>
                                 <span
                                   className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(accountType)}`}
                                 >
@@ -3630,6 +3639,9 @@ const CreditNotes: React.FC = () => {
                             <p className="mt-1 text-[10px] text-slate-500">
                               {t("Product code")}:{" "}
                               {itemOf(note).product_code || "—"}
+                            </p>
+                            <p className="mt-1 text-[10px] text-slate-500">
+                              {t("Product HSN")}: {itemOf(note).hsn_code ?? "—"}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
                               {t("Qty")}: {itemOf(note).quantity ?? "—"} ·{" "}
