@@ -1,14 +1,11 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Search,
   RefreshCw,
   Download,
   FileText,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  X,
   Filter,
   Loader2,
   ShieldAlert,
@@ -27,6 +24,403 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 /* ================= THEME ================= */
+type ReportLanguage = "en" | "hi";
+const LanguageContext = React.createContext<ReportLanguage>("en");
+const HINDI: Record<string, string> = {
+  "All available dates": "सभी उपलब्ध तारीखें",
+  "Sales Classification": "बिक्री वर्गीकरण",
+  "Sales Unregistered": "अपंजीकृत बिक्री",
+  "Sales Registered": "पंजीकृत बिक्री",
+  "Other Sales": "अन्य बिक्री",
+  "Classification unavailable": "वर्गीकरण उपलब्ध नहीं",
+  Registered: "पंजीकृत",
+  "URP Sales": "URP बिक्री",
+  "Invoice date": "बिल की तारीख",
+  "Place Of Supply (POS)": "आपूर्ति का स्थान (POS)",
+  Rate: "GST दर",
+  "Taxable Value": "कर योग्य राशि",
+  "Invoice Value": "इनवॉइस राशि",
+  "GSTIN NO": "GSTIN नंबर",
+  "Confirmed records are excluded from this report.":
+    "पुष्टि वाले रिकॉर्ड इस रिपोर्ट में शामिल नहीं हैं।",
+  "Order Reference": "ऑर्डर संदर्भ",
+  "Item Reference ID": "आइटम संदर्भ आईडी",
+  "Invoice Number": "बिल नंबर",
+  "Invoice Date": "बिल की तारीख",
+  "Order Date": "ऑर्डर की तारीख",
+  "Product Name": "उत्पाद का नाम",
+  "Product Head": "उत्पाद श्रेणी",
+  "Product Category": "उत्पाद श्रेणी",
+  "Product category": "उत्पाद श्रेणी",
+  SKU: "SKU",
+  Quantity: "मात्रा",
+  Price: "कीमत",
+  "Total Discount": "कुल छूट",
+  CV: "CV",
+  "Total Tax": "कुल टैक्स",
+  CGST: "CGST",
+  SGST: "SGST",
+  IGST: "IGST",
+  "Tax Percentage": "टैक्स दर (%)",
+  "HSN Code": "HSN कोड",
+  "Customer Name": "ग्राहक का नाम",
+  "Distributor Name": "वितरक का नाम",
+  "Distributor Email": "वितरक का ईमेल",
+  "Distributor Mobile": "वितरक का मोबाइल",
+  "Distributor GSTIN": "वितरक GSTIN",
+  "Distributor State": "वितरक का राज्य",
+  "Distributor / GSTIN": "वितरक / GSTIN",
+  "Account Holder Name": "खाताधारक का नाम",
+  "Account Holder Email": "खाताधारक का ईमेल",
+  "Account Holder Mobile": "खाताधारक का मोबाइल",
+  "Account Holder GSTIN": "खाताधारक GSTIN",
+  "Account Holder State": "खाताधारक का राज्य",
+  "Account Holder / GSTIN": "खाताधारक / GSTIN",
+  "Account holder, invoice, product, GSTIN, courier…":
+    "खाताधारक, बिल, उत्पाद, GSTIN, कूरियर…",
+  "Customer GSTIN": "ग्राहक GSTIN",
+  "Customer State": "ग्राहक का राज्य",
+  "Shipping Charges": "डिलीवरी शुल्क",
+  "Unit Price Without GST": "प्रति इकाई कीमत (बिना GST)",
+  "Product Subtotal Without GST": "उत्पाद राशि (बिना GST)",
+  "Product GST": "उत्पाद पर GST",
+  "Shipping Charges Without GST": "डिलीवरी शुल्क (बिना GST)",
+  "Sub Total": "टैक्स से पहले कुल राशि",
+  "Shipping GST": "डिलीवरी पर GST",
+  "Service Charge Per Unit": "प्रति इकाई सेवा शुल्क",
+  "Total Service Charge": "कुल सेवा शुल्क",
+  Total: "अंतिम राशि",
+  "Order Status": "ऑर्डर की स्थिति",
+  "Item Delivery Status": "आइटम की डिलीवरी स्थिति",
+  "Confirmed At": "पुष्टि की तारीख और समय",
+  "Dispatched At": "भेजने की तारीख और समय",
+  "Delivered At": "डिलीवरी की तारीख और समय",
+  "Account Type": "खाते का प्रकार",
+  "User Name": "यूज़र नाम",
+  "Customer Mobile": "ग्राहक का मोबाइल",
+  "Customer Email": "ग्राहक का ईमेल",
+  "Billing State": "बिलिंग राज्य",
+  "Payment Gateway": "भुगतान माध्यम",
+  "Gateway Transaction ID": "भुगतान लेनदेन आईडी",
+  "Courier Company": "कूरियर कंपनी",
+  "Courier Tracking Number": "कूरियर ट्रैकिंग नंबर",
+  "GST Registration": "GST पंजीकरण",
+  "GST Type": "GST का प्रकार",
+  URP: "URP – अपंजीकृत",
+  "Registered GSTIN": "पंजीकृत GSTIN",
+  "Missing GSTIN": "GSTIN उपलब्ध नहीं",
+  "Other / invalid GSTIN": "अन्य / अमान्य GSTIN",
+  Unknown: "अज्ञात",
+  "No GST": "GST नहीं",
+  "Is exactly": "बिल्कुल समान",
+  Contains: "इसमें शामिल है",
+  "Is not": "समान नहीं है",
+  "Is blank": "खाली है",
+  "Is not blank": "खाली नहीं है",
+  Equals: "बराबर",
+  "On or after": "इस तारीख से या बाद में",
+  "On or before": "इस तारीख तक",
+  "At least": "कम से कम",
+  "At most": "अधिकतम",
+  Between: "के बीच",
+  "Not assigned": "निर्धारित नहीं",
+  "Tracking:": "ट्रैकिंग:",
+  "SKU:": "SKU:",
+  "Category:": "श्रेणी:",
+  "HSN:": "HSN:",
+  "GST:": "GST:",
+  "Item Ref:": "आइटम संदर्भ:",
+  "Access Denied": "प्रवेश की अनुमति नहीं",
+  "You don't have permission to view the Finance Sales Report.":
+    "आपको बिक्री रिपोर्ट देखने की अनुमति नहीं है।",
+  Reports: "रिपोर्ट",
+  "Finance Sales Report": "बिक्री और वित्तीय रिपोर्ट",
+  "Product-wise sales and GST calculated from unit prices, quantities and tax rates.":
+    "प्रति इकाई कीमत, मात्रा और टैक्स दर से गणना की गई उत्पादवार बिक्री और GST।",
+  Refresh: "रीफ़्रेश करें",
+  "Export CSV (": "CSV डाउनलोड (",
+  "Export Excel": "Excel डाउनलोड",
+  "Exporting...": "डाउनलोड तैयार हो रहा है...",
+  "Search & filters": "खोज और फ़िल्टर",
+  "Combine filters to download only the records you need.":
+    "केवल ज़रूरी रिकॉर्ड डाउनलोड करने के लिए फ़िल्टर चुनें।",
+  "Clear all": "सभी हटाएँ",
+  "Search all fields": "सभी फ़ील्ड में खोजें",
+  "Order date from": "ऑर्डर की शुरुआती तारीख",
+  "Order date to": "ऑर्डर की अंतिम तारीख",
+  All: "सभी",
+  "Advanced field filters": "विस्तृत फ़िल्टर",
+  active: "सक्रिय",
+  "All conditions must match. Choose any report column. Use exact GSTIN, date ranges, amount ranges, blank values or text search. CV and discount filters use the available line value or order-level value.":
+    "सभी शर्तें पूरी होनी चाहिए। किसी भी कॉलम को चुनें। GSTIN, तारीख, राशि, खाली फ़ील्ड या टेक्स्ट से खोजें। CV और छूट के लिए उपलब्ध आइटम या ऑर्डर की राशि उपयोग होती है।",
+  Field: "फ़ील्ड",
+  Condition: "शर्त",
+  To: "तक",
+  From: "से",
+  Value: "मान",
+  "Enter amount": "राशि दर्ज करें",
+  "Enter or select value": "मान दर्ज करें या चुनें",
+  "+ Add condition": "+ शर्त जोड़ें",
+  "Apply filters": "फ़िल्टर लागू करें",
+  "Search:": "खोज:",
+  "Frontend-calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.":
+    "राशि की गणना फ्रंटएंड पर होती है। अलग डिलीवरी GST दर न मिलने पर उत्पाद की दर ली जाती है। प्रति इकाई कीमत छूट के बाद की मानी गई है; सेवा शुल्क पर अलग GST नहीं जोड़ा गया है।",
+  "Sales overview": "बिक्री का सारांश",
+  "All matching records across pages · INR": "सभी पेज के मिलते रिकॉर्ड · रुपये",
+  "Updating totals": "कुल राशि अपडेट हो रही है",
+  "Totals unavailable · Retry": "कुल राशि उपलब्ध नहीं · फिर कोशिश करें",
+  "product lines": "उत्पाद रिकॉर्ड",
+  "Total Sales": "कुल बिक्री",
+  "Total item amount · incl. GST": "कुल आइटम राशि · GST सहित",
+  "Sales breakdown": "बिक्री का विवरण",
+  "GST breakdown": "GST का विवरण",
+  "Order activity": "ऑर्डर का विवरण",
+  "Finance Reports": "वित्तीय रिपोर्ट",
+  "Product-wise sales and GST details. Export includes all matching records.":
+    "उत्पादवार बिक्री और GST विवरण। डाउनलोड में सभी मिलते रिकॉर्ड शामिल हैं।",
+  "matching product lines": "मिलते उत्पाद रिकॉर्ड",
+  "Loading finance report...": "वित्तीय रिपोर्ट लोड हो रही है...",
+  "Could not load all report pages.": "सभी रिपोर्ट पेज लोड नहीं हो सके।",
+  Retry: "फिर कोशिश करें",
+  "Sales calculation unavailable: one or more records are missing quantity, taxable unit price, GST rate or shipping base.":
+    "बिक्री की गणना उपलब्ध नहीं: किसी रिकॉर्ड में मात्रा, टैक्स योग्य कीमत, GST दर या डिलीवरी शुल्क नहीं है।",
+  "No Finance Records Found": "कोई वित्तीय रिकॉर्ड नहीं मिला",
+  "No records match the selected GST filter.":
+    "चुने गए GST फ़िल्टर से कोई रिकॉर्ड नहीं मिला।",
+  "Clear Filters": "फ़िल्टर हटाएँ",
+  "Mobile:": "मोबाइल:",
+  "GSTIN:": "GSTIN:",
+  "State:": "राज्य:",
+  Qty: "मात्रा",
+  "Unit:": "प्रति इकाई:",
+  "Line:": "उत्पाद राशि:",
+  "Without GST": "बिना GST",
+  "Product GST:": "उत्पाद GST:",
+  "Service charge:": "सेवा शुल्क:",
+  Order: "ऑर्डर",
+  "Item delivery": "आइटम डिलीवरी",
+  "Product Item": "उत्पाद",
+  "Qty:": "मात्रा:",
+  "Code:": "कोड:",
+  "Product Total (excl. GST)": "उत्पाद राशि (बिना GST)",
+  "Shipping (excl. GST)": "डिलीवरी (बिना GST)",
+  "Unit Price (excl. GST)": "प्रति इकाई कीमत (बिना GST)",
+  "GST Tax Breakdown": "GST टैक्स विवरण",
+  "Product-line GST": "आइटम का GST",
+  "Courier & Tracking": "कूरियर और ट्रैकिंग",
+  "Item Total": "आइटम की कुल राशि",
+  "Service Charge": "सेवा शुल्क",
+  "Current page totals": "इस पेज का कुल",
+  "visible product lines": "दिख रहे उत्पाद रिकॉर्ड",
+  "Showing product lines": "दिखाए जा रहे उत्पाद रिकॉर्ड",
+  of: "में से",
+  "product rows on this page)": "उत्पाद रिकॉर्ड इस पेज पर)",
+  Page: "पेज",
+  "Report filters": "रिपोर्ट फ़िल्टर",
+  "Customer, invoice, product, GSTIN, courier…":
+    "ग्राहक, बिल, उत्पाद, GSTIN, कूरियर…",
+  "Remove filter": "फ़िल्टर हटाएँ",
+  "Active filters": "सक्रिय फ़िल्टर",
+  "Financial summary": "वित्तीय सारांश",
+  "Products + shipping, excl. GST": "उत्पाद + डिलीवरी, बिना GST",
+  "Total GST": "कुल GST",
+  "Product GST + shipping GST": "उत्पाद GST + डिलीवरी GST",
+  "Including shipping GST": "डिलीवरी GST सहित",
+  "Previous page": "पिछला पेज",
+  "Next page": "अगला पेज",
+  "Loading records…": "रिकॉर्ड लोड हो रहे हैं…",
+  "Apply pending changes to enable download.":
+    "डाउनलोड के लिए बाकी बदलाव लागू करें।",
+  "Excel and CSV include these matching records across all pages.":
+    "Excel और CSV में सभी पेज के मिलते रिकॉर्ड शामिल हैं।",
+  "Product subtotal": "उत्पाद राशि",
+  "Shipping excl. GST": "डिलीवरी (बिना GST)",
+  "Sub Total (excl. GST)": "कुल राशि (बिना GST)",
+  "Service charges": "सेवा शुल्क",
+  Discount: "छूट",
+  "Unique orders": "कुल अलग-अलग ऑर्डर",
+  "Product quantity": "उत्पाद मात्रा",
+  "Total CV": "कुल CV",
+  "Invoice / Date": "बिल / तारीख",
+  "Customer / GSTIN": "ग्राहक / GSTIN",
+  "Product / GST %": "उत्पाद / GST %",
+  "Qty / Unit Price": "मात्रा / प्रति इकाई कीमत",
+  Shipping: "डिलीवरी",
+  "Item Total / GST": "आइटम राशि / GST",
+  "GST Breakdown": "GST का विवरण",
+  Payment: "भुगतान",
+  "Invoice No.": "बिल नंबर",
+  "Sales Overview": "बिक्री सारांश",
+  "Sales Data": "बिक्री विवरण",
+  "INDIEKONNECT  /  SALES OVERVIEW": "INDIEKONNECT / बिक्री सारांश",
+  "Any start date": "कोई भी शुरुआती तारीख",
+  "Any end date": "कोई भी अंतिम तारीख",
+  to: "से",
+  "All amounts in INR (₹)": "सभी राशियाँ रुपये (₹) में",
+  "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount":
+    "उत्पाद राशि + डिलीवरी = टैक्स से पहले कुल • इसमें GST और सेवा शुल्क जोड़कर अंतिम राशि मिलती है।",
+  "Applied filters:": "लागू फ़िल्टर:",
+  "All matching records for the selected period. Full GST, payment and courier details are in Sales Data.":
+    "चुनी गई अवधि के सभी मिलते रिकॉर्ड। GST, भुगतान और कूरियर का पूरा विवरण बिक्री विवरण टैब में है।",
+  "GRAND TOTAL": "कुल योग",
+  "GRAND TOTAL  ": "  VISIBLE ROWS|कुल योग | दिख रहे रिकॉर्ड",
+  "INR • Frontend calculated": "रुपये • फ्रंटएंड गणना",
+  "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.":
+    "गणना नोट: प्रति इकाई कीमत छूट के बाद की मानी गई है। अलग डिलीवरी GST दर न मिलने पर उत्पाद की दर ली गई है। सेवा शुल्क पर अलग GST नहीं माना गया है।",
+  "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.":
+    "राशि की गणना फ्रंटएंड पर है। कुल योग इस टैब में दिख रहे रिकॉर्ड का है। उत्पाद श्रेणियाँ API से ली गई हैं; अनुपलब्ध मान खाली हैं।",
+  "Unable to load all report pages. Please retry.":
+    "सभी रिपोर्ट पेज लोड नहीं हो सके। फिर कोशिश करें।",
+  "From date cannot be greater than To date":
+    "शुरुआती तारीख अंतिम तारीख के बाद नहीं हो सकती।",
+  "Complete each filter with a valid value or remove the incomplete filter.":
+    "हर फ़िल्टर में सही मान भरें या अधूरा फ़िल्टर हटाएँ।",
+  "You don't have permission to export this report.":
+    "आपको रिपोर्ट डाउनलोड करने की अनुमति नहीं है।",
+  "No finance records available to export":
+    "डाउनलोड करने के लिए कोई रिकॉर्ड नहीं है।",
+  "Sales Data exported successfully": "बिक्री रिपोर्ट डाउनलोड हो गई।",
+  "Failed to export Sales Data": "बिक्री रिपोर्ट डाउनलोड नहीं हो सकी।",
+  "Cannot calculate sales: quantity, taxable unit price, GST rate or shipping base is missing.":
+    "बिक्री की गणना नहीं हो सकती: मात्रा, कीमत, GST दर या डिलीवरी शुल्क उपलब्ध नहीं है।",
+  "matching product lines exported": "मिलते उत्पाद रिकॉर्ड डाउनलोड हुए",
+  Language: "भाषा",
+  "GRAND TOTAL  |  VISIBLE ROWS": "कुल योग | दिख रहे रिकॉर्ड",
+  "Product Amount\n(before tax)": "उत्पाद राशि\n(बिना टैक्स)",
+  "Shipping\n(before tax)": "डिलीवरी शुल्क\n(बिना टैक्स)",
+  "Subtotal\n(before tax)": "कुल राशि\n(बिना टैक्स)",
+  "GST\n(total tax)": "GST\n(कुल टैक्स)",
+  "Service\nCharges": "सेवा शुल्क",
+  "Final Amount\n(incl. tax)": "अंतिम राशि\n(टैक्स सहित)",
+};
+const VALUE_HI: Record<string, string> = {
+  delivered: "डिलीवर हो गया",
+  dispatched: "भेज दिया गया",
+  shipped: "रास्ते में",
+  confirmed: "पुष्टि हो गई",
+  pending: "लंबित",
+  processing: "प्रक्रिया में",
+  cancelled: "रद्द",
+  canceled: "रद्द",
+  refunded: "रिफंड हुआ",
+  returned: "वापस आया",
+  completed: "पूरा",
+  paid: "भुगतान हुआ",
+  partial_delivered: "आंशिक डिलीवरी",
+  partial_shipped: "आंशिक शिपिंग",
+  partial_dispatched: "आंशिक रूप से भेजा गया",
+  distributor: "वितरक",
+  customer: "ग्राहक",
+  punjab: "पंजाब",
+  "uttar pradesh": "उत्तर प्रदेश",
+  delhi: "दिल्ली",
+  haryana: "हरियाणा",
+  maharashtra: "महाराष्ट्र",
+  rajasthan: "राजस्थान",
+  gujarat: "गुजरात",
+  bihar: "बिहार",
+  "madhya pradesh": "मध्य प्रदेश",
+  karnataka: "कर्नाटक",
+  "tamil nadu": "तमिलनाडु",
+  kerala: "केरल",
+  telangana: "तेलंगाना",
+  "andhra pradesh": "आंध्र प्रदेश",
+  "west bengal": "पश्चिम बंगाल",
+  odisha: "ओडिशा",
+  assam: "असम",
+  jharkhand: "झारखंड",
+  chhattisgarh: "छत्तीसगढ़",
+  uttarakhand: "उत्तराखंड",
+  "himachal pradesh": "हिमाचल प्रदेश",
+  goa: "गोवा",
+  chandigarh: "चंडीगढ़",
+  "jammu and kashmir": "जम्मू और कश्मीर",
+  "all watches": "सभी घड़ियाँ",
+  dinnerware: "खाने के बर्तन",
+  collection: "कलेक्शन",
+};
+const translate = (language: ReportLanguage, label: string) =>
+  language === "hi"
+    ? Object.prototype.hasOwnProperty.call(HINDI, label)
+      ? HINDI[label]
+      : label
+    : label;
+// Keep the existing API field names and filter keys stable. Only display labels change.
+type AccountLabelRole = "Customer" | "Distributor" | "Account Holder";
+const getAccountLabelRole = (accountType: unknown): AccountLabelRole => {
+  const type = String(accountType ?? "")
+    .trim()
+    .toLowerCase();
+  if (type === "distributor") return "Distributor";
+  if (type === "customer") return "Customer";
+  return "Account Holder";
+};
+const getReportAccountLabelRole = (
+  items: FinanceReportItem[],
+): AccountLabelRole => {
+  if (!items.length) return "Account Holder";
+  const role = getAccountLabelRole(items[0].account_type);
+  return items.every((item) => getAccountLabelRole(item.account_type) === role)
+    ? role
+    : "Account Holder";
+};
+const ACCOUNT_LABEL_FIELDS = new Set([
+  "Customer Name",
+  "Customer Email",
+  "Customer Mobile",
+  "Customer GSTIN",
+  "Customer State",
+  "Customer / GSTIN",
+]);
+const accountFieldLabel = (field: string, role: AccountLabelRole) =>
+  ACCOUNT_LABEL_FIELDS.has(field) ? field.replace(/^Customer/, role) : field;
+const localizeValue = (
+  language: ReportLanguage,
+  field: string,
+  value: unknown,
+): string => {
+  const raw = value == null ? "" : String(value);
+  if (language === "en") {
+    if (field === "Account Type")
+      return raw
+        .trim()
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (ch) => ch.toUpperCase());
+    return ["Order Status", "Item Delivery Status"].includes(field)
+      ? raw.replace(/_/g, " ")
+      : raw;
+  }
+  if (["GST Registration", "GST Type", "Sales Classification"].includes(field))
+    return translate(language, raw);
+  if (
+    [
+      "Order Status",
+      "Item Delivery Status",
+      "Account Type",
+      "Customer State",
+      "Billing State",
+      "Product Head",
+    ].includes(field)
+  ) {
+    const key = raw
+      .trim()
+      .toLowerCase()
+      .replace(/ /g, field.includes("Status") ? "_" : " ");
+    return Object.prototype.hasOwnProperty.call(VALUE_HI, key)
+      ? VALUE_HI[key]
+      : raw;
+  }
+  return raw;
+};
+const useReportLanguage = () => {
+  const language = React.useContext(LanguageContext);
+  return {
+    language,
+    t: (label: unknown) => translate(language, String(label ?? "")),
+    localValue: (field: string, value: unknown) =>
+      localizeValue(language, field, value),
+  };
+};
 const THEME = {
   primary: "#2D6FE8",
   primaryDark: "#1E40AF",
@@ -64,6 +458,7 @@ type FinanceReportLineItem = FinanceReportItem & {
     igst?: number | string | null;
   } | null;
   order_reference?: string | null;
+  item_delivery_status?: string | null;
   billing_state?: string | null;
   delivery_state?: string | null;
   customer_gstin?: string | null;
@@ -360,6 +755,7 @@ const SALES_HEADERS = [
   "Total Service Charge",
   "Total",
   "Order Status",
+  "Item Delivery Status",
   "Confirmed At",
   "Dispatched At",
   "Delivered At",
@@ -372,6 +768,7 @@ const SALES_HEADERS = [
   "Gateway Transaction ID",
   "Courier Company",
   "Courier Tracking Number",
+  "Sales Classification",
 ];
 const SALES_WIDTHS = [
   24.0, // Order Reference
@@ -406,6 +803,7 @@ const SALES_WIDTHS = [
   22.0, // Total Service Charge
   9.0, // Total
   23.0, // Order Status
+  23.0, // Item Delivery Status
   23.0, // Confirmed At
   23.0, // Dispatched At
   23.0, // Delivered At
@@ -418,6 +816,7 @@ const SALES_WIDTHS = [
   30.0, // Gateway Transaction ID
   32.0, // Courier Company
   32.0, // Courier Tracking Number
+  25.0, // Sales Classification
 ];
 // Additive columns only; do not sum rates, per-unit prices or repeated order fields.
 const SALES_TOTAL_HEADERS = [
@@ -563,6 +962,335 @@ const getProductCategory = (item: FinanceReportItem): string => {
       .find(Boolean) || ""
   );
 };
+// Client reporting categories only; GSTIN validity is not verified here.
+const SALES_CLASSIFICATIONS = [
+  "Sales Unregistered",
+  "Sales Registered",
+  "Other Sales",
+  "Classification unavailable",
+] as const;
+const salesGstRegistration = (
+  item: FinanceReportItem,
+): "URP" | "Registered" | "" => {
+  const gstin = trimmedValue(asLineItem(item).customer_gstin).toUpperCase();
+  return !gstin ? "" : gstin === "URP" ? "URP" : "Registered";
+};
+const isReportableSale = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  // Exclude exact confirmed status, not historical confirmed_at timestamps.
+  return (
+    trimmedValue(item.order_status).toLowerCase() !== "confirmed" &&
+    trimmedValue(row.item_delivery_status).toLowerCase() !== "confirmed"
+  );
+};
+const salesClassification = (
+  item: FinanceReportItem,
+): (typeof SALES_CLASSIFICATIONS)[number] => {
+  const gst = salesGstRegistration(item);
+  if (!gst || hasMissingCalculationInputs(item))
+    return "Classification unavailable";
+  if (getLineGross(item) <= 100000) return "Other Sales";
+  return gst === "URP" ? "Sales Unregistered" : "Sales Registered";
+};
+const readFinancePage = (
+  response: any,
+): { rows: FinanceReportItem[]; lastPage: number } => {
+  const body =
+    typeof response?.success === "boolean"
+      ? response
+      : (response?.data ?? response);
+  if (body?.success === false)
+    throw new Error(body.message || "Unable to load finance report");
+  const payload = body?.data ?? body;
+  const rows = Array.isArray(payload) ? payload : payload?.data;
+  if (!Array.isArray(rows)) throw new Error("Invalid finance report response");
+  const last = Number(
+    payload?.last_page ??
+      body?.meta?.last_page ??
+      response?.meta?.last_page ??
+      1,
+  );
+  return {
+    rows,
+    lastPage: Number.isFinite(last) ? Math.max(1, Math.floor(last)) : 1,
+  };
+};
+const URP_HEADERS = [
+  "Invoice Number",
+  "Invoice date",
+  "Customer Name",
+  "Place Of Supply (POS)",
+  "Rate",
+  "Taxable Value",
+  "CGST",
+  "SGST",
+  "IGST",
+  "Invoice Value",
+];
+const GST_STATES: Record<string, string> = {
+  "01": "Jammu and Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "26": "Dadra and Nagar Haveli and Daman and Diu",
+  "27": "Maharashtra",
+  "29": "Karnataka",
+  "30": "Goa",
+  "31": "Lakshadweep",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "34": "Puducherry",
+  "35": "Andaman and Nicobar Islands",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+  "38": "Ladakh",
+  "97": "Other Territory",
+};
+const stateKey = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "");
+const formatPos = (item: FinanceReportItem) => {
+  const row = asLineItem(item);
+  const raw = trimmedValue(row.place_of_supply) || getPlaceOfSupply(item);
+  const code = raw.match(/^(\d{2})(?:\s*[-–:]\s*.*)?$/)?.[1];
+  if (code && GST_STATES[code]) return `${code}-${GST_STATES[code]}`;
+  const aliases: Record<string, string> = {
+    newdelhi: "07",
+    orissa: "21",
+    pondicherry: "34",
+    uttaranchal: "05",
+    damananddiu: "26",
+    dadraandnagarhaveli: "26",
+  };
+  const key = stateKey(raw);
+  const matched =
+    aliases[key] ||
+    Object.keys(GST_STATES).find((k) => stateKey(GST_STATES[k]) === key);
+  return matched ? `${matched}-${GST_STATES[matched]}` : raw;
+};
+
+type CompactSalesCell = string | number | Date | null;
+// Keep item rows separate even when invoice number and GST rate repeat.
+// If shipping has a different GST rate, split that item's tax rate rows only.
+const buildCompactSalesRows = (
+  items: FinanceReportItem[],
+  detailed: boolean,
+): CompactSalesCell[][] => {
+  const result: CompactSalesCell[][] = [];
+  for (const item of items) {
+    const row = asLineItem(item);
+    const prefix: CompactSalesCell[] = [
+      trimmedValue(item.invoice_number),
+      parseExcelDate(item.invoice_date, true),
+      trimmedValue(item.customer_name),
+      formatPos(item),
+    ];
+    const suffix: CompactSalesCell[] = detailed
+      ? [
+          trimmedValue(row.customer_gstin),
+          getProductName(item),
+          trimmedValue(row.item_reference_id ?? row.order_line_id),
+        ]
+      : [];
+    const rate = numberValue(row.line_tax_rate);
+    const shipRate = getShippingTaxRate(item);
+    const shipping = getLineShipping(item);
+    const tax = getSalesLineTax(item);
+    const add = (
+      r: number,
+      base: number,
+      cgst: number | null,
+      sgst: number | null,
+      igst: number | null,
+      gross: number,
+    ) => result.push([...prefix, r, base, cgst, sgst, igst, gross, ...suffix]);
+    if (!shipping || rate === shipRate) {
+      add(
+        rate,
+        getLineCombinedSubtotal(item),
+        tax.cgst,
+        tax.sgst,
+        tax.igst,
+        getLineGross(item),
+      );
+    } else {
+      const productTax = getLineGst(item);
+      const regime = getTaxRegime(item);
+      const central =
+        regime === "intra"
+          ? Math.ceil(Math.round(productTax * 100) / 2) / 100
+          : regime === "inter" || productTax === 0
+            ? 0
+            : null;
+      const state =
+        regime === "intra" && central !== null
+          ? roundMoney(productTax - central)
+          : central === null
+            ? null
+            : 0;
+      const integrated =
+        regime === "inter" ? productTax : central === null ? null : 0;
+      const rest = (a: number | null, b: number | null) =>
+        a === null || b === null ? null : roundMoney(a - b);
+      add(
+        rate,
+        getLineSubtotal(item),
+        central,
+        state,
+        integrated,
+        roundMoney(
+          getLineSubtotal(item) + productTax + getLineServiceCharge(item),
+        ),
+      );
+      add(
+        shipRate,
+        shipping,
+        rest(tax.cgst, central),
+        rest(tax.sgst, state),
+        rest(tax.igst, integrated),
+        roundMoney(shipping + getLineShippingGst(item)),
+      );
+    }
+  }
+  return result;
+};
+const addCompactSalesSheet = (
+  workbook: ExcelJS.Workbook,
+  name: string,
+  items: FinanceReportItem[],
+  language: ReportLanguage,
+  detailed: boolean,
+) => {
+  const headers = [
+    ...URP_HEADERS,
+    ...(detailed ? ["GSTIN NO", "Product Name", "Item Reference ID"] : []),
+  ];
+  const labels = headers.map((h) => translate(language, h));
+  const rows = buildCompactSalesRows(items, detailed);
+  const sheet = workbook.addWorksheet(translate(language, name), {
+    views: [
+      { state: "frozen", ySplit: 1, zoomScale: 80, showGridLines: false },
+    ],
+    pageSetup: {
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    },
+  });
+  const widths = [22, 15, 24, 25, 9, 17, 14, 14, 14, 18, 20, 28, 22];
+  sheet.columns = headers.map((_, i) => ({
+    width: Math.min(
+      34,
+      rows.reduce(
+        (m, r) =>
+          Math.max(
+            m,
+            (r[i] instanceof Date ? 12 : String(r[i] ?? "").length) + 3,
+          ),
+        widths[i],
+      ),
+    ),
+  }));
+  const edge: Partial<ExcelJS.Border> = {
+    style: "thin",
+    color: { argb: "FFD3DFEB" },
+  };
+  const header = sheet.addRow(labels);
+  header.height = 32;
+  header.eachCell((cell) => {
+    cell.font = {
+      name: "Calibri",
+      size: 11,
+      bold: true,
+      color: { argb: "FFFFFFFF" },
+    };
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF173B63" },
+    };
+    cell.alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+    cell.border = { top: edge, bottom: edge, left: edge, right: edge };
+  });
+  rows.forEach((values, index) => {
+    const line = sheet.addRow(values);
+    line.height = Math.min(
+      120,
+      Math.max(
+        24,
+        ...values.map(
+          (v, i) =>
+            14 *
+              Math.max(
+                1,
+                Math.ceil(
+                  (v instanceof Date ? 12 : String(v ?? "").length) /
+                    Math.max(5, (sheet.getColumn(i + 1).width ?? 20) - 3),
+                ),
+              ) +
+            6,
+        ),
+      ),
+    );
+    headers.forEach((_, i) => {
+      const cell = line.getCell(i + 1);
+      const numberCol = i >= 4 && i <= 9;
+      cell.font = {
+        name: "Calibri",
+        size: 11,
+        bold: i === 9,
+        color: { argb: "FF173B63" },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: {
+          argb: i === 9 ? "FFDCEEFF" : index % 2 ? "FFF3F7FC" : "FFFFFFFF",
+        },
+      };
+      cell.alignment = {
+        horizontal: numberCol ? "right" : "left",
+        vertical: "top",
+        wrapText: true,
+      };
+      cell.border = { top: edge, bottom: edge, left: edge, right: edge };
+      cell.numFmt =
+        i === 1 ? "dd-mmm-yy" : i === 4 ? "0.##" : numberCol ? "#,##0.00" : "@";
+    });
+  });
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: rows.length + 1, column: headers.length },
+  };
+};
+
 const buildSalesRows = (items: FinanceReportItem[]) => {
   const seenOrders = new Set<string>();
   const ordersWithLineCv = new Set(
@@ -634,6 +1362,7 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
       getLineServiceCharge(item), // Total Service Charge
       total, // Total
       item.order_status || "", // Order Status
+      row.item_delivery_status || "", // Item Delivery Status
       parseExcelDate(row.confirmed_at), // Confirmed At
       parseExcelDate(row.dispatched_at), // Dispatched At
       parseExcelDate(row.delivered_at), // Delivered At
@@ -648,328 +1377,22 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
       couriers
         .map((courier) => courier.courier_tracking_number || "")
         .join(" | "), // Courier Tracking Number
+      salesClassification(item), // Sales Classification
     ];
   });
 };
 
-/* ================= URP / B2C INVOICE REPORT ================= */
-const URP_HEADERS = [
-  "Invoice Number",
-  "Invoice date",
-  "Customer Name",
-  "Place Of Supply (POS)",
-  "Rate",
-  "Taxable Value",
-  "CGST",
-  "SGST",
-  "IGST",
-  "Invoice Value",
-];
-const isUrp = (item: FinanceReportItem) =>
-  trimmedValue(asLineItem(item).customer_gstin).toUpperCase() === "URP";
-
-const GST_STATES: Record<string, string> = {
-  "01": "Jammu and Kashmir",
-  "02": "Himachal Pradesh",
-  "03": "Punjab",
-  "04": "Chandigarh",
-  "05": "Uttarakhand",
-  "06": "Haryana",
-  "07": "Delhi",
-  "08": "Rajasthan",
-  "09": "Uttar Pradesh",
-  "10": "Bihar",
-  "11": "Sikkim",
-  "12": "Arunachal Pradesh",
-  "13": "Nagaland",
-  "14": "Manipur",
-  "15": "Mizoram",
-  "16": "Tripura",
-  "17": "Meghalaya",
-  "18": "Assam",
-  "19": "West Bengal",
-  "20": "Jharkhand",
-  "21": "Odisha",
-  "22": "Chhattisgarh",
-  "23": "Madhya Pradesh",
-  "24": "Gujarat",
-  "26": "Dadra and Nagar Haveli and Daman and Diu",
-  "27": "Maharashtra",
-  "29": "Karnataka",
-  "30": "Goa",
-  "31": "Lakshadweep",
-  "32": "Kerala",
-  "33": "Tamil Nadu",
-  "34": "Puducherry",
-  "35": "Andaman and Nicobar Islands",
-  "36": "Telangana",
-  "37": "Andhra Pradesh",
-  "38": "Ladakh",
-  "97": "Other Territory",
-};
-const stateKey = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]/g, "");
-const formatPos = (item: FinanceReportItem) => {
-  const row = asLineItem(item);
-  const raw = trimmedValue(row.place_of_supply) || getPlaceOfSupply(item);
-  const code = raw.match(/^(\d{2})(?:\s*[-–:]\s*.*)?$/)?.[1];
-  if (code && GST_STATES[code]) return `${code}-${GST_STATES[code]}`;
-  const aliases: Record<string, string> = {
-    newdelhi: "07",
-    orissa: "21",
-    pondicherry: "34",
-    uttaranchal: "05",
-    damananddiu: "26",
-    dadraandnagarhaveli: "26",
-  };
-  const key = stateKey(raw);
-  const matched =
-    aliases[key] ||
-    Object.keys(GST_STATES).find((k) => stateKey(GST_STATES[k]) === key);
-  return matched ? `${matched}-${GST_STATES[matched]}` : raw;
-};
-type UrpRow = [
-  string,
-  Date | string | null,
-  string,
-  string,
-  number,
-  number,
-  number | null,
-  number | null,
-  number | null,
-  number,
-];
-const buildUrpRows = (items: FinanceReportItem[]): UrpRow[] => {
-  const groups = new Map<string, UrpRow>();
-  items.forEach((item, index) => {
-    if (!isUrp(item)) return;
-    const row = asLineItem(item);
-    const invoice = trimmedValue(item.invoice_number);
-    const date = parseExcelDate(item.invoice_date, true);
-    const customer = trimmedValue(item.customer_name);
-    const pos = formatPos(item);
-    const rate = numberValue(row.line_tax_rate);
-    const shippingRate = getShippingTaxRate(item);
-    const product = getLineSubtotal(item);
-    const shipping = getLineShipping(item);
-    const service = getLineServiceCharge(item);
-    const tax = getSalesLineTax(item);
-    const add = (
-      r: number,
-      base: number,
-      cgst: number | null,
-      sgst: number | null,
-      igst: number | null,
-      value: number,
-    ) => {
-      const key = JSON.stringify([
-        invoice || `missing-${index}`,
-        date,
-        customer,
-        pos,
-        r,
-      ]);
-      const previous = groups.get(key);
-      const next: UrpRow = [
-        invoice,
-        date,
-        customer,
-        pos,
-        r,
-        base,
-        cgst,
-        sgst,
-        igst,
-        value,
-      ];
-      if (previous) {
-        previous[5] = roundMoney(previous[5] + base);
-        ([6, 7, 8] as const).forEach((i) => {
-          const a = previous[i],
-            b = next[i];
-          previous[i] = a === null || b === null ? null : roundMoney(a + b);
-        });
-        previous[9] = roundMoney(previous[9] + value);
-      } else groups.set(key, next);
-    };
-    if (shipping === 0 || shippingRate === rate) {
-      add(
-        rate,
-        getLineCombinedSubtotal(item),
-        tax.cgst,
-        tax.sgst,
-        tax.igst,
-        getLineGross(item),
-      );
-    } else {
-      // A separate shipping rate must occupy its own rate row. Preserve line rounding.
-      const productTax = getLineGst(item);
-      const regime = getTaxRegime(item);
-      const central =
-        regime === "intra"
-          ? Math.ceil(Math.round(productTax * 100) / 2) / 100
-          : regime === "inter" || productTax === 0
-            ? 0
-            : null;
-      const state =
-        regime === "intra" && central !== null
-          ? roundMoney(productTax - central)
-          : central === null
-            ? null
-            : 0;
-      const integrated =
-        regime === "inter" ? productTax : central === null ? null : 0;
-      const rest = (total: number | null, part: number | null) =>
-        total === null || part === null ? null : roundMoney(total - part);
-      add(
-        rate,
-        product,
-        central,
-        state,
-        integrated,
-        roundMoney(product + productTax + service),
-      );
-      add(
-        shippingRate,
-        shipping,
-        rest(tax.cgst, central),
-        rest(tax.sgst, state),
-        rest(tax.igst, integrated),
-        roundMoney(shipping + getLineShippingGst(item)),
-      );
-    }
-  });
-  return Array.from(groups.values());
-};
-const urpCellText = (value: UrpRow[number], col: number) => {
-  if (value == null || value === "") return "—";
-  if (value instanceof Date)
-    return value
-      .toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "2-digit",
-        timeZone: "UTC",
-      })
-      .replace(/ /g, "-");
-  if (typeof value === "number")
-    return value.toLocaleString(
-      "en-IN",
-      col === 4
-        ? { maximumFractionDigits: 2 }
-        : { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-    );
-  return value;
-};
-const salesCsvCell = (value: unknown): string => {
-  let text =
-    value == null
-      ? ""
-      : value instanceof Date
-        ? Number.isNaN(value.getTime())
-          ? ""
-          : value
-              .toISOString()
-              .slice(0, 19)
-              .replace("T00:00:00", "")
-              .replace("T", " ")
-        : String(value);
-  // Escape formula-like text, but leave actual numeric values numeric.
-  if (typeof value === "string" && /^\s*[=+@-]/.test(text)) text = "'" + text;
-  return `"${text.replace(/"/g, '""')}"`;
-};
-
-const addUrpWorksheet = (
-  workbook: ExcelJS.Workbook,
+/* ================= GST REGISTRATION FILTER ================= */
+type GstRegistrationFilter = "" | "URP" | "Registered";
+const filterByGstRegistration = (
   items: FinanceReportItem[],
-) => {
-  const sheet = workbook.addWorksheet("URP Sales", {
-    views: [{ state: "frozen", ySplit: 1, showGridLines: true }],
-  });
-  const rows = buildUrpRows(items);
-  const minimum = [22, 17, 27, 32, 10, 19, 16, 16, 16, 20];
-  sheet.columns = URP_HEADERS.map((heading, i) => ({
-    width: Math.min(
-      60,
-      rows.reduce(
-        (max, row) => Math.max(max, urpCellText(row[i], i).length + 4),
-        Math.max(minimum[i], heading.length + 4),
-      ),
-    ),
-  }));
-  const header = sheet.addRow(URP_HEADERS);
-  header.height = 30;
-  header.eachCell((cell) => {
-    cell.font = {
-      name: "Calibri",
-      size: 11,
-      bold: true,
-      color: { argb: "FFFFFFFF" },
-    };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF173B63" },
-    };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "middle",
-      wrapText: true,
-    };
-  });
-  rows.forEach((values, index) => {
-    const row = sheet.addRow(values);
-    row.height = Math.max(
-      24,
-      ...values.map(
-        (v, i) =>
-          14 *
-            Math.ceil(
-              urpCellText(v, i).length /
-                Math.max(8, (sheet.getColumn(i + 1).width || 20) - 4),
-            ) +
-          8,
-      ),
-    );
-    URP_HEADERS.forEach((_, i) => {
-      const cell = row.getCell(i + 1);
-      cell.font = {
-        name: "Calibri",
-        size: 11,
-        bold: i === 9,
-        color: { argb: "FF173B63" },
-      };
-      cell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: {
-          argb: i === 9 ? "FFDCEEFF" : index % 2 ? "FFF3F7FC" : "FFFFFFFF",
-        },
-      };
-      const edge: Partial<ExcelJS.Border> = {
-        style: "thin",
-        color: { argb: "FFD3DFEB" },
-      };
-      cell.border = { top: edge, bottom: edge, left: edge, right: edge };
-      cell.alignment = {
-        horizontal: i >= 4 ? "right" : "left",
-        vertical: "top",
-        wrapText: true,
-        indent: 1,
-      };
-      cell.numFmt =
-        i === 1 ? "dd-mmm-yy" : i === 4 ? "0.##" : i >= 5 ? "#,##0.00" : "@";
-    });
-  });
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: rows.length + 1, column: URP_HEADERS.length },
-  };
-};
+  filter: GstRegistrationFilter,
+) =>
+  items.filter(
+    (item) =>
+      isReportableSale(item) &&
+      (!filter || salesGstRegistration(item) === filter),
+  );
 
 // Calculate all additive fields from the same mapping used by Excel.
 const summarizeSales = (items: FinanceReportItem[]) => {
@@ -1019,13 +1442,14 @@ const displayNumber = (amount: number | null | undefined) =>
 
 /* ================= SMALL COMPONENTS ================= */
 function StatusBadge({ status }: { status: string | null | undefined }) {
+  const { localValue } = useReportLanguage();
   const style = statusStyle(status);
   return (
     <span
       className="inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[10px] font-semibold capitalize"
       style={{ background: style.bg, color: style.color }}
     >
-      {valueOrDash(status).replace(/_/g, " ")}
+      {localValue("Order Status", status) || "—"}
     </span>
   );
 }
@@ -1044,10 +1468,11 @@ function SummaryCard({
   color: string;
   bg: string;
 }) {
+  const { t } = useReportLanguage();
   return (
     <div className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold text-slate-600">{title}</p>
+        <p className="text-xs font-semibold text-slate-600">{t(title)}</p>
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{ background: bg, color }}
@@ -1058,15 +1483,18 @@ function SummaryCard({
       <h3 className="mt-2 break-words text-xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-2xl">
         {value}
       </h3>
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">{subtitle}</p>
+      <p className="mt-1 text-xs leading-relaxed text-slate-500">
+        {t(subtitle)}
+      </p>
     </div>
   );
 }
 
 function CourierDetails({ item }: { item: FinanceReportItem }) {
+  const { t } = useReportLanguage();
   const couriers = getCouriers(item);
   if (!couriers.length)
-    return <span className="text-xs text-gray-400">Not assigned</span>;
+    return <span className="text-xs text-gray-400">{t("Not assigned")}</span>;
   return (
     <div className="min-w-0 max-w-full space-y-2">
       {couriers.map((courier, index) => (
@@ -1078,7 +1506,7 @@ function CourierDetails({ item }: { item: FinanceReportItem }) {
             <span>{valueOrDash(courier.courier_company)}</span>
           </p>
           <p className="mt-0.5 break-all pl-[17px] text-xs text-gray-500">
-            Tracking: {valueOrDash(courier.courier_tracking_number)}
+            {t("Tracking:")} {valueOrDash(courier.courier_tracking_number)}
           </p>
         </div>
       ))}
@@ -1086,6 +1514,7 @@ function CourierDetails({ item }: { item: FinanceReportItem }) {
   );
 }
 function ProductDetails({ item }: { item: FinanceReportItem }) {
+  const { t, localValue } = useReportLanguage();
   const row = asLineItem(item);
   return (
     <div className="min-w-0 w-full max-w-full">
@@ -1094,19 +1523,23 @@ function ProductDetails({ item }: { item: FinanceReportItem }) {
       </p>
       <div className="mt-1 flex flex-wrap gap-x-2 gap-y-1 text-xs text-gray-500">
         <span>SKU: {valueOrDash(getProductCode(item))}</span>
-        <span>Category: {valueOrDash(getProductCategory(item))}</span>
+        <span>
+          {t("Category:")}{" "}
+          {localValue("Product Head", getProductCategory(item)) || "—"}
+        </span>
         <span>HSN: {valueOrDash(getHsnCode(item))}</span>
         <span>GST: {getGstPercentage(item) || "—"}</span>
       </div>
       {row.item_reference_id && (
         <p className="mt-1 break-all text-xs text-gray-400">
-          Item Ref: {row.item_reference_id}
+          {t("Item Ref:")} {row.item_reference_id}
         </p>
       )}
     </div>
   );
 }
 function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
+  const { t } = useReportLanguage();
   const tax = getSalesLineTax(item);
   return (
     <div className="min-w-0 space-y-1.5">
@@ -1119,14 +1552,16 @@ function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
           key={String(label)}
           className="flex items-center justify-between gap-1"
         >
-          <span className="text-xs text-gray-500">{label}</span>
+          <span className="text-xs text-gray-500">{t(label)}</span>
           <span className="break-words text-right text-xs font-semibold text-gray-700">
             {amount === null ? "—" : money(Number(amount))}
           </span>
         </div>
       ))}
       <div className="flex items-center justify-between gap-1 border-t border-[#E8EEF6] pt-1.5">
-        <span className="text-xs font-bold text-gray-700">Total Tax</span>
+        <span className="text-xs font-bold text-gray-700">
+          {t("Total Tax")}
+        </span>
         <span className="break-words text-right text-xs font-bold text-[#1E40AF]">
           {money(tax.total)}
         </span>
@@ -1135,7 +1570,49 @@ function TaxBreakdownDetails({ item }: { item: FinanceReportItem }) {
   );
 }
 /* ================= MAIN COMPONENT ================= */
-const FinanceReport = () => {
+function AccountDetails({ item }: { item: FinanceReportItem }) {
+  const { t, localValue } = useReportLanguage();
+  const role = getAccountLabelRole(item.account_type);
+  const label = (field: string) => t(accountFieldLabel(field, role));
+  const accountType = localValue("Account Type", item.account_type);
+  const fields = [
+    [label("Customer Name"), valueOrDash(item.customer_name)],
+    [label("Customer Email"), valueOrDash(item.customer_email)],
+    [label("Customer Mobile"), valueOrDash(item.customer_mobile)],
+    [t("User Name"), valueOrDash(item.user_name)],
+    [label("Customer GSTIN"), getGstinNumber(item)],
+    [
+      label("Customer State"),
+      localValue("Customer State", getPlaceOfSupply(item)) || "—",
+    ],
+  ];
+  return (
+    <div className="min-w-0 space-y-2 text-xs">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 font-semibold text-[#1E40AF]">
+          {accountType || t("Unknown")}
+        </span>
+      </div>
+      {fields.map(([field, value], index) => (
+        <div key={index} className="min-w-0">
+          <p className="text-[10px] font-medium text-slate-500">{field}</p>
+          <p
+            className={`mt-0.5 break-words [overflow-wrap:anywhere] ${index === 0 ? "font-semibold text-slate-900" : "text-slate-700"}`}
+          >
+            {value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const FinanceReportContent = ({
+  setLanguage,
+}: {
+  setLanguage: (language: ReportLanguage) => void;
+}) => {
+  const { language, t, localValue } = useReportLanguage();
   const {
     hasPermission,
     hasModuleAccess,
@@ -1186,109 +1663,58 @@ const FinanceReport = () => {
     };
   }, []);
   /* ================= REPORT STATE ================= */
-  const [reports, setReports] = useState<FinanceReportItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [exportingCsv, setExportingCsv] = useState(false);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [accountFilter, setAccountFilter] = useState("all");
-  const [gstFilter, setGstFilter] = useState<"all" | "urp" | "registered">(
-    "all",
-  );
-  const urpMode = gstFilter === "urp";
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [appliedDates, setAppliedDates] = useState({
-    fromDate: "",
-    toDate: "",
-  });
+  const [gstFilter, setGstFilter] = useState<GstRegistrationFilter>("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [lastPage, setLastPage] = useState(1);
   const [overviewRows, setOverviewRows] = useState<FinanceReportItem[] | null>(
     null,
   );
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [overviewError, setOverviewError] = useState(false);
   const [overviewRevision, setOverviewRevision] = useState(0);
-  /* ================= FETCH REPORT ================= */
-  const fetchReports = useCallback(
-    async (showLoader = true, page = currentPage) => {
-      try {
-        if (showLoader) setLoading(true);
-        else setRefreshing(true);
-        const response = await financeReportApi.getAll({
-          page,
-          per_page: PER_PAGE,
-          from_date: appliedDates.fromDate || undefined,
-          to_date: appliedDates.toDate || undefined,
-        });
-        if (response.success) {
-          const data = Array.isArray(response.data) ? response.data : [];
-          setReports(data);
-          setTotalRecords(response.meta?.total ?? data.length);
-          setLastPage(response.meta?.last_page ?? 1);
-        } else {
-          setReports([]);
-          setTotalRecords(0);
-          setLastPage(1);
-          toast.error(response.message || "Unable to fetch finance report");
-        }
-      } catch (error: any) {
-        console.error("Finance report error:", error);
-        toast.error(
-          error?.response?.data?.message || "Failed to fetch finance report",
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [currentPage, appliedDates],
-  );
-  useEffect(() => {
-    if (permissionsLoading) return;
-    if (!canViewReport) {
-      setLoading(false);
-      return;
-    }
-    void fetchReports(true, Math.min(currentPage, lastPage));
-  }, [permissionsLoading, canViewReport, fetchReports]);
-  const fetchAllReportRows = useCallback(async () => {
+  const loading = overviewLoading;
+  const refreshing = overviewLoading;
+  /* Load every API page once. All filters, pagination,
+     totals and both exports use the same snapshot, never just one server page. */
+  const fetchAllReportRows = useCallback(async (isActive: () => boolean) => {
     const allItems: FinanceReportItem[] = [];
     let page = 1;
     let pages = 1;
     do {
+      if (!isActive()) return [];
       const response = await financeReportApi.getAll({
         page,
         per_page: PER_PAGE,
-        from_date: appliedDates.fromDate || undefined,
-        to_date: appliedDates.toDate || undefined,
       });
-      if (!response.success)
-        throw new Error(response.message || "Unable to load finance totals");
-      allItems.push(...(Array.isArray(response.data) ? response.data : []));
-      pages = Math.max(1, Number(response.meta?.last_page) || 1);
+      const result = readFinancePage(response);
+      // API total/from/to may count orders, not item rows. Keep every item.
+      allItems.push(...result.rows.filter(isReportableSale));
+      pages = result.lastPage;
       page += 1;
     } while (page <= pages);
     return allItems;
-  }, [appliedDates]);
-
+  }, []);
   useEffect(() => {
-    if (permissionsLoading || !canViewReport) return;
+    if (permissionsLoading) return;
+    if (!canViewReport) {
+      setOverviewRows(null);
+      setOverviewLoading(false);
+      return;
+    }
     let active = true;
     setOverviewRows(null);
     setOverviewLoading(true);
     setOverviewError(false);
-    fetchAllReportRows()
+    fetchAllReportRows(() => active)
       .then((items) => {
         if (active) setOverviewRows(items);
       })
       .catch((error) => {
-        console.error("Finance totals error:", error);
-        if (active) setOverviewError(true);
+        console.error("Finance report error:", error);
+        if (active) {
+          setOverviewError(true);
+          toast.error(t("Unable to load all report pages. Please retry."));
+        }
       })
       .finally(() => {
         if (active) setOverviewLoading(false);
@@ -1297,95 +1723,39 @@ const FinanceReport = () => {
       active = false;
     };
   }, [permissionsLoading, canViewReport, fetchAllReportRows, overviewRevision]);
-
-  /* ================= SEARCH & FILTER ================= */
-  const filterReports = useCallback(
-    (source: FinanceReportItem[]) => {
-      const query = search.trim().toLowerCase();
-      return source.filter((item) => {
-        const row = asLineItem(item);
-        const couriers = getCouriers(item);
-        const searchable = [
-          item.invoice_number,
-          row.order_reference,
-          item.customer_name,
-          item.customer_mobile,
-          item.customer_email,
-          row.customer_gstin,
-          row.billing_state,
-          row.delivery_state,
-          item.user_name,
-          item.product_names,
-          row.product_name,
-          row.product_code,
-          row.product_slug,
-          getProductCategory(item),
-          row.hsn_code,
-          row.item_reference_id,
-          row.order_line_id,
-          item.order_status,
-          item.order_date,
-          item.payment_gateway,
-          item.gateway_transaction_id,
-          ...couriers.flatMap((courier) => [
-            courier.courier_company,
-            courier.courier_tracking_number,
-          ]),
-        ];
-        const matchesSearch =
-          !query ||
-          searchable.some((value) =>
-            String(value ?? "")
-              .toLowerCase()
-              .includes(query),
-          );
-        const matchesStatus =
-          statusFilter === "all" ||
-          (item.order_status || "").toLowerCase() === statusFilter;
-        const matchesAccount =
-          accountFilter === "all" ||
-          (item.account_type || "").toLowerCase() === accountFilter;
-        const gstin = trimmedValue(row.customer_gstin);
-        const matchesGst =
-          gstFilter === "all" ||
-          (gstFilter === "urp" ? isUrp(item) : !!gstin && !isUrp(item));
-        return matchesSearch && matchesStatus && matchesAccount && matchesGst;
-      });
-    },
-    [search, statusFilter, accountFilter, gstFilter],
-  );
-  const allFilteredReports = useMemo(
-    () => (overviewRows === null ? null : filterReports(overviewRows)),
-    [overviewRows, filterReports],
-  );
-  const displayTotal =
-    allFilteredReports === null ? totalRecords : allFilteredReports.length;
-  const displayLastPage =
-    allFilteredReports === null
-      ? lastPage
-      : Math.max(1, Math.ceil(displayTotal / PER_PAGE));
-  const displayPage = Math.min(currentPage, displayLastPage);
-  const filteredReports = useMemo(
-    () =>
-      allFilteredReports === null
-        ? filterReports(reports)
-        : allFilteredReports.slice(
-            (displayPage - 1) * PER_PAGE,
-            displayPage * PER_PAGE,
-          ),
-    [allFilteredReports, displayPage, reports, filterReports],
-  );
-  useEffect(() => {
+  const refreshReport = () => {
+    setOverviewLoading(true);
+    setOverviewRows(null);
+    setOverviewError(false);
+    setOverviewRevision((value) => value + 1);
     setCurrentPage(1);
-  }, [filterReports]);
-  /* ================= SUMMARY ================= */
-  const summary = useMemo(() => {
-    if (overviewRows === null) return null;
-    const matched = filterReports(overviewRows);
-    return matched.some(hasMissingCalculationInputs)
-      ? null
-      : summarizeSales(matched);
-  }, [overviewRows, filterReports]);
+  };
+  const matchedReports = useMemo(
+    () => filterByGstRegistration(overviewRows ?? [], gstFilter),
+    [overviewRows, gstFilter],
+  );
+  // A shared column must not describe customer rows as distributors (or vice versa).
+  // A single-type filtered dataset uses its specific label; mixed datasets use neutral labels.
+  const reportAccountRole = useMemo(
+    () => getReportAccountLabelRole(matchedReports),
+    [matchedReports],
+  );
+  const fieldLabel = (field: string) =>
+    t(accountFieldLabel(field, reportAccountRole));
+  const totalRecords = matchedReports.length;
+  const lastPage = Math.max(1, Math.ceil(totalRecords / PER_PAGE));
+  const safePage = Math.min(currentPage, lastPage);
+  const filteredReports = useMemo(
+    () => matchedReports.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE),
+    [matchedReports, safePage],
+  );
+  const summary = useMemo(
+    () =>
+      overviewRows === null || matchedReports.some(hasMissingCalculationInputs)
+        ? null
+        : summarizeSales(matchedReports),
+    [overviewRows, matchedReports],
+  );
   const pageSummary = useMemo(
     () => summarizeSales(filteredReports),
     [filteredReports],
@@ -1394,55 +1764,109 @@ const FinanceReport = () => {
     overviewLoading ? "…" : displayMoney(value);
   const summaryNumber = (value: number | null | undefined) =>
     overviewLoading ? "…" : displayNumber(value);
-  /* ================= APPLY / CLEAR FILTERS ================= */
-  const applyFilters = () => {
-    if (fromDate && toDate && fromDate > toDate) {
-      toast.error("From date cannot be greater than To date");
-      return;
-    }
-    setCurrentPage(1);
-    setAppliedDates({ fromDate, toDate });
-  };
+  const canDownload =
+    canExport &&
+    !exporting &&
+    !loading &&
+    !overviewError &&
+    matchedReports.length > 0 &&
+    summary !== null;
+  const filterDescription = gstFilter
+    ? `${t("GST Registration")}: ${localValue("GST Registration", gstFilter)}`
+    : "";
   const clearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setAccountFilter("all");
-    setGstFilter("all");
-    setFromDate("");
-    setToDate("");
+    setGstFilter("");
     setCurrentPage(1);
-    setAppliedDates({ fromDate: "", toDate: "" });
+  };
+  const urpExport = gstFilter === "URP";
+  const exportCSV = () => {
+    if (!canDownload) return;
+    // Quote every cell, preserve identifiers as text and mitigate CSV formula injection.
+    const escape = (value: unknown) => {
+      let text =
+        value instanceof Date
+          ? value.toISOString().slice(0, 16).replace("T", " ")
+          : String(value ?? "");
+      if (typeof value === "string" && /^[\s]*[=+@-]|^[\t\r\n]/.test(text))
+        text = "'" + text;
+      return '"' + text.replace(/"/g, '""') + '"';
+    };
+    const rows = buildSalesRows(matchedReports);
+    const csv = (
+      urpExport
+        ? [
+            URP_HEADERS.map((h) => t(h)),
+            ...buildCompactSalesRows(matchedReports, false),
+          ]
+        : [
+            SALES_HEADERS.map(fieldLabel),
+            ...rows.map((row) =>
+              row.map((value, i) =>
+                typeof value === "string" &&
+                (language === "hi" || SALES_HEADERS[i] === "Account Type")
+                  ? localValue(SALES_HEADERS[i], value)
+                  : value,
+              ),
+            ),
+          ]
+    )
+      .map((row) => row.map(escape).join(","))
+      .join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sales-filtered-${language}-${formatDateInput(new Date())}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(
+      `${matchedReports.length} ${t("matching product lines exported")}`,
+    );
   };
   /* ================= EXCEL EXPORT ================= */
   const exportExcel = async () => {
     if (!canExport) {
-      toast.error("You don't have permission to export this report.");
+      toast.error(t("You don't have permission to export this report."));
       return;
     }
-    if (exporting || exportingCsv) return;
+    if (!canDownload) return;
     setExporting(true);
     try {
-      const allItems = await fetchAllReportRows();
-      const exportItems = filterReports(allItems);
+      const exportItems = matchedReports;
       if (exportItems.some(hasMissingCalculationInputs)) {
         throw new Error(
           "Cannot calculate sales: quantity, taxable unit price, GST rate or shipping base is missing.",
         );
       }
-      const rows = buildSalesRows(exportItems);
+      const rows = buildSalesRows(exportItems).map((row) =>
+        row.map((value, i) =>
+          typeof value === "string" &&
+          (language === "hi" || SALES_HEADERS[i] === "Account Type")
+            ? localValue(SALES_HEADERS[i], value)
+            : value,
+        ),
+      );
       if (!rows.length) {
-        toast.error("No finance records available to export");
+        toast.error(t("No finance records available to export"));
         return;
       }
       const workbook = new ExcelJS.Workbook();
       workbook.creator = "IndieKonnect";
       workbook.calcProperties.fullCalcOnLoad = true;
-      if (urpMode) {
-        addUrpWorksheet(workbook, exportItems);
+      if (urpExport) {
+        addCompactSalesSheet(
+          workbook,
+          "URP Sales",
+          exportItems,
+          language,
+          false,
+        );
       } else {
         // The first worksheet is a compact, client-facing explanation of the same
-        // calculated data. The 44-column audit worksheet stays intact.
-        const overview = workbook.addWorksheet("Sales Overview", {
+        // frontend-calculated data. The detailed audit worksheet stays intact.
+        const overview = workbook.addWorksheet(t("Sales Overview"), {
           views: [
             { state: "frozen", xSplit: 3, ySplit: 5, showGridLines: false },
           ],
@@ -1505,31 +1929,44 @@ const FinanceReport = () => {
           right: { style: "thin", color: { argb: color } },
         });
         const overviewColumns = [
-          { source: "Invoice Number", label: "Invoice No.", width: 18 },
-          { source: "Customer Name", label: "Customer Name", width: 25 },
-          { source: "Customer Email", label: "Customer Email", width: 31 },
-          { source: "User Name", label: "User Name", width: 22 },
-          { source: "Product Name", label: "Product Name", width: 33 },
-          { source: "Product Head", label: "Product Category", width: 23 },
-          { source: "Quantity", label: "Qty", width: 9 },
+          { source: "Invoice Number", label: t("Invoice No."), width: 18 },
+          {
+            source: "Customer Name",
+            label: fieldLabel("Customer Name"),
+            width: 25,
+          },
+          {
+            source: "Customer Email",
+            label: fieldLabel("Customer Email"),
+            width: 31,
+          },
+          { source: "User Name", label: t("User Name"), width: 22 },
+          { source: "Account Type", label: t("Account Type"), width: 20 },
+          { source: "Product Name", label: t("Product Name"), width: 33 },
+          { source: "Product Head", label: t("Product Category"), width: 23 },
+          { source: "Quantity", label: t("Qty"), width: 9 },
           {
             source: "Product Subtotal Without GST",
-            label: "Product Amount\n(before tax)",
+            label: t("Product Amount\n(before tax)"),
             width: 19,
           },
           {
             source: "Shipping Charges Without GST",
-            label: "Shipping\n(before tax)",
+            label: t("Shipping\n(before tax)"),
             width: 17,
           },
-          { source: "Sub Total", label: "Subtotal\n(before tax)", width: 19 },
-          { source: "Total Tax", label: "GST\n(total tax)", width: 17 },
+          {
+            source: "Sub Total",
+            label: t("Subtotal\n(before tax)"),
+            width: 19,
+          },
+          { source: "Total Tax", label: t("GST\n(total tax)"), width: 17 },
           {
             source: "Total Service Charge",
-            label: "Service\nCharges",
+            label: t("Service\nCharges"),
             width: 16,
           },
-          { source: "Total", label: "Final Amount\n(incl. tax)", width: 21 },
+          { source: "Total", label: t("Final Amount\n(incl. tax)"), width: 21 },
         ];
         const overviewTextCount = overviewColumns.findIndex(
           (col) => col.source === "Quantity",
@@ -1578,7 +2015,12 @@ const FinanceReport = () => {
           const cell = overview.getCell(row, 1);
           cell.value = value;
           cell.fill = fill(bg);
-          cell.font = { name: "Calibri", size, bold, color: { argb: fg } };
+          cell.font = {
+            name: language === "hi" ? "Nirmala UI" : "Calibri",
+            size,
+            bold,
+            color: { argb: fg },
+          };
           cell.alignment = {
             vertical: "middle",
             horizontal: "left",
@@ -1588,17 +2030,17 @@ const FinanceReport = () => {
         };
         overviewBanner(
           1,
-          "INDIEKONNECT  /  SALES OVERVIEW",
+          t("INDIEKONNECT  /  SALES OVERVIEW"),
           "FF173B63",
           "FFFFFFFF",
           20,
           true,
         );
         overview.getRow(1).height = 42;
-        const period = `${appliedDates.fromDate || "Any start date"} to ${appliedDates.toDate || "Any end date"}`;
+        const period = t("All available dates");
         overviewBanner(
           2,
-          `${period}  |  ${rows.length} product lines  |  All amounts in INR (₹)`,
+          `${period}  |  ${rows.length} ${t("product lines")}  |  ${t("All amounts in INR (₹)")}`,
           "FFF0F7FF",
           "FF456580",
           11,
@@ -1606,7 +2048,9 @@ const FinanceReport = () => {
         overview.getRow(2).height = 25;
         overviewBanner(
           3,
-          "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount",
+          t(
+            "Product amount + shipping = subtotal  •  Subtotal + GST + service charges = final amount",
+          ),
           "FFFFFFFF",
           "FF173B63",
           12,
@@ -1615,12 +2059,21 @@ const FinanceReport = () => {
         overview.getRow(3).height = 30;
         overviewBanner(
           4,
-          "Use the column filters to find a product or invoice. Full GST, payment and courier details are in Sales Data.",
+          filterDescription
+            ? `${t("Applied filters:")} ${filterDescription}`
+            : t(
+                "All matching records for the selected period. Full GST, payment and courier details are in Sales Data.",
+              ),
           "FFFFFFFF",
           "FF456580",
           11,
         );
-        overview.getRow(4).height = 25;
+        overview.getRow(4).height = filterDescription
+          ? Math.min(
+              120,
+              Math.max(25, 16 * Math.ceil(filterDescription.length / 140) + 12),
+            )
+          : 25;
         const simpleHeader = overview.addRow(
           overviewColumns.map((col) => col.label),
         );
@@ -1634,7 +2087,7 @@ const FinanceReport = () => {
           const key = isOverviewSubtotal(i) || isOverviewTotal(i);
           cell.fill = fill(key ? "FFBBDCFB" : "FF24466A");
           cell.font = {
-            name: "Calibri",
+            name: language === "hi" ? "Nirmala UI" : "Calibri",
             size: 11,
             bold: true,
             color: { argb: key ? "FF173B63" : "FFFFFFFF" },
@@ -1662,7 +2115,7 @@ const FinanceReport = () => {
                     : "FFFFFFFF",
             );
             cell.font = {
-              name: "Calibri",
+              name: language === "hi" ? "Nirmala UI" : "Calibri",
               size: 11,
               bold: isOverviewTotal(i),
               color: { argb: key ? "FF173B63" : "FF253C52" },
@@ -1695,12 +2148,12 @@ const FinanceReport = () => {
           simpleTotal.number,
           overviewTextCount,
         );
-        simpleTotal.getCell(1).value = "GRAND TOTAL";
+        simpleTotal.getCell(1).value = t("GRAND TOTAL");
         overviewColumns.forEach((_, i) => {
           const cell = simpleTotal.getCell(i + 1);
           cell.fill = fill(isOverviewTotal(i) ? "FFBBDCFB" : "FFDCEEFF");
           cell.font = {
-            name: "Calibri",
+            name: language === "hi" ? "Nirmala UI" : "Calibri",
             size: 12,
             bold: true,
             color: { argb: "FF173B63" },
@@ -1730,7 +2183,9 @@ const FinanceReport = () => {
         });
         overviewBanner(
           overviewLast + 3,
-          "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.",
+          t(
+            "Calculation note: taxable unit price is treated as discount-adjusted. If shipping GST rate is absent, the product rate is used. No separate service GST is assumed.",
+          ),
           "FFF0F7FF",
           "FF456580",
           10,
@@ -1738,13 +2193,15 @@ const FinanceReport = () => {
         overview.getRow(overviewLast + 3).height = 31;
         overviewBanner(
           overviewLast + 4,
-          "The report uses calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+          t(
+            "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+          ),
           "FFFFFFFF",
           "FF456580",
           10,
         );
         overview.getRow(overviewLast + 4).height = 28;
-        const sheet = workbook.addWorksheet("Sales Data", {
+        const sheet = workbook.addWorksheet(t("Sales Data"), {
           views: [
             { state: "frozen", xSplit: 3, ySplit: 1, showGridLines: false },
           ],
@@ -1820,14 +2277,18 @@ const FinanceReport = () => {
             : null;
           return fitWidth(
             Math.max(width, moneyHeaders.has(heading) ? 20 : numeric ? 14 : 18),
-            [heading, ...values, total],
+            [fieldLabel(heading), ...values, total],
             numeric,
           );
         });
         sheet.columns = salesWidths.map((width) => ({ width }));
         // Row 1 headers, row 2 onward sales data, final row grand total.
-        const header = sheet.addRow(SALES_HEADERS);
-        header.height = fittedRowHeight(SALES_HEADERS, salesWidths, 42);
+        const header = sheet.addRow(SALES_HEADERS.map(fieldLabel));
+        header.height = fittedRowHeight(
+          SALES_HEADERS.map(fieldLabel),
+          salesWidths,
+          42,
+        );
         for (let c = 1; c <= SALES_HEADERS.length; c++) {
           const cell = header.getCell(c);
           cell.fill = {
@@ -1836,7 +2297,7 @@ const FinanceReport = () => {
             fgColor: { argb: groupColor(SALES_HEADERS[c - 1]) },
           };
           cell.font = {
-            name: "Calibri",
+            name: language === "hi" ? "Nirmala UI" : "Calibri",
             size: 11,
             bold: true,
             color: {
@@ -1863,7 +2324,7 @@ const FinanceReport = () => {
               ["Quantity", "CV", "Tax Percentage"].includes(heading);
             const keyTotal = ["Sub Total", "Total"].includes(heading);
             cell.font = {
-              name: "Calibri",
+              name: language === "hi" ? "Nirmala UI" : "Calibri",
               size: 11,
               color: { argb: keyTotal ? "FF173B63" : "FF253C52" },
               bold: keyTotal,
@@ -1915,7 +2376,7 @@ const FinanceReport = () => {
               fgColor: { argb: heading === "Total" ? "FFBBDCFB" : "FFDCEEFF" },
             };
             cell.font = {
-              name: "Calibri",
+              name: language === "hi" ? "Nirmala UI" : "Calibri",
               size: 12,
               bold: true,
               color: { argb: "FF173B63" },
@@ -1930,14 +2391,14 @@ const FinanceReport = () => {
           }
           sheet.mergeCells(r, 1, r, 3);
           const title = sheet.getCell(r, 1);
-          title.value = "GRAND TOTAL  |  VISIBLE ROWS";
+          title.value = t("GRAND TOTAL  |  VISIBLE ROWS");
           title.alignment = {
             horizontal: "left",
             vertical: "middle",
             indent: 1,
           };
           const detail = sheet.getCell(r, 6);
-          detail.value = "INR •calculated";
+          detail.value = t("INR • Frontend calculated");
           detail.alignment = {
             horizontal: "left",
             vertical: "middle",
@@ -1970,6 +2431,13 @@ const FinanceReport = () => {
               : "#,##0.##";
           });
         });
+        // Classification tabs are additional views, not additional transactions.
+        for (const category of SALES_CLASSIFICATIONS) {
+          const matching = exportItems.filter(
+            (item) => salesClassification(item) === category,
+          );
+          addCompactSalesSheet(workbook, category, matching, language, true);
+        }
       }
       const buffer = await workbook.xlsx.writeBuffer();
       const bytes = new Uint8Array(buffer);
@@ -1979,81 +2447,27 @@ const FinanceReport = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${urpMode ? "urp-sales" : "sales-data"}-${formatDateInput(new Date())}.xlsx`;
+      link.download = `sales-data-${language}-${formatDateInput(new Date())}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Sales Data exported successfully");
+      toast.success(t("Sales Data exported successfully"));
     } catch (error) {
       console.error("Sales Data export error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to export Sales Data",
+        error instanceof Error
+          ? t(error.message)
+          : t("Failed to export Sales Data"),
       );
     } finally {
       setExporting(false);
     }
   };
 
-  /* ================= CSV EXPORT ================= */
-  const exportCsv = async () => {
-    if (!canExport) {
-      toast.error("You don't have permission to export this report.");
-      return;
-    }
-    if (exporting || exportingCsv) return;
-    setExportingCsv(true);
-    try {
-      const exportItems = filterReports(await fetchAllReportRows());
-      if (!exportItems.length) {
-        toast.error("No finance records available to export");
-        return;
-      }
-      if (exportItems.some(hasMissingCalculationInputs)) {
-        throw new Error(
-          "Cannot calculate sales: quantity, taxable unit price, GST rate or shipping base is missing.",
-        );
-      }
-      // The compact format is exclusive to downloads with the URP filter.
-      const headers = urpMode ? URP_HEADERS : SALES_HEADERS;
-      const rows = urpMode
-        ? buildUrpRows(exportItems)
-        : buildSalesRows(exportItems);
-      const csvRows = rows.map((row) =>
-        row.map((value, i) =>
-          urpMode && i === 1 && value instanceof Date
-            ? urpCellText(value, i)
-            : value,
-        ),
-      );
-      const csv = [headers, ...csvRows]
-        .map((row) => row.map(salesCsvCell).join(","))
-        .join("\r\n");
-      const blob = new Blob(["\uFEFF", csv], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${urpMode ? "urp-sales" : "sales-data"}-${formatDateInput(new Date())}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success("Sales Data exported successfully");
-    } catch (error) {
-      console.error("Sales Data CSV export error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to export Sales Data",
-      );
-    } finally {
-      setExportingCsv(false);
-    }
-  };
-
   /* ================= PAGINATION ================= */
-  const startRecord = displayTotal === 0 ? 0 : (displayPage - 1) * PER_PAGE + 1;
-  const endRecord = Math.min(displayPage * PER_PAGE, displayTotal);
+  const startRecord = totalRecords === 0 ? 0 : (safePage - 1) * PER_PAGE + 1;
+  const endRecord = Math.min(safePage * PER_PAGE, totalRecords);
   const pageLoading = permissionsLoading || logoLoading;
   if (pageLoading) return <PermissionLoadingState logoUrl={logoUrl} />;
   if (!canViewReport) {
@@ -2061,9 +2475,13 @@ const FinanceReport = () => {
       <div className="flex min-h-[60vh] w-full items-center justify-center bg-[#F4F8FD] p-4">
         <div className="max-w-md rounded-2xl border border-[#DCE6F2] bg-white p-8 text-center shadow-lg">
           <ShieldAlert size={28} className="mx-auto mb-4 text-[#C23B32]" />
-          <h2 className="text-lg font-bold text-gray-900">Access Denied</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            {t("Access Denied")}
+          </h2>
           <p className="mt-2 text-sm text-gray-500">
-            You don't have permission to view the Finance Sales Report.
+            {t(
+              "You don't have permission to view the Finance Sales Report.",
+            )}{" "}
           </p>
         </div>
       </div>
@@ -2072,57 +2490,53 @@ const FinanceReport = () => {
   return (
     <div
       className="min-h-screen space-y-5 p-3 sm:p-5 lg:p-6"
+      lang={language}
       style={{ background: THEME.background }}
     >
       {/* HEADER */}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#2D6FE8]">
-            <span>Reports</span>
+            <span>{t("Reports")}</span>
             <ChevronRight size={13} />
-            <span>Finance Sales Report</span>
+            <span>{t("Finance Sales Report")}</span>
           </div>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-gray-900">
-            Finance Sales Report
+            {t("Finance Sales Report")}{" "}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Product-wise sales and GST calculated from unit prices, quantities
-            and tax rates.
+            {t(
+              "Product-wise sales and GST calculated from unit prices, quantities and tax rates.",
+            )}{" "}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <label className="flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700">
+            {t("Language")}
+            <select
+              aria-label={t("Language")}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as ReportLanguage)}
+              className="bg-transparent outline-none"
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+            </select>
+          </label>
           <button
             type="button"
-            onClick={() => {
-              void fetchReports(false, Math.min(currentPage, lastPage));
-              setOverviewRevision((value) => value + 1);
-            }}
-            disabled={refreshing || loading}
+            onClick={refreshReport}
+            disabled={loading || exporting}
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
           >
             <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
-            Refresh
+            {t("Refresh")}{" "}
           </button>
           {canExport && (
             <button
               type="button"
-              onClick={() => void exportCsv()}
-              disabled={exporting || exportingCsv || loading || refreshing}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {exportingCsv ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <FileText size={16} />
-              )}
-              {exportingCsv ? "Exporting CSV..." : "Export CSV"}
-            </button>
-          )}
-          {canExport && (
-            <button
-              type="button"
               onClick={() => void exportExcel()}
-              disabled={exporting || exportingCsv || loading || refreshing}
+              disabled={!canDownload}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1E40AF] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {exporting ? (
@@ -2130,38 +2544,107 @@ const FinanceReport = () => {
               ) : (
                 <Download size={16} />
               )}
-              {exporting ? "Exporting..." : "Export Excel"}
+              {exporting
+                ? t("Exporting...")
+                : `${t("Export Excel")} (${totalRecords})`}
+            </button>
+          )}
+          {canExport && (
+            <button
+              type="button"
+              onClick={exportCSV}
+              disabled={!canDownload}
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#173B63] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={15} />
+              {t("Export CSV (")}
+              {totalRecords})
             </button>
           )}
         </div>
       </div>
+      {/* GST REGISTRATION — the only report filter */}
+      <section
+        className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm"
+        aria-label={t("GST Registration")}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <Filter size={17} className="text-[#2D6FE8]" />
+            {t("GST Registration")}
+          </div>
+          <select
+            aria-label={t("GST Registration")}
+            value={gstFilter}
+            disabled={loading || exporting}
+            onChange={(e) => {
+              setGstFilter(e.target.value as GstRegistrationFilter);
+              setCurrentPage(1);
+            }}
+            className="h-10 min-w-[180px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+          >
+            <option value="">{t("All")}</option>
+            <option value="URP">{localValue("GST Registration", "URP")}</option>
+            <option value="Registered">
+              {localValue("GST Registration", "Registered")}
+            </option>
+          </select>
+          {gstFilter && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={exporting}
+              className="text-xs font-semibold text-[#2D6FE8] hover:underline disabled:opacity-50"
+            >
+              {t("Clear Filters")}
+            </button>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-semibold text-slate-800">
+            {loading
+              ? t("Loading records…")
+              : `${totalRecords.toLocaleString("en-IN")} ${t("matching product lines")}`}
+          </p>
+          <p className="text-xs text-slate-500">
+            {t(
+              "Excel and CSV include these matching records across all pages.",
+            )}
+          </p>
+        </div>
+      </section>
       {/* EXECUTIVE FINANCIAL SUMMARY */}
-     
-      <section className="space-y-3" aria-label="Financial summary">
+      <p className="text-xs text-slate-500">
+        {t(
+          "Frontend-calculated amounts. Shipping GST uses the product rate when no separate rate is supplied. Unit price is treated as net of discounts; service charges are added without separate GST.",
+        )}{" "}
+      </p>
+      <section className="space-y-3" aria-label={t("Financial summary")}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="text-base font-bold text-slate-900">
-              Sales overview
+              {t("Sales overview")}
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              All matching records across pages · INR
+              {t("All matching records across pages · INR")}
             </p>
           </div>
           {overviewLoading ? (
             <span className="flex items-center gap-2 text-xs text-slate-500">
-              <Loader2 size={14} className="animate-spin" /> Updating totals
+              <Loader2 size={14} className="animate-spin" />
+              {t("Updating totals")}
             </span>
           ) : overviewError ? (
             <button
               type="button"
-              onClick={() => setOverviewRevision((value) => value + 1)}
+              onClick={refreshReport}
               className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700"
             >
-              Totals unavailable · Retry
+              {t("Totals unavailable · Retry")}
             </button>
           ) : (
             <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">
-              {summaryNumber(summary?.rows)} product lines
+              {summaryNumber(summary?.rows)} {t("product lines")}
             </span>
           )}
         </div>
@@ -2169,7 +2652,7 @@ const FinanceReport = () => {
           <div className="min-w-0 rounded-xl border border-[#BBDCFB] bg-[#EAF3FF] p-4 text-[#173B63] shadow-sm">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-[#315B86]">
-                Total Sales
+                {t("Total Sales")}
               </p>
               <div className="rounded-lg bg-[#D5E9FF] p-2">
                 <Wallet size={18} />
@@ -2179,29 +2662,29 @@ const FinanceReport = () => {
               {summaryMoney(summary?.sales)}
             </p>
             <p className="mt-1 text-xs text-[#315B86]">
-              Total item amount · incl. GST
+              {t("Total item amount · incl. GST")}
             </p>
           </div>
           <SummaryCard
-            title="Sub Total"
+            title={t("Sub Total")}
             value={summaryMoney(summary?.subtotal)}
-            subtitle="Products + shipping, excl. GST"
+            subtitle={t("Products + shipping, excl. GST")}
             icon={Receipt}
             color="#2D6FE8"
             bg="#EAF3FF"
           />
           <SummaryCard
-            title="Total GST"
+            title={t("Total GST")}
             value={summaryMoney(summary?.gst)}
-            subtitle="Product GST + shipping GST"
+            subtitle={t("Product GST + shipping GST")}
             icon={CreditCard}
             color="#6D28D9"
             bg="#EDE9FE"
           />
           <SummaryCard
-            title="Shipping Charges"
+            title={t("Shipping Charges")}
             value={summaryMoney(summary?.shipping)}
-            subtitle="Including shipping GST"
+            subtitle={t("Including shipping GST")}
             icon={Truck}
             color="#15803D"
             bg="#DCFCE7"
@@ -2210,7 +2693,7 @@ const FinanceReport = () => {
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <h3 className="text-sm font-bold text-slate-900">
-              Sales breakdown
+              {t("Sales breakdown")}
             </h3>
             <div className="mt-3 space-y-2.5 text-xs">
               {[
@@ -2224,7 +2707,7 @@ const FinanceReport = () => {
                   key={String(label)}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="text-slate-500">{label}</span>
+                  <span className="text-slate-500">{t(label)}</span>
                   <span className="font-semibold text-slate-800 tabular-nums">
                     {summaryMoney(value as number | null | undefined)}
                   </span>
@@ -2233,7 +2716,9 @@ const FinanceReport = () => {
             </div>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-bold text-slate-900">GST breakdown</h3>
+            <h3 className="text-sm font-bold text-slate-900">
+              {t("GST breakdown")}
+            </h3>
             <div className="mt-3 space-y-2.5 text-xs">
               {[
                 ["CGST", summary?.cgst],
@@ -2246,7 +2731,7 @@ const FinanceReport = () => {
                   key={String(label)}
                   className="flex items-center justify-between gap-3"
                 >
-                  <span className="text-slate-500">{label}</span>
+                  <span className="text-slate-500">{t(label)}</span>
                   <span className="font-semibold text-slate-800 tabular-nums">
                     {summaryMoney(value as number | null | undefined)}
                   </span>
@@ -2257,7 +2742,7 @@ const FinanceReport = () => {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900">
-                Order activity
+                {t("Order activity")}
               </h3>
               <Package size={17} className="text-slate-400" />
             </div>
@@ -2271,7 +2756,7 @@ const FinanceReport = () => {
                   key={String(label)}
                   className="flex items-center justify-between gap-3 py-2 first:pt-0"
                 >
-                  <span className="text-xs text-slate-500">{label}</span>
+                  <span className="text-xs text-slate-500">{t(label)}</span>
                   <span className="text-sm font-bold text-slate-900 tabular-nums">
                     {summaryNumber(value as number | null | undefined)}
                   </span>
@@ -2281,130 +2766,46 @@ const FinanceReport = () => {
           </div>
         </div>
       </section>
-      {/* FILTERS */}
-      <div className="rounded-xl border border-[#DCE6F2] bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <Filter size={17} className="text-[#2D6FE8]" />
-          <h2 className="text-sm font-bold text-gray-800">Search & Filters</h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.5fr)_1fr_1fr_1fr_1fr_1fr_auto]">
-          <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search invoice, order, product, HSN, GSTIN, state, courier..."
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-          >
-            <option value="all">All Statuses</option>
-            <option value="dispatched">Dispatched</option>
-            <option value="shipped">Shipped</option>
-            <option value="partial_shipped">Partial Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="partial_delivered">Partial Delivered</option>
-          </select>
-          <select
-            value={accountFilter}
-            onChange={(event) => setAccountFilter(event.target.value)}
-            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-          >
-            <option value="all">All Account Types</option>
-            <option value="customer">Customer</option>
-            <option value="distributor">Distributor</option>
-          </select>
-          <select
-            aria-label="GST registration"
-            value={gstFilter}
-            onChange={(event) => {
-              setGstFilter(event.target.value as "all" | "urp" | "registered");
-              setCurrentPage(1);
-            }}
-            className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-          >
-            <option value="all">All GST Types</option>
-            <option value="urp">URP</option>
-            <option value="registered">Registered</option>
-          </select>
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-            />
-          </div>
-          <div className="relative">
-            <CalendarDays
-              size={15}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white pl-9 pr-2 text-sm text-gray-700 outline-none focus:border-[#2D6FE8]"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={applyFilters}
-              disabled={loading}
-              className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:opacity-60"
-            >
-              <Filter size={15} /> Apply
-            </button>
-            <button
-              type="button"
-              onClick={clearFilters}
-              title="Clear filters"
-              className="flex h-10 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:text-red-500"
-            >
-              <X size={15} />
-            </button>
-          </div>
-        </div>
-      </div>
       {/* FINANCE RECORDS */}
       <div className="overflow-hidden rounded-xl border border-[#DCE6F2] bg-white shadow-sm">
         <div className="flex flex-col justify-between gap-2 border-b border-[#DCE6F2] p-4 sm:flex-row sm:items-center">
           <div>
             <h2 className="text-base font-bold text-gray-900">
-              Finance Reports
+              {t("Finance Reports")}{" "}
             </h2>
             <p className="mt-1 text-xs text-gray-500">
-              Product-wise sales and GST details. Export includes all matching
-              records.
+              {t(
+                "Product-wise sales and GST details. Export includes all matching records.",
+              )}{" "}
             </p>
           </div>
           <span className="w-fit rounded-full bg-[#EAF3FF] px-3 py-1.5 text-xs font-semibold text-[#1E40AF]">
-            {filteredReports.length} Item Rows
+            {totalRecords} {t("matching product lines")}{" "}
           </span>
         </div>
         {loading ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center">
             <Loader2 size={32} className="animate-spin text-[#2D6FE8]" />
             <p className="mt-3 text-sm font-medium text-gray-500">
-              Loading finance report...
+              {t("Loading finance report...")}{" "}
             </p>
+          </div>
+        ) : overviewError ? (
+          <div className="p-8 text-center text-sm text-red-700" role="alert">
+            {t("Could not load all report pages.")}{" "}
+            <button
+              type="button"
+              onClick={refreshReport}
+              className="font-semibold underline"
+            >
+              {t("Retry")}
+            </button>
           </div>
         ) : filteredReports.some(hasMissingCalculationInputs) ? (
           <div className="p-8 text-center text-sm text-amber-800" role="alert">
-            Sales calculation unavailable: one or more records are missing
-            quantity, taxable unit price, GST rate or shipping base.
+            {t(
+              "Sales calculation unavailable: one or more records are missing quantity, taxable unit price, GST rate or shipping base.",
+            )}{" "}
           </div>
         ) : filteredReports.length === 0 ? (
           <div className="flex min-h-[280px] flex-col items-center justify-center px-4 text-center">
@@ -2412,17 +2813,17 @@ const FinanceReport = () => {
               <FileText size={25} />
             </div>
             <h3 className="mt-4 text-base font-bold text-gray-800">
-              No Finance Records Found
+              {t("No Finance Records Found")}{" "}
             </h3>
             <p className="mt-1 max-w-sm text-sm text-gray-500">
-              No records match your search or selected filters.
+              {t("No records match the selected GST filter.")}{" "}
             </p>
             <button
               type="button"
               onClick={clearFilters}
               className="mt-4 rounded-lg bg-[#2D6FE8] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1E40AF]"
             >
-              Clear Filters
+              {t("Clear Filters")}{" "}
             </button>
           </div>
         ) : (
@@ -2458,7 +2859,7 @@ const FinanceReport = () => {
                         key={heading}
                         className="whitespace-normal break-words border-b border-[#DCE6F2] px-2.5 py-3 text-xs font-bold uppercase tracking-wide text-gray-500"
                       >
-                        {heading}
+                        {fieldLabel(heading)}
                       </th>
                     ))}
                   </tr>
@@ -2485,46 +2886,32 @@ const FinanceReport = () => {
                           )}
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="break-words text-xs font-semibold text-gray-800">
-                            {valueOrDash(item.customer_name)}
-                          </p>
-                          <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
-                            Mobile: {valueOrDash(item.customer_mobile)}
-                          </p>
-                          <p className="mt-1 break-all text-xs text-gray-500">
-                            {valueOrDash(item.customer_email)}
-                          </p>
-                          <p className="mt-1 break-words text-xs text-gray-600">
-                            GSTIN: {getGstinNumber(item)}
-                          </p>
-                          <p className="mt-1 break-words text-xs text-gray-600">
-                            State: {valueOrDash(getPlaceOfSupply(item))}
-                          </p>
-                          <p className="mt-1 break-words text-xs capitalize text-gray-400">
-                            {valueOrDash(item.account_type)}
-                          </p>
+                          <AccountDetails item={item} />
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <ProductDetails item={item} />
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
                           <p className="break-words text-xs font-bold text-gray-900">
-                            {getQuantity(item)} Qty
+                            {getQuantity(item)}
+                            {t("Qty")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-600">
-                            Unit: {money(row.unit_price_without_gst)}
+                            {t("Unit:")} {money(row.unit_price_without_gst)}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-500">
-                            Line: {money(getLineSubtotal(item))}
+                            {t("Line:")} {money(getLineSubtotal(item))}
                           </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <p className="text-xs text-gray-500">Without GST</p>
+                          <p className="text-xs text-gray-500">
+                            {t("Without GST")}{" "}
+                          </p>
                           <p className="mt-0.5 break-words text-xs font-semibold text-gray-800">
                             {money(getLineShipping(item))}
                           </p>
                           <p className="mt-1 text-xs text-gray-500">
-                            Shipping GST
+                            {t("Shipping GST")}{" "}
                           </p>
                           <p className="mt-0.5 break-words text-xs font-semibold text-gray-800">
                             {money(getLineShippingGst(item))}
@@ -2538,10 +2925,11 @@ const FinanceReport = () => {
                             {money(getLineGross(item))}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-500">
-                            Product GST: {money(getLineGst(item))}
+                            {t("Product GST:")} {money(getLineGst(item))}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-400">
-                            Service charge: {money(getLineServiceCharge(item))}
+                            {t("Service charge:")}{" "}
+                            {money(getLineServiceCharge(item))}
                           </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
@@ -2556,7 +2944,20 @@ const FinanceReport = () => {
                           </p>
                         </td>
                         <td className="min-w-0 px-2.5 py-3 align-top">
-                          <StatusBadge status={item.order_status} />
+                          <div className="space-y-1">
+                            <div>
+                              <span className="block text-[10px] text-slate-500">
+                                {t("Order")}
+                              </span>
+                              <StatusBadge status={item.order_status} />
+                            </div>
+                            <div>
+                              <span className="block text-[10px] text-slate-500">
+                                {t("Item delivery")}
+                              </span>
+                              <StatusBadge status={row.item_delivery_status} />
+                            </div>
+                          </div>
                           <p className="mt-1 break-words text-xs text-gray-400">
                             {formatDate(item.order_date)}
                           </p>
@@ -2581,7 +2982,7 @@ const FinanceReport = () => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Invoice Number
+                            {t("Invoice Number")}{" "}
                           </p>
                           <p className="mt-1 break-all text-sm font-bold text-gray-900">
                             {valueOrDash(item.invoice_number)}
@@ -2595,66 +2996,60 @@ const FinanceReport = () => {
                             </p>
                           )}
                         </div>
-                        <StatusBadge status={item.order_status} />
+                        <div className="space-y-1">
+                          <div>
+                            <span className="block text-[10px] text-slate-500">
+                              {t("Order")}
+                            </span>
+                            <StatusBadge status={item.order_status} />
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-500">
+                              {t("Item delivery")}
+                            </span>
+                            <StatusBadge status={row.item_delivery_status} />
+                          </div>
+                        </div>
                       </div>
                       <div className="mt-4 rounded-lg bg-[#F7FAFE] p-3">
-                        <p className="text-sm font-semibold text-gray-800">
-                          {valueOrDash(item.customer_name)}
-                        </p>
-                        <p className="mt-1 break-all text-xs font-medium text-[#2D6FE8]">
-                          Mobile: {valueOrDash(item.customer_mobile)}
-                        </p>
-                        <p className="mt-1 break-all text-xs text-gray-500">
-                          {valueOrDash(item.customer_email)}
-                        </p>
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                          <p className="break-all text-gray-600">
-                            GSTIN:{" "}
-                            <span className="font-semibold">
-                              {getGstinNumber(item)}
-                            </span>
-                          </p>
-                          <p className="break-words text-gray-600">
-                            State:{" "}
-                            <span className="font-semibold">
-                              {valueOrDash(getPlaceOfSupply(item))}
-                            </span>
-                          </p>
-                          <p className="capitalize text-gray-500">
-                            {valueOrDash(item.account_type)}
-                          </p>
-                        </div>
+                        <AccountDetails item={item} />
                       </div>
                       <div className="mt-3 rounded-lg border border-[#E8EEF6] p-3">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Product Item
+                            {t("Product Item")}{" "}
                           </p>
                           <span className="rounded-full bg-[#EAF3FF] px-2 py-1 text-xs font-semibold text-[#1E40AF]">
-                            Qty: {getQuantity(item)}
+                            {t("Qty:")} {getQuantity(item)}
                           </span>
                         </div>
                         <p className="mt-1 break-words text-sm font-semibold text-gray-800">
                           {valueOrDash(getProductName(item))}
                         </p>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
-                          <span>Code: {valueOrDash(getProductCode(item))}</span>
                           <span>
-                            Category: {valueOrDash(getProductCategory(item))}
+                            {t("Code:")} {valueOrDash(getProductCode(item))}
+                          </span>
+                          <span>
+                            {t("Category:")}{" "}
+                            {localValue(
+                              "Product Head",
+                              getProductCategory(item),
+                            ) || "—"}
                           </span>
                           <span>HSN: {valueOrDash(getHsnCode(item))}</span>
                           <span>GST: {getGstPercentage(item) || "—"}</span>
                         </div>
                         {row.item_reference_id && (
                           <p className="mt-1 break-all text-xs text-gray-400">
-                            Item Ref: {row.item_reference_id}
+                            {t("Item Ref:")} {row.item_reference_id}
                           </p>
                         )}
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Product Total (excl. GST)
+                            {t("Product Total (excl. GST)")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-800">
                             {money(getLineSubtotal(item))}
@@ -2662,7 +3057,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Product GST
+                            {t("Product GST")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-800">
                             {money(getLineGst(item))}
@@ -2670,7 +3065,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Shipping (excl. GST)
+                            {t("Shipping (excl. GST)")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-800">
                             {money(getLineShipping(item))}
@@ -2678,7 +3073,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Shipping GST
+                            {t("Shipping GST")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-800">
                             {money(getLineShippingGst(item))}
@@ -2686,7 +3081,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Unit Price (excl. GST)
+                            {t("Unit Price (excl. GST)")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-700">
                             {money(row.unit_price_without_gst)}
@@ -2694,7 +3089,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Payment Gateway
+                            {t("Payment Gateway")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-semibold text-gray-700">
                             {valueOrDash(item.payment_gateway)}
@@ -2704,10 +3099,10 @@ const FinanceReport = () => {
                       <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F7FAFE] p-3">
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <p className="text-xs font-bold uppercase tracking-wide text-gray-600">
-                            GST Tax Breakdown
+                            {t("GST Tax Breakdown")}{" "}
                           </p>
                           <span className="rounded-full bg-[#EAF3FF] px-2.5 py-1 text-xs font-semibold text-[#1E40AF]">
-                            Product-line GST
+                            {t("Product-line GST")}{" "}
                           </span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -2722,7 +3117,7 @@ const FinanceReport = () => {
                               className="rounded-lg border border-[#E8EEF6] bg-white p-2.5"
                             >
                               <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                                {label}
+                                {t(label)}
                               </p>
                               <p className="mt-1 break-words text-xs font-bold text-gray-800">
                                 {amount === null ? "—" : money(Number(amount))}
@@ -2733,14 +3128,15 @@ const FinanceReport = () => {
                       </div>
                       <div className="mt-3 border-t border-[#E8EEF6] pt-3">
                         <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                          <Truck size={12} /> Courier & Tracking
+                          <Truck size={12} />
+                          {t("Courier & Tracking")}{" "}
                         </p>
                         <CourierDetails item={item} />
                       </div>
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EEF6] pt-3">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Order Date
+                            {t("Order Date")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs text-gray-500">
                             {formatDate(item.order_date)}
@@ -2748,7 +3144,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Item Total
+                            {t("Item Total")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-bold text-gray-800">
                             {money(getLineGross(item))}
@@ -2756,7 +3152,7 @@ const FinanceReport = () => {
                         </div>
                         <div className="text-right">
                           <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-                            Service Charge
+                            {t("Service Charge")}{" "}
                           </p>
                           <p className="mt-1 break-words text-xs font-bold text-gray-800">
                             {money(getLineServiceCharge(item))}
@@ -2772,10 +3168,10 @@ const FinanceReport = () => {
             <div className="border-t border-slate-200 bg-[#F1F6FB] px-4 py-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-sm font-bold text-slate-900">
-                  Current page totals
+                  {t("Current page totals")}
                 </h3>
                 <span className="text-xs text-slate-500">
-                  {filteredReports.length} visible product lines
+                  {filteredReports.length} {t("visible product lines")}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 xl:grid-cols-6">
@@ -2794,7 +3190,7 @@ const FinanceReport = () => {
                   ["Total Sales", displayMoney(pageSummary.sales)],
                 ].map(([label, value]) => (
                   <div key={label} className="min-w-0">
-                    <p className="text-xs text-slate-500">{label}</p>
+                    <p className="text-xs text-slate-500">{t(label)}</p>
                     <p
                       className={`mt-1 break-words text-sm font-bold tabular-nums ${label === "Total Sales" ? "text-[#1E40AF]" : "text-slate-900"}`}
                     >
@@ -2807,39 +3203,41 @@ const FinanceReport = () => {
             {/* PAGINATION */}
             <div className="flex flex-col justify-between gap-3 border-t border-[#DCE6F2] px-4 py-3 sm:flex-row sm:items-center">
               <p className="text-xs text-gray-500">
-                Showing product rows{" "}
+                {t("Showing product lines")}{" "}
                 <span className="font-semibold text-gray-800">
                   {startRecord}–{endRecord}
                 </span>{" "}
-                of{" "}
+                {t("of")}{" "}
                 <span className="font-semibold text-gray-800">
-                  {displayTotal}
+                  {totalRecords}
                 </span>
                 <span className="ml-1 text-gray-400">
-                  ({filteredReports.length} product rows on this page)
+                  ({filteredReports.length}
+                  {t("product rows on this page)")}{" "}
                 </span>
               </p>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  disabled={displayPage <= 1 || loading}
-                  onClick={() => setCurrentPage(Math.max(1, displayPage - 1))}
+                  disabled={safePage <= 1 || loading}
+                  onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Previous page"
+                  aria-label={t("Previous page")}
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <span className="min-w-[85px] text-center text-xs font-semibold text-gray-700">
-                  Page {displayPage} of {displayLastPage}
+                  {t("Page")} {safePage}
+                  {t("of")} {lastPage}
                 </span>
                 <button
                   type="button"
-                  disabled={displayPage >= displayLastPage || loading}
+                  disabled={safePage >= lastPage || loading}
                   onClick={() =>
-                    setCurrentPage(Math.min(displayLastPage, displayPage + 1))
+                    setCurrentPage(Math.min(lastPage, safePage + 1))
                   }
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DCE6F2] text-gray-600 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Next page"
+                  aria-label={t("Next page")}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -2849,6 +3247,14 @@ const FinanceReport = () => {
         )}
       </div>
     </div>
+  );
+};
+const FinanceReport = () => {
+  const [language, setLanguage] = useState<ReportLanguage>("en");
+  return (
+    <LanguageContext.Provider value={language}>
+      <FinanceReportContent setLanguage={setLanguage} />
+    </LanguageContext.Provider>
   );
 };
 export default FinanceReport;
