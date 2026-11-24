@@ -28,6 +28,14 @@ import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
 type ReportLanguage = "en" | "hi";
 const HINDI: Record<string, string> = {
+  "credit note no": "क्रेडिट नोट नंबर",
+  "credit note date": "क्रेडिट नोट की तारीख",
+  "original invoice date": "मूल इनवॉइस की तारीख",
+  "customer name": "ग्राहक का नाम",
+  "gstin no": "GSTIN नंबर",
+  "place of supply (pos)": "आपूर्ति का स्थान (POS)",
+  rate: "GST दर",
+  "invoice value": "इनवॉइस राशि",
   "credit note": "क्रेडिट नोट",
   "order reference": "ऑर्डर संदर्भ",
   reason: "कारण",
@@ -561,6 +569,161 @@ const reconciliation = (note: any) => {
   const difference =
     expected !== null && actual !== null ? round2(expected - actual) : null;
   return { gross, deductions, expected, actual, difference };
+};
+
+// ================= COMPACT GST CREDIT NOTE EXPORT =================
+// Keep the reference format independent of the dashboard and PDF.
+const CREDIT_EXPORT_HEADERS = [
+  "Credit Note No",
+  "Credit Note Date",
+  "Original Invoice Number",
+  "Original Invoice Date",
+  "Customer Name",
+  "GSTIN NO",
+  "Place Of Supply (POS)",
+  "Rate",
+  "Taxable Value",
+  "CGST",
+  "SGST",
+  "IGST",
+  "Invoice Value",
+];
+const GST_STATES: Record<string, string> = {
+  "01": "Jammu and Kashmir",
+  "02": "Himachal Pradesh",
+  "03": "Punjab",
+  "04": "Chandigarh",
+  "05": "Uttarakhand",
+  "06": "Haryana",
+  "07": "Delhi",
+  "08": "Rajasthan",
+  "09": "Uttar Pradesh",
+  "10": "Bihar",
+  "11": "Sikkim",
+  "12": "Arunachal Pradesh",
+  "13": "Nagaland",
+  "14": "Manipur",
+  "15": "Mizoram",
+  "16": "Tripura",
+  "17": "Meghalaya",
+  "18": "Assam",
+  "19": "West Bengal",
+  "20": "Jharkhand",
+  "21": "Odisha",
+  "22": "Chhattisgarh",
+  "23": "Madhya Pradesh",
+  "24": "Gujarat",
+  "26": "Dadra and Nagar Haveli and Daman and Diu",
+  "27": "Maharashtra",
+  "29": "Karnataka",
+  "30": "Goa",
+  "31": "Lakshadweep",
+  "32": "Kerala",
+  "33": "Tamil Nadu",
+  "34": "Puducherry",
+  "35": "Andaman and Nicobar Islands",
+  "36": "Telangana",
+  "37": "Andhra Pradesh",
+  "38": "Ladakh",
+  "97": "Other Territory",
+};
+const stateKey = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "");
+
+const creditPos = (note: any): string => {
+  const raw =
+    String(note.place_of_supply ?? note.order?.place_of_supply ?? "").trim() ||
+    String(note.buyer_state ?? "").trim();
+  const code = raw.match(/^(\d{2})(?:\s*[-–:]\s*.*)?$/)?.[1];
+  if (code && GST_STATES[code]) return `${code}-${GST_STATES[code]}`;
+  const aliases: Record<string, string> = {
+    newdelhi: "07",
+    orissa: "21",
+    pondicherry: "34",
+    uttaranchal: "05",
+    damananddiu: "26",
+    dadraandnagarhaveli: "26",
+  };
+  const key = stateKey(raw);
+  const match =
+    aliases[key] ||
+    Object.keys(GST_STATES).find((k) => stateKey(GST_STATES[k]) === key);
+  return match ? `${match}-${GST_STATES[match]}` : raw;
+};
+const creditExcelDate = (value: unknown): Date | string | null => {
+  if (value == null || !String(value).trim()) return null;
+  const parsed = parseReportDate(String(value).trim());
+  if (!Number.isFinite(parsed.getTime())) return String(value);
+  // Excel dates are date-only, using the Indian calendar day.
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(parsed);
+  const part = (name: string) =>
+    Number(parts.find((p) => p.type === name)?.value);
+  return new Date(Date.UTC(part("year"), part("month") - 1, part("day")));
+};
+type CreditExportRow = (string | number | Date | null)[];
+const creditSum = (values: unknown[]): number | null => {
+  const numbers = values.map(numeric);
+  if (!numbers.length || numbers.some((n) => n === null)) return null;
+  return round2(numbers.reduce<number>((sum, n) => sum + (n ?? 0), 0));
+};
+const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] => {
+  return notes.flatMap((raw): CreditExportRow[] => {
+    const note: any = normalizeCreditNote(raw);
+    const prefix = [
+      String(note.credit_note_number ?? ""),
+      creditExcelDate(note.issued_at),
+      String(note.original_invoice_number ?? ""),
+      creditExcelDate(note.invoice_date ?? note.original_invoice_date),
+      String(note.buyer_name ?? ""),
+      String(note.buyer_gstin ?? ""),
+      creditPos(note),
+    ];
+    const items: any[] = note.items;
+    const groups = new Map<number | null, any[]>();
+    for (const item of items) {
+      const rate = numeric(item.gst_rate);
+      const group = groups.get(rate) ?? [];
+      group.push(item);
+      groups.set(rate, group);
+    }
+    if (!groups.size) groups.set(numeric(note.gst_rate ?? note.rate), []);
+    const singleRate = groups.size === 1;
+    return Array.from(groups, ([rate, lines]) => {
+      // For one rate, use the credit note's recorded tax amounts; for mixed
+      // rates use the item tax amounts, never repeat the entire note totals.
+      const value = (noteValue: unknown, field: string) =>
+        (singleRate ? numeric(noteValue) : null) ??
+        creditSum(lines.map((i) => i[field]));
+      const taxable = value(note.taxable_value, "taxable_value");
+      const cgst = value(note.cgst_amount, "cgst");
+      const sgst = value(note.sgst_amount, "sgst");
+      const igst = value(note.igst_amount, "igst");
+      // As in the reference: invoice value = taxable amount + GST.
+      // This is not the amount refunded or the payment settlement amount.
+      const invoiceValue = creditSum([taxable, cgst, sgst, igst]);
+      return [...prefix, rate, taxable, cgst, sgst, igst, invoiceValue];
+    });
+  });
+};
+const creditExportCellText = (value: CreditExportRow[number]) => {
+  if (value instanceof Date)
+    return value
+      .toLocaleDateString("en-GB", {
+        timeZone: "UTC",
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+      })
+      .replace(/ /g, "-");
+  return value;
 };
 
 const csvCell = (value: unknown): string => {
@@ -1706,198 +1869,15 @@ const CreditNotes: React.FC = () => {
         return;
       }
 
-      const headers = [
-        "S.No.",
-        "Credit Note ID",
-        "Credit Note Number",
-        "Original Invoice Number",
-        "Invoice Date",
-        "Order Reference",
-        "Order ID",
-        "Order Line ID",
-        "Buyer Name",
-        "Buyer Type",
-        "Buyer Email",
-        "Buyer State",
-        "Buyer GSTIN",
-        "GST Registration",
-        "Buyer Address",
-        "Issued At",
-        "Reason",
-        "Order Type",
-        "Order Status",
-        "Delivery Status",
-        "Return Status",
-        "Payment Gateway",
-        "Gateway Transaction ID",
-        "Subtotal",
-        "Shipping Charge",
-        "Total Payable",
-        "Amount Paid",
-        "Taxable Value",
-        "CGST Amount",
-        "SGST Amount",
-        "IGST Amount",
-        "Total GST",
-        "Credit Note Amount",
-        "Refund ID",
-        "Refund Amount",
-        "Refund Method",
-        "Refund Status",
-        "Gateway Reference",
-        "Refund Completed At",
-        "Item Count",
-        "Total Item Amount (API)",
-        "Sum of Item Line Totals",
-        "Item Amount Difference",
-        "Items",
-        "Item Breakdown",
-      ];
-
-      const rows = exportNotes.map((rawNote: any, index: number) => {
-        // Re-normalize at the export boundary so the flat API is always supported.
-        const note: any = normalizeCreditNote(rawNote);
-        const order = note?.order ?? {};
-        const refund = note?.refund ?? {};
-        const items = Array.isArray(note?.items) ? note.items : [];
-        const itemSummary = items
-          .map((item: any) => {
-            const name = item?.product_name || "Product";
-            const code = item?.product_code ? ` [${item.product_code}]` : "";
-            const quantity =
-              item?.quantity != null ? ` x ${item.quantity}` : "";
-            return `${name}${code}${quantity}`;
-          })
-          .join("; ");
-
-        return [
-          note.s_no ?? index + 1,
-          note.id,
-          note?.credit_note_number,
-          note?.original_invoice_number,
-          note.invoice_date,
-          order?.order_reference,
-          note.order_id,
-          note.order_line_id,
-          note?.buyer_name,
-          getCreditNoteAccountType(note),
-          note?.buyer_email,
-          note?.buyer_state,
-          note?.buyer_gstin,
-          gstRegistration(note.buyer_gstin),
-          note?.buyer_address,
-          note?.issued_at,
-          note?.reason,
-          note.order_type ?? order.order_type,
-          note.order_status ?? order.status,
-          note.delivery_status ?? order.delivery_status,
-          note.return_status ?? order.return_status,
-          note.payment_gateway ?? order.payment_gateway,
-          note.gateway_transaction_id ?? order.gateway_transaction_id,
-          order?.subtotal,
-          order?.shipping_charge,
-          order?.total_payable,
-          order?.amount_paid,
-          note?.taxable_value,
-          note?.cgst_amount,
-          note?.sgst_amount,
-          note?.igst_amount,
-          note?.total_gst,
-          note?.amount,
-          refund?.id ?? note?.refund_id,
-          refund?.amount,
-          refund?.refund_method,
-          refund?.status,
-          refund?.gateway_reference,
-          refund?.completed_at,
-          note.item_count ?? items.length,
-          note.total_item_amount,
-          itemLineSum(note),
-          itemAmountDifference(note),
-          itemSummary,
-          items
-            .map((item: any) =>
-              [
-                ["Order Line ID", item.order_line_id],
-                ["Product ID", item.product_id],
-                ["Product Name", item.product_name],
-                ["Product Code", item.product_code],
-                ["Quantity", item.quantity],
-                ["Unit Price", item.unit_price],
-                ["Taxable Value", item.taxable_value],
-                ["GST Rate", item.gst_rate],
-                ["CGST", item.cgst],
-                ["SGST", item.sgst],
-                ["IGST", item.igst],
-                ["Item total", item.line_total],
-              ]
-                .map(([label, value]) => `${t(String(label))}: ${value ?? ""}`)
-                .join(" | "),
-            )
-            .join("\n"),
-        ];
-      });
-
-      const enumHeaders = new Set([
-        "GST Registration",
-        "Buyer Type",
-        "Buyer State",
-        "Reason",
-        "Order Type",
-        "Order Status",
-        "Delivery Status",
-        "Return Status",
-        "Refund Status",
-      ]);
-      const numericHeaders = new Set([
-        "S.No.",
-        "Total Item Amount (API)",
-        "Sum of Item Line Totals",
-        "Item Amount Difference",
-        "Subtotal",
-        "Shipping Charge",
-        "Total Payable",
-        "Amount Paid",
-        "Taxable Value",
-        "CGST Amount",
-        "SGST Amount",
-        "IGST Amount",
-        "Total GST",
-        "Credit Note Amount",
-        "Refund Amount",
-        "Item Count",
-      ]);
-      const titleCaseHeaders = new Set([
-        "Buyer Type",
-        "Order Type",
-        "Order Status",
-        "Delivery Status",
-        "Return Status",
-        "Refund Status",
-        "Reason",
-      ]);
-      const localizedRows = rows.map((row) =>
-        row.map((value, i) =>
-          numericHeaders.has(headers[i])
-            ? numeric(value)
-            : enumHeaders.has(headers[i])
-              ? displayEnum(
-                  language,
-                  titleCaseHeaders.has(headers[i]) &&
-                    value != null &&
-                    value !== ""
-                    ? capitalize(String(value))
-                    : value,
-                )
-              : value == null
-                ? null
-                : String(value),
-        ),
-      );
+      const headers = CREDIT_EXPORT_HEADERS.map(t);
+      const rows = buildCreditExportRows(exportNotes);
       const dateStamp = new Date().toISOString().slice(0, 10);
       let blob: Blob;
       if (format === "csv") {
-        const csvContent = [headers.map(t), ...localizedRows]
+        const csvContent = [
+          headers,
+          ...rows.map((row) => row.map(creditExportCellText)),
+        ]
           .map((row) => row.map(csvCell).join(","))
           .join("\r\n");
         blob = new Blob(["\uFEFF", csvContent], {
@@ -1906,242 +1886,148 @@ const CreditNotes: React.FC = () => {
       } else {
         const workbook = new ExcelJS.Workbook();
         workbook.creator = "IndieKonnect";
-        workbook.calcProperties.fullCalcOnLoad = true;
-        // Credit note-level amounts are kept separate from product-level amounts.
-        const addSheet = (
-          name: string,
-          keys: string[],
-          data: (string | number | null)[][],
-          numberKeys: Set<string>,
-          sumKeys: string[],
-          integerKeys: Set<string>,
-        ) => {
-          const sheet = workbook.addWorksheet(t(name), {
-            views: [
-              { state: "frozen", xSplit: 2, ySplit: 1, showGridLines: false },
-            ],
-          });
-          sheet.addRow(keys.map(t));
-          data.forEach((row) => sheet.addRow(row));
-          const end = data.length + 1;
-          sheet.autoFilter = {
-            from: { row: 1, column: 1 },
-            to: { row: end, column: keys.length },
-          };
-          const totalRow = sheet.addRow([t("Grand Total")]);
-          const edge = { style: "thin" as const, color: { argb: "FFDCE6F2" } };
-          keys.forEach((key, i) => {
-            const col = sheet.getColumn(i + 1);
-            const money = numberKeys.has(key) && !integerKeys.has(key);
-            const renderedLength = (value: unknown) =>
-              typeof value === "number"
-                ? value.toLocaleString("en-IN", {
-                    minimumFractionDigits: money ? 2 : 0,
-                    maximumFractionDigits: money ? 2 : 0,
-                  }).length
-                : String(value ?? "").length;
-            const longest = data.reduce(
-              (max, row) => Math.max(max, renderedLength(row[i])),
-              t(key).length,
-            );
-            col.width = Math.min(
-              44,
-              Math.max(numberKeys.has(key) ? 18 : 20, longest + 5),
-            );
-            if (numberKeys.has(key))
-              col.numFmt =
-                key === "GST rate"
-                  ? '0.##"%"'
-                  : money
-                    ? "#,##0.00;[Red](#,##0.00);0.00"
-                    : "#,##0";
-            if (sumKeys.includes(key) && data.length) {
-              const present = data.some((row) => typeof row[i] === "number");
-              if (present)
-                totalRow.getCell(i + 1).value = {
-                  formula: `SUBTOTAL(109,${col.letter}2:${col.letter}${end})`,
-                  result: round2(
-                    data.reduce(
-                      (a, row) =>
-                        a + (typeof row[i] === "number" ? Number(row[i]) : 0),
-                      0,
-                    ),
-                  ),
-                };
-            }
-            for (let r = 1; r <= totalRow.number; r++) {
-              const cell = sheet.getCell(r, i + 1);
-              const head = r === 1,
-                total = r === totalRow.number;
-              cell.font = {
-                name: "Nirmala UI",
-                size: 11,
-                bold: head || total,
-                color: { argb: head ? "FFFFFFFF" : "FF173B63" },
-              };
-              cell.fill = {
-                type: "pattern",
-                pattern: "solid",
-                fgColor: {
-                  argb: head
-                    ? "FF173B63"
-                    : total
-                      ? "FFDCEEFF"
-                      : r % 2 === 0
-                        ? "FFF1F6FC"
-                        : "FFFFFFFF",
-                },
-              };
-              cell.border = {
-                top: edge,
-                left: edge,
-                bottom: edge,
-                right: edge,
-              };
-              cell.alignment = {
-                vertical: head || total ? "middle" : "top",
-                horizontal: head
-                  ? "center"
-                  : numberKeys.has(key)
-                    ? "right"
-                    : "left",
-                wrapText: true,
-              };
-            }
-          });
-          sheet.getRow(1).height = 44;
-          data.forEach((row, i) => {
-            const lines = row.reduce<number>(
-              (max, v, j) =>
+        // Compact, single-sheet layout. Column order and values are identical to CSV.
+        const sheet = workbook.addWorksheet(t("Credit Note Data"), {
+          views: [
+            {
+              state: "frozen",
+              ySplit: 1,
+              showGridLines: false,
+              zoomScale: 80,
+              zoomScaleNormal: 80,
+            },
+          ],
+          properties: { defaultRowHeight: 19 },
+          pageSetup: {
+            orientation: "landscape",
+            paperSize: 9,
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 0,
+            printTitlesRow: "1:1",
+            horizontalCentered: true,
+            margins: {
+              left: 0.25,
+              right: 0.25,
+              top: 0.35,
+              bottom: 0.35,
+              header: 0.15,
+              footer: 0.15,
+            },
+          },
+        });
+        // Headers wrap rather than forcing every column to be as wide as its label.
+        const minimum = [19, 13, 17, 14, 18, 19, 22, 8, 15, 13, 13, 13, 16];
+        const maximum = [24, 15, 23, 16, 27, 23, 30, 10, 24, 24, 24, 24, 24];
+        const displayText = (
+          value: CreditExportRow[number],
+          i: number,
+        ): string => {
+          const v = creditExportCellText(value);
+          return typeof v === "number" && i >= 8
+            ? v.toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+            : String(v ?? "");
+        };
+        const widths = headers.map((_, i) =>
+          Math.min(
+            maximum[i],
+            rows.reduce(
+              (max, row) =>
                 Math.max(
                   max,
-                  String(v ?? "")
-                    .split(/\r?\n/)
-                    .reduce(
-                      (count, part) =>
-                        count +
-                        Math.max(
-                          1,
-                          Math.ceil(
-                            part.length /
-                              Math.max(
-                                8,
-                                (sheet.getColumn(j + 1).width ?? 20) - 4,
-                              ),
-                          ),
-                        ),
-                      0,
-                    ),
+                  Math.ceil(displayText(row[i], i).length * 1.03) + 2,
                 ),
-              1,
-            );
-            sheet.getRow(i + 2).height = Math.min(
-              409,
-              Math.max(28, lines * 15 + 6),
-            );
+              minimum[i],
+            ),
+          ),
+        );
+        sheet.columns = widths.map((width) => ({ width }));
+        const edge = { style: "thin" as const, color: { argb: "FFD3DFEB" } };
+        const border = { top: edge, bottom: edge, left: edge, right: edge };
+        const fontName = language === "hi" ? "Nirmala UI" : "Calibri";
+        const headerRow = sheet.addRow(headers);
+        headerRow.height = language === "hi" ? 42 : 34;
+        headers.forEach((_, i) => {
+          const cell = headerRow.getCell(i + 1);
+          cell.font = {
+            name: fontName,
+            size: 10,
+            bold: true,
+            color: { argb: i === 12 ? "FF173B63" : "FFFFFFFF" },
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: i === 12 ? "FFBBDCFB" : "FF173B63" },
+          };
+          cell.border = border;
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
+        });
+        rows.forEach((values, index) => {
+          const row = sheet.addRow(values);
+          const lines = Math.max(
+            1,
+            ...values.map((v, i) =>
+              i >= 7 || i === 1 || i === 3
+                ? 1
+                : Math.ceil(
+                    displayText(v, i).length / Math.max(4, widths[i] - 3),
+                  ),
+            ),
+          );
+          row.height = Math.min(120, Math.max(23, lines * 13 + 8));
+          headers.forEach((_, i) => {
+            const cell = row.getCell(i + 1);
+            cell.font = {
+              name: fontName,
+              size: 10,
+              bold: i === 12,
+              color: { argb: "FF173B63" },
+            };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: {
+                argb:
+                  i === 12 ? "FFDCEEFF" : index % 2 ? "FFF1F6FC" : "FFFFFFFF",
+              },
+            };
+            cell.border = border;
+            cell.alignment = {
+              vertical: "middle",
+              horizontal:
+                i === 1 || i === 3 || i === 7
+                  ? "center"
+                  : i >= 8
+                    ? "right"
+                    : "left",
+              wrapText: i < 7 && i !== 1 && i !== 3,
+              shrinkToFit: i >= 7 || i === 1 || i === 3,
+            };
+            cell.numFmt =
+              i === 1 || i === 3
+                ? "dd-mmm-yy"
+                : i === 7
+                  ? "0.##"
+                  : i >= 8
+                    ? "#,##0.00"
+                    : "@";
           });
-          totalRow.height = 30;
+        });
+        // Only the header and actual matching data are written. No padded rows,
+        // merged banners, extra sheets or totals outside the reference format.
+        sheet.autoFilter = {
+          from: { row: 1, column: 1 },
+          to: { row: rows.length + 1, column: headers.length },
         };
-        // The verbose per-item breakdown belongs in Item Details, not in a
-        // single wrapped cell that makes the entire credit-note row very tall.
-        // CSV retains the complete text breakdown because it has only one sheet.
-        const detailColumn = headers.indexOf("Item Breakdown");
-        const mainHeaders = headers.filter((_, i) => i !== detailColumn);
-        const mainRows = localizedRows.map((row) =>
-          row.filter((_, i) => i !== detailColumn),
-        );
-        addSheet(
-          "Credit Note Data",
-          mainHeaders,
-          mainRows,
-          numericHeaders,
-          [
-            "Taxable Value",
-            "CGST Amount",
-            "SGST Amount",
-            "IGST Amount",
-            "Total GST",
-            "Credit Note Amount",
-            "Refund Amount",
-            "Item Count",
-            "Total Item Amount (API)",
-            "Sum of Item Line Totals",
-            "Item Amount Difference",
-          ],
-          new Set(["S.No.", "Item Count"]),
-        );
-        const itemKeys = [
-          "Credit Note Number",
-          "Order Reference",
-          "Original Invoice Number",
-          "Invoice Date",
-          "Buyer Name",
-          "Order Line ID",
-          "Product ID",
-          "Product name",
-          "Product code",
-          "Quantity",
-          "Unit price",
-          "Taxable Value",
-          "GST rate",
-          "CGST",
-          "SGST",
-          "IGST",
-          "Item GST Amount",
-          "Item total",
-        ];
-        const itemData = exportNotes.flatMap((note: any) =>
-          (Array.isArray(note.items) ? note.items : []).map((item: any) => [
-            String(note.credit_note_number ?? ""),
-            String(note.order_reference ?? note.order?.order_reference ?? ""),
-            String(note.original_invoice_number ?? ""),
-            String(note.invoice_date ?? ""),
-            String(note.buyer_name ?? ""),
-            String(item.order_line_id ?? ""),
-            String(item.product_id ?? ""),
-            String(item.product_name ?? ""),
-            String(item.product_code ?? ""),
-            numeric(item.quantity),
-            numeric(item.unit_price),
-            numeric(item.taxable_value),
-            numeric(item.gst_rate),
-            numeric(item.cgst),
-            numeric(item.sgst),
-            numeric(item.igst),
-            [item.cgst, item.sgst, item.igst].every((v) => numeric(v) !== null)
-              ? round2(
-                  Number(item.cgst) + Number(item.sgst) + Number(item.igst),
-                )
-              : null,
-            numeric(item.line_total),
-          ]),
-        );
-        addSheet(
-          "Item Details",
-          itemKeys,
-          itemData,
-          new Set([
-            "Quantity",
-            "Unit price",
-            "Taxable Value",
-            "GST rate",
-            "CGST",
-            "SGST",
-            "IGST",
-            "Item GST Amount",
-            "Item total",
-          ]),
-          [
-            "Quantity",
-            "Taxable Value",
-            "CGST",
-            "SGST",
-            "IGST",
-            "Item GST Amount",
-            "Item total",
-          ],
-          new Set(["Quantity", "GST rate"]),
-        );
+        sheet.pageSetup.printArea = `A1:M${rows.length + 1}`;
         const buffer = await workbook.xlsx.writeBuffer();
         blob = new Blob([new Uint8Array(buffer)], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
