@@ -28,11 +28,8 @@ type ReportLanguage = "en" | "hi";
 const LanguageContext = React.createContext<ReportLanguage>("en");
 const HINDI: Record<string, string> = {
   "All available dates": "सभी उपलब्ध तारीखें",
-  "Sales Classification": "बिक्री वर्गीकरण",
   "Sales Unregistered": "अपंजीकृत बिक्री",
   "Sales Registered": "पंजीकृत बिक्री",
-  "Other Sales": "अन्य बिक्री",
-  "Classification unavailable": "वर्गीकरण उपलब्ध नहीं",
   Registered: "पंजीकृत",
   "URP Sales": "URP बिक्री",
   "Invoice date": "बिल की तारीख",
@@ -139,6 +136,7 @@ const HINDI: Record<string, string> = {
     "प्रति इकाई कीमत, मात्रा और टैक्स दर से गणना की गई उत्पादवार बिक्री और GST।",
   Refresh: "रीफ़्रेश करें",
   "Export CSV (": "CSV डाउनलोड (",
+  "Export CSV ZIP (": "CSV ZIP डाउनलोड (",
   "Export Excel": "Excel डाउनलोड",
   "Exporting...": "डाउनलोड तैयार हो रहा है...",
   "Search & filters": "खोज और फ़िल्टर",
@@ -390,7 +388,7 @@ const localizeValue = (
       ? raw.replace(/_/g, " ")
       : raw;
   }
-  if (["GST Registration", "GST Type", "Sales Classification"].includes(field))
+  if (["GST Registration", "GST Type"].includes(field))
     return translate(language, raw);
   if (
     [
@@ -768,7 +766,6 @@ const SALES_HEADERS = [
   "Gateway Transaction ID",
   "Courier Company",
   "Courier Tracking Number",
-  "Sales Classification",
 ];
 const SALES_WIDTHS = [
   24.0, // Order Reference
@@ -816,7 +813,6 @@ const SALES_WIDTHS = [
   30.0, // Gateway Transaction ID
   32.0, // Courier Company
   32.0, // Courier Tracking Number
-  25.0, // Sales Classification
 ];
 // Additive columns only; do not sum rates, per-unit prices or repeated order fields.
 const SALES_TOTAL_HEADERS = [
@@ -963,12 +959,6 @@ const getProductCategory = (item: FinanceReportItem): string => {
   );
 };
 // Client reporting categories only; GSTIN validity is not verified here.
-const SALES_CLASSIFICATIONS = [
-  "Sales Unregistered",
-  "Sales Registered",
-  "Other Sales",
-  "Classification unavailable",
-] as const;
 const salesGstRegistration = (
   item: FinanceReportItem,
 ): "URP" | "Registered" | "" => {
@@ -982,15 +972,6 @@ const isReportableSale = (item: FinanceReportItem) => {
     trimmedValue(item.order_status).toLowerCase() !== "confirmed" &&
     trimmedValue(row.item_delivery_status).toLowerCase() !== "confirmed"
   );
-};
-const salesClassification = (
-  item: FinanceReportItem,
-): (typeof SALES_CLASSIFICATIONS)[number] => {
-  const gst = salesGstRegistration(item);
-  if (!gst || hasMissingCalculationInputs(item))
-    return "Classification unavailable";
-  if (getLineGross(item) <= 100000) return "Other Sales";
-  return gst === "URP" ? "Sales Unregistered" : "Sales Registered";
 };
 const readFinancePage = (
   response: any,
@@ -1176,6 +1157,11 @@ const buildCompactSalesRows = (
   }
   return result;
 };
+const getCompactSalesHeaders = (detailed: boolean) => [
+  ...URP_HEADERS,
+  ...(detailed ? ["GSTIN NO", "Product Name", "Item Reference ID"] : []),
+];
+
 const addCompactSalesSheet = (
   workbook: ExcelJS.Workbook,
   name: string,
@@ -1183,10 +1169,7 @@ const addCompactSalesSheet = (
   language: ReportLanguage,
   detailed: boolean,
 ) => {
-  const headers = [
-    ...URP_HEADERS,
-    ...(detailed ? ["GSTIN NO", "Product Name", "Item Reference ID"] : []),
-  ];
+  const headers = getCompactSalesHeaders(detailed);
   const labels = headers.map((h) => translate(language, h));
   const rows = buildCompactSalesRows(items, detailed);
   const sheet = workbook.addWorksheet(translate(language, name), {
@@ -1377,7 +1360,6 @@ const buildSalesRows = (items: FinanceReportItem[]) => {
       couriers
         .map((courier) => courier.courier_tracking_number || "")
         .join(" | "), // Courier Tracking Number
-      salesClassification(item), // Sales Classification
     ];
   });
 };
@@ -1393,6 +1375,155 @@ const filterByGstRegistration = (
       isReportableSale(item) &&
       (!filter || salesGstRegistration(item) === filter),
   );
+
+// CSV has no worksheet tabs. Use the same compact GST mapping as Excel,
+// and keep GST groups physically separate in the All download.
+const serializeSalesCsv = (
+  headers: string[],
+  rows: unknown[][],
+  includeTime = false,
+) => {
+  const escapeCell = (value: unknown) => {
+    let text =
+      value instanceof Date
+        ? value
+            .toISOString()
+            .slice(0, includeTime ? 16 : 10)
+            .replace("T", " ")
+        : String(value ?? "");
+    if (typeof value === "string" && /^\s*[=+@-]|^[\t\r\n]/.test(text))
+      text = "'" + text;
+    return '"' + text.replace(/"/g, '""') + '"';
+  };
+  return (
+    "\uFEFF" +
+    [headers, ...rows].map((row) => row.map(escapeCell).join(",")).join("\r\n")
+  );
+};
+
+type SalesCsvFile = { name: string; csv: string };
+const buildSeparatedSalesCsv = (
+  items: FinanceReportItem[],
+  language: ReportLanguage,
+  filter: GstRegistrationFilter,
+): SalesCsvFile[] => {
+  const selected = filterByGstRegistration(items, filter);
+  const groups = filter ? [filter] : (["URP", "Registered", ""] as const);
+  const files: SalesCsvFile[] = [];
+  // All ZIP also includes the complete Sales Data CSV, one row per item.
+  // Keep the separate GST CSVs and the selected-filter downloads unchanged.
+  if (!filter && selected.length) {
+    const role = getReportAccountLabelRole(selected);
+    const headers = [
+      "GST Type",
+      ...SALES_HEADERS.map((h) => accountFieldLabel(h, role)),
+    ].map((h) => translate(language, h));
+    const rows = buildSalesRows(selected).map((row, index) => [
+      translate(
+        language,
+        salesGstRegistration(selected[index]) || "Missing GSTIN",
+      ),
+      ...row.map((value, i) =>
+        typeof value === "string" &&
+        (language === "hi" || SALES_HEADERS[i] === "Account Type")
+          ? localizeValue(language, SALES_HEADERS[i], value)
+          : value,
+      ),
+    ]);
+    files.push({
+      name: "sales-all.csv",
+      csv: serializeSalesCsv(headers, rows, true),
+    });
+  }
+  for (const group of groups) {
+    const groupItems = selected.filter(
+      (item) => salesGstRegistration(item) === group,
+    );
+    if (!groupItems.length) continue;
+    // Match the corresponding Excel GST worksheet columns exactly.
+    // The dedicated URP export has 10 columns; the All workbook's
+    // Unregistered worksheet and Registered worksheet have 13.
+    const detailed = filter !== "URP";
+    const name =
+      group === "URP"
+        ? "sales-unregistered.csv"
+        : group === "Registered"
+          ? "sales-registered.csv"
+          : "sales-missing-gstin.csv";
+    files.push({
+      name,
+      csv: serializeSalesCsv(
+        getCompactSalesHeaders(detailed).map((h) => translate(language, h)),
+        buildCompactSalesRows(groupItems, detailed),
+      ),
+    });
+  }
+  return files;
+};
+
+// Write a standard uncompressed ZIP (store method), without a new dependency.
+// One browser download avoids multiple-file permission prompts.
+const zipSalesCsvFiles = (files: SalesCsvFile[]): Blob => {
+  const encoder = new TextEncoder();
+  const crc32 = (bytes: Uint8Array) => {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++)
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const locals: ArrayBuffer[] = [];
+  const directory: ArrayBuffer[] = [];
+  let offset = 0;
+  let directorySize = 0;
+  for (const file of files) {
+    const name = encoder.encode(file.name);
+    const data = encoder.encode(file.csv);
+    const crc = crc32(data);
+    const local = new ArrayBuffer(30 + name.length);
+    const l = new DataView(local);
+    l.setUint32(0, 0x04034b50, true);
+    l.setUint16(4, 20, true);
+    l.setUint16(6, 0x0800, true);
+    l.setUint16(12, 0x0021, true);
+    l.setUint32(14, crc, true);
+    l.setUint32(18, data.length, true);
+    l.setUint32(22, data.length, true);
+    l.setUint16(26, name.length, true);
+    new Uint8Array(local).set(name, 30);
+    const central = new ArrayBuffer(46 + name.length);
+    const c = new DataView(central);
+    c.setUint32(0, 0x02014b50, true);
+    c.setUint16(4, 20, true);
+    c.setUint16(6, 20, true);
+    c.setUint16(8, 0x0800, true);
+    c.setUint16(14, 0x0021, true);
+    c.setUint32(16, crc, true);
+    c.setUint32(20, data.length, true);
+    c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true);
+    c.setUint32(42, offset, true);
+    new Uint8Array(central).set(name, 46);
+    const payload = new ArrayBuffer(data.length);
+    new Uint8Array(payload).set(data);
+    locals.push(local, payload);
+    directory.push(central);
+    offset += local.byteLength + data.length;
+    directorySize += central.byteLength;
+    if (offset + directorySize > 0xffffffff - 22)
+      throw new Error("CSV archive is too large for ZIP export.");
+  }
+  const end = new ArrayBuffer(22);
+  const e = new DataView(end);
+  e.setUint32(0, 0x06054b50, true);
+  e.setUint16(8, files.length, true);
+  e.setUint16(10, files.length, true);
+  e.setUint32(12, directorySize, true);
+  e.setUint32(16, offset, true);
+  return new Blob([...locals, ...directory, end], { type: "application/zip" });
+};
 
 // Calculate all additive fields from the same mapping used by Excel.
 const summarizeSales = (items: FinanceReportItem[]) => {
@@ -1780,50 +1911,47 @@ const FinanceReportContent = ({
   };
   const urpExport = gstFilter === "URP";
   const exportCSV = () => {
+    if (!canExport) {
+      toast.error(t("You don't have permission to export this report."));
+      return;
+    }
     if (!canDownload) return;
-    // Quote every cell, preserve identifiers as text and mitigate CSV formula injection.
-    const escape = (value: unknown) => {
-      let text =
-        value instanceof Date
-          ? value.toISOString().slice(0, 16).replace("T", " ")
-          : String(value ?? "");
-      if (typeof value === "string" && /^[\s]*[=+@-]|^[\t\r\n]/.test(text))
-        text = "'" + text;
-      return '"' + text.replace(/"/g, '""') + '"';
-    };
-    const rows = buildSalesRows(matchedReports);
-    const csv = (
-      urpExport
-        ? [
-            URP_HEADERS.map((h) => t(h)),
-            ...buildCompactSalesRows(matchedReports, false),
-          ]
-        : [
-            SALES_HEADERS.map(fieldLabel),
-            ...rows.map((row) =>
-              row.map((value, i) =>
-                typeof value === "string" &&
-                (language === "hi" || SALES_HEADERS[i] === "Account Type")
-                  ? localValue(SALES_HEADERS[i], value)
-                  : value,
-              ),
-            ),
-          ]
-    )
-      .map((row) => row.map(escape).join(","))
-      .join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `sales-filtered-${language}-${formatDateInput(new Date())}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(
-      `${matchedReports.length} ${t("matching product lines exported")}`,
-    );
+    try {
+      const selectedFilter = gstFilter;
+      const exportItems = filterByGstRegistration(
+        matchedReports,
+        selectedFilter,
+      );
+      const files = buildSeparatedSalesCsv(
+        exportItems,
+        language,
+        selectedFilter,
+      );
+      if (!files.length) {
+        toast.error(t("No finance records available to export"));
+        return;
+      }
+      const date = formatDateInput(new Date());
+      const blob = selectedFilter
+        ? new Blob([files[0].csv], { type: "text/csv;charset=utf-8;" })
+        : zipSalesCsvFiles(files);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = selectedFilter
+        ? files[0].name.replace(/\.csv$/, `-${language}-${date}.csv`)
+        : `sales-gst-wise-${language}-${date}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(
+        `${exportItems.length} ${t("matching product lines exported")}`,
+      );
+    } catch (error) {
+      console.error("CSV export error:", error);
+      toast.error(t("Failed to export Sales Data"));
+    }
   };
   /* ================= EXCEL EXPORT ================= */
   const exportExcel = async () => {
@@ -2431,12 +2559,24 @@ const FinanceReportContent = ({
               : "#,##0.##";
           });
         });
-        // Classification tabs are additional views, not additional transactions.
-        for (const category of SALES_CLASSIFICATIONS) {
-          const matching = exportItems.filter(
-            (item) => salesClassification(item) === category,
+        // GST-only views of the same selected records. No invoice-value threshold.
+        if (!gstFilter) {
+          addCompactSalesSheet(
+            workbook,
+            "Sales Unregistered",
+            filterByGstRegistration(exportItems, "URP"),
+            language,
+            true,
           );
-          addCompactSalesSheet(workbook, category, matching, language, true);
+        }
+        if (!gstFilter || gstFilter === "Registered") {
+          addCompactSalesSheet(
+            workbook,
+            "Sales Registered",
+            filterByGstRegistration(exportItems, "Registered"),
+            language,
+            true,
+          );
         }
       }
       const buffer = await workbook.xlsx.writeBuffer();
@@ -2447,7 +2587,7 @@ const FinanceReportContent = ({
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `sales-data-${language}-${formatDateInput(new Date())}.xlsx`;
+      link.download = `sales-${gstFilter ? gstFilter.toLowerCase() : "all"}-${language}-${formatDateInput(new Date())}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -2557,7 +2697,7 @@ const FinanceReportContent = ({
               className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#173B63] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download size={15} />
-              {t("Export CSV (")}
+              {t(gstFilter ? "Export CSV (" : "Export CSV ZIP (")}
               {totalRecords})
             </button>
           )}

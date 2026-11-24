@@ -249,6 +249,8 @@ const HINDI: Record<string, string> = {
   "transaction id": "लेनदेन आईडी",
   "download excel": "Excel डाउनलोड करें",
   "download csv": "CSV डाउनलोड करें",
+  "download csv zip": "CSV ZIP डाउनलोड करें",
+  "gst type": "GST का प्रकार",
   "preparing excel...": "Excel तैयार हो रही है...",
   "preparing csv...": "CSV तैयार हो रही है...",
   "grand total": "कुल योग",
@@ -921,6 +923,141 @@ const csvCell = (value: unknown): string => {
   )
     text = "'" + text;
   return `"${text.replace(/"/g, '""')}"`;
+};
+
+type CreditCsvFile = { name: string; csv: string };
+type CreditGstFilter = "" | "URP" | "Registered";
+
+const serializeCreditCsv = (
+  keys: string[],
+  rows: CreditExportRow[],
+  language: ReportLanguage,
+): string =>
+  "\uFEFF" +
+  [
+    keys.map((key) => translate(language, key)),
+    ...rows.map((row) => row.map(creditExportCellText)),
+  ]
+    .map((row) => row.map(csvCell).join(","))
+    .join("\r\n");
+
+// Use the same matching items as the directory. Group only by GSTIN,
+// never by the invoice value or the old classification threshold.
+const buildCreditCsvFiles = (
+  notes: CreditNote[],
+  fullKeys: string[],
+  fullRows: CreditExportRow[],
+  language: ReportLanguage,
+  gstFilter: CreditGstFilter,
+): CreditCsvFile[] => {
+  const files: CreditCsvFile[] = [];
+  if (!gstFilter) {
+    const keep = fullKeys
+      .map((key, index) => ({ key, index }))
+      .filter(({ key }) => key !== "Credit Note Classification");
+    files.push({
+      name: "credit-notes-all.csv",
+      csv: serializeCreditCsv(
+        ["GST Type", ...keep.map(({ key }) => key)],
+        fullRows.map((row, index) => [
+          translate(
+            language,
+            gstRegistration(notes[index].buyer_gstin) || "Missing",
+          ),
+          ...keep.map(({ index: column }) => row[column]),
+        ]),
+        language,
+      ),
+    });
+  }
+  const groups: CreditGstFilter[] = gstFilter
+    ? [gstFilter]
+    : ["URP", "Registered", ""];
+  for (const group of groups) {
+    const items = notes.filter(
+      (note) => gstRegistration(note.buyer_gstin) === group,
+    );
+    // Always include the two standard files in All; missing GSTIN is optional.
+    if (!group && !items.length) continue;
+    if (gstFilter && !items.length) continue;
+    files.push({
+      name:
+        group === "URP"
+          ? "credit-notes-unregistered.csv"
+          : group === "Registered"
+            ? "credit-notes-registered.csv"
+            : "credit-notes-missing-gstin.csv",
+      csv: serializeCreditCsv(
+        CREDIT_EXPORT_HEADERS,
+        buildCreditExportRows(items),
+        language,
+      ),
+    });
+  }
+  return files;
+};
+
+// Standard uncompressed ZIP, no additional dependency.
+const zipCreditCsvFiles = (files: CreditCsvFile[]): Blob => {
+  const encoder = new TextEncoder();
+  const crc32 = (bytes: Uint8Array) => {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++)
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  };
+  const locals: ArrayBuffer[] = [];
+  const directory: ArrayBuffer[] = [];
+  let offset = 0;
+  let directorySize = 0;
+  for (const file of files) {
+    const name = encoder.encode(file.name);
+    const data = encoder.encode(file.csv);
+    const crc = crc32(data);
+    const local = new ArrayBuffer(30 + name.length);
+    const l = new DataView(local);
+    l.setUint32(0, 0x04034b50, true);
+    l.setUint16(4, 20, true);
+    l.setUint16(6, 0x0800, true);
+    l.setUint16(12, 0x0021, true);
+    l.setUint32(14, crc, true);
+    l.setUint32(18, data.length, true);
+    l.setUint32(22, data.length, true);
+    l.setUint16(26, name.length, true);
+    new Uint8Array(local).set(name, 30);
+    const central = new ArrayBuffer(46 + name.length);
+    const c = new DataView(central);
+    c.setUint32(0, 0x02014b50, true);
+    c.setUint16(4, 20, true);
+    c.setUint16(6, 20, true);
+    c.setUint16(8, 0x0800, true);
+    c.setUint16(14, 0x0021, true);
+    c.setUint32(16, crc, true);
+    c.setUint32(20, data.length, true);
+    c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true);
+    c.setUint32(42, offset, true);
+    new Uint8Array(central).set(name, 46);
+    const payload = new ArrayBuffer(data.length);
+    new Uint8Array(payload).set(data);
+    locals.push(local, payload);
+    directory.push(central);
+    offset += local.byteLength + data.length;
+    directorySize += central.byteLength;
+    if (offset + directorySize > 0xffffffff - 22)
+      throw new Error("CSV archive is too large for ZIP export.");
+  }
+  const end = new ArrayBuffer(22);
+  const e = new DataView(end);
+  e.setUint32(0, 0x06054b50, true);
+  e.setUint16(8, files.length, true);
+  e.setUint16(10, files.length, true);
+  e.setUint32(12, directorySize, true);
+  e.setUint32(16, offset, true);
+  return new Blob([...locals, ...directory, end], { type: "application/zip" });
 };
 
 type FieldRule = {
@@ -2104,6 +2241,17 @@ const CreditNotes: React.FC = () => {
   const updateRule = (id: number, patch: Partial<FieldRule>) =>
     setRules((old) => old.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
+  const activeGstFilter: CreditGstFilter = useMemo(() => {
+    const rule = rules.find(
+      (r) =>
+        r.field === "gstType" &&
+        r.op === "eq" &&
+        ["urp", "registered"].includes(r.value.trim().toLowerCase()),
+    );
+    if (!rule) return "";
+    return rule.value.trim().toLowerCase() === "urp" ? "URP" : "Registered";
+  }, [rules]);
+
   // CSV EXPORT — uses the exact same matching dataset as the directory.
   const handleDownloadReport = async (format: "csv" | "xlsx") => {
     if (
@@ -2258,16 +2406,31 @@ const CreditNotes: React.FC = () => {
       });
       const dateStamp = new Date().toISOString().slice(0, 10);
       let blob: Blob;
+      let downloadName = `credit-notes-${activeReasonFilter}-${language}-${dateStamp}.${format}`;
       if (format === "csv") {
-        const csvContent = [
-          fullKeys.map(t),
-          ...fullRows.map((row) => row.map(creditExportCellText)),
-        ]
-          .map((row) => row.map(csvCell).join(","))
-          .join("\r\n");
-        blob = new Blob(["\uFEFF", csvContent], {
-          type: "text/csv;charset=utf-8;",
-        });
+        const files = buildCreditCsvFiles(
+          exportNotes,
+          fullKeys,
+          fullRows,
+          language,
+          activeGstFilter,
+        );
+        if (!files.length) {
+          toast.error(
+            t("No credit notes match the selected search and filters."),
+          );
+          return;
+        }
+        if (activeGstFilter) {
+          blob = new Blob([files[0].csv], { type: "text/csv;charset=utf-8;" });
+          downloadName = files[0].name.replace(
+            /\.csv$/,
+            `-${activeReasonFilter}-${language}-${dateStamp}.csv`,
+          );
+        } else {
+          blob = zipCreditCsvFiles(files);
+          downloadName = `credit-notes-gst-wise-${activeReasonFilter}-${language}-${dateStamp}.zip`;
+        }
       } else {
         const workbook = new ExcelJS.Workbook();
         workbook.creator = "IndieKonnect";
@@ -2462,7 +2625,7 @@ const CreditNotes: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `credit-notes-${activeReasonFilter}-${language}-${dateStamp}.${format}`;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -2470,7 +2633,7 @@ const CreditNotes: React.FC = () => {
       toast.success(
         language === "hi"
           ? `${exportNotes.length} उत्पाद रिकॉर्ड डाउनलोड किए गए।`
-          : `Downloaded ${exportNotes.length} item row(s) as ${format.toUpperCase()}.`,
+          : `Downloaded ${exportNotes.length} item row(s) as ${format === "csv" && !activeGstFilter ? "CSV ZIP" : format.toUpperCase()}.`,
       );
     } catch (error: any) {
       console.error("Download credit notes CSV error:", error);
@@ -3032,14 +3195,25 @@ const CreditNotes: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => void handleDownloadReport("csv")}
-                  disabled={loading || exportingCsv || exportingExcel}
+                  disabled={
+                    loading ||
+                    exportingCsv ||
+                    exportingExcel ||
+                    !matchingNotes.length
+                  }
                   className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8] hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <FiDownload
                     size={16}
                     className={exportingCsv ? "animate-pulse" : ""}
                   />
-                  {t(exportingCsv ? "Preparing CSV..." : "Download CSV")}
+                  {t(
+                    exportingCsv
+                      ? "Preparing CSV..."
+                      : activeGstFilter
+                        ? "Download CSV"
+                        : "Download CSV ZIP",
+                  )}
                 </button>
               )}
               <button
