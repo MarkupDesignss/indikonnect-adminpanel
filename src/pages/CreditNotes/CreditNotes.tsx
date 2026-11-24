@@ -40,6 +40,7 @@ const HINDI: Record<string, string> = {
   "credit note amount (whole note)": "क्रेडिट नोट राशि (पूरा नोट)",
   "refund amount (whole note)": "रिफंड राशि (पूरा नोट)",
   "tax summary (whole note)": "टैक्स विवरण (पूरा नोट)",
+  "item gst breakdown": "उत्पाद GST विवरण",
   "item taxable with shipping": "उत्पाद व डिलीवरी की कर योग्य राशि",
   "item shipping charge": "उत्पाद डिलीवरी शुल्क",
   "item product gst": "उत्पाद GST",
@@ -59,6 +60,8 @@ const HINDI: Record<string, string> = {
   "igst (whole note)": "IGST (पूरा नोट)",
   "total gst (whole note)": "कुल GST (पूरा नोट)",
   "item count (whole note)": "उत्पाद संख्या (पूरा नोट)",
+  "item count (api row)": "API रिकॉर्ड की उत्पाद संख्या",
+  "missing gstin": "GSTIN उपलब्ध नहीं",
   "total item amount (whole note)": "कुल आइटम राशि (पूरा नोट)",
 
   "credit note classification": "क्रेडिट नोट वर्गीकरण",
@@ -504,9 +507,9 @@ const normalizeCreditNote = (raw: any): CreditNote => {
               unit_price: raw.unit_price,
               taxable_value: raw.item_taxable_value,
               gst_rate: raw.gst_rate,
-              cgst: raw.item_cgst,
-              sgst: raw.item_sgst,
-              igst: raw.item_igst,
+              cgst: raw.item_cgst ?? raw.gst_breakdown?.cgst,
+              sgst: raw.item_sgst ?? raw.gst_breakdown?.sgst,
+              igst: raw.item_igst ?? raw.gst_breakdown?.igst,
               product_gst: raw.item_product_gst,
               shipping_gst: raw.item_shipping_gst,
               total_gst: raw.item_total_gst,
@@ -775,6 +778,7 @@ const CREDIT_EXPORT_HEADERS = [
   "CGST",
   "SGST",
   "IGST",
+  "Total GST",
   "Invoice Value",
   "Product Name",
   "Product Code",
@@ -882,6 +886,7 @@ const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] =>
       numeric(item.cgst),
       numeric(item.sgst),
       numeric(item.igst),
+      itemTax(note),
       itemInvoiceValue(note),
       String(item.product_name ?? ""),
       String(item.product_code ?? ""),
@@ -952,19 +957,16 @@ const buildCreditCsvFiles = (
 ): CreditCsvFile[] => {
   const files: CreditCsvFile[] = [];
   if (!gstFilter) {
-    const keep = fullKeys
-      .map((key, index) => ({ key, index }))
-      .filter(({ key }) => key !== "Credit Note Classification");
     files.push({
       name: "credit-notes-all.csv",
       csv: serializeCreditCsv(
-        ["GST Type", ...keep.map(({ key }) => key)],
+        ["GST Type", ...fullKeys],
         fullRows.map((row, index) => [
           translate(
             language,
             gstRegistration(notes[index].buyer_gstin) || "Missing",
           ),
-          ...keep.map(({ index: column }) => row[column]),
+          ...row,
         ]),
         language,
       ),
@@ -1959,31 +1961,31 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <h3 className="mb-3 text-sm font-bold text-[#111827]">
-                {t("Tax Summary (whole note)")}
+                {t("Item GST Breakdown")}
               </h3>
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs">
                   <span className="text-[#6B7280]"> {t("Taxable Value")} </span>
                   <span className="font-semibold text-[#111827]">
-                    {formatAmount(note.taxable_value)}
+                    {formatAmount(itemTaxable(note))}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#6B7280]">CGST</span>
                   <span className="font-semibold text-[#111827]">
-                    {formatAmount(note.cgst_amount)}
+                    {formatAmount(numeric(itemOf(note).cgst))}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#6B7280]">SGST</span>
                   <span className="font-semibold text-[#111827]">
-                    {formatAmount(note.sgst_amount)}
+                    {formatAmount(numeric(itemOf(note).sgst))}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-[#6B7280]">IGST</span>
                   <span className="font-semibold text-[#111827]">
-                    {formatAmount(note.igst_amount)}
+                    {formatAmount(numeric(itemOf(note).igst))}
                   </span>
                 </div>
                 <div className="border-t border-[#DCE6F2] pt-2.5">
@@ -1993,7 +1995,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                       {t("Total GST")}{" "}
                     </span>
                     <span className="font-bold text-[#2D6FE8]">
-                      {formatAmount(note.total_gst)}
+                      {formatAmount(itemTax(note))}
                     </span>
                   </div>
                 </div>
@@ -2276,20 +2278,9 @@ const CreditNotes: React.FC = () => {
         return;
       }
 
-      const classifiedRows = exportNotes.map((note) => ({
-        row: buildCreditExportRows([note])[0],
-        classification: creditNoteClassification(note),
-      }));
-      const compactKeys = [
-        ...CREDIT_EXPORT_HEADERS,
-        "Credit Note Classification",
-      ];
-      const compactRows = classifiedRows.map(({ row, classification }) => [
-        ...row,
-        t(classification),
-      ]);
-      // Full Details and CSV contain item fields and note totals in separately named columns.
-      // Repeated credit/refund/order values appear only on the first matching item per note.
+      const compactKeys = [...CREDIT_EXPORT_HEADERS];
+      const compactRows = buildCreditExportRows(exportNotes);
+      // Use item-level amounts. The issued credit amount alone is note-level.
       const fullKeys = [
         ...compactKeys,
         "S.No.",
@@ -2325,20 +2316,8 @@ const CreditNotes: React.FC = () => {
         "Item Shipping Charge",
         "Item Shipping GST",
         "Item Service Charge",
-        "Item GST Amount",
         "Credit Note Amount (whole note)",
-        "Refund Amount (whole note)",
-        "Order Subtotal (whole note)",
-        "Order Shipping (whole note)",
-        "Total Payable (whole note)",
-        "Amount Paid (whole note)",
-        "Taxable Value (whole note)",
-        "CGST (whole note)",
-        "SGST (whole note)",
-        "IGST (whole note)",
-        "Total GST (whole note)",
-        "Item Count (whole note)",
-        "Total Item Amount (whole note)",
+        "Item Count (API row)",
       ];
       const seen = new Set<string>();
       const fullRows: CreditExportRow[] = exportNotes.map((raw, index) => {
@@ -2388,20 +2367,8 @@ const CreditNotes: React.FC = () => {
           numeric(i.shipping_charge_line),
           numeric(i.shipping_gst),
           numeric(i.service_charge),
-          itemTax(n),
           whole(n.amount),
-          whole(r.amount),
-          whole(o.subtotal),
-          whole(o.shipping_charge),
-          whole(o.total_payable),
-          whole(o.amount_paid),
-          whole(n.taxable_value),
-          whole(n.cgst_amount),
-          whole(n.sgst_amount),
-          whole(n.igst_amount),
-          whole(n.total_gst),
-          whole(n.item_count),
-          whole(n.total_item_amount),
+          numeric(n.item_count),
         ];
       });
       const dateStamp = new Date().toISOString().slice(0, 10);
@@ -2448,7 +2415,7 @@ const CreditNotes: React.FC = () => {
           "Item Shipping Charge",
           "Item Shipping GST",
           "Item Service Charge",
-          "Item GST Amount",
+          "Total GST",
         ]);
         const addSheet = (
           name: string,
@@ -2499,14 +2466,14 @@ const CreditNotes: React.FC = () => {
             const values = data.map((row) => row[j]);
             const isDate = j === 1 || j === 3;
             const isNumber =
-              (j >= 7 && j <= 12) ||
+              key === "Rate" ||
               values.some((v) => typeof v === "number") ||
               sumKeys.has(key);
             const isInteger =
               key === "S.No." ||
               key === "Quantity" ||
               key === "Rate" ||
-              key === "Item Count (whole note)";
+              key === "Item Count (API row)";
             const width = Math.min(
               isNumber ? 24 : 30,
               Math.max(
@@ -2600,21 +2567,18 @@ const CreditNotes: React.FC = () => {
           };
         };
         addSheet("Credit Note Data", compactKeys, compactRows, true);
-        for (const group of [
-          "Credit Note Unregistered",
-          "Credit Note Registered",
-          "Other Credit Notes",
-          "Classification unavailable",
-        ]) {
+        const groups: { gst: CreditGstFilter; name: string }[] = [
+          { gst: "URP", name: "Credit Note Unregistered" },
+          { gst: "Registered", name: "Credit Note Registered" },
+          { gst: "", name: "Missing GSTIN" },
+        ];
+        for (const group of groups) {
+          if (activeGstFilter && group.gst !== activeGstFilter) continue;
           const subset = compactRows.filter(
-            (_, i) => classifiedRows[i].classification === group,
+            (_, i) => gstRegistration(exportNotes[i].buyer_gstin) === group.gst,
           );
-          if (
-            subset.length ||
-            group === "Credit Note Unregistered" ||
-            group === "Credit Note Registered"
-          )
-            addSheet(group, compactKeys, subset, true);
+          if (subset.length || group.gst)
+            addSheet(group.name, compactKeys, subset, true);
         }
         addSheet("Full Details", fullKeys, fullRows, true);
         const buffer = await workbook.xlsx.writeBuffer();
@@ -3029,15 +2993,15 @@ const CreditNotes: React.FC = () => {
       // 5. TAX SUMMARY + FINAL AMOUNT
       const TAX_W = 96;
       const taxRows: string[][] = [
-        ["Taxable Value", formatAmountPdf(note.taxable_value)],
-        ["CGST", formatAmountPdf(note.cgst_amount)],
-        ["SGST", formatAmountPdf(note.sgst_amount)],
-        ["IGST", formatAmountPdf(note.igst_amount)],
-        ["Total GST", formatAmountPdf(note.total_gst)],
+        ["Taxable Value", formatAmountPdf(itemTaxable(note))],
+        ["CGST", formatAmountPdf(numeric(itemOf(note).cgst))],
+        ["SGST", formatAmountPdf(numeric(itemOf(note).sgst))],
+        ["IGST", formatAmountPdf(numeric(itemOf(note).igst))],
+        ["Total GST", formatAmountPdf(itemTax(note))],
         ["Credit Note Amount", formatAmountPdf(note.amount)],
       ];
       ensureSpace(taxRows.length * 8 + 12);
-      sectionTitle("Tax Summary (whole note)");
+      sectionTitle("Item GST Breakdown");
       drawTable({
         rows: taxRows,
         widths: [TAX_W / 2, TAX_W / 2],
