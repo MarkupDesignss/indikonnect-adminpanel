@@ -1441,7 +1441,7 @@ const FinanceReport = () => {
         addUrpWorksheet(workbook, exportItems);
       } else {
         // The first worksheet is a compact, client-facing explanation of the same
-        // frontend-calculated data. The 44-column audit worksheet stays intact.
+        // calculated data. The 44-column audit worksheet stays intact.
         const overview = workbook.addWorksheet("Sales Overview", {
           views: [
             { state: "frozen", xSplit: 3, ySplit: 5, showGridLines: false },
@@ -1738,7 +1738,7 @@ const FinanceReport = () => {
         overview.getRow(overviewLast + 3).height = 31;
         overviewBanner(
           overviewLast + 4,
-          "The report uses frontend calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
+          "The report uses calculations. Grand Total reflects the visible rows in this tab. Product categories are taken from the API; unavailable values remain blank.",
           "FFFFFFFF",
           "FF456580",
           10,
@@ -2137,7 +2137,7 @@ const FinanceReport = () => {
       </div>
       {/* EXECUTIVE FINANCIAL SUMMARY */}
       <p className="text-xs text-slate-500">
-        Frontend-calculated amounts. Shipping GST uses the product rate when no
+        Calculated amounts. Shipping GST uses the product rate when no
         separate rate is supplied. Unit price is treated as net of discounts;
         service charges are added without separate GST.
       </p>
