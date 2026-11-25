@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -25,7 +26,6 @@ import {
   FiXCircle,
   FiRotateCcw,
   FiUser,
-  FiHash,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -40,7 +40,6 @@ import cancellationApi, {
 
 import { usePermissions } from "../../pages/permissions/usePermissions";
 
-// ✅ NEW: logo API (same pattern as Orders / ReturnRefund / BrandsManagement)
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
@@ -84,7 +83,7 @@ type CancellationFilterTab =
 
 interface ActionLoading {
   type: "approve" | "reject" | null;
-  id: number | null;
+  orderReference: string | null;
 }
 
 interface TimelineEvent {
@@ -99,6 +98,22 @@ interface TimelineEvent {
 // =====================================================
 // HELPERS
 // =====================================================
+
+const normalizeOrderReference = (value: unknown): string => {
+  return typeof value === "string" ? value.trim() : "";
+};
+
+const getOrderReferenceDisplay = (row: any): string => {
+  const reference = normalizeOrderReference(
+    row?.order?.order_reference ??
+      row?.order_reference ??
+      row?.order?.reference ??
+      row?.order_number ??
+      row?.order?.order_number
+  );
+
+  return reference || "N/A";
+};
 
 const deriveStatus = (row: any): CancellationStatus => {
   if (!row) return "pending";
@@ -122,10 +137,7 @@ const deriveStatus = (row: any): CancellationStatus => {
     return "pending";
   }
 
-  if (
-    row.delivery_status === "cancelled" ||
-    row.cancelled_at
-  ) {
+  if (row.delivery_status === "cancelled" || row.cancelled_at) {
     return "approved";
   }
 
@@ -135,24 +147,19 @@ const deriveStatus = (row: any): CancellationStatus => {
 const getRowAmount = (row: any): number => {
   if (!row) return 0;
 
-
-
-  if (row.amount != null) {
+  if (row.amount != null && Number.isFinite(Number(row.amount))) {
     return Number(row.amount);
   }
 
-  if (row.line_total != null) {
+  if (
+    row.line_total != null &&
+    Number.isFinite(Number(row.line_total))
+  ) {
     return Number(row.line_total);
   }
 
-  if (
-    row.unit_price != null &&
-    row.quantity != null
-  ) {
-    return (
-      Number(row.unit_price) *
-      Number(row.quantity)
-    );
+  if (row.unit_price != null && row.quantity != null) {
+    return Number(row.unit_price) * Number(row.quantity);
   }
 
   return 0;
@@ -162,25 +169,9 @@ const getCancellationAmount = (row: any): number => {
   return getRowAmount(row);
 };
 
-/**
- * ✅ NEW: Actual ORDER reference (e.g. ORD6B0689723C0E0).
- * Item reference (ITM-XXXX) ab UI me nahi dikhta (sirf search me use hota hai).
- */
-const getOrderReferenceDisplay = (row: any): string => {
-  const reference =
-    row?.order_reference ??
-    row?.order?.order_reference ??
-    row?.order?.reference ??
-    row?.order_number ??
-    row?.order?.order_number ??
-    null;
-
-  return reference ? String(reference) : "N/A";
-};
-
-/* -------------------------------------------------------------------------- */
-/* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
-/* -------------------------------------------------------------------------- */
+// =====================================================
+// REFUND HELPERS
+// =====================================================
 
 const normalizeRefundStatus = (value: unknown): string =>
   String(value ?? "")
@@ -212,9 +203,8 @@ function getRefundedAmount(record: any): number | null {
     ? record.refunds
     : [];
 
-  // Never use the first refund blindly: it may still be pending or failed.
   const completedRefund = refundsArray.find((refund: any) =>
-    isSuccessfulRefundStatus(refund?.status),
+    isSuccessfulRefundStatus(refund?.status)
   );
 
   const candidates = [
@@ -224,7 +214,6 @@ function getRefundedAmount(record: any): number | null {
     record.refund?.refunded_amount,
     record.refund_details?.refunded_amount,
     record.refund_info?.refunded_amount,
-    // This is only displayed as a paid amount after isRefundProcessed() is true.
     record.refund_amount,
   ];
 
@@ -253,8 +242,6 @@ function getRefundedAmount(record: any): number | null {
 function isRefundProcessed(record: any): boolean {
   if (!record) return false;
 
-  // A cancellation/order status of "completed" is not proof of a payment refund.
-  // Only the explicit "refunded" value is accepted from the general status field.
   if (normalizeRefundStatus(record.status) === "refunded") {
     return true;
   }
@@ -275,8 +262,11 @@ function isRefundProcessed(record: any): boolean {
     return true;
   }
 
-  // A known pending/processing/failed refund state is not a completed refund.
-  if (refundStatuses.some((value) => normalizeRefundStatus(value) !== "")) {
+  if (
+    refundStatuses.some(
+      (value) => normalizeRefundStatus(value) !== ""
+    )
+  ) {
     return false;
   }
 
@@ -291,7 +281,7 @@ function isRefundProcessed(record: any): boolean {
 
   if (
     explicitFlags.some(
-      (value) => value === true || value === 1 || value === "1",
+      (value) => value === true || value === 1 || value === "1"
     )
   ) {
     return true;
@@ -306,8 +296,8 @@ function isRefundProcessed(record: any): boolean {
       refundsArray.some(
         (refund: any) =>
           isSuccessfulRefundStatus(refund?.status) &&
-          Boolean(refund?.completed_at || refund?.processed_at),
-      ),
+          Boolean(refund?.completed_at || refund?.processed_at)
+      )
   );
 }
 
@@ -321,8 +311,13 @@ function getDisplayAmount(record: any): number | null {
   }
 
   const original = getRowAmount(record);
+
   return original > 0 ? original : null;
 }
+
+// =====================================================
+// STATUS HELPERS
+// =====================================================
 
 const getStatusLabel = (status: string) => {
   if (!status) return "N/A";
@@ -364,12 +359,14 @@ const getStatusDot = (status: string) => {
   }
 };
 
+// =====================================================
+// DATE / CURRENCY
+// =====================================================
+
 const formatDate = (date?: string | null) => {
   if (!date) return "—";
 
-  const parsed = new Date(
-    date.replace(" ", "T"),
-  );
+  const parsed = new Date(date.replace(" ", "T"));
 
   if (Number.isNaN(parsed.getTime())) {
     return date;
@@ -384,16 +381,23 @@ const formatDate = (date?: string | null) => {
   });
 };
 
-const formatCurrency = (
-  amount?: number | string | null,
-) =>
-  `₹${Number(amount || 0).toLocaleString(
-    "en-IN",
-    {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    },
-  )}`;
+const formatCurrency = (amount?: number | string | null) =>
+  `₹${Number(amount || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+// =====================================================
+// CUSTOMER HELPERS
+// =====================================================
+
+const getAccountTypeLabel = (accountType?: string | null) => {
+  if (!accountType) return "Customer";
+
+  return accountType
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
 
 const getCustomerName = (
   user?: {
@@ -401,54 +405,27 @@ const getCustomerName = (
     full_name?: string | null;
     email?: string;
   } | null,
-  accountType?: string | null,
+  accountType?: string | null
 ) => {
   const fallbackName = getAccountTypeLabel(accountType);
+
   if (!user) return fallbackName;
 
-  if (user.full_name?.trim()) {
-    return user.full_name;
-  }
-
-  if (user.name?.trim()) {
-    return user.name;
-  }
-
-  if (user.email) {
-    return user.email.split("@")[0];
-  }
+  if (user.full_name?.trim()) return user.full_name;
+  if (user.name?.trim()) return user.name;
+  if (user.email) return user.email.split("@")[0];
 
   return fallbackName;
 };
 
-// =====================================================
-// ACCOUNT TYPE HELPERS
-// =====================================================
-
-const getAccountTypeLabel = (
-  accountType?: string | null,
-) => {
-  if (!accountType) return "Customer";
-
-  return accountType
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) =>
-      char.toUpperCase(),
-    );
-};
-
-const getAccountTypeClass = (
-  accountType?: string | null,
-) => {
+const getAccountTypeClass = (accountType?: string | null) => {
   switch (accountType) {
     case "distributor":
       return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#2D6FE8]";
 
     case "retailer":
-      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#1E40AF]";
-
     case "wholesaler":
-      return "border-[#1E40AF]/25 bg-[#EAF3FF] text-[#1E40AF]";
+      return "border-[#2D6FE8]/25 bg-[#EAF3FF] text-[#1E40AF]";
 
     case "customer":
       return "border-[#DCE6F2] bg-[#F4F8FD] text-[#4B5563]";
@@ -465,16 +442,15 @@ const getRowAccountType = (row: any): string => {
     row.user?.account_type ||
       row.order?.user?.account_type ||
       row.order?.order_type ||
-      "customer",
+      "customer"
   )
     .trim()
     .toLowerCase();
 };
 
-const getAccountTypeLower = (
-  accountType?: string | null,
-) => {
+const getAccountTypeLower = (accountType?: string | null) => {
   if (!accountType) return "customer";
+
   return accountType.toLowerCase();
 };
 
@@ -484,7 +460,7 @@ const getAccountTypeLower = (
 
 const buildTimelineEvents = (
   timeline: Record<string, any> | undefined,
-  accountType?: string | null,
+  accountType?: string | null
 ): TimelineEvent[] => {
   if (!timeline) return [];
 
@@ -605,10 +581,13 @@ const buildTimelineEvents = (
     .sort(
       (a, b) =>
         new Date(a.date.replace(" ", "T")).getTime() -
-        new Date(b.date.replace(" ", "T")).getTime(),
+        new Date(b.date.replace(" ", "T")).getTime()
     );
 };
 
+// =====================================================
+// STAT CARD
+// =====================================================
 
 interface StatCardProps {
   title: string;
@@ -661,9 +640,7 @@ const CancellationStatCard: React.FC<StatCardProps> = ({
             </p>
           )}
 
-          <p className="mt-1 text-xs text-[#4B5563]">
-            {subtitle}
-          </p>
+          <p className="mt-1 text-xs text-[#4B5563]">{subtitle}</p>
         </div>
 
         <div
@@ -759,14 +736,14 @@ interface RejectPopupProps {
   onClose: () => void;
   onConfirm: (
     rejectionReason: string,
-    adminNotes: string,
+    adminNotes: string
   ) => void;
 }
 
 const RejectPopup: React.FC<RejectPopupProps> = ({
   open,
   loading,
-  customerLabel = "Customer",
+  customerLabel,
   onClose,
   onConfirm,
 }) => {
@@ -873,10 +850,7 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
             type="button"
             disabled={loading || !rejectionReason.trim()}
             onClick={() =>
-              onConfirm(
-                rejectionReason.trim(),
-                adminNotes.trim(),
-              )
+              onConfirm(rejectionReason.trim(), adminNotes.trim())
             }
             className="flex items-center gap-2 rounded-xl bg-[#C23B32] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#a8322b] disabled:opacity-50"
           >
@@ -892,22 +866,18 @@ const RejectPopup: React.FC<RejectPopupProps> = ({
 };
 
 // =====================================================
-// PAY POPUP
+// APPROVE / PAY POPUP
 // =====================================================
 
 interface PayPopupProps {
   open: boolean;
-  orderLineId: number | null;
   orderReference: string;
   customerName: string;
   customerLabel: string;
   defaultAmount: number;
   loading: boolean;
   onClose: () => void;
-  onConfirm: (
-    amount: number,
-    adminNotes: string,
-  ) => void;
+  onConfirm: (amount: number, adminNotes: string) => void;
 }
 
 const PayPopup: React.FC<PayPopupProps> = ({
@@ -925,9 +895,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
 
   useEffect(() => {
     if (open) {
-      setAmount(
-        defaultAmount > 0 ? defaultAmount.toFixed(2) : "",
-      );
+      setAmount(defaultAmount > 0 ? defaultAmount.toFixed(2) : "");
       setAdminNotes("");
     }
   }, [open, defaultAmount]);
@@ -963,7 +931,8 @@ const PayPopup: React.FC<PayPopupProps> = ({
             </h2>
 
             <p className="mt-0.5 text-[11px] text-[#6B7280]">
-              Enter the amount to be refunded to the {customerLabel.toLowerCase()}.
+              Enter the amount to be refunded to the{" "}
+              {customerLabel.toLowerCase()}.
             </p>
           </div>
 
@@ -980,14 +949,20 @@ const PayPopup: React.FC<PayPopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Order Reference</span>
+              <span className="text-xs text-[#6B7280]">
+                Order Reference
+              </span>
+
               <span className="break-all text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
 
             <div className="mt-2 flex justify-between gap-4 border-t border-[#DCE6F2] pt-2">
-              <span className="text-xs text-[#6B7280]">{customerLabel}</span>
+              <span className="text-xs text-[#6B7280]">
+                {customerLabel}
+              </span>
+
               <span className="text-right text-sm font-semibold text-[#111827]">
                 {customerName}
               </span>
@@ -1042,6 +1017,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                   Amount To Pay
                 </p>
+
                 <p className="mt-1 text-xl font-bold text-[#2D6FE8]">
                   {formatCurrency(numericAmount)}
                 </p>
@@ -1071,6 +1047,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
             ) : (
               <FiCheck size={15} />
             )}
+
             {loading ? "Processing..." : "Approve & Pay"}
           </button>
         </div>
@@ -1094,7 +1071,9 @@ interface CancellationDetailModalProps {
   canReject?: boolean;
 }
 
-const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
+const CancellationDetailModal: React.FC<
+  CancellationDetailModalProps
+> = ({
   open,
   detail,
   actionLoading,
@@ -1139,13 +1118,13 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   }
 
   const raw: any = detail;
+
   const amount = getCancellationAmount(raw);
   const refundedAmount = getRefundedAmount(raw);
   const isRefunded = isRefundProcessed(raw);
   const displayAmount = getDisplayAmount(raw) ?? amount;
   const status = detail.status || deriveStatus(raw);
 
-  // ✅ ORDER reference (item reference nahi)
   const orderReference = getOrderReferenceDisplay(raw);
 
   const customer = {
@@ -1168,17 +1147,22 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   const quantity = Number(raw.quantity ?? 1);
   const unitPrice = Number(raw.unit_price ?? 0);
 
-  const subtotal = raw.refund_amount ?? unitPrice * quantity;
+  const subtotal = Number(
+    raw.refund_amount ?? unitPrice * quantity
+  );
 
-  const tax = raw.tax ?? raw.gst_amount ?? raw.igst_amount ?? 0;
+  const tax = Number(
+    raw.tax ?? raw.gst_amount ?? raw.igst_amount ?? 0
+  );
 
   const reason =
-    raw.reason ?? raw.cancellation_reason ?? "No reason provided.";
+    raw.reason ??
+    raw.cancellation_reason ??
+    "No reason provided.";
 
-  // Show transaction details only for a refund that is actually successful.
   const refundDetails = Array.isArray(raw.refunds)
     ? raw.refunds.find((refund: any) =>
-        isSuccessfulRefundStatus(refund?.status),
+        isSuccessfulRefundStatus(refund?.status)
       ) || null
     : null;
 
@@ -1204,7 +1188,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             (status === "rejected" ? raw.updated_at : null),
           updated_at: raw.updated_at || null,
         },
-        accountType,
+        accountType
       );
 
   return (
@@ -1221,6 +1205,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
           <div>
             <div className="mb-1 flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+
               <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#2D6FE8]">
                 Cancellation Requests
               </span>
@@ -1253,7 +1238,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
 
         {/* BODY */}
         <div className="max-h-[calc(95vh-185px)] overflow-y-auto p-5 sm:p-6">
-          {/* STATUS BANNER */}
+          {/* STATUS */}
           <div
             className={`mb-5 overflow-hidden rounded-2xl border ${
               status === "pending"
@@ -1277,6 +1262,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B7280]">
                     Current Status
                   </p>
+
                   <p className="mt-1 text-sm font-bold text-[#111827]">
                     {getStatusLabel(status)}
                   </p>
@@ -1284,12 +1270,12 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
 
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                    status,
+                    status
                   )}`}
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                      status,
+                      status
                     )}`}
                   />
                   {getStatusLabel(status)}
@@ -1298,7 +1284,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* REFUND COMPLETED BANNER */}
+          {/* REFUND COMPLETED */}
           {isRefunded && refundedAmount !== null && (
             <div className="mb-5 overflow-hidden rounded-2xl border border-[#2D6FE8]/25">
               <div className="flex items-center justify-between gap-3 border-b border-[#2D6FE8]/20 bg-gradient-to-r from-[#EAF3FF] to-[#F8FBFF] px-5 py-3">
@@ -1355,7 +1341,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                       {formatDate(
                         refundDetails?.completed_at ||
                           refundDetails?.created_at ||
-                          raw.updated_at,
+                          raw.updated_at
                       )}
                     </p>
                   </div>
@@ -1376,6 +1362,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <h3 className="text-sm font-bold text-[#111827]">
                     Cancellation Item
                   </h3>
+
                   <p className="mt-0.5 text-xs text-[#6B7280]">
                     {quantity} item(s)
                   </p>
@@ -1417,6 +1404,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Price
                   </p>
+
                   <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(unitPrice)}
                   </p>
@@ -1426,6 +1414,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Tax
                   </p>
+
                   <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(tax)}
                   </p>
@@ -1435,6 +1424,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                     Total
                   </p>
+
                   <p className="mt-1 text-sm font-bold text-[#111827]">
                     {formatCurrency(subtotal)}
                   </p>
@@ -1444,6 +1434,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <p className="text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
                     Reason
                   </p>
+
                   <p className="mt-1 line-clamp-3 text-xs font-semibold text-[#4B5563]">
                     {reason}
                   </p>
@@ -1468,6 +1459,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
               <div className="space-y-3">
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
                   <span className="text-xs text-[#6B7280]">Name</span>
+
                   <span className="text-right text-sm font-semibold text-[#111827]">
                     {getCustomerName(customer, accountType)}
                   </span>
@@ -1484,8 +1476,8 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     </p>
 
                     <span
-                      className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                        accountType,
+                      className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
+                        accountType
                       )}`}
                     >
                       <FiBriefcase size={10} />
@@ -1496,6 +1488,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
 
                 <div className="flex justify-between gap-4">
                   <span className="text-xs text-[#6B7280]">Phone</span>
+
                   <span className="text-sm font-semibold text-[#111827]">
                     {customer.phone || "N/A"}
                   </span>
@@ -1519,6 +1512,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs text-[#6B7280]">
                     Order Reference
                   </span>
+
                   <span className="break-all text-right text-sm font-bold text-[#2D6FE8]">
                     {orderReference}
                   </span>
@@ -1528,6 +1522,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs text-[#6B7280]">
                     Delivery Status
                   </span>
+
                   <span className="text-sm font-semibold capitalize text-[#111827]">
                     {getStatusLabel(raw.delivery_status || "N/A")}
                   </span>
@@ -1545,6 +1540,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     ? "Refunded Amount"
                     : "Cancellation Amount"}
                 </p>
+
                 <p className="mt-1 text-2xl font-bold text-[#2D6FE8]">
                   {formatCurrency(displayAmount)}
                 </p>
@@ -1578,6 +1574,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     <h3 className="text-sm font-bold text-[#111827]">
                       Refund Details
                     </h3>
+
                     <p className="mt-0.5 text-[10px] text-[#6B7280]">
                       Complete refund transaction information
                     </p>
@@ -1590,6 +1587,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs font-semibold text-[#4B5563]">
                     Refund Amount
                   </span>
+
                   <span className="text-xs font-bold text-[#111827]">
                     {formatCurrency(refundDetails.amount)}
                   </span>
@@ -1600,6 +1598,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     <span className="text-xs font-semibold text-[#4B5563]">
                       Adjusted Amount
                     </span>
+
                     <span className="text-xs font-bold text-[#111827]">
                       {formatCurrency(refundDetails.adjusted_amount)}
                     </span>
@@ -1610,6 +1609,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs font-semibold text-[#4B5563]">
                     Refund Method
                   </span>
+
                   <span className="rounded-md bg-[#EAF3FF] px-2.5 py-1 text-[11px] font-bold capitalize text-[#2D6FE8]">
                     {refundDetails.refund_method || "—"}
                   </span>
@@ -1619,16 +1619,18 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs font-semibold text-[#4B5563]">
                     Status
                   </span>
+
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getStatusClass(
-                      refundDetails.status,
+                      refundDetails.status
                     )}`}
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                        refundDetails.status,
+                        refundDetails.status
                       )}`}
                     />
+
                     {getStatusLabel(refundDetails.status)}
                   </span>
                 </div>
@@ -1638,6 +1640,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     <span className="text-xs font-semibold text-[#4B5563]">
                       Gateway Reference
                     </span>
+
                     <span className="max-w-[180px] truncate text-xs font-semibold text-[#111827]">
                       {refundDetails.gateway_reference}
                     </span>
@@ -1649,10 +1652,12 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                     <p className="text-xs font-bold text-[#2D6FE8]">
                       Completed At
                     </p>
+
                     <p className="mt-0.5 text-[9px] text-[#4F8FF7]">
                       Refund completion timestamp
                     </p>
                   </div>
+
                   <span className="text-xs font-bold text-[#111827]">
                     {formatDate(refundDetails.completed_at)}
                   </span>
@@ -1673,6 +1678,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <h3 className="text-sm font-bold text-[#111827]">
                     Track Order
                   </h3>
+
                   <p className="mt-0.5 text-xs text-[#6B7280]">
                     Full timeline of this cancellation request
                   </p>
@@ -1696,6 +1702,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
               <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                 Admin Notes
               </p>
+
               <p className="mt-2 text-sm leading-6 text-[#4B5563]">
                 {raw.admin_notes}
               </p>
@@ -1719,14 +1726,19 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={onApprove}
-                  disabled={actionLoading.type === "approve"}
+                  disabled={
+                    actionLoading.type === "approve" &&
+                    actionLoading.orderReference === orderReference
+                  }
                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#1E40AF] to-[#2D6FE8] px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-[#2D6FE8]/15 transition hover:from-[#2D6FE8] hover:to-[#1E40AF] disabled:opacity-50"
                 >
-                  {actionLoading.type === "approve" ? (
+                  {actionLoading.type === "approve" &&
+                  actionLoading.orderReference === orderReference ? (
                     <FiRefreshCw size={14} className="animate-spin" />
                   ) : (
                     <FiCheck size={14} />
                   )}
+
                   Approve & Pay
                 </button>
               )}
@@ -1735,14 +1747,19 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={onReject}
-                  disabled={actionLoading.type === "reject"}
-                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
+                  disabled={
+                    actionLoading.type === "reject" &&
+                    actionLoading.orderReference === orderReference
+                  }
+                  className="flex items-center gap-2 rounded-xl border border-[#C23B32]/25 bg-[#FEF2F2] px-4 py-2.5 text-xs font-bold text-[#C23B32] transition hover:border-[#C23B32] hover:bg-[#C23B32] hover:text-white disabled:opacity-50"
                 >
-                  {actionLoading.type === "reject" ? (
+                  {actionLoading.type === "reject" &&
+                  actionLoading.orderReference === orderReference ? (
                     <FiRefreshCw size={14} className="animate-spin" />
                   ) : (
                     <FiX size={14} />
                   )}
+
                   Reject
                 </button>
               )}
@@ -1755,7 +1772,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
 };
 
 // =====================================================
-// MAIN
+// MAIN COMPONENT
 // =====================================================
 
 const CancelRefund: React.FC = () => {
@@ -1766,34 +1783,36 @@ const CancelRefund: React.FC = () => {
     loading: permissionsLoading,
   } = usePermissions();
 
-  // API permission keys: Cancel.details, Cancel.approve, Cancel.reject
+  // ===================================================
+  // PERMISSIONS
+  // ===================================================
+
   const canViewCancellation = useMemo(
     () =>
       isSuperAdmin ||
       hasModuleAccess("Cancel") ||
       hasPermission("Cancel.details"),
-    [isSuperAdmin, hasModuleAccess, hasPermission],
+    [isSuperAdmin, hasModuleAccess, hasPermission]
   );
 
   const canApproveCancellation = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("Cancel.approve"),
-    [isSuperAdmin, hasPermission],
+    () => isSuperAdmin || hasPermission("Cancel.approve"),
+    [isSuperAdmin, hasPermission]
   );
 
   const canRejectCancellation = useMemo(
-    () =>
-      isSuperAdmin ||
-      hasPermission("Cancel.reject"),
-    [isSuperAdmin, hasPermission],
+    () => isSuperAdmin || hasPermission("Cancel.reject"),
+    [isSuperAdmin, hasPermission]
   );
 
   // ===================================================
-  // LOGO STATE (same pattern as Orders / ReturnRefund)
+  // LOGO
   // ===================================================
 
-  const [logoUrl, setLogoUrl] = useState<string | null>(DEFAULT_LOGO_URL);
+  const [logoUrl, setLogoUrl] = useState<string | null>(
+    DEFAULT_LOGO_URL
+  );
+
   const [logoLoading, setLogoLoading] = useState(true);
 
   // ===================================================
@@ -1801,19 +1820,21 @@ const CancelRefund: React.FC = () => {
   // ===================================================
 
   const [requests, setRequests] = useState<CancellationListItem[]>([]);
+
   const [activeFilter, setActiveFilter] =
     useState<CancellationFilterTab>("All");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ✅ first load only
   const [initialCancellationsLoading, setInitialCancellationsLoading] =
     useState(true);
-  // ✅ subsequent fetch (refresh/CRUD) — does NOT block page
+
   const [loading, setLoading] = useState(false);
 
   const [selectedDetail, setSelectedDetail] =
     useState<CancellationListItem | null>(null);
+
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [payModalOpen, setPayModalOpen] = useState(false);
@@ -1821,11 +1842,10 @@ const CancelRefund: React.FC = () => {
   const [selectedPayRequest, setSelectedPayRequest] =
     useState<CancellationListItem | null>(null);
 
-  const [actionLoading, setActionLoading] =
-    useState<ActionLoading>({
-      type: null,
-      id: null,
-    });
+  const [actionLoading, setActionLoading] = useState<ActionLoading>({
+    type: null,
+    orderReference: null,
+  });
 
   const ITEMS_PER_PAGE = 10;
 
@@ -1833,12 +1853,11 @@ const CancelRefund: React.FC = () => {
   // DUPLICATE API PROTECTION
   // ===================================================
 
-  const listFetchInFlightRef =
-    useRef<Promise<void> | null>(null);
+  const listFetchInFlightRef = useRef<Promise<void> | null>(null);
   const hasFetchedListRef = useRef(false);
 
   // ===================================================
-  // LOGO FETCH (same as Orders / ReturnRefund / BrandsManagement)
+  // LOGO FETCH
   // ===================================================
 
   useEffect(() => {
@@ -1859,7 +1878,8 @@ const CancelRefund: React.FC = () => {
 
         const resolvedLogo = possibleLogos.find(
           (value): value is string =>
-            typeof value === "string" && /^https?:\/\//i.test(value.trim()),
+            typeof value === "string" &&
+            /^https?:\/\//i.test(value.trim())
         );
 
         if (!cancelled && resolvedLogo) {
@@ -1882,13 +1902,12 @@ const CancelRefund: React.FC = () => {
   }, []);
 
   // ===================================================
-  // FETCH ALL
-  // isInitialLoad = true ONLY FOR THE FIRST LOAD
+  // FETCH CANCELLATION REQUESTS
   // ===================================================
 
   const fetchCancellationRequests = async (
     force = false,
-    isInitialLoad = false,
+    isInitialLoad = false
   ) => {
     if (listFetchInFlightRef.current) {
       return listFetchInFlightRef.current;
@@ -1908,116 +1927,118 @@ const CancelRefund: React.FC = () => {
           undefined,
           "all",
           "created_at",
-          "desc",
+          "desc"
         );
 
         if (response.data.success) {
           const rawList: any[] =
             response.data.data?.data || [];
 
-          const normalized: CancellationListItem[] =
-            rawList.map((row) => {
-              const status = deriveStatus(row);
+          const normalized = rawList.map((row: any) => {
+            const status = deriveStatus(row);
 
-              return {
-                ...row,
-                id: row.id,
+            const orderReference =
+              getOrderReferenceDisplay(row);
 
-                order_line_id:
-                  row.order_line_id ?? row.id,
+            return {
+              ...row,
 
-                // ✅ ORDER reference primary reference hai (item reference nahi).
-                order_reference:
-                  row.order_reference ||
-                  row.order?.order_reference ||
-                  "N/A",
+              // Order reference is the action identifier.
+              order_reference: orderReference,
 
-                // Item reference sirf backup/search ke liye rakha hai.
-                item_reference_id:
-                  row.item_reference_id || "N/A",
+              // Preserve nested order data from the API.
+              order: row.order,
 
-                user: row.user
+              user: row.user
+                ? {
+                    id: row.user.id,
+                    name:
+                      row.user.full_name ||
+                      row.user.name ||
+                      null,
+                    full_name:
+                      row.user.full_name ||
+                      row.user.name ||
+                      null,
+                    email: row.user.email || "",
+                    phone: row.user.phone || null,
+                    account_type:
+                      row.user.account_type || null,
+                  }
+                : row.order?.user
                   ? {
-                      id: row.user.id,
+                      id: row.order.user.id,
                       name:
-                        row.user.full_name ||
-                        row.user.name ||
+                        row.order.user.full_name ||
+                        row.order.user.name ||
                         null,
-                      email: row.user.email || "",
-                      phone: row.user.phone || null,
+                      full_name:
+                        row.order.user.full_name ||
+                        row.order.user.name ||
+                        null,
+                      email: row.order.user.email || "",
+                      phone: row.order.user.phone || null,
                       account_type:
-                        row.user.account_type || null,
+                        row.order.user.account_type ||
+                        row.order?.order_type ||
+                        null,
                     }
-                  : row.order?.user
-                    ? {
-                        id: row.order.user.id,
-                        name:
-                          row.order.user.full_name ||
-                          row.order.user.name ||
-                          null,
-                        email: row.order.user.email || "",
-                        phone: row.order.user.phone || null,
-                        account_type:
-                          row.order.user.account_type ||
-                          row.order?.order_type ||
-                          null,
-                      }
-                    : undefined,
+                  : undefined,
 
-                status,
-                items_count:
-                  row.items_count ?? row.quantity ?? 1,
+              status,
 
-                refund_amount: getRowAmount(row),
-                amount: getRowAmount(row),
+              items_count:
+                row.items_count ?? row.quantity ?? 1,
 
-                reason:
-                  row.reason ||
-                  row.cancellation_reason ||
-                  null,
+              refund_amount: getRowAmount(row),
+              amount: getRowAmount(row),
 
-                created_at:
-                  row.created_at ||
-                  row.cancellation_requested_at ||
-                  "",
+              reason:
+                row.reason ||
+                row.cancellation_reason ||
+                null,
 
-                can_approve:
-                  row.can_approve ?? status === "pending",
+              created_at:
+                row.created_at ||
+                row.cancellation_requested_at ||
+                "",
 
-                can_reject:
-                  row.can_reject ?? status === "pending",
+              can_approve:
+                row.can_approve ?? status === "pending",
 
-                can_pay: status === "approved",
-                product: row.product,
-              } as CancellationListItem;
-            });
+              can_reject:
+                row.can_reject ?? status === "pending",
+
+              can_pay: status === "approved",
+
+              product: row.product,
+            } as CancellationListItem;
+          });
 
           setRequests(normalized);
 
           const maxPage = Math.max(
             1,
-            Math.ceil(normalized.length / ITEMS_PER_PAGE),
+            Math.ceil(normalized.length / ITEMS_PER_PAGE)
           );
 
-          setCurrentPage((page) =>
-            Math.min(page, maxPage),
-          );
+          setCurrentPage((page) => Math.min(page, maxPage));
 
           hasFetchedListRef.current = true;
         } else {
           toast.error(
-            "Unable to fetch cancellation requests.",
+            "Unable to fetch cancellation requests."
           );
         }
       } catch (error: any) {
         console.error(
           "Get cancellation requests error:",
-          error,
+          error
         );
 
         toast.error(
           error?.response?.data?.message ||
-            "Unable to fetch cancellation requests.",
+            "Unable to fetch cancellation requests."
         );
       } finally {
         setLoading(false);
@@ -2039,7 +2060,6 @@ const CancelRefund: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
-  // WAIT FOR PERMISSIONS BEFORE REQUESTING CANCELLATIONS
   // ===================================================
 
   useEffect(() => {
@@ -2051,11 +2071,12 @@ const CancelRefund: React.FC = () => {
       setLoading(false);
       setInitialCancellationsLoading(false);
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permissionsLoading, canViewCancellation]);
 
   // ===================================================
-  // COMBINED INITIAL LOADING
+  // PAGE LOADING
   // ===================================================
 
   const pageLoading =
@@ -2070,22 +2091,25 @@ const CancelRefund: React.FC = () => {
   const stats = useMemo(
     () => ({
       total: requests.length,
+
       pending: requests.filter(
-        (i) => i.status === "pending",
+        (item) => item.status === "pending"
       ).length,
+
       approved: requests.filter(
-        (i) => i.status === "approved",
+        (item) => item.status === "approved"
       ).length,
+
       rejected: requests.filter(
-        (i) => i.status === "rejected",
+        (item) => item.status === "rejected"
       ).length,
     }),
-    [requests],
+    [requests]
   );
 
   // ===================================================
-  // FILTER
-  // ✅ Search ab ORDER reference + ITEM reference dono par chalta hai
+  // FILTER + SEARCH
+  // Search is now based on order reference.
   // ===================================================
 
   const filteredRequests = useMemo(() => {
@@ -2096,12 +2120,10 @@ const CancelRefund: React.FC = () => {
         !query ||
         [
           getOrderReferenceDisplay(request),
-          (request as any).item_reference_id || "",
           request.user?.name || "",
           request.user?.email || "",
           request.user?.account_type || "",
           request.reason || "",
-          String(request.order_line_id),
         ]
           .join(" ")
           .toLowerCase()
@@ -2121,32 +2143,29 @@ const CancelRefund: React.FC = () => {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredRequests.length / ITEMS_PER_PAGE),
+    Math.ceil(filteredRequests.length / ITEMS_PER_PAGE)
   );
 
-  const startIndex =
-    (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 
   const paginatedRequests = filteredRequests.slice(
     startIndex,
-    startIndex + ITEMS_PER_PAGE,
+    startIndex + ITEMS_PER_PAGE
   );
 
   const startEntry =
-    filteredRequests.length === 0
-      ? 0
-      : startIndex + 1;
+    filteredRequests.length === 0 ? 0 : startIndex + 1;
 
   const endEntry = Math.min(
     startIndex + ITEMS_PER_PAGE,
-    filteredRequests.length,
+    filteredRequests.length
   );
 
   const paginationPages = useMemo(() => {
     if (totalPages <= 5) {
       return Array.from(
         { length: totalPages },
-        (_, i) => i + 1,
+        (_, i) => i + 1
       );
     }
 
@@ -2174,32 +2193,48 @@ const CancelRefund: React.FC = () => {
   }, [currentPage, totalPages]);
 
   // ===================================================
-  // VIEW
+  // VIEW DETAILS
   // ===================================================
 
   const handleView = (request: CancellationListItem) => {
+    const orderReference =
+      getOrderReferenceDisplay(request);
+
+    if (!orderReference || orderReference === "N/A") {
+      toast.error("Order reference not found.");
+      return;
+    }
+
     setSelectedDetail(request);
     setDetailModalOpen(true);
   };
 
   // ===================================================
-  // APPROVE / PAY
+  // OPEN APPROVE
   // ===================================================
 
   const handleOpenApprove = (
-    request: CancellationListItem,
+    request: CancellationListItem
   ) => {
     if (!canApproveCancellation) {
       toast.error(
-        "You do not have permission to approve cancellation requests.",
+        "You do not have permission to approve cancellation requests."
       );
       return;
     }
 
     if (!request.can_approve) {
       toast.error(
-        "This cancellation request cannot be approved.",
+        "This cancellation request cannot be approved."
       );
+      return;
+    }
+
+    const orderReference =
+      getOrderReferenceDisplay(request);
+
+    if (!orderReference || orderReference === "N/A") {
+      toast.error("Order reference not found.");
       return;
     }
 
@@ -2207,22 +2242,28 @@ const CancelRefund: React.FC = () => {
     setPayModalOpen(true);
   };
 
+  // ===================================================
+  // APPROVE
+  // API IDENTIFIER: order_reference
+  // ===================================================
+
   const handleApproveWithPay = async (
     amount: number,
-    adminNotes: string,
+    adminNotes: string
   ) => {
     if (!canApproveCancellation) {
       toast.error(
-        "You do not have permission to approve cancellation requests.",
+        "You do not have permission to approve cancellation requests."
       );
       return;
     }
 
-    const orderLineId =
-      selectedPayRequest?.order_line_id;
+    const orderReference = getOrderReferenceDisplay(
+      selectedPayRequest
+    );
 
-    if (!orderLineId) {
-      toast.error("Cancellation request not found.");
+    if (!orderReference || orderReference === "N/A") {
+      toast.error("Order reference not found.");
       return;
     }
 
@@ -2234,21 +2275,22 @@ const CancelRefund: React.FC = () => {
     try {
       setActionLoading({
         type: "approve",
-        id: orderLineId,
+        orderReference,
       });
 
+      // Pass order reference instead of line ID.
       const response = await cancellationApi.approve(
-        orderLineId,
+        orderReference,
         {
           refund_amount: amount,
           admin_notes: adminNotes || undefined,
-        },
+        }
       );
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Cancellation approved successfully.",
+            "Cancellation approved successfully."
         );
 
         setPayModalOpen(false);
@@ -2257,7 +2299,9 @@ const CancelRefund: React.FC = () => {
         await fetchCancellationRequests(true);
 
         if (
-          selectedDetail?.order_line_id === orderLineId
+          selectedDetail &&
+          getOrderReferenceDisplay(selectedDetail) ===
+            orderReference
         ) {
           setDetailModalOpen(false);
           setSelectedDetail(null);
@@ -2265,7 +2309,7 @@ const CancelRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to approve cancellation.",
+            "Unable to approve cancellation."
         );
       }
     } catch (error: any) {
@@ -2273,34 +2317,42 @@ const CancelRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to approve cancellation.",
+          "Unable to approve cancellation."
       );
     } finally {
       setActionLoading({
         type: null,
-        id: null,
+        orderReference: null,
       });
     }
   };
 
   // ===================================================
-  // REJECT
+  // OPEN REJECT
   // ===================================================
 
   const handleOpenReject = (
-    request: CancellationListItem,
+    request: CancellationListItem
   ) => {
     if (!canRejectCancellation) {
       toast.error(
-        "You do not have permission to reject cancellation requests.",
+        "You do not have permission to reject cancellation requests."
       );
       return;
     }
 
     if (!request.can_reject) {
       toast.error(
-        "This cancellation request cannot be rejected.",
+        "This cancellation request cannot be rejected."
       );
+      return;
+    }
+
+    const orderReference =
+      getOrderReferenceDisplay(request);
+
+    if (!orderReference || orderReference === "N/A") {
+      toast.error("Order reference not found.");
       return;
     }
 
@@ -2308,41 +2360,52 @@ const CancelRefund: React.FC = () => {
     setRejectModalOpen(true);
   };
 
+  // ===================================================
+  // REJECT
+  // API IDENTIFIER: order_reference
+  // ===================================================
+
   const handleReject = async (
     rejectionReason: string,
-    adminNotes: string,
+    adminNotes: string
   ) => {
     if (!canRejectCancellation) {
       toast.error(
-        "You do not have permission to reject cancellation requests.",
+        "You do not have permission to reject cancellation requests."
       );
       return;
     }
 
-    const orderLineId =
-      selectedDetail?.order_line_id;
+    const orderReference =
+      getOrderReferenceDisplay(selectedDetail);
 
-    if (!orderLineId) {
-      toast.error("Cancellation request not found.");
+    if (!orderReference || orderReference === "N/A") {
+      toast.error("Order reference not found.");
+      return;
+    }
+
+    if (!rejectionReason.trim()) {
+      toast.error("Please enter a rejection reason.");
       return;
     }
 
     try {
       setActionLoading({
         type: "reject",
-        id: orderLineId,
+        orderReference,
       });
 
+      // Pass order reference instead of line ID.
       const response = await cancellationApi.reject(
-        orderLineId,
+        orderReference,
         rejectionReason,
-        adminNotes || undefined,
+        adminNotes || undefined
       );
 
       if (response.data.success) {
         toast.success(
           response.data.message ||
-            "Cancellation rejected successfully.",
+            "Cancellation rejected successfully."
         );
 
         setRejectModalOpen(false);
@@ -2353,7 +2416,7 @@ const CancelRefund: React.FC = () => {
       } else {
         toast.error(
           response.data.message ||
-            "Unable to reject cancellation.",
+            "Unable to reject cancellation."
         );
       }
     } catch (error: any) {
@@ -2361,12 +2424,12 @@ const CancelRefund: React.FC = () => {
 
       toast.error(
         error?.response?.data?.message ||
-          "Unable to reject cancellation.",
+          "Unable to reject cancellation."
       );
     } finally {
       setActionLoading({
         type: null,
-        id: null,
+        orderReference: null,
       });
     }
   };
@@ -2376,7 +2439,7 @@ const CancelRefund: React.FC = () => {
   // ===================================================
 
   const handleFilterChange = (
-    filter: CancellationFilterTab,
+    filter: CancellationFilterTab
   ) => {
     setActiveFilter(filter);
     setCurrentPage(1);
@@ -2388,16 +2451,13 @@ const CancelRefund: React.FC = () => {
   };
 
   const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) {
-      return;
-    }
+    if (page < 1 || page > totalPages) return;
 
     setCurrentPage(page);
   };
 
   // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
+  // LOADING
   // ===================================================
 
   if (pageLoading) {
@@ -2455,7 +2515,7 @@ const CancelRefund: React.FC = () => {
               <div className="h-2 w-2 rounded-full bg-[#2D6FE8]" />
 
               <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#2D6FE8]">
-                Cancel and refund 
+                Cancel and refund
               </span>
             </div>
 
@@ -2557,7 +2617,7 @@ const CancelRefund: React.FC = () => {
                     filter === "All"
                       ? requests.length
                       : requests.filter(
-                          (item) => item.status === filter,
+                          (item) => item.status === filter
                         ).length;
 
                   return (
@@ -2575,6 +2635,7 @@ const CancelRefund: React.FC = () => {
                       } disabled:opacity-60`}
                     >
                       {getStatusLabel(filter)}
+
                       <span className="ml-1.5 opacity-80">
                         ({count})
                       </span>
@@ -2586,8 +2647,8 @@ const CancelRefund: React.FC = () => {
           </div>
         </motion.div>
 
-      {/* MAIN TABLE */}
-      <motion.div
+        {/* TABLE */}
+        <motion.div
           variants={itemVariants}
           className="relative overflow-hidden rounded-2xl border border-[#2D6FE8]/10 bg-white shadow-sm"
         >
@@ -2599,24 +2660,31 @@ const CancelRefund: React.FC = () => {
                   <th className="w-[5%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     S.No.
                   </th>
+
                   <th className="w-[15%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Order Reference
                   </th>
+
                   <th className="w-[14%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Buyer
                   </th>
+
                   <th className="w-[7%] break-words px-2 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-white">
                     Quantity
                   </th>
+
                   <th className="w-[14%] break-words px-2 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-white">
                     Cancellation Amount
                   </th>
+
                   <th className="w-[15%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Reason
                   </th>
+
                   <th className="w-[12%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Status
                   </th>
+
                   <th className="w-[18%] break-words px-2 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-white">
                     Actions
                   </th>
@@ -2624,7 +2692,6 @@ const CancelRefund: React.FC = () => {
               </thead>
 
               <tbody>
-                {/* ✅ initialCancellationsLoading par full spinner — refresh/CRUD par nahi */}
                 {initialCancellationsLoading ? (
                   <tr>
                     <td colSpan={8} className="px-5 py-10 text-center">
@@ -2633,6 +2700,7 @@ const CancelRefund: React.FC = () => {
                           size={22}
                           className="animate-spin text-[#2D6FE8]"
                         />
+
                         <p className="mt-2 text-sm font-semibold text-[#111827]">
                           Loading cancellation requests...
                         </p>
@@ -2647,6 +2715,7 @@ const CancelRefund: React.FC = () => {
                           size={22}
                           className="animate-spin text-[#2D6FE8]"
                         />
+
                         <p className="mt-2 text-sm font-semibold text-[#111827]">
                           Loading cancellation requests...
                         </p>
@@ -2655,11 +2724,12 @@ const CancelRefund: React.FC = () => {
                   </tr>
                 ) : paginatedRequests.length > 0 ? (
                   paginatedRequests.map((request, index) => {
-                    const requestId = request.order_line_id;
+                    const orderReference =
+                      getOrderReferenceDisplay(request);
 
                     const approveLoading =
                       actionLoading.type === "approve" &&
-                      actionLoading.id === requestId;
+                      actionLoading.orderReference === orderReference;
 
                     const canApprove =
                       request.can_approve &&
@@ -2674,12 +2744,13 @@ const CancelRefund: React.FC = () => {
 
                     const rowRefunded = getRefundedAmount(raw);
                     const rowIsRefunded = isRefundProcessed(raw);
+
                     const rowDisplayAmount =
                       getDisplayAmount(raw) ?? getRowAmount(raw);
 
                     return (
                       <tr
-                        key={`${requestId}-${index}`}
+                        key={`${orderReference}-${raw.id ?? index}-${index}`}
                         className="group border-b border-[#DCE6F2] bg-white transition hover:bg-[#F8FBFF]"
                       >
                         <td className="px-2 py-2">
@@ -2689,20 +2760,22 @@ const CancelRefund: React.FC = () => {
                         </td>
 
                         <td className="min-w-0 px-2 py-2">
-                          <span className="inline-flex max-w-full rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8] break-all">
-                            {/* ✅ ORDER reference */}
-                            {getOrderReferenceDisplay(raw)}
+                          <span className="inline-flex max-w-full break-all rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
+                            {orderReference}
                           </span>
                         </td>
 
                         <td className="px-2 py-2">
                           <p className="text-xs font-bold text-[#111827]">
-                            {getCustomerName(request.user, accountType)}
+                            {getCustomerName(
+                              request.user,
+                              accountType
+                            )}
                           </p>
 
                           <span
                             className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(
-                              accountType,
+                              accountType
                             )}`}
                           >
                             <FiBriefcase size={9} />
@@ -2712,7 +2785,9 @@ const CancelRefund: React.FC = () => {
 
                         <td className="px-2 py-2">
                           <p className="text-xs font-bold text-[#111827]">
-                            {request.items_count || 1}
+                            {(request as any).items_count ||
+                              request.quantity ||
+                              1}
                           </p>
                         </td>
 
@@ -2722,32 +2797,39 @@ const CancelRefund: React.FC = () => {
                               {formatCurrency(rowDisplayAmount)}
                             </span>
 
-                            {rowIsRefunded && rowRefunded !== null && (
-                              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
-                                Refunded {formatCurrency(rowRefunded)}
-                              </p>
-                            )}
+                            {rowIsRefunded &&
+                              rowRefunded !== null && (
+                                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#4F8FF7]">
+                                  Refunded{" "}
+                                  {formatCurrency(rowRefunded)}
+                                </p>
+                              )}
                           </div>
                         </td>
 
                         <td className="px-2 py-2 text-center">
                           <p className="line-clamp-2 max-w-full break-words text-[10px] leading-4 text-[#4B5563]">
-                            {request.reason || "No reason provided."}
+                            {request.reason ||
+                              request.cancellation_reason ||
+                              "No reason provided."}
                           </p>
                         </td>
 
                         <td className="px-2 py-2 text-center">
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] font-bold ${getStatusClass(
-                              request.status,
+                              request.status || "pending"
                             )}`}
                           >
                             <span
                               className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                                request.status,
+                                request.status || "pending"
                               )}`}
                             />
-                            {getStatusLabel(request.status)}
+
+                            {getStatusLabel(
+                              request.status || "pending"
+                            )}
                           </span>
                         </td>
 
@@ -2779,6 +2861,7 @@ const CancelRefund: React.FC = () => {
                                 ) : (
                                   <FiCheck size={13} />
                                 )}
+
                                 Approve
                               </button>
                             )}
@@ -2825,13 +2908,13 @@ const CancelRefund: React.FC = () => {
 
           {/* MOBILE */}
           <div className="block lg:hidden">
-            {/* ✅ initialCancellationsLoading par full spinner — refresh/CRUD par nahi */}
             {initialCancellationsLoading ? (
               <div className="flex flex-col items-center justify-center px-5 py-16 text-center">
                 <FiRefreshCw
                   size={22}
                   className="animate-spin text-[#2D6FE8]"
                 />
+
                 <p className="mt-2 text-sm font-semibold text-[#111827]">
                   Loading cancellation requests...
                 </p>
@@ -2842,17 +2925,19 @@ const CancelRefund: React.FC = () => {
                   size={22}
                   className="animate-spin text-[#2D6FE8]"
                 />
+
                 <p className="mt-2 text-sm font-semibold text-[#111827]">
                   Loading cancellation requests...
                 </p>
               </div>
             ) : paginatedRequests.length > 0 ? (
               paginatedRequests.map((request, index) => {
-                const requestId = request.order_line_id;
+                const orderReference =
+                  getOrderReferenceDisplay(request);
 
                 const approveLoading =
                   actionLoading.type === "approve" &&
-                  actionLoading.id === requestId;
+                  actionLoading.orderReference === orderReference;
 
                 const canApprove =
                   request.can_approve &&
@@ -2866,12 +2951,13 @@ const CancelRefund: React.FC = () => {
 
                 const rowRefunded = getRefundedAmount(request);
                 const rowIsRefunded = isRefundProcessed(request);
+
                 const rowDisplayAmount =
                   getDisplayAmount(request) ?? getRowAmount(request);
 
                 return (
                   <div
-                    key={`${requestId}-${index}`}
+                    key={`${orderReference}-${(request as any).id ?? index}-${index}`}
                     className="min-w-0 border-b border-[#DCE6F2] bg-white p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -2879,9 +2965,9 @@ const CancelRefund: React.FC = () => {
                         <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-[#6B7280]">
                           Order Reference
                         </p>
+
                         <span className="inline-flex max-w-full break-all rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                          {/* ✅ ORDER reference */}
-                          {getOrderReferenceDisplay(request)}
+                          {orderReference}
                         </span>
                       </div>
 
@@ -2892,7 +2978,10 @@ const CancelRefund: React.FC = () => {
 
                     <div className="mt-4">
                       <p className="text-xs font-bold text-[#111827]">
-                        {getCustomerName(request.user, accountType)}
+                        {getCustomerName(
+                          request.user,
+                          accountType
+                        )}
                       </p>
 
                       <p className="mt-1 truncate text-xs text-[#6B7280]">
@@ -2901,7 +2990,7 @@ const CancelRefund: React.FC = () => {
 
                       <span
                         className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${getAccountTypeClass(
-                          accountType,
+                          accountType
                         )}`}
                       >
                         <FiBriefcase size={10} />
@@ -2914,23 +3003,29 @@ const CancelRefund: React.FC = () => {
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           {rowIsRefunded ? "Refunded" : "Amount"}
                         </p>
+
                         <p className="mt-1 text-xs font-bold text-[#2D6FE8]">
                           {formatCurrency(rowDisplayAmount)}
                         </p>
 
-                        {rowIsRefunded && rowRefunded !== null && (
-                          <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
-                            Refunded {formatCurrency(rowRefunded)}
-                          </p>
-                        )}
+                        {rowIsRefunded &&
+                          rowRefunded !== null && (
+                            <p className="mt-1 text-[10px] font-bold text-[#4F8FF7]">
+                              Refunded{" "}
+                              {formatCurrency(rowRefunded)}
+                            </p>
+                          )}
                       </div>
 
                       <div className="min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
                         <p className="text-[10px] font-bold uppercase tracking-wide text-[#6B7280]">
                           Items
                         </p>
+
                         <p className="mt-1 text-sm font-bold text-[#111827]">
-                          {request.items_count || 1}
+                          {(request as any).items_count ||
+                            request.quantity ||
+                            1}
                         </p>
                       </div>
                     </div>
@@ -2938,15 +3033,18 @@ const CancelRefund: React.FC = () => {
                     <div className="mt-4">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-bold ${getStatusClass(
-                          request.status,
+                          request.status || "pending"
                         )}`}
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${getStatusDot(
-                            request.status,
+                            request.status || "pending"
                           )}`}
                         />
-                        {getStatusLabel(request.status)}
+
+                        {getStatusLabel(
+                          request.status || "pending"
+                        )}
                       </span>
                     </div>
 
@@ -2997,7 +3095,9 @@ const CancelRefund: React.FC = () => {
 
                     <div className="mt-3 min-w-0 rounded-lg border border-[#DCE6F2] bg-[#F4F8FD] p-2.5">
                       <p className="break-words text-[11px] leading-4 text-[#4B5563]">
-                        {request.reason || "No reason provided."}
+                        {request.reason ||
+                          request.cancellation_reason ||
+                          "No reason provided."}
                       </p>
                     </div>
 
@@ -3125,7 +3225,7 @@ const CancelRefund: React.FC = () => {
 
           if (!canApproveCancellation) {
             toast.error(
-              "You do not have permission to approve cancellation requests.",
+              "You do not have permission to approve cancellation requests."
             );
             return;
           }
@@ -3138,7 +3238,7 @@ const CancelRefund: React.FC = () => {
 
           if (!canRejectCancellation) {
             toast.error(
-              "You do not have permission to reject cancellation requests.",
+              "You do not have permission to reject cancellation requests."
             );
             return;
           }
@@ -3151,34 +3251,47 @@ const CancelRefund: React.FC = () => {
       {/* REJECT POPUP */}
       <RejectPopup
         open={rejectModalOpen}
-        loading={actionLoading.type === "reject"}
+        loading={
+          actionLoading.type === "reject" &&
+          actionLoading.orderReference ===
+            getOrderReferenceDisplay(selectedDetail)
+        }
         customerLabel={getAccountTypeLabel(
-          selectedDetail ? getRowAccountType(selectedDetail) : "customer",
+          selectedDetail
+            ? getRowAccountType(selectedDetail)
+            : "customer"
         )}
         onClose={() => setRejectModalOpen(false)}
         onConfirm={handleReject}
       />
 
-      {/* PAY POPUP */}
+      {/* APPROVE POPUP */}
       <PayPopup
         open={payModalOpen}
-        orderLineId={
-          selectedPayRequest?.order_line_id || null
-        }
-        orderReference={getOrderReferenceDisplay(selectedPayRequest)}
+        orderReference={getOrderReferenceDisplay(
+          selectedPayRequest
+        )}
         customerName={getCustomerName(
           selectedPayRequest?.user,
-          selectedPayRequest ? getRowAccountType(selectedPayRequest) : "customer",
+          selectedPayRequest
+            ? getRowAccountType(selectedPayRequest)
+            : "customer"
         )}
         customerLabel={getAccountTypeLabel(
-          selectedPayRequest ? getRowAccountType(selectedPayRequest) : "customer",
+          selectedPayRequest
+            ? getRowAccountType(selectedPayRequest)
+            : "customer"
         )}
         defaultAmount={Number(
           selectedPayRequest?.refund_amount ||
             selectedPayRequest?.amount ||
-            0,
+            0
         )}
-        loading={actionLoading.type === "approve"}
+        loading={
+          actionLoading.type === "approve" &&
+          actionLoading.orderReference ===
+            getOrderReferenceDisplay(selectedPayRequest)
+        }
         onClose={() => setPayModalOpen(false)}
         onConfirm={handleApproveWithPay}
       />

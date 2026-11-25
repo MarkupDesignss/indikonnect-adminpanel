@@ -1,3 +1,4 @@
+
 import apiClient from "../client";
 
 // =====================================================
@@ -91,37 +92,11 @@ export interface CancellationRefundDetails {
   total?: number;
 }
 
-export interface CancellationListItem {
-  id: number;
-  item_reference_id: string;
-  order_id: number;
-  product_id: number;
-  variant_id: number | null;
-  quantity: number;
-  returned_quantity: number;
-  shipping_charge: string;
-  delivery_status: DeliveryStatus | string;
-  cancellation_requested_at: string | null;
-  cancellation_reason: string | null;
-  cancelled_at: string | null;
-  unit_price: string;
-  gst_rate: string;
-  cgst_rate: string;
-  sgst_rate: string;
-  igst_rate: string;
-  gst_amount: string;
-  cgst_amount: string;
-  sgst_amount: string;
-  igst_amount: string;
-  line_total: string;
-  created_at: string;
-  updated_at: string;
-
+export interface CancellationListItem extends CancellationItem {
   order: CancellationOrder;
   product: CancellationProduct;
   variant?: any | null;
 
-  // Computed / optional fields
   status?: CancellationStatus;
   user?: CancellationUser;
   refund_amount?: number;
@@ -216,9 +191,10 @@ export interface AllCancellationResponse {
 export interface CancellationActionResponse {
   success: boolean;
   message: string;
+
   data?: {
     id?: number;
-    order_line_id?: number;
+    order_reference?: string;
     status?: string;
     amount?: number;
     refund_amount?: number;
@@ -230,7 +206,6 @@ export interface CancellationActionResponse {
   };
 }
 
-// Response type for warehouse receive product
 export interface WarehouseReceiveProductResponse {
   success: boolean;
   message?: string;
@@ -244,6 +219,8 @@ export interface WarehouseReceiveProductResponse {
 export const cancellationApi = {
   /**
    * GET /admin/cancellation-requests
+   *
+   * Get all cancellation requests.
    */
   getAll: (
     page?: number,
@@ -276,33 +253,39 @@ export const cancellationApi = {
     ),
 
   /**
-   * GET /admin/cancellation-requests/:orderLineId
+   * GET /admin/cancellation-requests/{orderReference}
+   *
+   * Fetch cancellation details using order reference.
    */
-  getById: (orderLineId: number) =>
+  getById: (orderReference: string) =>
     apiClient.get<SingleCancellationResponse>(
-      `/admin/cancellation-requests/${orderLineId}`
+      `/admin/cancellation-requests/${encodeURIComponent(
+        orderReference.trim()
+      )}`
     ),
 
   /**
-   * POST /admin/cancellation-requests/:orderLineId/approve
+   * POST /admin/cancellation-requests/{orderReference}/approve
+   *
+   * Approve cancellation using order reference.
    *
    * Payload:
    * {
-   *   refund_amount: number,   // required
-   *   amount?: number,         // optional (defaults to refund_amount)
-   *   user_id?: number,        // optional (customer id)
-   *   admin_notes?: string     // optional
+   *   refund_amount: number;
+   *   admin_notes?: string;
    * }
    */
   approve: (
-    orderLineId: number,
+    orderReference: string,
     payload: {
       refund_amount: number;
       admin_notes?: string;
     }
   ) =>
     apiClient.post<CancellationActionResponse>(
-      `/admin/cancellation-requests/${orderLineId}/approve`,
+      `/admin/cancellation-requests/${encodeURIComponent(
+        orderReference.trim()
+      )}/approve`,
       {
         refund_amount: payload.refund_amount,
         ...(payload.admin_notes?.trim() && {
@@ -312,15 +295,19 @@ export const cancellationApi = {
     ),
 
   /**
-   * POST /admin/cancellation-requests/:orderLineId/reject
+   * POST /admin/cancellation-requests/{orderReference}/reject
+   *
+   * Reject cancellation using order reference.
    */
   reject: (
-    orderLineId: number,
+    orderReference: string,
     rejection_reason: string,
     admin_notes?: string
   ) =>
     apiClient.post<CancellationActionResponse>(
-      `/admin/cancellation-requests/${orderLineId}/reject`,
+      `/admin/cancellation-requests/${encodeURIComponent(
+        orderReference.trim()
+      )}/reject`,
       {
         rejection_reason: rejection_reason.trim(),
         ...(admin_notes?.trim() && {
@@ -330,25 +317,39 @@ export const cancellationApi = {
     ),
 
   /**
-   * POST /admin/cancellation-requests/:orderLineId/pay
+   * POST /admin/cancellation-requests/{orderReference}/pay
+   *
+   * Process refund using order reference.
    */
-  pay: (orderLineId: number, amount: number) =>
+  pay: (
+    orderReference: string,
+    amount: number
+  ) =>
     apiClient.post<CancellationActionResponse>(
-      `/admin/cancellation-requests/${orderLineId}/pay`,
-      { amount }
+      `/admin/cancellation-requests/${encodeURIComponent(
+        orderReference.trim()
+      )}/pay`,
+      {
+        amount,
+      }
     ),
 
   /**
-   * POST /warehouse-receive-product/:orderReference
-   * Body: { warehouse_id: number }
+   * POST /warehouse-receive-product/{orderReference}
+   *
+   * Receive product at warehouse.
    */
   receiveProductAtWarehouse: (
     orderReference: string,
     warehouse_id: number
   ) =>
     apiClient.post<WarehouseReceiveProductResponse>(
-      `/warehouse-receive-product/${orderReference}`,
-      { warehouse_id }
+      `/warehouse-receive-product/${encodeURIComponent(
+        orderReference.trim()
+      )}`,
+      {
+        warehouse_id,
+      }
     ),
 };
 
