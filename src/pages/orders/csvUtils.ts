@@ -280,33 +280,13 @@ export const downloadOrdersCsv = (orders: any[], filenamePrefix = "orders") => {
 };
 
 // =====================================================
-// GST INVOICE PDF — ONLY THESE API FIELDS
+// GST INVOICE PDF — selected item amounts, integer paise calculations
 // =====================================================
-//
-// Product line fields displayed:
-//   line_price_excl_gst
-//   line_price_incl_gst
-//   line_gst_amount
-//   igst_amount
-//   line_total_excl_gst
-//   line_total_gst_amount
-//   line_total_incl_gst
-//
-// Shipping (per-line) fields displayed:
-//   shipping_excl_gst
-//   shipping_incl_gst
-//   shipping_gst_amount
-//
-// Service charge (per-line) field displayed (only when present):
-//   product_service_charge
-//
-// No MRP, no discount, no CGST/SGST split — unless API explicitly returns them.
-// No reconciliation "Note" row.
-
 type InvoicePayload = {
   invoice?: Record<string, any>;
   order?: Record<string, any>;
   invoice_type?: string;
+  data?: InvoicePayload;
 };
 
 type AnyObject = Record<string, any>;
@@ -357,7 +337,9 @@ const addressToText = (value: any): string => {
     firstPresent(value.pincode, value.pin_code, value.postal_code),
     value.country,
   ].filter(isPresent);
-  return parts.length ? parts.join(", ") : asText(value.full_address);
+  return parts.length
+    ? [...new Set(parts)].join(", ")
+    : asText(value.full_address);
 };
 
 const smallWords = [
@@ -444,38 +426,208 @@ const amountInWords = (value: number): string => {
 // LINE NORMALIZATION
 // =====================================================
 
-type InvoiceLine = {
-  source: AnyObject;
-  qty: number;
-  linePriceInclGst: number;
-  linePriceExclGst: number;
-  lineGstAmount: number;
-  shippingInclGst: number;
-  shippingExclGst: number;
-  shippingGstAmount: number;
-  lineTotalInclGst: number;
-  lineTotalExclGst: number;
-  lineTotalGstAmount: number;
-  igstAmount: number;
-  serviceCharge: number; // product_service_charge
+type TaxSplit = {
+  cgst: number | null;
+  sgst: number | null;
+  utgst: number | null;
+  igst: number | null;
+  inferred: boolean;
 };
-
-const normalizeInvoiceLine = (item: AnyObject): InvoiceLine => ({
-  source: item,
-  qty: asNumber(item.quantity, 1),
-  linePriceInclGst: asNumber(item.line_price_incl_gst),
-  linePriceExclGst: asNumber(item.line_price_excl_gst),
-  lineGstAmount: asNumber(item.line_gst_amount),
-  shippingInclGst: asNumber(item.shipping_incl_gst),
-  shippingExclGst: asNumber(item.shipping_excl_gst),
-  shippingGstAmount: asNumber(item.shipping_gst_amount),
-  lineTotalInclGst: asNumber(item.line_total_incl_gst),
-  lineTotalExclGst: asNumber(item.line_total_excl_gst),
-  lineTotalGstAmount: asNumber(item.line_total_gst_amount),
-  igstAmount: asNumber(item.igst_amount),
-  serviceCharge: asNumber(item.product_service_charge),
+const paise = (v: any): number | null => {
+  if (!isPresent(v)) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && Number.isSafeInteger(Math.round(n * 100))
+    ? Math.round(n * 100)
+    : null;
+};
+const pickPaise = (...values: any[]): number | null => {
+  for (const v of values) {
+    const n = paise(v);
+    if (n !== null) return n;
+  }
+  return null;
+};
+const money = (p: number | null): string =>
+  p === null ? "-" : formatMoney(p / 100);
+const signed = (p: number): string =>
+  p === 0 ? money(0) : `${p < 0 ? "-" : "+"} ${money(Math.abs(p))}`;
+const differs = (a: number | null, b: number): boolean => a !== null && a !== b;
+const taxKeys = ["cgst", "sgst", "utgst", "igst"] as const;
+const taxSum = (t: TaxSplit) =>
+  taxKeys.reduce((sum, key) => sum + (t[key] ?? 0), 0);
+const readSplit = (item: AnyObject, prefix = ""): TaxSplit => ({
+  cgst: paise(item[`${prefix}cgst_amount`]),
+  sgst: paise(item[`${prefix}sgst_amount`]),
+  utgst: paise(item[`${prefix}utgst_amount`]),
+  igst: paise(item[`${prefix}igst_amount`]),
+  inferred: false,
 });
-
+const completeSplit = (t: TaxSplit, gst: number): TaxSplit => {
+  if (taxSum(t) === gst && (gst === 0 || taxKeys.some((k) => t[k] !== null))) {
+    return {
+      cgst: t.cgst ?? 0,
+      sgst: t.sgst ?? 0,
+      utgst: t.utgst ?? 0,
+      igst: t.igst ?? 0,
+      inferred: t.inferred,
+    };
+  }
+  return t;
+};
+const hasSplit = (t: TaxSplit, gst: number): boolean =>
+  taxKeys.every((k) => t[k] !== null) && taxSum(t) === gst;
+const shippingSplit = (
+  item: AnyObject,
+  product: TaxSplit,
+  gst: number,
+): TaxSplit => {
+  const explicit = readSplit(item, "shipping_");
+  if (taxKeys.some((k) => explicit[k] !== null) || gst === 0)
+    return completeSplit(explicit, gst);
+  // Inferred only for an unambiguous product tax pattern. This is a preview,
+  // not a confirmed shipping tax classification.
+  if (product.igst && !product.cgst && !product.sgst && !product.utgst)
+    return { cgst: 0, sgst: 0, utgst: 0, igst: gst, inferred: true };
+  if (
+    product.cgst &&
+    !product.igst &&
+    !!product.sgst !== !!product.utgst &&
+    Math.abs(product.cgst - (product.sgst ?? 0) - (product.utgst ?? 0)) <= 1
+  ) {
+    const central = Math.round(gst / 2);
+    return {
+      cgst: central,
+      sgst: product.sgst ? gst - central : 0,
+      utgst: product.utgst ? gst - central : 0,
+      igst: 0,
+      inferred: true,
+    };
+  }
+  return explicit;
+};
+const rateFrom = (base: number, gst: number): number | null =>
+  base > 0 ? Math.round((gst / base) * 10000) / 100 : gst === 0 ? 0 : null;
+const rateText = (rate: number | null): string =>
+  rate === null ? "-" : `${rate}%`;
+const normalizeInvoiceLine = (item: AnyObject) => {
+  const issues: string[] = [];
+  const qty = asNumber(item.quantity, 1);
+  if (!Number.isFinite(qty) || qty <= 0)
+    throw new Error("Invalid invoice quantity.");
+  const unit = (v: any): number | null => {
+    const n = paise(v);
+    return n === null ? null : Math.round(n * qty);
+  };
+  let productBase =
+    paise(item.line_price_excl_gst) ?? unit(item.price_excl_gst);
+  let productGross =
+    paise(item.line_price_incl_gst) ?? unit(item.price_incl_gst);
+  const rawProductTax = readSplit(item);
+  let productGst =
+    paise(item.line_gst_amount) ??
+    unit(item.gst_amount_per_unit) ??
+    (taxKeys.some((k) => rawProductTax[k] !== null)
+      ? taxSum(rawProductTax)
+      : null);
+  if (productBase === null && productGross !== null && productGst !== null)
+    productBase = productGross - productGst;
+  if (productGst === null && productBase !== null && productGross !== null)
+    productGst = productGross - productBase;
+  if (productBase === null || productGst === null)
+    throw new Error("Product taxable value or GST is missing.");
+  if (productGross !== null && productGross !== productBase + productGst)
+    issues.push("Product amounts require verification.");
+  productGross = productBase + productGst;
+  const productTax = completeSplit(rawProductTax, productGst);
+  if (!hasSplit(productTax, productGst))
+    issues.push("Product GST breakup requires verification.");
+  const explicitRate = isPresent(item.gst_rate_percent)
+    ? Number(String(item.gst_rate_percent).replace(/%$/, ""))
+    : NaN;
+  const productRate =
+    Number.isFinite(explicitRate) && explicitRate >= 0
+      ? explicitRate
+      : rateFrom(productBase, productGst);
+  if (
+    productRate !== null &&
+    Math.abs(Math.round((productBase * productRate) / 100) - productGst) >
+      Math.max(1, Math.ceil(qty))
+  )
+    issues.push("Product GST rate requires verification.");
+  let shippingBase =
+    paise(item.shipping_excl_gst) ?? unit(item.shipping_per_unit_excl_gst);
+  let shippingGross =
+    paise(item.shipping_incl_gst) ?? unit(item.shipping_per_unit_incl_gst);
+  let shippingGst = paise(item.shipping_gst_amount);
+  if (shippingBase === null && shippingGross !== null && shippingGst !== null)
+    shippingBase = shippingGross - shippingGst;
+  if (shippingGst === null && shippingGross !== null && shippingBase !== null)
+    shippingGst = shippingGross - shippingBase;
+  if (shippingBase === null || shippingGst === null) {
+    if (shippingBase !== null || shippingGross !== null || shippingGst !== null)
+      throw new Error("Shipping taxable value or GST is missing.");
+    issues.push("Shipping details require verification.");
+    shippingBase = 0;
+    shippingGst = 0;
+  }
+  if (shippingGross !== null && shippingGross !== shippingBase + shippingGst)
+    issues.push("Shipping amounts require verification.");
+  shippingGross = shippingBase + shippingGst;
+  const shipTax = shippingSplit(item, productTax, shippingGst);
+  if (shipTax.inferred)
+    issues.push("Shipping GST split is calculated; confirmation required.");
+  if (!hasSplit(shipTax, shippingGst))
+    issues.push("Shipping GST breakup requires verification.");
+  const explicitShippingRate = isPresent(item.shipping_gst_rate_percent)
+    ? Number(String(item.shipping_gst_rate_percent).replace(/%$/, ""))
+    : NaN;
+  const shippingRate =
+    Number.isFinite(explicitShippingRate) && explicitShippingRate >= 0
+      ? explicitShippingRate
+      : rateFrom(shippingBase, shippingGst);
+  if (
+    shippingRate !== null &&
+    Math.abs(Math.round((shippingBase * shippingRate) / 100) - shippingGst) >
+      Math.max(1, Math.ceil(qty))
+  )
+    issues.push("Shipping GST rate requires verification.");
+  const serviceCharge = paise(item.product_service_charge) ?? 0;
+  // Only count a separately stated service charge when the line total proves it
+  // is additional. Do not guess its tax treatment or charge it twice.
+  const reportedTotal = paise(item.line_total_incl_gst);
+  const includedService =
+    serviceCharge > 0 &&
+    reportedTotal === productGross + shippingGross + serviceCharge
+      ? serviceCharge
+      : 0;
+  if (serviceCharge !== 0)
+    issues.push("Service charge treatment requires verification.");
+  const total = productGross + shippingGross + includedService;
+  if (
+    differs(reportedTotal, total) ||
+    differs(paise(item.line_total_excl_gst), productBase + shippingBase) ||
+    differs(paise(item.line_total_gst_amount), productGst + shippingGst)
+  )
+    issues.push("Item totals require verification.");
+  if (!isPresent(item.hsn_code)) issues.push("Product HSN is missing.");
+  return {
+    source: item,
+    qty,
+    productBase,
+    productGst,
+    productGross,
+    productRate,
+    productTax,
+    shippingBase,
+    shippingGst,
+    shippingGross,
+    shippingRate,
+    shipTax,
+    includedService,
+    total,
+    issues,
+  };
+};
 // =====================================================
 // MAIN INVOICE PDF BUILDER
 // =====================================================
@@ -489,24 +641,33 @@ export const openInvoicePdfInNewTab = async (
     targetWindow === undefined ? window.open("", "_blank") : targetWindow;
 
   try {
-    const invoice: AnyObject = payload?.invoice ?? {};
-    const order: AnyObject = payload?.order ?? {};
+    // Accept both the unwrapped payload and the original response envelope.
+    const data: InvoicePayload = payload?.data?.invoice
+      ? payload.data
+      : payload;
+    const invoice: AnyObject = data?.invoice ?? {};
+    const order: AnyObject = data?.order ?? {};
     const seller: AnyObject = invoice.seller ?? {};
     const buyer: AnyObject = invoice.buyer ?? {};
-
-    const orderItems: AnyObject[] = (() => {
-      const raw = (order as any).order_items ?? (order as any).items;
-      if (Array.isArray(raw)) return raw;
-      if (raw && typeof raw === "object") return [raw];
-      return [];
-    })();
-
-    if (!orderItems.length) {
-      throw new Error(
-        "Invoice item data is empty. Check the invoice API response.",
+    const raw = order.order_items ?? order.items;
+    const invoiceType = firstPresent(payload.invoice_type, data?.invoice_type);
+    const isSingle =
+      invoiceType === "single_item" ||
+      _orderItemId !== null ||
+      (!Array.isArray(raw) && raw && typeof raw === "object");
+    let orderItems: AnyObject[] = Array.isArray(raw)
+      ? raw
+      : raw && typeof raw === "object"
+        ? [raw]
+        : [];
+    if (_orderItemId !== null)
+      orderItems = orderItems.filter(
+        (item) =>
+          String(item.order_line_id ?? item.order_item_id ?? item.id) ===
+          String(_orderItemId),
       );
-    }
-
+    if (!orderItems.length || (isSingle && orderItems.length !== 1))
+      throw new Error("Selected invoice item not found or ambiguous.");
     const lines = orderItems.map(normalizeInvoiceLine);
 
     const invoiceNumber = asText(
@@ -533,26 +694,170 @@ export const openInvoicePdfInNewTab = async (
       order.billing_address?.state,
     );
 
-    const payable = asNumber(
-      firstPresent(invoice.total_payable, order.total_payable),
+    const sum = (
+      key:
+        | "productBase"
+        | "productGst"
+        | "productGross"
+        | "shippingBase"
+        | "shippingGst"
+        | "shippingGross"
+        | "includedService"
+        | "total",
+    ) => lines.reduce((n, line) => n + line[key], 0);
+    const productBase = sum("productBase");
+    const productGst = sum("productGst");
+    const shippingBase = sum("shippingBase");
+    const shippingGst = sum("shippingGst");
+    const service = sum("includedService");
+    const gross = sum("total");
+    const issues = lines.flatMap((line) => line.issues);
+    const recordedPayable = paise(invoice.total_payable);
+    const recordedCoupon = paise(invoice.coupon_discount) ?? 0;
+    const recordedCoin = paise(invoice.coin_redeemed) ?? 0;
+    // Never allocate order-wide discounts to one item without evidence. For
+    // nonzero deductions, require matching scoped header amounts and a matching
+    // payable. A coupon may already be reflected in the item prices.
+    let coupon = 0,
+      coin = 0;
+    if (recordedCoupon !== 0 || recordedCoin !== 0) {
+      const itemCoupon = isSingle
+        ? pickPaise(
+            lines[0].source.line_coupon_discount,
+            lines[0].source.coupon_discount,
+          )
+        : recordedCoupon;
+      const itemCoin = isSingle
+        ? pickPaise(
+            lines[0].source.line_coin_redeemed_amount,
+            lines[0].source.coin_redeemed_amount,
+          )
+        : recordedCoin;
+      const c = recordedCoupon === 0 ? 0 : itemCoupon;
+      const r = recordedCoin === 0 ? 0 : itemCoin;
+      if (
+        c !== null &&
+        r !== null &&
+        c >= 0 &&
+        r >= 0 &&
+        c + r <= gross &&
+        c === recordedCoupon &&
+        r === recordedCoin &&
+        (recordedPayable === gross - c - r ||
+          recordedPayable === Math.round((gross - c - r) / 100) * 100) &&
+        paise(invoice.subtotal_before_redemption) === sum("productGross") &&
+        paise(invoice.subtotal_after_discount) === sum("productGross") - c
+      ) {
+        coupon = c;
+        coin = r;
+      } else
+        issues.push("Discount or redemption allocation requires verification.");
+    }
+    // Round the final payable once, not each product or GST component.
+    // Nearest rupee policy; all calculations above remain in integer paise.
+    const beforeRoundOff = gross - coupon - coin;
+    const roundedPayable =
+      Math.sign(beforeRoundOff) *
+      Math.round(Math.abs(beforeRoundOff) / 100) *
+      100;
+    const roundOff = roundedPayable - beforeRoundOff;
+    const recordedRoundOff = pickPaise(
+      invoice.round_off,
+      invoice.roundoff,
+      invoice.round_off_amount,
     );
-
-    const totalQty = lines.reduce((s, r) => s + r.qty, 0);
-    const totalTaxable = lines.reduce((s, r) => s + r.linePriceExclGst, 0);
-    const totalPriceIncl = lines.reduce((s, r) => s + r.linePriceInclGst, 0);
-    const totalLineGst = lines.reduce((s, r) => s + r.lineGstAmount, 0);
-    const totalIgst = lines.reduce((s, r) => s + r.igstAmount, 0);
-    const totalExcl = lines.reduce((s, r) => s + r.lineTotalExclGst, 0);
-    const totalLineGstAmt = lines.reduce((s, r) => s + r.lineTotalGstAmount, 0);
-    const totalIncl = lines.reduce((s, r) => s + r.lineTotalInclGst, 0);
-    const totalServiceCharge = lines.reduce((s, r) => s + r.serviceCharge, 0);
-
-    console.info("GENERATING INVOICE PDF (real API fields only)", {
-      invoiceNumber,
-      orderId: order.id,
-      productCount: lines.length,
-      invoicePayable: payable,
-    });
+    if (recordedRoundOff !== null && recordedRoundOff !== roundOff)
+      issues.push("Recorded rounding requires verification.");
+    const payablePaise = beforeRoundOff + roundOff;
+    const payable = payablePaise / 100;
+    if (
+      recordedPayable === null ||
+      differs(recordedPayable, payablePaise) ||
+      differs(paise(invoice.shipping_charge), sum("shippingGross")) ||
+      differs(paise(invoice.total_tax), productGst + shippingGst) ||
+      differs(paise(invoice.total_taxable), productBase + shippingBase)
+    )
+      issues.push(
+        "Recorded invoice totals do not match selected item amounts.",
+      );
+    const taxTotal = (
+      kind: "productTax" | "shipTax",
+      key: (typeof taxKeys)[number],
+    ) => lines.reduce((n, line) => n + (line[kind][key] ?? 0), 0);
+    const splitComplete = (kind: "productTax" | "shipTax") =>
+      lines.every((line) =>
+        hasSplit(
+          line[kind],
+          kind === "productTax" ? line.productGst : line.shippingGst,
+        ),
+      );
+    if (
+      !isPresent(invoice.invoice_number) ||
+      !isPresent(seller.gstin) ||
+      !isPresent(state)
+    )
+      issues.push("Invoice identification requires verification.");
+    if (
+      splitComplete("productTax") &&
+      splitComplete("shipTax") &&
+      taxKeys.some((key) =>
+        differs(
+          paise(invoice[`total_${key}`]),
+          taxTotal("productTax", key) + taxTotal("shipTax", key),
+        ),
+      )
+    )
+      issues.push("Recorded tax components require verification.");
+    // Cross-check supplied GSTIN state code and place of supply. Do not
+    // silently rewrite the source tax classification in the frontend.
+    const stateCodes: Record<string, string> = {
+      punjab: "03",
+      karnataka: "29",
+      "uttar pradesh": "09",
+      delhi: "07",
+      maharashtra: "27",
+      haryana: "06",
+      rajasthan: "08",
+      gujarat: "24",
+      "tamil nadu": "33",
+      telangana: "36",
+      "west bengal": "19",
+      kerala: "32",
+      "andhra pradesh": "37",
+      bihar: "10",
+      chandigarh: "04",
+    };
+    const sellerCode = String(seller.gstin ?? "").slice(0, 2);
+    const destinationCode =
+      stateCodes[
+        String(state ?? "")
+          .trim()
+          .toLowerCase()
+      ];
+    const stateTaxMismatch =
+      !!destinationCode &&
+      /^\d{2}$/.test(sellerCode) &&
+      sellerCode !== destinationCode &&
+      lines.some(
+        (line) =>
+          (line.productTax.cgst ?? 0) +
+            (line.productTax.sgst ?? 0) +
+            (line.productTax.utgst ?? 0) >
+          0,
+      );
+    if (stateTaxMismatch)
+      issues.push(
+        "GST classification and place of supply require verification.",
+      );
+    const preview = issues.length > 0;
+    const title = preview ? "Invoice Preview" : "Tax Invoice";
+    if (preview)
+      console.warn("Invoice verification required", {
+        issues: [...new Set(issues)],
+        recordedPayable:
+          recordedPayable === null ? null : recordedPayable / 100,
+        calculatedPayable: payable,
+      });
 
     const doc = new jsPDF({
       orientation: "portrait",
@@ -562,7 +867,7 @@ export const openInvoicePdfInNewTab = async (
     });
 
     doc.setProperties({
-      title: `Indiekonnect Tax Invoice ${invoiceNumber}`,
+      title: `Indiekonnect ${title} ${invoiceNumber}`,
       subject: `Order ${orderReference}`,
       author: "Indiekonnect",
       creator: "Indiekonnect Admin Panel",
@@ -677,7 +982,7 @@ export const openInvoicePdfInNewTab = async (
         true,
       );
     }
-    text("Tax Invoice", DIVIDER + RIGHT_W / 2, y + 42, 15.5, true, {
+    text(title, DIVIDER + RIGHT_W / 2, y + 42, 15.5, true, {
       align: "center",
     });
     y += headerH;
@@ -895,6 +1200,7 @@ export const openInvoicePdfInNewTab = async (
       address: string,
       phone: any,
       email: any,
+      gstin?: any,
     ): AddressColumn => {
       const textW = width - innerGap * 2;
       const person = wrap(name, textW, 8.2, true);
@@ -905,6 +1211,8 @@ export const openInvoicePdfInNewTab = async (
       const emailLines = isPresent(email)
         ? wrap(`Email: ${email}`, textW, 7.1)
         : [];
+      if (isPresent(gstin))
+        emailLines.push(...wrap(`GSTIN: ${gstin}`, textW, 7.1));
       const height =
         15 +
         14 +
@@ -935,6 +1243,7 @@ export const openInvoicePdfInNewTab = async (
       billAddress,
       billPhone,
       billEmail,
+      buyer.gstin,
     );
     const shipCol = makeAddressColumn(
       "Ship To",
@@ -1002,120 +1311,117 @@ export const openInvoicePdfInNewTab = async (
     drawAddressColumn(shipCol);
     y += infoBlockH;
 
-    // 4. PRODUCT TABLE
-    const widths = [22, 56, 150, 28, 52, 52, 48, 48, 60, 52, 60];
-    const totalWidthRatio = W / widths.reduce((sum, n) => sum + n, 0);
+    // 4. COMBINED PRODUCT AND SHIPPING TABLE
+    const widths = [22, 47, 112, 24, 63, 34, 49, 49, 43, 54, 66];
+    const ratio = W / widths.reduce((sum, n) => sum + n, 0);
     const columnStyles: Record<number, any> = {};
     widths.forEach((width, index) => {
       columnStyles[index] = {
-        cellWidth: width * totalWidthRatio,
+        cellWidth: width * ratio,
         halign:
-          index === 1 || index === 2
+          index === 2
             ? "left"
-            : index === 0
+            : [0, 1, 3, 5].includes(index)
               ? "center"
               : "right",
       };
     });
-
     const body: string[][] = [];
-    lines.forEach((row, index) => {
-      const src = row.source;
+    const combinedState = (t: TaxSplit) =>
+      t.sgst === null && t.utgst === null
+        ? null
+        : (t.sgst ?? 0) + (t.utgst ?? 0);
+    const taxCells = (t: TaxSplit) => [
+      money(t.cgst),
+      money(combinedState(t)),
+      money(t.igst),
+    ];
+    let serial = 0;
+    for (const line of lines) {
+      const src = line.source;
+      const name = asText(firstPresent(src.product_name, src.name));
       body.push([
-        String(index + 1),
-        asText(firstPresent(src.hsn_code, src.product_code)),
-        asText(firstPresent(src.product_name, src.name)),
-        asText(row.qty),
-        formatMoney(row.linePriceExclGst),
-        formatMoney(row.linePriceInclGst),
-        formatMoney(row.lineGstAmount),
-        formatMoney(row.igstAmount),
-        formatMoney(row.lineTotalExclGst),
-        formatMoney(row.lineTotalGstAmount),
-        formatMoney(row.lineTotalInclGst),
+        String(++serial),
+        asText(src.hsn_code),
+        name +
+          (isPresent(src.product_code) ? `\nSKU: ${src.product_code}` : ""),
+        asText(line.qty),
+        money(line.productBase),
+        rateText(line.productRate),
+        ...taxCells(line.productTax),
+        money(line.productGst),
+        money(line.productGross),
       ]);
-
-      if (row.shippingInclGst > 0 || row.shippingExclGst > 0) {
+      if (
+        line.shippingGross !== 0 ||
+        line.shippingGst !== 0 ||
+        line.shippingBase !== 0
+      ) {
         body.push([
+          String(++serial),
+          asText(src.shipping_sac_code),
+          `Shipping - ${name}${line.shipTax.inferred ? "*" : ""}`,
           "-",
-          "-",
-          "Delivery / shipping charges",
-          "-",
-          formatMoney(row.shippingExclGst),
-          formatMoney(row.shippingInclGst),
-          formatMoney(row.shippingGstAmount),
-          formatMoney(row.shippingGstAmount),
-          formatMoney(row.shippingExclGst),
-          formatMoney(row.shippingGstAmount),
-          formatMoney(row.shippingInclGst),
+          money(line.shippingBase),
+          rateText(line.shippingRate),
+          ...taxCells(line.shipTax),
+          money(line.shippingGst),
+          money(line.shippingGross),
         ]);
       }
-
-      // Service Charge is shown ONLY in the final "Total (incl. GST)" column.
-      // All other amount columns remain blank/dash, matching the invoice layout.
-      if (row.serviceCharge > 0) {
+      if (line.includedService)
         body.push([
-          "-",
+          String(++serial),
           "-",
           "Service Charge",
           "-",
-          "-", // Taxable (excl. GST)
-          "-", // Price (incl. GST)
-          "-", // GST Amount
-          "-", // IGST Amount
-          "-", // Total (excl. GST)
-          "-", // Total GST
-          formatMoney(row.serviceCharge), // Total (incl. GST) only
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          "-",
+          money(line.includedService),
         ]);
-      }
-    });
-
+    }
     autoTable(doc, {
       startY: y,
-      margin: { left: M, right: M, top: 49, bottom: 45 },
+      margin: { left: M, right: M, top: 34, bottom: 45 },
       theme: "grid",
       head: [
         [
           "Sr.\nNo.",
-          "HSN /\nSKU",
+          "HSN / SAC",
           "Item Description",
           "Qty.",
-          "Taxable\n(excl. GST)",
-          "Price\n(incl. GST)",
+          "Taxable\nAmount",
+          "GST\nRate",
+          "CGST",
+          "SGST /\nUTGST",
+          "IGST",
           "GST\nAmount",
-          "IGST\nAmount",
-          "Total\n(excl. GST)",
-          "Total\nGST",
-          "Total\n(incl. GST)",
+          "Amount\n(Incl. GST)",
         ],
       ],
       body,
       foot: [
         [
           {
-            content: "Total",
-            colSpan: 3,
-            styles: { halign: "center", fontStyle: "bold" },
+            content: "Items & Charges Total",
+            colSpan: 10,
+            styles: { halign: "right" },
           },
-          asText(totalQty),
-          formatMoney(totalTaxable),
-          formatMoney(totalPriceIncl),
-          formatMoney(totalLineGst),
-          formatMoney(totalIgst),
-          formatMoney(totalExcl),
-          formatMoney(totalLineGstAmt),
-          formatMoney(totalIncl),
+          { content: money(gross), styles: { halign: "right" } },
         ],
       ],
       showFoot: "lastPage",
       styles: {
         font: "helvetica",
-        fontSize: 6.5,
+        fontSize: 6.8,
         textColor: INK,
         lineColor: LINE,
         lineWidth: 0.5,
-        cellPadding: { top: 4.2, bottom: 4.2, left: 1.5, right: 1.5 },
-        minCellHeight: 16,
+        cellPadding: { top: 5, bottom: 5, left: 2, right: 2 },
         overflow: "linebreak",
         valign: "middle",
       },
@@ -1123,16 +1429,114 @@ export const openInvoicePdfInNewTab = async (
         fillColor: LIGHT,
         textColor: INK,
         fontStyle: "bold",
-        fontSize: 6.1,
+        halign: "center",
+        fontSize: 6.4,
         minCellHeight: 25,
       },
-      footStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
+      footStyles: {
+        fillColor: LIGHT,
+        textColor: INK,
+        fontStyle: "bold",
+        halign: "right",
+      },
       columnStyles,
+      rowPageBreak: "avoid",
     });
-
     y =
       (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
         ?.finalY ?? y;
+
+    // One simple invoice summary. GST is added exactly once.
+    const summary: Array<[string, string]> = [
+      ["Product Price (Excl. GST)", money(productBase)],
+    ];
+    const addTaxRows = (
+      label: string,
+      kind: "productTax" | "shipTax",
+      gst: number,
+    ) => {
+      if (!gst) return;
+      if (splitComplete(kind)) {
+        for (const key of taxKeys) {
+          const amount = taxTotal(kind, key);
+          if (amount) {
+            // Only label a component with a rate if every contributing line
+            // agrees. Mixed-rate orders retain per-line rates in the table.
+            const rates = lines
+              .filter((l) => (l[kind][key] ?? 0) !== 0)
+              .map((l) => {
+                const base =
+                  kind === "productTax" ? l.productBase : l.shippingBase;
+                return rateFrom(base, l[kind][key] ?? 0);
+              });
+            const rateLabel =
+              rates.length &&
+              rates[0] !== null &&
+              rates.every((r) => r === rates[0])
+                ? ` (${rates[0]}%)`
+                : "";
+            summary.push([
+              `${label} ${key.toUpperCase()}${rateLabel}${kind === "shipTax" && lines.some((l) => l.shipTax.inferred) ? "*" : ""}`,
+              signed(amount),
+            ]);
+          }
+        }
+      } else summary.push([`${label} GST`, signed(gst)]);
+    };
+    addTaxRows("Product", "productTax", productGst);
+    if (shippingBase || shippingGst) {
+      summary.push(["Shipping Charges (Excl. GST)", signed(shippingBase)]);
+      addTaxRows("Shipping", "shipTax", shippingGst);
+    }
+    if (service) summary.push(["Service Charge", signed(service)]);
+    if (coupon) summary.push(["Coupon Discount", signed(-coupon)]);
+    if (coin) summary.push(["Coin Redemption", signed(-coin)]);
+    summary.push(["Round Off", signed(roundOff)]);
+    const summaryH = 22 + summary.length * 18 + 28;
+    y += 8;
+    room(summaryH);
+    doc.setFillColor(...LIGHT);
+    doc.rect(M, y, W, 20, "F");
+    text("INVOICE SUMMARY", M + 8, y + 13, 8.3, true);
+    text("AMOUNT (INR)", R - 8, y + 13, 8.3, true, { align: "right" });
+    y += 20;
+    summary.forEach(([label, value]) => {
+      text(label, M + 8, y + 12, 8);
+      text(value, R - 8, y + 12, 8, false, { align: "right" });
+      doc.setDrawColor(220, 220, 220);
+      doc.setLineWidth(0.4);
+      doc.line(M, y + 18, R, y + 18);
+      y += 18;
+    });
+    doc.setFillColor(...LIGHT);
+    doc.rect(M, y, W, 26, "F");
+    text(
+      preview ? "Calculated Total" : "Total Payable",
+      M + 8,
+      y + 17,
+      10,
+      true,
+    );
+    text(money(payablePaise), R - 8, y + 17, 10, true, { align: "right" });
+    y += 26;
+    if (preview) {
+      const notes = wrap(
+        (lines.some((l) => l.shipTax.inferred)
+          ? "* Shipping GST split is calculated and pending confirmation. "
+          : "") +
+          (stateTaxMismatch
+            ? "GST registration and place of supply require confirmation. "
+            : "") +
+          "Invoice amounts require verification before issue.",
+        W - 16,
+        7.2,
+      );
+      room(10 + notes.length * 10);
+      notes.forEach((note, i) =>
+        text(note, M + 8, y + 10 + i * 10, 7.2, false, {}, true),
+      );
+      y += 10 + notes.length * 10;
+    }
 
     // 5. AMOUNT IN WORDS
     const wordsLines = wrap(
@@ -1165,6 +1569,7 @@ export const openInvoicePdfInNewTab = async (
       seller.signature_data_url,
     );
     if (
+      !preview &&
       typeof signature === "string" &&
       /^data:image\/(png|jpeg|jpg);base64,/i.test(signature)
     ) {
@@ -1182,7 +1587,7 @@ export const openInvoicePdfInNewTab = async (
       }
     }
     text(
-      "Authorised Signatory",
+      preview ? "Pending Verification" : "Authorised Signatory",
       DIVIDER + RIGHT_W / 2,
       y + signatureH - 9,
       7.2,
@@ -1210,59 +1615,6 @@ export const openInvoicePdfInNewTab = async (
         true,
       );
       y += 21;
-    }
-
-    // 8. ANNEXURE
-    const charges = lines
-      .filter((line) => line.shippingInclGst > 0 || line.shippingExclGst > 0)
-      .map((line) => ({
-        name: `Delivery / shipping: ${asText(firstPresent(line.source.product_name, line.source.name))}`,
-        chargeExcl: line.shippingExclGst,
-        chargeIncl: line.shippingInclGst,
-        gst: line.shippingGstAmount,
-        igst: line.shippingGstAmount,
-      }));
-
-    if (charges.length) {
-      room(40);
-      text("Annexure — Delivery / Shipping Charges", M, y + 10, 8, true);
-      y += 13;
-      autoTable(doc, {
-        startY: y,
-        margin: { left: M, right: M, top: 49, bottom: 45 },
-        theme: "grid",
-        head: [
-          [
-            "S.No.",
-            "Nature of charge",
-            "Charge\n(excl. GST)",
-            "Charge\n(incl. GST)",
-            "GST Amount",
-            "IGST Amount",
-          ],
-        ],
-        body: charges.map((c, i) => [
-          String(i + 1),
-          asText(c.name),
-          formatMoney(c.chargeExcl),
-          formatMoney(c.chargeIncl),
-          formatMoney(c.gst),
-          formatMoney(c.igst),
-        ]),
-        styles: {
-          font: "helvetica",
-          fontSize: 6.5,
-          cellPadding: 3,
-          lineColor: LINE,
-          lineWidth: 0.5,
-          textColor: INK,
-          overflow: "linebreak",
-        },
-        headStyles: { fillColor: LIGHT, textColor: INK, fontStyle: "bold" },
-      });
-      y =
-        ((doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable
-          ?.finalY ?? y) + 8;
     }
 
     const pageCount = doc.getNumberOfPages();
