@@ -125,6 +125,9 @@ const itemVariants = {
   },
 };
 
+// =====================================================
+// ACCESS DENIED
+// =====================================================
 
 const AccessDenied: React.FC = () => {
   return (
@@ -207,8 +210,6 @@ const Inventorywarehouse = () => {
     DEFAULT_LOGO_URL,
   );
 
-  // Tracks whether the first inventory request has started.
-  // Subsequent page changes will use the regular table spinner.
   const hasStartedInitialFetch = useRef(false);
 
   // =================================================
@@ -264,7 +265,6 @@ const Inventorywarehouse = () => {
       } catch (error) {
         console.error("Fetch logo error:", error);
 
-        // The default logo remains available if the API fails.
         if (isMounted) {
           setLogoUrl(DEFAULT_LOGO_URL);
         }
@@ -332,7 +332,6 @@ const Inventorywarehouse = () => {
       } finally {
         setIsLoading(false);
 
-        // Only the first request completes initial page loading.
         if (isInitialLoad) {
           setInitialDataLoading(false);
         }
@@ -639,7 +638,6 @@ const Inventorywarehouse = () => {
 
       setEditedQty({});
 
-      // Use the existing inventory table spinner.
       await fetchProducts();
     } catch (err: any) {
       console.error("Bulk save error:", err);
@@ -945,18 +943,19 @@ const Inventorywarehouse = () => {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1180px] table-fixed border-collapse">
+                <table className="w-full min-w-[1320px] table-fixed border-collapse">
                   {/* COLUMN WIDTHS */}
 
                   <colgroup>
                     <col className="w-[55px]" />
-                    <col className="w-[21%]" />
-                    <col className="w-[9%]" />
-                    <col className="w-[11%]" />
-                    <col className="w-[9%]" />
+                    <col className="w-[19%]" />
+                    <col className="w-[8%]" />
                     <col className="w-[9%]" />
                     <col className="w-[10%]" />
                     <col className="w-[8%]" />
+                    <col className="w-[8%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[7%]" />
                     <col className="w-[14%]" />
                   </colgroup>
 
@@ -971,7 +970,13 @@ const Inventorywarehouse = () => {
                       </th>
 
                       <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                        Code
+                       SKU Code
+                      </th>
+
+                      {/* NEW HSN CODE COLUMN */}
+
+                      <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                        HSN Code
                       </th>
 
                       <th className="px-3 py-4 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-white">
@@ -1021,6 +1026,13 @@ const Inventorywarehouse = () => {
                         row !== undefined &&
                         newQty !== undefined &&
                         newQty > 0;
+
+                      // HSN code from API response
+                      const hsnCode = (
+                        product as WarehouseProduct & {
+                          hsn_code?: string | null;
+                        }
+                      ).hsn_code;
 
                       return (
                         <motion.tr
@@ -1084,7 +1096,15 @@ const Inventorywarehouse = () => {
 
                           <td className="px-3 py-2.5">
                             <span className="font-mono text-[11px] text-[#6B7280]">
-                              {product.product_code}
+                              {product.product_code || "—"}
+                            </span>
+                          </td>
+
+                          {/* HSN CODE */}
+
+                          <td className="px-3 py-2.5">
+                            <span className="inline-flex whitespace-nowrap rounded-md border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 font-mono text-[11px] font-semibold text-[#2D6FE8]">
+                              {hsnCode || "—"}
                             </span>
                           </td>
 

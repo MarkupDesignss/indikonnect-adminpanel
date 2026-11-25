@@ -46,6 +46,15 @@ const DEFAULT_LOGO_URL =
 // TYPES
 // =====================================================
 
+// API response includes hsn_code.
+type WarehouseProductWithHsn = WarehouseProduct & {
+  hsn_code?: string | null;
+};
+
+// =====================================================
+// STOCK STATUS META
+// =====================================================
+
 const STOCK_STATUS_META = {
   in_stock: {
     label: "In Stock",
@@ -103,8 +112,11 @@ const getStockStatus = (product: WarehouseProduct): StockStatus => {
 };
 
 const csvEscape = (value: unknown): string => {
-  const str = value === null || value === undefined ? "" : String(value);
+  const str =
+    value === null || value === undefined ? "" : String(value);
+
   const escaped = str.replace(/"/g, '""');
+
   return `"${escaped}"`;
 };
 
@@ -128,9 +140,15 @@ const StatBadge = ({
   >
     <Icon className={`text-[13px] ${color}`} />
 
-    <span className="text-[11px] font-semibold text-[#111827]">{value}</span>
+    <span className="text-[11px] font-semibold text-[#111827]">
+      {value}
+    </span>
   </div>
 );
+
+// =====================================================
+// ACCESS DENIED
+// =====================================================
 
 const AccessDenied: React.FC = () => {
   return (
@@ -140,7 +158,9 @@ const AccessDenied: React.FC = () => {
           <FiAlertCircle size={26} />
         </div>
 
-        <h2 className="text-lg font-bold text-[#111827]">Access Denied</h2>
+        <h2 className="text-lg font-bold text-[#111827]">
+          Access Denied
+        </h2>
 
         <p className="mt-2 text-sm text-[#6B7280]">
           You don't have permission to access the Warehouse Products module.
@@ -232,6 +252,7 @@ const WarehouseProducts = () => {
     const fetchLogo = async () => {
       try {
         const response = await logoApi.getLogo();
+
         const responseData = response?.data as any;
 
         const receivedLogo =
@@ -276,10 +297,13 @@ const WarehouseProducts = () => {
       try {
         setIsLoading(true);
 
-        const res = await warehouseStocksApi.getByWarehouse(warehouseId, {
-          page,
-          per_page: perPage,
-        });
+        const res = await warehouseStocksApi.getByWarehouse(
+          warehouseId,
+          {
+            page,
+            per_page: perPage,
+          },
+        );
 
         if (res.data) {
           setProducts(res.data.data ?? []);
@@ -288,13 +312,16 @@ const WarehouseProducts = () => {
 
           setTotal(res.data.pagination?.total ?? 0);
 
-          setTotalPages(Math.max(res.data.pagination?.last_page ?? 1, 1));
+          setTotalPages(
+            Math.max(res.data.pagination?.last_page ?? 1, 1),
+          );
         }
       } catch (err: any) {
         console.error("Warehouse products fetch error:", err);
 
         toast.error(
-          err?.response?.data?.message || "Failed to load warehouse products",
+          err?.response?.data?.message ||
+            "Failed to load warehouse products",
         );
       } finally {
         setIsLoading(false);
@@ -327,13 +354,18 @@ const WarehouseProducts = () => {
     hasStartedInitialFetch.current = true;
 
     void fetchProducts(isInitialLoad);
-  }, [permissionsLoading, canViewWarehouseProducts, fetchProducts]);
+  }, [
+    permissionsLoading,
+    canViewWarehouseProducts,
+    fetchProducts,
+  ]);
 
   // ===================================================
   // COMBINED INITIAL LOADING
   // ===================================================
 
-  const pageLoading = permissionsLoading || logoLoading || initialDataLoading;
+  const pageLoading =
+    permissionsLoading || logoLoading || initialDataLoading;
 
   // ===================================================
   // CLIENT-SIDE SEARCH
@@ -350,6 +382,9 @@ const WarehouseProducts = () => {
       (p) =>
         p.name?.toLowerCase().includes(q) ||
         p.product_code?.toLowerCase().includes(q) ||
+        (p as WarehouseProductWithHsn).hsn_code
+          ?.toLowerCase()
+          .includes(q) ||
         p.brand?.title?.toLowerCase().includes(q) ||
         p.category?.title?.toLowerCase().includes(q) ||
         p.subcategory?.name?.toLowerCase().includes(q),
@@ -370,10 +405,13 @@ const WarehouseProducts = () => {
 
       const CSV_PER_PAGE = 200;
 
-      const firstRes = await warehouseStocksApi.getByWarehouse(warehouseId, {
-        page: 1,
-        per_page: CSV_PER_PAGE,
-      });
+      const firstRes = await warehouseStocksApi.getByWarehouse(
+        warehouseId,
+        {
+          page: 1,
+          per_page: CSV_PER_PAGE,
+        },
+      );
 
       const firstPageData = firstRes.data?.data ?? [];
 
@@ -385,10 +423,13 @@ const WarehouseProducts = () => {
       let allProducts: WarehouseProduct[] = [...firstPageData];
 
       for (let p = 2; p <= lastPage; p++) {
-        const res = await warehouseStocksApi.getByWarehouse(warehouseId, {
-          page: p,
-          per_page: CSV_PER_PAGE,
-        });
+        const res = await warehouseStocksApi.getByWarehouse(
+          warehouseId,
+          {
+            page: p,
+            per_page: CSV_PER_PAGE,
+          },
+        );
 
         const pageData = res.data?.data ?? [];
 
@@ -421,7 +462,9 @@ const WarehouseProducts = () => {
 
       const rows = allProducts.map((product, idx) => {
         const status = getStockStatus(product);
-        const stockQty = product.warehouse_stock?.total_quantity ?? 0;
+
+        const stockQty =
+          product.warehouse_stock?.total_quantity ?? 0;
 
         return [
           idx + 1,
@@ -441,9 +484,10 @@ const WarehouseProducts = () => {
           .join(",");
       });
 
-      const csvContent = [headers.map(csvEscape).join(","), ...rows].join(
-        "\r\n",
-      );
+      const csvContent = [
+        headers.map(csvEscape).join(","),
+        ...rows,
+      ].join("\r\n");
 
       const blob = new Blob(["\uFEFF" + csvContent], {
         type: "text/csv;charset=utf-8;",
@@ -460,11 +504,15 @@ const WarehouseProducts = () => {
       const today = new Date().toISOString().slice(0, 10);
 
       link.href = url;
+
       link.download = `${safeWarehouseName}_products_${today}.csv`;
+
       link.style.display = "none";
 
       document.body.appendChild(link);
+
       link.click();
+
       document.body.removeChild(link);
 
       URL.revokeObjectURL(url);
@@ -478,7 +526,8 @@ const WarehouseProducts = () => {
       console.error("CSV download error:", err);
 
       toast.error(
-        err?.response?.data?.message || "Failed to download product CSV.",
+        err?.response?.data?.message ||
+          "Failed to download product CSV.",
       );
     } finally {
       setIsDownloading(false);
@@ -509,8 +558,6 @@ const WarehouseProducts = () => {
     <div className="min-h-screen bg-white p-4 font-poppins md:p-6">
       {/* =================================================
           HEADER
-          - Line 1: Title (All Products + warehouse subtitle)
-          - Line 2: Search (left) + Stats & CSV (right)
       ================================================= */}
 
       <div className="mb-4">
@@ -542,16 +589,17 @@ const WarehouseProducts = () => {
                   ? `Warehouse: ${warehouseName}`
                   : "Warehouse inventory"}
 
-                {total > 0 && ` • ${total} product${total > 1 ? "s" : ""}`}
+                {total > 0 &&
+                  ` • ${total} product${total > 1 ? "s" : ""}`}
               </p>
             </div>
           </div>
         </div>
 
-        {/* LINE 2: SEARCH LEFT + STATS/CSV RIGHT */}
+        {/* LINE 2: SEARCH + STATS + CSV */}
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          {/* SEARCH (LEFT) */}
+          {/* SEARCH */}
 
           <div className="relative w-full md:w-[320px]">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#2D6FE8]" />
@@ -565,7 +613,7 @@ const WarehouseProducts = () => {
             />
           </div>
 
-          {/* STATS + CSV (RIGHT) */}
+          {/* STATS + CSV */}
 
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             {!isLoading && products.length > 0 && (
@@ -580,8 +628,9 @@ const WarehouseProducts = () => {
                 <StatBadge
                   icon={FiCheckCircle}
                   value={`${
-                    products.filter((p) => getStockStatus(p) === "in_stock")
-                      .length
+                    products.filter(
+                      (p) => getStockStatus(p) === "in_stock",
+                    ).length
                   } In Stock`}
                   bg="bg-[#EAF3FF]"
                   color="text-[#2D6FE8]"
@@ -590,8 +639,9 @@ const WarehouseProducts = () => {
                 <StatBadge
                   icon={FiAlertTriangle}
                   value={`${
-                    products.filter((p) => getStockStatus(p) === "low_stock")
-                      .length
+                    products.filter(
+                      (p) => getStockStatus(p) === "low_stock",
+                    ).length
                   } Low Stock`}
                   bg="bg-[#FEF9C3]"
                   color="text-[#A16207]"
@@ -669,15 +719,17 @@ const WarehouseProducts = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[960px] table-fixed border-collapse">
+              <table className="w-full min-w-[1080px] table-fixed border-collapse">
                 <colgroup>
                   <col className="w-[55px]" />
-                  <col className="w-[28%]" />
+                  <col className="w-[25%]" />
+                  <col className="w-[9%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[15%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[14%]" />
                   <col className="w-[10%]" />
-                  <col className="w-[16%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[14%]" />
                 </colgroup>
 
                 <thead>
@@ -691,7 +743,13 @@ const WarehouseProducts = () => {
                     </th>
 
                     <th className="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
-                      Code
+                    SKU Code
+                    </th>
+
+                    {/* NEW HSN CODE COLUMN */}
+
+                    <th className="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                      HSN Code
                     </th>
 
                     <th className="px-3 py-3.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-white">
@@ -706,8 +764,12 @@ const WarehouseProducts = () => {
                       Stock
                     </th>
 
-                    <th className="rounded-tr-xl px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                    <th className="px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
                       Status
+                    </th>
+
+                    <th className="rounded-tr-xl px-3 py-3.5 text-center text-[10px] font-bold uppercase tracking-[0.08em] text-white">
+                      {/* Keeps the final column aligned with its original layout */}
                     </th>
                   </tr>
                 </thead>
@@ -715,11 +777,18 @@ const WarehouseProducts = () => {
                 <tbody>
                   {filteredProducts.map((product, idx) => {
                     const status = getStockStatus(product);
+
                     const meta = STOCK_STATUS_META[status];
+
                     const StatusIcon = meta.icon;
 
                     const stockQty =
                       product.warehouse_stock?.total_quantity ?? 0;
+
+                    // HSN code directly from API response
+                    const hsnCode = (
+                      product as WarehouseProductWithHsn
+                    ).hsn_code;
 
                     return (
                       <motion.tr
@@ -737,11 +806,15 @@ const WarehouseProducts = () => {
                         }}
                         className="border-b border-[#DCE6F2] transition-colors last:border-b-0 hover:bg-[#F8FBFF]"
                       >
+                        {/* S.NO. */}
+
                         <td className="px-3 py-2.5 align-top">
                           <span className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#EAF3FF] text-[10px] font-bold text-[#2D6FE8]">
                             {idx + 1}
                           </span>
                         </td>
+
+                        {/* PRODUCT */}
 
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-2.5">
@@ -787,11 +860,29 @@ const WarehouseProducts = () => {
                           </div>
                         </td>
 
+                        {/* PRODUCT CODE */}
+
                         <td className="px-3 py-2.5">
                           <span className="font-mono text-[11px] text-[#6B7280]">
-                            {product.product_code}
+                            {product.product_code || "—"}
                           </span>
                         </td>
+
+                        {/* HSN CODE */}
+
+                        <td className="px-3 py-2.5">
+                          {hsnCode ? (
+                            <span className="inline-flex whitespace-nowrap rounded-md border border-[#DCE6F2] bg-[#F4F8FD] px-2 py-1 font-mono text-[11px] font-semibold text-[#2D6FE8]">
+                              {hsnCode}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-[#9CA3AF]">
+                              —
+                            </span>
+                          )}
+                        </td>
+
+                        {/* BRAND / CATEGORY */}
 
                         <td className="px-3 py-2.5">
                           <div className="flex flex-col gap-0.5">
@@ -805,6 +896,8 @@ const WarehouseProducts = () => {
                           </div>
                         </td>
 
+                        {/* PRICING */}
+
                         <td className="px-3 py-2.5 text-right">
                           <p className="text-[12px] font-semibold text-[#111827]">
                             {formatCurrency(product.retail_price)}
@@ -815,6 +908,8 @@ const WarehouseProducts = () => {
                           </p>
                         </td>
 
+                        {/* STOCK */}
+
                         <td className="px-3 py-2.5 text-center">
                           <span
                             className={`inline-flex min-w-[38px] items-center justify-center rounded-lg px-2 py-1 text-[12px] font-bold ${meta.bg} ${meta.color}`}
@@ -823,15 +918,20 @@ const WarehouseProducts = () => {
                           </span>
                         </td>
 
+                        {/* STATUS */}
+
                         <td className="px-3 py-2.5 text-center">
                           <span
                             className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-1 text-[10px] font-semibold ${meta.bg} ${meta.color} ${meta.border}`}
                           >
                             <StatusIcon className="text-[11px]" />
-
                             {meta.label}
                           </span>
                         </td>
+
+                        {/* EMPTY ALIGNMENT CELL */}
+
+                        <td className="px-3 py-2.5" />
                       </motion.tr>
                     );
                   })}
@@ -839,13 +939,23 @@ const WarehouseProducts = () => {
               </table>
             </div>
 
+            {/* PAGINATION */}
+
             {totalPages > 1 && (
               <div className="flex flex-col items-center justify-between gap-3 border-t border-[#DCE6F2] px-4 py-4 md:flex-row">
                 <p className="text-[11px] text-[#6B7280]">
-                  Page <span className="font-bold text-[#111827]">{page}</span>{" "}
+                  Page{" "}
+                  <span className="font-bold text-[#111827]">
+                    {page}
+                  </span>{" "}
                   of{" "}
-                  <span className="font-bold text-[#111827]">{totalPages}</span>{" "}
-                  • <span className="font-bold text-[#111827]">{total}</span>{" "}
+                  <span className="font-bold text-[#111827]">
+                    {totalPages}
+                  </span>{" "}
+                  •{" "}
+                  <span className="font-bold text-[#111827]">
+                    {total}
+                  </span>{" "}
                   total
                 </p>
 
@@ -853,7 +963,9 @@ const WarehouseProducts = () => {
                   <button
                     type="button"
                     disabled={page === 1 || isLoading}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() =>
+                      setPage((p) => Math.max(1, p - 1))
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#DCE6F2] bg-white text-[#6B7280] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <FiChevronLeft />

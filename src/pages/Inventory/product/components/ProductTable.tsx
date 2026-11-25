@@ -251,8 +251,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
           <colgroup>
             <col style={{ width: "4%" }} />
             <col style={{ width: "6%" }} />
-            <col style={{ width: "17%" }} />
-            <col style={{ width: "9%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "8%" }} />
             <col style={{ width: "8%" }} />
             <col style={{ width: "6%" }} />
             <col style={{ width: "10%" }} />
@@ -276,7 +277,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 "S.No",
                 "Image",
                 "Product",
-                "SKU",
+                "SKU Code",
+                "HSN Code",
                 "Retail Price",
                 "Stock",
                 "Status",
@@ -330,7 +332,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               <tr>
                 <td
                   colSpan={
-                    8 +
+                    9 +
                     Number(canTogglePurchasePermission) +
                     Number(canToggleTrending) +
                     Number(canToggleBestSeller) +
@@ -439,6 +441,16 @@ const ProductTable: React.FC<ProductTableProps> = ({
                         title={product.product_code || "-"}
                       >
                         {product.product_code || "-"}
+                      </span>
+                    </td>
+
+                    {/* HSN Code - show the complete API value without truncation */}
+                    <td className="whitespace-nowrap px-3 py-3.5">
+                      <span
+                        className="inline-block whitespace-nowrap rounded-md bg-blue-50 px-2 py-1.5 font-mono text-[11px] font-semibold tracking-normal text-[#2D6FE8]"
+                        title={String((product as any)?.hsn_code ?? "").trim() || "-"}
+                      >
+                        {String((product as any)?.hsn_code ?? "").trim() || "-"}
                       </span>
                     </td>
 
