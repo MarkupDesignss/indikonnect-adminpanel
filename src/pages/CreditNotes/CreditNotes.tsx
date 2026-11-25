@@ -26,281 +26,6 @@ import { usePermissions } from "../../pages/permissions/usePermissions";
 import logoApi from "../../api/endpoints/logoApi";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
 
-type ReportLanguage = "en" | "hi";
-const HINDI: Record<string, string> = {
-  "matching items": "मिलते उत्पाद रिकॉर्ड",
-  "item rows": "उत्पाद रिकॉर्ड",
-  loaded: "लोड हुए",
-  matching: "मिलते रिकॉर्ड",
-  "item rows missing from API response": "API से कुछ उत्पाद रिकॉर्ड नहीं मिले",
-  "Check the credit notes API helper: return the entire data array, not the credit note count or one row per note.":
-    "API हेल्पर जाँचें: पूरे डेटा ऐरे को लौटाएँ, केवल क्रेडिट नोट संख्या या प्रति नोट एक रिकॉर्ड नहीं।",
-  "item invoice value": "उत्पाद की कुल राशि",
-  "completed refunds (whole notes)": "पूरे क्रेडिट नोट के रिफंड",
-  "credit note amount (whole note)": "क्रेडिट नोट राशि (पूरा नोट)",
-  "refund amount (whole note)": "रिफंड राशि (पूरा नोट)",
-  "tax summary (whole note)": "टैक्स विवरण (पूरा नोट)",
-  "item gst breakdown": "उत्पाद GST विवरण",
-  "item taxable with shipping": "उत्पाद व डिलीवरी की कर योग्य राशि",
-  "item shipping charge": "उत्पाद डिलीवरी शुल्क",
-  "item product gst": "उत्पाद GST",
-  "item shipping gst": "डिलीवरी GST",
-  "item service charge": "उत्पाद सेवा शुल्क",
-  "hsn code": "HSN कोड",
-  "product hsn": "उत्पाद HSN कोड",
-  "product slug": "उत्पाद स्लग",
-  "product line total": "उत्पाद राशि",
-  "item product taxable value": "उत्पाद की कर योग्य राशि",
-  "order subtotal (whole note)": "ऑर्डर उप-योग (पूरा नोट)",
-  "order shipping (whole note)": "डिलीवरी शुल्क (पूरा नोट)",
-  "total payable (whole note)": "कुल देय राशि (पूरा नोट)",
-  "amount paid (whole note)": "भुगतान राशि (पूरा नोट)",
-  "taxable value (whole note)": "कर योग्य राशि (पूरा नोट)",
-  "cgst (whole note)": "CGST (पूरा नोट)",
-  "sgst (whole note)": "SGST (पूरा नोट)",
-  "igst (whole note)": "IGST (पूरा नोट)",
-  "total gst (whole note)": "कुल GST (पूरा नोट)",
-  "item count (whole note)": "उत्पाद संख्या (पूरा नोट)",
-  "item count (api row)": "API रिकॉर्ड की उत्पाद संख्या",
-  "missing gstin": "GSTIN उपलब्ध नहीं",
-  "total item amount (whole note)": "कुल आइटम राशि (पूरा नोट)",
-
-  "credit note classification": "क्रेडिट नोट वर्गीकरण",
-  "credit note unregistered": "अपंजीकृत क्रेडिट नोट",
-  "credit note registered": "पंजीकृत क्रेडिट नोट",
-  "other credit notes": "अन्य क्रेडिट नोट",
-  "classification unavailable": "वर्गीकरण उपलब्ध नहीं",
-  "full details": "पूरा विवरण",
-  "credit note no": "क्रेडिट नोट नंबर",
-  "credit note date": "क्रेडिट नोट की तारीख",
-  "original invoice date": "मूल इनवॉइस की तारीख",
-  "customer name": "ग्राहक का नाम",
-  "gstin no": "GSTIN नंबर",
-  "place of supply (pos)": "आपूर्ति का स्थान (POS)",
-  rate: "GST दर",
-  "invoice value": "इनवॉइस राशि",
-  "credit note": "क्रेडिट नोट",
-  "order reference": "ऑर्डर संदर्भ",
-  reason: "कारण",
-  "credit amount": "क्रेडिट राशि",
-  "buyer details": "ग्राहक की जानकारी",
-  name: "नाम",
-  email: "ईमेल",
-  state: "राज्य",
-  gstin: "GSTIN",
-  address: "पता",
-  "order details": "ऑर्डर की जानकारी",
-  "order ref": "ऑर्डर संदर्भ",
-  "order type": "ऑर्डर का प्रकार",
-  "payment gateway": "भुगतान माध्यम",
-  subtotal: "टैक्स से पहले राशि",
-  shipping: "डिलीवरी शुल्क",
-  "total payable": "कुल देय राशि",
-  "amount paid": "भुगतान की गई राशि",
-  "delivery status": "डिलीवरी स्थिति",
-  "return status": "वापसी की स्थिति",
-  "confirmed at": "पुष्टि का समय",
-  "created at": "बनाने का समय",
-  "gateway txn id": "भुगतान लेनदेन आईडी",
-  "refund details": "रिफंड की जानकारी",
-  "refund amount": "रिफंड राशि",
-  "refund method": "रिफंड का माध्यम",
-  "gateway reference": "भुगतान संदर्भ",
-  "completed at": "पूरा होने का समय",
-  "deduction breakdown": "कटौती का विवरण",
-  "gross refund": "कटौती से पहले रिफंड",
-  "net refund": "अंतिम रिफंड",
-  "refund reconciliation — review required": "रिफंड राशि का मिलान आवश्यक है",
-  "gross refund minus listed deductions:":
-    "कुल रिफंड में से दर्ज कटौती घटाने पर:",
-  "actual refund:": "वास्तविक रिफंड:",
-  ". difference:": "। अंतर:",
-  "the recorded refund and credit note amounts have not been changed.":
-    "दर्ज रिफंड और क्रेडिट नोट की राशि नहीं बदली गई है।",
-  "credit note items": "क्रेडिट नोट के उत्पाद",
-  product: "उत्पाद",
-  qty: "मात्रा",
-  taxable: "कर योग्य राशि",
-  gst: "GST",
-  total: "कुल राशि",
-  "code:": "कोड:",
-  "no line items available": "कोई उत्पाद उपलब्ध नहीं है",
-  "this credit note has no item breakdown.":
-    "इस क्रेडिट नोट में उत्पाद का विवरण उपलब्ध नहीं है।",
-  "tax summary": "टैक्स का विवरण",
-  "taxable value": "कर योग्य राशि",
-  cgst: "CGST",
-  sgst: "SGST",
-  igst: "IGST",
-  "total gst": "कुल GST",
-  "final credit amount": "अंतिम क्रेडिट राशि",
-  issued: "जारी किया गया",
-  "refund id:": "रिफंड आईडी:",
-  close: "बंद करें",
-  "download pdf": "PDF डाउनलोड (अंग्रेज़ी)",
-  "access denied": "प्रवेश की अनुमति नहीं है",
-  "you don't have permission to access this section.":
-    "आपको इस भाग को देखने की अनुमति नहीं है।",
-  "finance & returns": "वित्त और वापसी",
-  "credit notes": "क्रेडिट नोट",
-  "manage issued credit notes and download customer credit records.":
-    "जारी किए गए क्रेडिट नोट देखें और ग्राहक की क्रेडिट रिपोर्ट डाउनलोड करें।",
-  refresh: "रीफ़्रेश करें",
-  "matching credit note(s) require refund reconciliation.":
-    "क्रेडिट नोट में रिफंड राशि का मिलान आवश्यक है।",
-  "credit note directory": "क्रेडिट नोट सूची",
-  "search credit note, order ref (ord...), invoice, buyer...":
-    "क्रेडिट नोट, ऑर्डर, इनवॉइस या ग्राहक खोजें...",
-  "field filters": "फ़ील्ड के अनुसार फ़िल्टर",
-  "all conditions must match. product conditions match the same item. exports include only matching item rows.":
-    "सभी शर्तें मिलनी चाहिए। उत्पाद की शर्तें एक ही उत्पाद पर लागू होंगी। डाउनलोड में केवल मेल खाने वाले उत्पाद रिकॉर्ड शामिल होंगे।",
-  "clear all": "सभी हटाएँ",
-  "+ add filter": "+ फ़िल्टर जोड़ें",
-  "filter field": "फ़िल्टर फ़ील्ड",
-  "filter condition": "फ़िल्टर की शर्त",
-  "gst registration": "GST पंजीकरण",
-  "select gst type": "GST का प्रकार चुनें",
-  "filter value": "फ़िल्टर का मान",
-  value: "मान",
-  "maximum filter value": "अधिकतम मान",
-  "remove filter": "फ़िल्टर हटाएँ",
-  "swipe horizontally to view all table columns":
-    "सभी कॉलम देखने के लिए दाएँ-बाएँ स्क्रॉल करें",
-  "loading credit notes...": "क्रेडिट नोट लोड हो रहे हैं...",
-  "no credit notes found": "कोई क्रेडिट नोट नहीं मिला",
-  "try changing your search or filter.": "खोज या फ़िल्टर बदलकर देखें।",
-  "view credit note": "क्रेडिट नोट देखें",
-  showing: "दिखाए जा रहे हैं",
-  to: "से",
-  of: "में से",
-  entries: "रिकॉर्ड",
-  "matching credit notes": "मेल खाने वाले क्रेडिट नोट",
-  "credit note amount": "क्रेडिट नोट राशि",
-  "completed refunds": "पूरे हुए रिफंड",
-  all: "सभी",
-  returns: "वापसी",
-  other: "अन्य",
-  "is exactly": "बिल्कुल बराबर",
-  contains: "शामिल है",
-  "is missing": "खाली है",
-  equals: "बराबर",
-  "at least / on or after": "कम से कम / इस तारीख से",
-  "at most / on or before": "अधिकतम / इस तारीख तक",
-  between: "के बीच",
-  urp: "URP (अपंजीकृत)",
-  registered: "पंजीकृत",
-  missing: "उपलब्ध नहीं",
-  "invoice date": "इनवॉइस की तारीख",
-  "credit note id": "क्रेडिट नोट आईडी",
-  "order id": "ऑर्डर आईडी",
-  "order line id": "ऑर्डर आइटम आईडी",
-  "product id": "उत्पाद आईडी",
-  "total item amount (api)": "कुल आइटम राशि (API)",
-  "sum of item line totals": "आइटम राशियों का योग",
-  "item amount difference": "आइटम राशि का अंतर",
-  "item breakdown": "उत्पादों का पूरा विवरण",
-  "item gst amount": "उत्पाद GST राशि",
-  confirmed: "पुष्टि हुई",
-  none: "कोई नहीं",
-  "s.no.": "क्रम संख्या",
-  buyer: "ग्राहक",
-  invoice: "इनवॉइस",
-  amount: "राशि",
-  actions: "कार्रवाई",
-  "credit note number": "क्रेडिट नोट नंबर",
-  "original invoice number": "मूल इनवॉइस नंबर",
-  "buyer name": "ग्राहक का नाम",
-  "buyer type": "ग्राहक का प्रकार",
-  "buyer email": "ग्राहक का ईमेल",
-  "buyer state": "ग्राहक का राज्य",
-  "buyer gstin": "ग्राहक का GSTIN",
-  "buyer address": "ग्राहक का पता",
-  "issued at": "जारी करने का समय",
-  "order status": "ऑर्डर स्थिति",
-  "gateway transaction id": "भुगतान लेनदेन आईडी",
-  "shipping charge": "डिलीवरी शुल्क",
-  "cgst amount": "CGST राशि",
-  "sgst amount": "SGST राशि",
-  "igst amount": "IGST राशि",
-  "refund id": "रिफंड आईडी",
-  "refund status": "रिफंड स्थिति",
-  "refund completed at": "रिफंड पूरा होने का समय",
-  "item count": "उत्पाद पंक्तियों की संख्या",
-  items: "उत्पाद",
-  "listed deductions": "दर्ज कटौती",
-  "calculated refund (gross - deductions)":
-    "गणना की गई रिफंड राशि (कटौती के बाद)",
-  "refund reconciliation difference": "रिफंड राशि का अंतर",
-  "reconciliation status": "मिलान की स्थिति",
-  unavailable: "उपलब्ध नहीं",
-  "review required": "जाँच आवश्यक",
-  matched: "मिलान हुआ",
-  "refund reference": "रिफंड संदर्भ",
-  "order subtotal": "ऑर्डर की टैक्स से पहले राशि",
-  "actual refund": "वास्तविक रिफंड",
-  "issued date": "जारी करने की तारीख",
-  "refund completion date": "रिफंड पूरा होने की तारीख",
-  "product name": "उत्पाद का नाम",
-  "product code": "उत्पाद कोड",
-  quantity: "मात्रा",
-  "unit price": "प्रति इकाई कीमत",
-  "gst rate": "GST दर",
-  "item taxable value": "उत्पाद की कर योग्य राशि",
-  "item cgst": "उत्पाद CGST",
-  "item sgst": "उत्पाद SGST",
-  "item igst": "उत्पाद IGST",
-  "item total": "उत्पाद की कुल राशि",
-  "transaction id": "लेनदेन आईडी",
-  "download excel": "Excel डाउनलोड करें",
-  "download csv": "CSV डाउनलोड करें",
-  "download csv zip": "CSV ZIP डाउनलोड करें",
-  "gst type": "GST का प्रकार",
-  "preparing excel...": "Excel तैयार हो रही है...",
-  "preparing csv...": "CSV तैयार हो रही है...",
-  "grand total": "कुल योग",
-  "credit note data": "क्रेडिट नोट विवरण",
-  "item details": "उत्पाद विवरण",
-  "no credit notes match the selected search and filters.":
-    "चुनी गई खोज और फ़िल्टर से कोई क्रेडिट नोट नहीं मिला।",
-  "unable to download credit notes report.":
-    "क्रेडिट नोट रिपोर्ट डाउनलोड नहीं हो सकी।",
-  "credit notes refreshed.": "क्रेडिट नोट रीफ़्रेश हो गए।",
-  "unable to fetch credit notes.": "क्रेडिट नोट लोड नहीं हो सके।",
-  "unable to generate pdf.": "PDF नहीं बन सकी।",
-  "payment gateway charges": "भुगतान माध्यम शुल्क",
-  customer: "ग्राहक",
-  distributor: "वितरक",
-  retailer: "खुदरा विक्रेता",
-  wholesaler: "थोक विक्रेता",
-  return: "वापसी",
-  cancel: "रद्द",
-  cancellation: "रद्दीकरण",
-  cancelled: "रद्द किया गया",
-  completed: "पूरा हुआ",
-  delivered: "डिलीवर हुआ",
-  pending: "लंबित",
-  dispatched: "भेजा गया",
-  "partial dispatched": "आंशिक रूप से भेजा गया",
-  shipped: "भेजा गया",
-  refunded: "रिफंड हुआ",
-  returned: "वापस आया",
-  failed: "विफल",
-  processing: "प्रक्रिया में",
-  delhi: "दिल्ली",
-  punjab: "पंजाब",
-  "uttar pradesh": "उत्तर प्रदेश",
-  unknown: "अज्ञात",
-  item: "उत्पाद",
-  found: "मिले",
-  "invalid credit notes response.": "क्रेडिट नोट का डेटा अमान्य है।",
-};
-const translate = (language: ReportLanguage, value: string) =>
-  language === "hi"
-    ? (HINDI[value.trim().replace(/_/g, " ").toLowerCase()] ?? value)
-    : value;
-const displayEnum = (language: ReportLanguage, value: unknown) =>
-  value == null || value === "" ? "" : translate(language, String(value));
-
 // =====================================================
 // DEFAULT LOGO
 // =====================================================
@@ -376,6 +101,31 @@ const parseReportDate = (value: string): Date => {
       : value,
   );
 };
+// Compare the same Indian calendar date used by the UI and Excel export.
+type CreditDateRange = { from: string; to: string };
+const EMPTY_DATE_RANGE: CreditDateRange = { from: "", to: "" };
+const creditDateKey = (value: unknown): string => {
+  if (value == null || !String(value).trim()) return "";
+  const date = parseReportDate(String(value).trim());
+  if (!Number.isFinite(date.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  return ["year", "month", "day"]
+    .map((key) => parts.find((part) => part.type === key)?.value ?? "")
+    .join("-");
+};
+const matchesCreditDateRange = (issuedAt: unknown, range: CreditDateRange) => {
+  if (!range.from && !range.to) return true;
+  const day = creditDateKey(issuedAt);
+  return Boolean(
+    day && (!range.from || day >= range.from) && (!range.to || day <= range.to),
+  );
+};
+
 const formatDate = (value?: string | null) => {
   if (!value) return "—";
   const date = parseReportDate(value);
@@ -540,6 +290,18 @@ const expandCreditNoteItems = (raw: any): CreditNote[] => {
 };
 const creditNoteKey = (note: any) =>
   String(note.id ?? note.credit_note_number ?? note.order_id ?? "");
+// A refund may cover several item rows (and must not be counted per item).
+const creditRefundKey = (note: any) => {
+  const id = note.refund_id ?? note.refund?.id;
+  const reference = note.refund?.gateway_reference ?? note.gateway_reference;
+  if (id != null && String(id).trim()) return `id:${id}`;
+  if (reference != null && String(reference).trim()) return `ref:${reference}`;
+  return `note:${creditNoteKey(note)}`;
+};
+const creditRefundAmount = (note: any): number | null =>
+  numeric(note.refund_amount) ?? numeric(note.refund?.amount);
+const creditIssuedAmount = (note: any): number | null =>
+  numeric(note.credit_note_amount) ?? numeric(note.amount);
 const creditItemKey = (note: any) =>
   JSON.stringify([
     creditNoteKey(note),
@@ -714,20 +476,7 @@ const matchesCreditNoteFilters = (
     .join(" ")
     .toLowerCase();
 
-  const translated = [
-    note?.buyer_state,
-    note?.reason,
-    getCreditNoteAccountType(note),
-    order?.status,
-    order?.delivery_status,
-    order?.return_status,
-    refund?.status,
-  ]
-    .map((v) => displayEnum("hi", v))
-    .join(" ")
-    .toLowerCase();
-  const matchesSearch =
-    !query || searchable.includes(query) || translated.includes(query);
+  const matchesSearch = !query || searchable.includes(query);
   const reason = String(note?.reason ?? "").toLowerCase();
   const matchesReason =
     reasonFilter === "all" ||
@@ -783,6 +532,8 @@ const CREDIT_EXPORT_HEADERS = [
   "IGST",
   "Total GST",
   "Invoice Value",
+  "Refund Amount (whole refund)",
+  "Credit Note Amount (whole note)",
   "Product Name",
   "Product Code",
   "Product HSN",
@@ -874,9 +625,20 @@ const creditSum = (values: unknown[]): number | null => {
   if (!numbers.length || numbers.some((n) => n === null)) return null;
   return round2(numbers.reduce<number>((sum, n) => sum + (n ?? 0), 0));
 };
-const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] =>
-  notes.map((note: any) => {
+const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] => {
+  const seenRefunds = new Set<string>();
+  const seenNotes = new Set<string>();
+  return notes.map((note: any) => {
     const item = itemOf(note);
+    const refundKey = creditRefundKey(note);
+    const noteKey = creditNoteKey(note);
+    const refundAmount = creditRefundAmount(note);
+    const issuedAmount = creditIssuedAmount(note);
+    // Export amounts once per refund/note; leave unknown and duplicate values blank.
+    const refundCell = seenRefunds.has(refundKey) ? null : refundAmount;
+    const creditCell = seenNotes.has(noteKey) ? null : issuedAmount;
+    if (refundAmount !== null) seenRefunds.add(refundKey);
+    if (issuedAmount !== null) seenNotes.add(noteKey);
     return [
       String(note.credit_note_number ?? ""),
       creditExcelDate(note.issued_at),
@@ -893,12 +655,15 @@ const buildCreditExportRows = (notes: CreditNote[]): CreditExportRow[] =>
       numeric(item.igst),
       itemTax(note),
       itemInvoiceValue(note),
+      refundCell,
+      creditCell,
       String(item.product_name ?? ""),
       String(item.product_code ?? ""),
       String(item.hsn_code ?? "").trim(),
       String(note.order_line_id ?? item.order_line_id ?? ""),
     ];
   });
+};
 // Client-specific report grouping, not statutory GST registration or filing rules.
 const CREDIT_NOTE_THRESHOLD = 100000;
 const creditNoteInvoiceValue = (note: CreditNote): number | null =>
@@ -939,16 +704,9 @@ const csvCell = (value: unknown): string => {
 type CreditCsvFile = { name: string; csv: string };
 type CreditGstFilter = "" | "URP" | "Registered";
 
-const serializeCreditCsv = (
-  keys: string[],
-  rows: CreditExportRow[],
-  language: ReportLanguage,
-): string =>
+const serializeCreditCsv = (keys: string[], rows: CreditExportRow[]): string =>
   "\uFEFF" +
-  [
-    keys.map((key) => translate(language, key)),
-    ...rows.map((row) => row.map(creditExportCellText)),
-  ]
+  [keys, ...rows.map((row) => row.map(creditExportCellText))]
     .map((row) => row.map(csvCell).join(","))
     .join("\r\n");
 
@@ -958,7 +716,6 @@ const buildCreditCsvFiles = (
   notes: CreditNote[],
   fullKeys: string[],
   fullRows: CreditExportRow[],
-  language: ReportLanguage,
   gstFilter: CreditGstFilter,
 ): CreditCsvFile[] => {
   const files: CreditCsvFile[] = [];
@@ -968,13 +725,9 @@ const buildCreditCsvFiles = (
       csv: serializeCreditCsv(
         ["GST Type", ...fullKeys],
         fullRows.map((row, index) => [
-          translate(
-            language,
-            gstRegistration(notes[index].buyer_gstin) || "Missing",
-          ),
+          gstRegistration(notes[index].buyer_gstin) || "Missing",
           ...row,
         ]),
-        language,
       ),
     });
   }
@@ -998,7 +751,6 @@ const buildCreditCsvFiles = (
       csv: serializeCreditCsv(
         CREDIT_EXPORT_HEADERS,
         buildCreditExportRows(items),
-        language,
       ),
     });
   }
@@ -1221,7 +973,7 @@ const FIELD_DEFS: FieldDef[] = [
     key: "refund.amount",
     label: "Actual refund",
     kind: "number",
-    read: (n) => n.refund?.amount,
+    read: creditRefundAmount,
   },
   {
     key: "difference",
@@ -1346,25 +1098,7 @@ const fieldMatches = (
   }
   const value = String(raw).trim().toLowerCase(),
     query = rule.value.trim().toLowerCase();
-  const candidates = [value];
-  if (
-    [
-      "gstType",
-      "creditClassification",
-      "buyer_type",
-      "buyer_state",
-      "reason",
-      "order.order_type",
-      "order.status",
-      "order.delivery_status",
-      "order.return_status",
-      "refund.status",
-    ].includes(field.key)
-  )
-    candidates.push(translate("hi", value).toLowerCase());
-  return candidates.some((v) =>
-    rule.op === "contains" ? v.includes(query) : v === query,
-  );
+  return rule.op === "contains" ? value.includes(query) : value === query;
 };
 const matchesRules = (note: any, rules: FieldRule[]) => {
   const active = rules
@@ -1450,7 +1184,6 @@ interface CreditNoteViewModalProps {
   onClose: () => void;
   onDownload: (note: CreditNote) => void;
   canDownload?: boolean;
-  language: ReportLanguage;
 }
 
 const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
@@ -1459,9 +1192,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
   onClose,
   onDownload,
   canDownload = false,
-  language,
 }) => {
-  const t = (value: string) => translate(language, value);
   if (!open || !note) return null;
 
   const accountType = getCreditNoteAccountType(note);
@@ -1480,7 +1211,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#4F8FF7]">
-                {t("Credit Note")}
+                {"Credit Note"}
               </p>
               <h2 className="mt-0.5 text-lg font-semibold text-[#111827]">
                 {note.credit_note_number}
@@ -1502,7 +1233,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                {t("Order Reference")}
+                {"Order Reference"}
               </p>
               <p className="mt-1 break-all text-sm font-bold text-[#111827]">
                 {order?.order_reference ||
@@ -1512,17 +1243,17 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             </div>
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                {t("Reason")}
+                {"Reason"}
               </p>
               <span
                 className={`mt-1.5 inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getReasonClass(note.reason)}`}
               >
-                {t(capitalize(note.reason))}
+                {capitalize(note.reason)}
               </span>
             </div>
             <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#4F8FF7]">
-                {t("Credit Note Amount (whole note)")}
+                {"Credit Note Amount (whole note)"}
               </p>
               <p className="mt-1 text-lg font-bold text-[#2D6FE8]">
                 {formatAmount(note.amount)}
@@ -1532,13 +1263,13 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
 
           <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-[#DCE6F2] bg-white p-4 text-xs">
             <div>
-              <p className="text-slate-500">{t("Original Invoice Number")}</p>
+              <p className="text-slate-500">{"Original Invoice Number"}</p>
               <p className="mt-1 font-semibold">
                 {note.original_invoice_number || "—"}
               </p>
             </div>
             <div>
-              <p className="text-slate-500">{t("Invoice Date")}</p>
+              <p className="text-slate-500">{"Invoice Date"}</p>
               <p className="mt-1 font-semibold">
                 {formatDate((note as any).invoice_date)}
               </p>
@@ -1546,15 +1277,13 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl border border-[#DCE6F2] bg-white p-4 text-xs">
             <div>
-              <p className="text-slate-500">
-                {t("Credit Note Classification")}
-              </p>
+              <p className="text-slate-500">{"Credit Note Classification"}</p>
               <p className="mt-1 font-semibold">
-                {t(creditNoteClassification(note))}
+                {creditNoteClassification(note)}
               </p>
             </div>
             <div>
-              <p className="text-slate-500">{t("Item Invoice Value")}</p>
+              <p className="text-slate-500">{"Item Invoice Value"}</p>
               <p className="mt-1 font-semibold">
                 {formatAmount(creditNoteInvoiceValue(note))}
               </p>
@@ -1568,27 +1297,27 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {t("Buyer Details")}
+                  {"Buyer Details"}
                 </h3>
                 <span
                   className={`mt-0.5 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(accountType)}`}
                 >
-                  <FiBriefcase size={9} /> {t(getAccountTypeLabel(accountType))}
+                  <FiBriefcase size={9} /> {getAccountTypeLabel(accountType)}
                 </span>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                  {t("Name")}
+                  {"Name"}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[#111827]">
-                  {note.buyer_name || t("Unknown")}
+                  {note.buyer_name || "Unknown"}
                 </p>
               </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                  {t("Email")}
+                  {"Email"}
                 </p>
                 <p className="mt-1 break-all text-sm font-semibold text-[#111827]">
                   {note.buyer_email || "—"}
@@ -1596,10 +1325,10 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                  {t("State")}
+                  {"State"}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[#111827]">
-                  {t(note.buyer_state || "—")}
+                  {note.buyer_state || "—"}
                 </p>
               </div>
               <div>
@@ -1613,7 +1342,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               {note.buyer_address && (
                 <div className="sm:col-span-2">
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Address")}
+                    {"Address"}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[#111827]">
                     {note.buyer_address}
@@ -1631,18 +1360,18 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   <FiPackage size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {t("Order Details")}
+                  {"Order Details"}
                 </h3>
                 <span
                   className={`ml-auto inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getOrderStatusClass(order.status)}`}
                 >
-                  {t(capitalize(order.status))}
+                  {capitalize(order.status)}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Order Ref")}
+                    {"Order Ref"}
                   </p>
                   <p className="mt-1 break-all text-xs font-semibold text-[#111827]">
                     {order.order_reference || "—"}
@@ -1650,23 +1379,23 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Order Type")}
+                    {"Order Type"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {t(getAccountTypeLabel(order.order_type))}
+                    {getAccountTypeLabel(order.order_type)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Payment Gateway")}
+                    {"Payment Gateway"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {t(capitalize(order.payment_gateway))}
+                    {capitalize(order.payment_gateway)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Subtotal")}
+                    {"Subtotal"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatAmount(order.subtotal)}
@@ -1674,7 +1403,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Shipping")}
+                    {"Shipping"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatAmount(order.shipping_charge)}
@@ -1682,7 +1411,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Total Payable")}
+                    {"Total Payable"}
                   </p>
                   <p className="mt-1 text-xs font-bold text-[#2D6FE8]">
                     {formatAmount(order.total_payable)}
@@ -1690,7 +1419,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Amount Paid")}
+                    {"Amount Paid"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatAmount(order.amount_paid)}
@@ -1698,23 +1427,23 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Delivery Status")}
+                    {"Delivery Status"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {t(capitalize(order.delivery_status))}
+                    {capitalize(order.delivery_status)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Return Status")}
+                    {"Return Status"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {t(capitalize(order.return_status))}
+                    {capitalize(order.return_status)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Confirmed At")}
+                    {"Confirmed At"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatDateTime(order.confirmed_at)}
@@ -1722,7 +1451,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Created At")}
+                    {"Created At"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatDateTime(order.created_at)}
@@ -1730,7 +1459,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Gateway Txn ID")}
+                    {"Gateway Txn ID"}
                   </p>
                   <p className="mt-1 break-all font-mono text-[10px] text-[#6B7280]">
                     {order.gateway_transaction_id || "—"}
@@ -1748,18 +1477,18 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   <FiCreditCard size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-[#111827]">
-                  {t("Refund Details")}
+                  {"Refund Details"}
                 </h3>
                 <span
                   className={`ml-auto inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold ${getOrderStatusClass(refund.status)}`}
                 >
-                  {t(capitalize(refund.status))}
+                  {capitalize(refund.status)}
                 </span>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Refund Amount (whole note)")}
+                    {"Refund Amount (whole note)"}
                   </p>
                   <p className="mt-1 text-sm font-bold text-[#2D6FE8]">
                     {formatAmount(refund.amount)}
@@ -1767,15 +1496,15 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Refund Method")}
+                    {"Refund Method"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
-                    {t(capitalize(refund.refund_method))}
+                    {capitalize(refund.refund_method)}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Gateway Reference")}
+                    {"Gateway Reference"}
                   </p>
                   <p className="mt-1 break-all font-mono text-[10px] text-[#6B7280]">
                     {refund.gateway_reference || "—"}
@@ -1783,7 +1512,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 </div>
                 <div>
                   <p className="text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                    {t("Completed At")}
+                    {"Completed At"}
                   </p>
                   <p className="mt-1 text-xs font-semibold text-[#111827]">
                     {formatDateTime(refund.completed_at)}
@@ -1793,14 +1522,14 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               {refund.deduction_breakdown && (
                 <div className="mt-4 rounded-lg border border-[#DCE6F2] bg-[#F8FBFF] p-3">
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[#2D6FE8]">
-                    {t("Deduction Breakdown")}
+                    {"Deduction Breakdown"}
                   </p>
                   <div className="space-y-2">
                     {refund.deduction_breakdown.gross_refund && (
                       <div className="flex justify-between text-xs">
                         <span className="text-[#6B7280]">
                           {" "}
-                          {t("Gross Refund")}{" "}
+                          {"Gross Refund"}{" "}
                         </span>
                         <span className="font-semibold text-[#111827]">
                           {formatAmount(
@@ -1813,7 +1542,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                       refund.deduction_breakdown.deductions.map(
                         (d: any, i: number) => (
                           <div key={i} className="flex justify-between text-xs">
-                            <span className="text-[#6B7280]">{t(d.label)}</span>
+                            <span className="text-[#6B7280]">{d.label}</span>
                             <span className="font-semibold text-[#4F8FF7]">
                               - {formatAmount(d.amount)}
                             </span>
@@ -1823,7 +1552,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                     <div className="border-t border-[#DCE6F2] pt-2">
                       <div className="flex justify-between text-xs">
                         <span className="font-bold text-[#111827]">
-                          {t("Net Refund")}
+                          {"Net Refund"}
                         </span>
                         <span className="font-bold text-[#2D6FE8]">
                           {formatAmount(refund.deduction_breakdown.net_refund)}
@@ -1842,23 +1571,23 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <p className="font-semibold">
                   {" "}
-                  {t("Refund reconciliation — review required")}{" "}
+                  {"Refund reconciliation — review required"}{" "}
                 </p>
                 <p className="mt-1">
                   {" "}
-                  {t("Gross refund minus listed deductions:")}{" "}
+                  {"Gross refund minus listed deductions:"}{" "}
                   {formatAmount(r.expected)}.
                 </p>
                 <p>
                   {" "}
-                  {t("Actual refund:")} {formatAmount(r.actual)}{" "}
-                  {t(". Difference:")} {formatAmount(r.difference)}.
+                  {"Actual refund:"} {formatAmount(r.actual)} {". Difference:"}{" "}
+                  {formatAmount(r.difference)}.
                 </p>
                 <p className="mt-1 text-xs">
                   {" "}
-                  {t(
-                    "The recorded refund and credit note amounts have not been changed.",
-                  )}{" "}
+                  {
+                    "The recorded refund and credit note amounts have not been changed."
+                  }{" "}
                 </p>
               </div>
             ) : null;
@@ -1867,11 +1596,11 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           <div className="mt-4 overflow-hidden rounded-xl border border-[#DCE6F2] bg-white">
             <div className="border-b border-[#DCE6F2] px-4 py-3">
               <h3 className="text-sm font-bold text-[#111827]">
-                {t("Credit Note Items")}
+                {"Credit Note Items"}
               </h3>
               <p className="mt-0.5 text-[10px] text-[#6B7280]">
-                {note.items?.length || 0} {t("item")}
-                {language === "en" && note.items?.length !== 1 ? "s" : ""}
+                {note.items?.length || 0} {"item"}
+                {note.items?.length !== 1 ? "s" : ""}
               </p>
             </div>
             <div className="overflow-x-auto">
@@ -1880,19 +1609,19 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   <thead>
                     <tr className="bg-[#F4F8FD]">
                       <th className="px-4 py-3 text-left text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                        {t("Product")}
+                        {"Product"}
                       </th>
                       <th className="px-4 py-3 text-center text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                        {t("Qty")}
+                        {"Qty"}
                       </th>
                       <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                        {t("Taxable")}
+                        {"Taxable"}
                       </th>
                       <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
                         GST
                       </th>
                       <th className="px-4 py-3 text-right text-[9px] font-bold uppercase tracking-wide text-[#6B7280]">
-                        {t("Total")}
+                        {"Total"}
                       </th>
                     </tr>
                   </thead>
@@ -1907,11 +1636,11 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                             {item.product_name}
                           </p>
                           <p className="mt-0.5 font-mono text-[9px] text-[#6B7280]">
-                            {t("Code:")}
+                            {"Code:"}
                             {item.product_code || "—"}
                           </p>
                           <p className="mt-0.5 font-mono text-[9px] text-[#6B7280]">
-                            {t("Product HSN")}:{" "}
+                            {"Product HSN"}:{" "}
                             {String((item as any).hsn_code ?? "—")}
                           </p>
                         </td>
@@ -1937,10 +1666,10 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                     <FiFileText size={20} />
                   </div>
                   <p className="mt-3 text-xs font-semibold text-[#111827]">
-                    {t("No line items available")}
+                    {"No line items available"}
                   </p>
                   <p className="mt-1 text-[10px] text-[#6B7280]">
-                    {t("This credit note has no item breakdown.")}
+                    {"This credit note has no item breakdown."}
                   </p>
                 </div>
               )}
@@ -1951,18 +1680,17 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             Math.abs(itemAmountDifference(note)!) > 0.01 && (
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
                 <p className="font-semibold">
-                  {t("Review required")}: {t("Item Amount Difference")}
+                  {"Review required"}: {"Item Amount Difference"}
                 </p>
                 <p className="mt-1">
-                  {t("Total Item Amount (API)")}:{" "}
+                  {"Total Item Amount (API)"}:{" "}
                   {formatAmount((note as any).total_item_amount)}
                 </p>
                 <p>
-                  {t("Sum of Item Line Totals")}:{" "}
-                  {formatAmount(itemLineSum(note))}
+                  {"Sum of Item Line Totals"}: {formatAmount(itemLineSum(note))}
                 </p>
                 <p>
-                  {t("Item Amount Difference")}:{" "}
+                  {"Item Amount Difference"}:{" "}
                   {formatAmount(itemAmountDifference(note))}
                 </p>
               </div>
@@ -1971,11 +1699,11 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-[#DCE6F2] bg-white p-4">
               <h3 className="mb-3 text-sm font-bold text-[#111827]">
-                {t("Item GST Breakdown")}
+                {"Item GST Breakdown"}
               </h3>
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-[#6B7280]"> {t("Taxable Value")} </span>
+                  <span className="text-[#6B7280]"> {"Taxable Value"} </span>
                   <span className="font-semibold text-[#111827]">
                     {formatAmount(itemTaxable(note))}
                   </span>
@@ -2002,7 +1730,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   <div className="flex justify-between text-xs">
                     <span className="font-bold text-[#111827]">
                       {" "}
-                      {t("Total GST")}{" "}
+                      {"Total GST"}{" "}
                     </span>
                     <span className="font-bold text-[#2D6FE8]">
                       {formatAmount(itemTax(note))}
@@ -2013,7 +1741,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             </div>
             <div className="rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] p-4">
               <p className="text-[9px] font-bold uppercase tracking-wide text-[#4F8FF7]">
-                {t("Credit Note Amount (whole note)")}
+                {"Credit Note Amount (whole note)"}
               </p>
               <p className="mt-2 text-[28px] font-bold tracking-tight text-[#2D6FE8]">
                 {formatAmount(note.amount)}
@@ -2022,7 +1750,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                 <div className="flex items-center gap-2">
                   <FiCalendar size={13} className="text-[#4F8FF7]" />
                   <span className="text-[10px] font-semibold text-[#6B7280]">
-                    {t("Issued")}
+                    {"Issued"}
                     {formatDate(note.issued_at)}
                   </span>
                 </div>
@@ -2030,7 +1758,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
                   <div className="mt-2 flex items-center gap-2">
                     <FiTag size={13} className="text-[#4F8FF7]" />
                     <span className="text-[10px] font-semibold text-[#6B7280]">
-                      {t("Refund ID:")}
+                      {"Refund ID:"}
                       {refund.id}
                     </span>
                   </div>
@@ -2047,7 +1775,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
             onClick={onClose}
             className="rounded-xl border border-[#DCE6F2] bg-white px-5 py-2.5 text-sm font-medium text-[#6B7280] transition hover:bg-[#F4F8FD] hover:text-[#2D6FE8]"
           >
-            {t("Close")}
+            {"Close"}
           </button>
           {canDownload && (
             <button
@@ -2056,7 +1784,7 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-[#2D6FE8] hover:to-[#2D6FE8]"
             >
               <FiDownload size={15} />
-              {t("Download PDF")}
+              {"Download PDF"}
             </button>
           )}
         </div>
@@ -2069,8 +1797,6 @@ const CreditNoteViewModal: React.FC<CreditNoteViewModalProps> = ({
 // MAIN COMPONENT
 // =====================================================
 const CreditNotes: React.FC = () => {
-  const [language, setLanguage] = useState<ReportLanguage>("en");
-  const t = (value: string) => translate(language, value);
   const [exportingExcel, setExportingExcel] = useState(false);
   const {
     hasPermission,
@@ -2095,6 +1821,26 @@ const CreditNotes: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [search, setSearch] = useState("");
+  const [draftDateRange, setDraftDateRange] =
+    useState<CreditDateRange>(EMPTY_DATE_RANGE);
+  const [dateRange, setDateRange] = useState<CreditDateRange>(EMPTY_DATE_RANGE);
+  const resetDateRange = () => {
+    setDraftDateRange(EMPTY_DATE_RANGE);
+    setDateRange(EMPTY_DATE_RANGE);
+    setCurrentPage(1);
+  };
+  const applyDateRange = () => {
+    if (!draftDateRange.from || !draftDateRange.to) {
+      toast.error("Please select both From Date and To Date.");
+      return;
+    }
+    if (draftDateRange.from > draftDateRange.to) {
+      toast.error("From Date cannot be greater than To Date.");
+      return;
+    }
+    setDateRange({ ...draftDateRange });
+    setCurrentPage(1);
+  };
   const [reasonFilter, setReasonFilter] =
     useState<CreditNoteReasonFilter>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -2161,12 +1907,12 @@ const CreditNotes: React.FC = () => {
         );
         setCurrentPage(1);
         hasInitialFetchRef.current = true;
-        if (force) toast.success(t("Credit notes refreshed."));
+        if (force) toast.success("Credit notes refreshed.");
       } catch (error: any) {
         toast.error(
           error?.response?.data?.message ||
             error?.message ||
-            t("Unable to fetch credit notes."),
+            "Unable to fetch credit notes.",
         );
       } finally {
         setLoading(false);
@@ -2201,10 +1947,11 @@ const CreditNotes: React.FC = () => {
     const query = search.trim().toLowerCase();
     return creditNotes.filter(
       (note) =>
+        matchesCreditDateRange(note.issued_at, dateRange) &&
         matchesCreditNoteFilters(note, query, reasonFilter) &&
         matchesRules(note, rules),
     );
-  }, [creditNotes, search, reasonFilter, rules]);
+  }, [creditNotes, search, reasonFilter, rules, dateRange]);
   const totalRecords = matchingNotes.length;
   const missingItemCount = useMemo(
     () => countMissingCreditItems(creditNotes),
@@ -2217,7 +1964,7 @@ const CreditNotes: React.FC = () => {
   const lastPage = Math.max(1, Math.ceil(totalRecords / ITEMS_PER_PAGE));
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, reasonFilter, rules]);
+  }, [search, reasonFilter, rules, dateRange]);
   const activePage = Math.min(currentPage, lastPage);
   const filteredCreditNotes = matchingNotes.slice(
     (activePage - 1) * ITEMS_PER_PAGE,
@@ -2241,9 +1988,17 @@ const CreditNotes: React.FC = () => {
       credit: sum((n) => n.amount),
       gst: creditSum(matchingNotes.map(itemTax)),
       invoice: creditSum(matchingNotes.map(itemInvoiceValue)),
-      refunded: sum((n) =>
-        n.refund?.status === "completed" ? n.refund?.amount : null,
-      ),
+      refunded: (() => {
+        const refunds = new Map<string, number | null>();
+        for (const n of matchingNotes) {
+          const note: any = n;
+          if (String(note.refund?.status ?? "").toLowerCase() !== "completed")
+            continue;
+          const key = creditRefundKey(note);
+          refunds.set(key, refunds.get(key) ?? creditRefundAmount(note));
+        }
+        return refunds.size ? creditSum([...refunds.values()]) : 0;
+      })(),
       flagged: notes.filter((n) => {
         const r = reconciliation(n);
         return r.difference !== null && Math.abs(r.difference) > 0.01;
@@ -2282,9 +2037,7 @@ const CreditNotes: React.FC = () => {
       else setExportingExcel(true);
       const exportNotes = matchingNotes;
       if (exportNotes.length === 0) {
-        toast.error(
-          t("No credit notes match the selected search and filters."),
-        );
+        toast.error("No credit notes match the selected search and filters.");
         return;
       }
 
@@ -2324,22 +2077,16 @@ const CreditNotes: React.FC = () => {
         "Item Shipping Charge",
         "Item Shipping GST",
         "Item Service Charge",
-        "Credit Note Amount (whole note)",
         "Item Count (API row)",
       ];
-      const seen = new Set<string>();
       const fullRows: CreditExportRow[] = exportNotes.map((raw, index) => {
         const n: any = raw,
           i = itemOf(n),
           o = n.order ?? {},
           r = n.refund ?? {};
-        const key = creditNoteKey(n),
-          first = !seen.has(key);
-        seen.add(key);
         const text = (v: unknown) => (v == null ? "" : String(v));
         const enumValue = (v: unknown) =>
-          v == null || v === "" ? "" : t(capitalize(String(v)));
-        const whole = (v: unknown) => (first ? numeric(v) : null);
+          v == null || v === "" ? "" : capitalize(String(v));
         return [
           ...compactRows[index],
           numeric(n.s_no) ?? index + 1,
@@ -2350,7 +2097,7 @@ const CreditNotes: React.FC = () => {
           enumValue(n.buyer_type),
           text(n.buyer_email),
           text(n.buyer_address),
-          t(gstRegistration(n.buyer_gstin)),
+          gstRegistration(n.buyer_gstin),
           enumValue(n.reason),
           enumValue(n.order_type ?? o.order_type),
           enumValue(n.order_status ?? o.status),
@@ -2373,36 +2120,36 @@ const CreditNotes: React.FC = () => {
           numeric(i.shipping_charge_line),
           numeric(i.shipping_gst),
           numeric(i.service_charge),
-          whole(n.amount),
           numeric(n.item_count),
         ];
       });
-      const dateStamp = new Date().toISOString().slice(0, 10);
+      const dateStamp =
+        dateRange.from && dateRange.to
+          ? `${dateRange.from}_to_${dateRange.to}`
+          : creditDateKey(new Date().toISOString());
       let blob: Blob;
-      let downloadName = `credit-notes-${activeReasonFilter}-${language}-${dateStamp}.${format}`;
+      let downloadName = `credit-notes-${activeReasonFilter}-${dateStamp}.${format}`;
       if (format === "csv") {
         const files = buildCreditCsvFiles(
           exportNotes,
           fullKeys,
           fullRows,
-          language,
+
           activeGstFilter,
         );
         if (!files.length) {
-          toast.error(
-            t("No credit notes match the selected search and filters."),
-          );
+          toast.error("No credit notes match the selected search and filters.");
           return;
         }
         if (activeGstFilter) {
           blob = new Blob([files[0].csv], { type: "text/csv;charset=utf-8;" });
           downloadName = files[0].name.replace(
             /\.csv$/,
-            `-${activeReasonFilter}-${language}-${dateStamp}.csv`,
+            `-${activeReasonFilter}-${dateStamp}.csv`,
           );
         } else {
           blob = zipCreditCsvFiles(files);
-          downloadName = `credit-notes-gst-wise-${activeReasonFilter}-${language}-${dateStamp}.zip`;
+          downloadName = `credit-notes-gst-wise-${activeReasonFilter}-${dateStamp}.zip`;
         }
       } else {
         const workbook = new ExcelJS.Workbook();
@@ -2429,7 +2176,7 @@ const CreditNotes: React.FC = () => {
           data: CreditExportRow[],
           totals = false,
         ) => {
-          const sheet = workbook.addWorksheet(t(name).slice(0, 31), {
+          const sheet = workbook.addWorksheet(name.slice(0, 31), {
             views: [
               {
                 state: "frozen",
@@ -2460,19 +2207,21 @@ const CreditNotes: React.FC = () => {
             left: borderEdge,
             right: borderEdge,
           };
-          const fontName = language === "hi" ? "Nirmala UI" : "Calibri";
-          const heading = sheet.addRow(keys.map(t));
+          const fontName = "Calibri";
+          const heading = sheet.addRow(keys);
           heading.height = 42;
           data.forEach((row) => sheet.addRow(row));
           const last = data.length + 1;
           const footer =
-            totals && data.length ? sheet.addRow([t("Grand Total")]) : null;
+            totals && data.length ? sheet.addRow(["Grand Total"]) : null;
           if (footer) footer.height = 29;
           keys.forEach((key, j) => {
             const values = data.map((row) => row[j]);
             const isDate = j === 1 || j === 3;
             const isNumber =
               key === "Rate" ||
+              key === "Refund Amount (whole refund)" ||
+              key === "Credit Note Amount (whole note)" ||
               values.some((v) => typeof v === "number") ||
               sumKeys.has(key);
             const isInteger =
@@ -2492,7 +2241,7 @@ const CreditNotes: React.FC = () => {
                     ),
                   0,
                 ),
-                Math.min(24, t(key).length + 2),
+                Math.min(24, key.length + 2),
               ),
             );
             sheet.getColumn(j + 1).width = width;
@@ -2580,8 +2329,10 @@ const CreditNotes: React.FC = () => {
         ];
         for (const group of groups) {
           if (activeGstFilter && group.gst !== activeGstFilter) continue;
-          const subset = compactRows.filter(
-            (_, i) => gstRegistration(exportNotes[i].buyer_gstin) === group.gst,
+          const subset = buildCreditExportRows(
+            exportNotes.filter(
+              (note) => gstRegistration(note.buyer_gstin) === group.gst,
+            ),
           );
           if (subset.length || group.gst)
             addSheet(group.name, compactKeys, subset, true);
@@ -2601,16 +2352,14 @@ const CreditNotes: React.FC = () => {
       link.remove();
       window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       toast.success(
-        language === "hi"
-          ? `${exportNotes.length} उत्पाद रिकॉर्ड डाउनलोड किए गए।`
-          : `Downloaded ${exportNotes.length} item row(s) as ${format === "csv" && !activeGstFilter ? "CSV ZIP" : format.toUpperCase()}.`,
+        `Downloaded ${exportNotes.length} item row(s) as ${format === "csv" && !activeGstFilter ? "CSV ZIP" : format.toUpperCase()}.`,
       );
     } catch (error: any) {
       console.error("Download credit notes CSV error:", error);
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          t("Unable to download credit notes report."),
+          "Unable to download credit notes report.",
       );
     } finally {
       setExportingCsv(false);
@@ -2673,7 +2422,7 @@ const CreditNotes: React.FC = () => {
       doc.text(`Issued: ${formatDate(note.issued_at)}`, pageW - ML, 21, {
         align: "right",
       });
-      doc.text(`Reason: ${t(capitalize(note.reason))}`, pageW - ML, 27, {
+      doc.text(`Reason: ${capitalize(note.reason)}`, pageW - ML, 27, {
         align: "right",
       });
       y = 42;
@@ -3049,7 +2798,7 @@ const CreditNotes: React.FC = () => {
       toast.success("Credit note PDF downloaded successfully.");
     } catch (error) {
       console.error("Generate credit note PDF error:", error);
-      toast.error(t("Unable to generate PDF."));
+      toast.error("Unable to generate PDF.");
     }
   };
 
@@ -3079,10 +2828,10 @@ const CreditNotes: React.FC = () => {
           </div>
           <h2 className="text-lg font-bold text-[#111827]">
             {" "}
-            {t("Access Denied")}{" "}
+            {"Access Denied"}{" "}
           </h2>
           <p className="mt-2 text-sm text-[#6B7280]">
-            {t("You don't have permission to access this section.")}
+            {"You don't have permission to access this section."}
           </p>
         </div>
       </div>
@@ -3095,7 +2844,7 @@ const CreditNotes: React.FC = () => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        lang={language}
+        lang="en"
         className="min-h-screen bg-white p-4 font-poppins sm:p-6"
       >
         <div className="mx-auto max-w-[1500px]">
@@ -3111,37 +2860,20 @@ const CreditNotes: React.FC = () => {
                   <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
                   <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
                   <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2D6FE8]">
-                    {t("Finance & Returns")}
+                    {"Finance & Returns"}
                   </span>
                 </div>
                 <h1 className="text-[22px] font-semibold tracking-tight text-[#111827] sm:text-[24px]">
-                  {t("Credit Notes")}
+                  {"Credit Notes"}
                 </h1>
                 <p className="mt-0.5 text-sm text-[#111827]">
-                  {t(
-                    "Manage issued credit notes and download customer credit records.",
-                  )}
+                  {
+                    "Manage issued credit notes and download customer credit records."
+                  }
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 self-start">
-              <div
-                className="inline-flex rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-1"
-                role="group"
-                aria-label="Report language / रिपोर्ट की भाषा"
-              >
-                {(["en", "hi"] as const).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={language === value}
-                    onClick={() => setLanguage(value)}
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold ${language === value ? "bg-white text-[#2D6FE8] shadow-sm" : "text-slate-600"}`}
-                  >
-                    {value === "en" ? "English" : "हिंदी"}
-                  </button>
-                ))}
-              </div>
               {canDownloadCreditNotes && (
                 <button
                   type="button"
@@ -3158,7 +2890,7 @@ const CreditNotes: React.FC = () => {
                     size={16}
                     className={exportingExcel ? "animate-pulse" : ""}
                   />
-                  {t(exportingExcel ? "Preparing Excel..." : "Download Excel")}
+                  {exportingExcel ? "Preparing Excel..." : "Download Excel"}
                 </button>
               )}
               {canDownloadCreditNotes && (
@@ -3177,13 +2909,11 @@ const CreditNotes: React.FC = () => {
                     size={16}
                     className={exportingCsv ? "animate-pulse" : ""}
                   />
-                  {t(
-                    exportingCsv
-                      ? "Preparing CSV..."
-                      : activeGstFilter
-                        ? "Download CSV"
-                        : "Download CSV ZIP",
-                  )}
+                  {exportingCsv
+                    ? "Preparing CSV..."
+                    : activeGstFilter
+                      ? "Download CSV"
+                      : "Download CSV ZIP"}
                 </button>
               )}
               <button
@@ -3196,10 +2926,88 @@ const CreditNotes: React.FC = () => {
                   size={16}
                   className={loading ? "animate-spin" : ""}
                 />
-                <span className="hidden sm:inline"> {t("Refresh")} </span>
+                <span className="hidden sm:inline"> {"Refresh"} </span>
               </button>
             </div>
           </motion.div>
+
+          {/* CUSTOM DATE RANGE — applies to issued_at across all loaded pages */}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyDateRange();
+            }}
+            className="mb-5 rounded-xl border border-[#DCE6F2] bg-white p-4"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#173B63]">
+                <FiCalendar className="text-[#2D6FE8]" size={17} />
+                Custom Date Range
+              </div>
+              <p className="text-xs text-slate-500" aria-live="polite">
+                {dateRange.from && dateRange.to
+                  ? `Applied: ${formatDate(dateRange.from)} – ${formatDate(dateRange.to)}`
+                  : "All available dates"}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex min-w-[150px] flex-1 flex-col gap-1.5 sm:max-w-[230px]">
+                <span className="text-xs font-semibold text-slate-600">
+                  From Date
+                </span>
+                <input
+                  type="date"
+                  required
+                  value={draftDateRange.from}
+                  max={draftDateRange.to || undefined}
+                  onChange={(event) =>
+                    setDraftDateRange((old) => ({
+                      ...old,
+                      from: event.target.value,
+                    }))
+                  }
+                  className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <label className="flex min-w-[150px] flex-1 flex-col gap-1.5 sm:max-w-[230px]">
+                <span className="text-xs font-semibold text-slate-600">
+                  To Date
+                </span>
+                <input
+                  type="date"
+                  required
+                  value={draftDateRange.to}
+                  min={draftDateRange.from || undefined}
+                  onChange={(event) =>
+                    setDraftDateRange((old) => ({
+                      ...old,
+                      to: event.target.value,
+                    }))
+                  }
+                  className="h-10 w-full rounded-lg border border-[#DCE6F2] bg-white px-3 text-sm text-slate-800 outline-none focus:border-[#2D6FE8] focus:ring-2 focus:ring-blue-100"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={loading || exportingCsv || exportingExcel}
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-[#2D6FE8] px-4 text-sm font-semibold text-white hover:bg-[#1E40AF] disabled:opacity-50"
+              >
+                <FiSearch size={15} /> Apply Filter
+              </button>
+              <button
+                type="button"
+                onClick={resetDateRange}
+                disabled={exportingCsv || exportingExcel}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#DCE6F2] bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-[#F4F8FD] disabled:opacity-50"
+              >
+                <FiRefreshCw size={15} /> Reset
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Filter by credit note issue date (IST). Both dates are inclusive.
+              Exports use the applied range.
+            </p>
+          </form>
 
           <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
@@ -3215,7 +3023,7 @@ const CreditNotes: React.FC = () => {
                 key={label}
                 className="min-w-0 rounded-xl border border-[#DCE6F2] bg-white p-4"
               >
-                <p className="text-xs text-slate-500">{t(label)}</p>
+                <p className="text-xs text-slate-500">{label}</p>
                 <p className="mt-2 break-words text-lg font-bold tabular-nums text-[#173B63]">
                   {value}
                 </p>
@@ -3225,7 +3033,7 @@ const CreditNotes: React.FC = () => {
           {totals.flagged > 0 && (
             <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               {totals.flagged}{" "}
-              {t("matching credit note(s) require refund reconciliation.")}{" "}
+              {"matching credit note(s) require refund reconciliation."}{" "}
             </p>
           )}
           {missingItemCount > 0 && (
@@ -3234,12 +3042,12 @@ const CreditNotes: React.FC = () => {
               className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
             >
               <p className="font-semibold">
-                {missingItemCount} {t("item rows missing from API response")}
+                {missingItemCount} {"item rows missing from API response"}
               </p>
               <p className="mt-1 text-xs">
-                {t(
-                  "Check the credit notes API helper: return the entire data array, not the credit note count or one row per note.",
-                )}
+                {
+                  "Check the credit notes API helper: return the entire data array, not the credit note count or one row per note."
+                }
               </p>
             </div>
           )}
@@ -3252,15 +3060,15 @@ const CreditNotes: React.FC = () => {
             <div className="flex flex-col gap-4 border-b border-[#DCE6F2] bg-white p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-[#111827]">
-                  {t("Credit Note Directory")}
+                  {"Credit Note Directory"}
                 </h2>
                 <p className="mt-1 text-xs text-[#6B7280]">
                   {totalRecords.toLocaleString("en-IN")} /{" "}
-                  {creditNotes.length.toLocaleString("en-IN")} {t("item rows")}{" "}
-                  {t("matching")}
+                  {creditNotes.length.toLocaleString("en-IN")} {"item rows"}{" "}
+                  {"matching"}
                   {" · "}
-                  {loadedNoteCount.toLocaleString("en-IN")} {t("Credit Notes")}{" "}
-                  {t("loaded")}
+                  {loadedNoteCount.toLocaleString("en-IN")} {"Credit Notes"}{" "}
+                  {"loaded"}
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -3274,9 +3082,9 @@ const CreditNotes: React.FC = () => {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder={t(
-                      "Search credit note, order ref (ORD...), invoice, buyer...",
-                    )}
+                    placeholder={
+                      "Search credit note, order ref (ORD...), invoice, buyer..."
+                    }
                     className="h-11 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-10 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
                   />
                   {search && (
@@ -3302,7 +3110,7 @@ const CreditNotes: React.FC = () => {
                       onClick={() => setReasonFilter(filter.key)}
                       className={`rounded-xl px-4 py-2.5 text-xs font-bold transition ${reasonFilter === filter.key ? "bg-gradient-to-r from-[#4F8FF7] to-[#2D6FE8] text-white shadow-sm" : "border border-[#DCE6F2] bg-[#F4F8FD] text-[#6B7280] hover:border-[#2D6FE8]/40 hover:bg-[#EAF3FF] hover:text-[#2D6FE8]"}`}
                     >
-                      {t(filter.label)}
+                      {filter.label}
                     </button>
                   ))}
                 </div>
@@ -3314,13 +3122,13 @@ const CreditNotes: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-[#173B63]">
                     {" "}
-                    {t("Field filters")}{" "}
+                    {"Field filters"}{" "}
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
                     {" "}
-                    {t(
-                      "All conditions must match. Product conditions match the same item. Exports include only matching item rows.",
-                    )}{" "}
+                    {
+                      "All conditions must match. Product conditions match the same item. Exports include only matching item rows."
+                    }{" "}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -3330,11 +3138,12 @@ const CreditNotes: React.FC = () => {
                       setSearch("");
                       setReasonFilter("all");
                       setRules([]);
+                      resetDateRange();
                     }}
                     className="rounded-lg border border-[#DCE6F2] bg-white px-3 py-2 text-xs font-semibold"
                   >
                     {" "}
-                    {t("Clear all")}{" "}
+                    {"Clear all"}{" "}
                   </button>
                   <button
                     type="button"
@@ -3348,7 +3157,7 @@ const CreditNotes: React.FC = () => {
                     className="rounded-lg bg-[#2D6FE8] px-3 py-2 text-xs font-semibold text-white"
                   >
                     {" "}
-                    {t("+ Add filter")}{" "}
+                    {"+ Add filter"}{" "}
                   </button>
                 </div>
               </div>
@@ -3379,7 +3188,7 @@ const CreditNotes: React.FC = () => {
                     className="mt-3 grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
                   >
                     <select
-                      aria-label={t("Filter field")}
+                      aria-label={"Filter field"}
                       className={inputClass}
                       value={rule.field}
                       onChange={(e) =>
@@ -3393,12 +3202,12 @@ const CreditNotes: React.FC = () => {
                     >
                       {FIELD_DEFS.map((f) => (
                         <option key={f.key} value={f.key}>
-                          {t(f.label)}
+                          {f.label}
                         </option>
                       ))}
                     </select>
                     <select
-                      aria-label={t("Filter condition")}
+                      aria-label={"Filter condition"}
                       className={inputClass}
                       value={rule.op}
                       onChange={(e) =>
@@ -3407,7 +3216,7 @@ const CreditNotes: React.FC = () => {
                     >
                       {ops.map(([value, label]) => (
                         <option key={value} value={value}>
-                          {t(label)}
+                          {label}
                         </option>
                       ))}
                     </select>
@@ -3417,11 +3226,11 @@ const CreditNotes: React.FC = () => {
                           rule.field,
                         ) && rule.op === "eq" ? (
                           <select
-                            aria-label={t(
+                            aria-label={
                               rule.field === "gstType"
                                 ? "GST registration"
-                                : "Credit Note Classification",
-                            )}
+                                : "Credit Note Classification"
+                            }
                             className={inputClass}
                             value={rule.value}
                             onChange={(e) =>
@@ -3430,11 +3239,9 @@ const CreditNotes: React.FC = () => {
                           >
                             <option value="">
                               {" "}
-                              {t(
-                                rule.field === "gstType"
-                                  ? "Select GST type"
-                                  : "All",
-                              )}{" "}
+                              {rule.field === "gstType"
+                                ? "Select GST type"
+                                : "All"}{" "}
                             </option>
                             {(rule.field === "gstType"
                               ? ["URP", "Registered"]
@@ -3446,13 +3253,13 @@ const CreditNotes: React.FC = () => {
                                 ]
                             ).map((v) => (
                               <option key={v} value={v}>
-                                {t(v)}
+                                {v}
                               </option>
                             ))}
                           </select>
                         ) : (
                           <input
-                            aria-label={t("Filter value")}
+                            aria-label={"Filter value"}
                             className={inputClass}
                             type={
                               field.kind === "number"
@@ -3462,7 +3269,7 @@ const CreditNotes: React.FC = () => {
                                   : "text"
                             }
                             step={field.kind === "number" ? "any" : undefined}
-                            placeholder={t("Value")}
+                            placeholder={"Value"}
                             value={rule.value}
                             onChange={(e) =>
                               updateRule(rule.id, { value: e.target.value })
@@ -3471,7 +3278,7 @@ const CreditNotes: React.FC = () => {
                         ))}
                       {rule.op === "between" && (
                         <input
-                          aria-label={t("Maximum filter value")}
+                          aria-label={"Maximum filter value"}
                           className={inputClass}
                           type={field.kind === "date" ? "date" : "number"}
                           step="any"
@@ -3484,7 +3291,7 @@ const CreditNotes: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      aria-label={t("Remove filter")}
+                      aria-label={"Remove filter"}
                       onClick={() =>
                         setRules((old) => old.filter((r) => r.id !== rule.id))
                       }
@@ -3497,11 +3304,16 @@ const CreditNotes: React.FC = () => {
               })}
             </div>
             {/* TABLE */}
+            <p className="px-4 py-2 text-xs text-slate-500">
+              Refund and credit note amounts are whole-record values, not item
+              amounts. Missing refund amounts are not estimated. Exports record
+              each amount once.
+            </p>
             <p className="px-4 py-2 text-[10px] font-medium text-[#6B7280] sm:hidden">
-              {t("Swipe horizontally to view all table columns")}
+              {"Swipe horizontally to view all table columns"}
             </p>
             <div className="block w-full overflow-x-auto overscroll-x-contain">
-              <table className="w-full min-w-[1380px] border-collapse">
+              <table className="w-full min-w-[1550px] border-collapse">
                 <thead>
                   <tr className="bg-[#4F8FF7]">
                     {[
@@ -3514,13 +3326,14 @@ const CreditNotes: React.FC = () => {
                       ["Issued", "left"],
                       ["Reason", "left"],
                       ["Item Invoice Value", "right"],
+                      ["Refund Amount", "right"],
                       ["Actions", "center"],
                     ].map(([label, align]) => (
                       <th
                         key={label}
                         className={`px-5 py-4 ${align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"} text-[10px] font-bold uppercase tracking-[0.12em] text-white`}
                       >
-                        {t(label)}
+                        {label}
                       </th>
                     ))}
                   </tr>
@@ -3529,29 +3342,29 @@ const CreditNotes: React.FC = () => {
                   {initialCreditNotesLoading ||
                   (loading && creditNotes.length === 0) ? (
                     <tr>
-                      <td colSpan={10} className="px-5 py-16 text-center">
+                      <td colSpan={11} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                             <FiRefreshCw size={22} className="animate-spin" />
                           </div>
                           <p className="mt-4 text-sm font-bold text-[#111827]">
-                            {t("Loading credit notes...")}
+                            {"Loading credit notes..."}
                           </p>
                         </div>
                       </td>
                     </tr>
                   ) : filteredCreditNotes.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-5 py-16 text-center">
+                      <td colSpan={11} className="px-5 py-16 text-center">
                         <div className="flex flex-col items-center">
                           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EAF3FF] text-[#2D6FE8]">
                             <FiFileText size={24} />
                           </div>
                           <p className="mt-4 text-sm font-bold text-[#111827]">
-                            {t("No credit notes found")}
+                            {"No credit notes found"}
                           </p>
                           <p className="mt-1 text-xs text-[#6B7280]">
-                            {t("Try changing your search or filter.")}
+                            {"Try changing your search or filter."}
                           </p>
                         </div>
                       </td>
@@ -3597,7 +3410,7 @@ const CreditNotes: React.FC = () => {
                                   <span
                                     className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold ${getOrderStatusClass(note.order.status)}`}
                                   >
-                                    {t(capitalize(note.order.status))}
+                                    {capitalize(note.order.status)}
                                   </span>
                                 )}
                               </div>
@@ -3613,13 +3426,13 @@ const CreditNotes: React.FC = () => {
                                   {note.buyer_name}
                                 </p>
                                 <p className="mt-1 text-[10px] text-slate-500">
-                                  {t("State")}: {t(note.buyer_state || "—")}
+                                  {"State"}: {note.buyer_state || "—"}
                                 </p>
                                 <span
                                   className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getAccountTypeClass(accountType)}`}
                                 >
                                   <FiBriefcase size={9} />
-                                  {t(getAccountTypeLabel(accountType))}
+                                  {getAccountTypeLabel(accountType)}
                                 </span>
                               </div>
                             </div>
@@ -3637,15 +3450,15 @@ const CreditNotes: React.FC = () => {
                               {itemOf(note).product_name || "—"}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
-                              {t("Product code")}:{" "}
+                              {"Product code"}:{" "}
                               {itemOf(note).product_code || "—"}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
-                              {t("Product HSN")}: {itemOf(note).hsn_code ?? "—"}
+                              {"Product HSN"}: {itemOf(note).hsn_code ?? "—"}
                             </p>
                             <p className="mt-1 text-[10px] text-slate-500">
-                              {t("Qty")}: {itemOf(note).quantity ?? "—"} ·{" "}
-                              {t("Order Line ID")}: {note.order_line_id ?? "—"}
+                              {"Qty"}: {itemOf(note).quantity ?? "—"} ·{" "}
+                              {"Order Line ID"}: {note.order_line_id ?? "—"}
                             </p>
                           </td>
                           <td className="px-5 py-4">
@@ -3670,7 +3483,7 @@ const CreditNotes: React.FC = () => {
                             <span
                               className={`inline-flex rounded-full border px-3 py-1.5 text-[9px] font-bold ${getReasonClass(note.reason)}`}
                             >
-                              {t(capitalize(note.reason))}
+                              {capitalize(note.reason)}
                             </span>
                           </td>
                           <td className="px-5 py-4 text-right">
@@ -3681,12 +3494,30 @@ const CreditNotes: React.FC = () => {
                               GST {formatAmount(itemTax(note))}
                             </p>
                           </td>
+                          <td className="px-5 py-4 text-right">
+                            <p className="whitespace-nowrap text-sm font-bold text-[#15803D]">
+                              {formatAmount(creditRefundAmount(note))}
+                            </p>
+                            <p className="mt-1 text-[10px] text-slate-500">
+                              {creditRefundAmount(note) === null
+                                ? "Amount not provided"
+                                : "Whole refund"}
+                            </p>
+                            <p className="mt-1 whitespace-nowrap text-[10px] text-slate-500">
+                              Credit note:{" "}
+                              {formatAmount(creditIssuedAmount(note))}
+                            </p>
+                            <p className="mt-1 text-[10px] text-slate-500">
+                              {capitalize(note.refund?.status)} ·{" "}
+                              {capitalize(note.refund?.refund_method)}
+                            </p>
+                          </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleView(note)}
-                                title={t("View credit note")}
+                                title={"View credit note"}
                                 className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] text-[#2D6FE8] transition hover:border-[#2D6FE8] hover:bg-[#2D6FE8] hover:text-white"
                               >
                                 <FiEye size={15} />
@@ -3695,7 +3526,7 @@ const CreditNotes: React.FC = () => {
                                 <button
                                   type="button"
                                   onClick={() => generateCreditNotePdf(note)}
-                                  title={t("Download PDF")}
+                                  title={"Download PDF"}
                                   className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white"
                                 >
                                   <FiDownload size={15} />
@@ -3716,19 +3547,19 @@ const CreditNotes: React.FC = () => {
               <div className="border-t border-[#DCE6F2] bg-[#F8FBFF] px-4 py-4 sm:px-5">
                 <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
                   <p className="text-xs text-[#6B7280]">
-                    {t("Showing")}{" "}
+                    {"Showing"}{" "}
                     <span className="font-bold text-[#111827]">
                       {startEntry}
                     </span>{" "}
-                    {t("to")}{" "}
+                    {"to"}{" "}
                     <span className="font-bold text-[#111827]">
                       {Math.max(startEntry, endEntry)}
                     </span>{" "}
-                    {t("of")}{" "}
+                    {"of"}{" "}
                     <span className="font-bold text-[#111827]">
                       {totalRecords}
                     </span>{" "}
-                    {t("item rows")}
+                    {"item rows"}
                   </p>
                   <div className="flex items-center gap-1.5">
                     <button
@@ -3768,7 +3599,6 @@ const CreditNotes: React.FC = () => {
 
       {/* VIEW MODAL */}
       <CreditNoteViewModal
-        language={language}
         open={viewOpen}
         note={selectedNote}
         canDownload={canDownloadCreditNotes}
