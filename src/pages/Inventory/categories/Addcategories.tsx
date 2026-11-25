@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiRefreshCw,
   FiAlertCircle,
+  FiDownload,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -68,6 +69,106 @@ const itemVariants = {
   },
 };
 
+// =====================================================
+// IMAGE URL HELPER
+// =====================================================
+
+const getCategoryImageUrl = (category: Category): string => {
+  const item = category as any;
+
+  const possibleImages = [
+    item.image_url,
+    item.image,
+    item.category_image,
+    item.category_image_url,
+    item.image_path,
+    item.thumbnail,
+    item.photo,
+    item.categoryImage,
+  ];
+
+  const imageValue = possibleImages.find((value) => {
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (value && typeof value === "object") {
+      return Boolean(
+        value.url ||
+          value.image_url ||
+          value.original_url ||
+          value.path,
+      );
+    }
+
+    return false;
+  });
+
+  if (!imageValue) {
+    return "";
+  }
+
+  const rawImage =
+    typeof imageValue === "string"
+      ? imageValue.trim()
+      : imageValue.url ||
+        imageValue.image_url ||
+        imageValue.original_url ||
+        imageValue.path ||
+        "";
+
+  if (!rawImage) {
+    return "";
+  }
+
+  try {
+    return new URL(
+      rawImage,
+      "https://www.markupdesigns.net/indikonnect/storage/",
+    ).href;
+  } catch {
+    return rawImage;
+  }
+};
+
+// =====================================================
+// CSV HELPERS
+// =====================================================
+
+const escapeCsvValue = (value: unknown): string => {
+  let textValue = String(value ?? "").replace(/\r\n/g, "\n");
+
+  // Prevent CSV formula injection.
+  if (/^[=+\-@\t\r]/.test(textValue)) {
+    textValue = `'${textValue}`;
+  }
+
+  return `"${textValue.replace(/"/g, '""')}"`;
+};
+
+const downloadBlob = (
+  blob: Blob,
+  fileName: string,
+): void => {
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = blobUrl;
+  link.download = fileName;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 2000);
+};
+
+// =====================================================
+// COMPONENT
+// =====================================================
 
 const Addcategories: React.FC = () => {
   // ===================================================
@@ -98,8 +199,6 @@ const Addcategories: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // First page load only.
-  // Refresh and CRUD requests use the table loading state.
   const [initialCategoriesLoading, setInitialCategoriesLoading] =
     useState(true);
 
@@ -107,6 +206,12 @@ const Addcategories: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
 
   const ITEMS_PER_PAGE = 10;
+
+  // ===================================================
+  // EXPORT STATE
+  // ===================================================
+
+  const [exportLoading, setExportLoading] = useState(false);
 
   // ===================================================
   // ADD MODAL
@@ -150,7 +255,6 @@ const Addcategories: React.FC = () => {
       try {
         const response: any = await logoApi.getLogo();
 
-        // Supports standard Axios and unwrapped responses.
         const possibleLogos: unknown[] = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -166,14 +270,11 @@ const Addcategories: React.FC = () => {
             /^https?:\/\//i.test(value.trim()),
         );
 
-       
-
         if (!cancelled && resolvedLogo) {
           setLogoUrl(resolvedLogo.trim());
         }
       } catch (error) {
         console.error("Logo API error:", error);
-        // Keep the default logo if the request fails.
       } finally {
         if (!cancelled) {
           setLogoLoading(false);
@@ -220,7 +321,6 @@ const Addcategories: React.FC = () => {
 
   // ===================================================
   // FETCH CATEGORIES
-  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
 
   const fetchCategories = useCallback(
@@ -253,7 +353,6 @@ const Addcategories: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
-  // WAIT FOR PERMISSIONS BEFORE REQUESTING CATEGORIES
   // ===================================================
 
   useEffect(() => {
@@ -275,7 +374,6 @@ const Addcategories: React.FC = () => {
 
   // ===================================================
   // COMBINED INITIAL LOADING
-  // ONLY THE COMPONENT CONTENT AREA IS REPLACED
   // ===================================================
 
   const pageLoading =
@@ -370,6 +468,79 @@ const Addcategories: React.FC = () => {
   };
 
   // ===================================================
+  // EXPORT CSV
+  // IMAGE URL INCLUDED - NO IMAGE DOWNLOAD
+  // ===================================================
+
+  const handleExportCsv = () => {
+    if (exportLoading) {
+      return;
+    }
+
+    if (filteredCategories.length === 0) {
+      toast.error("No categories available to export.");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+
+      // Export all filtered categories, not just current page.
+      const exportData = filteredCategories;
+
+      // CSV columns.
+      // Parent Category has been removed.
+      const headers = [
+        "S.No",
+        "Category Name",
+        "Description",
+        "Status",
+        "Image URL",
+      ];
+
+      const csvRows = exportData.map(
+        (category: any, index: number) => {
+          const imageUrl = getCategoryImageUrl(category);
+      
+          return [
+            index + 1,
+            category.title ?? "",
+            category.description ?? "",
+            category.status ?? "",
+            imageUrl,
+          ]
+            .map(escapeCsvValue)
+            .join(",");
+        },
+      );
+      
+      const csvContent = [
+        headers.map(escapeCsvValue).join(","),
+        ...csvRows,
+      ].join("\r\n");
+
+      const csvBlob = new Blob(
+        ["\uFEFF", csvContent],
+        {
+          type: "text/csv;charset=utf-8;",
+        },
+      );
+
+      downloadBlob(csvBlob, "categories_export.csv");
+
+      toast.success(
+        `${exportData.length} categories exported successfully.`,
+      );
+    } catch (error) {
+      console.error("Category CSV export error:", error);
+
+      toast.error("Unable to export categories.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // ===================================================
   // FORM DATA BUILDER
   // ===================================================
 
@@ -408,7 +579,6 @@ const Addcategories: React.FC = () => {
       const formData = buildFormData(payload);
       const response = await categoryApi.add(formData);
 
-      // Subsequent fetch: don't replace the whole component.
       await fetchCategories();
 
       setAddModalOpen(false);
@@ -592,7 +762,6 @@ const Addcategories: React.FC = () => {
 
   // ===================================================
   // COMPONENT-LEVEL LOADING
-  // SIDEBAR AND NAVBAR ARE NOT COVERED
   // ===================================================
 
   if (pageLoading) {
@@ -647,7 +816,7 @@ const Addcategories: React.FC = () => {
             <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
             <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
-            Categories Management
+              Categories Management
             </span>
           </div>
 
@@ -709,6 +878,8 @@ const Addcategories: React.FC = () => {
         <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
         <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* SEARCH */}
+
           <div className="relative w-full lg:max-w-[560px]">
             <FiSearch
               size={17}
@@ -724,11 +895,39 @@ const Addcategories: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* ACTION BUTTONS */}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* EXPORT CSV */}
+
+            <motion.button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={
+                exportLoading ||
+                loading ||
+                filteredCategories.length === 0
+              }
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8]/40 hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiDownload
+                size={14}
+                className={exportLoading ? "animate-pulse" : ""}
+              />
+
+              <span>
+                {exportLoading ? "Exporting..." : "Export CSV"}
+              </span>
+            </motion.button>
+
+            {/* REFRESH */}
+
             <motion.button
               type="button"
               onClick={() => void fetchCategories()}
-              disabled={loading}
+              disabled={loading || exportLoading}
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.97 }}
               className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/15 bg-[#F4F8FD] px-4 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] disabled:cursor-not-allowed disabled:opacity-50"
@@ -740,6 +939,8 @@ const Addcategories: React.FC = () => {
 
               Refresh
             </motion.button>
+
+            {/* ADD CATEGORY */}
 
             {canCreateCategory && (
               <motion.button

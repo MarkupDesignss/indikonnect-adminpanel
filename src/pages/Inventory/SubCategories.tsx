@@ -18,6 +18,7 @@ import {
   FiX,
   FiLayers,
   FiAlertCircle,
+  FiDownload,
 } from "react-icons/fi";
 
 import { motion } from "framer-motion";
@@ -114,7 +115,99 @@ const getCategoryTitle = (
 };
 
 const getSubcategoryImage = (subcategory: Subcategory) => {
-  return subcategory.image_url || subcategory.image || "";
+  const item = subcategory as any;
+
+  const image =
+    item.image_url ||
+    item.image ||
+    item.category_image_url ||
+    item.image_path ||
+    "";
+
+  if (typeof image === "string") {
+    return image.trim();
+  }
+
+  if (image && typeof image === "object") {
+    return (
+      image.url ||
+      image.image_url ||
+      image.original_url ||
+      image.path ||
+      ""
+    );
+  }
+
+  return "";
+};
+
+// =====================================================
+// CSV HELPERS
+// =====================================================
+
+// Escape CSV values and protect against formula injection.
+const escapeCsvValue = (value: unknown): string => {
+  let textValue = String(value ?? "").replace(/\r\n/g, "\n");
+
+  if (/^[=+\-@\t\r]/.test(textValue)) {
+    textValue = `'${textValue}`;
+  }
+
+  return `"${textValue.replace(/"/g, '""')}"`;
+};
+
+// Download CSV only. No image files are downloaded.
+const downloadCsvFile = (
+  content: string,
+  fileName: string,
+): void => {
+  const blob = new Blob(
+    ["\uFEFF", content],
+    {
+      type: "text/csv;charset=utf-8;",
+    },
+  );
+
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = blobUrl;
+  link.download = fileName;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 2000);
+};
+
+// Normalize API status values for CSV.
+const getSubcategoryStatus = (status: unknown): string => {
+  if (typeof status === "string") {
+    const normalized = status.toLowerCase().trim();
+
+    if (
+      normalized === "active" ||
+      normalized === "1" ||
+      normalized === "true"
+    ) {
+      return "Active";
+    }
+
+    if (
+      normalized === "inactive" ||
+      normalized === "0" ||
+      normalized === "false" ||
+      normalized === ""
+    ) {
+      return "Inactive";
+    }
+  }
+
+  return status ? "Active" : "Inactive";
 };
 
 interface SubcategoryFormModalProps {
@@ -126,6 +219,10 @@ interface SubcategoryFormModalProps {
   onClose: () => void;
   onSubmit: (payload: SubcategoryPayload) => void;
 }
+
+// =====================================================
+// SUBCATEGORY FORM MODAL
+// =====================================================
 
 const SubcategoryFormModal: React.FC<
   SubcategoryFormModalProps
@@ -630,6 +727,8 @@ const SubCategories: React.FC = () => {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
 
+  const [exportLoading, setExportLoading] = useState(false);
+
   // Initial loading is separate from refresh/update loading.
   const [initialDataLoading, setInitialDataLoading] =
     useState(true);
@@ -668,7 +767,6 @@ const SubCategories: React.FC = () => {
       try {
         const response: any = await logoApi.getLogo();
 
-        // Handles regular Axios and unwrapped responses.
         const possibleLogos: unknown[] = [
           response?.data?.data?.logo,
           response?.data?.logo,
@@ -692,7 +790,6 @@ const SubCategories: React.FC = () => {
         }
       } catch (error) {
         console.error("Logo API error:", error);
-        // Default logo will remain available.
       } finally {
         if (!cancelled) {
           setLogoLoading(false);
@@ -839,6 +936,82 @@ const SubCategories: React.FC = () => {
       return matchesSearch && matchesParent;
     });
   }, [subcategories, categories, search, parentFilter]);
+
+  // ===================================================
+  // EXPORT CSV
+  // S.NO + IMAGE URL
+  // NO SEPARATE IMAGE DOWNLOAD
+  // ===================================================
+
+  const handleExportCsv = () => {
+    if (exportLoading) {
+      return;
+    }
+
+    if (filteredSubCategories.length === 0) {
+      toast.error("No sub categories available to export.");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+
+      // Export all filtered subcategories, not only current page.
+      const exportData = filteredSubCategories;
+
+      const headers = [
+        "S.No",
+        "Sub Category Name",
+        "Parent Category",
+        "Slug",
+        "Status",
+        "Image URL",
+      ];
+
+      const csvRows = exportData.map(
+        (subcategory, index) => {
+          const parentCategory = getCategoryTitle(
+            subcategory.category_id,
+            categories,
+          );
+
+          const imageUrl = getSubcategoryImage(subcategory);
+
+          return [
+            index + 1,
+            subcategory.name ?? "",
+            parentCategory,
+            subcategory.slug ?? "",
+            getSubcategoryStatus(subcategory.status),
+            imageUrl,
+          ]
+            .map(escapeCsvValue)
+            .join(",");
+        },
+      );
+
+      const csvContent = [
+        headers.map(escapeCsvValue).join(","),
+        ...csvRows,
+      ].join("\r\n");
+
+      // CSV only. Image files are not downloaded.
+      downloadCsvFile(
+        csvContent,
+        "subcategories_export.csv",
+      );
+
+      toast.success(
+        `${exportData.length} sub categories exported successfully.`,
+      );
+    } catch (error) {
+      console.error("Subcategory CSV export error:", error);
+
+      toast.error("Unable to export sub categories.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // ===================================================
   // PAGINATION
@@ -1142,7 +1315,7 @@ const SubCategories: React.FC = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
               <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#2D6FE8]">
-              Sub Categories Management
+                Sub Categories Management
               </span>
             </div>
 
@@ -1158,11 +1331,36 @@ const SubCategories: React.FC = () => {
 
           {/* HEADER ACTIONS */}
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+
+            {/* EXPORT CSV */}
+
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={
+                exportLoading ||
+                loading ||
+                filteredSubCategories.length === 0
+              }
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8]/40 hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiDownload
+                size={14}
+                className={exportLoading ? "animate-pulse" : ""}
+              />
+
+              <span>
+                {exportLoading ? "Exporting..." : "Export CSV"}
+              </span>
+            </button>
+
+            {/* REFRESH */}
+
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={loading || categoryLoading}
+              disabled={loading || categoryLoading || exportLoading}
               className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] px-4 text-xs font-bold text-[#111827] shadow-sm transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FiRefreshCw
@@ -1176,6 +1374,8 @@ const SubCategories: React.FC = () => {
 
               <span className="hidden sm:inline">Refresh</span>
             </button>
+
+            {/* ADD SUB CATEGORY */}
 
             {canCreateSubCategory && (
               <motion.button
@@ -1205,6 +1405,7 @@ const SubCategories: React.FC = () => {
           <div className="pointer-events-none absolute right-8 top-8 h-3 w-3 rounded-full bg-[#FACC15]/30" />
 
           <div className="relative z-10 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+
             {/* SEARCH */}
 
             <div className="relative w-full lg:max-w-[560px]">

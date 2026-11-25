@@ -186,8 +186,9 @@ const getRequestUser = (record: any) => {
 };
 
 /**
- * ✅ UPDATED: Prefer the line item's reference ID (item_reference).
- * Falls back through order_lines_timeline -> items[0] -> order_reference.
+ * Line-item reference ID (item_reference, e.g. ITM-XXXX).
+ * NOTE: Ye ab UI me display nahi hota (sirf search me use hota hai).
+ * UI me ORDER reference dikhta hai -> getOrderReferenceDisplay().
  */
 const getItemReferenceId = (record: any): string => {
   const reference =
@@ -215,8 +216,8 @@ const getItemReferenceId = (record: any): string => {
 };
 
 /**
- * ✅ Actual ORDER reference (NOT item reference).
- * Used for the "Move to Inventory" API call.
+ * ✅ Actual ORDER reference (e.g. ORD6B0689723C0E0).
+ * Used for display everywhere AND for the "Move to Inventory" API call.
  */
 const getOrderReference = (record: any): string | null => {
   const reference =
@@ -228,6 +229,11 @@ const getOrderReference = (record: any): string | null => {
     null;
 
   return reference ? String(reference) : null;
+};
+
+/** ✅ NEW: Display-safe order reference ("—" if missing). */
+const getOrderReferenceDisplay = (record: any): string => {
+  return getOrderReference(record) ?? "—";
 };
 
 /**
@@ -739,9 +745,9 @@ const ApprovePopup: React.FC<ApprovePopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Item Reference</span>
+              <span className="text-xs text-[#6B7280]">Order Reference</span>
 
-              <span className="text-right text-sm font-bold text-[#111827]">
+              <span className="break-all text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
@@ -995,9 +1001,9 @@ const MarkReceivedPopup: React.FC<MarkReceivedPopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Item Reference</span>
+              <span className="text-xs text-[#6B7280]">Order Reference</span>
 
-              <span className="text-right text-sm font-bold text-[#111827]">
+              <span className="break-all text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
@@ -1267,9 +1273,9 @@ const CompletePopup: React.FC<CompletePopupProps> = ({
         <div className="space-y-3 p-4">
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
-              <span className="text-xs text-[#6B7280]">Item Reference</span>
+              <span className="text-xs text-[#6B7280]">Order Reference</span>
 
-              <span className="text-right text-sm font-bold text-[#111827]">
+              <span className="break-all text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
@@ -1526,9 +1532,11 @@ const ReplacementConfirmPopup: React.FC<ReplacementConfirmPopupProps> = ({
 
           <div className="mt-3 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-3">
-              <span className="text-[11px] text-[#6B7280]">Item Reference</span>
+              <span className="text-[11px] text-[#6B7280]">
+                Order Reference
+              </span>
 
-              <span className="text-right text-xs font-bold text-[#111827]">
+              <span className="break-all text-right text-xs font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
@@ -1826,7 +1834,8 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </h1>
 
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-                <span>{getItemReferenceId(detail)}</span>
+                {/* ✅ Order reference */}
+                <span>{getOrderReferenceDisplay(detail)}</span>
 
                 <span>•</span>
 
@@ -2050,10 +2059,12 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
               <div className="space-y-3">
                 <div className="flex justify-between gap-4 border-b border-[#DCE6F2] pb-2.5">
-                  <span className="text-xs text-[#6B7280]">Item Reference</span>
+                  <span className="text-xs text-[#6B7280]">
+                    Order Reference
+                  </span>
 
-                  <span className="text-right text-sm font-bold text-[#2D6FE8]">
-                    {getItemReferenceId(detail)}
+                  <span className="break-all text-right text-sm font-bold text-[#2D6FE8]">
+                    {getOrderReferenceDisplay(detail)}
                   </span>
                 </div>
 
@@ -2284,11 +2295,15 @@ const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                           <div>
                             <p className="text-sm font-bold text-[#111827]">
-                              {line.product?.name || "Product"}
+                              {line.product?.name ||
+                                line.return_item?.product_name ||
+                                "Product"}
                             </p>
 
+                            {/* ✅ Order reference (per-line item ref hata diya) */}
                             <p className="mt-0.5 text-[11px] font-semibold text-[#6B7280]">
-                              {line.item_reference} • Qty: {line.quantity}
+                              {getOrderReferenceDisplay(detail)} • Qty:{" "}
+                              {line.quantity}
                             </p>
                           </div>
                         </div>
@@ -3054,6 +3069,7 @@ const ReturnRefund: React.FC = () => {
 
   // ===================================================
   // FILTER
+  // ✅ Search ab ORDER reference + ITEM reference dono par chalta hai
   // ===================================================
 
   const filteredRequests = useMemo(() => {
@@ -3063,6 +3079,7 @@ const ReturnRefund: React.FC = () => {
       const matchesSearch =
         !query ||
         [
+          getOrderReferenceDisplay(request),
           getItemReferenceId(request),
           getCustomerName(getRequestUser(request)),
           getRequestUser(request)?.email || "",
@@ -3185,7 +3202,7 @@ const ReturnRefund: React.FC = () => {
       return;
     }
 
-    // Use actual order reference, NOT item reference.
+    // Use actual order reference.
     const orderReference = getOrderReference(record);
 
     if (!orderReference) {
@@ -3744,7 +3761,7 @@ const ReturnRefund: React.FC = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search reference, buyer, email..."
+                  placeholder="Search order reference, buyer, email..."
                   className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/10"
                 />
 
@@ -3909,8 +3926,8 @@ const ReturnRefund: React.FC = () => {
 
                           <td className="break-words px-2 py-3">
                             <span className="inline-block max-w-full break-all rounded-md bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                              {/* show item_reference instead of order_reference */}
-                              {getItemReferenceId(request)}
+                              {/* ✅ ORDER reference */}
+                              {getOrderReferenceDisplay(request)}
                             </span>
                           </td>
 
@@ -4165,9 +4182,9 @@ const ReturnRefund: React.FC = () => {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <span className="inline-flex rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
-                          {/* show item_reference instead of order_reference */}
-                          {getItemReferenceId(request)}
+                        <span className="inline-flex break-all rounded-lg bg-[#EAF3FF] px-2.5 py-1 text-xs font-bold text-[#2D6FE8]">
+                          {/* ✅ ORDER reference */}
+                          {getOrderReferenceDisplay(request)}
                         </span>
                       </div>
 
@@ -4474,7 +4491,7 @@ const ReturnRefund: React.FC = () => {
         <ApprovePopup
           open={approveModalOpen}
           loading={actionLoading.type === "approve"}
-          orderReference={getItemReferenceId(selectedDetail)}
+          orderReference={getOrderReferenceDisplay(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4501,7 +4518,7 @@ const ReturnRefund: React.FC = () => {
       {canMarkReceived && (
         <MarkReceivedPopup
           open={receivedModalOpen}
-          orderReference={getItemReferenceId(selectedDetail)}
+          orderReference={getOrderReferenceDisplay(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4518,7 +4535,7 @@ const ReturnRefund: React.FC = () => {
         <CompletePopup
           open={completeModalOpen}
           loading={completeLoading}
-          orderReference={getItemReferenceId(selectedDetail)}
+          orderReference={getOrderReferenceDisplay(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),
@@ -4535,7 +4552,7 @@ const ReturnRefund: React.FC = () => {
         <ReplacementConfirmPopup
           open={replacementConfirmOpen}
           loading={completeLoading}
-          orderReference={getItemReferenceId(selectedDetail)}
+          orderReference={getOrderReferenceDisplay(selectedDetail)}
           customerName={getCustomerName(getRequestUser(selectedDetail))}
           customerLabel={getAccountTypeLabel(
             getRequestAccountType(selectedDetail),

@@ -24,6 +24,7 @@ import {
   FiCheckCircle,
   FiGrid,
   FiAlertCircle,
+  FiDownload,
 } from "react-icons/fi";
 
 import GlobalModal from "@/components/common/GlobalModal";
@@ -33,8 +34,6 @@ import { categoryApi, Category } from "../../api/endpoints/category";
 import logoApi from "../../api/endpoints/logoApi";
 import { usePermissions } from "../permissions/usePermissions";
 import PermissionLoadingState from "@/components/common/PermissionLoadingState";
-
-const PAGE_BG = "#F4F8FD";
 
 // =====================================================
 // DEFAULT LOGO
@@ -82,6 +81,49 @@ interface BrandFormModalProps {
 const getImageUrl = (url?: string | null) => {
   if (!url) return "";
   return url;
+};
+
+// =====================================================
+// CSV HELPERS
+// =====================================================
+
+// Escape CSV values and protect against formula injection.
+const escapeCsvValue = (value: unknown): string => {
+  let textValue = String(value ?? "").replace(/\r\n/g, "\n");
+
+  if (/^[=+\-@\t\r]/.test(textValue)) {
+    textValue = `'${textValue}`;
+  }
+
+  return `"${textValue.replace(/"/g, '""')}"`;
+};
+
+// Download CSV without downloading any image files.
+const downloadCsvFile = (
+  content: string,
+  fileName: string,
+): void => {
+  const blob = new Blob(
+    ["\uFEFF", content],
+    {
+      type: "text/csv;charset=utf-8;",
+    },
+  );
+
+  const blobUrl = window.URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = blobUrl;
+  link.download = fileName;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    window.URL.revokeObjectURL(blobUrl);
+  }, 2000);
 };
 
 // =====================================================
@@ -878,10 +920,11 @@ const BrandsManagement: React.FC = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // First page load only.
   const [initialBrandsLoading, setInitialBrandsLoading] = useState(true);
 
   const [saveLoading, setSaveLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+
   const [search, setSearch] = useState("");
   const [addEditOpen, setAddEditOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
@@ -961,7 +1004,6 @@ const BrandsManagement: React.FC = () => {
 
   // ===================================================
   // FETCH BRANDS
-  // isInitialLoad = true ONLY FOR THE FIRST LOAD
   // ===================================================
 
   const fetchBrands = async (isInitialLoad = false) => {
@@ -988,7 +1030,7 @@ const BrandsManagement: React.FC = () => {
   };
 
   // ===================================================
-  // FETCH CATEGORIES (no full page loader, sirf modal ke liye)
+  // FETCH CATEGORIES
   // ===================================================
 
   const fetchCategories = async () => {
@@ -1012,7 +1054,6 @@ const BrandsManagement: React.FC = () => {
 
   // ===================================================
   // INITIAL FETCH
-  // WAIT FOR PERMISSIONS BEFORE REQUESTING BRANDS
   // ===================================================
 
   useEffect(() => {
@@ -1043,6 +1084,7 @@ const BrandsManagement: React.FC = () => {
 
   const filteredBrands = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     if (!query) return brands;
 
     return brands.filter(
@@ -1052,6 +1094,69 @@ const BrandsManagement: React.FC = () => {
         brand.category?.title?.toLowerCase().includes(query)
     );
   }, [brands, search]);
+
+  // ===================================================
+  // EXPORT BRANDS CSV
+  // IMAGE URLS INCLUDED - NO IMAGE DOWNLOAD
+  // ===================================================
+
+  const handleExportCsv = () => {
+    if (exportLoading) {
+      return;
+    }
+
+    if (filteredBrands.length === 0) {
+      toast.error("No brands available to export.");
+      return;
+    }
+
+    try {
+      setExportLoading(true);
+
+      // Export all filtered brands, not only visible cards.
+      const exportData = filteredBrands;
+
+      const headers = [
+        "S.No",
+        "Brand Name",
+        "Category",
+        "Discount Percentage",
+        "Logo URL",
+        "Banner URL",
+      ];
+
+      const csvRows = exportData.map((brand, index) => {
+        return [
+          index + 1,
+          brand.title ?? "",
+          brand.category?.title ?? "",
+          brand.discount_percentage ?? "",
+          getImageUrl(brand.logo),
+          getImageUrl(brand.banner),
+        ]
+          .map(escapeCsvValue)
+          .join(",");
+      });
+
+      const csvContent = [
+        headers.map(escapeCsvValue).join(","),
+        ...csvRows,
+      ].join("\r\n");
+
+      // Only CSV is downloaded.
+      // Logo and banner files are never downloaded separately.
+      downloadCsvFile(csvContent, "brands_export.csv");
+
+      toast.success(
+        `${exportData.length} brands exported successfully.`,
+      );
+    } catch (error) {
+      console.error("Brands CSV export error:", error);
+      toast.error("Unable to export brands.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   // ===================================================
   // ADD
@@ -1115,8 +1220,7 @@ const BrandsManagement: React.FC = () => {
   };
 
   // ===================================================
-  // COMPONENT-LEVEL LOADING (PULSING LOGO)
-  // SIDEBAR / NAVBAR UNTOUCHED
+  // COMPONENT-LEVEL LOADING
   // ===================================================
 
   if (pageLoading) {
@@ -1154,7 +1258,7 @@ const BrandsManagement: React.FC = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="min-h-screen px-4 bg-white py-5 sm:px-6 lg:px-8"
+      className="min-h-screen bg-white px-4 py-5 sm:px-6 lg:px-8"
     >
       <div className="mx-auto max-w-[1500px]">
         {/* HEADER */}
@@ -1164,9 +1268,9 @@ const BrandsManagement: React.FC = () => {
         >
           <div>
             <div className="mb-1 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
-            <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2D6FE8]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FACC15]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#4F8FF7]" />
 
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#2D6FE8]">
                 Brand Management
@@ -1182,13 +1286,32 @@ const BrandsManagement: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* EXPORT CSV */}
+
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={exportLoading || loading || filteredBrands.length === 0}
+              className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#2D6FE8]/20 bg-[#EAF3FF] px-4 text-sm font-semibold text-[#2D6FE8] shadow-sm transition hover:border-[#2D6FE8]/40 hover:bg-[#DCEBFF] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FiDownload
+                size={16}
+                className={exportLoading ? "animate-pulse" : ""}
+              />
+
+              <span>
+                {exportLoading ? "Exporting..." : "Export CSV"}
+              </span>
+            </button>
+
             {/* REFRESH */}
+
             <button
               type="button"
               onClick={() => {
-                fetchBrands();
-                fetchCategories();
+                void fetchBrands();
+                void fetchCategories();
               }}
               disabled={loading}
               className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#D6E2F0] bg-white px-4 text-sm font-medium text-[#111827] transition hover:border-[#2D6FE8]/30 hover:bg-[#EAF3FF] hover:text-[#2D6FE8] disabled:cursor-not-allowed disabled:opacity-50"
@@ -1201,7 +1324,8 @@ const BrandsManagement: React.FC = () => {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
-            {/* ADD BRAND — permission gated */}
+            {/* ADD BRAND */}
+
             {canCreateBrand && (
               <button
                 type="button"
@@ -1259,7 +1383,7 @@ const BrandsManagement: React.FC = () => {
             </div>
           </div>
 
-          {/* CONTENT — refresh / CRUD ke baad sirf yahan loader */}
+          {/* CONTENT */}
           {loading && brands.length === 0 ? (
             <div className="flex items-center justify-center px-5 py-20 sm:px-6">
               <div className="text-center">
@@ -1299,7 +1423,7 @@ const BrandsManagement: React.FC = () => {
             </div>
           ) : (
             <div className="relative p-5 sm:p-6">
-              {/* subtle inline refresh loading bar (subsequent fetches) */}
+              {/* INLINE REFRESH LOADING */}
               {loading && (
                 <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-[#EAF3FF]">
                   <div className="h-full w-1/3 animate-pulse rounded-full bg-[#2D6FE8]" />

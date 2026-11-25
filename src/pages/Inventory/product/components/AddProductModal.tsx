@@ -168,6 +168,7 @@ const VariantProductSelect: React.FC<{
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const selected = products.find((p) => String(p.id) === value);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) setOpen(false);
@@ -455,35 +456,48 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
     return () => { cancelled = true; };
   }, [open]);
 
-  /* FETCH ALL PRODUCTS FOR COMBO */
-  useEffect(() => {
-    if (!open) { setAllProducts([]); return; }
-    let cancelled = false;
-    const fetchAllProducts = async () => {
-      setFetchingAllProducts(true);
-      try {
-        const api: any = productApi; let response: any = null;
-        if (typeof api.getAll === "function") response = await api.getAll();
-        else if (typeof api.getAllProducts === "function") response = await api.getAllProducts();
-        else if (typeof api.list === "function") response = await api.list();
-        else if (typeof api.getProducts === "function") response = await api.getProducts();
-        else throw new Error("No product-list method found on productApi (expected getAll/getAllProducts/list/getProducts).");
-        if (cancelled) return;
-        const rows = getApiArray(response);
-        setAllProducts(rows.map((item: any) => ({
-          id: Number(item.id), name: item.name || item.title || `Product ${item.id}`,
-          product_code: item.product_code || item.sku || "",
-          image_url: item?.images?.[0]?.image_url || item?.image_url || item?.image || "",
-          category_id: item?.category_id ?? item?.category?.id ?? undefined,
-          category_name: item?.category?.name || item?.category?.title || item?.category_name || "",
-        })));
-      } catch (error) {
-        if (!cancelled) { console.error("Fetch all products error:", error); setAllProducts([]); toast.error("Unable to load all products for combo."); }
-      } finally { if (!cancelled) setFetchingAllProducts(false); }
-    };
-    void fetchAllProducts();
-    return () => { cancelled = true; };
-  }, [open]);
+  /* FETCH PRODUCTS FOR COMBO — only when "Combo" is selected.
+     Hits exactly: GET https://www.markupdesigns.net/indikonnect/api/products
+     (no page / per_page query params) */
+     useEffect(() => {
+      if (!open) { setAllProducts([]); return; }
+      if (productType !== "combo") return;
+      if (allProducts.length > 0) return; // already loaded
+  
+      let cancelled = false;
+  
+      const fetchComboProducts = async () => {
+        setFetchingAllProducts(true);
+        try {
+          const response: any = await productApi.getProducts(); // no params
+          if (cancelled) return;
+  
+          const rows = getApiArray(response);
+          setAllProducts(
+            rows.map((item: any) => ({
+              id: Number(item.id),
+              name: item.name || item.title || `Product ${item.id}`,
+              product_code: item.product_code || item.sku || "",
+              image_url: item?.images?.[0]?.image_url || item?.image_url || item?.image || "",
+              category_id: item?.category_id ?? item?.category?.id ?? undefined,
+              category_name: item?.category?.name || item?.category?.title || item?.category_name || "",
+            })),
+          );
+        } catch (error) {
+          if (!cancelled) {
+            console.error("Fetch combo products error:", error);
+            setAllProducts([]);
+            toast.error("Unable to load products for combo.");
+          }
+        } finally {
+          if (!cancelled) setFetchingAllProducts(false);
+        }
+      };
+  
+      void fetchComboProducts();
+      return () => { cancelled = true; };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, productType]);
 
   useEffect(() => {
     if (!open || !categoryId) {
@@ -878,15 +892,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({
                           />
                         </Field>
                         <Field label="HSN Code" hint="Enter product HSN code" required>
-  <input
-    type="text"
-    inputMode="numeric"
-    value={hsnCode}
-    onChange={(event) => setHsnCode(event.target.value)}
-    placeholder="e.g. 85171300"
-    className={inputCls(false)}
-  />
-</Field>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={hsnCode}
+                            onChange={(event) => setHsnCode(event.target.value)}
+                            placeholder="e.g. 85171300"
+                            className={inputCls(false)}
+                          />
+                        </Field>
                       </div>
                     </div>
                     <Field label="Slug" hint="Auto-generated from product name"><input type="text" value={slug} readOnly placeholder="product-slug" className={inputCls(false, "cursor-not-allowed !bg-slate-100 font-mono !text-xs !text-slate-500")} /></Field>

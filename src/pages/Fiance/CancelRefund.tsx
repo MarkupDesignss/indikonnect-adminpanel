@@ -162,55 +162,73 @@ const getCancellationAmount = (row: any): number => {
   return getRowAmount(row);
 };
 
+/**
+ * ✅ NEW: Actual ORDER reference (e.g. ORD6B0689723C0E0).
+ * Item reference (ITM-XXXX) ab UI me nahi dikhta (sirf search me use hota hai).
+ */
+const getOrderReferenceDisplay = (row: any): string => {
+  const reference =
+    row?.order_reference ??
+    row?.order?.order_reference ??
+    row?.order?.reference ??
+    row?.order_number ??
+    row?.order?.order_number ??
+    null;
+
+  return reference ? String(reference) : "N/A";
+};
+
 /* -------------------------------------------------------------------------- */
 /* ✅ NEW: REFUNDED AMOUNT EXTRACTOR                                          */
 /* -------------------------------------------------------------------------- */
 
+const normalizeRefundStatus = (value: unknown): string =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+const isSuccessfulRefundStatus = (value: unknown): boolean => {
+  const status = normalizeRefundStatus(value);
+
+  return [
+    "completed",
+    "processed",
+    "success",
+    "successful",
+    "succeeded",
+    "refunded",
+    "refund_completed",
+    "refund_processed",
+    "refund_success",
+    "successfully_refunded",
+  ].includes(status);
+};
+
 function getRefundedAmount(record: any): number | null {
   if (!record) return null;
 
-  const refundsArray = record.refunds;
+  const refundsArray = Array.isArray(record.refunds)
+    ? record.refunds
+    : [];
 
-  if (Array.isArray(refundsArray) && refundsArray.length > 0) {
-    const completedRefund = refundsArray.find(
-      (r: any) =>
-        String(r.status || "").toLowerCase() === "completed" ||
-        String(r.status || "").toLowerCase() === "processed",
-    );
+  // Never use the first refund blindly: it may still be pending or failed.
+  const completedRefund = refundsArray.find((refund: any) =>
+    isSuccessfulRefundStatus(refund?.status),
+  );
 
-    const targetRefund = completedRefund || refundsArray[0];
-
-    const candidates = [
-      targetRefund?.amount,
-      targetRefund?.adjusted_amount,
-    ];
-
-    for (const candidate of candidates) {
-      if (
-        candidate === null ||
-        candidate === undefined ||
-        candidate === ""
-      ) {
-        continue;
-      }
-
-      const amount =
-        typeof candidate === "number"
-          ? candidate
-          : parseFloat(String(candidate));
-
-      if (Number.isFinite(amount) && amount > 0) {
-        return amount;
-      }
-    }
-  }
-
-  const topLevelCandidates = [
+  const candidates = [
+    completedRefund?.adjusted_amount,
+    completedRefund?.amount,
     record.refunded_amount,
+    record.refund?.refunded_amount,
+    record.refund_details?.refunded_amount,
+    record.refund_info?.refunded_amount,
+    // This is only displayed as a paid amount after isRefundProcessed() is true.
     record.refund_amount,
   ];
 
-  for (const candidate of topLevelCandidates) {
+  for (const candidate of candidates) {
     if (
       candidate === null ||
       candidate === undefined ||
@@ -235,33 +253,62 @@ function getRefundedAmount(record: any): number | null {
 function isRefundProcessed(record: any): boolean {
   if (!record) return false;
 
-  const status = String(record.status || "").toLowerCase();
-  const refundStatus = String(
-    record.refund_status || "",
-  ).toLowerCase();
-
-  if (status === "completed" || status === "refunded") {
+  // A cancellation/order status of "completed" is not proof of a payment refund.
+  // Only the explicit "refunded" value is accepted from the general status field.
+  if (normalizeRefundStatus(record.status) === "refunded") {
     return true;
   }
 
+  const refundsArray = Array.isArray(record.refunds)
+    ? record.refunds
+    : [];
+
+  const refundStatuses = [
+    record.refund_status,
+    record.refund?.status,
+    record.refund_details?.status,
+    record.refund_info?.status,
+    ...refundsArray.map((refund: any) => refund?.status),
+  ];
+
+  if (refundStatuses.some(isSuccessfulRefundStatus)) {
+    return true;
+  }
+
+  // A known pending/processing/failed refund state is not a completed refund.
+  if (refundStatuses.some((value) => normalizeRefundStatus(value) !== "")) {
+    return false;
+  }
+
+  const explicitFlags = [
+    record.is_refunded,
+    record.refund_completed,
+    record.is_refund_processed,
+    record.refund?.is_completed,
+    record.refund_details?.is_completed,
+    record.refund_info?.is_completed,
+  ];
+
   if (
-    refundStatus === "completed" ||
-    refundStatus === "processed"
+    explicitFlags.some(
+      (value) => value === true || value === 1 || value === "1",
+    )
   ) {
     return true;
   }
 
-  const refundsArray = record.refunds;
-
-  if (Array.isArray(refundsArray) && refundsArray.length > 0) {
-    return refundsArray.some(
-      (r: any) =>
-        String(r.status || "").toLowerCase() === "completed" ||
-        String(r.status || "").toLowerCase() === "processed",
-    );
-  }
-
-  return getRefundedAmount(record) !== null;
+  return Boolean(
+    record.refunded_at ||
+      record.refund_completed_at ||
+      record.refund?.completed_at ||
+      record.refund_details?.completed_at ||
+      record.refund_info?.completed_at ||
+      refundsArray.some(
+        (refund: any) =>
+          isSuccessfulRefundStatus(refund?.status) &&
+          Boolean(refund?.completed_at || refund?.processed_at),
+      ),
+  );
 }
 
 function getDisplayAmount(record: any): number | null {
@@ -934,7 +981,7 @@ const PayPopup: React.FC<PayPopupProps> = ({
           <div className="rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] p-3">
             <div className="flex justify-between gap-4">
               <span className="text-xs text-[#6B7280]">Order Reference</span>
-              <span className="text-right text-sm font-bold text-[#111827]">
+              <span className="break-all text-right text-sm font-bold text-[#111827]">
                 {orderReference}
               </span>
             </div>
@@ -1098,11 +1145,8 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   const displayAmount = getDisplayAmount(raw) ?? amount;
   const status = detail.status || deriveStatus(raw);
 
-  const orderReference =
-    raw.item_reference_id ||
-    raw.order_reference ||
-    raw.order?.order_reference ||
-    "N/A";
+  // ✅ ORDER reference (item reference nahi)
+  const orderReference = getOrderReferenceDisplay(raw);
 
   const customer = {
     full_name:
@@ -1131,10 +1175,12 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
   const reason =
     raw.reason ?? raw.cancellation_reason ?? "No reason provided.";
 
-  const refundDetails =
-    Array.isArray(raw.refunds) && raw.refunds.length > 0
-      ? raw.refunds[0]
-      : null;
+  // Show transaction details only for a refund that is actually successful.
+  const refundDetails = Array.isArray(raw.refunds)
+    ? raw.refunds.find((refund: any) =>
+        isSuccessfulRefundStatus(refund?.status),
+      ) || null
+    : null;
 
   const timelineSource =
     raw.timeline ||
@@ -1473,7 +1519,7 @@ const CancellationDetailModal: React.FC<CancellationDetailModalProps> = ({
                   <span className="text-xs text-[#6B7280]">
                     Order Reference
                   </span>
-                  <span className="text-right text-sm font-bold text-[#2D6FE8]">
+                  <span className="break-all text-right text-sm font-bold text-[#2D6FE8]">
                     {orderReference}
                   </span>
                 </div>
@@ -1880,13 +1926,13 @@ const CancelRefund: React.FC = () => {
                 order_line_id:
                   row.order_line_id ?? row.id,
 
-                // Use the item reference as the primary reference throughout this screen.
+                // ✅ ORDER reference primary reference hai (item reference nahi).
                 order_reference:
-                  row.item_reference_id ||
                   row.order_reference ||
                   row.order?.order_reference ||
                   "N/A",
 
+                // Item reference sirf backup/search ke liye rakha hai.
                 item_reference_id:
                   row.item_reference_id || "N/A",
 
@@ -2039,6 +2085,7 @@ const CancelRefund: React.FC = () => {
 
   // ===================================================
   // FILTER
+  // ✅ Search ab ORDER reference + ITEM reference dono par chalta hai
   // ===================================================
 
   const filteredRequests = useMemo(() => {
@@ -2048,7 +2095,7 @@ const CancelRefund: React.FC = () => {
       const matchesSearch =
         !query ||
         [
-          request.order_reference,
+          getOrderReferenceDisplay(request),
           (request as any).item_reference_id || "",
           request.user?.name || "",
           request.user?.email || "",
@@ -2491,7 +2538,7 @@ const CancelRefund: React.FC = () => {
                   onChange={(e) =>
                     handleSearchChange(e.target.value)
                   }
-                  placeholder="Search reference, buyer, email..."
+                  placeholder="Search order reference, buyer, email..."
                   disabled={loading}
                   className="h-12 w-full rounded-xl border border-[#DCE6F2] bg-[#F4F8FD] pl-11 pr-10 text-sm text-[#111827] outline-none transition placeholder:text-[#6B7280] focus:border-[#2D6FE8] focus:bg-white focus:ring-2 focus:ring-[#2D6FE8]/15 disabled:opacity-60"
                 />
@@ -2643,7 +2690,8 @@ const CancelRefund: React.FC = () => {
 
                         <td className="min-w-0 px-2 py-2">
                           <span className="inline-flex max-w-full rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8] break-all">
-                            {raw.item_reference_id || request.order_reference || "N/A"}
+                            {/* ✅ ORDER reference */}
+                            {getOrderReferenceDisplay(raw)}
                           </span>
                         </td>
 
@@ -2832,7 +2880,8 @@ const CancelRefund: React.FC = () => {
                           Order Reference
                         </p>
                         <span className="inline-flex max-w-full break-all rounded-lg bg-[#EAF3FF] px-2 py-1 text-[10px] font-bold text-[#2D6FE8]">
-                          {(request as any).item_reference_id || request.order_reference || "N/A"}
+                          {/* ✅ ORDER reference */}
+                          {getOrderReferenceDisplay(request)}
                         </span>
                       </div>
 
@@ -3116,9 +3165,7 @@ const CancelRefund: React.FC = () => {
         orderLineId={
           selectedPayRequest?.order_line_id || null
         }
-        orderReference={
-          selectedPayRequest?.order_reference || "N/A"
-        }
+        orderReference={getOrderReferenceDisplay(selectedPayRequest)}
         customerName={getCustomerName(
           selectedPayRequest?.user,
           selectedPayRequest ? getRowAccountType(selectedPayRequest) : "customer",

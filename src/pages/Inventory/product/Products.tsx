@@ -101,16 +101,164 @@ const createDefaultPagination = (): Pagination => ({ total: 0, per_page: ITEMS_P
 type BestSellerPayload = { is_best_seller: 0 | 1 };
 
 // CSV Export helper
+// =====================================================
+// CSV + ALL PRODUCT IMAGE EXPORT HELPERS
+// =====================================================
+
 const escapeCsvValue = (value: unknown): string => {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-    return `"${str.replace(/"/g, '""')}"`;
+  let str = String(value ?? "");
+
+  // Prevent CSV formula injection for text values.
+  if (
+    typeof value === "string" &&
+    /^[\s]*[=+\-@\t\r]/.test(str)
+  ) {
+    str = `'${str}`;
   }
-  return str;
+
+  return `"${str.replace(/"/g, '""')}"`;
 };
 
-const exportProductsToCsv = (products: Product[], filename: string) => {
+// Get every image URL from product gallery and variants.
+const getProductImageUrls = (product: Product | any): string[] => {
+  const productImages = Array.isArray(product?.images)
+    ? product.images
+    : [];
+
+  const variantImages = Array.isArray(product?.variants)
+    ? product.variants
+    : [];
+
+  const urls: string[] = [];
+
+  // Product gallery images.
+  productImages.forEach((image: any) => {
+    const url =
+      typeof image === "string"
+        ? image
+        : image?.image_url ||
+        image?.url ||
+        image?.original_url ||
+        image?.path;
+
+    if (typeof url === "string" && url.trim()) {
+      urls.push(url.trim());
+    }
+  });
+
+  // Variant images.
+  variantImages.forEach((variant: any) => {
+    const url =
+      typeof variant === "string"
+        ? variant
+        : variant?.image_url ||
+        variant?.image ||
+        variant?.url;
+
+    if (typeof url === "string" && url.trim()) {
+      urls.push(url.trim());
+    }
+  });
+
+  // Additional top-level product image URLs.
+  const additionalImages = [
+    product?.primary_image_url,
+    product?.image_url,
+  ];
+
+  additionalImages.forEach((url) => {
+    if (typeof url === "string" && url.trim()) {
+      urls.push(url.trim());
+    }
+  });
+
+  // Avoid downloading duplicate URLs.
+  return [...new Set(urls)];
+};
+
+// Safe image filename.
+const sanitizeExportFileName = (value: string): string => {
+  return (
+    value
+      .trim()
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+      .replace(/\s+/g, "_")
+      .slice(0, 90) || "product"
+  );
+};
+
+// Detect actual image extension.
+const getExportImageExtension = (
+  imageUrl: string,
+  contentType?: string,
+): string => {
+  const mimeExtensions: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "image/avif": "avif",
+    "image/svg+xml": "svg",
+    "image/bmp": "bmp",
+  };
+
+  const mimeType = contentType
+    ?.split(";")[0]
+    .trim()
+    .toLowerCase();
+
+  if (mimeType && mimeExtensions[mimeType]) {
+    return mimeExtensions[mimeType];
+  }
+
+  try {
+    const pathname = new URL(imageUrl).pathname;
+    const match = pathname.match(/\.([a-zA-Z0-9]+)$/);
+
+    if (match?.[1]) {
+      return match[1].toLowerCase();
+    }
+  } catch {
+    // Use jpg as fallback.
+  }
+
+  return "jpg";
+};
+
+// Download blob.
+const downloadExportBlob = (
+  blob: Blob,
+  filename: string,
+) => {
+  const objectUrl = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = filename;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+  }, 5000);
+};
+
+// Download CSV.
+const exportProductsToCsv = (
+  products: Product[],
+  filename: string,
+) => {
+  const productImageUrls = products.map(getProductImageUrls);
+
+  const maximumImages = Math.max(
+    1,
+    ...productImageUrls.map((images) => images.length),
+  );
+
   const headers = [
     "S.No",
     "Product Name",
@@ -124,22 +272,29 @@ const exportProductsToCsv = (products: Product[], filename: string) => {
     "Trending",
     "Best Seller",
     "Deal of the Day",
-    "Primary Image",
     "Category",
-    "Created At",
+    "Subcategory",
+    "Brand",
+    "Product Created At",
+
+    ...Array.from(
+      { length: maximumImages },
+      (_, index) => `Image ${index + 1} URL`,
+    ),
   ];
 
   const getFlagLabel = (value: unknown): string => {
-    const v = value === true || value === 1 || value === "1" || String(value).toLowerCase() === "true";
-    return v ? "Yes" : "No";
+    const enabled =
+      value === true ||
+      value === 1 ||
+      value === "1" ||
+      String(value).toLowerCase() === "true";
+
+    return enabled ? "Yes" : "No";
   };
 
-  const rows = products.map((product, index) => {
-    const images = product.images ?? [];
-    const primaryImage = images.find((img: any) => {
-      const v = img?.is_primary;
-      return v === true || v === 1 || v === "1" || String(v).toLowerCase() === "true";
-    }) ?? images[0];
+  const rows = products.map((product: any, index) => {
+    const images = productImageUrls[index];
 
     return [
       index + 1,
@@ -147,35 +302,59 @@ const exportProductsToCsv = (products: Product[], filename: string) => {
       product.product_code || "",
       product.description || "",
       product.retail_price ?? "",
-      (product as any).distributor_price ?? "",
+      product.distributor_price ?? "",
       product.stock_quantity ?? "",
       product.low_stock_threshold ?? "",
-      getFlagLabel(product.is_published) ? "Published" : "Unpublished",
-      getFlagLabel((product as any).is_trending),
-      getFlagLabel((product as any).is_best_seller),
-      getFlagLabel((product as any).is_deal_of_the_day),
-      primaryImage?.image_url || "",
-      (product as any).category?.title || (product as any).category_name || "",
+
+      // Correct published status.
+      isPublishedProduct(product)
+        ? "Published"
+        : "Unpublished",
+
+      getFlagLabel(product.is_trending),
+      getFlagLabel(product.is_best_seller),
+      getFlagLabel(product.is_deal_of_the_day),
+
+      // API response uses category.name.
+      product.category?.name ||
+      product.category?.title ||
+      product.category_name ||
+      "",
+
+      product.subcategory?.name ||
+      product.subcategory?.title ||
+      product.subcategory_name ||
+      "",
+
+      product.brand_name || "",
       product.created_at || "",
+
+      // Include every product and variant image URL.
+      ...Array.from(
+        { length: maximumImages },
+        (_, imageIndex) => images[imageIndex] || "",
+      ),
     ];
   });
 
   const csvContent = [
     headers.map(escapeCsvValue).join(","),
-    ...rows.map((row) => row.map(escapeCsvValue).join(",")),
-  ].join("\n");
+    ...rows.map((row) =>
+      row.map(escapeCsvValue).join(","),
+    ),
+  ].join("\r\n");
 
-  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  const blob = new Blob(
+    ["\uFEFF", csvContent],
+    {
+      type: "text/csv;charset=utf-8;",
+    },
+  );
+
+  downloadExportBlob(blob, filename);
 };
+
+
 
 const Products: React.FC = () => {
   const location = useLocation();
@@ -213,6 +392,7 @@ const Products: React.FC = () => {
   const [initialProductsLoading, setInitialProductsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
 
+
   const [addLoading, setAddLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [fetchingProduct, setFetchingProduct] = useState(false);
@@ -232,6 +412,8 @@ const Products: React.FC = () => {
   const [highlightedProductId, setHighlightedProductId] = useState<number | null>(null);
   const latestRequestId = useRef(0);
   const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const [csvLoading, setCsvLoading] = useState(false);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -498,10 +680,10 @@ const Products: React.FC = () => {
       setDealLoadingId(product.id);
       const response = checked
         ? await productApi.addDeal(product.id, {
-            starts_at: new Date().toISOString(),
-            ends_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            sale_type: "today_best",
-          })
+          starts_at: new Date().toISOString(),
+          ends_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          sale_type: "today_best",
+        })
         : await productApi.removeDeal(product.id);
       await fetchProducts(currentPage, debouncedSearch, selectedCategoryId);
       toast.success(response.data?.message || (checked ? "Product added to Deal of the Day." : "Product removed from Deal of the Day."));
@@ -542,16 +724,16 @@ const Products: React.FC = () => {
 
       toast.success(
         response.data?.message ||
-          (allowed
-            ? `Always Purchase enabled for ${product.name}.`
-            : `Always Purchase disabled for ${product.name}.`),
+        (allowed
+          ? `Always Purchase enabled for ${product.name}.`
+          : `Always Purchase disabled for ${product.name}.`),
       );
     } catch (error: any) {
       console.error("Purchase permission update error:", error);
       toast.error(
         error?.response?.data?.message ||
-          error?.message ||
-          "Unable to update purchase permission.",
+        error?.message ||
+        "Unable to update purchase permission.",
       );
     } finally {
       setPurchasePermissionLoadingId(null);
@@ -622,18 +804,87 @@ const Products: React.FC = () => {
     setHighlightedProductId(null);
   };
 
-  const handleDownloadCsv = () => {
-    if (products.length === 0) {
-      toast.error("No products to export.");
-      return;
+
+  const handleDownloadCsv = async () => {
+    if (csvLoading) return;
+  
+    try {
+      setCsvLoading(true);
+  
+      // Fetch first page
+      const firstResponse = await productApi.getProducts({
+        page: 1,
+        per_page: ITEMS_PER_PAGE,
+      });
+  
+      const firstNormalized = normalizeProductResponse(
+        firstResponse?.data,
+        1,
+        ITEMS_PER_PAGE,
+      );
+  
+      const allProducts: Product[] = [
+        ...firstNormalized.products,
+      ];
+  
+      const lastPage = firstNormalized.pagination.last_page;
+  
+      // Fetch remaining pages
+      for (let page = 2; page <= lastPage; page++) {
+        const response = await productApi.getProducts({
+          page,
+          per_page: ITEMS_PER_PAGE,
+        });
+  
+        const normalized = normalizeProductResponse(
+          response?.data,
+          page,
+          ITEMS_PER_PAGE,
+        );
+  
+        if (normalized.products.length === 0) break;
+  
+        allProducts.push(...normalized.products);
+      }
+  
+      // Remove duplicate products
+      const uniqueProducts = Array.from(
+        new Map(
+          allProducts.map((product) => [
+            product.id,
+            product,
+          ]),
+        ).values(),
+      );
+  
+      if (uniqueProducts.length === 0) {
+        toast.error("No products to export.");
+        return;
+      }
+  
+      // CSV only — image URLs are included in CSV.
+      // No image fetch requests or separate image downloads.
+      const date = new Date().toISOString().slice(0, 10);
+  
+      exportProductsToCsv(
+        uniqueProducts,
+        `products_all_${date}.csv`,
+      );
+  
+      toast.success(
+        `Successfully exported ${uniqueProducts.length} products to CSV.`,
+      );
+    } catch (error: any) {
+      console.error("Export CSV error:", error);
+  
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to export products.",
+      );
+    } finally {
+      setCsvLoading(false);
     }
-    const categoryName = selectedCategoryId && selectedCategoryId !== "all"
-      ? categories.find((c) => String(c.id) === selectedCategoryId)?.title ?? "category"
-      : "all";
-    const safeCategory = categoryName.replace(/[^a-z0-9]+/gi, "_").toLowerCase();
-    const date = new Date().toISOString().slice(0, 10);
-    exportProductsToCsv(products, `products_${safeCategory}_${date}.csv`);
-    toast.success(`Exported ${products.length} product${products.length === 1 ? "" : "s"} to CSV.`);
   };
 
   const selectedCategoryLabel = useMemo(() => {
@@ -733,11 +984,10 @@ const Products: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleCategoryChange("")}
-                    className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs transition hover:bg-[#F7FAFF] ${
-                      !selectedCategoryId || selectedCategoryId === "all"
+                    className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs transition hover:bg-[#F7FAFF] ${!selectedCategoryId || selectedCategoryId === "all"
                         ? "bg-[#EAF3FF] font-semibold text-[#2D6FE8]"
                         : "text-slate-700"
-                    }`}
+                      }`}
                   >
                     <span>All Categories</span>
                     {(!selectedCategoryId || selectedCategoryId === "all") && <span className="text-[#2D6FE8]">✓</span>}
@@ -757,9 +1007,8 @@ const Products: React.FC = () => {
                           key={category.id}
                           type="button"
                           onClick={() => handleCategoryChange(String(category.id))}
-                          className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs transition hover:bg-[#F7FAFF] ${
-                            isSelected ? "bg-[#EAF3FF] font-semibold text-[#2D6FE8]" : "text-slate-700"
-                          }`}
+                          className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-xs transition hover:bg-[#F7FAFF] ${isSelected ? "bg-[#EAF3FF] font-semibold text-[#2D6FE8]" : "text-slate-700"
+                            }`}
                         >
                           <span className="truncate">{category.title}</span>
                           {isSelected && <span className="text-[#2D6FE8]">✓</span>}
@@ -786,12 +1035,19 @@ const Products: React.FC = () => {
           <div className="flex w-full items-center gap-2 sm:w-auto">
             <button
               type="button"
-              onClick={handleDownloadCsv}
-              disabled={loading || products.length === 0}
+              onClick={() => void handleDownloadCsv()}
+              disabled={csvLoading || loading}
               className="flex h-10 flex-1 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#2D6FE8]/30 bg-[#EAF3FF] px-4 text-xs font-bold text-[#2D6FE8] transition hover:bg-[#2D6FE8] hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
             >
-              <FiDownload size={15} />
-              <span>Export CSV</span>
+              {csvLoading ? (
+                <FiRefreshCw size={15} className="animate-spin" />
+              ) : (
+                <FiDownload size={15} />
+              )}
+
+              <span>
+                {csvLoading ? "Exporting..." : "Export CSV"}
+              </span>
             </button>
 
             {canCreateProduct && (
